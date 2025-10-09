@@ -21,9 +21,18 @@
 #include "eidos_rng.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/time.h>
+#include <stdlib.h>
+
+#ifdef _WIN32
+	// --- These are the required includes for the new Windows RNG code ---
+	#include <windows.h>  // Main header for Windows data types like PBYTE
+	#include <bcrypt.h>   // Header for the Cryptography API where BCryptGenRandom is declared
+#else
+	// --- These are the other headers, now only used for non-Windows systems ---
+	#include <unistd.h>
+	#include <fcntl.h>
+	#include <sys/time.h>
+#endif
 
 
 bool gEidos_RNG_Initialized = false;
@@ -38,25 +47,26 @@ std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 static unsigned long int _Eidos_GenerateRNGSeed(void)
 {
 #ifdef _WIN32
-	// on Windows, we continue to hash together the PID and the time; I think there is a
-	// Windows API for cryptographic random numbers, though.  FIXME
-	static long int hereCounter = 0;
-	long long milliseconds;
-	
+	// On Windows, use the Cryptography API: Next Generation (CNG) to get a
+	// cryptographically secure random number for use as a seed.
+	unsigned long int seed;
+
+	// Ensure this section is thread-safe. If multiple threads request a seed
+	// simultaneously, they must take turns to avoid corrupting system resources.
 #pragma omp critical (Eidos_GenerateRNGSeed)
 	{
-		pid_t pid = getpid();
-		struct timeval te;
-		
-		gettimeofday(&te, NULL); // get current time
-		
-		milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
-		milliseconds += (pid * (long long)10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
-		milliseconds += (hereCounter * (long long)100000);	// make successive calls to this function be widely separated in their seeds
-		hereCounter++;
+		// Ask Windows to fill our seed variable with random bytes.
+		NTSTATUS status = BCryptGenRandom(NULL, (PBYTE)&seed, sizeof(seed), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+
+		// A failure here indicates a system-level problem with Windows. 
+		if (!BCRYPT_SUCCESS(status))
+		{
+			fprintf(stderr, "ERROR: Failed to generate a random seed using BCryptGenRandom. Status: 0x%X\n", (unsigned int)status);
+			exit(EXIT_FAILURE);
+		}	
 	}
 	
-	return (unsigned long int)milliseconds;
+	return seed;
 #else
 	// on other platforms, we now use /dev/urandom as a source of seeds, which is more reliably random
 	// thanks to https://security.stackexchange.com/a/184211/288172 for the basis of this code
@@ -102,7 +112,7 @@ void _Eidos_InitializeOneRNG(Eidos_RNG_State &r)
 	
 	r.gsl_rng_ = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
 	
-	r.mt_rng_.mt_ = (uint64_t *)malloc(Eidos_MT64_NN * sizeof(uint64_t));
+	r.mt_rng_.mt_ = static_cast<uint64_t *>(malloc(Eidos_MT64_NN * sizeof(uint64_t)));
 	r.mt_rng_.mti_ = Eidos_MT64_NN + 1;				// mti==NN+1 means mt[NN] is not initialized
 	
 	r.random_bool_bit_counter_ = 0;
@@ -208,7 +218,10 @@ void _Eidos_SetOneRNGSeed(Eidos_RNG_State &r, unsigned long int p_seed)
 	// undesirable; people will often do a set of runs with sequential seeds starting at 0 and counting up, and they will get
 	// identical runs for 0 and 1.  There is no way to re-map the seed space to get rid of the problem altogether; all we can do
 	// is shift it to a place where it is unlikely to cause a problem.  So that's what we do.
-	if ((p_seed > 0) && (p_seed < 10000000000000000000UL))
+	// BCH 10/2/2025: suppressing the cppcheck warning on this; it is correct, this expression is wrong, because
+	// unsigned long int is 32-bit on many platforms; but it isn't worth breaking backward compatibility to clean
+	// this up; it's really the GSL's fault for using such a vague type to begin with, they should use uintX_t.
+	if ((p_seed > 0) && (p_seed < 10000000000000000000UL))	// cppcheck-suppress incorrectLogicOperator
 		gsl_rng_set(r.gsl_rng_, p_seed + 1);	// map 1 -> 2, 2-> 3, 3-> 4, etc.
 	else
 		gsl_rng_set(r.gsl_rng_, p_seed);		// 0 stays 0
@@ -290,7 +303,7 @@ void Eidos_MT64_init_genrand64(Eidos_MT_State *r, uint64_t seed)
 /* initialize by an array with array-length */
 /* init_key is the array for initializing keys */
 /* key_length is its length */
-void Eidos_MT64_init_by_array64(Eidos_MT_State *r, uint64_t init_key[], uint64_t key_length)
+void Eidos_MT64_init_by_array64(Eidos_MT_State *r, const uint64_t init_key[], uint64_t key_length)
 {
 	uint64_t i, j, k;
 	Eidos_MT64_init_genrand64(r, 19650218ULL);
@@ -320,7 +333,7 @@ void _Eidos_MT64_fill(Eidos_MT_State *r)
 	/* if init_genrand64() has not been called, */
 	/* a default initial seed is used     */
 	int i;
-	static uint64_t mag01[2]={0ULL, Eidos_MT64_MATRIX_A};
+	static const uint64_t mag01[2]={0ULL, Eidos_MT64_MATRIX_A};
 	uint64_t x;
 	
 	// In the original code, this would fall back to some default seed value, but we

@@ -1444,7 +1444,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (!subpop)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
-			if (individual_index_long > subpop->parent_subpop_size_)
+			if (individual_index_long >= subpop->parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced individual i" << individual_index_long << " is out of range." << EidosTerminate();
 			slim_popsize_t individual_index = static_cast<slim_popsize_t>(individual_index_long);
 			
@@ -3953,9 +3953,9 @@ void Species::Species_CheckIntegrity(void)
 			 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
 			 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
 			 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
-			 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+			 //(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||		// now allowing; see issue #534
 			 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
-			 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+			 //(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||			// now allowing; see issue #534
 			 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
 			 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
 			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome type '" << chromosome_type << "' not allowed in non-sexual models." << EidosTerminate();
@@ -4412,6 +4412,8 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 #if defined(SLIMGUI)
 				if (map.display_buffer_)
 					p_usage->subpopulationSpatialMapsDisplay += (size_t)map.buffer_width_ * (size_t)map.buffer_height_ * sizeof(uint8_t) * 3;
+				
+				// FIXME: the usage due to image_ should be added here
 #endif
 			}
 		}
@@ -8858,6 +8860,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	// This could be done with a hash table, but I imagine that would be slower until the number of individuals becomes very large
 	// Also, I'm a bit nervous about putting a large number of consecutive integers into a hash table, re: edge-case performance
 	std::vector<slim_pedigreeid_t> pedigree_id_check;
+	std::vector<slim_haplosomeid_t> haplosome_id_check;
 	
 	gSLiM_next_pedigree_id = 0;
 	
@@ -8937,12 +8940,16 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
 				
 				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosomes_[first_haplosome_index]);
-				individual->haplosomes_[first_haplosome_index]->haplosome_id_ = pedigree_id * 2;
+				slim_haplosomeid_t haplosome_id = pedigree_id * 2;
+				individual->haplosomes_[first_haplosome_index]->haplosome_id_ = haplosome_id;
+				haplosome_id_check.emplace_back(haplosome_id);	// we will test for collisions below
 				
 				if (last_haplosome_index != first_haplosome_index)
 				{
 					p_nodeToHaplosomeMap.emplace(node_id_1, individual->haplosomes_[last_haplosome_index]);
-					individual->haplosomes_[last_haplosome_index]->haplosome_id_ = pedigree_id * 2 + 1;
+					haplosome_id = pedigree_id * 2 + 1;
+					individual->haplosomes_[last_haplosome_index]->haplosome_id_ = haplosome_id;
+					haplosome_id_check.emplace_back(haplosome_id);	// we will test for collisions below
 				}
 				
 				// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
@@ -9947,13 +9954,12 @@ void Species::__CheckNodePedigreeIDs(__attribute__((unused)) EidosInterpreter *p
 	// could be nodes in the node table with haplosome pedigree IDs greater than those in use by individuals, in nonWF models.
 	// See https://github.com/MesserLab/SLiM/pull/420 for an example model that does this very easily.
 	
-	// Also, check for duplicate pedigree IDs, just in case.  __CreateSubpopulationsFromTabulation() does this for individual
-	// pedigree IDs; we do it for node pedigree IDs.  I decided to use a vector with std::sort() to check even though it is
-	// O(n log n), rather than a hash table for O(n), because I'm nervous about hitting a bad edge case with the hash table
-	// due to the nature of the values being inserted.  Shouldn't be a big deal in the grand scheme of things.
+	// Previously, we checked for duplicate haplosome IDs here as well, just in case.
+    // __CreateSubpopulationsFromTabulation() does this in living individuals
+    // already; however, it was found to be overly restrictive, in situations
+    // involving merging of parallel simulations; see https://github.com/MesserLab/SLiM/issues/538
 	tsk_node_table_t &node_table = tables.nodes;
 	tsk_size_t node_count = node_table.num_rows;
-	std::vector<slim_haplosomeid_t> haplosome_id_check;
 	
 	for (tsk_size_t j = 0; (size_t)j < node_count; j++)
 	{
@@ -9966,11 +9972,7 @@ void Species::__CheckNodePedigreeIDs(__attribute__((unused)) EidosInterpreter *p
 		{
 			// get the metadata record and check the haplosome pedigree ID
 			HaplosomeMetadataRec *metadata_rec = (HaplosomeMetadataRec *)(node_table.metadata + offset1);
-			slim_haplosomeid_t haplosome_id = metadata_rec->haplosome_id_;
-			
-			haplosome_id_check.emplace_back(haplosome_id);	// we will test for collisions below
-			
-			slim_pedigreeid_t pedigree_id = haplosome_id / 2;			// rounds down to integer
+			slim_pedigreeid_t pedigree_id = metadata_rec->haplosome_id_ / 2;			// rounds down to integer
 			
 			if (pedigree_id >= gSLiM_next_pedigree_id)
 			{
@@ -9987,13 +9989,6 @@ void Species::__CheckNodePedigreeIDs(__attribute__((unused)) EidosInterpreter *p
 			}
 		}
 	}
-	
-	// Check for haplosome pedigree ID collisions by sorting and looking for duplicates
-	std::sort(haplosome_id_check.begin(), haplosome_id_check.end());
-	const auto duplicate = std::adjacent_find(haplosome_id_check.begin(), haplosome_id_check.end());
-	
-	if (duplicate != haplosome_id_check.end())
-		EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): the haplosome pedigree ID value " << *duplicate << " was used more than once; haplosome pedigree IDs must be unique." << EidosTerminate();
 }
 
 void Species::_ReadAncestralSequence(const char *p_file, Chromosome &p_chromosome)

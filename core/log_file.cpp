@@ -207,7 +207,11 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 		EidosFunctionMap &function_map = community_.FunctionMap();
-		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+			, community_.check_infinite_loops_
+#endif
+			);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
@@ -255,7 +259,11 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 		EidosFunctionMap &function_map = community_.FunctionMap();
-		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+			, community_.check_infinite_loops_
+#endif
+			);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		

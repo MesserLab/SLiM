@@ -152,6 +152,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionShowCycle_nonWF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS);
     connect(ui->actionShowColorChart, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorChart);
     connect(ui->actionShowPlotSymbols, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showPlotSymbols);
+    connect(ui->actionShowColorScales, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorScales);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
     connect(ui->actionQuitQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_quit);
     connect(ui->actionNew, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF);
@@ -229,6 +230,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionCut, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_cut);
     connect(ui->actionCopy, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copy);
     connect(ui->actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
+    connect(ui->actionDuplicate, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_duplicate);
     connect(ui->actionDelete, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_delete);
     connect(ui->actionSelectAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_selectAll);
     

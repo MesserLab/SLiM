@@ -29,6 +29,7 @@
 #include <QSizePolicy>
 #include <QGridLayout>
 #include <QLabel>
+#include <QPointer>
 #include <QLineEdit>
 #include <QSpacerItem>
 #include <QVBoxLayout>
@@ -41,6 +42,8 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QGuiApplication>
+#include <QScreen>
+#include <QWindow>
 #include <QDebug>
 #include <cmath>
 
@@ -52,6 +55,36 @@
 
 #include "eidos_value.h"
 
+
+bool QtSLiMIsMostlyOnScreen(QWidget *window)
+{
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+    QRect f = window->frameGeometry();
+    QScreen *screen1 = QGuiApplication::screenAt(f.topLeft());
+    QScreen *screen2 = QGuiApplication::screenAt(f.topRight());
+    QScreen *screen3 = QGuiApplication::screenAt(f.bottomLeft());
+    QScreen *screen4 = QGuiApplication::screenAt(f.bottomRight());
+    QScreen *screen5 = QGuiApplication::screenAt(f.center());
+    int cornerCount = (!!screen1) + (!!screen2) + (!!screen3) + (!!screen4);
+    if (!screen5) cornerCount = 0;
+    return (cornerCount >= 2);
+#else
+    Q_UNUSED(window);
+    return true;
+#endif
+}
+
+void QtSLiMRelocateQuietly(QWidget *window)
+{
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+    QScreen *primary = QGuiApplication::primaryScreen();
+    QRect avail = primary ? primary->availableGeometry() : QRect(0,0,1024,768);
+    window->resize(window->size().boundedTo(avail.size()));
+    window->move(avail.topLeft() + QPoint(50, 50));
+#else
+    Q_UNUSED(window);
+#endif
+}
 
 void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
 {
@@ -67,6 +100,14 @@ void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
     // I'm not sure how this is normally dealt with by operating systems, since I never use full-screen mode
     // on macOS it seems to work OK; the new window goes full-screen also, in front of the other, which
     // I assume is the standard behavior...?  I'll wait for reported bugs on this one, I don't know.  FIXME
+
+    // Fullscreen note: on Windows, "fullscreen" often means a borderless maximized window that can be
+    // overlaid by another normal window that calls show/raise/activate. We intentionally do that here so
+    // SLiMgui presents visibly on the current screen if possible, without minimizing/altering other apps.
+    // If the window still isn't exposed (e.g., truly exclusive fullscreen), we will attempt relocation to
+    // another monitor after a short delay; if that also fails, we flash the app icon to notify the user. -Chris
+
+    // Still unclear how this will behave on Linux systems, hopefuly the same as macOS?
     
     // un-miniaturize the window if it is miniaturized
     if (window->windowState() & Qt::WindowMinimized)
@@ -77,26 +118,45 @@ void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
     window->raise();
     window->activateWindow();
     
-    // check the coordinates of the window and make sure it is actually visible on-screen
-    // This requires Qt 5.10 or later
+    // If not sufficiently visible, relocate to a safe point on the primary screen
+    if (!QtSLiMIsMostlyOnScreen(window))
+        QtSLiMRelocateQuietly(window);
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
-    QScreen *screen1 = QGuiApplication::screenAt(window->frameGeometry().topLeft());
-    QScreen *screen2 = QGuiApplication::screenAt(window->frameGeometry().topRight());
-    QScreen *screen3 = QGuiApplication::screenAt(window->frameGeometry().bottomLeft());
-    QScreen *screen4 = QGuiApplication::screenAt(window->frameGeometry().bottomRight());
-    QScreen *screen5 = QGuiApplication::screenAt(window->frameGeometry().center());
-    int cornerCount = (!!screen1) + (!!screen2) + (!!screen3) + (!!screen4);
-    
-    if (!screen5)
-        cornerCount = 0;
-    
-    if (cornerCount >= 2)   // 2 corners plus the center are visible
-        return;
-    
-    // we're not very visible on-screen, so move ourselves so that we are; this is obviously ungraceful
-    // it would be nice to move the window to some concept of a "closest point to the current position
-    // that is fully visible", but I'm not sure how to do that, for the general case; (100, 100) seems ok
-    window->move(100, 100);
+    // If still not actually exposed (e.g., exclusive fullscreen), re-check shortly and then try other screens
+    if (QWindow *w = window->windowHandle())
+    {
+        if (!w->isExposed())
+        {
+            QPointer<QWidget> safeWindow(window);
+            QTimer::singleShot(200, qApp, [safeWindow]() {
+                if (!safeWindow)
+                    return;
+                QWidget *win = safeWindow.data();
+                QWindow *wh = win->windowHandle();
+                if (!wh)
+                    return;
+                if (wh->isExposed())
+                    return;    // became exposed in the meantime; do nothing
+
+                QScreen *currentScreen = QGuiApplication::screenAt(win->frameGeometry().center());
+                const QList<QScreen*> screens = QGuiApplication::screens();
+                for (QScreen *screen : screens)
+                {
+                    if (screen == currentScreen)
+                        continue;
+                    QRect avail = screen->availableGeometry();
+                    win->move(avail.topLeft() + QPoint(50, 50));
+                    win->raise();
+                    win->activateWindow();
+                    if (wh->isExposed())
+                        return;
+                }
+                // If we still are not exposed anywhere, alert the user via taskbar/dock
+                qApp->alert(win);
+            });
+        }
+    }
 #endif
 }
 
@@ -275,6 +335,138 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		*colorGreen = static_cast<float>((value - 2.0) * 0.75 / value);
 		*colorBlue = 1.0;
 	}
+}
+
+QtSLiMColorScaleWidget::QtSLiMColorScaleWidget(QWidget *p_parent) : QWidget(p_parent),
+    fitnessTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
+    effectTicks({"-1.0", "-0.5", "0.0", "0.5", "1.0"})
+{
+    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+}
+
+void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
+{
+    // we're designed to fit in a fixed size of 301 x 197; see dispatch_showColorScales()
+    //QRect overallRect = contentsRect();
+    QPainter painter(this);
+    QRect stripe1 = QRect(15, 33, 271, 20);     // odd width so we have a central pixel of exactly yellow
+    QRect stripe2 = QRect(15, 105, 271, 20);    // odd width so we have a central pixel of exactly yellow
+    
+    static QFont *labelFont = nullptr;
+    
+    if (!labelFont)
+    {
+        labelFont = new QFont();
+#ifdef __linux__
+        labelFont->setPointSize(10);
+#else
+        labelFont->setPointSize(12);
+#endif
+        labelFont->setBold(true);
+    }
+    painter.setFont(*labelFont);
+    
+    const double labelYOffset = -8;
+    
+    // Fitness color scale
+    painter.drawText(stripe1.x(), stripe1.y() + labelYOffset, "Individual fitness scale:");
+    
+    for (int x = stripe1.left() + 1; x <= (stripe1.left() + 1) + (stripe1.width() - 3); ++x)
+    {
+        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
+        QRect sliver(x, stripe1.top() + 1, 1, stripe1.height() - 2);
+        double sliverFraction = (x - (stripe1.left() + 1)) / (stripe1.width() - 3.0);
+        double fitness = sliverFraction * 2.0;     // cover fitness values of 0.0 to 2.0
+        float r, g, b;
+        RGBForFitness(fitness, &r, &g, &b, scalingFactor);
+        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
+    }
+    
+    QtSLiMFrameRect(stripe1, Qt::black, painter);
+    
+    // Mutation effect color scale
+    painter.drawText(stripe2.x(), stripe2.y() + labelYOffset, "Mutation effect scale:");
+    
+    for (int x = stripe2.left() + 1; x <= (stripe2.left() + 1) + (stripe2.width() - 3); ++x)
+    {
+        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
+        QRect sliver(x, stripe2.top() + 1, 1, stripe2.height() - 2);
+        double sliverFraction = (x - (stripe2.left() + 1)) / (stripe2.width() - 3.0);
+        double fitness = sliverFraction * 2.0 - 1;     // cover mutation effect values of -1.0 to 1.0
+        float r, g, b;
+        RGBForSelectionCoeff(fitness, &r, &g, &b, scalingFactor);
+        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
+        
+        //qDebug() << "x =" << x << " << sliverFraction =" << sliverFraction << " fitness =" << fitness;
+    }
+    
+    QtSLiMFrameRect(stripe2, Qt::black, painter);
+    
+    // Draw axis scales
+    static QFont *tickFont = nullptr;
+    
+    if (!tickFont)
+    {
+        tickFont = new QFont();
+#ifdef __linux__
+        tickFont->setPointSize(8);
+#else
+        tickFont->setPointSize(10);
+#endif
+    }
+    painter.setFont(*tickFont);
+    
+    QFontMetricsF fontMetrics(*tickFont);
+    
+    for (int tickIndex = 0; tickIndex < 5; tickIndex++)
+    {
+        bool longTick = (tickIndex % 2 == 0);
+        int tickX = round(stripe1.left() + 1 + (tickIndex / 4.0) * (stripe1.width() - 3.0));
+        QString tickLabel;
+        double tickLabelWidth;
+        
+        // label stripe 1
+        tickLabel = fitnessTicks[tickIndex];
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+#else
+        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+#endif
+        
+        painter.fillRect(tickX, stripe1.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
+        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe1.bottom() + 16), tickLabel);
+        
+        // label stripe 2
+        tickLabel = effectTicks[tickIndex];
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+#else
+        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+#endif
+        
+        painter.fillRect(tickX, stripe2.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
+        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe2.bottom() + 16), tickLabel);
+    }
+    
+    // add final notes in italic
+    static QFont *noteFont = nullptr;
+    
+    if (!noteFont)
+    {
+        noteFont = new QFont();
+#ifdef __linux__
+        noteFont->setPointSize(9);
+#else
+        noteFont->setPointSize(11);
+#endif
+        noteFont->setItalic(true);
+    }
+    painter.setFont(*noteFont);
+    
+    painter.drawText(stripe1.x(), stripe2.bottom() + 44, "Yellow indicates neutrality on both color scales.");
+    painter.drawText(stripe1.x(), stripe2.bottom() + 58, "Both scales fade out to white for large values.");
 }
 
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
@@ -825,7 +1017,7 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStri
     {
         QStringList returnList;
         
-        for (QLineEdit *lineEdit : qAsConst(lineEdits))
+        for (QLineEdit *lineEdit : static_cast<const QVector<QLineEdit *> &>(lineEdits))
             returnList.append(lineEdit->text());
         
         delete dialog;

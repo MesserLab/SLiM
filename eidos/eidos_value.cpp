@@ -1650,9 +1650,31 @@ void EidosValue_Float::Sort(bool p_ascending)
 	
 	// Unfortunately a custom comparator is needed to make the sort order with NANs match that of R
 	if (p_ascending)
-		Eidos_ParallelSort_Comparator(values_, count_, [](const double& a, const double& b) { return std::isnan(b) || (a < b); });
+		Eidos_ParallelSort_Comparator(values_, count_, [](const double& a, const double& b) {
+			// If a is NaN and b is not NaN, a should come after b
+			if (std::isnan(a) && !std::isnan(b))
+				return false;
+			
+			// If b is NaN and a is not NaN, b should come after a
+			if (!std::isnan(a) && std::isnan(b))
+				return true;
+			
+			// If both are NaN or both are non-NaN, sort numerically (ascending)
+			return a < b;
+		});
 	else
-		Eidos_ParallelSort_Comparator(values_, count_, [](const double& a, const double& b) { return std::isnan(b) || (a > b); });
+		Eidos_ParallelSort_Comparator(values_, count_, [](const double& a, const double& b) {
+			// If a is NaN and b is not NaN, a should come after b
+			if (std::isnan(a) && !std::isnan(b))
+				return false;
+			
+			// If b is NaN and a is not NaN, b should come after a
+			if (!std::isnan(a) && std::isnan(b))
+				return true;
+			
+			// If both are NaN or both are non-NaN, sort numerically (descending)
+			return a > b;
+		});
 }
 
 EidosValue_Float *EidosValue_Float::reserve(size_t p_reserved_size)

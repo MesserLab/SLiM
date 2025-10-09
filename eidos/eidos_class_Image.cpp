@@ -96,6 +96,18 @@ EidosImage::EidosImage(int64_t p_width, int64_t p_height, bool p_grayscale) : wi
 
 EidosImage::~EidosImage(void)
 {
+#if defined(SLIMGUI)
+	if (image_)
+	{
+		if (image_deleter_)
+			image_deleter_(image_);
+		else
+			std::cout << "Missing Image image_deleter_; leaking memory" << std::endl;
+		
+		image_ = nullptr;
+		image_deleter_ = nullptr;
+	}
+#endif
 }
 
 const EidosClass *EidosImage::Class(void) const

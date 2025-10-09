@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fswiss\fcharset0 Optima-Regular;\f4\fswiss\fcharset0 Optima-BoldItalic;\f5\fnil\fcharset0 Menlo-Italic;
 \f6\fnil\fcharset0 AppleSymbols;\f7\fswiss\fcharset0 Optima-Italic;\f8\froman\fcharset0 TimesNewRomanPS-ItalicMT;
@@ -8,9 +8,9 @@
 \red150\green150\blue150;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c100000;\cssrgb\c87536\c0\c0;
 \cssrgb\c65500\c65500\c65500;}
-{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
 {\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
-{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}}
 {\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab397
@@ -857,18 +857,33 @@
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
-(float$)cor(numeric\'a0x, numeric\'a0y)\
+(float)cor(numeric\'a0x, \kerning1\expnd0\expndtw0 [Nif\'a0y\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
 \f0\b sample Pearson\'92s correlation coefficient
-\f3\b0  between 
+\f3\b0  between vectors 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
 \f3\fs20 , usually denoted 
 \f7\i r
-\f3\i0 .  The sizes of 
+\f3\i0 .  If 
+\f1\fs18 y
+\f3\fs20  is 
+\f1\fs18 NULL
+\f3\fs20 , it is considered to have the same value as 
+\f1\fs18 x
+\f3\fs20 ; for vector 
+\f1\fs18 x
+\f3\fs20  this is not very useful (since the correlation of 
+\f1\fs18 x
+\f3\fs20  with itself is 
+\f1\fs18 1.0
+\f3\fs20  by definition), but it is more useful for calculating a correlation matrix using the columns of 
+\f1\fs18 x
+\f3\fs20  (see below).  The sizes of 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
@@ -880,23 +895,70 @@
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f3\fs20 , the return value will be 
+\f3\fs20 , 
+\f1\fs18 NAN
+\f3\fs20  will be returned (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f3\fs20 .  At present it is illegal to call 
+\f3\fs20 ).  The return value will be a singleton 
+\f1\fs18 float
+\f3\fs20 .\
+It is also legal to call 
 \f1\fs18 cor()
-\f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\f3\fs20  with matrix 
+\f1\fs18 x
+\f3\fs20  and/or 
+\f1\fs18 y
+\f3\fs20 .  In this case the return value will be a correlation matrix between x and y.  Each column of 
+\f1\fs18 x
+\f3\fs20  will be represented by one row of the result (or if 
+\f1\fs18 x
+\f3\fs20  is a vector, the result will simply have one row representing 
+\f1\fs18 x
+\f3\fs20 ), and each column of 
+\f1\fs18 y
+\f3\fs20  will be represented by one column of the result (or if 
+\f1\fs18 y
+\f3\fs20  is a vector, the result will simply have one column representing 
+\f1\fs18 y
+\f3\fs20 ).  Each element in the result matrix will therefore represent the correlation between a column of matrix 
+\f1\fs18 x
+\f3\fs20  (or the entirety of vector 
+\f1\fs18 x
+\f3\fs20 ) and a column of matrix 
+\f1\fs18 y
+\f3\fs20  (or the entirety of vector y).  Calling 
+\f1\fs18 cor(x, x)
+\f3\fs20 , or equivalently 
+\f1\fs18 cor(x)
+\f3\fs20 , thus produces a symmetric correlation matrix among the columns of 
+\f1\fs18 x
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)cov(numeric\'a0x, numeric\'a0y)\
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float)cov(numeric\'a0x, \kerning1\expnd0\expndtw0 [Nif\'a0y\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
 \f0\b corrected sample covariance
-\f3\b0  between 
+\f3\b0  between vectors 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
-\f3\fs20 .  The sizes of 
+\f3\fs20 .  If 
+\f1\fs18 y
+\f3\fs20  is 
+\f1\fs18 NULL
+\f3\fs20 , it is considered to have the same value as 
+\f1\fs18 x
+\f3\fs20 ; for vector 
+\f1\fs18 x
+\f3\fs20  this is equivalent to calling 
+\f1\fs18 var(x)
+\f3\fs20 , but it is more useful for calculating a variance-covariance matrix using the columns of 
+\f1\fs18 x
+\f3\fs20  (see below).  The sizes of 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
@@ -908,14 +970,119 @@
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f3\fs20 , the return value will be 
+\f3\fs20 , 
+\f1\fs18 NAN
+\f3\fs20  will be returned (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f3\fs20 .  At present it is illegal to call 
+\f3\fs20 ).  The return value will be a singleton 
+\f1\fs18 float
+\f3\fs20 .\
+It is also legal to call 
 \f1\fs18 cov()
-\f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\f3\fs20  with matrix 
+\f1\fs18 x
+\f3\fs20  and/or 
+\f1\fs18 y
+\f3\fs20 .  In this case the return value will be a covariance matrix between x and y.  Each column of 
+\f1\fs18 x
+\f3\fs20  will be represented by one row of the result (or if 
+\f1\fs18 x
+\f3\fs20  is a vector, the result will simply have one row representing 
+\f1\fs18 x
+\f3\fs20 ), and each column of 
+\f1\fs18 y
+\f3\fs20  will be represented by one column of the result (or if 
+\f1\fs18 y
+\f3\fs20  is a vector, the result will simply have one column representing 
+\f1\fs18 y
+\f3\fs20 ).  Each element in the result matrix will therefore represent the covariance between a column of matrix 
+\f1\fs18 x
+\f3\fs20  (or the entirety of vector 
+\f1\fs18 x
+\f3\fs20 ) and a column of matrix 
+\f1\fs18 y
+\f3\fs20  (or the entirety of vector y).  Calling 
+\f1\fs18 cov(x, x)
+\f3\fs20 , or equivalently 
+\f1\fs18 cov(x)
+\f3\fs20 , thus produces a symmetric variance-covariance matrix among the columns of 
+\f1\fs18 x
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (+$)max(+\'a0x, ...)\
+\f1\fs18 \cf2 (float)filter(numeric\'a0x, float\'a0filter, [lif$\'a0outside\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the result of convolving 
+\f1\fs18 x
+\f3\fs20  with 
+\f1\fs18 filter
+\f3\fs20 .  The returned vector will be the same length as 
+\f1\fs18 x
+\f3\fs20 .  The convolution is performed by centering 
+\f1\fs18 filter
+\f3\fs20  on each position of 
+\f1\fs18 x
+\f3\fs20  to produce a corresponding result element that is the sum over the products of each 
+\f1\fs18 filter
+\f3\fs20  value with each 
+\f1\fs18 x
+\f3\fs20  value within the filter\'92s range.  The length of 
+\f1\fs18 filter
+\f3\fs20  is required to be odd, so that the filter has a central value (and can thus be centered over each value of 
+\f1\fs18 x
+\f3\fs20 ).\
+If the filter, centered over a given value of 
+\f1\fs18 x
+\f3\fs20 , extends beyond the end of 
+\f1\fs18 x
+\f3\fs20  then the calculation of the corresponding element of the result is governed by the 
+\f1\fs18 outside
+\f3\fs20  parameter.  When 
+\f1\fs18 outside
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20  (the default), the corresponding element in the result will be 
+\f1\fs18 NAN
+\f3\fs20 ; this matches the behavior of the R 
+\f1\fs18 filter()
+\f3\fs20  function (except that R uses 
+\f1\fs18 NA
+\f3\fs20 ).  If 
+\f1\fs18 outside
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , values outside 
+\f1\fs18 x
+\f3\fs20  will be excluded from the calculation (the filter value covering that position will be considered to be 
+\f1\fs18 0
+\f3\fs20 ), and the other values in the filter will be adjusted so that the sum of the absolute values of the filter weights used is unchanged, to compensate for the excluded values by giving the positions inside 
+\f1\fs18 x
+\f3\fs20  more weight. Finally, if 
+\f1\fs18 outside
+\f3\fs20  is 
+\f1\fs18 integer
+\f3\fs20  or 
+\f1\fs18 float
+\f3\fs20 , that value will be used as the value of 
+\f1\fs18 x
+\f3\fs20  for all positions outside 
+\f1\fs18 x
+\f3\fs20 ; one might pass an expected value or mean value in this way, to be used for all outside positions.\
+This function is useful for computing running means and similar transformations of an input vector.  For a simple running mean of width 
+\f1\fs18 w
+\f3\fs20 , pass r
+\f1\fs18 ep(1/w, w)
+\f3\fs20  for 
+\f1\fs18 filter
+\f3\fs20 .  That case is automatically detected and handled efficiently; otherwise, the runtime of this function is proportional to the length of 
+\f1\fs18 x
+\f3\fs20  times the length of 
+\f1\fs18 filter
+\f3\fs20 , and so will be slow for long filters.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (+$)max(+\'a0x, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf0 Returns the 
@@ -1266,23 +1433,27 @@ The result for all of these
 \f1\fs18 \cf0 (float$)sd(numeric
 \f2 \'a0
 \f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns the 
+\f3\fs20 \cf2 Returns the 
 \f0\b corrected sample standard deviation
 \f3\b0  of 
 \f1\fs18 x
-\f2\fs20 .
-\f3   If 
+\f3\fs20 .  If 
 \f1\fs18 x
 \f3\fs20  has a size of 
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f2\fs20 ,
-\f3  the return value will be 
+\f3\fs20 , 
+\f1\fs18 NAN
+\f3\fs20  will be returned (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f2\fs20 .\
+\f3\fs20 ).  Matrix/array dimensions are ignored by 
+\f1\fs18 sd()
+\f3\fs20 ; it simply uses all of the elements of 
+\f1\fs18 x
+\f3\fs20  for its calculation.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float$)ttest(float
@@ -1340,7 +1511,7 @@ The result for all of these
 (float$)var(numeric\'a0x)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
 \f0\b corrected sample variance
 \f3\b0  of 
 \f1\fs18 x
@@ -1350,16 +1521,20 @@ The result for all of these
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f3\fs20 , the return value will be 
+\f3\fs20 , 
+\f1\fs18 NAN
+\f3\fs20  will be returned (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f3\fs20 .  This is the square of the standard deviation calculated by 
+\f3\fs20 ).  This is the square of the standard deviation calculated by 
 \f1\fs18 sd()
-\f3\fs20 .  At present it is illegal to call 
+\f3\fs20 .  It is illegal to call 
 \f1\fs18 var()
-\f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\f3\fs20  with a matrix or array argument; use 
+\f1\fs18 cov()
+\f3\fs20  to calculate a variance-covariance matrix.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.3.  Distribution drawing and density functions\
+\f0\b\fs22 \cf0 3.3.  Distribution drawing and density functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -4369,9 +4544,15 @@ The above explanation may not be entirely clear, so let\'92s look at an example.
 \f3\fs20 , 2\'966, in the second column.  Although visualization becomes more difficult, these same patterns extend to higher dimensions and arbitrary margins of 
 \f1\fs18 x
 \f3\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 For efficiently obtaining the sums of the rows or columns of a matrix, see 
+\f1\fs18 rowSums()
+\f3\fs20  and 
+\f1\fs18 colSums()
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)array(*\'a0data, integer\'a0dim)
+\f1\fs18 \cf0 (*)array(*\'a0data, integer\'a0dim)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4399,7 +4580,24 @@ The elements of
 \f3\fs20 .  The new array will be filled in dimension order: one element in each row until a column is filled, then on to the next column in the same manner until all columns are filled, and then onward into the higher-order dimensions in the same manner.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)cbind(...)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)asVector(*\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Creates a new vector
+\f3\b0  from the elements of 
+\f1\fs18 x
+\f3\fs20 , stripping off any dimensional information associated with 
+\f1\fs18 x
+\f3\fs20  being a vector or array.  The values of the resulting vector are read out from 
+\f1\fs18 x
+\f3\fs20  in dimension order: one element from each row until a column is completed, then on to the next column in the same manner until all columns are completed, and then onward into the higher-order dimensions in the same manner.  If 
+\f1\fs18 x
+\f3\fs20  is already a vector, it is returned unmodified.  See 
+\f1\fs18 drop()
+\f3\fs20  for a similar method that drops only matrix/array dimensions that are redundant.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)cbind(...)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4429,7 +4627,61 @@ To combine vectors or matrices by row instead, see
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)diag([*\'a0x\'a0=\'a01], [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)colSums(lif\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the sums of the columns
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a matrix.  The result is a vector of elements, each providing the sum of the corresponding column of 
+\f1\fs18 x
+\f3\fs20 .  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 logical
+\f3\fs20  or 
+\f1\fs18 integer
+\f3\fs20  the result will be of type 
+\f1\fs18 integer
+\f3\fs20 ; unlike the 
+\f1\fs18 sum()
+\f3\fs20  function, 
+\f1\fs18 colSums()
+\f3\fs20  does not promote the return type to 
+\f1\fs18 float
+\f3\fs20  if 
+\f1\fs18 integer
+\f3\fs20  overflow occurs, but instead throws an error.  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 float
+\f3\fs20  the result will be of type 
+\f1\fs18 float
+\f3\fs20 .  Except for the change in the treatment of 
+\f1\fs18 integer
+\f3\fs20  overflow noted above, this is equivalent to using 
+\f1\fs18 apply()
+\f3\fs20  with 
+\f1\fs18 sum()
+\f3\fs20  to sum the columns of 
+\f1\fs18 x
+\f3\fs20 , but is much faster.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (numeric$)det(numeric\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the determinant
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a square matrix (otherwise an error is raised).  The determinant is a scalar-valued function of the entries of the matrix, and characterizes some properties of the matrix.  In particular, the determinant is nonzero if and only if the matrix is invertible.  If the determinant is zero, the matrix does not have an inverse and is referred to as \'93singular\'94.  In Eidos the determinant is calculated from the 
+\f7\i LU
+\f3\i0  decomposition of the matrix.  The return type will match the type of 
+\f1\fs18 x
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (*)diag([*\'a0x\'a0=\'a01], [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the diagonal
@@ -4526,10 +4778,54 @@ Returns the result of dropping redundant dimensions
 \f1\fs18 x
 \f3\fs20 .  Redundant dimensions are those with a size of exactly 1.  Non-redundant dimensions are retained.  If only one non-redundant dimension is present, the result is a vector; if more than one non-redundant dimension is present, the result will be a matrix or array.  If 
 \f1\fs18 x
-\f3\fs20  is not a matrix or array, it is returned unmodified.\
+\f3\fs20  is not a matrix or array, it is returned unmodified.\kerning1\expnd0\expndtw0   See 
+\f1\fs18 asVector()
+\f3\fs20  for a way to drop all dimensions of a matrix or array, whether redundant or not.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (logical)lowerTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)inverse(numeric\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the (multiplicative) inverse
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a square non-singular matrix (otherwise an error is raised).  If matrix 
+\f0\b B
+\f3\b0  is the inverse of 
+\f7\i n
+\f3\i0 -by-
+\f7\i n
+\f3\i0  matrix 
+\f0\b A
+\f3\b0 , then 
+\f0\b AB
+\f3\b0  = 
+\f0\b BA
+\f3\b0  = 
+\f0\b I
+\f7\i\b0\fs13\fsmilli6667 \sub n
+\f3\i0\fs20 \nosupersub , where 
+\f0\b I
+\f7\i\b0\fs13\fsmilli6667 \sub n
+\f3\i0\fs20 \nosupersub  denotes the 
+\f7\i n
+\f3\i0 -by-
+\f7\i n
+\f3\i0  identity matrix and the multiplication used is ordinary matrix multiplication as performed by 
+\f1\fs18 matrixMult()
+\f3\fs20 .  If 
+\f1\fs18 x
+\f3\fs20  might be singular (and thus non-invertible), and you wish to avoid the possibility of an error, you can call 
+\f1\fs18 det()
+\f3\fs20  first to find the determinant of the matrix; if the determinant is zero, the matrix is singular and does not have an inverse, and so 
+\f1\fs18 inverse()
+\f3\fs20  should not be called.  In Eidos the inverse is calculated from the 
+\f7\i LU
+\f3\i0  decomposition of the matrix.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)lowerTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the lower triangle
@@ -4645,7 +4941,26 @@ Both
 \f3\i0  matrix).  Vectors will not be promoted to matrices by this function, even if such promotion would lead to a conformable matrix.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer$)nrow(*\'a0x)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)matrixPow(numeric\'a0x, integer$\'a0power)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the result of raising matrix 
+\f11\fs18 x
+\f0\fs20  to an 
+\f11\fs18 integer
+\f0\fs20  
+\f11\fs18 power
+\f0\fs20 .
+\f3\b0   The parameter x must be a square matrix (or an error will be raised).  This operation is performed by repeated matrix multiplication with 
+\f1\fs18 matrixMult()
+\f3\fs20 , and uses 
+\f1\fs18 inverse()
+\f3\fs20  to compute the inverse of the matrix if 
+\f1\fs18 power
+\f3\fs20  is negative.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (integer$)nrow(*\'a0x)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4691,7 +5006,47 @@ Returns the number of columns
 \f3\fs20 -column matrices, is not provided but would be trivial to implement as a user-defined function.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)rbind(...)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)outerProduct(numeric\'a0x, numeric\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the outer product
+\f3\b0  of vectors 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20 .  The outer product, 
+\f1\fs18 x
+\f3\fs20  
+\f6 \uc0\u8855 
+\f3  
+\f1\fs18 y
+\f3\fs20 , is the result of matrix multiplication of 
+\f1\fs18 x
+\f3\fs20  with the transpose of 
+\f1\fs18 y
+\f3\fs20 , or 
+\f1\fs18 xy
+\f3\fs13\fsmilli6667 \super T
+\fs20 \nosupersub .  It will be a matrix with a number of rows equal to the length of 
+\f1\fs18 x
+\f3\fs20 , and a number of columns equal to the length of 
+\f1\fs18 y
+\f3\fs20 .  It is required that 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  be vectors, not matrices or arrays, that they have non-zero lengths, and that they be the same type \'96 both 
+\f1\fs18 integer
+\f3\fs20  or both 
+\f1\fs18 float
+\f3\fs20 .  The return value will be of the same type as 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)rbind(...)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4721,7 +5076,48 @@ To combine vectors or matrices by column instead, see
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)t(*\'a0x)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)rowSums(lif\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the sums of the rows
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a matrix.  The result is a vector of elements, each providing the sum of the corresponding row of 
+\f1\fs18 x
+\f3\fs20 .  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 logical
+\f3\fs20  or 
+\f1\fs18 integer
+\f3\fs20  the result will be of type 
+\f1\fs18 integer
+\f3\fs20 ; unlike the 
+\f1\fs18 sum()
+\f3\fs20  function, 
+\f1\fs18 rowSums()
+\f3\fs20  does not promote the return type to 
+\f1\fs18 float
+\f3\fs20  if 
+\f1\fs18 integer
+\f3\fs20  overflow occurs, but instead throws an error.  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 float
+\f3\fs20  the result will be of type 
+\f1\fs18 float
+\f3\fs20 .  Except for the change in the treatment of 
+\f1\fs18 integer
+\f3\fs20  overflow noted above, this is equivalent to using 
+\f1\fs18 apply()
+\f3\fs20  with 
+\f1\fs18 sum()
+\f3\fs20  to sum the rows of 
+\f1\fs18 x
+\f3\fs20 , but is much faster.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)t(*\'a0x)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4732,7 +5128,18 @@ Returns the transpose
 \f3\fs20 , which must be a matrix.  This is the matrix reflected across its diagonal; or alternatively, the matrix with its columns written out instead as rows in the same order.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (logical)upperTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric$)tr(numeric\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the trace
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a square matrix (otherwise an error is raised).  The trace is the sum of the diagonal elements of the matrix.  The return type will match the type of 
+\f1\fs18 x
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)upperTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the upper triangle
@@ -5210,6 +5617,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 

@@ -477,6 +477,8 @@ void Population::ResolveSurvivalPhaseMovement(void)
 	}
 	
 	// loop through subpops and append individuals that are arriving; we do this using Subpopulation::MergeReproductionOffspring()
+	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
@@ -489,6 +491,23 @@ void Population::ResolveSurvivalPhaseMovement(void)
 			// tally this as an incoming migrant for SLiMgui
 			++subpop->gui_migrants_[individual->subpopulation_->subpopulation_id_];
 #endif
+			
+			// has_null_haplosomes_ needs to reflect the presence of null haplosomes
+			if (!subpop->has_null_haplosomes_ && individual->subpopulation_->has_null_haplosomes_)
+			{
+				Haplosome **haplosomes = individual->haplosomes_;
+				
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					if (haplosome->IsNull())
+					{
+						subpop->has_null_haplosomes_ = true;
+						break;
+					}
+				}
+			}
 			
 			individual->subpopulation_ = subpop;
 			individual->migrant_ = true;
@@ -754,7 +773,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 				EidosFunctionMap &function_map = community_.FunctionMap();
-				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+					, community_.check_infinite_loops_
+#endif
+					);
 				
 				if (mate_choice_callback->contains_self_)
 					callback_symbols.InitializeConstantSymbolEntry(mate_choice_callback->SelfSymbolTableEntry());		// define "self"
@@ -1087,7 +1110,11 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 			EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 			EidosFunctionMap &function_map = community_.FunctionMap();
-			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+				, community_.check_infinite_loops_
+#endif
+				);
 			
 			if (modify_child_callback->contains_self_)
 				callback_symbols.InitializeConstantSymbolEntry(modify_child_callback->SelfSymbolTableEntry());		// define "self"
@@ -2691,7 +2718,11 @@ bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_
 			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 			EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 			EidosFunctionMap &function_map = community_.FunctionMap();
-			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+				, community_.check_infinite_loops_
+#endif
+				);
 			
 			if (recombination_callback->contains_self_)
 				callback_symbols.InitializeConstantSymbolEntry(recombination_callback->SelfSymbolTableEntry());		// define "self"

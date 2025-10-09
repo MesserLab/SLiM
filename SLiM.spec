@@ -25,7 +25,7 @@
 %endif
 
 Name:           SLiM
-Version:        5.0
+Version:        5.1
 Release:        1%{?dist}
 Summary:        an evolutionary simulation framework
 
@@ -119,6 +119,10 @@ cmake --install %_vpath_builddir --prefix %{buildroot}/usr
 %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Fri Sep 12 2025 Ben Haller <bhaller@mac.com> - 5.1-1
+- No changes to the package have been made since the last release.
+- Final candidate 1 for 5.1 release
+
 * Sat Apr 12 2025 Bryce Carson <bryce.a.carson@gmail.com> - 5.0-1
 - Bump source version to five and use the new /archive/refs/tags/v5.0 path scheme for accessing the tags on GitHub.
 

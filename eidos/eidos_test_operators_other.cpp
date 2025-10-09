@@ -159,6 +159,61 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0, 2];", 28, "out-of-range index");
 	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0];", 28, "too few subset arguments");
 	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0, 0, 0];", 28, "too many subset arguments");
+	
+	// BCH new 9/11/2025: subsetting a matrix/array with a logical matrix/array
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T), nrow=3); x[y];", 69, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,T,T,F,F,T), nrow=3); x[y];", 81, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T), nrow=2); x[y];", 67, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,T,F,T,T,F,F,T), nrow=4); x[y];", 83, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[t(y)];", 75, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = array(rep(T,24), c(3,4,2)); x[y];", 59, "non-conformable");
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, nrow=3); y = matrix(rep(F,12), nrow=3); x[y];", {});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, nrow=3); y = matrix(rep(T,12), nrow=3); x[y];", {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[y];", {1, 3, 4, 7, 8, 9, 12});
+	EidosAssertScriptSuccess_L("x = matrix(rdunif(110, -1000, 1000), nrow=10); y = matrix(rbinom(110, 1, 0.5)==1, nrow=10); identical(x[y], c(x)[c(y)]);", true);
+	
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T), nrow=3); x[y];", 71, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,T,T,F,F,T), nrow=3); x[y];", 83, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T), nrow=2); x[y];", 69, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,T,F,T,T,F,F,T), nrow=4); x[y];", 85, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[t(y)];", 77, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = array(rep(T,24), c(3,4,2)); x[y];", 61, "non-conformable");
+	EidosAssertScriptSuccess_FV("x = matrix(1.0:12, nrow=3); y = matrix(rep(F,12), nrow=3); x[y];", {});
+	EidosAssertScriptSuccess_FV("x = matrix(1.0:12, nrow=3); y = matrix(rep(T,12), nrow=3); x[y];", {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+	EidosAssertScriptSuccess_FV("x = matrix(1.0:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[y];", {1, 3, 4, 7, 8, 9, 12});
+	EidosAssertScriptSuccess_L("x = matrix(runif(110, -1000, 1000), nrow=10); y = matrix(rbinom(110, 1, 0.5)==1, nrow=10); identical(x[y], c(x)[c(y)]);", true);
+	
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(4,3,2)); x[y];", 101, "non-conformable");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(2,4,3)); x[y];", 101, "non-conformable");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(3,2,4)); x[y];", 101, "non-conformable");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F), c(2,3,3)); x[y];", 89, "non-conformable");
+	EidosAssertScriptSuccess_IV("x = array(1:24, c(2,3,4)); y = array(rep(F,24), c(2,3,4)); x[y];", {});
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = array(rep(T,24), c(2,3,4)); identical(x[y], 1:24);", true);
+	EidosAssertScriptSuccess_IV("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(2,3,4)); x[y];", {1, 3, 4, 5, 6, 9, 13, 20, 22, 23, 24});
+	EidosAssertScriptSuccess_L("x = array(runif(210, -1000, 1000), c(5,6,7)); y = array(rbinom(210, 1, 0.5)==1, c(5,6,7)); identical(x[y], c(x)[c(y)]);", true);
+	
+	// BCH new 9/11/2025: subsetting a matrix/array with an integer matrix of coordinates
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(1:6, ncol=1); x[y];", 52, "column count equal");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(1:6, ncol=3); x[y];", 52, "column count equal");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = array(1:18, c(3,2,3)); x[y];", 54, "with an integer array");
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, nrow=3); y = matrix(c(1,2), ncol=2, byrow=T); x[y];", {8});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y];", {8, 12, 1, 3, 10});
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,2), nrow=1); x[y];", 56, "column count equal");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,2,3,4), nrow=1); x[y];", 60, "column count equal");
+	EidosAssertScriptSuccess_IV("x = array(1:24, c(2,3,4)); y = matrix(c(1,2,3), nrow=1); x[y];", {24});
+	EidosAssertScriptSuccess_IV("x = array(1:24, c(2,3,4)); y = matrix(c(1,0,2), nrow=1); x[y];", {14});
+	EidosAssertScriptSuccess_IV("x = array(1:24, c(2,3,4)); y = matrix(c(1,0,2, 1,2,3, 0,0,0, 0,1,1), ncol=3, byrow=T); x[y];", {14, 24, 1, 9});
+	
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(1:6, ncol=1); x[y];", 54, "column count equal");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = matrix(1:6, ncol=3); x[y];", 54, "column count equal");
+	EidosAssertScriptRaise("x = matrix(1.0:12, nrow=3); y = array(1:18, c(3,2,3)); x[y];", 56, "with an integer array");
+	EidosAssertScriptSuccess_FV("x = matrix(1.0:12, nrow=3); y = matrix(c(1,2), ncol=2, byrow=T); x[y];", {8});
+	EidosAssertScriptSuccess_FV("x = matrix(1.0:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y];", {8, 12, 1, 3, 10});
+	EidosAssertScriptRaise("x = array(1.0:24, c(2,3,4)); y = matrix(c(1,2), nrow=1); x[y];", 58, "column count equal");
+	EidosAssertScriptRaise("x = array(1.0:24, c(2,3,4)); y = matrix(c(1,2,3,4), nrow=1); x[y];", 62, "column count equal");
+	EidosAssertScriptSuccess_FV("x = array(1.0:24, c(2,3,4)); y = matrix(c(1,2,3), nrow=1); x[y];", {24});
+	EidosAssertScriptSuccess_FV("x = array(1.0:24, c(2,3,4)); y = matrix(c(1,0,2), nrow=1); x[y];", {14});
+	EidosAssertScriptSuccess_FV("x = array(1.0:24, c(2,3,4)); y = matrix(c(1,0,2, 1,2,3, 0,0,0, 0,1,1), ncol=3, byrow=T); x[y];", {14, 24, 1, 9});
 }
 
 #pragma mark operator = with []
@@ -293,6 +348,56 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0:4][,0,] = 2;", 33, "chaining of matrix/array-style subsets");
 	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0,1:2,][,0,] = 2;", 36, "chaining of matrix/array-style subsets");
 	EidosAssertScriptSuccess_L("x = array(1:12, c(2,3,2)); x[0,1:2,][1:2] = 2; identical(x, array(c(1,2,3,4,2,6,7,8,2,10,11,12), c(2,3,2)));", true);
+	
+	// BCH new 9/11/2025: operator = in conjunction with subsetting a matrix/array with a logical matrix/array
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T), nrow=3); x[y] = 5;", 69, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,T,T,F,F,T), nrow=3); x[y] = 5;", 81, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T), nrow=2); x[y] = 5;", 67, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,T,F,T,T,F,F,T), nrow=4); x[y] = 5;", 83, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[t(y)] = 5;", 75, "non-conformable");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = array(rep(T,24), c(3,4,2)); x[y] = 5;", 59, "non-conformable");
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); x_ = x; y = matrix(rep(F,12), nrow=3); x[y] = 100; identical(x, x_);", true);
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(rep(T,12), nrow=3); x[y] = 100; identical(x, matrix(rep(100,12), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[y] = 100; identical(x, matrix(c(100,2,100,100,5,6,100,100,100,10,11,100), nrow=3));", true);
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(rep(F,12), nrow=3); x[y] = 1:12;", 62, "size() matching");
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); x_ = x; y = matrix(rep(F,12), nrow=3); x[y] = integer(0); identical(x, x_);", true);
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); x_ = x; y = matrix(rep(T,12), nrow=3); x[y] = 1:12; identical(x, x_);", true);
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[y] = 100:107;", 79, "size() matching");
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(c(T,F,T,T,F,F,T,T,T,F,F,T), nrow=3); x[y] = 100:106; identical(x, matrix(c(100,2,101,102,5,6,103,104,105,10,11,106), nrow=3));", true);
+	
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(4,3,2)); x[y] = 5;", 101, "non-conformable");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(2,4,3)); x[y] = 5;", 101, "non-conformable");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(3,2,4)); x[y] = 5;", 101, "non-conformable");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F), c(2,3,3)); x[y] = 5;", 89, "non-conformable");
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); x_ = x; y = array(rep(F,24), c(2,3,4)); x[y] = 100; identical(x, x_);", true);
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = array(rep(T,24), c(2,3,4)); x[y] = 100; identical(x, array(rep(100,24), c(2,3,4)));", true);
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(2,3,4)); x[y] = 100:111;", 105, "size() matching");
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(2,3,4)); x[y] = 100; identical(x, array(c(100,2,100,100,100,100,7,8,100,10,11,12,100,14,15,16,17,18,19,100,21,100,100,100), c(2,3,4)));", true);
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = array(c(T,F,T,T,T,T,F,F,T,F,F,F,T,F,F,F,F,F,F,T,F,T,T,T), c(2,3,4)); x[y] = 100:110; identical(x, array(c(100,2,101,102,103,104,7,8,105,10,11,12,106,14,15,16,17,18,19,107,21,108,109,110), c(2,3,4)));", true);
+	
+	// BCH new 9/11/2025: operator = in conjunction with subsetting a matrix/array with an integer matrix of coordinates
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(1:6, ncol=1); x[y] = 5;", 52, "column count equal");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(1:6, ncol=3); x[y] = 5;", 52, "column count equal");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = array(1:18, c(3,2,3)); x[y] = 5;", 54, "with an integer array");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(1,2), ncol=2, byrow=T); x[y] = integer(0);", 68, "size() matching");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(1,2), ncol=2, byrow=T); x[y] = 100:101;", 68, "size() matching");
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(c(1,2), ncol=2, byrow=T); x[y] = 100; identical(x, matrix(c(1,2,3,4,5,6,7,100,9,10,11,12), nrow=3));", true);
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y] = integer(0);", 92, "size() matching");
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y] = 100:101;", 92, "size() matching");
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y] = 100; identical(x, matrix(c(100,2,100,4,5,6,7,100,9,100,11,100), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y] = 100:104; identical(x, matrix(c(102,2,103,4,5,6,7,100,9,104,11,101), nrow=3));", true);
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,2), nrow=1); x[y] = 100;", 56, "column count equal");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,2,3,4), nrow=1); x[y] = 100;", 60, "column count equal");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,2,3), nrow=1); x[y] = integer(0);", 62, "size() matching");
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,2,3), nrow=1); x[y] = 100:101;", 62, "size() matching");
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = matrix(c(1,2,3), nrow=1); x[y] = 100; identical(x, array(c(1:23,100), c(2,3,4)));", true);
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = matrix(c(1,0,2), nrow=1); x[y] = 100; identical(x, array(c(1:13,100,15:24), c(2,3,4)));", true);
+	EidosAssertScriptRaise("x = array(1:24, c(2,3,4)); y = matrix(c(1,0,2, 1,2,3, 0,0,0, 0,1,1), ncol=3, byrow=T); x[y] = 100:101;", 92, "size() matching");
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = matrix(c(1,0,2, 1,2,3, 0,0,0, 0,1,1), ncol=3, byrow=T); x[y] = 100; identical(x, array(c(100,2,3,4,5,6,7,8,100,10,11,12,13,100,15,16,17,18,19,20,21,22,23,100), c(2,3,4)));", true);
+	EidosAssertScriptSuccess_L("x = array(1:24, c(2,3,4)); y = matrix(c(1,0,2, 1,2,3, 0,0,0, 0,1,1), ncol=3, byrow=T); x[y] = 100:103; identical(x, array(c(102,2,3,4,5,6,7,8,103,10,11,12,13,100,15,16,17,18,19,20,21,22,23,101), c(2,3,4)));", true);
+	
+	EidosAssertScriptSuccess_L("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y][2] = 100; identical(x, matrix(c(100,2,3,4,5,6,7,8,9,10,11,12), nrow=3));", true);
+	EidosAssertScriptRaise("x = matrix(1:12, nrow=3); y = matrix(c(2,3, 3,4, 1,1, 3,1, 1,4), ncol=2, byrow=T) - 1; x[y][5] = 100;", 91, "out-of-range index");
 	
 	// operator = (especially in conjunction with operator .)
 	EidosAssertScriptSuccess_I("x=_Test(9); x._yolk;", 9);

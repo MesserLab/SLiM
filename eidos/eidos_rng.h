@@ -140,7 +140,7 @@ taus_get_inline (void *vstate)
 {
 	RNG_INIT_CHECK();
 	
-	taus_state_t *state = (taus_state_t *) vstate;
+	taus_state_t *state = static_cast<taus_state_t *>(vstate);
 	
 #define TAUS_MASK 0xffffffffUL
 #define TAUSWORTHE(s,a,b,c,d) (((s &c) <<d) &TAUS_MASK) ^ ((((s <<a) &TAUS_MASK)^s) >>b)
@@ -299,6 +299,8 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 }
 
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
+// The GSL declares gsl_rng* parameters as const, which seems wrong and confuses cppcheck...
+// cppcheck-suppress constParameterPointer
 static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO(gsl_rng *r, double p_mu, double p_exp_neg_mu)
 {
 	RNG_INIT_CHECK();
@@ -427,7 +429,7 @@ double Eidos_FastRandomPoisson_PRECALCULATE(double p_mu);	// exp(-mu); can under
 void Eidos_MT64_init_genrand64(Eidos_MT_State *r, uint64_t seed);
 
 /* initialize by an array with array-length */
-void Eidos_MT64_init_by_array64(Eidos_MT_State *r, uint64_t init_key[], uint64_t key_length);
+void Eidos_MT64_init_by_array64(Eidos_MT_State *r, const uint64_t init_key[], uint64_t key_length);
 
 /* BCH: fill the next Eidos_MT64_NN words; used internally by genrand64_int64() */
 void _Eidos_MT64_fill(Eidos_MT_State *r);

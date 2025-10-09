@@ -361,6 +361,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		case ChromosomeType::kHM_HaploidMaleInherited:
 		{
 			// inherited from the male parent, so only the male (second) parents count
+			// BCH 27 August 2025: Note that HM is now legal in non-sexual models; "male" just means "second"
 			A_G3 = A_G4;
 			A_P1 = A_P2;
 			A_G1 = A_G3;
@@ -424,6 +425,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		case ChromosomeType::kHF_HaploidFemaleInherited:
 		{
 			// inherited from the female parent, so only the female (first) parents count
+			// BCH 27 August 2025: Note that HF is now legal in non-sexual models; "female" just means "first"
 			A_G2 = A_G1;
 			A_P2 = A_P1;
 			A_G3 = A_G1;
@@ -2096,6 +2098,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosObject **p_v
 			return object_result;	// zero-length return
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObject **p_values, size_t p_values_size)
@@ -2165,6 +2170,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObjec
 			return object_result;	// zero-length return
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_values, size_t p_values_size)
@@ -2230,6 +2238,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_v
 			return object_result;
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObject **p_values, size_t p_values_size)
@@ -2299,6 +2310,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObjec
 			return object_result;
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosObject **p_values, size_t p_values_size)

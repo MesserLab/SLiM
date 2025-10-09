@@ -6,6 +6,18 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+	add cppcheck support in our cmake config, for development testing purposes
+	speed up the SpatialMap smooth() method in 2D without periodicity, since this is important for the Chevy et al. competition algorithm
+	add Plot method setBorderless() for making plots without border annotations -- no axes, ticks, labels
+	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
+	add segments() call to Plot, for plotting a set of unconnected line segments
+	add rects() call to Plot, for plotting a set of rectangles
+	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
+	add mtext() call to Plot, for drawing text in the margins outside the plot area
+	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
+
+
+version 5.1 (Eidos version 4.1):
 	add recipe 16.11, life-long monogamous mating
 	add the ability to suppress the header line of a LogFile, with a new [logical$ header = T] parameter to createLogFile() (#516), and adding [Nl$ header = NULL] for setFilePath() (#516)
 	add [string$ sex = "*"] parameter to initializeRecombinationRateFromFile(), passed through to initializeRecombinationRate(); fixing an oversight (#524)
@@ -15,6 +27,41 @@ development head (in the master branch):
 	fix a regression that caused the sourceSubpop pseudo-parameter to be NULL in modifyChild() callbacks in all cases; add tests, improve documentation (#522)
 	add chromosomeSubposition property to Haplosome, providing whether the haplosome is index 0 or 1 within its individual, within the set of haplosomes for its associated chromosome
 	add a (numeric)sign(numeric x) function that returns the sign (-1, 0, 1) of each element
+	calcFST() with a windowed range (start/end) would error; was missing a unit test (#548)
+	calcSFS() with an integer (non-NULL) binCount would error in multi-chromosome models if mutations from multiple chromosomes (or NULL) were given
+	survival() callback that moves individuals did not correctly update has_null_haplosomes_, leading to a crash or a DEBUG raise (#549)
+	calcMeanFroh() did not focus on the specified chromosome correctly, in multi-species models, and thus produced incorrect results (#545)
+	add infinite loop checking in Eidos; add [logical$ checkInfiniteLoops = T] option to initializeSLiMOptions() to disable checking for infinite loops in Eidos
+	fix #539, crash reading malformed population file
+	fix #535, allow transparency in plots: added [float alpha = 1.0] to Plot methods abline(), lines(), points(), and text() (required to be singleton for lines())
+	fix #547, mutation trajectories plot is confusing in the way it starts collecting data at the time it is opened
+	fix #534, support uniparentally-transmitted chromosomes in hermaphrodite populations
+	add new Plot legendTitleEntry() method for making a title line in a plot legend
+	click-drag in the SLiMgui script view's line number area now drag-selects whole lines
+	fix #550, add filter() function to Eidos, which is essentially a subset of R's filter(): (float)filter(numeric x, float filter, [lif$ outside = F])
+	partial fix for #530, add function (numeric$)tr(numeric x) to obtain the trace of a square matrix
+	partial fix for #530, add function (numeric)outerProduct(numeric x, numeric y) to obtain the outer product of vectors x and y
+	partial fix for #530, add function (numeric$)det(numeric x) to obtain the determinant of a square matrix
+	partial fix for #530, add function (float)inverse(numeric x) to obtain the inverse of a square non-singular matrix
+	partial fix for #530, add function (numeric)matrixPow(numeric x, integer$ power) to raise a matrix to an integer power
+	partial fix for #530, extend cor() and cov() to support correlation/covariance between the columns of a matrix (or matrices), as in R
+		policy change: cov(x, y), cor(x, y), var(x), and sd(x) with x and/or y of length 1 now returns NAN (used to return NULL);
+			this is because you can't make a matrix containing NULLs, and Eidos doesn't have NA (which is what R uses in this case)
+	add Duplicate command to the Edit command, command-D, useful for code editing; change Show Debugging Output to shift-command-D
+	add "Show SLiMgui Color Scales" command to the Help menu in SLiMgui
+	fix #553, an off-by-one bug in initializeRecombinationRateFromFile(); breaks backward compatibility, by fixing this bug
+	add image() method to Plot to add a SpatialMap or Image to a plot: (void)image(object$ image, numeric$ x1, numeric$ x2, numeric$ y1, numeric$ y2, [logical$ flipped = F], [float$ alpha = 1.0])
+	add matrix() method to Plot to add a matrix-based image to a plot: (void)matrix(numeric matrix, numeric$ x1, numeric$ x2, numeric$ y1, numeric$ y2, [logical$ flipped = F], [Nif valueRange = NULL], [Ns$ colors = NULL], [float$ alpha = 1.0])
+	fix #538, check for unique SLiM ids only for alive individuals when loading a tree sequence
+	fix #533, memory smasher in Haplosome method nucleotides(format="char"); besides causing random crashes, this also caused this method to return incorrect results
+	fix #527, add calcLD_D() and calcLD_Rsquared() popgen functions, contributed by Vitor Sudbrack
+	fix apparently new STL check that double comparators for std::sort() must induce a strict weak ordering, including with NAN values; self-tests started raising
+	fix #558, add new ways of subsetting matrices/arrays with A[B], or assigning into subsets of matrices/arrays with A[B] = ... : with a conformable logical matrix/array, or with an integer matrix that selects elements of the target
+	add asVector() method to strip off dimension attributes; this can be done with c() or x[] also, but it's nice to have the function, since R has it...
+	fix #526, add a calcDxy() popgen utility function to SLiM that calculates Nei's Dxy genetic divergence statistic, contributed by Vitor Sudbrack
+	fix #529, extend calcFST() to support multiple chromosomes
+	extend subsetMutations() to support subsetting mutations belonging to more than one chromosome
+	fix #560, add recipe 14.16 "Visualizing linkage disequilibrium" to demonstrate the new calcLD_D() and calcLD_Rsquared() functions
 
 multitrait branch:
 	add new Eidos SLiM class, Trait

@@ -653,7 +653,7 @@ public:
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
-	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { WILL_MODIFY(this); UncacheScript(); values_.emplace_back(p_string); }
+	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { WILL_MODIFY(this); UncacheScript(); values_.push_back(p_string); }
 	inline __attribute__((always_inline)) EidosValue_String *Reserve(int p_reserved_size) { WILL_MODIFY(this); values_.reserve(p_reserved_size); return this; }
 	
 	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;

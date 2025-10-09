@@ -39,8 +39,11 @@ QtSLiMGraphView_LifetimeReproduction::QtSLiMGraphView_LifetimeReproduction(QWidg
     histogramBinCount_ = 11;        // max reproductive output (from 0 to 10); this rescales automatically
     allowBinCountRescale_ = false;
     
-    x0_ = -1;                 // zero is included
-    x1_ = histogramBinCount_ - 1;
+    original_x0_ = -1;                 // zero is included
+    original_x1_ = histogramBinCount_ - 1;
+    
+    x0_ = original_x0_;
+    x1_ = original_x1_;
     
     xAxisMin_ = x0_;
     xAxisMax_ = x1_;
@@ -92,7 +95,8 @@ void QtSLiMGraphView_LifetimeReproduction::subpopulation1PopupChanged(int /* ind
         // Reset our autoscaling x axis
         histogramBinCount_ = 11;
         xAxisMax_ = histogramBinCount_ - 1;
-        x1_ = xAxisMax_;               // the same as xAxisMax_, for base plots
+        original_x1_ = xAxisMax_;               // the same as xAxisMax_, for base plots
+        x1_ = original_x1_;
         
         invalidateCachedData();
         update();
@@ -110,11 +114,13 @@ void QtSLiMGraphView_LifetimeReproduction::controllerRecycled(void)
     // Reset our autoscaling x axis
     histogramBinCount_ = 11;
     xAxisMax_ = histogramBinCount_ - 1;
-    x1_ = xAxisMax_;               // the same as xAxisMax_, for base plots
+    original_x1_ = xAxisMax_;               // the same as xAxisMax_, for base plots
+    x1_ = original_x1_;
     
     // Reset our autoscaling y axis
     yAxisMax_ = 1.0;
-    y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
+    original_y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
+    y1_ = original_y1_;
     yAxisMajorTickInterval_ = 0.5;
     yAxisMinorTickInterval_ = 0.25;
     
@@ -172,7 +178,8 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
         {
             histogramBinCount_ = binCount;
             xAxisMax_ = histogramBinCount_ - 1;
-            x1_ = xAxisMax_;               // the same as xAxisMax_, for base plots
+            original_x1_ = xAxisMax_;               // the same as xAxisMax_, for base plots
+            x1_ = original_x1_;
             invalidateCachedData();
         }
         
@@ -188,7 +195,8 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
                 ((ceilingFreq < yAxisMax_) && (maxFreq + 0.05 < ceilingFreq)))    // require a margin of error to jump down
         {
             yAxisMax_ = ceilingFreq;
-            y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
+            original_y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
+            y1_ = original_y1_;
             yAxisMajorTickInterval_ = ceilingFreq / 2.0;
             yAxisMinorTickInterval_ = ceilingFreq / 4.0;
         }

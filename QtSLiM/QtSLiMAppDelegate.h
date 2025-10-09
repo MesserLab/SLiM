@@ -114,6 +114,7 @@ public slots:
     void dispatch_showCycle_nonWF_MS(void);
     void dispatch_showColorChart(void);
     void dispatch_showPlotSymbols(void);
+    void dispatch_showColorScales(void);
     void dispatch_help(void);
     void dispatch_quit(void);
     
@@ -137,6 +138,7 @@ public slots:
     void dispatch_cut(void);
     void dispatch_copy(void);
     void dispatch_paste(void);
+    void dispatch_duplicate(void);
     void dispatch_delete(void);
     void dispatch_selectAll(void);
     

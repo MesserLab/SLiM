@@ -169,8 +169,9 @@ void Sriram_parallel_omp_sort(std::vector<T> &data, Compare comparator)
 		size_t start = tid * chunk_size;
 		size_t end = (tid + 1) * chunk_size;
 		
-		if (tid == num_threads - 1)
-			end = size;
+		// cppcheck is confused here when building single-threaded
+		if (tid == num_threads - 1)		// cppcheck-suppress knownConditionTrueFalse
+			end = size;					// cppcheck-suppress redundantAssignment
 		
 		// sort sub-array using comparator
 		std::sort(data.begin() + start, data.begin() + end, comparator);
@@ -244,9 +245,37 @@ inline std::vector<int64_t> EidosSortIndexes<double>(const double *p_v, size_t p
 	// sort indexes based on comparing values in v
 	// this specialization for type double sorts NaNs to the end
 	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] < p_v[i2]);});
+		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {
+			double a = p_v[i1];
+			double b = p_v[i2];
+			
+			// If a is NaN and b is not NaN, a should come after b
+			if (std::isnan(a) && !std::isnan(b))
+				return false;
+			
+			// If b is NaN and a is not NaN, b should come after a
+			if (!std::isnan(a) && std::isnan(b))
+				return true;
+			
+			// If both are NaN or both are non-NaN, sort numerically (ascending)
+			return a < b;
+		});
 	else
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] > p_v[i2]);});
+		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {
+			double a = p_v[i1];
+			double b = p_v[i2];
+			
+			// If a is NaN and b is not NaN, a should come after b
+			if (std::isnan(a) && !std::isnan(b))
+				return false;
+			
+			// If b is NaN and a is not NaN, b should come after a
+			if (!std::isnan(a) && std::isnan(b))
+				return true;
+			
+			// If both are NaN or both are non-NaN, sort numerically (descending)
+			return a > b;
+		});
 	
 	return idx;
 }

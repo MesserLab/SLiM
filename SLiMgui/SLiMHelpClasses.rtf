@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;}
@@ -2978,7 +2978,7 @@ The value of
 \f3\fs18 "H-"
 \f4\fs20 , and 
 \f3\fs18 "-Y"
-\f4\fs20 ), the first haplosome is assumed to be from the first parent, and is thus included, whereas the second haplosome is assumed to be from the second parent and is thus not included.  For chromosomes with one associated haplosome that is inherited from the female parent in one way or another (types 
+\f4\fs20 ), the first haplosome is assumed to be from the first parent, and is thus included, whereas the second haplosome is assumed to be from the second parent and is thus not included.  For chromosomes with one associated haplosome that is inherited from the female/first parent in one way or another (types 
 \f3\fs18 "W"
 \f4\fs20 , 
 \f3\fs18 "HF"
@@ -3026,7 +3026,7 @@ The value of
 \f3\fs18 "H-"
 \f4\fs20 , and
 \f3\fs18 "-Y"
-\f4\fs20 ), the second haplosome is assumed to be from the second parent, and is thus included, whereas the first haplosome is assumed to be from the first parent and is thus not included.  For chromosomes with one associated haplosome that is inherited from the male parent in one way or another (types 
+\f4\fs20 ), the second haplosome is assumed to be from the second parent, and is thus included, whereas the first haplosome is assumed to be from the first parent and is thus not included.  For chromosomes with one associated haplosome that is inherited from the male/second parent in one way or another (types 
 \f3\fs18 "Y"
 \f4\fs20 , 
 \f3\fs18 "HM"
@@ -6561,7 +6561,7 @@ The
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)abline([Nif\'a0a\'a0=\'a0NULL], [Nif\'a0b\'a0=\'a0NULL], [Nif\'a0h\'a0=\'a0NULL], [Nif\'a0v\'a0=\'a0NULL], [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0])\
+\f3\i0\fs18 \cf2 \'96\'a0(void)abline([Nif\'a0a\'a0=\'a0NULL], [Nif\'a0b\'a0=\'a0NULL], [Nif\'a0h\'a0=\'a0NULL], [Nif\'a0v\'a0=\'a0NULL], [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds one or more straight lines to the plot.  There are three supported modes of operation for this method.  In the first mode, the lines are specified by 
@@ -6583,14 +6583,26 @@ The
 \f4\i0 -values of vertical lines.  These modes are mutually exclusive and cannot be mixed within one call to 
 \f3\fs18 abline()
 \f4\fs20 .  The new lines will be plotted on top of any previously added data.\
-The lines will be drawn in colors and line widths specified by 
+The lines will be drawn in colors, line widths, and alpha (opacity) values specified by 
 \f3\fs18 color
-\f4\fs20  and 
+\f4\fs20 , 
 \f3\fs18 lwd
-\f4\fs20 , each of which may be either a singleton (to provide one value used for all lines) or a vector equal in length to the number of lines plotted (to provide one value per line).\
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20 , each of which may be either a singleton (to provide one value used for all lines) or a vector equal in length to the number of lines plotted (to provide one value per line).  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.\
 See also 
 \f3\fs18 lines()
-\f4\fs20 , for a more common approach to line plotting.  The 
+\f4\fs20  and 
+\f3\fs18 segments()
+\f4\fs20  for more common approaches to line plotting.  The 
 \f3\fs18 abline()
 \f4\fs20  method is different, and more specialized; the lines plotted by it span the full extent of the plot area, and their coordinates are not considered when dynamically resizing the axes of the plot (i.e., when 
 \f3\fs18 createPlot()
@@ -6699,6 +6711,93 @@ The
 \f4\fs20 , some ticks may not receive a label for readability.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)image(object$\'a0image, numeric$\'a0x1, numeric$\'a0y1, numeric$\'a0x2, numeric$\'a0y2, [logical$\'a0flipped\'a0=\'a0F], [float$\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds image data given by 
+\f3\fs18 image
+\f4\fs20  to the plot.  The data will be plotted as a raster (bitmap, pixel) image in the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20 , which must be sorted such that 
+\f3\fs18 x1\'a0<=\'a0x2
+\f4\fs20  and 
+\f3\fs18 y1\'a0<=\'a0y2
+\f4\fs20 .  When 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the plotted image is shown in a default orientation that is typically best given the source of the image; if 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  the image\'92s orientation is flipped vertically relative to that default.  The plotted image will use opacity 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The new image data will be plotted on top of any previously added data.\
+The image data may be specified in one of two ways.  First, 
+\f3\fs18 image
+\f4\fs20  may be a singleton 
+\f3\fs18 Image
+\f4\fs20  object.  In this case, the image is simply plotted inside the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 /
+\f3\fs18 y1
+\f4\fs20 /
+\f3\fs18 x2
+\f4\fs20 /
+\f3\fs18 y2
+\f4\fs20 , fully displaying all of its pixels (in contrast to how the grid values of a spatial map area displayed, as described below).  The image may be either RGB or grayscale.\
+Second, 
+\f3\fs18 image
+\f4\fs20  may be a singleton 
+\f3\fs18 SpatialMap
+\f4\fs20  object.  In this case, the grid values of the spatial map are plotted aligned to the corners of the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 /
+\f3\fs18 y1
+\f4\fs20 /
+\f3\fs18 x2
+\f4\fs20 /
+\f3\fs18 y2
+\f4\fs20 , as the map would be used by SLiM; the edge and corner grid points of the map are therefore only partially displayed.  (If desired, the 
+\f3\fs18 gridValues()
+\f4\fs20  or 
+\f3\fs18 mapImage()
+\f4\fs20  methods of 
+\f3\fs18 SpatialMap
+\f4\fs20  could be used to convert the map to a matrix or 
+\f3\fs18 Image
+\f4\fs20  representation that could be plotted differently.)  The spatial map\'92s display uses the color scheme that was specified for the map.  The map\'92s values are not interpolated, regardless of the map\'92s 
+\f3\fs18 interpolate
+\f4\fs20  property; only the raw grid data of the spatial map is displayed.  (If interpolated display is desired, the 
+\f3\fs18 interpolate()
+\f4\fs20  method of 
+\f3\fs18 SpatialMap
+\f4\fs20  can be used to increase the grid resolution of the map prior to display.)\
+This method caches the image data being plotted so that plotting the same 
+\f3\fs18 SpatialMap
+\f4\fs20  or 
+\f3\fs18 Image
+\f4\fs20  object multiple times is more efficient.  See the 
+\f3\fs18 matrix()
+\f4\fs20  method of 
+\f3\fs18 Plot
+\f4\fs20  for an alternative way of plotting raster data that may be more suitable in some situations, but that is less efficient because it does not provide such caching.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)legendLineEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6745,7 +6844,17 @@ The
 \f4\fs20 .  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)lines(numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
+\f3\fs18 \cf2 \'96\'a0(void)legendTitleEntry(string$\'a0label)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the plot.  The entry will be displayed as a title, left-aligned with no graphical representation (no line, point, or swatch).  A label of 
+\f3\fs18 ""
+\f4\fs20 , the empty string, is allowed and will produce a blank line in the legend (for spacing).  Note that title entries always produce their own separate line in the legend; they do not participate in the overdrawing scheme used for other types of legend entries.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)lines(numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0], [float$\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds line data given by 
@@ -6765,70 +6874,173 @@ The lines will be drawn in color
 \f3\fs18 color
 \f4\fs20 , using line width 
 \f3\fs18 lwd
-\f4\fs20 .  Unlike 
+\f4\fs20 , with opacity 
+\f3\fs18 alpha
+\f4\fs20 .  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  Unlike 
 \f3\fs18 points()
 \f4\fs20  and 
 \f3\fs18 text()
-\f4\fs20 , 
+\f4\fs20 , the parameters 
 \f3\fs18 color
-\f4\fs20  and 
-\f3\fs18 lwd
-\f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color and width for each line segment, separate calls to 
-\f3\fs18 lines()
-\f4\fs20  are necessary.  See also 
-\f3\fs18 abline()
-\f4\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds point data given by 
-\f3\fs18 x
-\f4\fs20  and 
-\f3\fs18 y
-\f4\fs20  to the plot.  The data will be plotted as a set of point symbols, centered at the (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ) positions given; note that the 
-\f3\fs18 x
-\f4\fs20  and 
-\f3\fs18 y
-\f4\fs20  vectors must be the same length.  The new point data will be plotted on top of any previously added data.\
-The symbol plotted for each point depends upon the value of 
-\f3\fs18 symbol
-\f4\fs20 .  In general, symbols will be drawn in color 
-\f3\fs18 color
-\f4\fs20 , with a line width 
-\f3\fs18 lwd
-\f4\fs20  used for lines (if any) in the symbol, and an overall size scaled by 
-\f3\fs18 size
-\f4\fs20 .  Symbols 
-\f3\fs18 21
-\f4\fs20 \'96
-\f3\fs18 25
-\f4\fs20  involve both a filled shape and a border line around that shape; for those symbols, the border line will use the color provided by 
-\f3\fs18 border
-\f4\fs20 , while the filled shape will use color 
-\f3\fs18 color
-\f4\fs20 .  All of these parameters (
-\f3\fs18 symbol
-\f4\fs20 , 
-\f3\fs18 color
-\f4\fs20 , 
-\f3\fs18 border
 \f4\fs20 , 
 \f3\fs18 lwd
 \f4\fs20 , and 
-\f3\fs18 size
-\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+\f3\fs18 alpha
+\f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color/width/opacity for each line segment, separate calls to 
+\f3\fs18 lines()
+\f4\fs20  are necessary, or the 
+\f3\fs18 segments()
+\f4\fs20  method may be useful.   See also 
+\f3\fs18 abline()
+\f4\fs20  and 
+\f3\fs18 segments()
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(void)matrix(numeric\'a0matrix, numeric$\'a0x1, numeric$\'a0y1, numeric$\'a0x2, numeric$\'a0y2, [logical$\'a0flipped\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns$\'a0colors\'a0=\'a0NULL], [float$\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Adds text data given by 
+\f4\fs20 \cf2 Adds image data given by 
+\f3\fs18 matrix
+\f4\fs20  to the plot.  The image data must be specified as a 
+\f3\fs18 numeric
+\f4\fs20  (i.e., 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20 ) matrix, as for example produced by the 
+\f3\fs18 matrix()
+\f4\fs20  function in Eidos.  The data will be plotted as a raster (bitmap, pixel) image in the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20 , which must be sorted such that 
+\f3\fs18 x1\'a0<=\'a0x2
+\f4\fs20  and 
+\f3\fs18 y1\'a0<=\'a0y2
+\f4\fs20 .  When 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the plotted image is shown in a default orientation that matches the orientation of the matrix (with row 
+\f3\fs18 0
+\f4\fs20  topmost); if 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  the image\'92s orientation is flipped vertically relative to that default (with row 
+\f3\fs18 0
+\f4\fs20  bottommost).\
+Prior to display, the values in the matrix will be rescaled according to the parameter 
+\f3\fs18 valueRange
+\f4\fs20 .  If 
+\f3\fs18 valueRange
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), the values will be left unscaled; this is equivalent to passing 
+\f3\fs18 c(0,1)
+\f4\fs20  for 
+\f3\fs18 valueRange
+\f4\fs20 .  Otherwise, 
+\f3\fs18 valueRange
+\f4\fs20  should be a 
+\f3\fs18 numeric
+\f4\fs20  vector containing two elements that define the range of values that will be rescaled to span the interval [0, 1] \'96 the range to which the color scheme will then be applied.  After rescaling the given range to [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ], the resulting values are clamped to the range [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ].  It is legal for 
+\f3\fs18 valueRange[0]
+\f4\fs20  to be greater than 
+\f3\fs18 valueRange[1]
+\f4\fs20 ; in this case, the rescaling operation will, in effect, reverse the direction of the color scheme by reversing the ranks of the reordered values.\
+The rescaled and clamped values are then colored according to the color scheme named by 
+\f3\fs18 colors
+\f4\fs20 , which should be one of the named schemes supported by the Eidos function 
+\f3\fs18 colors()
+\f4\fs20 : 
+\f3\fs18 "cm"
+\f4\fs20 , 
+\f3\fs18 "heat"
+\f4\fs20 , 
+\f3\fs18 "terrain"
+\f4\fs20 , 
+\f3\fs18 "parula"
+\f4\fs20 , 
+\f3\fs18 "hot"
+\f4\fs20 , 
+\f3\fs18 "jet"
+\f4\fs20 , 
+\f3\fs18 "turbo"
+\f4\fs20 , 
+\f3\fs18 "gray"
+\f4\fs20 , 
+\f3\fs18 "magma"
+\f4\fs20 , 
+\f3\fs18 "inferno"
+\f4\fs20 , 
+\f3\fs18 "plasma"
+\f4\fs20 , 
+\f3\fs18 "viridis"
+\f4\fs20 , or 
+\f3\fs18 "cividis"
+\f4\fs20 .  If 
+\f3\fs18 colors
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), the color scheme used is the reverse of the 
+\f3\fs18 "gray"
+\f4\fs20  color scheme, shading from black for 
+\f3\fs18 0
+\f4\fs20  up to white for 
+\f3\fs18 1
+\f4\fs20 .  In all cases, the color scheme is applied across the range [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ] for the rescaled and clamped values.\
+The plotted image will use opacity 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The new image data will be plotted on top of any previously added data.\
+See the 
+\f3\fs18 image()
+\f4\fs20  method of 
+\f3\fs18 Plot
+\f4\fs20  for an alternative way of plotting raster data from 
+\f3\fs18 SpatialMap
+\f4\fs20  and 
+\f3\fs18 Image
+\f4\fs20  objects that may be more suitable in some situations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)mtext(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL], [float\'a0alpha\'a0=\'a01.0], [numeric\'a0angle\'a0=\'a00.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds marginal text data given by 
 \f3\fs18 x
 \f4\fs20 , 
 \f3\fs18 y
@@ -6846,15 +7058,41 @@ The symbol plotted for each point depends upon the value of
 \f3\fs18 y
 \f4\fs20 , and 
 \f3\fs18 labels
-\f4\fs20  must all be the same length.  The new text data will be plotted on top of any previously added data.\
+\f4\fs20  must all be the same length.  This method differs from the 
+\f3\fs18 text()
+\f4\fs20  method in two respects.  The first \'96 the reason that this method draws \'93marginal\'94 text \'96 is that the text drawn is not clipped to the plot area, allowing text to be drawn in the axis and border areas outside the plot itself.  The second is that the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  coordinates are interpreted differently than other 
+\f3\fs18 Plot
+\f4\fs20  methods; rather than being in the coordinate system of the plot, they are in a coordinate system in which the plot area spans [0,1] on both axes.  This is intended to make positioning text outside of the plot area not depend upon the axis ranges of the plot; those axis ranges might vary, but the positions at which 
+\f3\fs18 mtext()
+\f4\fs20  draws, relative to the plot area, will remain fixed.  The new marginal text data will be plotted on top of any previously added data.\
 The text will be drawn in color 
 \f3\fs18 color
 \f4\fs20 , at the font size given by 
 \f3\fs18 size
-\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Both of these parameters (
+\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Opacity values may be supplied with 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The angle at which the text is drawn can be specified with 
+\f3\fs18 angle
+\f4\fs20 ; angles are measured in degrees, clockwise.  All of these parameters (
 \f3\fs18 color
-\f4\fs20  and 
+\f4\fs20 , 
 \f3\fs18 size
+\f4\fs20 , 
+\f3\fs18 alpha
+\f4\fs20 , and 
+\f3\fs18 angle
 \f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
 The exact position of the text, relative to each point (
 \f1\i x
@@ -6907,6 +7145,311 @@ The exact position of the text, relative to each point (
 \f4\i0 , 
 \f1\i y
 \f4\i0 ) both horizontally and vertically.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds point data given by 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  to the plot.  The data will be plotted as a set of point symbols, centered at the (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) positions given; note that the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  vectors must be the same length.  The new point data will be plotted on top of any previously added data.\
+The symbol plotted for each point depends upon the value of 
+\f3\fs18 symbol
+\f4\fs20 .  In general, symbols will be drawn in color 
+\f3\fs18 color
+\f4\fs20 , with a line width 
+\f3\fs18 lwd
+\f4\fs20  used for lines (if any) in the symbol, and an overall size scaled by 
+\f3\fs18 size
+\f4\fs20 .  Symbols 
+\f3\fs18 21
+\f4\fs20 \'96
+\f3\fs18 25
+\f4\fs20  involve both a filled shape and a border line around that shape; for those symbols, the border line will use the color provided by 
+\f3\fs18 border
+\f4\fs20 , while the filled shape will use color 
+\f3\fs18 color
+\f4\fs20 .  Opacity values may be supplied with 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  All of these parameters (
+\f3\fs18 symbol
+\f4\fs20 , 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 border
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , 
+\f3\fs18 size
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)rects(numeric\'a0x1, numeric\'a0y1, numeric\'a0x2, numeric\'a0y2, [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds rectangle data given by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20  to the plot; note that these four vectors must all be the same length.  The data will be plotted as a series of rectangles, defined by each (
+\f1\i x1
+\f4\i0 , 
+\f1\i y1
+\f4\i0 , 
+\f1\i x2
+\f4\i0 , 
+\f1\i y2
+\f4\i0 ) quadret providing the left, right, top and bottom of each rectangle.  The coordinates of each rectangle do not need to be sorted; in other words, it is not required that 
+\f3\fs18 x1[i] <= x2[i]
+\f4\fs20 , or that 
+\f3\fs18 y1[i] <= y2[i]
+\f4\fs20 , and different sorting orders for the coordinates of a given rectangle will draw identically.  The fill of a each rectangle is contained within its coordinates, but the frame of each rectangle is composed of lines of some width, drawn between the vertices of the rectangle, and will therefore extend beyond the coordinates of the rectangle by one-half of the line width; if this is not desired, inset the rectangle coordinates by one-half of the line width to compensate.  The new rectangle data will be plotted on top of any previously added data.\
+The rectangles will be drawn in fill colors 
+\f3\fs18 color
+\f4\fs20 , with border colors 
+\f3\fs18 border
+\f4\fs20 , using line widths 
+\f3\fs18 lwd
+\f4\fs20 , with opacities 
+\f3\fs18 alpha
+\f4\fs20  applied to both the fill and the border.  The 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 border
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20  parameters may each be either a singleton value (applying to all rectangles) or a vector with one value per rectangle.  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  If a filled rectangle with no border is desired, a 
+\f3\fs18 border
+\f4\fs20  value of 
+\f3\fs18 "none"
+\f4\fs20  can be used; similarly, if a framed rectangle with no fill is desired, a 
+\f3\fs18 color
+\f4\fs20  value of 
+\f3\fs18 "none"
+\f4\fs20  can be used.  Note that that 
+\f3\fs18 "none"
+\f4\fs20  a special color value supported only by 
+\f3\fs18 rects()
+\f4\fs20 ; it is not part of the standard set of named colors in Eidos.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)segments(numeric\'a0x1, numeric\'a0y1, numeric\'a0x2, numeric\'a0y2, [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds line segment data given by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20  to the plot; note that these four vectors must all be the same length.  The data will be plotted as a series of unconnected line segments, from each (
+\f1\i x1
+\f4\i0 , 
+\f1\i y1
+\f4\i0 ) position to the corresponding (
+\f1\i x2
+\f4\i0 , 
+\f1\i y2
+\f4\i0 ) position.  The new line segment data will be plotted on top of any previously added data.\
+The line segments will be drawn in colors 
+\f3\fs18 color
+\f4\fs20 , using line widths 
+\f3\fs18 lwd
+\f4\fs20 , with opacities 
+\f3\fs18 alpha
+\f4\fs20 .  The 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20  parameters may each be either a singleton value (applying to all line segments) or a vector with one value per line segment.  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.   See also 
+\f3\fs18 lines()
+\f4\fs20  and 
+\f3\fs18 abline()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setBorderless([numeric$\'a0marginLeft\'a0=\'a00.0], [numeric$\'a0marginTop\'a0=\'a00.0], [numeric$\'a0marginRight\'a0=\'a00.0], [numeric$\'a0marginBottom\'a0=\'a00.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Reconfigures the plot to be borderless \'96 to not display axes, ticks, or the labels for axes and ticks.  Since those elements are not present, the plot area in borderless plots essentially fills the window\'92s available area, except for being inset by the margins given in 
+\f3\fs18 marginLeft
+\f4\fs20 , 
+\f3\fs18 marginTop
+\f4\fs20 , 
+\f3\fs18 marginRight
+\f4\fs20 , and 
+\f3\fs18 marginBottom
+\f4\fs20 , which are specified in pixels.  The axis ranges are not extended in the usual manner; if the range of the 
+\f1\i x
+\f4\i0  axis is specified as 
+\f3\fs18 c(0,1)
+\f4\fs20 , for example, then that is the range actually used for the 
+\f1\i x
+\f4\i0  axis.  (This is similar to R\'92s 
+\f3\fs18 "xaxs"
+\f4\fs20  and 
+\f3\fs18 "yaxs"
+\f4\fs20  being specified as 
+\f3\fs18 "i"
+\f4\fs20 , rather than the usual behavior specified by the default of 
+\f3\fs18 "r"
+\f4\fs20 .)  If you want the plotted data to have \'93breathing room\'94 around it, you should therefore specify non-zero margins.\
+Note that the 
+\f3\fs18 fullBox
+\f4\fs20  parameter of 
+\f3\fs18 createPlot()
+\f4\fs20  is still honored; for borderless plots, the box is drawn at the outer edge of the margin area.  If you don\'92t want the box to overdraw any of the data area of the plot (within the extents of the axes), you should specify each margin value as 
+\f3\fs18 1
+\f4\fs20  (or greater), to provide a pixel of margin space within which the box will be drawn without impinging upon the plotted data.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL], [float\'a0alpha\'a0=\'a01.0], [numeric\'a0angle\'a0=\'a00.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds text data given by 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 labels
+\f4\fs20  to the plot.  The string values in 
+\f3\fs18 labels
+\f4\fs20  will be plotted at the (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) positions given; note that 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 labels
+\f4\fs20  must all be the same length.  The new text data will be plotted on top of any previously added data.\
+The text will be drawn in color 
+\f3\fs18 color
+\f4\fs20 , at the font size given by 
+\f3\fs18 size
+\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Opacity values may be supplied with 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The angle at which the text is drawn can be specified with 
+\f3\fs18 angle
+\f4\fs20 ; angles are measured in degrees, clockwise.  All of these parameters (
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 size
+\f4\fs20 , 
+\f3\fs18 alpha
+\f4\fs20 , and 
+\f3\fs18 angle
+\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+The exact position of the text, relative to each point (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ), is adjusted by the optional parameter 
+\f3\fs18 adj
+\f4\fs20 .  The value of 
+\f3\fs18 adj
+\f4\fs20 , if specified, must be a vector of length 
+\f3\fs18 2
+\f4\fs20 , where 
+\f3\fs18 adj[0]
+\f4\fs20  adjusts the 
+\f1\i x
+\f4\i0  position and 
+\f3\fs18 adj[1]
+\f4\fs20  adjusts the 
+\f1\i y
+\f4\i0  position of the text.  Relative to a given 
+\f1\i x
+\f4\i0  position, a value of 
+\f3\fs18 0.0
+\f4\fs20  aligns the left edge of the text to it; a value of 
+\f3\fs18 0.5
+\f4\fs20  aligns the center of the text to it; and a value of 
+\f3\fs18 1.0
+\f4\fs20  aligns the right edge of the text to it.  Similarly, relative to a given 
+\f1\i y
+\f4\i0  position, a value of 
+\f3\fs18 0.0
+\f4\fs20  aligns the bottom edge of the text to it; a value of 
+\f3\fs18 0.5
+\f4\fs20  aligns the center of the text to it; and a value of 
+\f3\fs18 1.0
+\f4\fs20  aligns the top edge of the text to it.  Intermediate values will produce intermediate alignments, and values of 
+\f3\fs18 adj
+\f4\fs20  outside of [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ] are also allowed.  The default value of 
+\f3\fs18 adj
+\f4\fs20 , 
+\f3\fs18 NULL
+\f4\fs20 , is equivalent to 
+\f3\fs18 c(0.5,\'a00.5)
+\f4\fs20 , aligning the center of the text to (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) both horizontally and vertically.\
+See also the 
+\f3\fs18 mtext()
+\f4\fs20  method, for drawing text outside of the plot area.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)write(string$\'a0filePath)\
@@ -9969,7 +10512,7 @@ Register a block of Eidos source code, represented as the
 \f4\fs20  events, to ensure that species are either active or inactive throughout a given tick.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Mutation>)subsetMutations([No<Mutation>$\'a0exclude\'a0=\'a0NULL], [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Ni$\'a0position\'a0=\'a0NULL], [Nis$\'a0nucleotide\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0id\'a0=\'a0NULL], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(object<Mutation>)subsetMutations([No<Mutation>$\'a0exclude\'a0=\'a0NULL], [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Ni$\'a0position\'a0=\'a0NULL], [Nis$\'a0nucleotide\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0id\'a0=\'a0NULL], [Niso<Chromosome>\'a0chromosome\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a vector of mutations subset from the list of all active mutations in the species (as would be provided by the 
@@ -10024,13 +10567,13 @@ Register a block of Eidos source code, represented as the
 \f3\fs18 chromosome
 \f4\fs20 , if non-
 \f3\fs18 NULL
-\f4\fs20 , may specify a chromosome with which the mutations returned must be associated (as either an 
+\f4\fs20 , may specify a chromosome or chromosomes with which the mutations returned must be associated (as either 
 \f3\fs18 integer
-\f4\fs20  id, a 
+\f4\fs20  ids, 
 \f3\fs18 string
-\f4\fs20  symbol, or a 
+\f4\fs20  symbols, or 
 \f3\fs18 Chromosome
-\f4\fs20  object).\
+\f4\fs20  objects).\
 This method is shorthand for getting the 
 \f3\fs18 mutations
 \f4\fs20  property of the subpopulation, and then using operator 

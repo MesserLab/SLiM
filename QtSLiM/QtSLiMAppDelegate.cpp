@@ -37,6 +37,8 @@
 #include "QtSLiMExtras.h"
 
 #include <QApplication>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QOpenGLWidget>
 #include <QSurfaceFormat>
 #include <QMenu>
@@ -122,6 +124,18 @@ void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, co
     // Test for a specific message so you can break on it when it occurs
     //if (msg.contains("Using QCharRef with an index"))
     //    qDebug() << "HIT WATCH MESSAGE; SET A BREAKPOINT HERE!";
+    
+    // Filter known benign Windows QPA spam when displays change
+#ifdef _WIN32
+    {
+        QByteArray category = context.category ? QByteArray(context.category) : QByteArray();
+        if (category == "qwindows")
+        {
+            if (msg.startsWith("Unable to get device information for"))
+                return;
+        }
+    }
+#endif
     
     // useful behavior, from https://doc.qt.io/qt-5/qtglobal.html#qInstallMessageHandler
     {
@@ -224,6 +238,49 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     
     // We assume we are the global instance; FIXME singleton pattern would be good
     qtSLiMAppDelegate = this;
+
+    // Ensure windows stay on-screen when displays change (added, removed, or modified)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+
+    // This lambda (1) ensures that visible top-level windows remain on screen;
+    // (2) raises the active window to the front on the appropriate screen, if appropriate.
+    auto ensureOnScreen = [this]() {
+        const auto topLevels = QApplication::topLevelWidgets();
+        QWidget *active = qApp->activeWindow();
+        for (QWidget *w : topLevels)
+        {
+            if (!w || !w->isWindow())
+                continue;
+            // Do not affect hidden or minimized windows; only adjust currently visible ones
+            if (!w->isVisible())
+                continue;
+            if (w->windowState() & Qt::WindowMinimized)
+                continue;
+
+            // If the window is largely off-screen after a display change, move it without forcing it to the front
+            if (QtSLiMIsMostlyOnScreen(w))
+                continue;
+
+            if (w == active)
+            {
+                // For the active window, fully expose it (bring to front)
+                QtSLiMMakeWindowVisibleAndExposed(w);
+            }
+            else
+            {
+                // For other visible windows, adjust quietly without raising
+                QtSLiMRelocateQuietly(w);
+            }
+        }
+    };
+
+    // Connect to the screenAdded, screenRemoved, and geometryChanged signals
+    // to ensure that all top-level windows are visible and exposed
+    connect(app, &QGuiApplication::screenAdded,   this, [ensureOnScreen](QScreen *) { ensureOnScreen(); });
+    connect(app, &QGuiApplication::screenRemoved, this, [ensureOnScreen](QScreen *) { ensureOnScreen(); });
+    for (QScreen *screen : QGuiApplication::screens())
+        connect(screen, &QScreen::geometryChanged, this, [ensureOnScreen](const QRect &) { ensureOnScreen(); });
+#endif
     
     // Cache app-wide icons
     slimDocumentIcon_.addFile(":/icons/DocIcon16.png");
@@ -850,39 +907,45 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     {
         QAction *actionShowCycle_WF = new QAction("Show WF Tick Cycle", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_WF->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
         window->addAction(actionShowCycle_WF);
     }
     {
         QAction *actionShowCycle_nonWF = new QAction("Show nonWF Tick Cycle", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_nonWF->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
         window->addAction(actionShowCycle_nonWF);
     }
     {
         QAction *actionShowCycle_WF_MS = new QAction("Show WF Tick Cycle (Multispecies)", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_WF_MS->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_WF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF_MS);
         window->addAction(actionShowCycle_WF_MS);
     }
     {
         QAction *actionShowCycle_nonWF_MS = new QAction("Show nonWF Tick Cycle (Multispecies)", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_nonWF_MS->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_nonWF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS);
         window->addAction(actionShowCycle_nonWF_MS);
     }
     {
         QAction *actionShowColorChart = new QAction("Show Color Chart", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowColorChart->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowColorChart, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorChart);
         window->addAction(actionShowColorChart);
     }
     {
         QAction *actionShowPlotSymbols = new QAction("Show Plot Symbols", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowPlotSymbols->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowPlotSymbols, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showPlotSymbols);
         window->addAction(actionShowPlotSymbols);
+    }
+    {
+        QAction *actionShowColorScales = new QAction("Show SLiMgui Color Scales", this);
+        //actionShowColorScales->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        connect(actionShowColorScales, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorScales);
+        window->addAction(actionShowColorScales);
     }
     {
         QAction *actionHelp = new QAction("Help", this);
@@ -1008,7 +1071,7 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     {
         QAction *actionShowDebuggingOutput = new QAction("Show Debugging Output", this);
-        actionShowDebuggingOutput->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_D));
+        actionShowDebuggingOutput->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_D));
         connect(actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
         window->addAction(actionShowDebuggingOutput);
     }
@@ -1079,6 +1142,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         actionPaste->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_V));
         connect(actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
         window->addAction(actionPaste);
+    }
+    {
+        QAction *actionDuplicate = new QAction("Duplicate", this);
+        actionDuplicate->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_D));
+        connect(actionDuplicate, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_duplicate);
+        window->addAction(actionDuplicate);
     }
     {
         QAction *actionDelete = new QAction("Delete", this);
@@ -1305,6 +1374,43 @@ void QtSLiMAppDelegate::dispatch_showPlotSymbols(void)
         QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
+void QtSLiMAppDelegate::dispatch_showColorScales(void)
+{
+    // This shows a global window that displays SLiMgui's color scales.  Unlike the above global image
+    // windows shown by globalImageWindowWithPath(), this window is drawn dynamically by a custom widget.
+    // This code is based on the code in globalImageWindowWithPath(), with that custom widget.
+    int window_width = round(301);
+    int window_height = round(197);
+    
+    QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
+    
+    image_window->setWindowTitle("SLiMgui Color Scales");
+    image_window->setFixedSize(window_width, window_height);
+    
+    // Make the custom widget
+    QtSLiMColorScaleWidget *colorScaleView = new QtSLiMColorScaleWidget(image_window);
+    
+    // Install imageView in the window
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    image_window->setLayout(topLayout);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+    topLayout->addWidget(colorScaleView);
+    
+    // Position the window nicely
+    //positionNewSubsidiaryWindow(image_window);
+    
+    // make window actions for all global menu items
+    // this does not seem to be necessary on macOS, but maybe it is on Linux; will need testing FIXME
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    image_window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
+    if (image_window)
+        QtSLiMMakeWindowVisibleAndExposed(image_window);
+}
+
 void QtSLiMAppDelegate::dispatch_help(void)
 {
     QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
@@ -1493,6 +1599,15 @@ void QtSLiMAppDelegate::dispatch_paste(void)
         textEdit->paste();
     else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
         plainTextEdit->paste();
+}
+
+void QtSLiMAppDelegate::dispatch_duplicate(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    
+    if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+        scriptEdit->duplicateSelection();
 }
 
 void QtSLiMAppDelegate::dispatch_delete(void)

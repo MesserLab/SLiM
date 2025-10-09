@@ -88,7 +88,11 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 	try {
 		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 		std::ostringstream black_hole;
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole
+#ifdef SLIMGUI
+			, true
+#endif
+			);
 		
 		result = interpreter.EvaluateInterpreterBlock(true, true);		// print output, return the last statement value
 	}
@@ -210,7 +214,11 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		script.ParseInterpreterBlockToAST(true);
 		
 		std::ostringstream black_hole;
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole
+#ifdef SLIMGUI
+			, true
+#endif
+			);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);		// print output, return the last statement value
 		
@@ -1287,7 +1295,7 @@ int RunEidosTests(void)
 			// whereas std::sort() defaults to ascending (op <) by default, and Eidos_ParallelSort() doesn't take one.
 			//auto comparator_scalar = [](SORT_TYPE a, SORT_TYPE b) { return a < b; };
 			auto comparator_string = [](const std::string &a, const std::string &b) { return a < b; };
-			//auto comparator_double = [](const double& a, const double& b) { return std::isnan(b) || (a < b); };
+			//auto comparator_double = [](const double& a, const double& b) { return std::isnan(b) || (a < b); };	// needs fixing to induce a strict weak ordering
 			const std::size_t test_size = 10000000;
 			const int reps = 5;
 			double time_sum;

@@ -180,7 +180,7 @@ void QtSLiMFindRecipe::updateMatchListWidget(void)
     
     matchList->clear();
     
-    for (const QString &match : qAsConst(matchRecipeFilenames))
+    for (const QString &match : static_cast<const QStringList &>(matchRecipeFilenames))
         matchList->addItem(displayStringForRecipeFilename(match));
 }
 

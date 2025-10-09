@@ -72,6 +72,9 @@ void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
         addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
         addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     }
+    
+    // We want to display a "recycle to start gathering data at the start of the run" message
+    justAddedToWindow_ = true;
 }
 
 QtSLiMGraphView_FrequencyTrajectory::~QtSLiMGraphView_FrequencyTrajectory()
@@ -96,6 +99,8 @@ void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
     frequencyHistoryDict_.clear();
     frequencyHistoryColdStorageLost_.clear();
     frequencyHistoryColdStorageFixed_.clear();
+    
+    justAddedToWindow_ = true;
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
@@ -243,6 +248,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
     //NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (long long int)[frequencyHistoryDict count], (long long int)[frequencyHistoryColdStorageLost count], (long long int)[frequencyHistoryColdStorageFixed count]);
     
     lastTick_ = community->Tick();
+    justAddedToWindow_ = false;
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged(int /* index */)
@@ -287,6 +293,9 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerRecycled(void)
 	invalidateCachedData();
 	addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
+    
+    // We do not want to display our "recycle to start gathering at the start" message after a recycle
+    justAddedToWindow_ = false;
     
 	QtSLiMGraphView::controllerRecycled();
 }
@@ -347,6 +356,7 @@ QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
     
     if (graphSpecies)
     {
+        // check that we have a valid subpop and muttype
         bool hasSubpop = true, hasMuttype = true;
         
         if (!graphSpecies->SubpopulationWithID(selectedSubpopulationID_))
@@ -355,6 +365,12 @@ QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
             hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
         if (!hasSubpop || !hasMuttype)
             return "no\ndata";
+        
+        // check that we have some history recorded
+        qDebug() << "justAddedToWindow_ ==" << justAddedToWindow_;
+        
+        if (justAddedToWindow_)
+            return "initiating data collection;\nrecycle and run to\ncollect data from the\nstart of the simulation";
     }
     
     return "";

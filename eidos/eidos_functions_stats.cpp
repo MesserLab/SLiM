@@ -36,105 +36,556 @@
 #pragma mark Statistics functions
 #pragma mark -
 
+static double _Eidos_CalcCorrelation(size_t count, EidosValue *x_value, EidosValue *y_value, size_t x_offset, size_t y_offset)
+{
+	// A thin wrapper for Eidos_Correlation() that can be used with both integer and float EidosValues,
+	// and takes an offset for x and y that allow a particular column of a matrix to be selected
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Correlation<const int64_t, const int64_t>(x_value->IntData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Correlation<const int64_t, const double>(x_value->IntData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+	else					// EidosValueType::kValueFloat
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Correlation<const double, const int64_t>(x_value->FloatData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Correlation<const double, const double>(x_value->FloatData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+}
 
-//	(float$)cor(numeric x, numeric y)
+//	(float)cor(numeric x, [Nif y = NULL])
 EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *y_value = p_arguments[1].get();
-	int count = x_value->Count();
+	bool x_is_matrix = x_value->IsMatrixOrArray();
+	bool y_is_matrix = y_value->IsMatrixOrArray();
 	
-	if (x_value->IsMatrixOrArray() || y_value->IsMatrixOrArray())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
-	if (count != y_value->Count())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
-	
-	if (count > 1)
+	if (x_is_matrix || y_is_matrix)
 	{
-		// calculate means
-		double mean_x = 0, mean_y = 0;
-		
-		for (int value_index = 0; value_index < count; ++value_index)
+		// correlation involving at least one matrix (treated by column); y=NULL means do cor(x, x) for matrix x
+		if (y_value->Type() == EidosValueType::kValueNULL)
 		{
-			mean_x += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-			mean_y += y_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			y_value = x_value;
+			y_is_matrix = x_is_matrix;
 		}
 		
-		mean_x /= count;
-		mean_y /= count;
+		// arrays are not allowed, just matrices and vectors
+		if ((x_value->DimensionCount() > 2) || (y_value->DimensionCount() > 2))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() does not allow x or y to be an array." << EidosTerminate(nullptr);
 		
-		// calculate sums of squares and products of differences
-		double ss_x = 0, ss_y = 0, diff_prod = 0;
+		// get the lengths of the vectors we're calculating correlation on: vector length or matrix row count
+		size_t x_vec_length = x_is_matrix ? x_value->Dimensions()[0] : x_value->Count();
+		size_t y_vec_length = y_is_matrix ? y_value->Dimensions()[0] : y_value->Count();
 		
-		for (int value_index = 0; value_index < count; ++value_index)
+		if (x_vec_length != y_vec_length)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): incompatible dimensions in cor()." << EidosTerminate(nullptr);
+		
+		size_t vec_length = x_vec_length;
+		
+		if (vec_length == 0)
+			return gStaticEidosValue_FloatNAN;
+		
+		// so we're making a correlation matrix; let's determine its size first
+		int64_t nrows = x_is_matrix ? x_value->Dimensions()[1] : 1;
+		int64_t ncols = y_is_matrix ? y_value->Dimensions()[1] : 1;
+		
+		EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(nrows * ncols);
+		double *result_data = result->FloatData_Mutable();
+		result_SP = EidosValue_SP(result);
+		
+		if (x_value == y_value)
 		{
-			double dx = x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_x;
-			double dy = y_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_y;
-			
-			ss_x += dx * dx;
-			ss_y += dy * dy;
-			diff_prod += dx * dy;
+			// if x_value and y_value are the same, we're making a correlation matrix for x_value with itself
+			// the result will be a symmetric matrix, so we can save time by calculating only one triangle
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					if (row == col)
+					{
+						result_data[col * nrows + row] = 1.0;
+					}
+					else if (row < col)
+					{
+						size_t x_offset = row * vec_length;
+						size_t y_offset = col * vec_length;
+						double cor = _Eidos_CalcCorrelation(vec_length, x_value, y_value, x_offset, y_offset);
+						
+						result_data[col * nrows + row] = cor;
+						result_data[row * nrows + col] = cor;
+					}
+				}
+			}
+		}
+		else
+		{
+			// general case: loop over the elements of the result and calculate each one
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					size_t x_offset = row * vec_length;
+					size_t y_offset = col * vec_length;
+					double cor = _Eidos_CalcCorrelation(vec_length, x_value, y_value, x_offset, y_offset);
+					
+					result_data[col * nrows + row] = cor;
+				}
+			}
 		}
 		
-		// calculate correlation
-		double cor = diff_prod / (sqrt(ss_x) * sqrt(ss_y));
-		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cor));
+		const int64_t dim_buf[2] = {nrows, ncols};
+		result->SetDimensions(2, dim_buf);
 	}
 	else
 	{
-		result_SP = gStaticEidosValueNULL;
+		// correlation of two vectors x and y; in this case, y is not allowed to be NULL
+		if (y_value->Type() == EidosValueType::kValueNULL)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires both x and y to be supplied, or a matrix x." << EidosTerminate(nullptr);
+		
+		int count = x_value->Count();
+		
+		if (count != y_value->Count())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
+		if (count <= 1)
+			return gStaticEidosValue_FloatNAN;
+		
+		// calculate correlation between x and y
+		double cor = _Eidos_CalcCorrelation(count, x_value, y_value, 0, 0);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cor));
 	}
 	
 	return result_SP;
 }
 
-//	(float$)cov(numeric x, numeric y)
+static double _Eidos_CalcCovariance(size_t count, EidosValue *x_value, EidosValue *y_value, size_t x_offset, size_t y_offset)
+{
+	// A thin wrapper for Eidos_Covariance() that can be used with both integer and float EidosValues,
+	// and takes an offset for x and y that allow a particular column of a matrix to be selected
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Covariance<const int64_t, const int64_t>(x_value->IntData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Covariance<const int64_t, const double>(x_value->IntData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+	else					// EidosValueType::kValueFloat
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Covariance<const double, const int64_t>(x_value->FloatData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Covariance<const double, const double>(x_value->FloatData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+}
+
+//	(float)cov(numeric x, [Nif y = NULL])
 EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *y_value = p_arguments[1].get();
-	int count = x_value->Count();
+	bool x_is_matrix = x_value->IsMatrixOrArray();
+	bool y_is_matrix = y_value->IsMatrixOrArray();
 	
-	if (x_value->IsMatrixOrArray() || y_value->IsMatrixOrArray())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
-	if (count != y_value->Count())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
-	
-	if (count > 1)
+	if (x_is_matrix || y_is_matrix)
 	{
-		// calculate means
-		double mean_x = 0, mean_y = 0;
-		
-		for (int value_index = 0; value_index < count; ++value_index)
+		// covariance involving at least one matrix (treated by column); y=NULL means do cov(x, x) for matrix x
+		if (y_value->Type() == EidosValueType::kValueNULL)
 		{
-			mean_x += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-			mean_y += y_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			y_value = x_value;
+			y_is_matrix = x_is_matrix;
 		}
 		
-		mean_x /= count;
-		mean_y /= count;
+		// arrays are not allowed, just matrices and vectors
+		if ((x_value->DimensionCount() > 2) || (y_value->DimensionCount() > 2))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() does not allow x or y to be an array." << EidosTerminate(nullptr);
 		
-		// calculate covariance
-		double cov = 0;
+		// get the lengths of the vectors we're calculating covariance on: vector length or matrix row count
+		size_t x_vec_length = x_is_matrix ? x_value->Dimensions()[0] : x_value->Count();
+		size_t y_vec_length = y_is_matrix ? y_value->Dimensions()[0] : y_value->Count();
 		
-		for (int value_index = 0; value_index < count; ++value_index)
+		if (x_vec_length != y_vec_length)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): incompatible dimensions in cov()." << EidosTerminate(nullptr);
+		
+		size_t vec_length = x_vec_length;
+		
+		if (vec_length == 0)
+			return gStaticEidosValue_FloatNAN;
+		
+		// so we're making a covariance matrix; let's determine its size first
+		int64_t nrows = x_is_matrix ? x_value->Dimensions()[1] : 1;
+		int64_t ncols = y_is_matrix ? y_value->Dimensions()[1] : 1;
+		
+		EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(nrows * ncols);
+		double *result_data = result->FloatData_Mutable();
+		result_SP = EidosValue_SP(result);
+		
+		if (x_value == y_value)
 		{
-			double temp_x = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_x);
-			double temp_y = (y_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_y);
-			cov += temp_x * temp_y;
+			// if x_value and y_value are the same, we're making a covariance matrix for x_value with itself
+			// the result will be a symmetric matrix, so we can save time by calculating only one triangle
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					if (row <= col)
+					{
+						size_t x_offset = row * vec_length;
+						size_t y_offset = col * vec_length;
+						double cov = _Eidos_CalcCovariance(vec_length, x_value, y_value, x_offset, y_offset);
+						
+						result_data[col * nrows + row] = cov;
+						result_data[row * nrows + col] = cov;
+					}
+				}
+			}
+		}
+		else
+		{
+			// general case: loop over the elements of the result and calculate each one
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					size_t x_offset = row * vec_length;
+					size_t y_offset = col * vec_length;
+					double cov = _Eidos_CalcCovariance(vec_length, x_value, y_value, x_offset, y_offset);
+					
+					result_data[col * nrows + row] = cov;
+				}
+			}
 		}
 		
-		cov = cov / (count - 1);
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cov));
+		const int64_t dim_buf[2] = {nrows, ncols};
+		result->SetDimensions(2, dim_buf);
 	}
 	else
 	{
-		result_SP = gStaticEidosValueNULL;
+		// covariance of two vectors x and y; in this case, y is not allowed to be NULL
+		if (y_value->Type() == EidosValueType::kValueNULL)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires both x and y to be supplied, or a matrix x." << EidosTerminate(nullptr);
+		
+		int count = x_value->Count();
+		
+		if (count != y_value->Count())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
+		if (count <= 1)
+			return gStaticEidosValue_FloatNAN;
+		
+		// calculate covariance between x and y
+		double cov = _Eidos_CalcCovariance(count, x_value, y_value, 0, 0);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cov));
+	}
+	
+	return result_SP;
+}
+
+//	(float)filter(numeric x, float filter, [lif$ outside = F])
+EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// this is patterned after the R function filter(), but only for method="convolution", sides=2, circular=F
+	// so for now we support only a centered filter convolved over x with a non-circular buffer
+	// values where the filter extends beyond the range of x are handled according to the `outside` parameter
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *filter_value = p_arguments[1].get();
+	EidosValue *outside_value = p_arguments[2].get();
+	int x_count = x_value->Count();
+	int filter_count = filter_value->Count();
+	
+	// the maximum filter length is arbitrary, but it seems like a good idea to flag weird bugs?
+	if ((filter_count <= 0) | (filter_count > 999) | (filter_count % 2 == 0))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_filter): function filter() requires filter to have a length that is odd and within the interval [1, 999]." << EidosTerminate(nullptr);
+	
+	// decode the value of outside, which must be T (use NAN), F (exclude), or a numeric value (use constant)
+	typedef enum _OutsideValue {
+		kUseNAN = 0,
+		kExcludeOuter,
+		kUseConstant
+	} OutsideValue;
+	
+	OutsideValue outside;
+	double outsideConstant = 0.0;	// only used for OutsideValue::kUseConstant
+	
+	if (outside_value->Type() == EidosValueType::kValueLogical)
+	{
+		if (outside_value->LogicalAtIndex_NOCAST(0, nullptr) == false)
+		{
+			// outside=F is the default: use NAN for all positions where the filter extends beyond x
+			outside = OutsideValue::kUseNAN;
+		}
+		else
+		{
+			// outside=T: exclude positions where the filter extends beyond x, and rescale to compensate
+			outside = OutsideValue::kExcludeOuter;
+		}
+	}
+	else
+	{
+		// outside is integer or float: it gives the mean/expected value to be used for all values beyond x
+		outside = OutsideValue::kUseConstant;
+		outsideConstant = outside_value->NumericAtIndex_NOCAST(0, nullptr);
+	}
+	
+	// half rounded down; e.g., for a filter of length 5, this is 2; this is the number of
+	// positions at the start/end of the result where the filter extends past the end of x
+	int half_filter = filter_count / 2;
+	
+	// the result is the same length as x, in all cases
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	EidosValue_SP result_SP(float_result);
+	double *result_data = float_result->FloatData_Mutable();
+	
+	// test for a simple moving average, with equal weights summing to 1.0, to special-case it
+	const double *filter_data = filter_value->FloatData();
+	bool is_simple_moving_average = true;
+	
+	for (int index = 0; index < filter_count; ++index)
+	{
+		if (std::abs(filter_data[index] - (1.0 / filter_count)) > 1e-15)	// 1e-15 is a roundoff epsilon
+		{
+			is_simple_moving_average = false;
+			break;
+		}
+	}
+	
+	// if outside is kExcludeOuter, we need to know the sum of the filter's absolute values for scaling
+	double sum_abs_filter = 0.0;
+	
+	if (outside == OutsideValue::kExcludeOuter)
+	{
+		for (int pos = 0; pos < filter_count; ++pos)
+		{
+			double filter_element = filter_data[pos];
+			
+			if ((filter_element == 0) && ((pos == 0) || (pos == filter_count - 1)))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_filter): when outside=T, function filter() requires the first and last values of filter to be non-zero to avoid numerical issues." << EidosTerminate(nullptr);
+			
+			sum_abs_filter += std::abs(filter_element);
+		}
+	}
+	
+	// now that we've checked all error cases, short-circuit for zero-length x
+	if (x_count == 0)
+		return result_SP;
+	
+	// now we start generating the result vector; we will use the variable result_pos to track the result
+	// position we are calculating throughout, and will handle it three sections, left/middle/right
+	int result_pos = 0;
+	
+	// handle the half-filter length at the start, where positions on the left lie outside x
+	// this section also handles cases where positions on the right are also outside, because x_count is small
+	switch (outside)
+	{
+		case OutsideValue::kUseNAN:			// use NAN for all positions where the filter extends beyond x
+		{
+			for ( ; (result_pos < half_filter) && (result_pos < x_count); ++result_pos)
+				result_data[result_pos] = std::numeric_limits<double>::quiet_NaN();
+			
+			break;
+		}
+		case OutsideValue::kExcludeOuter:	// exclude positions where the filter extends beyond x
+		{
+			for ( ; (result_pos < half_filter) && (result_pos < x_count); ++result_pos)
+			{
+				double filtered_total = 0.0;
+				double sum_abs_filter_inside = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					
+					if ((x_pos >= 0) && (x_pos < x_count))
+					{
+						double x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+						
+						filtered_total += filter_datum * x_datum;
+						sum_abs_filter_inside += std::abs(filter_datum);
+					}
+				}
+				
+				result_data[result_pos] = filtered_total * (sum_abs_filter / sum_abs_filter_inside);
+			}
+			break;
+		}
+		case OutsideValue::kUseConstant:	// use the given numeric value for values beyond x
+		{
+			for ( ; (result_pos < half_filter) && (result_pos < x_count); ++result_pos)
+			{
+				double filtered_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					double x_datum;
+					
+					if ((x_pos >= 0) && (x_pos < x_count))
+						x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+					else
+						x_datum = outsideConstant;
+					
+					filtered_total += filter_datum * x_datum;
+				}
+				
+				result_data[result_pos] = filtered_total;
+			}
+			break;
+		}
+	}
+	
+	// now we branch depending on whether x is integer or float, and special-case simple moving averages
+	// for this middle loop we don't need to worry about the x position being outside bounds
+	if (x_value->Type() == EidosValueType::kValueFloat)
+	{
+		const double *x_data = x_value->FloatData();
+		
+		if (is_simple_moving_average)
+		{
+			// the first position after the half-filter length sets up a moving total
+			double moving_total = 0.0;
+			
+			if (result_pos < x_count - half_filter)
+			{
+				for (int filter_pos = 0; filter_pos < filter_count; ++filter_pos)
+					moving_total += x_data[filter_pos];
+				
+				result_data[result_pos] = moving_total / filter_count;
+				++result_pos;
+			}
+			
+			// the remaining positions modify the moving total
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
+			{
+				moving_total -= x_data[result_pos - half_filter - 1];
+				moving_total += x_data[result_pos + half_filter];
+				
+				result_data[result_pos] = moving_total / filter_count;
+			}
+		}
+		else
+		{
+			// we compute the filter over the appropriate range of x at each position
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
+			{
+				double filter_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+					filter_total += filter_data[filter_pos] * x_data[filter_pos + result_pos - half_filter];
+				
+				result_data[result_pos] = filter_total;
+			}
+		}
+	}
+	else
+	{
+		const int64_t *x_data = x_value->IntData();
+		
+		if (is_simple_moving_average)
+		{
+			// the first position after the half-filter length sets up a moving total
+			double moving_total = 0.0;
+			
+			if (result_pos < x_count - half_filter)
+			{
+				for (int filter_pos = 0; filter_pos < filter_count; ++filter_pos)
+					moving_total += x_data[filter_pos];
+				
+				result_data[result_pos] = moving_total / filter_count;
+				++result_pos;
+			}
+			
+			// the remaining non-NAN positions modify the moving total
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
+			{
+				moving_total -= x_data[result_pos - half_filter - 1];
+				moving_total += x_data[result_pos + half_filter];
+				
+				result_data[result_pos] = moving_total / filter_count;
+			}
+		}
+		else
+		{
+			// we compute the filter over the appropriate range of x at each position
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
+			{
+				double filter_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+					filter_total += filter_data[filter_pos] * x_data[filter_pos + result_pos - half_filter];
+				
+				result_data[result_pos] = filter_total;
+			}
+		}
+	}
+	
+	// the remaining positions at the end have positions outside x on the right, but never on the left
+	switch (outside)
+	{
+		case OutsideValue::kUseNAN:			// use NAN for all positions where the filter extends beyond x
+		{
+			for ( ; result_pos < x_count; ++result_pos)
+				result_data[result_pos] = std::numeric_limits<double>::quiet_NaN();
+			break;
+		}
+		case OutsideValue::kExcludeOuter:	// exclude positions where the filter extends beyond x
+		{
+			for ( ; result_pos < x_count; ++result_pos)
+			{
+				double filtered_total = 0.0;
+				double sum_abs_filter_inside = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					
+					if (x_pos < x_count)
+					{
+						double x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+						
+						filtered_total += filter_datum * x_datum;
+						sum_abs_filter_inside += std::abs(filter_datum);
+					}
+				}
+				
+				result_data[result_pos] = filtered_total * (sum_abs_filter / sum_abs_filter_inside);
+			}
+			break;
+		}
+		case OutsideValue::kUseConstant:	// use the given numeric value for values beyond x
+		{
+			for ( ; result_pos < x_count; ++result_pos)
+			{
+				double filtered_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					double x_datum;
+					
+					if (x_pos < x_count)
+						x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+					else
+						x_datum = outsideConstant;
+					
+					filtered_total += filter_datum * x_datum;
+				}
+				
+				result_data[result_pos] = filtered_total;
+			}
+			break;
+		}
 	}
 	
 	return result_SP;
@@ -1097,35 +1548,31 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
+	// This is different from the behavior of var(), cor(), and cov(), but follows R
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_count > 1)
+	if (x_count <= 1)
+		return gStaticEidosValue_FloatNAN;
+	
+	double mean = 0;
+	double sd = 0;
+	
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
+	
+	mean /= x_count;
+	
+	for (int value_index = 0; value_index < x_count; ++value_index)
 	{
-		double mean = 0;
-		double sd = 0;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-		
-		mean /= x_count;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-		{
-			double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
-			sd += temp * temp;
-		}
-		
-		sd = sqrt(sd / (x_count - 1));
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sd));
+		double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
+		sd += temp * temp;
 	}
-	else
-	{
-		result_SP = gStaticEidosValueNULL;
-	}
+	
+	sd = sqrt(sd / (x_count - 1));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sd));
 	
 	return result_SP;
 }
@@ -1183,42 +1630,20 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const std::vector<EidosValue_SP> &p_ar
 //	(float$)var(numeric x)
 EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
-	int x_count = x_value->Count();
 	
 	if (x_value->IsMatrixOrArray())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() does not currently support a matrix/array argument." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() does not support a matrix/array argument; use cov() to calculate variance-covariance matrices." << EidosTerminate(nullptr);
 	
-	if (x_count > 1)
-	{
-		// calculate mean
-		double mean = 0;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-		
-		mean /= x_count;
-		
-		// calculate variance
-		double var = 0;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-		{
-			double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
-			var += temp * temp;
-		}
-		
-		var = var / (x_count - 1);
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(var));
-	}
-	else
-	{
-		result_SP = gStaticEidosValueNULL;
-	}
+	int x_count = x_value->Count();
 	
-	return result_SP;
+	if (x_count <= 1)
+		return gStaticEidosValue_FloatNAN;
+	
+	// calculate variance of x (covariance between x and itself)
+	double cov = _Eidos_CalcCovariance(x_count, x_value, x_value, 0, 0);
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cov));
 }
 
 

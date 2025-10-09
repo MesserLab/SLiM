@@ -377,6 +377,10 @@
 		pbString = [pbString stringByReplacingOccurrencesOfString:@"\r" withString:@"\n"];
 		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U00002028" withString:@"\n"];	// NSLineSeparatorCharacter
 		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U00002029" withString:@"\n"];	// NSParagraphSeparatorCharacter
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U000000A0" withString:@" "];	// Unicode "no-break space"
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U0000202F" withString:@" "];	// Unicode "narrow no-break space"
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U00002009" withString:@" "];	// Unicode "thin space"
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U00002007" withString:@" "];	// Unicode "figure space"
 		
 		[self insertText:pbString replacementRange:[self selectedRange]];
 	}

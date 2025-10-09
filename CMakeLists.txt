@@ -76,6 +76,29 @@ if(TIDY)
 endif()
 
 
+# cppcheck support (for internal development)
+# for now this processes one file at a time; there is an alternative approach that
+# outputs a project file with CMAKE_EXPORT_COMPILE_COMMANDS and then runs cppcheck
+# on that, but I'm not sure how to do it within cmake so for now I'm punting on it
+option(CPPCHECK "Run cppcheck on SLiM (for development)" OFF)
+
+if(CPPCHECK)
+  if(CMAKE_VERSION VERSION_LESS "3.10")
+    message(FATAL_ERROR "To use the cppcheck wrapper CPPCHECK in this project you will need a version of CMake at least as new as 3.10.")
+  endif()
+  
+  find_program(CPPCHECK_EXECUTABLE cppcheck)
+  if (CPPCHECK_EXECUTABLE)
+    message(STATUS "CPPCHECK is ${CPPCHECK}; building with cppcheck (for development)")
+    set(CPPCHECK_COMMAND "${CPPCHECK_EXECUTABLE}" "--enable=all;--suppress=missingIncludeSystem;--suppress=syntaxError;--suppress=unmatchedSuppression;--inline-suppr;--std=c++11;--quiet;--suppress=*:robin_hood.h;--suppress=*:lodepng.cpp;--suppress=checkersReport;--suppress=*:eidos_openmp.h;--suppress=unusedFunction")
+    message(STATUS "+++ cppcheck is at ${CPPCHECK_EXECUTABLE}")
+    message(STATUS "+++ CPPCHECK_COMMAND is ${CPPCHECK_COMMAND}")
+  else()
+    message(FATAL_ERROR "The CPPCHECK option could be enabled because the cppcheck command could not be found.")
+  endif()
+endif()
+
+
 project(SLiM)
 if(WIN32)
     include(ExternalProject)
@@ -94,6 +117,12 @@ endif(NOT CMAKE_BUILD_TYPE)
 # Add "-D BUILD_SLIMGUI=ON" to the CMake command to build SLiMgui
 # This requires that Qt, a widget framework, is installed
 option(BUILD_SLIMGUI "Build the Qt-based GUI for SLiM" OFF)
+
+# Add "-D ASAN=ON" to the CMake command to build with ASan runtime checking
+option(ASAN "Build with ASan runtime checking" OFF)
+
+# Add "-D UBSAN=ON" to the CMake command to build with ASan runtime checking
+option(UBSAN "Build with UBSan runtime checking" OFF)
 
 # Add "-D PARALLEL=ON" to the CMake command to make a parallel (multi-threaded) build
 # This is supported only for the command-line tools, not for SLiMgui; do not set BUILD_SLIMGUI
@@ -172,6 +201,24 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
+# Build with ASan enabled if requested
+if(ASAN)
+	message(STATUS "ASAN is ${ASAN}")
+	add_compile_options(-fsanitize=address -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
+	add_link_options(-fsanitize=address)
+else()
+	message(STATUS "ASAN is ${ASAN}; use -DASAN=ON to enable ASan run-time checking")
+endif(ASAN)
+
+# Build with UBSan enabled if requested
+if(UBSAN)
+	message(STATUS "UBSAN is ${UBSAN}")
+	add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
+	add_link_options(-fsanitize=undefined)
+else()
+	message(STATUS "UBSAN is ${UBSAN}; use -DUBSAN=ON to enable UBSan run-time checking")
+endif(UBSAN)
+
 # Report whether the build is parallel or not
 if(PARALLEL)
 	# -Xclang is also needed on macOS; it is not set here since macOS builds are done in Xcode
@@ -242,7 +289,7 @@ endif()
 # GSL - adding /usr/local/include so all targets that use GSL_INCLUDES get omp.h
 set(TARGET_NAME_GSL gsl)
 file(GLOB_RECURSE GSL_SOURCES ${PROJECT_SOURCE_DIR}/gsl/*.c ${PROJECT_SOURCE_DIR}/gsl/*/*.c)
-set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${PROJECT_SOURCE_DIR}/gsl/blas ${PROJECT_SOURCE_DIR}/gsl/rng ${PROJECT_SOURCE_DIR}/gsl/cdf ${PROJECT_SOURCE_DIR}/gsl/vector ${PROJECT_SOURCE_DIR}/gsl/err ${PROJECT_SOURCE_DIR}/gsl/sys ${PROJECT_SOURCE_DIR}/gsl/randist ${PROJECT_SOURCE_DIR}/gsl/matrix ${PROJECT_SOURCE_DIR}/gsl/cblas ${PROJECT_SOURCE_DIR}/gsl/complex ${PROJECT_SOURCE_DIR}/gsl/block ${PROJECT_SOURCE_DIR}/gsl/interpolation ${PROJECT_SOURCE_DIR}/gsl/linalg /usr/local/include)
+set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${PROJECT_SOURCE_DIR}/gsl/blas ${PROJECT_SOURCE_DIR}/gsl/rng ${PROJECT_SOURCE_DIR}/gsl/cdf ${PROJECT_SOURCE_DIR}/gsl/vector ${PROJECT_SOURCE_DIR}/gsl/err ${PROJECT_SOURCE_DIR}/gsl/sys ${PROJECT_SOURCE_DIR}/gsl/randist ${PROJECT_SOURCE_DIR}/gsl/matrix ${PROJECT_SOURCE_DIR}/gsl/cblas ${PROJECT_SOURCE_DIR}/gsl/complex ${PROJECT_SOURCE_DIR}/gsl/block ${PROJECT_SOURCE_DIR}/gsl/interpolation ${PROJECT_SOURCE_DIR}/gsl/linalg ${PROJECT_SOURCE_DIR}/gsl/permutation /usr/local/include)
 add_library(${TARGET_NAME_GSL} STATIC ${GSL_SOURCES})
 target_include_directories(${TARGET_NAME_GSL} PUBLIC ${GSL_INCLUDES})
 
@@ -294,7 +341,7 @@ if(WIN32)
     set_source_files_properties(${SLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
     set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
     target_include_directories(${TARGET_NAME_SLIM} BEFORE PUBLIC ${GNU_DIR})
-    target_link_libraries(${TARGET_NAME_SLIM} PUBLIC gnu)
+    target_link_libraries(${TARGET_NAME_SLIM} PUBLIC gnu PRIVATE bcrypt)
 endif()
 
 # EIDOS
@@ -316,7 +363,7 @@ if(WIN32)
     set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
     set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
     target_include_directories(${TARGET_NAME_EIDOS} BEFORE PUBLIC ${GNU_DIR})
-    target_link_libraries(${TARGET_NAME_EIDOS} PUBLIC gnu)
+    target_link_libraries(${TARGET_NAME_EIDOS} PUBLIC gnu PRIVATE bcrypt)
 endif()
 
 if(PARALLEL)
@@ -390,7 +437,7 @@ if(BUILD_SLIMGUI)
       set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
       set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
       target_include_directories(${TARGET_NAME_SLIMGUI} BEFORE PUBLIC ${GNU_DIR})
-      target_link_libraries(${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib gnu )
+      target_link_libraries(${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib gnu PRIVATE bcrypt)
     else()
       target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib )
 
@@ -460,6 +507,20 @@ if(TIDY)
 	endif(PARALLEL)
 	if(BUILD_SLIMGUI)
 		set_target_properties(SLiMgui PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+	endif(BUILD_SLIMGUI)
+endif()
+
+# implement cppcheck for all end-user targets (not for gsl, zlib, kastore, tskit)
+if(CPPCHECK)
+	if(PARALLEL)
+		set_target_properties(eidos_multi PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+		set_target_properties(slim_multi PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+	else()
+		set_target_properties(eidos PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+		set_target_properties(slim PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+	endif(PARALLEL)
+	if(BUILD_SLIMGUI)
+		set_target_properties(SLiMgui PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
 	endif(BUILD_SLIMGUI)
 endif()
 

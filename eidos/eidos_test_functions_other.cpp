@@ -48,6 +48,25 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("identical(cbind(matrix(1:6, ncol=2), matrix(7:12, ncol=2)), matrix(1:12, nrow=3));", true);
 	EidosAssertScriptSuccess_L("identical(cbind(matrix(1:6, nrow=1), matrix(7:12, nrow=1)), matrix(1:12, nrow=1));", true);
 	
+	// det()
+	EidosAssertScriptRaise("det(1);", 0, "must be a matrix");
+	EidosAssertScriptRaise("det(1.5);", 0, "must be a matrix");
+	EidosAssertScriptRaise("det(matrix(1:6, ncol=2));", 0, "must be a square matrix");
+	EidosAssertScriptSuccess_I("det(matrix(7, ncol=1));", 7);
+	EidosAssertScriptSuccess_F("det(matrix(7.0, ncol=1));", 7.0);
+	EidosAssertScriptSuccess_I("det(matrix(1:4, ncol=2));", -2);
+	EidosAssertScriptSuccess_F("det(matrix(1.0:4, ncol=2));", -2.0);
+	EidosAssertScriptSuccess_I("det(matrix(1:9, ncol=3));", 0);
+	EidosAssertScriptSuccess_F("det(matrix(1.0:9, ncol=3));", 0.0);
+	EidosAssertScriptSuccess_I("det(matrix(c(1, 2, 3, 6, 5, 4, 8, 9, 7), nrow=3));", 21);
+	EidosAssertScriptSuccess_L("abs(det(matrix(c(1.0, 2, 3, 6, 5, 4, 8, 9, 7), nrow=3)) - 21.0) < 1e-10;", true);
+	EidosAssertScriptSuccess_L("x = matrix(rdunif(4, -100, 100), ncol=2); identical(det(x), drop(x[0,0]*x[1,1] - x[0,1]*x[1,0]));", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(4, -100, 100), ncol=2); abs(det(x) - drop(x[0,0]*x[1,1] - x[0,1]*x[1,0])) < 1e-9;", true);
+	EidosAssertScriptSuccess_L("x = matrix(rdunif(9, -100, 100), ncol=3); identical(det(x), drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1]));", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(9, -100, 100), ncol=3); abs(det(x) - drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1])) < 1e-9;", true);
+	EidosAssertScriptSuccess_L("x = matrix(rdunif(16, -100, 100), ncol=4); det(x); T;", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(16, -100, 100), ncol=4); det(x); T;", true);
+	
 	// diag()
 	EidosAssertScriptRaise("diag(array(5, c(1, 1, 1)));", 0, "a vector or a matrix");
 	EidosAssertScriptRaise("diag(matrix(5), nrow=1);", 0, "must be NULL");
@@ -137,6 +156,17 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("identical(drop(array(1:12, c(12,1,1))), 1:12);", true);
 	EidosAssertScriptSuccess_L("identical(drop(array(1:12, c(2,3,2))), array(1:12, c(2,3,2)));", true);
 	
+	// inverse()
+	EidosAssertScriptRaise("inverse(1);", 0, "must be a matrix");
+	EidosAssertScriptRaise("inverse(1.5);", 0, "must be a matrix");
+	EidosAssertScriptRaise("inverse(matrix(1:6, ncol=2));", 0, "must be a square matrix");
+	EidosAssertScriptSuccess_F("inverse(matrix(2, ncol=1));", 0.5);
+	EidosAssertScriptSuccess_F("inverse(matrix(2.0, ncol=1));", 0.5);
+	EidosAssertScriptRaise("inverse(matrix(1:9, ncol=3));", 0, "must not be singular");
+	EidosAssertScriptRaise("inverse(matrix(1.0:9, ncol=3));", 0, "must not be singular");
+	EidosAssertScriptSuccess_L("A = matrix(c(3, 2, 5, 2, 3, 2, 5, 2, 4), ncol=3); B = inverse(A); prod = matrixMult(asFloat(A), B); identity = diag(nrow=3); diff = sum(abs(prod - identity)); diff < 1e-10;", true);
+	EidosAssertScriptSuccess_L("A = matrix(c(3.0, 2, 5, 2, 3, 2, 5, 2, 4), ncol=3); B = inverse(A); prod = matrixMult(A, B); identity = diag(nrow=3); diff = sum(abs(prod - identity)); diff < 1e-10;", true);
+	
 	// lowerTri()
 	EidosAssertScriptRaise("ut = lowerTri(0);", 5, "is not a matrix");
 	EidosAssertScriptSuccess_L("ut = lowerTri(matrix(5)); identical(ut, matrix(F));", true);
@@ -206,6 +236,18 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("A = matrix(1.0:6.0, nrow=2); B = matrix(1.0:6.0, ncol=2); identical(matrixMult(A, B), matrix(c(22.0, 28.0, 49.0, 64.0), nrow=2));", true);
 	EidosAssertScriptSuccess_L("A = matrix(1.0:6.0, ncol=2); B = matrix(1.0:6.0, nrow=2); identical(matrixMult(A, B), matrix(c(9.0, 12.0, 15.0, 19.0, 26.0, 33.0, 29.0, 40.0, 51.0), nrow=3));", true);
 	
+	// matrixPow()
+	EidosAssertScriptRaise("matrixPow(5.0, 3);", 0, "requires x to be a matrix");
+	EidosAssertScriptRaise("matrixPow(matrix(1:6, nrow=2), 3);", 0, "requires x to be a square matrix");
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 0); identical(B, diag(3));", true);
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 1); identical(B, A);", true);
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 2); identical(B, matrix(c(30, 36, 42, 66, 81, 96, 102, 126, 150), nrow=3));", true);
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 3); identical(B, matrix(c(468, 576, 684, 1062, 1305, 1548, 1656, 2034, 2412), nrow=3));", true);
+	EidosAssertScriptRaise("A = matrix(1:9, nrow=3); B = matrixPow(A, -1);", 29, "singular and thus non-invertible");
+	EidosAssertScriptSuccess_L("A = matrix(c(1, 3, 2, 6, 4, 5, 10, 2, 7), nrow=3); B = matrixPow(A, -1); identical(B, inverse(A));", true);
+	EidosAssertScriptSuccess_L("A = matrix(c(1, 3, 2, 6, 4, 5, 10, 2, 7), nrow=3); B = matrixPow(A, -2); identical(B, matrixPow(inverse(A), 2));", true);
+	EidosAssertScriptSuccess_L("A = matrix(c(1, 3, 2, 6, 4, 5, 10, 2, 7), nrow=3); B = matrixPow(A, -3); identical(B, matrixPow(inverse(A), 3));", true);
+	
 	// ncol()
 	EidosAssertScriptSuccess_NULL("ncol(NULL);");
 	EidosAssertScriptSuccess_NULL("ncol(T);");
@@ -256,6 +298,18 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_IV("nrow(array(1.0:24, c(2,3,4)));", {2});
 	EidosAssertScriptSuccess_IV("nrow(array(1.0:48, c(2,3,4,2)));", {2});
 	
+	// outerProduct()
+	EidosAssertScriptRaise("outerProduct(1:3, integer(0));", 0, "dimensions equal to zero");
+	EidosAssertScriptRaise("outerProduct(integer(0), 1:3);", 0, "dimensions equal to zero");
+	EidosAssertScriptSuccess_L("x = 1:3; y = 5:6; identical(outerProduct(x, y), matrix(c(5, 10, 15, 6, 12, 18), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = 1:2; y = 5:7; identical(outerProduct(x, y), matrix(c(5, 10, 6, 12, 7, 14), nrow=2));", true);
+	EidosAssertScriptSuccess_L("x = 1:3; y = 5:7; identical(outerProduct(x, y), matrix(c(5, 10, 15, 6, 12, 18, 7, 14, 21), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:3; y = 5.0:6; identical(outerProduct(x, y), matrix(c(5.0, 10, 15, 6, 12, 18), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:2; y = 5.0:7; identical(outerProduct(x, y), matrix(c(5.0, 10, 6, 12, 7, 14), nrow=2));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:3; y = 5.0:7; identical(outerProduct(x, y), matrix(c(5.0, 10, 15, 6, 12, 18, 7, 14, 21), nrow=3));", true);
+	EidosAssertScriptRaise("outerProduct(1.0:3, 5:7);", 0, "the same type");
+	EidosAssertScriptRaise("x = matrix(1:3); outerProduct(x, x);", 17, "requires x and y to be vectors");
+	
 	// rbind()
 	EidosAssertScriptRaise("rbind(5, 5.5);", 0, "be the same type");
 	EidosAssertScriptRaise("rbind(5, array(5, c(1,1,1)));", 0, "all arguments be vectors or matrices");
@@ -287,6 +341,18 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptRaise("t(array(1:24, c(2,3,4)));", 0, "is not a matrix");
 	EidosAssertScriptRaise("t(array(1:48, c(2,3,4,2)));", 0, "is not a matrix");
 	
+	// tr()
+	EidosAssertScriptRaise("tr(1);", 0, "must be a matrix");
+	EidosAssertScriptRaise("tr(1.5);", 0, "must be a matrix");
+	EidosAssertScriptRaise("tr(matrix(1:6, ncol=2));", 0, "must be a square matrix");
+	EidosAssertScriptSuccess_I("tr(matrix(7, ncol=1));", 7);
+	EidosAssertScriptSuccess_F("tr(matrix(7.0, ncol=1));", 7.0);
+	EidosAssertScriptSuccess_I("tr(matrix(1:9, ncol=3));", 1 + 5 + 9);
+	EidosAssertScriptSuccess_F("tr(matrix(1.0:9, ncol=3));", 1 + 5 + 9);
+	EidosAssertScriptSuccess_F("tr(matrix(c(1.25, -7.8, 3.4, 6.1, 4.75, 8.2, -0.3, 8.6, -1.5), ncol=3));", 1.25 + 4.75 + -1.5);
+	EidosAssertScriptSuccess_L("x = matrix(runif(100), ncol=10); identical(tr(x), sum(diag(x)));", true);
+	EidosAssertScriptSuccess_L("x = matrix(rdunif(100, -1000, 1000), ncol=10); identical(tr(x), sum(diag(x)));", true);
+	
 	// upperTri()
 	EidosAssertScriptRaise("ut = upperTri(0);", 5, "is not a matrix");
 	EidosAssertScriptSuccess_L("ut = upperTri(matrix(5)); identical(ut, matrix(F));", true);
@@ -297,6 +363,29 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_IV("x = matrix(1:12, 3); ut = upperTri(x, T); x[c(ut)];", {1, 4, 5, 7, 8, 9, 10, 11, 12});
 	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = upperTri(x); x[c(ut)];", {5, 9, 10});
 	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = upperTri(x, T); x[c(ut)];", {1, 5, 6, 9, 10, 11});
+	
+	// asVector()
+	EidosAssertScriptRaise("x = NULL; y = matrix(x); identical(asVector(y), x);", 14, "zero elements");
+	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	EidosAssertScriptSuccess_L("x = (rbinom(12, 1, 0.5) == 1); y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	EidosAssertScriptSuccess_L("x = c('a','b','c','d','e','f','g','h','i','j','k','l'); y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	
+	// rowSums()
+	EidosAssertScriptSuccess_L("x = c(T,T,F,F,T,F,F,T,T,F,F,T); y = matrix(x, nrow=3); identical(rowSums(y), c(1, 3, 2));", true);
+	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(rowSums(y), c(22, 26, 30));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(rowSums(y), c(22.0, 26, 30));", true);
+	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	
+	// colSums()
+	EidosAssertScriptSuccess_L("x = c(T,T,F,F,T,F,F,T,T,F,F,T); y = matrix(x, nrow=3); identical(colSums(y), c(2, 1, 2, 1));", true);
+	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(colSums(y), c(6, 15, 24, 33));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(colSums(y), c(6.0, 15, 24, 33));", true);
+	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
 }
 
 #pragma mark filesystem access

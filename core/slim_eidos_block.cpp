@@ -69,6 +69,10 @@ static inline bool SLiM_TokenIsCallbackIdentifier(EidosToken *token)
 		(token->token_string_.compare(gStr_reproduction) == 0))
 		return true;
 	
+	// also return true for obsolete callbacks, to parse it correctly even though it's obsolete
+	if (token->token_string_.compare(gStr_fitness) == 0)
+		return true;
+	
 	return false;
 }
 

@@ -36,8 +36,11 @@
 #include <algorithm>
 
 
+extern const char *gSLiMSourceCode_calcDxy;
 extern const char *gSLiMSourceCode_calcFST;
 extern const char *gSLiMSourceCode_calcVA;
+extern const char *gSLiMSourceCode_calcLD_D;
+extern const char *gSLiMSourceCode_calcLD_Rsquared;
 extern const char *gSLiMSourceCode_calcMeanFroh;
 extern const char *gSLiMSourceCode_calcPairHeterozygosity;
 extern const char *gSLiMSourceCode_calcHeterozygosity;
@@ -72,8 +75,11 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
 		
 		// Population genetics utilities (implemented with Eidos code)
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcDxy", gSLiMSourceCode_calcDxy, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("normalize", gStaticEidosValue_LogicalF));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_D", gSLiMSourceCode_calcLD_D, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_Rsquared", gSLiMSourceCode_calcLD_Rsquared, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddLogical_OS("squared", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcMeanFroh", gSLiMSourceCode_calcMeanFroh, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt_OS("minimumLength", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1000000)))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("haplosome1", gSLiM_Haplosome_Class)->AddObject_S("haplosome2", gSLiM_Haplosome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -119,6 +125,94 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 // These are implemented in Eidos, for transparency/modifiability.  These strings are globals mostly so the
 // formatting of the code looks nice in Xcode; they are used only by Community::SLiMFunctionSignatures().
 
+#pragma mark (float$)calcDxy(object<Haplosome> haplosomes1, object<Haplosome> haplosomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL], [logical$ normalize = F])
+const char *gSLiMSourceCode_calcDxy = 
+R"V0G0N({
+	n1 = haplosomes1.length();
+	n2 = haplosomes2.length();
+	if (n1 == 0 | n2 == 0)
+		stop("ERROR (calcDxy): haplosomes1 and haplosomes2 must both be non-empty.");
+	
+	species = haplosomes1[0].individual.subpopulation.species;
+	if (community.allSpecies.length() > 1)
+	{
+		if (any(c(haplosomes1, haplosomes2).individual.subpopulation.species != species))
+			stop("ERROR (calcDxy): all haplosomes must belong to the same species.");
+		if (!isNULL(muts))
+			if (any(muts.mutationType.species != species))
+				stop("ERROR (calcDxy): all mutations must belong to the same species as the haplosomes.");
+	}
+	
+	chromosome = haplosomes1[0].chromosome;
+	if (species.chromosomes.length() > 1)
+	{
+		if (any(c(haplosomes1, haplosomes2).chromosome != chromosome))
+			stop("ERROR (calcDxy): all haplosomes must be associated with the same chromosome.");
+		if (!isNULL(muts))
+			if (any(muts.chromosome != chromosome))
+				stop("ERROR (calcDxy): all mutations must be associated with the same chromosome as the haplosomes.");
+	}
+	length = chromosome.length;
+	
+	if (isNULL(muts))
+		muts = species.subsetMutations(chromosome=chromosome);
+	
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcDxy): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcDxy): start and end must be within the bounds of the focal chromosome");
+		length = end - start + 1;
+		mpos = muts.position;
+		muts = muts[(mpos >= start) & (mpos <= end)];
+	}
+	else if (isNULL(start) & isNULL(end))
+	{
+		start = 0;
+		end = chromosome.lastPosition;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcDxy): start and end must both be NULL or both be non-NULL.");
+	}
+	
+	// narrow down to mutations actually present in the haplosomes and not fixed
+	p = c(haplosomes1, haplosomes2).mutationFrequenciesInHaplosomes(muts);
+	muts = muts[(p != 0.0) & (p != 1.0)];
+	if (size(muts) == 0) // if there are no mutations segregating, Dxy = 0
+		return 0.0;
+	
+	// get the count of each mutation in the two sets of haplosomes
+	dos1 = haplosomes1.mutationCountsInHaplosomes(muts);
+	dos2 = haplosomes2.mutationCountsInHaplosomes(muts);
+	
+	// calculate counts for the "empty" positions (they are alleles too, even
+	// though they don't have mutation objects in SLiM); note the implementation
+	// assumes "infinite sites" by assuming that a given site contains only a
+	// single SLiM mutation; if multiple SLiM mutations were present, the empty
+	// count would need to account for all of them, but that is hard to do
+	dos1_empty = size(haplosomes1) - dos1;
+	dos2_empty = size(haplosomes2) - dos2;
+	
+	dos1 = c(dos1, dos1_empty);
+	dos2 = c(dos2, dos2_empty);
+	
+	// "presence of A in haplosomes1" times "absence of A in haplosomes2" +
+	//    "presence of A in haplosomes2" times "absence of A in haplosomes1"
+	diffs_per_site = dos1 * (n2 - dos2) + (n1 - dos1) * dos2;
+	diff = sum(diffs_per_site);
+	
+	// this estimates Dxy as defined by Nei, without normalization by length
+	dxy = diff / 2.0 / n1 / n2;
+	
+	if (normalize)
+		return dxy / length;
+	else
+		return dxy;
+})V0G0N";
+
 #pragma mark (float$)calcFST(object<Haplosome> haplosomes1, object<Haplosome> haplosomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcFST = 
 R"V0G0N({
@@ -135,25 +229,29 @@ R"V0G0N({
 				stop("ERROR (calcFST): all mutations must belong to the same species as the haplosomes.");
 	}
 	
-	chromosome = haplosomes1[0].chromosome;
+	chromosomes = haplosomes1[0].chromosome;
 	if (species.chromosomes.length() > 1)
 	{
-		if (any(c(haplosomes1, haplosomes2).chromosome != chromosome))
-			stop("ERROR (calcFST): all haplosomes must be associated with the same chromosome.");
+		chromosomes = sortBy(unique(haplosomes1.chromosome, preserveOrder=F), "id");
+		chromosomes2 = sortBy(unique(haplosomes2.chromosome, preserveOrder=F), "id");
+		if (!identical(chromosomes, chromosomes2))
+			stop("ERROR (calcFST): both haplosomes must be associated with the same set of chromosomes.");
 		if (!isNULL(muts))
-			if (any(muts.chromosome != chromosome))
-				stop("ERROR (calcFST): all mutations must be associated with the same chromosome as the haplosomes.");
+			if (any(match(unique(muts.chromosome), chromosomes) == -1))
+				stop("ERROR (calcFST): all mutations must be associated with the same chromosomes as the haplosomes.");
 	}
 	
 	if (isNULL(muts))
-		muts = species.subsetMutations(chromosome=chromosome);
+		muts = species.subsetMutations(chromosome=chromosomes);
 	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
+		if (chromosomes.length() > 1)
+			stop("ERROR (calcFST): start/end cannot be specified with more than one chromosome.");
 		if (start > end)
 			stop("ERROR (calcFST): start must be less than or equal to end.");
-		if ((start < 0) | (end >= length))
+		if ((start < 0) | (end >= chromosomes.length))
 			stop("ERROR (calcFST): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
@@ -203,6 +301,118 @@ R"V0G0N({
 			stop("ERROR (calcVA): all individuals must belong to the same species as mutType.");
 	
 	return var(individuals.sumOfMutationsOfType(mutType));
+})V0G0N";
+
+#pragma mark (float)calcLD_D(object<Mutation>$ mut1, [No<Mutation> mut2 = NULL], [No<Haplosome> haplosomes = NULL])
+const char *gSLiMSourceCode_calcLD_D = 
+R"V0G0N({
+	// check species
+	species = mut1.mutationType.species;
+	if (community.allSpecies.length() > 1)
+	{
+		if (!isNULL(haplosomes))
+			if (any(haplosomes.individual.subpopulation.species != species))
+				stop("ERROR (calcLD_D): all haplosomes must belong to the same species as mut1.");
+		if (!isNULL(mut2))
+			if (any(mut2.mutationType.species != species))
+				stop("ERROR (calcLD_D): all mutations must belong to the same species as mut1.");
+	}
+	
+	// check chromosome
+	chromosome = mut1.chromosome;
+	if (species.chromosomes.length() > 1)
+	{
+		if (!isNULL(haplosomes))
+			if (any(haplosomes.chromosome != chromosome))
+				stop("ERROR (calcLD_D): all haplosomes must belong to the same chromosome as mut1.");
+		if (!isNULL(mut2))
+			if (any(mut2.chromosome != chromosome))
+				stop("ERROR (calcLD_D): all mutations must belong to the same chromosome as mut1.");
+	}
+	
+	// if mut2 is NULL, calculate across all mutations for the chromosome
+	if (isNULL(mut2))
+		mut2 = species.subsetMutations(chromosome=chromosome);	// includes mut1
+	
+	// if haplosomes is NULL, calculate across all haplosomes for the chromosome
+	if (isNULL(haplosomes))
+		haplosomes = species.subpopulations.haplosomesForChromosomes(chromosome);
+	
+	if (size(haplosomes) == 0)
+		stop("ERROR (calcLD_D): haplosomes must be non-empty.");
+	
+	// get haplosomes that contain the first mutation
+	haplosomes1 = haplosomes[haplosomes.containsMutations(mut1)];
+	
+	if (size(haplosomes1) == 0)
+		return rep(0.0, size(mut2)); // D=0 if either mutation is not present
+	
+	// calculate the frequency of haplosomes that contain both mutations
+	p_12 = haplosomes1.mutationCountsInHaplosomes(mut2) / size(haplosomes);
+	
+	// calculate the frequency of each mutation across haplosomes
+	p_1 = size(haplosomes1) / size(haplosomes);
+	p_2 = haplosomes.mutationFrequenciesInHaplosomes(mut2);
+	return p_12 - p_1 * p_2;
+})V0G0N";
+
+#pragma mark (float)calcLD_Rsquared(object<Mutation>$ mut1, [No<Mutation> mut2 = NULL], [No<Haplosome> haplosomes = NULL], [logical$ squared = T])
+const char *gSLiMSourceCode_calcLD_Rsquared = 
+R"V0G0N({
+	// check species
+	species = mut1.mutationType.species;
+	if (community.allSpecies.length() > 1)
+	{
+		if (!isNULL(haplosomes))
+			if (any(haplosomes.individual.subpopulation.species != species))
+				stop("ERROR (calcLD_Rsquared): all haplosomes must belong to the same species as mut1.");
+		if (!isNULL(mut2))
+			if (any(mut2.mutationType.species != species))
+				stop("ERROR (calcLD_Rsquared): all mutations must belong to the same species as mut1.");
+	}
+	
+	// check chromosome
+	chromosome = mut1.chromosome;
+	if (species.chromosomes.length() > 1)
+	{
+		if (!isNULL(haplosomes))
+			if (any(haplosomes.chromosome != chromosome))
+				stop("ERROR (calcLD_Rsquared): all haplosomes must belong to the same chromosome as mut1.");
+		if (!isNULL(mut2))
+			if (any(mut2.chromosome != chromosome))
+				stop("ERROR (calcLD_Rsquared): all mutations must belong to the same chromosome as mut1.");
+	}
+	
+	// if mut2 is NULL, calculate across all mutations for the chromosome
+	if (isNULL(mut2))
+		mut2 = species.subsetMutations(chromosome=chromosome);	// includes mut1
+	
+	// if haplosomes is NULL, calculate across all haplosomes for the chromosome
+	if (isNULL(haplosomes))
+		haplosomes = species.subpopulations.haplosomesForChromosomes(chromosome);
+	
+	if (size(haplosomes) == 0)
+		stop("ERROR (calcLD_Rsquared): haplosomes must be non-empty.");
+	
+	// get haplosomes that contain the first mutation
+	haplosomes1 = haplosomes[haplosomes.containsMutations(mut1)];
+	
+	if (size(haplosomes1) == 0)
+		return rep(NAN, size(mut2)); // r^2 doesn't exist if either mutation is absent (0/0)
+	
+	// calculate the frequency of haplosomes that contain both mutations
+	p_12 = haplosomes1.mutationCountsInHaplosomes(mut2) / size(haplosomes);
+	
+	// calculate the frequency of each mutation across haplosomes
+	p_1 = size(haplosomes1) / size(haplosomes);
+	p_2 = haplosomes.mutationFrequenciesInHaplosomes(mut2);
+	
+	// squared=T returns r^2 between 0 and 1
+	// squared=F returns r between -1 and 1
+	if (squared)
+		return (p_12 - p_1 * p_2)^2 / (p_1 * p_2 * (1.0 - p_1) * (1.0 - p_2));
+	else
+		return (p_12 - p_1 * p_2) / sqrt(p_1 * p_2 * (1.0 - p_1) * (1.0 - p_2));
 })V0G0N";
 
 #pragma mark (float$)calcMeanFroh(object<Individual> individuals, [integer$ minimumLength = 1e6], [Niso<Chromosome>$ chromosome = NULL])
@@ -261,13 +471,14 @@ R"V0G0N({
 		
 		for (chr in chromosomes)
 		{
-			// get the haplosomes we will operate over
+			// get the haplosomes we will operate over, for the focal chromosome
 			haplosomes = individual.haplosomesForChromosomes(chr, includeNulls=F);
 			
 			if (haplosomes.length() != 2)
 				next;
 			
-			het_pos = individual.mutationsFromHaplosomes("heterozygous").position;
+			// get the mutations that are heterozygous, for the focal chromosome
+			het_pos = individual.mutationsFromHaplosomes("heterozygous", chromosomes=chr).position;
 			het_pos_1 = c(-1, het_pos);
 			het_pos_2 = c(het_pos, chr.lastPosition + 1);
 			roh = (het_pos_2 - het_pos_1) - 1;
@@ -646,8 +857,9 @@ R"V0G0N({
 	// apart from the case above, we do not need to require a single chromosome;
 	// we work with all mutations in the model, even if the haplosomes supplied
 	// belong to a single chromosome.  this works because mutations that are not
-	// present in any of the supplied haplosomes will have a frequency of zero,
-	// and those will be filtered out below.
+	// present in any of the supplied haplosomes will have a frequency of zero
+	// (or NAN, if the mutation belongs to a different chromosome), and those
+	// will be filtered out below.
 	if (isNULL(muts))
 	{
 		muts = species.mutations;
@@ -666,8 +878,9 @@ R"V0G0N({
 		// the right thing even in multichrom models.
 		freqs = haplosomes.mutationFrequenciesInHaplosomes(muts);
 		
-		// filter out frequencies of zero; they should not influence the SFS.
+		// filter out frequencies of zero or NAN; they should not influence the SFS.
 		freqs = freqs[freqs != 0.0];
+		freqs = freqs[isFinite(freqs)];
 		
 		// discretize the frequencies into the specified number of bins
 		bins = pmin(asInteger(floor(freqs * binCount)), binCount - 1);
@@ -866,10 +1079,11 @@ R"V0G0N({
 	
 	// We expect the first column to be start positions, not end positions.
 	// The first value in that column therefore tells us whether the data
-	// is zero-based or one-based; we require one or the other.  There is
-	// another -1 applied to the positions because we convert them from
-	// start positions to end positions; each segment ends at the base
-	// previous to the start of the next segment.
+	// is zero-based or one-based; we require one or the other.  Unlike in
+	// initializeMutationRateFromFile(), there is no shift to translate from
+	// starts to ends; a start of 8 (beginning a rate to the right of pos 8)
+	// is the same as an end of 8 (ending the previous rate to the left of
+	// position 8); in-between positions are confusing.  See #553.
 	base = ends[0];
 	if ((base != 0) & (base != 1))
 		stop(errbase + "the first position in the file must be 0 (for 0-based positions) or 1 (for 1-based positions).");
@@ -877,7 +1091,7 @@ R"V0G0N({
 	if (length(ends) == 1)
 		ends = lastPosition;		// only the first start position is present
 	else
-		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
+		ends = c(ends[1:(size(ends)-1)] - base, lastPosition);
 	
 	initializeRecombinationRate(rates * scale, ends, sex);
 })V0G0N";
@@ -2197,7 +2411,11 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 			EidosSymbolTable constants(EidosSymbolTableType::kContextConstantsTable, &interpreter_symbols);
 			EidosSymbolTable symbols(EidosSymbolTableType::kLocalVariablesTable, &constants);	// add a variables symbol table on top, shared across all invocations
 			EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-			EidosInterpreter interpreter(*script, symbols, function_map, &community, p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+			EidosInterpreter interpreter(*script, symbols, function_map, &community, p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream()
+#ifdef SLIMGUI
+				, p_interpreter.check_infinite_loops_
+#endif
+				);
 			
 			// We set up a "constant" value for `individuals` that refers to the stack-allocated object vector made above
 			// For each grid cell we will munge the contents of that vector, without having to touch the symbol table again

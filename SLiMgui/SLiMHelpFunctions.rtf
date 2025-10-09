@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 Menlo-Bold;
 \f6\fnil\fcharset0 AppleColorEmoji;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;}
@@ -176,6 +176,12 @@ The
 
 \f1\fs18 "H"
 \f2\fs20  (haploid), specifying a haploid autosomal chromosome that recombines in biparental crosses.\
+
+\f1\fs18 "HF"
+\f2\fs20  (haploid female-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the first (female) parent in biparental crosses (also allowed in hermaphroditic models for inheritance that is always from the first parent).\
+
+\f1\fs18 "HM"
+\f2\fs20  (haploid male-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the second (male) parent in biparental crosses (also allowed in hermaphroditic models for inheritance that is always from the second parent).\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Some sex-chromosome types are supported only in sexual models:\
 \pard\pardeftab720\li907\ri360\sa60\partightenfactor0
@@ -195,14 +201,8 @@ The
 \cf2 And there are some haploid chromosome types that are also supported only in sexual models:\
 \pard\pardeftab720\li907\ri360\sa60\partightenfactor0
 
-\f1\fs18 \cf2 "HF"
-\f2\fs20  (haploid female-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the first (female) parent in biparental crosses.\
-
-\f1\fs18 "FL"
+\f1\fs18 \cf2 "FL"
 \f2\fs20  (female line), specifying a haploid autosomal chromosome that is inherited only by females, from the female parent, and is represented by a null haplosome in males.\
-
-\f1\fs18 "HM"
-\f2\fs20  (haploid male-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the second (male) parent in biparental crosses.\
 
 \f1\fs18 "ML"
 \f2\fs20  (male line), specifying a haploid autosomal chromosome that is inherited only by males, from the male parent, and is represented by a null haplosome in females.\
@@ -1196,7 +1196,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [logical$\'a0doMutationRunExperiments\'a0=\'a0T], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0checkInfiniteLoops\'a0=\'a0T]\cf0 )
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1395,6 +1395,19 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
+If 
+\f1\fs18 checkInfiniteLoops
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), SLiM and Eidos will check for infinite loops in various circumstances, such as 
+\f1\fs18 while
+\f2\fs20  and 
+\f1\fs18 do\'96while
+\f2\fs20  loops.  This check is conducted only when running in SLiMgui; at the command line, checks for infinite loops are never conducted regardless of the value of this flag.  When checking is enabled, an error will be raised if any loop executes more than 10 million times, preventing SLiMgui\'92s user interface from freezing.  Normally this is desirable, but if you actually want to execute a loop more than 10 million times, this checking will prove inconvenient.  In that case, you can pass 
+\f1\fs18 F
+\f2\fs20  for 
+\f1\fs18 checkInfiniteLoops
+\f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -2181,31 +2194,37 @@ The
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcDxy(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0normalize\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates the 
-\f3\i F
-\f2\i0\fs13\fsmilli6667 \sub ST
+\f2\fs20 \cf2 Calculates the estimated 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
 \fs20 \nosupersub  between two 
 \f1\fs18 Haplosome
-\f2\fs20  vectors \'96 typically, but not necessarily, the haplosomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
+\f2\fs20  vectors for the set of mutations given in 
+\f1\fs18 muts
+\f2\fs20 .  
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  is the expected number of differences between two sequences, typically drawn from two different subpopulations whose haplosomes are given in 
+\f1\fs18 haplosomes1
+\f2\fs20  and 
+\f1\fs18 haplosomes2
+\f2\fs20 .  It is therefore a metric of genetic divergence, comparable in some respects to 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub  indicates greater genetic divergence between subpopulations.\
-The calculation is done using only the mutations in 
-\f1\fs18 muts
-\f2\fs20 ; if 
-\f1\fs18 muts
-\f2\fs20  is 
-\f1\fs18 NULL
-\f2\fs20 , all mutations are used.  The 
-\f1\fs18 muts
-\f2\fs20  parameter can therefore be used to calculate the 
+\fs20 \nosupersub ; see Cruickshank and Hahn (2014, Molecular Ecology) for a discussion of 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub  only for a particular mutation type (by passing only mutations of that type).\
-The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\fs20 \nosupersub  versus 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub .  This method implements 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  as defined by Nei (1987) in Molecular Evolutionary Genomics (eq. 10.20), with optimizations for computational efficiency based upon an assumption that that multiallelic loci are rare (this is compatible with the infinite-sites model).\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full haplosomes \'96 by passing the interval bounds [
 \f1\fs18 start
 \f2\fs20 , 
 \f1\fs18 end
@@ -2216,6 +2235,91 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f2\fs20  of 
 \f1\fs18 NULL
 \f2\fs20 , provides the haplosome-wide 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub .\
+If 
+\f1\fs18 normalize
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20  (the default), the returned 
+\f1\fs18 float
+\f2\fs20  value is simply the expected number of differences, following Nei.  Often, however, it will be desirable to normalize that value by dividing by the length of the sequence considered, yielding the expected number of differences 
+\f3\i per site
+\f2\i0 , a metric that then does not depend upon the sequence length; passing 
+\f1\fs18 normalize=T
+\f2\fs20  will return that normalized value, and that is probably what most users of this function will want.\
+The implementation of 
+\f1\fs18 calcDxy()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation in 
+\f1\fs18 muts
+\f2\fs20  as independent in its calculations (similar to 
+\f1\fs18 calcPi()
+\f2\fs20 ); in other words, if mutations are stacked, the 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  value calculated is 
+\f3\i by mutation
+\f2\i0 , not 
+\f3\i by site
+\f2\i0 .  Similarly, if multiple 
+\f1\fs18 Mutation
+\f2\fs20  objects exist in different haplosomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
+\f1\fs18 Mutation
+\f2\fs20  object is treated separately for purposes of the calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of these choices will be negligible; however, in some models these distinctions may be important.  See 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20  for further discussion.\
+All haplosomes and mutations must be associated with the same chromosome.  If 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all mutations in the population associated with the same chromosome as the given haplosomes will be used.\
+This function was written by Vitor Sudbrack (currently affiliated with University of Lausanne).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcFST(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  between two 
+\f1\fs18 Haplosome
+\f2\fs20  vectors \'96 typically, but not necessarily, the haplosomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  indicates greater genetic divergence between subpopulations.  The haplosomes may be associated with more than one chromosome, in a multi-chromosome model; if so, 
+\f1\fs18 haplosomes1
+\f2\fs20  and 
+\f1\fs18 haplosomes2
+\f2\fs20  must be associated with the same set of chromosomes, defining the focal set of chromosomes for the calculation.\
+The calculation is done using only the mutations in 
+\f1\fs18 muts
+\f2\fs20 ; if 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , all mutations associated with the focal chromosomes are used.  The 
+\f1\fs18 muts
+\f2\fs20  parameter can be used to calculate the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  only for a particular mutation type (by passing only mutations of that type), for example; it can focus the calculation on particular mutations of interest.  The mutations in 
+\f1\fs18 muts
+\f2\fs20  must always be associated with the focal chromosomes.\
+If there is a single focal chromosome, the calculation can be narrowed to apply to only a window \'96 a subrange of the focal chromosome \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the chromosome-wide 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\
@@ -2410,6 +2514,151 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f3\i B
 \f2\i0 ), the result from this function can simply be multiplied by two.\
 This function was contributed by Chris Kyriazis; thanks, Chris!\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)calcLD_D(object<Mutation>$\'a0mut1, [No<Mutation>\'a0mut2\'a0=\'a0NULL], [No<Haplosome>\'a0haplosomes\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the linkage disequilibrium (LD) coefficient 
+\f3\i D
+\f2\i0  between a focal mutation 
+\f1\fs18 mut1
+\f2\fs20  and one or more mutations in 
+\f1\fs18 mut2
+\f2\fs20 , evaluated across a set of haplosomes given by 
+\f1\fs18 haplosomes
+\f2\fs20 .  The result is a 
+\f1\fs18 float
+\f2\fs20  vector that matches the size and order of 
+\f1\fs18 mut2
+\f2\fs20 .  The implementation of this function, viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , calculates 
+\f3\i D
+\f2\i0  as defined by Hill and Robertson (1968, p. 226).  The coefficient 
+\f3\i D
+\f2\i0  is within [\uc0\u8722 
+\f3\i p
+\f2\i0 (1\uc0\u8722 
+\f3\i p
+\f2\i0 ), 
+\f3\i p
+\f2\i0 (1\uc0\u8722 
+\f3\i p
+\f2\i0 )], where 
+\f3\i p
+\f2\i0  is the frequency of the more common mutation (that is, 
+\f3\i p
+\f2\i0 \'a0=\'a0max(
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub , 
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub ) where 
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub  and 
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub  are the frequencies of the two mutations for which 
+\f3\i D
+\f2\i0  is being calculated); for the normalized LD metric 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub , which is within [0, 1], see 
+\f1\fs18 calcLD_Rsquared()
+\f2\fs20 .  Departures of 
+\f3\i D
+\f2\i0  from zero indicate LD; more specifically, 
+\f3\i D
+\f2\i0 \'a0>\'a00 indicates that the mutations occur together more often than expected by chance (positive linkage), whereas 
+\f3\i D
+\f2\i0 \'a0<\'a00 indicates they occur together less often than expected by chance (negative linkage).\
+All mutations in 
+\f1\fs18 mut2
+\f2\fs20  must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 ; this function does not currently calculate LD between mutations associated with different chromosomes.  If 
+\f1\fs18 mut2
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such mutations in the population (including 
+\f1\fs18 mut1
+\f2\fs20  itself) will be used.  Similarly, all haplosomes must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 .  If the 
+\f1\fs18 haplosomes
+\f2\fs20  parameter is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such haplosomes in the population will be used.\
+This function was written by Vitor Sudbrack (currently affiliated with University of Lausanne).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)calcLD_Rsquared(object<Mutation>$\'a0mut1, [No<Mutation>\'a0mut2\'a0=\'a0NULL], [No<Haplosome>\'a0haplosomes\'a0=\'a0NULL], [logical$\'a0squared\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the linkage disequilibrium (LD) squared correlation coefficient 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub  between a focal mutation 
+\f1\fs18 mut1
+\f2\fs20  and one or more mutations in 
+\f1\fs18 mut2
+\f2\fs20 , evaluated across a set of haplosomes given by 
+\f1\fs18 haplosomes
+\f2\fs20 .  The result is a 
+\f1\fs18 float
+\f2\fs20  vector that matches the size and order of 
+\f1\fs18 mut2
+\f2\fs20 .  The implementation of this function, viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , calculates 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub  as defined by Hill and Robertson (1968, p. 227).  The squared correlation coefficient 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub  is a normalized measure of LD within [0, 1] (for the unnormalized LD coefficient 
+\f3\i D
+\f2\i0 , see 
+\f1\fs18 calcLD_D()
+\f2\fs20 ).  When 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub \'a0=\'a00, there is no statistical association between the mutations; they co-occur as expected by chance.  A value of 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub \'a0=\'a01 indicates complete correlation: the mutations either always appear together or never appear together, depending on the sign of the underlying correlation coefficient 
+\f3\i r
+\f2\i0 .  To obtain the raw (signed) 
+\f3\i r
+\f2\i0  value instead of 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub , you can pass 
+\f1\fs18 squared=F
+\f2\fs20  instead of the default of 
+\f1\fs18 T
+\f2\fs20 .\
+All mutations in 
+\f1\fs18 mut2
+\f2\fs20  must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 ; this function does not currently calculate LD between mutations associated with different chromosomes.  If 
+\f1\fs18 mut2
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such mutations in the population (including 
+\f1\fs18 mut1
+\f2\fs20  itself) will be used.  Similarly, all haplosomes must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 .  If the 
+\f1\fs18 haplosomes
+\f2\fs20  parameter is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such haplosomes in the population will be used.\
+This function was written by Vitor Sudbrack (currently affiliated with University of Lausanne).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcMeanFroh(object<Individual>\'a0individuals, [integer$\'a0minimumLength\'a0=\'a01000000], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
@@ -2653,7 +2902,7 @@ This function is compatible with multi-chromosome models, in the following sense
 \f1\fs18 integer
 \f2\fs20  value, mutations are binned according to their frequencies, as described above.  In a multi-chromosome model, the haplosomes and mutations used by 
 \f1\fs18 calcSFS()
-\f2\fs20  may be associated with more than one chromosome, and the frequency assessed for each mutation is its frequency specifically within the haplosomes associated with its chromosome (as you would expect).  Mutations occurring in different chromosomes can therefore be tallied together into the same frequency bins, and combined into a single SFS; this produces a meaningful.  (If you want an SFS for just a single chromosome, then of course you can pass just those haplosomes and mutations to 
+\f2\fs20  may be associated with more than one chromosome, and the frequency assessed for each mutation is its frequency specifically within the haplosomes associated with its chromosome (as you would expect).  Mutations occurring in different chromosomes can therefore be tallied together into the same frequency bins, and combined into a single SFS; this produces a meaningful SFS.  (If you want an SFS for just a single chromosome, then of course you can pass just those haplosomes and mutations to 
 \f1\fs18 calcSFS()
 \f2\fs20 .)  When 
 \f1\fs18 binCount

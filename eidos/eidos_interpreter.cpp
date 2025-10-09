@@ -109,8 +109,15 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 #pragma mark EidosInterpreter
 #pragma mark -
 
-EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
+EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream
+#ifdef SLIMGUI
+	, bool p_check_infinite_loops
+#endif
+)
 	: eidos_context_(p_eidos_context), root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
+#ifdef SLIMGUI
+		, check_infinite_loops_(p_check_infinite_loops)
+#endif
 {
 #ifdef SLIMGUI
 	// Take a pointer to the context's debugging points; we do not copy, so the context can update the debug points underneath us
@@ -119,8 +126,15 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 #endif
 }
 
-EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
+EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream
+#ifdef SLIMGUI
+	, bool p_check_infinite_loops
+#endif
+)
 	: eidos_context_(p_eidos_context), root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
+#ifdef SLIMGUI
+		, check_infinite_loops_(p_check_infinite_loops)
+#endif
 {
 #ifdef SLIMGUI
 	// Take a pointer to the context's debugging points; we do not copy, so the context can update the debug points underneath us
@@ -323,8 +337,96 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): it is no longer legal to subset with float indices; use asInteger() to cast the indices to integer." << EidosTerminate(parent_token);
 					if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
+					
+					// BCH 9/10/2025: we now want to support subsetting of a matrix by a matrix, in two specific cases; other cases continue to be an error
 					if (child_value->DimensionCount() != 1)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
+					{
+						// if we're subsetting with a matrix or array, the target of the subset must be a matrix or array
+						if (first_child_dim_count == 1)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): subsetting of a vector with a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
+						
+						// if we're subsetting with a matrix or array, that must be the only subset argument
+						if (child_count != 2)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): this type of subsetting of a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
+						
+						// as below also, we do not allow this style of subsetting off of a previous subset or
+						// property access; we only know the dimensions of the base value, not of previous
+						// results from processing of that base value, so we don't have the info we need
+						{
+							EidosToken *left_token = left_operand->token_;
+							EidosTokenType left_token_type = left_token->token_type_;
+							
+							if (left_token_type == EidosTokenType::kTokenLBracket)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): chaining of matrix/array-style subsets in assignments is not supported." << EidosTerminate(parent_token);
+							if (left_token_type == EidosTokenType::kTokenDot)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(parent_token);
+						}
+						
+						// and as below, Evaluate_Subset() returns a vector from this section of the code, changing the dimensionality
+						// of the target value from a matrix/array to a vector; we are just returning a set of indices, so we don't do
+						// that, but the check above should prevent that from being a problem since the user can't chain off of our
+						// result here in a way that uses the matrix/array dimensionality, I think...
+						
+						// if the subset argument is of type logical, its dimensions must exactly match the target
+						// this produces a result vector containing the target elements selected by true elements
+						if (child_type == EidosValueType::kValueLogical)
+						{
+							if (!EidosValue::MatchingDimensions(first_child_value.get(), child_value.get()))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): non-conformable logical matrix or array operand for the '[]' operator." << EidosTerminate(parent_token);
+							
+							const eidos_logical_t *operand_data = child_value->LogicalData();
+							int operand_count = child_value->Count();
+							
+							for (int operand_index = 0; operand_index < operand_count; ++operand_index)
+							{
+								eidos_logical_t logical_value = operand_data[operand_index];
+								
+								if (logical_value)
+									p_indices_ptr->emplace_back(base_indices[operand_index]);
+							}
+							
+							return;
+						}
+						
+						// if the subset argument is integer, it must have a column count that matches the target's
+						// dimensionality -- e.g., two columns (row,col) for a matrix target -- and any number of rows
+						// this produces a result vector containing the target elements selected by the operand rows
+						if (child_type == EidosValueType::kValueInt)
+						{
+							if (child_value->DimensionCount() != 2)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): subsetting a matrix or array with an integer array is not supported by the '[]' operator." << EidosTerminate(parent_token);
+							if (child_value->Dimensions()[1] != first_child_value->DimensionCount())
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): subsetting a matrix or array with an integer matrix requires that the integer matrix have a column count equal to the number of dimensions of the target matrix or array (e.g., two columns if the target is a matrix)." << EidosTerminate(parent_token);
+							
+							const int64_t *operand_data = child_value->IntData();
+							int64_t operand_nrow = child_value->Dimensions()[0];
+							int64_t operand_ncol = child_value->Dimensions()[1];
+							const int64_t *target_dimensions = first_child_value->Dimensions();
+							
+							for (int64_t operand_row = 0; operand_row < operand_nrow; ++operand_row)
+							{
+								int target_index = 0;
+								int stride = 1;
+								const int64_t *operand_row_ptr = operand_data + operand_row;
+								
+								for (int64_t operand_col = 0; operand_col < operand_ncol; ++operand_col)
+								{
+									int64_t coordinate = *operand_row_ptr;
+									operand_row_ptr += operand_nrow;
+									
+									target_index += (coordinate * stride);
+									stride *= target_dimensions[operand_col];
+								}
+								
+								if ((target_index < 0) || (target_index >= base_indices_count))
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << target_index << " used with the '[]' operator." << EidosTerminate(parent_token);
+								else
+									p_indices_ptr->emplace_back(base_indices[target_index]);
+							}
+							
+							return;
+						}
+					}
 					
 					subset_indices.emplace_back(child_value);
 				}
@@ -1366,7 +1468,11 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	// Execute inside try/catch so we can handle errors well
 	try
 	{
-		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_);
+		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_
+#ifdef SLIMGUI
+			, check_infinite_loops_
+#endif
+			);
 		
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
@@ -1762,8 +1868,75 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): it is no longer legal to subset with float indices; use asInteger() to cast the indices to integer." << EidosTerminate(operator_token);
 			if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(operator_token);
+			
+			// BCH 9/10/2025: we now want to support subsetting of a matrix by a matrix, in two specific cases; other cases continue to be an error
 			if (child_value->DimensionCount() != 1)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(operator_token);
+			{
+				// if we're subsetting with a matrix or array, the target of the subset must be a matrix or array
+				if (first_child_dim_count == 1)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): subsetting of a vector with a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(operator_token);
+				
+				// if we're subsetting with a matrix or array, that must be the only subset argument
+				if (child_count != 2)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): this type of subsetting of a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(operator_token);
+				
+				// if the subset argument is of type logical, its dimensions must exactly match the target
+				// this produces a result vector containing the target elements selected by true elements
+				if (child_type == EidosValueType::kValueLogical)
+				{
+					if (!EidosValue::MatchingDimensions(first_child_value.get(), child_value.get()))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): non-conformable logical matrix or array operand for the '[]' operator." << EidosTerminate(operator_token);
+					
+					const eidos_logical_t *operand_data = child_value->LogicalData();
+					int operand_count = child_value->Count();
+					result_SP = first_child_value->NewMatchingType();
+					
+					for (int operand_index = 0; operand_index < operand_count; ++operand_index)
+						if (operand_data[operand_index])
+							result_SP->PushValueFromIndexOfEidosValue(operand_index, *first_child_value, operator_token);
+					
+					EIDOS_EXIT_EXECUTION_LOG("Evaluate_Subset()");
+					return result_SP;
+				}
+				
+				// if the subset argument is integer, it must have a column count that matches the target's
+				// dimensionality -- e.g., two columns (row,col) for a matrix target -- and any number of rows
+				// this produces a result vector containing the target elements selected by the operand rows
+				if (child_type == EidosValueType::kValueInt)
+				{
+					if (child_value->DimensionCount() != 2)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): subsetting a matrix or array with an integer array is not supported by the '[]' operator." << EidosTerminate(operator_token);
+					if (child_value->Dimensions()[1] != first_child_value->DimensionCount())
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): subsetting a matrix or array with an integer matrix requires that the integer matrix have a column count equal to the number of dimensions of the target matrix or array (e.g., two columns if the target is a matrix)." << EidosTerminate(operator_token);
+					
+					const int64_t *operand_data = child_value->IntData();
+					int64_t operand_nrow = child_value->Dimensions()[0];
+					int64_t operand_ncol = child_value->Dimensions()[1];
+					const int64_t *target_dimensions = first_child_value->Dimensions();
+					result_SP = first_child_value->NewMatchingType();
+					
+					for (int64_t operand_row = 0; operand_row < operand_nrow; ++operand_row)
+					{
+						int target_index = 0;
+						int stride = 1;
+						const int64_t *operand_row_ptr = operand_data + operand_row;
+						
+						for (int64_t operand_col = 0; operand_col < operand_ncol; ++operand_col)
+						{
+							int64_t coordinate = *operand_row_ptr;
+							operand_row_ptr += operand_nrow;
+							
+							target_index += (coordinate * stride);
+							stride *= target_dimensions[operand_col];
+						}
+						
+						result_SP->PushValueFromIndexOfEidosValue(target_index, *first_child_value, operator_token);
+					}
+					
+					EIDOS_EXIT_EXECUTION_LOG("Evaluate_Subset()");
+					return result_SP;
+				}
+			}
 			
 			subset_indices.emplace_back(child_value);
 		}
@@ -1781,12 +1954,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 	}
 	else if (first_child_type == EidosValueType::kValueNULL)
 	{
-		// Any subscript of NULL returns NULL; however, we evaluated the expression nodes above first, for side effects and to check for errors
+		// Any subset of NULL returns NULL; however, we evaluated the expression nodes above first, for side effects and to check for errors
 		result_SP = gStaticEidosValueNULL;
 	}
 	else if ((subset_index_count == 1) && (subset_indices[0] == gStaticEidosValueNULL))
 	{
-		// We have a single subset argument of null, so we have x[] or x[NULL]; just return x, but as a vector, not a matrix/array
+		// We have a single subset argument of NULL, so we have x[] or x[NULL]; just return x, but as a vector, not a matrix/array
 		if (first_child_dim_count == 1)
 			result_SP = first_child_value;
 		else
@@ -5276,8 +5449,20 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	}
 #endif
 	
+#ifdef SLIMGUI
+	// BCH 17 August 2025: adding a SLiMgui-only check for infinite loops, triggered by looping 10 million times;
+	// note that this check can be turned off with the flag checkInfiniteLoops=F in initializeSLiMOptions()
+	int64_t loop_counter = 0;
+#endif
+	
 	do
 	{
+#ifdef SLIMGUI
+		if (check_infinite_loops_)
+			if (++loop_counter == 10000001)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): this do-while loop iterated 10 million times; it might be an infinite loop.  This check can be turned off with initializeSLiMOptions(checkInfiniteLoops=F) if you intend to loop such a large number of times.  This check is only active when running under SLiMgui." << EidosTerminate(p_node->token_);
+#endif
+		
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
 		EidosASTNode *statement_node = p_node->children_[0];
 		
@@ -5368,8 +5553,20 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
+#ifdef SLIMGUI
+	// BCH 17 August 2025: adding a SLiMgui-only check for infinite loops, triggered by looping 10 million times;
+	// note that this check can be turned off with the flag checkInfiniteLoops=F in initializeSLiMOptions()
+	int64_t loop_counter = 0;
+#endif
+	
 	while (true)
 	{
+#ifdef SLIMGUI
+		if (check_infinite_loops_)
+			if (++loop_counter == 10000001)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): this while loop iterated 10 million times; it might be an infinite loop.  This check can be turned off with initializeSLiMOptions(checkInfiniteLoops=F) if you intend to loop such a large number of times.  This check is only active when running under SLiMgui." << EidosTerminate(p_node->token_);
+#endif
+		
 		// test the loop condition
 		EidosASTNode *condition_node = p_node->children_[0];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);

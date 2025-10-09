@@ -506,7 +506,7 @@ void EidosClass::CacheDispatchTables(void)
 		method_signatures_dispatch_capacity_ = last_id + 1;
 		
 		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
-		if (method_signatures_dispatch_capacity_ > 600)
+		if (method_signatures_dispatch_capacity_ > 640)
 			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		method_signatures_dispatch_ = (EidosMethodSignature_CSP *)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature_CSP));
@@ -618,8 +618,8 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-	EidosValue_String *propertyName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &match_string = (has_match_string ? propertyName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
+	EidosValue *propertyName_value = (EidosValue *)p_arguments[0].get();
+	const std::string &match_string = (has_match_string ? ((EidosValue_String *)propertyName_value)->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosPropertySignature_CSP> *properties = Properties();
 	bool signature_found = false;
 	
@@ -650,10 +650,10 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
 	Eidos_EraseProgress();
 	
-	EidosValue_String *methodName_value = (EidosValue_String *)p_arguments[0].get();
+	EidosValue *methodName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool method_name_specified = (methodName_value->Type() == EidosValueType::kValueString);
-	const std::string &match_string = (method_name_specified ? methodName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
+	const std::string &match_string = (method_name_specified ? ((EidosValue_String *)methodName_value)->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 	bool signature_found = false;
 	

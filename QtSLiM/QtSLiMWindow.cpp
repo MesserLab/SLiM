@@ -3365,6 +3365,7 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
     bool isScriptTextEdit = (!!scriptEdit);
     bool isModifiableScriptTextEdit = (isScriptTextEdit && !scriptEdit->isReadOnly());
     
+    ui->actionDuplicate->setEnabled(isModifiableScriptTextEdit);
     ui->actionCopyAsHTML->setEnabled(isScriptTextEdit);
     ui->actionShiftLeft->setEnabled(isModifiableScriptTextEdit);
     ui->actionShiftRight->setEnabled(isModifiableScriptTextEdit);
@@ -4981,7 +4982,9 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
     
     if (customPlot && graphWindow)
     {
+        // calling createPlot() resets the plot's state, creating it afresh even if it already exists
         customPlot->controllerRecycled();
+        customPlot->setBorderless(false, 0, 0, 0, 0);
         customPlot->setTitle(title);
         customPlot->setXLabel(x_label);
         customPlot->setYLabel(y_label);
@@ -5045,10 +5048,13 @@ void QtSLiMWindow::plotLogFileData_1D(QString title, QString y_title, double *y_
     std::vector<QColor> *color = new std::vector<QColor>;
     color->emplace_back(255, 0, 0, 255);
     
+    std::vector<double> *alpha = new std::vector<double>;
+    alpha->push_back(1.0);
+    
     std::vector<double> *lwd = new std::vector<double>;
     lwd->push_back(1.5);
     
-    plot->addLineData(x_values, y_values, data_count, color, lwd);     // takes buffers from us
+    plot->addLineData(x_values, y_values, data_count, color, alpha, lwd);     // takes buffers from us
 }
 
 void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_title, double *x_values, double *y_values, int data_count, bool makeScatterPlot)
@@ -5058,6 +5064,9 @@ void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_
     
     std::vector<QColor> *color = new std::vector<QColor>;
     color->emplace_back(0, 0, 0, 255);
+    
+    std::vector<double> *alpha = new std::vector<double>;
+    alpha->push_back(1.0);
     
     std::vector<double> *lwd = new std::vector<double>;
     lwd->push_back(1.0);
@@ -5073,11 +5082,11 @@ void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_
         std::vector<double> *size = new std::vector<double>;
         size->push_back(0.5);
         
-        plot->addPointData(x_values, y_values, data_count, symbol, color, border, lwd, size);      // takes buffers from us
+        plot->addPointData(x_values, y_values, data_count, symbol, color, border, alpha, lwd, size);      // takes buffers from us
     }
     else
     {
-        plot->addLineData(x_values, y_values, data_count, color, lwd);                             // takes buffers from us
+        plot->addLineData(x_values, y_values, data_count, color, alpha, lwd);                             // takes buffers from us
     }
 }
 

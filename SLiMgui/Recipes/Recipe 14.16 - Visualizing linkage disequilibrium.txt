@@ -1,0 +1,60 @@
+// Keywords: linkage disequilibrium, LD, custom plotting, recombination, calcLD
+
+initialize()
+{
+	setSeed(2180149919968428688);
+	defineConstant("L", 1e7);
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.1).color="red";  // used for MUT1
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 early()
+{
+	sim.addSubpop("p1", 1000);
+}
+5000 late()
+{
+	// create the MUT1 mutation that we will track over time
+	mut1 = sample(p1.haplosomes, 1).addNewDrawnMutation(m2, asInteger(L/2));
+	defineGlobal("MUT1", mut1);
+}
+
+5000:10000 late()
+{
+	allMutsMAF = sim.mutations[sim.mutationFrequencies(p1) >= 0.10];
+	muts = sortBy(allMutsMAF, "position");
+	
+	if (size(muts) == 0)
+		return;
+	if (!MUT1.isSegregating)
+	{
+		catn("The focal mutation fixed or was lost.");
+		sim.simulationFinished();
+		return;
+	}
+	
+	ld = calcLD_D(MUT1, muts) * 10;     // scale up to make it more visible
+	r = calcLD_Rsquared(MUT1, muts, squared=F);
+	r2 = calcLD_Rsquared(MUT1, muts);
+	p = muts.position;
+	
+	plot = slimgui.createPlot("LD versus R2", xrange=c(0,L-1), yrange=c(-1,1),
+		xlab="tick", ylab="metric", width=800, height=300);
+	plot.abline(v=MUT1.position, color="red", lwd=2);
+	plot.points(p, ld, symbol=16, color="cornflowerblue", size=0.5, alpha=0.1);
+	plot.points(p, r, symbol=16, color="chartreuse3", size=0.5, alpha=0.1);
+	plot.points(p, r2, symbol=16, color="black", size=0.5, alpha=0.1);
+	
+	f = rep(1/201, 201);   // running average filter, 201 mutations wide
+	plot.lines(p, filter(ld, f, outside=T), color="cornflowerblue", lwd=2);
+	plot.lines(p, filter(r, f, outside=T), color="chartreuse3", lwd=2);
+	plot.lines(p, filter(r2, f, outside=T), color="black", lwd=2);
+	
+	plot.addLegend("topRight");
+	plot.legendPointEntry("R2", symbol=16, color="black", size=0.5);
+	plot.legendPointEntry("R", symbol=16, color="chartreuse3", size=0.5);
+	plot.legendPointEntry("LD*10", symbol=16, color="cornflowerblue", size=0.5);
+}

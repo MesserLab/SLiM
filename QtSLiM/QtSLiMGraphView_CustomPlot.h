@@ -31,11 +31,15 @@ class Plot;
 
 enum class QtSLiM_CustomPlotType : int {
     kLines,
+    kSegments,
+    kRects,
     kPoints,
+    kMarginText,
     kText,
     kABLines,   // from abline()
     kHLines,    // from abline()
     kVLines,    // from abline()
+    kImage,
 };
 
 class QtSLiMGraphView_CustomPlot : public QtSLiMGraphView
@@ -65,20 +69,35 @@ public:
     
     void addABLineData(double *a_values, double *b_values,
                        double *h_values, double *v_values, int data_count,
-                       std::vector<QColor> *color, std::vector<double> *lwd);
+                       std::vector<QColor> *color, std::vector<double> *alpha,
+                       std::vector<double> *lwd);
+    void addImageData(double *x_values, double *y_values, int data_count,
+                      QImage image, std::vector<double> *alpha);
     void addLineData(double *x_values, double *y_values, int data_count,
-                     std::vector<QColor> *color, std::vector<double> *lwd);
+                     std::vector<QColor> *color, std::vector<double> *alpha,
+                     std::vector<double> *lwd);
+    void addMarginTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
+                           std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size,
+                           double *adj, std::vector<double> *angle);
     void addPointData(double *x_values, double *y_values, int data_count,
                       std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border,
-                      std::vector<double> *lwd, std::vector<double> *size);
+                      std::vector<double> *alpha, std::vector<double> *lwd, std::vector<double> *size);
+    void addRectData(double *x1_values, double *y1_values, double *x2_values, double *y2_values,
+                     int data_count, std::vector<QColor> *color, std::vector<QColor> *border,
+                     std::vector<double> *alpha, std::vector<double> *lwd);
+    void addSegmentData(double *x1_values, double *y1_values, double *x2_values, double *y2_values,
+                        int data_count, std::vector<QColor> *color,
+                        std::vector<double> *alpha, std::vector<double> *lwd);
     void addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
-                     std::vector<QColor> *color, std::vector<double> *size, double *adj);
+                     std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size,
+                     double *adj, std::vector<double> *angle);
     
     void addLegend(QtSLiM_LegendPosition position, int inset, double labelSize, double lineHeight,
                    double graphicsWidth, double exteriorMargin, double interiorMargin);
     void addLegendLineEntry(QString label, QColor color, double lwd);
     void addLegendPointEntry(QString label, int symbol, QColor color, QColor border, double lwd, double size);
     void addLegendSwatchEntry(QString label, QColor color);
+    void addLegendTitleEntry(QString label);
     
     virtual QString graphTitle(void) override;
     virtual QString aboutString(void) override;
@@ -102,17 +121,22 @@ private:
     bool has_finite_data_;
     
     std::vector<QtSLiM_CustomPlotType> plot_type_;
-    std::vector<double *> xdata_;
-    std::vector<double *> ydata_;
+    std::vector<double *> x1data_;
+    std::vector<double *> y1data_;
+    std::vector<double *> x2data_;
+    std::vector<double *> y2data_;
     std::vector<int> data_count_;                       // the count for the xdata / ydata buffers
     std::vector<std::vector<QString> *> labels_;        // one label per point
     std::vector<std::vector<int> *> symbol_;            // one symbol per point, OR one symbol for all points
     std::vector<std::vector<QColor> *> color_;          // one color per point, OR one color for all points
     std::vector<std::vector<QColor> *> border_;         // one border color per point, OR one for all points
+    std::vector<std::vector<double> *> alpha_;          // one alpha per point, OR one alpha for all points
     std::vector<std::vector<double> *> line_width_;     // one lwd per point, OR one lwd for all points
     std::vector<std::vector<double> *> size_;           // one size per point, OR one size for all points
+    std::vector<std::vector<double> *> angle_;          // one angle per point, OR one angle for all points
     std::vector<double> xadj_;                          // one xadj for all points
     std::vector<double> yadj_;                          // one yadj for all points
+    std::vector<QImage> image_;                         // one QImage per image data; QImage() if unused
     
     void dataRange(std::vector<double *> &data, double *p_min, double *p_max);
     void rescaleAxesForDataRange(void);
@@ -120,8 +144,12 @@ private:
     void drawHLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawVLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawLines(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawMarginText(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawSegments(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawRects(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawText(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawImage(QPainter &painter, QRect interiorRect, int dataIndex);
     
     bool legend_added_ = false;                         // set to true by addLegend()
     QtSLiMLegendSpec legend_entries_;                   // unlike most graph types, we keep our legend around

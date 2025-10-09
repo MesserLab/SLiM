@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 //#include "gsl_mode.h"
-//#include "gsl_permutation.h"
+#include "gsl_permutation.h"
 #include "gsl_vector.h"
 #include "gsl_matrix.h"
 #include "gsl_math.h"
@@ -40,6 +40,35 @@
 #endif
 
 __BEGIN_DECLS
+
+/* LU Decomposition, Gaussian elimination with partial pivoting
+ */
+
+int gsl_linalg_LU_decomp (gsl_matrix * A, gsl_permutation * p, int *signum);
+
+int gsl_linalg_LU_solve (const gsl_matrix * LU,
+						 const gsl_permutation * p,
+						 const gsl_vector * b,
+						 gsl_vector * x);
+
+int gsl_linalg_LU_svx (const gsl_matrix * LU,
+					   const gsl_permutation * p,
+					   gsl_vector * x);
+
+int gsl_linalg_LU_refine (const gsl_matrix * A,
+						  const gsl_matrix * LU,
+						  const gsl_permutation * p,
+						  const gsl_vector * b,
+						  gsl_vector * x,
+						  gsl_vector * work);
+
+int gsl_linalg_LU_invert (const gsl_matrix * LU,
+						  const gsl_permutation * p,
+						  gsl_matrix * inverse);
+
+double gsl_linalg_LU_det (gsl_matrix * LU, int signum);
+double gsl_linalg_LU_lndet (gsl_matrix * LU);
+int gsl_linalg_LU_sgndet (gsl_matrix * lu, int signum);
 
 /* Cholesky Decomposition */
 

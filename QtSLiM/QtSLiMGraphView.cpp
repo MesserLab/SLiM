@@ -75,10 +75,15 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : 
     connect(controller, &QtSLiMWindow::controllerTickFinished, this, &QtSLiMGraphView::controllerTickFinished);
     connect(controller, &QtSLiMWindow::controllerRecycled, this, &QtSLiMGraphView::controllerRecycled);
     
-    x0_ = 0.0;
-    x1_ = 1.0;
-    y0_ = 0.0;
-    y1_ = 1.0;
+    original_x0_ = 0.0;
+    original_x1_ = 1.0;
+    original_y0_ = 0.0;
+    original_y1_ = 1.0;
+    
+    x0_ = original_x0_;
+    x1_ = original_x1_;
+    y0_ = original_y0_;
+    y1_ = original_y1_;
     
     showXAxis_ = true;
     allowXAxisUserRescale_ = true;
@@ -283,21 +288,30 @@ QComboBox *QtSLiMGraphView::newButtonInLayout(QHBoxLayout *p_layout)
 
 QRect QtSLiMGraphView::interiorRectForBounds(QRect bounds)
 {
+    // The interiorRect is the area which QtSLiMGraphView clips the plotting within.  So it is the live plot
+    // area, within the axes of the plot.  In a borderless plot, it is the full interior area of the window,
+    // but afer setting up clipping drawContents() will inset the interiorRect by the margins given to
+    // setBorderless(); the data area will be inset by the margins, but not clipped to the margins.  This is
+    // conceptually similar to the 4% expansion of the axis ranges done in bordered plots.
     QRect interiorRect = bounds;
-	
-	// For now, 10 pixels margin on a side if there is no axis, 40 pixels margin if there is an axis
-	
-	if (showXAxis_)
+    
+    // If the plot is borderless, there is no inset for the interior rect at all
+    if (is_borderless_)
+        return interiorRect;
+    
+    // For now, 10 pixels margin on a side if there is no axis, 40 pixels margin if there is an axis
+    
+    if (showXAxis_)
         interiorRect.adjust(50, 0, -10, 0);
-	else
+    else
         interiorRect.adjust(10, 0, -10, 0);
-	
-	if (showYAxis_)
+    
+    if (showYAxis_)
         interiorRect.adjust(0, 50, 0, -10);
-	else
+    else
         interiorRect.adjust(0, 10, 0, -10);
-	
-	return interiorRect;
+    
+    return interiorRect;
 }
 
 double QtSLiMGraphView::plotToDeviceX(double plotx, QRect interiorRect)
@@ -856,14 +870,22 @@ int QtSLiMGraphView::lineCountForLegend(QtSLiMLegendSpec &legend)
     
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
-        QString labelString = legendEntry.label;
-        auto existingEntry = displayedLabels.find(labelString);
-        
-        if (existingEntry == displayedLabels.end())
+        if (legendEntry.entry_type == QtSLiM_LegendEntryType::kTitle)
         {
-            // not a duplicate
-            displayedLabels.insert(labelString, 0);
+            // title items do not participate in the duplicate process; they always stand alone
             lineCount++;
+        }
+        else
+        {
+            QString labelString = legendEntry.label;
+            auto existingEntry = displayedLabels.find(labelString);
+            
+            if (existingEntry == displayedLabels.end())
+            {
+                // not a duplicate
+                displayedLabels.insert(labelString, 0);
+                lineCount++;
+            }
         }
     }
     
@@ -922,7 +944,11 @@ QSizeF QtSLiMGraphView::legendSize(QPainter &painter)
         
         // incorporate the width of the label into the width of the legend
         QRectF labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
-        double labelWidth = legendGraphicsWidth + legendInteriorMargin + labelBoundingBox.width();
+        double labelWidth = labelBoundingBox.width();
+        
+        // items other than title entries have a graphics box and an interior margin as well
+        if (legendEntry.entry_type != QtSLiM_LegendEntryType::kTitle)
+            labelWidth += legendGraphicsWidth + legendInteriorMargin;
         
         labelWidth = SLIM_SCREEN_ROUND(labelWidth);
         
@@ -983,18 +1009,29 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         
         // check for duplicate labels, which get uniqued into a single line
         int positionIndex;
-        auto existingEntry = displayedLabels.find(labelString);
+        bool isDuplicate = false;
         
-        if (existingEntry == displayedLabels.end())
+        if (legendEntry.entry_type == QtSLiM_LegendEntryType::kTitle)
         {
-            // not a duplicate
+            // title items do not participate in the duplicate process; they always stand alone
             positionIndex = (nextLinePosition--);
-            displayedLabels.insert(labelString, positionIndex);
         }
         else
         {
-            // duplicate; use the previously determined position
-            positionIndex = existingEntry.value();
+            auto existingEntry = displayedLabels.find(labelString);
+            
+            if (existingEntry == displayedLabels.end())
+            {
+                // not a duplicate
+                positionIndex = (nextLinePosition--);
+                displayedLabels.insert(labelString, positionIndex);
+            }
+            else
+            {
+                // duplicate; use the previously determined position
+                positionIndex = existingEntry.value();
+                isDuplicate = true;
+            }
         }
         
         QRectF entryBox(legendRect.x(), legendRect.y() + positionIndex * (legendLineHeight + legendInteriorMargin), legendRect.width(), legendLineHeight);
@@ -1007,6 +1044,12 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         // draw the graphics in graphicsBox
         switch (legendEntry.entry_type)
         {
+        case QtSLiM_LegendEntryType::kTitle:
+        {
+            // use the full entry box for title items
+            labelBox = entryBox;
+            break;
+        }
         case QtSLiM_LegendEntryType::kSwatch:
         {
             QRectF swatchBox = graphicsBox;
@@ -1051,14 +1094,14 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         {
             drawPointSymbol(painter, graphicsBox.center().x(), graphicsBox.center().y(),
                             legendEntry.point_symbol, legendEntry.point_color, legendEntry.point_border,
-                            legendEntry.point_lwd, legendEntry.point_size);
+                            /* alpha */ 1.0, legendEntry.point_lwd, legendEntry.point_size);
             break;
         }
         default: break;
         }
         
         // if the entry is not a duplicate, draw the text label
-        if (existingEntry == displayedLabels.end())
+        if (!isDuplicate)
         {
             double labelX = labelBox.x();
             double labelY = labelBox.y() + labelVerticalAdjust;
@@ -1121,6 +1164,50 @@ void QtSLiMGraphView::drawLegendInInteriorRect(QPainter &painter, QRect interior
 	}
 }
 
+void QtSLiMGraphView::setBorderless(bool isBorderless, double marginLeft, double marginTop, double marginRight, double marginBottom)
+{
+    // Convert to/from a borderless plot; this is used only by custom plots
+    is_borderless_ = isBorderless;
+    
+    borderless_margin_left_ = marginLeft;
+    borderless_margin_top_ = marginTop;
+    borderless_margin_right_ = marginRight;
+    borderless_margin_bottom_ = marginBottom;
+    
+    // x0/y0/x1/y1 do not change, but changing our borderless value reconfigures the axis ranges; unless they have been
+    // explicitly set by the user in the QtSLiM UI, they get re-evaluated based upon the original axis range
+    if (!xAxisIsUIRescaled_)
+    {
+		// we generally try to maintain original_x0_ and original_x1_ in sync with x0_ and x1_, but this is the
+		// only place where original_x0_ and original_x1_ actually matter outside of where they are locally set
+		// up -- the only place where we re-set x0_ and x1_ back to their original values, because we want to
+		// re-generate a new axis range based upon a changed is_borderless_ value
+        x0_ = original_x0_;
+        x1_ = original_x1_;
+        
+        //std::cout << "is_borderless_ == " << (is_borderless_ ? "T" : "F") << std::endl;
+        //std::cout << "   BEFORE: x0_ == " << x0_ << ", x1_ == " << x1_ << ", xAxisMin_ == " << xAxisMin_ << ", xAxisMax_ == " << xAxisMax_ << std::endl;
+        
+        configureAxisForRange(x0_, x1_, xAxisMin_, xAxisMax_, xAxisMajorTickInterval_, xAxisMinorTickInterval_,
+                              xAxisMajorTickModulus_, xAxisTickValuePrecision_);
+        
+        //std::cout << "   AFTER: x0_ == " << x0_ << ", x1_ == " << x1_ << ", xAxisMin_ == " << xAxisMin_ << ", xAxisMax_ == " << xAxisMax_ << std::endl;
+    }
+    
+    if (!yAxisIsUIRescaled_)
+    {
+		// we generally try to maintain original_y0_ and original_y1_ in sync with y0_ and y1_, but this is the
+		// only place where original_y0_ and original_y1_ actually matter outside of where they are locally set
+		// up -- the only place where we re-set y0_ and y1_ back to their original values, because we want to
+		// re-generate a new axis range based upon a changed is_borderless_ value
+        y0_ = original_y0_;
+        y1_ = original_y1_;
+        
+        configureAxisForRange(y0_, y1_, yAxisMin_, yAxisMax_, yAxisMajorTickInterval_, yAxisMinorTickInterval_,
+                              yAxisMajorTickModulus_, yAxisTickValuePrecision_);
+    }
+}
+
 void QtSLiMGraphView::drawContents(QPainter &painter)
 {
     // Set to a default color of black; I thought Qt did this for me, but apparently not
@@ -1173,7 +1260,11 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 		// We clip the interior drawing to the interior rect, so outliers get clipped out
         painter.save();
         painter.setClipRect(interiorRect, Qt::IntersectClip);
-		
+        
+        // When drawing borderless, we have margins by which we inset interiorRect, but we clip to bounds
+        if (is_borderless_)
+            interiorRect.adjust(borderless_margin_left_, borderless_margin_bottom_, -borderless_margin_right_, -borderless_margin_top_);
+        
 		drawGraph(painter, interiorRect);
 		
         painter.restore();
@@ -1182,21 +1273,30 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 		if (!cachingNow_)
 		{
 			// Overdraw axes, ticks, and axis labels, if requested
-            if (showXAxis_)
-				drawXAxis(painter, interiorRect);
-			
-			if (showYAxis_)
-				drawYAxis(painter, interiorRect);
-			
-            if (showFullBox_)
-				drawFullBox(painter,interiorRect);
-			
-			if (showXAxis_ && showXAxisTicks_)
-				drawXAxisTicks(painter, interiorRect);
-			
-			if (showYAxis_ && showYAxisTicks_)
-				drawYAxisTicks(painter, interiorRect);
-			
+            if (!is_borderless_)
+            {
+                if (showXAxis_)
+                    drawXAxis(painter, interiorRect);
+                
+                if (showYAxis_)
+                    drawYAxis(painter, interiorRect);
+                
+                if (showFullBox_)
+                    drawFullBox(painter, interiorRect);
+                
+                if (showXAxis_ && showXAxisTicks_)
+                    drawXAxisTicks(painter, interiorRect);
+                
+                if (showYAxis_ && showYAxisTicks_)
+                    drawYAxisTicks(painter, interiorRect);
+            }
+            else
+            {
+                // when borderless, the "full box", if requested, frames the full bounds
+                if (showFullBox_)
+                    QtSLiMFrameRect(bounds, Qt::black, painter);
+            }
+            
 			// Overdraw the legend
 			if (legendVisible_)
 				drawLegendInInteriorRect(painter, interiorRect);
@@ -1553,10 +1653,14 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                     xAxisTickValuePrecision_ = choices[4].toInt();
                     xAxisMinorTickInterval_ = xAxisMajorTickInterval_ / xAxisMajorTickModulus_;
                     xAxisIsUserRescaled_ = true;
+                    xAxisIsUIRescaled_ = true;
                     
                     // for now, these are the same, except in custom plots
-                    x0_ = xAxisMin_;
-                    x1_ = xAxisMax_;
+                    original_x0_ = xAxisMin_;
+                    original_x1_ = xAxisMax_;
+                    
+                    x0_ = original_x0_;
+                    x1_ = original_x1_;
                     
                     invalidateDrawingCache();
                     update();
@@ -1579,10 +1683,14 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                         yAxisTickValuePrecision_ = choices[4].toInt();
                         yAxisMinorTickInterval_ = yAxisMajorTickInterval_ / yAxisMajorTickModulus_;
                         yAxisIsUserRescaled_ = true;
+                        yAxisIsUIRescaled_ = true;
                         
                         // for now, these are the same, except in custom plots
-                        y0_ = yAxisMin_;
-                        y1_ = yAxisMax_;
+                        original_y0_ = yAxisMin_;
+                        original_y1_ = yAxisMax_;
+                        
+                        y0_ = original_y0_;
+                        y1_ = original_y1_;
                         
                         invalidateDrawingCache();
                         update();
@@ -1603,7 +1711,8 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                             yAxisMax_ = (double)newPower;
                             
                             // for now, these are the same, except in custom plots
-                            y1_ = yAxisMax_;
+                            original_y1_ = yAxisMax_;
+                            y1_ = original_y1_;
                             
                             invalidateDrawingCache();
                             update();
@@ -1725,7 +1834,8 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 		xAxisTickValuePrecision_ = 0;
         
         // for now, these are the same, except in custom plots
-        x1_ = xAxisMax_;
+        original_x1_ = xAxisMax_;
+        x1_ = original_x1_;
 	}
 	else
 	{
@@ -1737,7 +1847,8 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 		xAxisTickValuePrecision_ = 0;
         
         // for now, these are the same, except in custom plots
-        x1_ = xAxisMax_;
+        original_x1_ = xAxisMax_;
+        x1_ = original_x1_;
 	}
 }
 
@@ -1745,10 +1856,21 @@ void QtSLiMGraphView::configureAxisForRange(double &dim0, double &dim1, double &
                                             double &majorTickInterval, double &minorTickInterval,
                                             int &majorTickModulus, int &tickValuePrecision)
 {
-    // We call down to our R-inspired axis calculation methods to figure out a good axis layout.
-    // The call here, to _GScale(), is parallel to the point in R's plot.window() function where
-    // it calls down to GScale() for each of the two axes.
+    if (is_borderless_)
     {
+        // For borderless plots, we leave the axis range untouched; the axis range does not get outset.
+        // However, drawContents() will inset the interiorRect by the margins given to setBorderless();
+        // that provides a similar way of framing the data with margins around them.
+        axisMin = dim0;
+        axisMax = dim1;
+    }
+    else
+    {
+        // We call down to our R-inspired axis calculation methods to figure out a good axis layout.
+        // The call here, to _GScale(), is parallel to the point in R's plot.window() function where
+        // it calls down to GScale() for each of the two axes.  Note that this branch modifies dim0
+        // and dim1; we keep the "original_" versions of the axis ranges so that we can back that out
+        // in setBorderless().
         int nDivisions;
         
         //qDebug() << "configureAxisForRange() : original dim0 ==" << dim0 << ", dim1 ==" << dim1;
@@ -1866,9 +1988,15 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
     return legend_key;
 }
 
-void QtSLiMGraphView::drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double lineWidth, double size)
+void QtSLiMGraphView::drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double alpha, double lineWidth, double size)
 {
     size = size * 3.5;       // this scales what size=1 looks like
+    
+    if (alpha != 1.0)
+    {
+        symbolColor.setAlphaF(alpha);
+        borderColor.setAlphaF(alpha);
+    }
     
     switch (symbol)
     {

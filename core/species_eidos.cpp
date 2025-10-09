@@ -267,9 +267,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 		 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
 		 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
 		 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
-		 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+		 //(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||	// now allowing; see issue #534
 		 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
-		 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+		 //(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||		// now allowing; see issue #534
 		 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
 		 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): chromosome type '" << chromosome_type << "' is only allowed in sexual models; call initializeSex() to enable sex first." << EidosTerminate();
@@ -1288,7 +1288,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [logical$ doMutationRunExperiments = T], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [logical$ doMutationRunExperiments = T], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T], [logical$ checkInfiniteLoops = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1300,6 +1300,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
 	EidosValue *arg_nucleotideBased_value = p_arguments[5].get();
 	EidosValue *arg_randomizeCallbacks_value = p_arguments[6].get();
+#ifdef SLIMGUI
+	EidosValue *arg_checkInfiniteLoops_value = p_arguments[7].get();	// this exists outside SLiMgui, but we don't use it
+#endif
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_slimoptions_inits_ > 0)
@@ -1414,6 +1417,18 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		bool randomize_callbacks = arg_randomizeCallbacks_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		shuffle_buf_is_enabled_ = randomize_callbacks;
+	}
+	
+	{
+		// [logical$ checkInfiniteLoops = T]
+#ifdef SLIMGUI
+		bool check_infinite_loops = arg_checkInfiniteLoops_value->LogicalAtIndex_NOCAST(0, nullptr);
+		
+		// set on the current interpreter and the community; if we're executing inside a nested
+		// interpreter, the interpreters above us will not get their flag set, so that is a bug...
+		p_interpreter.check_infinite_loops_ = check_infinite_loops;
+		community_.check_infinite_loops_ = check_infinite_loops;
+#endif
 	}
 	
 	if (SLiM_verbosity_level >= 1)
@@ -2410,7 +2425,7 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 		(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
 		(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
 		(chromosome_type == ChromosomeType::kHNull_HaploidAutosomeWithNull))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosomes for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosome for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
 	
 	// check that the offspring sex is compatible with having all null haplosomes for this chromosome
 	if ((sex == IndividualSex::kUnspecified) || (sex == IndividualSex::kFemale))
@@ -4051,7 +4066,7 @@ EidosValue_SP Species::ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, c
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL], [Niso<Chromosome>$ chromosome])
+//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL], [Niso<Chromosome> chromosome])
 //
 EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4073,21 +4088,23 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	bool has_id = !(id_value->Type() == EidosValueType::kValueNULL);
 	slim_mutationid_t id = (has_id ? id_value->IntAtIndex_NOCAST(0, nullptr) : 0);
-	bool has_chromosome = !(chromosome_value->Type() == EidosValueType::kValueNULL);
-	Chromosome *chromosome = nullptr;
-	slim_chromosome_index_t chromosome_index = 0;
-	
-	if (has_chromosome)		// NULL case handled above
-	{
-		chromosome = GetChromosomeFromEidosValue(chromosome_value);
-		chromosome_index = chromosome->Index();
-	}
 	
 	// SPECIES CONSISTENCY CHECK
 	if (exclude && (&exclude->mutation_type_ptr_->species_ != this))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that exclude belong to the target species." << EidosTerminate();
-	if (chromosome && (&chromosome->species_ != this))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that chromosome belong to the target species." << EidosTerminate();
+	
+	// Mark chromosomes that are a match; we set up a vector of chars by chromosome index, for lookup
+	std::vector<char> chromosome_index_included(chromosomes_.size(), false);
+	bool has_chromosome = !(chromosome_value->Type() == EidosValueType::kValueNULL);
+	
+	if (has_chromosome)		// NULL case handled above
+	{
+		std::vector<slim_chromosome_index_t> chromosome_indices;
+		GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+		
+		for (slim_chromosome_index_t chromosome_index : chromosome_indices)
+			chromosome_index_included[chromosome_index] = true;
+	}
 	
 	if (nucleotide_value->Type() == EidosValueType::kValueInt)
 	{
@@ -4153,7 +4170,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 		{
 			Mutation *mut = mut_block_ptr + registry[registry_index];
 			
-			if (mut->chromosome_index_ != chromosome_index)
+			if (!chromosome_index_included[mut->chromosome_index_])
 				continue;
 			
 			match_count++;
@@ -4184,7 +4201,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
 			if ((position != -1) && (mut->position_ != position))						continue;
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
-			if (has_chromosome && (mut->chromosome_index_ != chromosome_index))			continue;
+			if (has_chromosome && !chromosome_index_included[mut->chromosome_index_])	continue;
 			
 			match_count++;
 			
@@ -4217,7 +4234,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
 			if (has_tag && (mut->tag_value_ != tag))									continue;
 			if (has_id && (mut->mutation_id_ != id))									continue;
-			if (has_chromosome && (mut->chromosome_index_ != chromosome_index))			continue;
+			if (has_chromosome && !chromosome_index_included[mut->chromosome_index_])	continue;
 			
 			match_count++;
 			
@@ -4512,7 +4529,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_skipTick, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_substitutionsOfType, kEidosValueMaskObject, gSLiM_Substitution_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_traitsWithIndices, kEidosValueMaskObject, gSLiM_Trait_Class))->AddInt("indices"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_traitsWithNames, kEidosValueMaskObject, gSLiM_Trait_Class))->AddString("names"));
