@@ -640,6 +640,11 @@
 		98ACDC9F253522B80038703F /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
 		98ACDCA0253522B80038703F /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
 		98ACDCA1253522B80038703F /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
+		98B6741E2E981AD400930737 /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98B6741D2E981AD400930737 /* trait.cpp */; };
+		98B6741F2E981AD400930737 /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98B6741D2E981AD400930737 /* trait.cpp */; };
+		98B674202E981AD400930737 /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98B6741D2E981AD400930737 /* trait.cpp */; };
+		98B674212E981AD400930737 /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98B6741D2E981AD400930737 /* trait.cpp */; };
+		98B674222E981AD400930737 /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98B6741D2E981AD400930737 /* trait.cpp */; };
 		98C0943E1B7663DF00766A9A /* female_symbol.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98C0943C1B7663DF00766A9A /* female_symbol.pdf */; };
 		98C0943F1B7663DF00766A9A /* male_symbol.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98C0943D1B7663DF00766A9A /* male_symbol.pdf */; };
 		98C821241C7A980000548839 /* inline.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C820E51C7A980000548839 /* inline.c */; };
@@ -1600,11 +1605,6 @@
 		98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
-		98DC5A152E0C4A5900398F6B /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC5A132E0C4A5900398F6B /* trait.cpp */; };
-		98DC5A162E0C4A5900398F6B /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC5A132E0C4A5900398F6B /* trait.cpp */; };
-		98DC5A172E0C4A5900398F6B /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC5A132E0C4A5900398F6B /* trait.cpp */; };
-		98DC5A182E0C4A5900398F6B /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC5A132E0C4A5900398F6B /* trait.cpp */; };
-		98DC5A192E0C4A5900398F6B /* trait.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC5A132E0C4A5900398F6B /* trait.cpp */; };
 		98DC9841289986B300160DD8 /* GitSHA1_Xcode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC983D289986B300160DD8 /* GitSHA1_Xcode.cpp */; };
 		98DD5F022155B857009062EE /* change_folder.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F002155B857009062EE /* change_folder.pdf */; };
 		98DD5F032155B857009062EE /* change_folder_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F012155B857009062EE /* change_folder_H.pdf */; };
@@ -2044,6 +2044,8 @@
 		98ACDC9C253522B80038703F /* eidos_class_Object.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_class_Object.cpp; sourceTree = "<group>"; };
 		98ACDCA2253522D40038703F /* eidos_class_Object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_class_Object.h; sourceTree = "<group>"; };
 		98AF84641CB307300030D1EB /* VERSIONS */ = {isa = PBXFileReference; lastKnownFileType = text; path = VERSIONS; sourceTree = "<group>"; };
+		98B6741D2E981AD400930737 /* trait.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = trait.cpp; sourceTree = "<group>"; };
+		98B674232E981AFD00930737 /* trait.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = trait.h; sourceTree = "<group>"; };
 		98B8AF8625A2BE7200C95D66 /* json.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json.hpp; sourceTree = "<group>"; };
 		98B8AF8725A2BE7200C95D66 /* json_fwd.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json_fwd.hpp; sourceTree = "<group>"; };
 		98C0943C1B7663DF00766A9A /* female_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = female_symbol.pdf; sourceTree = "<group>"; };
@@ -2196,8 +2198,6 @@
 		98D7ED2D28CE58FC00DEAAC4 /* slim_multi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim_multi; sourceTree = BUILT_PRODUCTS_DIR; };
 		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
 		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
-		98DC5A132E0C4A5900398F6B /* trait.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = trait.cpp; sourceTree = "<group>"; };
-		98DC5A142E0C4A5900398F6B /* trait.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = trait.h; sourceTree = "<group>"; };
 		98DC9838289986B300160DD8 /* GitSHA1.cpp.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GitSHA1.cpp.in; sourceTree = "<group>"; };
 		98DC9839289986B300160DD8 /* GetGitRevisionDescription.cmake */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GetGitRevisionDescription.cmake; sourceTree = "<group>"; };
 		98DC983A289986B300160DD8 /* GetGitRevisionDescription.cmake.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GetGitRevisionDescription.cmake.in; sourceTree = "<group>"; };
@@ -2521,8 +2521,8 @@
 				9878A93E1A4E57E70007B9D6 /* species.h */,
 				9878A93D1A4E57E70007B9D6 /* species.cpp */,
 				98AC617924BA34ED0001914C /* species_eidos.cpp */,
-				98DC5A142E0C4A5900398F6B /* trait.h */,
-				98DC5A132E0C4A5900398F6B /* trait.cpp */,
+				98B674232E981AFD00930737 /* trait.h */,
+				98B6741D2E981AD400930737 /* trait.cpp */,
 				98E9A6981A3CD52A000AD4FC /* chromosome.h */,
 				98E9A6971A3CD52A000AD4FC /* chromosome.cpp */,
 				98E9A6AD1A3CD5D3000AD4FC /* population.h */,
@@ -3876,6 +3876,7 @@
 				98E9A6A81A3CD5A0000AD4FC /* haplosome.cpp in Sources */,
 				98CEFD202AAFABAA00D2C9B4 /* akima.c in Sources */,
 				981DC35028E26F8B000ABE91 /* eidos_functions_files.cpp in Sources */,
+				98B6741E2E981AD400930737 /* trait.cpp in Sources */,
 				98CEFD882AAFB4F000D2C9B4 /* view.c in Sources */,
 				9807661C244934A800F6CBB4 /* zutil.c in Sources */,
 				98CEFD482AAFABAA00D2C9B4 /* interp2d.c in Sources */,
@@ -3980,7 +3981,6 @@
 				98C821271C7A980000548839 /* message.c in Sources */,
 				984824F1210B9F23002402A5 /* dtrsv.c in Sources */,
 				98C821421C7A980000548839 /* infnan.c in Sources */,
-				98DC5A152E0C4A5900398F6B /* trait.cpp in Sources */,
 				9807662924493A8F00F6CBB4 /* crc32.c in Sources */,
 				98C8213F1C7A980000548839 /* zeta.c in Sources */,
 				9890D1ED27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
@@ -4053,6 +4053,7 @@
 				986152222B167AED0083E68F /* subpopulation.cpp in Sources */,
 				9861522F2B167B4E0083E68F /* linear.c in Sources */,
 				986151EE2B167A3A0083E68F /* eidos_functions_distributions.cpp in Sources */,
+				98B674212E981AD400930737 /* trait.cpp in Sources */,
 				986152382B167B4E0083E68F /* tridiag.c in Sources */,
 				986152372B167B4E0083E68F /* weibull.c in Sources */,
 				986152752B167B4E0083E68F /* view.c in Sources */,
@@ -4157,7 +4158,6 @@
 				9861526D2B167B4E0083E68F /* mvgauss.c in Sources */,
 				986152622B167B4E0083E68F /* blas.c in Sources */,
 				986152392B167B4E0083E68F /* log.c in Sources */,
-				98DC5A182E0C4A5900398F6B /* trait.cpp in Sources */,
 				9823568D252FE61A0096A745 /* eidos_class_Image.cpp in Sources */,
 				986151ED2B167A380083E68F /* eidos_functions_values.cpp in Sources */,
 				9861523F2B167B4E0083E68F /* inline.c in Sources */,
@@ -4394,7 +4394,6 @@
 				98CF522F294A3FC900557BBA /* eidos_functions_matrices.cpp in Sources */,
 				98CF5230294A3FC900557BBA /* gauss.c in Sources */,
 				98CF5231294A3FC900557BBA /* EidosHelpController.mm in Sources */,
-				98DC5A172E0C4A5900398F6B /* trait.cpp in Sources */,
 				98CF5232294A3FC900557BBA /* community_eidos.cpp in Sources */,
 				98EDB4FA2E6538F200CC8798 /* permutation.c in Sources */,
 				98CF5233294A3FC900557BBA /* lodepng.cpp in Sources */,
@@ -4454,6 +4453,7 @@
 				98CF5263294A3FC900557BBA /* convert.c in Sources */,
 				98CEFD4A2AAFABAA00D2C9B4 /* interp2d.c in Sources */,
 				98CF5264294A3FC900557BBA /* gzlib.c in Sources */,
+				98B674202E981AD400930737 /* trait.cpp in Sources */,
 				98CF5265294A3FC900557BBA /* erfc.c in Sources */,
 				98CF5266294A3FC900557BBA /* polymorphism.cpp in Sources */,
 				98EDB4E52E65366E00CC8798 /* daxpy.c in Sources */,
@@ -4746,7 +4746,6 @@
 				981DC35D28E26F8B000ABE91 /* eidos_functions_matrices.cpp in Sources */,
 				9876E5FD1ED559A600FF9762 /* gauss.c in Sources */,
 				982556651BA450980054CB3F /* EidosHelpController.mm in Sources */,
-				98DC5A162E0C4A5900398F6B /* trait.cpp in Sources */,
 				9836868227CD72E900683639 /* community_eidos.cpp in Sources */,
 				98EDB4F92E6538F200CC8798 /* permutation.c in Sources */,
 				98235683252FDCF50096A745 /* lodepng.cpp in Sources */,
@@ -4806,6 +4805,7 @@
 				9854D2642278B9F8001D43BC /* convert.c in Sources */,
 				98CEFD492AAFABAA00D2C9B4 /* interp2d.c in Sources */,
 				9807661F244934A800F6CBB4 /* gzlib.c in Sources */,
+				98B6741F2E981AD400930737 /* trait.cpp in Sources */,
 				9876E6091ED55B4F00FF9762 /* erfc.c in Sources */,
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98EDB4E42E65366E00CC8798 /* daxpy.c in Sources */,
@@ -5073,6 +5073,7 @@
 				98D7ECC728CE58FC00DEAAC4 /* eidos_test_functions_math.cpp in Sources */,
 				98CEFD272AAFABAA00D2C9B4 /* akima.c in Sources */,
 				98D7ECC828CE58FC00DEAAC4 /* haplosome.cpp in Sources */,
+				98B674222E981AD400930737 /* trait.cpp in Sources */,
 				98CEFD8F2AAFB4F000D2C9B4 /* view.c in Sources */,
 				98D7ECC928CE58FC00DEAAC4 /* zutil.c in Sources */,
 				98CEFD4F2AAFABAA00D2C9B4 /* interp2d.c in Sources */,
@@ -5177,7 +5178,6 @@
 				98D7ED1928CE58FC00DEAAC4 /* inline.c in Sources */,
 				98D7ED1A28CE58FC00DEAAC4 /* message.c in Sources */,
 				98D7ED1B28CE58FC00DEAAC4 /* dtrsv.c in Sources */,
-				98DC5A192E0C4A5900398F6B /* trait.cpp in Sources */,
 				98D7ED1C28CE58FC00DEAAC4 /* infnan.c in Sources */,
 				98D7ED1D28CE58FC00DEAAC4 /* crc32.c in Sources */,
 				98D7ED1E28CE58FC00DEAAC4 /* zeta.c in Sources */,

@@ -6025,27 +6025,27 @@ nucleotide <\'96> (string$)\
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 selectionCoeff => (float$)\
+\f3\fs18 \cf0 selectionCoeff => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
+\f4\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
 \f3\fs18 MutationType
-\f4\fs20 .  If a mutation has a 
+\f5\fs20 .
+\f4 \cf2 \expnd0\expndtw0\kerning0
+  If a mutation has a 
 \f3\fs18 selectionCoeff
 \f4\fs20  of 
 \f1\i s
-\f4\i0  and a 
-\f3\fs18 dominanceCoeff
-\f4\fs20  of 
-\f1\i h
 \f4\i0 , the multiplicative fitness effect of the mutation in a homozygote is 1+
 \f1\i s
-\f4\i0 , and in a heterozygote is 1+
+\f4\i0 ; in a heterozygote it is 1+
 \f1\i hs
-\f4\i0 .  The selection coefficient of a mutation can be changed with the 
-\f3\fs18 setSelectionCoeff()
-\f4\fs20  method.\
-Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\f4\i0 , where 
+\f1\i h
+\f4\i0  is the dominance coefficient kept by the mutation type.
+\f5 \cf0 \kerning1\expnd0\expndtw0 \
+
+\f4 Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s selection coefficient to some number 
 \f3\fs18 x
@@ -6057,7 +6057,8 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f3\fs18 id
 \f4\fs20  or 
 \f3\fs18 tag
-\f4\fs20  properties to identify particular mutations.\
+\f4\fs20  properties to identify particular mutations.
+\f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 subpopID <\'96> (integer$)\
@@ -6110,8 +6111,7 @@ Changing this will normally affect the fitness values calculated toward the end 
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
-\f5 \
+\f3\fs18 \cf2 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the mutation type of the mutation to 
@@ -6127,12 +6127,10 @@ Changing this will normally affect the fitness values calculated toward the end 
 \f4\fs20  methods of 
 \f3\fs18 Mutation
 \f4\fs20  if so desired.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 In nucleotide-based models, a restriction applies: nucleotide-based mutations may not be changed to a non-nucleotide-based mutation type, and non-nucleotide-based mutations may not be changed to a nucleotide-based mutation type.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)\
+\f3\fs18 \cf2 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the selection coefficient of the mutation to 
@@ -6244,7 +6242,7 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f3\fs18 1.0
 \f4\fs20 , and is used only in models where null haplosomes are present; the 
 \f3\fs18 dominanceCoeff
-\f4\fs20  property of the mutation is the dominance coefficient used in most circumstances.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
+\f4\fs20  property is the dominance coefficient used in most circumstances.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
@@ -6371,7 +6369,7 @@ The species to which the target object belongs.\
 \f1\i\fs22 \cf0 5.11.2  
 \f2\fs18 MutationType
 \f1\fs22  methods\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\i0\fs18 \cf2 \'96\'a0(float$)defaultDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -6397,7 +6395,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20 , not the double-precision 
 \f3\fs18 float
 \f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(fs)distributionParamsForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -6415,7 +6413,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20 , and type 
 \f3\fs18 float
 \f4\fs20  for all other DFE types.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(string$)distributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -6443,7 +6441,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  , as discussed in the 
 \f3\fs18 MutationType
 \f4\fs20  class documentation.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -6461,7 +6459,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effects is of type 
 \f3\fs18 "s"
 \f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effects.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setDefaultDominanceForTrait(Nio<Trait>\'a0trait, float\'a0dominance)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -6477,7 +6475,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  must either be singleton (in which case it is set as the default dominance for all specified traits), or must match the number of specified traits (in which case one element of 
 \f3\fs18 defaultDominance
 \f4\fs20  is used for each corresponding trait).\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setDistributionForTrait(Nio<Trait>\'a0trait, string$\'a0distributionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -13823,10 +13821,12 @@ nucleotide <\'96> (string$)\
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 selectionCoeff => (float$)\
+\f3\fs18 \cf0 selectionCoeff => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The selection coefficient of the mutation, carried over from the original mutation object.\
+\f4\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
+\f3\fs18 MutationType
+\f5\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 subpopID <\'96> (integer$)\
@@ -13867,10 +13867,10 @@ nucleotide <\'96> (string$)\
 \f5\i0 \cf0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b \cf0 5.19  Class Trait\
+\f0\b \cf2 5.19  Class Trait\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.19.1  
+\f1\i\b0 \cf2 5.19.1  
 \f2\fs18 Trait
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -13959,10 +13959,10 @@ nucleotide <\'96> (string$)\
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.19.2  
+\f1\i\fs22 \cf2 5.19.2  
 \f2\fs18 Trait
-\f1\fs22  methods\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-
-\f5\i0 \cf0 \
+\f1\fs22  methods
+\f4\i0 \
+\pard\pardeftab720\sa60\partightenfactor0
+\cf2 \
 }

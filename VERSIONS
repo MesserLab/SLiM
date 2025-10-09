@@ -15,6 +15,37 @@ development head (in the master branch):
 	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
 	add mtext() call to Plot, for drawing text in the margins outside the plot area
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
+	----- last merge into multitrait was done here
+
+
+multitrait branch:
+	add new Eidos SLiM class, Trait
+		add (object<Trait>$)initializeTrait(s$ name, s$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+		add Species property traits => (object<Trait>) to simply get all traits defined for a species
+		add Species methods – (object<Trait>)traitsWithIndices(integer indices) and – (object<Trait>)traitsWithNames(string names)
+		add Trait properties:
+			baselineOffset <-> (float$)
+			directFitnessEffect <-> (logical$)
+			index => (integer$)
+			individualOffsetMean <-> (float$)
+			individualOffsetSD <-> (float$)
+			name => (string$)
+			species => (object<Species>$)
+			tag <-> (integer$)
+			type => (string$)
+		add Community property allTraits => (object<Trait>)
+	add a C++ dominance_coeff_ property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
+		add dominanceCoeff properties to Mutation and Substitution
+		add a setDominanceCoeff() method to Mutation, yay!
+		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
+	revamp MutationType for multiple traits
+		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
+		add MutationType methods defaultDominanceForTrait(), distributionTypeForTrait(), and distributionParamsForTrait()
+		change MutationType method setDistribution() to setDistributionForTrait()
+		change MutationType method drawSelectionCoefficient() to drawEffectForTrait()
+		add SLiMgui autofixing for all of the above changes
+		add MutationType method setDefaultDominanceForTrait() (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
+		transition MutationType's internals to keep a separate DE for each trait
 
 
 version 5.1 (Eidos version 4.1):
@@ -62,36 +93,6 @@ version 5.1 (Eidos version 4.1):
 	fix #529, extend calcFST() to support multiple chromosomes
 	extend subsetMutations() to support subsetting mutations belonging to more than one chromosome
 	fix #560, add recipe 14.16 "Visualizing linkage disequilibrium" to demonstrate the new calcLD_D() and calcLD_Rsquared() functions
-
-multitrait branch:
-	add new Eidos SLiM class, Trait
-		add (object<Trait>$)initializeTrait(s$ name, s$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
-		add Species property traits => (object<Trait>) to simply get all traits defined for a species
-		add Species methods – (object<Trait>)traitsWithIndices(integer indices) and – (object<Trait>)traitsWithNames(string names)
-		add Trait properties:
-			baselineOffset <-> (float$)
-			directFitnessEffect <-> (logical$)
-			index => (integer$)
-			individualOffsetMean <-> (float$)
-			individualOffsetSD <-> (float$)
-			name => (string$)
-			species => (object<Species>$)
-			tag <-> (integer$)
-			type => (string$)
-		add Community property allTraits => (object<Trait>)
-	add a C++ dominance_coeff_ property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
-		add dominanceCoeff properties to Mutation and Substitution
-		add a setDominanceCoeff() method to Mutation, yay!
-		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
-	revamp MutationType for multiple traits
-		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
-		add MutationType methods defaultDominanceForTrait(), distributionTypeForTrait(), and distributionParamsForTrait()
-		change MutationType method setDistribution() to setDistributionForTrait()
-		change MutationType method drawSelectionCoefficient() to drawEffectForTrait()
-		add SLiMgui autofixing for all of the above changes
-		add MutationType method setDefaultDominanceForTrait() (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
-		transition MutationType's internals to keep a separate DE for each trait
-
 
 version 5.0 (Eidos version 4.0):
 	multi-chromosome transition:

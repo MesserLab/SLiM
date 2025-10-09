@@ -931,8 +931,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1328,7 +1327,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1408,7 +1406,6 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1476,7 +1473,7 @@ The
 \f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [Nf$\'a0individualOffsetMean\'a0=\'a0NULL], [Nf$\'a0individualOffsetSD\'a0=\'a0NULL], [logical$\'a0directFitnessEffect\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calling this function, added in SLiM 5.1, configures a phenotypic trait in the species being initialized.  The new 
+\f2\fs20 \cf2 Calling this function, added in SLiM 5.2, configures a phenotypic trait in the species being initialized.  The new 
 \f1\fs18 Trait
 \f2\fs20  object is returned.  For more details on the way that traits work in SLiM, beyond what is given below, see the 
 \f1\fs18 Trait
@@ -1486,13 +1483,15 @@ The
 \f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not conflict with any other trait in any species in the model, it must not conflict with any global variable or constant, and it must not conflict with the name of any existing property on the 
 \f1\fs18 Individual
 \f2\fs20  class.  The second requirement is because, after the new trait is created, a new global constant is defined that represents the trait\'92s index within the species, for quick reference to the trait in various contexts.  The third requirement is because, after the new trait is created, a new property is added to individuals of the species, with the same name as the new trait, that allows the trait values of individuals to be accessed directly as properties.  For example, if the new trait is named 
-\f1\fs18 myTrait
+\f1\fs18 myTraitT
 \f2\fs20 , a new global constant 
-\f1\fs18 myTrait
+\f1\fs18 myTraitT
 \f2\fs20  would be defined as 
-\f1\fs18 myTrait
+\f1\fs18 myTraitT
 \f2\fs20 \'92s index in the species, and access to an individual\'92s trait value would be possible through the property 
-\f1\fs18 individual.myTrait
+\f1\fs18 individual.myTraitT
+\f2\fs20 .  It is suggested, but not required, that trait names should end with a capital 
+\f1\fs18 T
 \f2\fs20 .\
 The 
 \f1\fs18 type
@@ -1554,7 +1553,7 @@ The use of the
 \f1\fs18 directFitnessEffect
 \f2\fs20 , which is 
 \f1\fs18 T
-\f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 5.1.  The creation of the default trait occurs as a side effect of the first call to 
+\f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 5.2.  The creation of the default trait occurs as a side effect of the first call to 
 \f1\fs18 initializeMutationType()
 \f2\fs20 , if 
 \f1\fs18 initializeTrait()
