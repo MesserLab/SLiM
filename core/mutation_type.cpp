@@ -692,13 +692,13 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		case gID_defaultDominanceForTrait:		return ExecuteMethod_defaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_distributionTypeForTrait:		return ExecuteMethod_distributionTypeForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_distributionParamsForTrait:	return ExecuteMethod_distributionParamsForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_drawEffectForTrait:			return ExecuteMethod_drawEffectForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setDefaultDominanceForTrait:	return ExecuteMethod_setDefaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setDistributionForTrait:		return ExecuteMethod_setDistributionForTrait(p_method_id, p_arguments, p_interpreter);
-		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gID_defaultDominanceForTrait:			return ExecuteMethod_defaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectDistributionTypeForTrait:	return ExecuteMethod_effectDistributionTypeForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectDistributionParamsForTrait:	return ExecuteMethod_effectDistributionParamsForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_drawEffectForTrait:				return ExecuteMethod_drawEffectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setDefaultDominanceForTrait:		return ExecuteMethod_setDefaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setEffectDistributionForTrait:		return ExecuteMethod_setEffectDistributionForTrait(p_method_id, p_arguments, p_interpreter);
+		default:									return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -735,16 +735,16 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 	}
 }
 
-//	*********************	- (fs)distributionParamsForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (fs)effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
 //
-EidosValue_SP MutationType::ExecuteMethod_distributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<int64_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "defaultDominanceForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectDistributionParamsForTrait");
 	
 	// decide whether doing floats or strings; must be the same for all
 	bool is_float = false;
@@ -761,7 +761,7 @@ EidosValue_SP MutationType::ExecuteMethod_distributionParamsForTrait(EidosGlobal
 	}
 	
 	if (is_float && is_string)
-		EIDOS_TERMINATION << "ERROR (ExecuteMethod_drawEffectForTrait): drawEffectForTrait() requires all specified traits to have either float or string parameters (not a mixture) for their distributions of effects." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ExecuteMethod_effectDistributionParamsForTrait): effectDistributionParamsForTrait() requires all specified traits to have either float or string parameters (not a mixture) for their distributions of effects." << EidosTerminate(nullptr);
 	
 	if (is_float)
 	{
@@ -793,16 +793,16 @@ EidosValue_SP MutationType::ExecuteMethod_distributionParamsForTrait(EidosGlobal
 	}
 }
 
-//	*********************	- (string$)distributionTypeForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (string$)effectDistributionTypeForTrait([Nio<Trait> trait = NULL])
 //
-EidosValue_SP MutationType::ExecuteMethod_distributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<int64_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "defaultDominanceForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectDistributionTypeForTrait");
 	
 	// assemble the result
 	EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
@@ -838,7 +838,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	
 	// get the trait indices, with bounds-checking
 	std::vector<int64_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "defaultDominanceForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "drawEffectForTrait");
 	
 	// get the number of effects to draw
 	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
@@ -914,9 +914,9 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)setDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
+//	*********************	- (void)setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
 //
-EidosValue_SP MutationType::ExecuteMethod_setDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
@@ -1010,11 +1010,11 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultDominanceForTrait, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distributionParamsForTrait, kEidosValueMaskFloat | kEidosValueMaskString))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distributionTypeForTrait, kEidosValueMaskString | kEidosValueMaskSingleton))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionParamsForTrait, kEidosValueMaskFloat | kEidosValueMaskString))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionTypeForTrait, kEidosValueMaskString | kEidosValueMaskSingleton))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawEffectForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddInt_OS("n", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultDominanceForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddFloat("dominance"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistributionForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddString_S("distributionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setEffectDistributionForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddString_S("distributionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

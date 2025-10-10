@@ -2139,16 +2139,16 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
             (selectionString == "distributionType"))
-        return offerAndExecuteAutofix(selection, "distributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `distributionTypeForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectDistributionTypeForTrait()`.", terminationMessage);
     
     if (terminationMessage.contains("property distributionParams is not defined for object element type MutationType") &&
             (selectionString == "distributionParams"))
-        return offerAndExecuteAutofix(selection, "distributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `distributionParamsForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectDistributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `effectDistributionParamsForTrait()`.", terminationMessage);
     
     if ((afterSelection1String == "(") &&
             terminationMessage.contains("method setDistribution() is not defined on object element type MutationType") &&
             (selectionPlus1AfterString == "setDistribution("))
-        return offerAndExecuteAutofix(selectionPlus1After, "setDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setDistributionForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setEffectDistributionForTrait()`.", terminationMessage);
     
     if (terminationMessage.contains("method drawSelectionCoefficient() is not defined on object element type MutationType") &&
             (selectionString == "drawSelectionCoefficient"))

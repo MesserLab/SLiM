@@ -6397,7 +6397,25 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(fs)distributionParamsForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Draws and returns a vector of 
+\f3\fs18 n
+\f4\fs20  mutation effects using the distribution of effects for the specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  See the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effects is of type 
+\f3\fs18 "s"
+\f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effects.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(fs)effectDistributionParamsForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the parameters that configure the distribution of effects for the specified trait or traits.  The traits can be specified as 
@@ -6415,7 +6433,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  for all other DFE types.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string$)distributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(string$)effectDistributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the type of distribution of effects for the specified trait or traits.  The traits can be specified as 
@@ -6443,24 +6461,6 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  class documentation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Draws and returns a vector of 
-\f3\fs18 n
-\f4\fs20  mutation effects using the distribution of effects for the specified trait or traits, for the target mutation type.  The traits can be specified as 
-\f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
-\f3\fs18 Trait
-\f4\fs20  objects; 
-\f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species.  See the 
-\f3\fs18 MutationType
-\f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effects is of type 
-\f3\fs18 "s"
-\f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effects.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf2 \'96\'a0(void)setDefaultDominanceForTrait(Nio<Trait>\'a0trait, float\'a0dominance)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6477,7 +6477,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  is used for each corresponding trait).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setDistributionForTrait(Nio<Trait>\'a0trait, string$\'a0distributionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(void)setEffectDistributionForTrait(Nio<Trait>\'a0trait, string$\'a0distributionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the distribution of effects for a specified trait or traits, for the target mutation type.  The traits can be specified as 

@@ -12,13 +12,15 @@ development head (in the master branch):
 	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
 	add segments() call to Plot, for plotting a set of unconnected line segments
 	add rects() call to Plot, for plotting a set of rectangles
-	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
+	extend text() to support drawing text at an angle, with new [float angle = 0.0] parameter
 	add mtext() call to Plot, for drawing text in the margins outside the plot area
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
 	----- last merge into multitrait was done here
 
 
 multitrait branch:
+	constant SLIM_MAX_TRAITS defines a max of 256 traits per species, but so far there is no actual need for this maximum
+	internal C++ TraitType enum defines two types of traits, kMultiplicative and kAdditive
 	add new Eidos SLiM class, Trait
 		add (object<Trait>$)initializeTrait(s$ name, s$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
 		add Species property traits => (object<Trait>) to simply get all traits defined for a species
@@ -34,18 +36,22 @@ multitrait branch:
 			tag <-> (integer$)
 			type => (string$)
 		add Community property allTraits => (object<Trait>)
+	make a single implicit trait with MakeImplicitTrait() (defaulting to kMultiplicative with a direct fitness effect) if initializeTrait() is not called before initializeMutationType() is called
 	add a C++ dominance_coeff_ property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
 		add dominanceCoeff properties to Mutation and Substitution
 		add a setDominanceCoeff() method to Mutation, yay!
 		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
 	revamp MutationType for multiple traits
 		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
-		add MutationType methods defaultDominanceForTrait(), distributionTypeForTrait(), and distributionParamsForTrait()
-		change MutationType method setDistribution() to setDistributionForTrait()
-		change MutationType method drawSelectionCoefficient() to drawEffectForTrait()
-		add SLiMgui autofixing for all of the above changes
-		add MutationType method setDefaultDominanceForTrait() (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
-		transition MutationType's internals to keep a separate DE for each trait
+		add MutationType methods defaultDominanceForTrait([Nio<Trait> trait = NULL]), effectDistributionTypeForTrait([Nio<Trait> trait = NULL]), and effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
+		change MutationType method setDistribution() to setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
+		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
+		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
+		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
+		transition MutationType's internals to keep a separate DE for each trait using a new EffectDistributionInfo struct
+		added C++ IsPureNeutralDFE() method to represent whether all of the effects of a given mutation type are all neutral
+	add Individual properties for each trait in the individual's species, allowing direct access
+		this was done by adding GetProperty_NO_SIGNATURE() / SetProperty_NO_SIGNATURE() methods called by EidosValue_Object::GetPropertyOfElements() and EidosValue_Object::SetPropertyOfElements() to support properties with no signature
 
 
 version 5.1 (Eidos version 4.1):

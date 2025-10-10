@@ -5187,7 +5187,7 @@ EidosValue_SP Individual_Class::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_p
 	if (trait)
 	{
 		// We got a hit, but don't know what to do with it for now
-		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
 	}
 	
 	return super::GetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size);
@@ -5207,7 +5207,7 @@ void Individual_Class::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_i
 			EIDOS_TERMINATION << "ERROR (Individual_Class::SetProperty_NO_SIGNATURE): assigned value must be of type float for trait-value property " << trait->Name() << "." << EidosTerminate();
 		
 		// We got a hit, but don't know what to do with it for now
-		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
 	}
 	
 	return super::SetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size, p_value);
