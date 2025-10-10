@@ -2973,7 +2973,7 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
-	// (numeric)calcSFS([Ni$ binCount = NULL], [No<Haplosome> haplosomes = NULL], [No<Mutation> muts = NULL], [string$ metric = "density"], [logical$ fold = F])
+	// (numeric)calcSFS([Ni$ binCount = NULL], [No<Haplosome> haplosomes = NULL], [No<Mutation> muts = NULL], [string$ metric = "density"], [logical$ fold = F])
 	SLiMAssertScriptRaise(base_script + "calcSFS(); }", "when binCount is NULL", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcSFS(10); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);

@@ -702,7 +702,7 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	}
 }
 
-//	*********************	- (float$)defaultDominanceForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (float$)defaultDominanceForTrait([Nio<Trait> trait = NULL])
 //
 EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -735,7 +735,7 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 	}
 }
 
-//	*********************	- (fs)effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (fs)effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
 //
 EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -793,7 +793,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	}
 }
 
-//	*********************	- (string$)effectDistributionTypeForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (string$)effectDistributionTypeForTrait([Nio<Trait> trait = NULL])
 //
 EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -827,7 +827,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGl
 	return EidosValue_SP(string_result);
 }
 
-//	*********************	- (float)drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
+//	*********************	- (float)drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
 //
 EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -865,7 +865,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	}
 }
 
-//	*********************	- (void)setDefaultDominanceForTrait(Nio<Trait> trait, float dominance)
+//	*********************	- (void)setDefaultDominanceForTrait(Nio<Trait> trait, float dominance)
 //
 EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -914,7 +914,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
+//	*********************	- (void)setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
 //
 EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {

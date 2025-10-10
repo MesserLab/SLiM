@@ -43,11 +43,11 @@ multitrait branch:
 		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
 	revamp MutationType for multiple traits
 		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
-		add MutationType methods defaultDominanceForTrait([Nio<Trait> trait = NULL]), effectDistributionTypeForTrait([Nio<Trait> trait = NULL]), and effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
-		change MutationType method setDistribution() to setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
-		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
+		add MutationType methods defaultDominanceForTrait([Nio<Trait> trait = NULL]), effectDistributionTypeForTrait([Nio<Trait> trait = NULL]), and effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
+		change MutationType method setDistribution() to setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
+		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
 		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
-		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
+		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
 		transition MutationType's internals to keep a separate DE for each trait using a new EffectDistributionInfo struct
 		added C++ IsPureNeutralDFE() method to represent whether all of the effects of a given mutation type are all neutral
 	add Individual properties for each trait in the individual's species, allowing direct access
@@ -162,7 +162,7 @@ version 5.0 (Eidos version 4.0):
 			policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
 			policy change: the "remove fixed mutations" stage of the WF tick cycle is now after "offspring become parents" (no user-visible difference except WF tick cycle diagram)
 			policy change: mutationRuns= for initializeSLiMOptions() has been changed to [l$ doMutationRunExperiments=T]; pass mutationRuns= to initializeChromosome() instead
-			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
+			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
 			policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
 				the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
 			policy change: fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F (a change in simplification behavior)
