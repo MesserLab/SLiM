@@ -1035,7 +1035,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
+	slim_effect_t selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -1405,7 +1405,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Draw mutation type and selection coefficient, and create the new mutation
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
+	slim_effect_t selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();

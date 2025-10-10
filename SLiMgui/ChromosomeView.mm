@@ -706,7 +706,7 @@ static const int spaceBetweenChromosomes = 5;
 				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
 				if ((ed_info.dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 				{
-					slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)ed_info.dfe_parameters_[0]);
+					slim_effect_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_effect_t)ed_info.dfe_parameters_[0]);
 					
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					

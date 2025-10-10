@@ -5195,13 +5195,13 @@ void Population::ValidateMutationFitnessCaches(void)
 	{
 		MutationIndex mut_index = (*registry_iter++);
 		Mutation *mut = mut_block_ptr + mut_index;
-		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
-		slim_selcoeff_t dom_coeff = mut->dominance_coeff_;
-		slim_selcoeff_t hemizygous_dom_coeff = mut->mutation_type_ptr_->hemizygous_dominance_coeff_;
+		slim_effect_t sel_coeff = mut->selection_coeff_;
+		slim_effect_t dom_coeff = mut->dominance_coeff_;
+		slim_effect_t hemizygous_dom_coeff = mut->mutation_type_ptr_->hemizygous_dominance_coeff_;
 		
-		mut->cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
-		mut->cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
-		mut->cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + hemizygous_dom_coeff * sel_coeff);
+		mut->cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + sel_coeff);
+		mut->cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
+		mut->cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + hemizygous_dom_coeff * sel_coeff);
 	}
 }
 
@@ -7896,7 +7896,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_objectid_t_size = sizeof(slim_objectid_t);
 		int32_t slim_popsize_t_size = sizeof(slim_popsize_t);
 		int32_t slim_refcount_t_size = sizeof(slim_refcount_t);
-		int32_t slim_selcoeff_t_size = sizeof(slim_selcoeff_t);
+		int32_t slim_effect_t_size = sizeof(slim_effect_t);
 		int32_t slim_mutationid_t_size = sizeof(slim_mutationid_t);													// Added in version 2
 		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
 		int32_t slim_age_t_size = sizeof(slim_age_t);																// Added in version 6
@@ -7909,7 +7909,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_objectid_t_size), sizeof slim_objectid_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_popsize_t_size), sizeof slim_popsize_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_refcount_t_size), sizeof slim_refcount_t_size);
-		p_out.write(reinterpret_cast<char *>(&slim_selcoeff_t_size), sizeof slim_selcoeff_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_effect_t_size), sizeof slim_effect_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_mutationid_t_size), sizeof slim_mutationid_t_size);				// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_age_t_size), sizeof slim_age_t_size);							// Added in version 6
@@ -8130,8 +8130,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = mutation_ptr->position_;
-			slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
-			slim_selcoeff_t dominance_coeff = mutation_ptr->dominance_coeff_;
+			slim_effect_t selection_coeff = mutation_ptr->selection_coeff_;
+			slim_effect_t dominance_coeff = mutation_ptr->dominance_coeff_;
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
@@ -8287,8 +8287,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			int64_t mutation_id = substitution_ptr->mutation_id_;
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = substitution_ptr->position_;
-			slim_selcoeff_t selection_coeff = substitution_ptr->selection_coeff_;
-			slim_selcoeff_t dominance_coeff = substitution_ptr->dominance_coeff_;
+			slim_effect_t selection_coeff = substitution_ptr->selection_coeff_;
+			slim_effect_t dominance_coeff = substitution_ptr->dominance_coeff_;
 			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
 			slim_tick_t origin_tick = substitution_ptr->origin_tick_;
 			slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;

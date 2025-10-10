@@ -96,7 +96,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 		if (trait_index == 0)
 		{
 			// the DE for the first trait gets set from the parameters passed in
-			ed_info.default_dominance_coeff_ = static_cast<slim_selcoeff_t>(p_dominance_coeff);
+			ed_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);
 			ed_info.dfe_type_ = p_dfe_type;
 			ed_info.dfe_parameters_ = std::move(p_dfe_parameters);
 			ed_info.dfe_strings_ = std::move(p_dfe_strings);
@@ -593,7 +593,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		{
 			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
-			hemizygous_dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
+			hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(value);		// intentionally no bounds check
 			
 			// Changing the hemizygous dominance coefficient means that the cached fitness effects of all mutations using this type
 			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
@@ -887,7 +887,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 		{
 			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
 			
-			de_info.default_dominance_coeff_ = static_cast<slim_selcoeff_t>(dominance);		// intentionally no bounds check
+			de_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
 		}
 	}
 	else if (dominance_count == (int)trait_indices.size())
@@ -898,7 +898,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
 			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
 			
-			de_info.default_dominance_coeff_ = static_cast<slim_selcoeff_t>(dominance);		// intentionally no bounds check
+			de_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
 		}
 	}
 	else

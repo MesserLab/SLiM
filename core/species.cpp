@@ -1338,10 +1338,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 			
 			iss >> sub;
-			slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(EidosInterpreter::FloatForString(sub, nullptr));
+			slim_effect_t selection_coeff = static_cast<slim_effect_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
 			iss >> sub;
-			slim_selcoeff_t dominance_coeff = static_cast<slim_selcoeff_t>(EidosInterpreter::FloatForString(sub, nullptr));
+			slim_effect_t dominance_coeff = static_cast<slim_effect_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
 			iss >> sub;
 			slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
@@ -1651,8 +1651,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		int32_t double_size;
 		double double_test;
 		int64_t flags = 0;
-		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size, slim_usertag_t_size;
-		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(flags) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size) + sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t_size) + sizeof(slim_usertag_t_size) + sizeof(file_tick) + sizeof(file_cycle) + sizeof(section_end_tag);
+		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_effect_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size, slim_usertag_t_size;
+		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(flags) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_effect_t_size) + sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size) + sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t_size) + sizeof(slim_usertag_t_size) + sizeof(file_tick) + sizeof(file_cycle) + sizeof(section_end_tag);
 		
 		// this is how to add more header tags in future versions
 		//if (file_version >= 9)
@@ -1693,8 +1693,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		memcpy(&slim_refcount_t_size, p, sizeof(slim_refcount_t_size));
 		p += sizeof(slim_refcount_t_size);
 		
-		memcpy(&slim_selcoeff_t_size, p, sizeof(slim_selcoeff_t_size));
-		p += sizeof(slim_selcoeff_t_size);
+		memcpy(&slim_effect_t_size, p, sizeof(slim_effect_t_size));
+		p += sizeof(slim_effect_t_size);
 		
 		memcpy(&slim_mutationid_t_size, p, sizeof(slim_mutationid_t_size));
 		p += sizeof(slim_mutationid_t_size);
@@ -1750,7 +1750,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
 			(slim_popsize_t_size != sizeof(slim_popsize_t)) ||
 			(slim_refcount_t_size != sizeof(slim_refcount_t)) ||
-			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)) ||
+			(slim_effect_t_size != sizeof(slim_effect_t)) ||
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)) ||
 			(slim_age_t_size != sizeof(slim_age_t)) ||
@@ -2061,8 +2061,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			slim_mutationid_t mutation_id;
 			slim_objectid_t mutation_type_id;
 			slim_position_t position;
-			slim_selcoeff_t selection_coeff;
-			slim_selcoeff_t dominance_coeff;
+			slim_effect_t selection_coeff;
+			slim_effect_t dominance_coeff;
 			slim_objectid_t subpop_index;
 			slim_tick_t tick;
 			slim_refcount_t prevalence;
@@ -2362,8 +2362,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			slim_mutationid_t mutation_id;
 			slim_objectid_t mutation_type_id;
 			slim_position_t position;
-			slim_selcoeff_t selection_coeff;
-			slim_selcoeff_t dominance_coeff;
+			slim_effect_t selection_coeff;
+			slim_effect_t dominance_coeff;
 			slim_objectid_t subpop_index;
 			slim_tick_t origin_tick;
 			slim_tick_t fixation_tick;

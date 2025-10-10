@@ -124,7 +124,7 @@ typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 
 typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; over many ticks in a large model maybe 64 bits?
 typedef int64_t slim_haplosomeid_t;		// identifiers for pedigreed haplosomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
-typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
+typedef float slim_effect_t;			// storage of trait effects (e.g., selection coefficients) in memory-tight classes; also dominance coefficients
 
 #define SLIM_MAX_TICK			(1000000000L)	// ticks range from 0 (init time) to this; SLIM_MAX_TICK + 1 is an "infinite" marker value
 #define SLIM_MAX_BASE_POSITION	(1000000000000000L)	// base positions in the chromosome can range from 0 to 1e15; see above

@@ -229,7 +229,7 @@ size_t SLiMMemoryUsageForMutationRefcounts(void)
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_selcoeff_t p_selection_coeff, slim_selcoeff_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(p_selection_coeff), dominance_coeff_(p_dominance_coeff), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 #ifdef DEBUG_LOCKS_ENABLED
@@ -240,9 +240,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
 	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
@@ -281,7 +281,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 			std::cout << "Class Mutation memory layout (sizeof(Mutation) == " << sizeof(Mutation) << ") :" << std::endl << std::endl;
 			std::cout << "   " << (ptr_mutation_type_ptr_ - ptr_base) << " (" << sizeof(MutationType *) << " bytes): MutationType *mutation_type_ptr_" << std::endl;
 			std::cout << "   " << (ptr_position_ - ptr_base) << " (" << sizeof(slim_position_t) << " bytes): const slim_position_t position_" << std::endl;
-			std::cout << "   " << (ptr_selection_coeff_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t selection_coeff_" << std::endl;
+			std::cout << "   " << (ptr_selection_coeff_ - ptr_base) << " (" << sizeof(slim_effect_t) << " bytes): slim_effect_t selection_coeff_" << std::endl;
 			std::cout << "   " << (ptr_subpop_index_ - ptr_base) << " (" << sizeof(slim_objectid_t) << " bytes): slim_objectid_t subpop_index_" << std::endl;
 			std::cout << "   " << (ptr_origin_tick_ - ptr_base) << " (" << sizeof(slim_tick_t) << " bytes): const slim_tick_t origin_tick_" << std::endl;
 			std::cout << "   " << (ptr_state_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t state_" << std::endl;
@@ -289,9 +289,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 			std::cout << "   " << (ptr_scratch_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t scratch_" << std::endl;
 			std::cout << "   " << (ptr_mutation_id_ - ptr_base) << " (" << sizeof(slim_mutationid_t) << " bytes): const slim_mutationid_t mutation_id_" << std::endl;
 			std::cout << "   " << (ptr_tag_value_ - ptr_base) << " (" << sizeof(slim_usertag_t) << " bytes): slim_usertag_t tag_value_" << std::endl;
-			std::cout << "   " << (ptr_cached_one_plus_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_sel_" << std::endl;
-			std::cout << "   " << (ptr_cached_one_plus_dom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_dom_sel_" << std::endl;
-			std::cout << "   " << (ptr_cached_one_plus_haploiddom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_haploiddom_sel_" << std::endl;
+			std::cout << "   " << (ptr_cached_one_plus_sel_ - ptr_base) << " (" << sizeof(slim_effect_t) << " bytes): slim_effect_t cached_one_plus_sel_" << std::endl;
+			std::cout << "   " << (ptr_cached_one_plus_dom_sel_ - ptr_base) << " (" << sizeof(slim_effect_t) << " bytes): slim_effect_t cached_one_plus_dom_sel_" << std::endl;
+			std::cout << "   " << (ptr_cached_one_plus_haploiddom_sel_ - ptr_base) << " (" << sizeof(slim_effect_t) << " bytes): slim_effect_t cached_one_plus_haploiddom_sel_" << std::endl;
 			std::cout << std::endl;
 			
 			been_here = true;
@@ -300,16 +300,16 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 }
 
-Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_selcoeff_t p_selection_coeff, slim_selcoeff_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(p_selection_coeff), dominance_coeff_(p_dominance_coeff), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
 	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
@@ -739,9 +739,9 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	EidosValue *selectionCoeff_value = p_arguments[0].get();
 	
 	double value = selectionCoeff_value->FloatAtIndex_NOCAST(0, nullptr);
-	slim_selcoeff_t old_coeff = selection_coeff_;
+	slim_effect_t old_coeff = selection_coeff_;
 	
-	selection_coeff_ = static_cast<slim_selcoeff_t>(value);
+	selection_coeff_ = static_cast<slim_effect_t>(value);
 	// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
 	// also, the dominance coefficient modifies the selection coefficient, so values < -1 are in fact meaningfully different
 	
@@ -768,9 +768,9 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	}
 	
 	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	return gStaticEidosValueVOID;
 }
@@ -784,12 +784,12 @@ EidosValue_SP Mutation::ExecuteMethod_setDominanceCoeff(EidosGlobalStringID p_me
 	
 	double value = dominanceCoeff_value->FloatAtIndex_NOCAST(0, nullptr);
 	
-	dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
+	dominance_coeff_ = static_cast<slim_effect_t>(value);		// intentionally no bounds check
 	
 	// cache values used by the fitness calculation code for speed; see header
-	//cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	//cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	//cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
+	//cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	return gStaticEidosValueVOID;
 }
@@ -815,9 +815,9 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 		mutation_type_ptr_->all_pure_neutral_DFE_ = false;
 	
 	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	return gStaticEidosValueVOID;
 }

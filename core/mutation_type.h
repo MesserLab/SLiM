@@ -63,7 +63,7 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
 // This struct holds information about a distribution of effects (including dominance) for one trait.
 // MutationEffect then keeps a vector of these structs, one for each trait.
 typedef struct _EffectDistributionInfo {
-	slim_selcoeff_t default_dominance_coeff_;	// the default dominance coefficient (h) inherited by mutations of this type
+	slim_effect_t default_dominance_coeff_;		// the default dominance coefficient (h) inherited by mutations of this type
 	
 	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
 	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
@@ -98,7 +98,7 @@ public:
 	
 	std::vector<EffectDistributionInfo> effect_distributions_;	// DEs for each trait in the species
 	
-	slim_selcoeff_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null
+	slim_effect_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null
 	
 	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
 	

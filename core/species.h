@@ -96,7 +96,7 @@ enum class SLiMFileFormat
 
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
-	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
+	slim_effect_t selection_coeff_;			// 4 bytes (float): the mutation effect (e.g., selection coefficient)
 	// FIXME MULTITRAIT need to add a dominance_coeff_ property here!
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
 	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose

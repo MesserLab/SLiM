@@ -2897,7 +2897,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 				
-				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_selcoeff_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
+				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
@@ -3398,7 +3398,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_selcoeff_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -3721,8 +3721,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 		// parse/validate the INFO fields that we recognize
 		std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 		std::vector<slim_mutationid_t> info_mutids;
-		std::vector<slim_selcoeff_t> info_selcoeffs;
-		std::vector<slim_selcoeff_t> info_domcoeffs;
+		std::vector<slim_effect_t> info_selcoeffs;
+		std::vector<slim_effect_t> info_domcoeffs;
 		std::vector<slim_objectid_t> info_poporigin;
 		std::vector<slim_tick_t> info_tickorigin;
 		std::vector<slim_objectid_t> info_muttype;
@@ -3950,7 +3950,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 			
 			// get the dominance coefficient from DOM, or use the default coefficient from the mutation type
-			slim_selcoeff_t dominance_coeff;
+			slim_effect_t dominance_coeff;
 			
 			if (info_domcoeffs.size() > 0)
 				dominance_coeff = info_domcoeffs[alt_allele_index];
@@ -3958,12 +3958,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				dominance_coeff = mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_;	// FIXME MULTITRAIT
 			
 			// get the selection coefficient from S, or draw one from the mutation type
-			slim_selcoeff_t selection_coeff;
+			slim_effect_t selection_coeff;
 			
 			if (info_selcoeffs.size() > 0)
 				selection_coeff = info_selcoeffs[alt_allele_index];
 			else
-				selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
+				selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 			
 			// get the subpop index from PO, or set to -1; no bounds checking on this
 			slim_objectid_t subpop_index = -1;

@@ -4453,8 +4453,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			// parse/validate the INFO fields that we recognize
 			std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 			std::vector<slim_mutationid_t> info_mutids;
-			std::vector<slim_selcoeff_t> info_selcoeffs;
-			std::vector<slim_selcoeff_t> info_domcoeffs;
+			std::vector<slim_effect_t> info_selcoeffs;
+			std::vector<slim_effect_t> info_domcoeffs;
 			std::vector<slim_objectid_t> info_poporigin;
 			std::vector<slim_tick_t> info_tickorigin;
 			std::vector<slim_objectid_t> info_muttype;
@@ -4579,7 +4579,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 				
 				// get the dominance coefficient from DOM, or use the default coefficient from the mutation type
-				slim_selcoeff_t dominance_coeff;
+				slim_effect_t dominance_coeff;
 				
 				if (info_domcoeffs.size() > 0)
 					dominance_coeff = info_domcoeffs[alt_allele_index];
@@ -4587,12 +4587,12 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					dominance_coeff = mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_;	// FIXME MULTITRAIT
 				
 				// get the selection coefficient from S, or draw one from the mutation type
-				slim_selcoeff_t selection_coeff;
+				slim_effect_t selection_coeff;
 				
 				if (info_selcoeffs.size() > 0)
 					selection_coeff = info_selcoeffs[alt_allele_index];
 				else
-					selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
+					selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;
