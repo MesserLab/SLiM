@@ -113,7 +113,8 @@ SOURCES += \
     species.cpp \
     species_eidos.cpp \
     subpopulation.cpp \
-    substitution.cpp
+    substitution.cpp \
+    trait.cpp
 
 HEADERS += \
     chromosome.h \
@@ -138,4 +139,5 @@ HEADERS += \
     spatial_map.h \
     species.h \
     subpopulation.h \
-    substitution.h
+    substitution.h \
+    trait.h

@@ -12,9 +12,49 @@ development head (in the master branch):
 	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
 	add segments() call to Plot, for plotting a set of unconnected line segments
 	add rects() call to Plot, for plotting a set of rectangles
-	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
+	extend text() to support drawing text at an angle, with new [float angle = 0.0] parameter
 	add mtext() call to Plot, for drawing text in the margins outside the plot area
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
+	----- last merge into multitrait was done here
+
+
+multitrait branch:
+	constant SLIM_MAX_TRAITS defines a max of 256 traits per species, but so far there is no actual need for this maximum
+	internal C++ TraitType enum defines two types of traits, kMultiplicative and kAdditive
+	add new Eidos SLiM class, Trait
+		add (object<Trait>$)initializeTrait(s$ name, s$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+		add Species property traits => (object<Trait>) to simply get all traits defined for a species
+		add Species methods – (object<Trait>)traitsWithIndices(integer indices) and – (object<Trait>)traitsWithNames(string names)
+		add Trait properties:
+			baselineOffset <-> (float$)
+			directFitnessEffect <-> (logical$)
+			index => (integer$)
+			individualOffsetMean <-> (float$)
+			individualOffsetSD <-> (float$)
+			name => (string$)
+			species => (object<Species>$)
+			tag <-> (integer$)
+			type => (string$)
+		add Community property allTraits => (object<Trait>)
+	make a single implicit trait with MakeImplicitTrait() (defaulting to kMultiplicative with a direct fitness effect) if initializeTrait() is not called before initializeMutationType() is called
+	add a C++ dominance_coeff_ property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
+		add dominanceCoeff properties to Mutation and Substitution
+		add a setDominanceCoeff() method to Mutation, yay!
+		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
+	revamp MutationType for multiple traits
+		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
+		add MutationType methods defaultDominanceForTrait([Nio<Trait> trait = NULL]), effectDistributionTypeForTrait([Nio<Trait> trait = NULL]), and effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
+		change MutationType method setDistribution() to setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
+		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
+		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
+		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
+		transition MutationType's internals to keep a separate DE for each trait using a new EffectDistributionInfo struct
+		added C++ IsPureNeutralDFE() method to represent whether all of the effects of a given mutation type are all neutral
+	add Individual properties for each trait in the individual's species, allowing direct access
+		this was done by adding GetProperty_NO_SIGNATURE() / SetProperty_NO_SIGNATURE() methods called by EidosValue_Object::GetPropertyOfElements() and EidosValue_Object::SetPropertyOfElements() to support properties with no signature
+	add support in Individual for the individual's offset for each trait
+		add -(float)offsetForTrait([Nio<Trait> trait = NULL])
+		add +(void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
 
 
 version 5.1 (Eidos version 4.1):
@@ -62,7 +102,6 @@ version 5.1 (Eidos version 4.1):
 	fix #529, extend calcFST() to support multiple chromosomes
 	extend subsetMutations() to support subsetting mutations belonging to more than one chromosome
 	fix #560, add recipe 14.16 "Visualizing linkage disequilibrium" to demonstrate the new calcLD_D() and calcLD_Rsquared() functions
-
 
 version 5.0 (Eidos version 4.0):
 	multi-chromosome transition:
@@ -126,7 +165,7 @@ version 5.0 (Eidos version 4.0):
 			policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
 			policy change: the "remove fixed mutations" stage of the WF tick cycle is now after "offspring become parents" (no user-visible difference except WF tick cycle diagram)
 			policy change: mutationRuns= for initializeSLiMOptions() has been changed to [l$ doMutationRunExperiments=T]; pass mutationRuns= to initializeChromosome() instead
-			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
+			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
 			policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
 				the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
 			policy change: fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F (a change in simplification behavior)
