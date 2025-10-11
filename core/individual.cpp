@@ -84,7 +84,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	
 	// Set up per-trait information such as phenotype caches and individual offsets
 	Species &species = subpopulation_->species_;
-	std::vector<Trait *> &traits = species.traits_;
+	const std::vector<Trait *> &traits = species.Traits();
 	int trait_count = (int)traits.size();
 	
 	if (trait_count == 1)
@@ -3105,6 +3105,7 @@ EidosValue_SP Individual::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStri
 //
 EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
@@ -4025,6 +4026,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 //
 EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	EidosValue *offset_value = p_arguments[1].get();
 	
@@ -4052,7 +4054,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		// pattern 1: setting the default offset value for each trait in one or more individuals
 		for (int64_t trait_index : trait_indices)
 		{
-			Trait *trait = species->traits_[trait_index];
+			Trait *trait = species->Traits()[trait_index];
 			slim_effect_t offset = trait->DefaultOffset();
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
