@@ -82,6 +82,30 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 		haplosomes_ = (Haplosome **)calloc(haplosome_count_per_individual, sizeof(Haplosome *));
 	}
 	
+	// Set up per-trait information such as phenotype caches and individual offsets
+	Species &species = subpopulation_->species_;
+	std::vector<Trait *> &traits = species.traits_;
+	int trait_count = (int)traits.size();
+	
+	if (trait_count == 1)
+	{
+		// FIXME MULTITRAIT: DefaultOffset() has a branch; maybe better for each trait to have a cached slim_effect_t for it?  or maybe not?
+		offsets_for_traits_ = &offset_for_trait_0_;
+		offset_for_trait_0_ = traits[0]->DefaultOffset();
+	}
+	else if (trait_count == 0)
+	{
+		offsets_for_traits_ = nullptr;
+	}
+	else
+	{
+		// FIXME MULTITRAIT: we could keep a buffer of default trait values in the Species, and just memcpy() here
+		offsets_for_traits_ = static_cast<slim_effect_t *>(malloc(trait_count * sizeof(slim_effect_t)));
+		
+		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+			offsets_for_traits_[trait_index] = traits[trait_index]->DefaultOffset();
+	}
+	
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
@@ -131,8 +155,12 @@ Individual::~Individual(void)
 	if (haplosomes_ != hapbuffer_)
 		free(haplosomes_);
 	
+	if (offsets_for_traits_ != &offset_for_trait_0_)
+		free(offsets_for_traits_);
+	
 #if DEBUG
 	haplosomes_ = nullptr;
+	offsets_for_traits_ = nullptr;
 #endif
 }
 
@@ -2891,6 +2919,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_containsMutations:			return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_interpreter);
 		//case gID_countOfMutationsOfType:	return ExecuteMethod_Accelerated_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
+		case gID_offsetForTrait:			return ExecuteMethod_offsetForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_interpreter);
 		case gID_sharedParentCount:			return ExecuteMethod_sharedParentCount(p_method_id, p_arguments, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -3071,7 +3100,40 @@ EidosValue_SP Individual::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStri
 	
 	return EidosValue_SP(vec);
 }
+
+//	*********************	- (float)offsetForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue *trait_value = p_arguments[0].get();
 	
+	// get the trait indices, with bounds-checking
+	Species &species = subpopulation_->species_;
+	std::vector<int64_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "offsetForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		slim_effect_t offset = offsets_for_traits_[trait_index];
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(offset));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t offset = offsets_for_traits_[trait_index];
+			
+			float_result->push_float_no_check(offset);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
 //	*********************	- (float)relatedness(object<Individual> individuals, [Niso<Chromosome>$ chromosome = NULL])
 //
 EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -3920,6 +3982,8 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_offsetForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_setOffsetForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("offset", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->MarkDeprecated());
@@ -3940,6 +4004,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
+		case gID_setOffsetForTrait:			return ExecuteMethod_setOffsetForTrait(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_outputIndividuals:			return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_outputIndividualsToVCF:	return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
@@ -3954,6 +4019,148 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 			return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 		}
 	}
+}
+
+//	*********************	+ (void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *offset_value = p_arguments[1].get();
+	
+	int individuals_count = p_target->Count();
+	int offset_count = offset_value->Count();
+	
+	if (individuals_count == 0)
+		return gStaticEidosValueVOID;
+	
+	Individual **individuals_buffer = (Individual **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<int64_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "offsetForTrait");
+	int trait_count = (int)trait_indices.size();
+	
+	if (offset_value->Type() == EidosValueType::kValueNULL)
+	{
+		// pattern 1: setting the default offset value for each trait in one or more individuals
+		for (int64_t trait_index : trait_indices)
+		{
+			Trait *trait = species->traits_[trait_index];
+			slim_effect_t offset = trait->DefaultOffset();
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				ind->offsets_for_traits_[trait_index] = offset;
+			}
+		}
+	}
+	else if (offset_count == 1)
+	{
+		// pattern 2: setting a single offset value across one or more traits in one or more individuals
+		slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
+		
+		if (trait_count == 1)
+		{
+			// optimized case for one trait
+			int64_t trait_index = trait_indices[0];
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				individuals_buffer[individual_index]->offsets_for_traits_[trait_index] = offset;
+		}
+		else
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				for (int64_t trait_index : trait_indices)
+					ind->offsets_for_traits_[trait_index] = offset;
+			}
+		}
+	}
+	else if (offset_count == trait_count)
+	{
+		// pattern 3: setting one offset value per trait, in one or more individuals
+		int offset_index = 0;
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				ind->offsets_for_traits_[trait_index] = offset;
+			}
+		}
+	}
+	else if (offset_count == trait_count * individuals_count)
+	{
+		// pattern 4: setting different offset values for each trait in each individual; in this case,
+		// all offsets for the specified traits in a given individual are given consecutively
+		if (offset_value->Type() == EidosValueType::kValueInt)
+		{
+			// integer offset values
+			const int64_t *offsets_int = offset_value->IntData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				int64_t trait_index = trait_indices[0];
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					individuals_buffer[individual_index]->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_int++));
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (int64_t trait_index : trait_indices)
+						ind->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_int++));
+				}
+			}
+		}
+		else
+		{
+			// float offset values
+			const double *offsets_float = offset_value->FloatData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				int64_t trait_index = trait_indices[0];
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					individuals_buffer[individual_index]->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_float++));
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (int64_t trait_index : trait_indices)
+						ind->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_float++));
+				}
+			}
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires that offset be (a) NULL, requesting the default offset value for each trait, (b) singleton, providing one offset value for all traits, (c) equal in length to the number of traits in the species, providing one offset value per trait, or (d) equal in length to the number of traits times the number of target individuals, providing one offset value per trait per individual." << EidosTerminate();
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	+ (void)outputIndividuals([Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome>$ chromosome = NULL], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = F], [logical$ pedigreeIDs = F], [logical$ objectTags = F])

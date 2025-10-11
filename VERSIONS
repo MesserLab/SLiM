@@ -52,6 +52,9 @@ multitrait branch:
 		added C++ IsPureNeutralDFE() method to represent whether all of the effects of a given mutation type are all neutral
 	add Individual properties for each trait in the individual's species, allowing direct access
 		this was done by adding GetProperty_NO_SIGNATURE() / SetProperty_NO_SIGNATURE() methods called by EidosValue_Object::GetPropertyOfElements() and EidosValue_Object::SetPropertyOfElements() to support properties with no signature
+	add support in Individual for the individual's offset for each trait
+		add -(float)offsetForTrait([Nio<Trait> trait = NULL])
+		add +(void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
 
 
 version 5.1 (Eidos version 4.1):

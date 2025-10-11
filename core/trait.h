@@ -85,6 +85,8 @@ public:
 	inline __attribute__((always_inline)) void SetIndex(int64_t p_index)		{ index_ = p_index; }	// only from AddTrait()
 	inline __attribute__((always_inline)) const std::string &Name(void) const	{ return name_; }
 	
+	inline slim_effect_t DefaultOffset(void) const { return (type_ == TraitType::kAdditive) ? 0.0 : 1.0; }
+	
 	
 	//
 	// Eidos support
