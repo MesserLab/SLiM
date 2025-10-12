@@ -53,6 +53,7 @@ bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 // individual first, haplosomes later; this is the new multichrom paradigm
 // BCH 10/12/2024: Note that this will rarely be called after simulation startup; see NewSubpopIndividual()
+// BCH 10/12/2025: Note also that NewSubpopIndividual() will rarely be called in WF models; see the Munge...() methods
 Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
 #ifdef SLIMGUI
 	color_set_(false),
@@ -83,28 +84,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	}
 	
 	// Set up per-trait information such as phenotype caches and individual offsets
-	Species &species = subpopulation_->species_;
-	const std::vector<Trait *> &traits = species.Traits();
-	int trait_count = (int)traits.size();
-	
-	if (trait_count == 1)
-	{
-		// FIXME MULTITRAIT: DefaultOffset() has a branch; maybe better for each trait to have a cached slim_effect_t for it?  or maybe not?
-		offsets_for_traits_ = &offset_for_trait_0_;
-		offset_for_trait_0_ = traits[0]->DefaultOffset();
-	}
-	else if (trait_count == 0)
-	{
-		offsets_for_traits_ = nullptr;
-	}
-	else
-	{
-		// FIXME MULTITRAIT: we could keep a buffer of default trait values in the Species, and just memcpy() here
-		offsets_for_traits_ = static_cast<slim_effect_t *>(malloc(trait_count * sizeof(slim_effect_t)));
-		
-		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-			offsets_for_traits_[trait_index] = traits[trait_index]->DefaultOffset();
-	}
+	_DrawTraitOffsets();
 	
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -121,6 +101,52 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	spatial_y_ = 0.0;
 	spatial_z_ = 0.0;
 #endif
+}
+
+void Individual::_DrawTraitOffsets(void)
+{
+	// Set up per-trait individual-level information such as individual offsets.  This is called by
+	// Individual::Individual(), but also in various other places where individuals are re-used.
+	
+	// FIXME MULTITRAIT: this will probably be a pain point; maybe we can skip it if offsets have never been changed by the user?
+	// I imagine a design where there is a bool flag that says "the offsets for this individual have been initialized".  This
+	// would allow a lazy caching scheme; if an offset is queried or set, all the offsets in that individual are then set up
+	// and the flag is set to indicate that it has been set up.  Every tick, offsets will probably be needed for every individual
+	// in order to calculate phenotypes, so we can't avoid that work altogether.  But we can avoid doing it one individual at a
+	// time, with a lot of setup overhead here to get the traits, get the RNG, etc.; we could do it in bulk for all individuals
+	// in a species, at the point when we're calculating everybody's phenotypes, which would allow us to do it very quickly.
+	// The only difficulty I see with such a lazy caching scheme is: if the trait's individual-offset distribution is *changed*
+	// by the script, then at that moment, the individual offsets of every alive individual need to be initialized using the old
+	// distribution before it changes, otherwise they will (incorrectly) draw from the new distribution.  So that's a little
+	// tricky, but doable.  I'm going to put off doing this until later, though, so as to not get bogged down.  BCH 10/12/2025
+	
+	// FIXME MULTITRAIT: note also that if all trait individual offsets have SD == 0, and thus initialize to a constant, we
+	// could use a buffer of default trait values that we memcpy() in to each individual's offset buffer.  That would be
+	// a strategy that could easily be used when we bulk-initialize the offsets of all uninitialized individuals, for example.
+	
+	// FIXME MULTITRAIT: also, _DrawIndividualOffset() looks up the RNG; when doing this work in bulk, we can look up the RNG
+	// once and then pass it in to DrawIndividualOffset() instead of having it look it up.  Much optimization to do in bulk.
+	
+	Species &species = subpopulation_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	int trait_count = (int)traits.size();
+	
+	if (trait_count == 1)
+	{
+		offsets_for_traits_ = &offset_for_trait_0_;
+		offset_for_trait_0_ = traits[0]->DrawIndividualOffset();
+	}
+	else if (trait_count == 0)
+	{
+		offsets_for_traits_ = nullptr;
+	}
+	else
+	{
+		offsets_for_traits_ = static_cast<slim_effect_t *>(malloc(trait_count * sizeof(slim_effect_t)));
+		
+		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+			offsets_for_traits_[trait_index] = traits[trait_index]->DrawIndividualOffset();
+	}
 }
 
 Individual::~Individual(void)
@@ -4051,11 +4077,11 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 	
 	if (offset_value->Type() == EidosValueType::kValueNULL)
 	{
-		// pattern 1: setting the default offset value for each trait in one or more individuals
+		// pattern 1: drawing a default offset value for each trait in one or more individuals
 		for (int64_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
-			slim_effect_t offset = trait->DefaultOffset();
+			slim_effect_t offset = trait->DrawIndividualOffset();
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{

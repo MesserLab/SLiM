@@ -1667,7 +1667,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	double individualOffsetSD;
 	
 	if (individualOffsetSD_value->Type() == EidosValueType::kValueNULL)
-		individualOffsetSD = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
+		individualOffsetSD = 0.0;
 	else
 		individualOffsetSD = individualOffsetSD_value->FloatAtIndex_NOCAST(0, nullptr);
 	

@@ -292,6 +292,10 @@ public:
 			back->age_ = p_age;
 			back->index_ = p_individual_index;
 			back->subpopulation_ = this;
+			
+			// Draw new individual trait offsets from each trait's individual-offset distribution
+			back->_DrawTraitOffsets();
+			
 			return back;
 		}
 		

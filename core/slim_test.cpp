@@ -461,6 +461,7 @@ int RunSLiMTests(void)
 	_RunChromosomeTests();
 	_RunMutationTests();
 	_RunHaplosomeTests(temp_path);
+	_RunMultitraitTests();
 	_RunSubpopulationTests();
 	_RunIndividualTests();
 	_RunSubstitutionTests();

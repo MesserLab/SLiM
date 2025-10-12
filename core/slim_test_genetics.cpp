@@ -941,6 +941,128 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	}
 }
 
+#pragma mark Multitrait tests
+void _RunMultitraitTests(void)
+{
+	// two-trait base model implemented in WF and nonWF -- one trait multiplicative, one trait additive
+	const std::string mt_base_p1_WF = 
+R"V0G0N(
+initialize() {
+	defineConstant("T_height", initializeTrait("height", "multiplicative", 2.0));
+	defineConstant("T_weight", initializeTrait("weight", "additive", 186.0));
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 late() { sim.addSubpop("p1", 5); }
+5 late() { }
+)V0G0N";
+	
+	const std::string mt_base_p1_nonWF = 
+R"V0G0N(
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("T_height", initializeTrait("height", "multiplicative", 2.0));
+	defineConstant("T_weight", initializeTrait("weight", "additive", 186.0));
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { p1.addCrossed(individual, p1.sampleIndividuals(1)); }
+1 late() { sim.addSubpop("p1", 5); }
+late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
+5 late() { }
+)V0G0N";
+	
+	for (int model = 0; model <= 1; ++model)
+	{
+		std::string mt_base_p1 = ((model == 0) ? mt_base_p1_WF : mt_base_p1_nonWF);
+		
+		SLiMAssertScriptSuccess(mt_base_p1);
+		
+		// trait defines, trait lookup
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traits)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), community.allTraits)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height, sim.traitsWithIndices(0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight, sim.traitsWithIndices(1))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traitsWithIndices(0:1))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithIndices(1:0))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithIndices(2); }", "out-of-range index (2)", __LINE__);
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height, sim.traitsWithNames('height'))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight, sim.traitsWithNames('weight'))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traitsWithNames(c('height', 'weight')))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithNames(c('weight', 'height')))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithNames('typo'); }", "trait with the given name (typo)", __LINE__);
+		
+		// basic trait properties
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.baselineOffset, 2.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.baselineOffset, 186.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.baselineOffset = 12.5; if (!identical(T_height.baselineOffset, 12.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.baselineOffset = 17.25; if (!identical(T_weight.baselineOffset, 17.25)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.directFitnessEffect, F)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.directFitnessEffect, F)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.directFitnessEffect = T; if (!identical(T_height.directFitnessEffect, T)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.directFitnessEffect = T; if (!identical(T_weight.directFitnessEffect, T)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.index, 0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.index, 1)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetMean, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetMean, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; if (!identical(T_height.individualOffsetMean, 3.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; if (!identical(T_weight.individualOffsetMean, 2.5)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetSD, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetSD, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetSD = 3.5; if (!identical(T_height.individualOffsetSD, 3.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetSD = 2.5; if (!identical(T_weight.individualOffsetSD, 2.5)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.name, 'height')) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.name, 'weight')) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.species, sim)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.species, sim)) stop(); }");
+		
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { if (!identical(T_height.tag, 12)) stop(); }", "before being set", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { if (!identical(T_weight.tag, 3)) stop(); }", "before being set", __LINE__);
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.tag = 12; if (!identical(T_height.tag, 12)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.tag = 3; if (!identical(T_weight.tag, 3)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.type, 'multiplicative')) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.type, 'additive')) stop(); }");
+		
+		// individual offset
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(1.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(0.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.offsetForTrait(NULL), rep(c(1.0, 0.0), 5))) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, 3); p1.individuals.setOffsetForTrait(1, 4.5); if (!identical(p1.individuals.offsetForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, 1:5 * 2 - 1); p1.individuals.setOffsetForTrait(1, 1:5 * 2); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(NULL, 1:10); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(NULL, 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(3.5, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(2.5, 5))) stop(); }");
+		
+		// individual trait property access (not yet fully implemented)
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height; }", "trait height cannot be accessed (FIXME MULTITRAIT)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.weight; }", "trait weight cannot be accessed (FIXME MULTITRAIT)", __LINE__);
+	}
+	
+	std::cout << "_RunMultitraitTests() done" << std::endl;
+}
+
 
 
 

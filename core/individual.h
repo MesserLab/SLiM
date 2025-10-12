@@ -169,6 +169,8 @@ public:
 	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	virtual ~Individual(void) override;
 	
+	void _DrawTraitOffsets(void);
+	
 	inline __attribute__((always_inline)) void ClearColor(void) {
 #ifdef SLIMGUI
 		// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint

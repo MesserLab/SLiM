@@ -16,6 +16,21 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, do
 	individualOffsetMean_(p_individualOffsetMean), individualOffsetSD_(p_individualOffsetSD),
 	directFitnessEffect_(p_directFitnessEffect), community_(p_species.community_), species_(p_species)
 {
+	_RecacheIndividualOffsetDistribution();
+}
+
+void Trait::_RecacheIndividualOffsetDistribution(void)
+{
+	// cache for the fast case of an individual-offset SD of 0.0
+	if (individualOffsetSD_ == 0.0)
+	{
+		individualOffsetFixed_ = true;
+		individualOffsetFixedValue_ = static_cast<slim_effect_t>(individualOffsetMean_);
+	}
+	else
+	{
+		individualOffsetFixed_ = false;
+	}
 }
 
 Trait::~Trait(void)
@@ -31,6 +46,15 @@ const EidosClass *Trait::Class(void) const
 void Trait::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassNameForDisplay() << "<" << name_ << ">";
+}
+
+slim_effect_t Trait::_DrawIndividualOffset(void) const
+{
+	// draws from a normal distribution defined by individualOffsetMean_ and individualOffsetSD_
+	// note the individualOffsetSD_ == 0 case was already handled by DrawIndividualOffset()
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
+	return static_cast<slim_effect_t>(gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_);
 }
 
 EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
@@ -136,6 +160,7 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property individualOffsetMean requires a finite value (not NAN or INF)." << EidosTerminate();
 			
 			individualOffsetMean_ = value;
+			_RecacheIndividualOffsetDistribution();
 			return;
 		}
 		case gID_individualOffsetSD:
@@ -146,6 +171,7 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property individualOffsetSD requires a finite value (not NAN or INF)." << EidosTerminate();
 			
 			individualOffsetSD_ = value;
+			_RecacheIndividualOffsetDistribution();
 			return;
 		}
 		case gID_tag:

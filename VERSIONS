@@ -55,6 +55,7 @@ multitrait branch:
 	add support in Individual for the individual's offset for each trait
 		add -(float)offsetForTrait([Nio<Trait> trait = NULL])
 		add +(void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
+		draw an individual's trait offsets from the trait individual-offset distributions, at the individual's moment of generation
 
 
 version 5.1 (Eidos version 4.1):

@@ -4171,7 +4171,7 @@ See also
 \f4\fs20  for a different metric of relatedness.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setOffsetForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif offset = NULL])\
+\f3\fs18 \cf2 +\'a0(void)setOffsetForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0offset\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the individual offset(s) for the trait(s) specified by 
@@ -4183,15 +4183,16 @@ See also
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
-The parameter 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The parameter 
 \f3\fs18 offset
 \f4\fs20  must follow one of four patterns.  In the first pattern, offset is 
 \f3\fs18 NULL
-\f4\fs20 ; this sets the offset for each of the specified traits to its default value (
-\f3\fs18 0.0
-\f4\fs20  for additive traits, 
-\f3\fs18 1.0
-\f4\fs20  for multiplicative traits) in each target individual.  In the second pattern, 
+\f4\fs20 ; this draws the offset for each of the specified traits from each trait\'92s individual-offset distribution (defined by each trait\'92s 
+\f3\fs18 individualOffsetMean
+\f4\fs20  and 
+\f3\fs18 individualOffsetSD
+\f4\fs20  properties) in each target individual.  (Note that individual offsets are automatically drawn from these distributions when an individual is created; this re-draws new offset values.)  In the second pattern, 
 \f3\fs18 offset
 \f4\fs20  is a singleton value; this sets the given offset for each of the specified traits in each target individual.  In the third pattern, 
 \f3\fs18 offset

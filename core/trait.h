@@ -59,6 +59,9 @@ private:
 	
 	// offsets
 	double baselineOffset_;
+	
+	bool individualOffsetFixed_;							// true if individualOffsetSD_ == 0.0
+	slim_effect_t individualOffsetFixedValue_;				// equal to individualOffsetMean_ if individualOffsetFixed_ == true; pre-cast for speed
 	double individualOffsetMean_;
 	double individualOffsetSD_;
 	
@@ -85,7 +88,9 @@ public:
 	inline __attribute__((always_inline)) void SetIndex(int64_t p_index)		{ index_ = p_index; }	// only from AddTrait()
 	inline __attribute__((always_inline)) const std::string &Name(void) const	{ return name_; }
 	
-	inline slim_effect_t DefaultOffset(void) const { return (type_ == TraitType::kAdditive) ? 0.0 : 1.0; }
+	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_
+	slim_effect_t _DrawIndividualOffset(void) const;		// draws from a normal distribution defined by individualOffsetMean_ and individualOffsetSD_
+	inline slim_effect_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
 	
 	
 	//

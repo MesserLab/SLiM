@@ -131,7 +131,7 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 			bool is_female = (index < p_first_male);
 			
 			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-		
+			
 			for (Chromosome *chromosome : chromosomes)
 			{
 				// Determine what kind of haplosomes to make for this chromosome
@@ -4500,6 +4500,9 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4885,6 +4888,9 @@ bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, slim_pe
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	const int currentHaplosomeIndex = 0;
@@ -4968,6 +4974,9 @@ bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, slim_pe
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	const int currentHaplosomeIndex = 0;
@@ -5047,6 +5056,9 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5246,6 +5258,9 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5520,6 +5535,9 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_ped
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	const int currentHaplosomeIndex = 0;
@@ -5602,6 +5620,9 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_ped
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	individual->_DrawTraitOffsets();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
