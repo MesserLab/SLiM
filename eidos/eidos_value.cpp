@@ -2176,11 +2176,10 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 	// goes through a special vectorized method, not through GetProperty()!
 	if (!signature)
 	{
+		// Note that in this NO_SIGNATURE code path we don't check for a zero-length target and return a zero-length
+		// result; since we have no signature, we have no way to know what type that result should be.  The class
+		// implementation of GetProperty_NO_SIGNATURE() will handle the zero-length case.
 		const EidosClass *target_class = class_;
-		
-		if (values_size == 0)
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " does not specify an unambiguous value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
-		
 		EidosValue_SP result = target_class->GetProperty_NO_SIGNATURE(p_property_id, values_, values_size);
 		
 		// Access of singleton properties retains the matrix/array structure of the target
