@@ -1712,6 +1712,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		}
 		else
 		{
+			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
 			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Species_Class->AddSignatureForProperty(signature);
@@ -1731,7 +1732,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		}
 		else
 		{
-			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Individual_Class->AddSignatureForProperty(signature);
 		}

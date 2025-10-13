@@ -209,6 +209,25 @@ public:
 	EidosValue_SP ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+#ifdef EIDOS_GUI
+	// We provide some support here for EidosTypeInterpreter to make code completion work with dynamic properties
+	
+	// This is scratch space for dynamic property signatures generated as a side effect of type-interpretation
+	std::vector<EidosPropertySignature_CSP> dynamic_property_signatures_;
+	
+	// This clears out dynamic_property_signatures_ for all registered classes, to reset type-interpreter state.
+	static void ClearDynamicSignatures(void);
+	
+	// This adds a signature to the EidosTypeInterpreter scratch space above
+	void AddSignatureForProperty_TYPE_INTERPRETER(EidosPropertySignature_CSP p_property_signature);
+	
+	// This calls Properties() to get the built-in properties, and then adds the dynamic ones
+	std::vector<EidosPropertySignature_CSP> Properties_TYPE_INTERPRETER(void) const;
+	
+	// This calls SignatureForProperty(), and then checks the dynamic ones if that failed
+	const EidosPropertySignature *SignatureForProperty_TYPE_INTERPRETER(EidosGlobalStringID p_property_id) const;
+#endif	// EIDOS_GUI
 };
 
 

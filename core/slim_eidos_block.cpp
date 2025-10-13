@@ -1807,6 +1807,9 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 }
 
 
+#ifdef EIDOS_GUI
+// SLiMTypeTable and SLiMTypeInterpreter are only used in SLiMgui and QtSLiM
+
 //
 //	SLiMTypeTable
 //
@@ -1996,6 +1999,25 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'i', gSLiM_InteractionType_Class);
 	}
+	else if ((p_function_name == "initializeTrait") && (argument_count >= 1))
+	{
+		EidosASTNode *trait_name_node = p_arguments[0];
+		const EidosToken *trait_name_token = trait_name_node->token_;
+		
+		if (trait_name_token->token_type_ == EidosTokenType::kTokenString)
+		{
+			// initializeTrait() has the side effect of defining dynamic properties on Species and Individual;
+			// we need to set up the information needed to make that work with code completion; we do that
+			// with AddSignatureForProperty_TYPE_INTERPRETER(), a version of AddSignatureForProperty() that
+			// uses scratch space belonging only to us, so we don't interfere with anything in SLiM itself.
+			const std::string &trait_name = trait_name_token->token_string_;
+			EidosPropertySignature_CSP species_signature((new EidosPropertySignature(trait_name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP individual_signature((new EidosPropertySignature(trait_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Species_Class->AddSignatureForProperty_TYPE_INTERPRETER(species_signature);
+			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_signature);
+		}
+	}
 	
 	return ret;
 }
@@ -2053,6 +2075,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 	return ret;
 }
 
+#endif // EIDOS_GUI
 
 
 

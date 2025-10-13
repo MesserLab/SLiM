@@ -746,6 +746,57 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 }
 
 
+#ifdef EIDOS_GUI
+// We provide some support here for EidosTypeInterpreter to make code completion work with dynamic properties
+
+void EidosClass::ClearDynamicSignatures(void)
+{
+	std::vector<EidosClass *> classes = EidosClass::RegisteredClasses(/* p_builtin */ true, /* p_context */ true);
+	
+	for (EidosClass *one_class : classes)
+		one_class->dynamic_property_signatures_.clear();
+}
+
+void EidosClass::AddSignatureForProperty_TYPE_INTERPRETER(EidosPropertySignature_CSP p_property_signature)
+{
+	// if a dynamic property already exists with the given name, we assume it is the same, and just return
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		if (dynamic_property->property_id_ == p_property_signature->property_id_)
+			return;
+	
+	dynamic_property_signatures_.push_back(p_property_signature);
+}
+
+// This calls Properties() to get the built-in properties, and then adds the dynamic ones
+std::vector<EidosPropertySignature_CSP> EidosClass::Properties_TYPE_INTERPRETER(void) const
+{
+	std::vector<EidosPropertySignature_CSP> properties = *Properties();		// make a local copy for ourselves to modify
+	
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		properties.push_back(dynamic_property);
+	
+	std::sort(properties.begin(), properties.end(), CompareEidosPropertySignatures);
+	
+	return properties;
+}
+
+// This calls SignatureForProperty(), and then checks the dynamic ones if that failed
+const EidosPropertySignature *EidosClass::SignatureForProperty_TYPE_INTERPRETER(EidosGlobalStringID p_property_id) const
+{
+	const EidosPropertySignature *signature = SignatureForProperty(p_property_id);
+	
+	if (signature)
+		return signature;
+	
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		if (dynamic_property->property_id_ == p_property_id)
+			return dynamic_property.get();
+	
+	return nullptr;
+}
+
+#endif	// EIDOS_GUI
+
 
 
 
