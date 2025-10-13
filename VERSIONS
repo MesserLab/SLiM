@@ -50,12 +50,12 @@ multitrait branch:
 		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
 		transition MutationType's internals to keep a separate DE for each trait using a new EffectDistributionInfo struct
 		added C++ IsPureNeutralDFE() method to represent whether all of the effects of a given mutation type are all neutral
-	add Individual properties for each trait in the individual's species, allowing direct access
-		this was done by adding GetProperty_NO_SIGNATURE() / SetProperty_NO_SIGNATURE() methods called by EidosValue_Object::GetPropertyOfElements() and EidosValue_Object::SetPropertyOfElements() to support properties with no signature
 	add support in Individual for the individual's offset for each trait
 		add -(float)offsetForTrait([Nio<Trait> trait = NULL])
 		add +(void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
 		draw an individual's trait offsets from the trait individual-offset distributions, at the individual's moment of generation
+	add Individual properties for each trait in the individual's species, allowing direct access to the phenotype for each trait in an individual
+	add Species properties for each trait in the species, allowing direct access to traits in this species
 
 
 version 5.1 (Eidos version 4.1):

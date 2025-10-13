@@ -984,6 +984,25 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		
 		SLiMAssertScriptSuccess(mt_base_p1);
 		
+		// initializeTrait() requirements
+		SLiMAssertScriptRaise("initialize() { initializeTrait('', 'multiplicative', 2.0); }", "non-empty string", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('human height', 'multiplicative', 2.0); }", "valid Eidos identifier", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('migrant', 'multiplicative', 2.0); }", "existing property on Individual", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('avatar', 'multiplicative', 2.0); }", "existing property on Species", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', 2.0); initializeTrait('height', 'multiplicative', 2.0); }", "already a trait in this species", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multi', 2.0); }", "requires type to be either", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=INF); }", "baselineOffset to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=NAN); }", "baselineOffset to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=INF, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NAN, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=INF); }", "individualOffsetSD to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=NAN); }", "individualOffsetSD to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=2.0, individualOffsetSD=NULL); }", "individual offset parameters be", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NULL, individualOffsetSD=2.0); }", "individual offset parameters be", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeTrait('height', 'multiplicative'); }", "already been implicitly defined", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative'); initializeMutationType('m1', 0.5, 'f', 0.0); initializeTrait('weight', 'multiplicative'); }", "before a mutation type is created", __LINE__);
+		SLiMAssertScriptRaise("initialize() { for (i in 1:257) initializeTrait('height' + i, 'multiplicative'); }", "maximum number of traits", __LINE__);
+		
 		// trait defines, trait lookup
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traits)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), community.allTraits)) stop(); }");
@@ -1055,9 +1074,17 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(3.5, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(2.5, 5))) stop(); }");
 		
+		// species trait property access
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.height, sim.traitsWithNames('height'))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.weight, sim.traitsWithNames('weight'))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.height = sim.traitsWithNames('height'); }", "new value for read-only property", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.weight = sim.traitsWithNames('weight'); }", "new value for read-only property", __LINE__);
+		
 		// individual trait property access (not yet fully implemented)
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height; }", "trait height cannot be accessed (FIXME MULTITRAIT)", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.weight; }", "trait weight cannot be accessed (FIXME MULTITRAIT)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height = 10.0; }", "trait height cannot be accessed (FIXME MULTITRAIT)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.weight = 10.0; }", "trait weight cannot be accessed (FIXME MULTITRAIT)", __LINE__);
 	}
 	
 	std::cout << "_RunMultitraitTests() done" << std::endl;

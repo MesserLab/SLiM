@@ -1719,7 +1719,28 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
+		{
+			// Here we implement a special behavior: you can do individual.traitName to access a trait value directly.
+			Species &species = subpopulation_->species_;
+			Trait *trait = species.TraitFromStringID(p_property_id);
+			
+			if (trait)
+			{
+				// We got a hit, but don't know what to do with it for now.  When this is hooked up to the trait value,
+				// I should add an accelerated getter since vectorized access for these trait properties will be very common.
+				// That will require modifying the accelerated getter mechanism to pass the property id in to the method, though.
+				// It would do:
+				//Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
+				//Trait *trait = species->TraitFromStringID(p_property_id);
+				// If the individuals don't belong to a single species, it would look up the species for each individual to get the right trait, I guess,
+				// since two species could have traits with the same name but at different trait indices, so you have to look up the right index.
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
+				// we want something like this
+				//return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_value));
+			}
+			
 			return super::GetProperty(p_property_id);
+		}
 	}
 }
 
@@ -2547,7 +2568,21 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			// all others, including gID_none
 		default:
+		{
+			// Here we implement a special behavior: you can do individual.traitName to access a trait value directly.
+			Species &species = subpopulation_->species_;
+			Trait *trait = species.TraitFromStringID(p_property_id);
+			
+			if (trait)
+			{
+				// We got a hit, but don't know what to do with it for now.
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
+				// we want something like this
+				//trait_value = p_value.FloatAtIndex_NOCAST(0, nullptr);
+			}
+			
 			return super::SetProperty(p_property_id, p_value);
+		}
 	}
 }
 
@@ -5409,44 +5444,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	return gStaticEidosValueVOID;
 }			
 
-// In these methods we implement a special behavior: you can do individual.traitName to
-// access the value for a trait.  We do a dynamic lookup from the trait name here.
-
-EidosValue_SP Individual_Class::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size) const
-{
-	const Individual *const *individuals = (const Individual *const *)p_targets;
-	
-	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
-	Trait *trait = species->TraitFromStringID(p_property_id);
-	
-	if (trait)
-	{
-		// We got a hit, but don't know what to do with it for now
-		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
-	}
-	
-	return super::GetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size);
-}
-
-void Individual_Class::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size, const EidosValue &p_value) const
-{
-	const Individual *const *individuals = (const Individual *const *)p_targets;
-	
-	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
-	Trait *trait = species->TraitFromStringID(p_property_id);
-	
-	if (trait)
-	{
-		// Eidos did not type-check for us, because there is no signature!  We have to check it ourselves.
-		if (p_value.Type() != EidosValueType::kValueFloat)
-			EIDOS_TERMINATION << "ERROR (Individual_Class::SetProperty_NO_SIGNATURE): assigned value must be of type float for trait-value property " << trait->Name() << "." << EidosTerminate();
-		
-		// We got a hit, but don't know what to do with it for now
-		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
-	}
-	
-	return super::SetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size, p_value);
-}
 
 
 

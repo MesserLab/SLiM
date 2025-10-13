@@ -514,23 +514,11 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 	}
 }
 
-Trait *Species::TraitFromName(const std::string &p_name)
+Trait *Species::TraitFromName(const std::string &p_name) const
 {
 	auto iter = trait_from_name.find(p_name);
 	
 	if (iter == trait_from_name.end())
-		return nullptr;
-	
-	return (*iter).second;
-}
-
-Trait *Species::TraitFromStringID(EidosGlobalStringID p_string_id)
-{
-	// This is used for (hopefully) very fast lookup of a trait based on a string id in Eidos,
-	// so that the user can do "individual.trait" and get a trait value like a property access
-	auto iter = trait_from_string_id.find(p_string_id);
-	
-	if (iter == trait_from_string_id.end())
 		return nullptr;
 	
 	return (*iter).second;

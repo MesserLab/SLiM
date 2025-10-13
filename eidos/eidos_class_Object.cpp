@@ -527,6 +527,42 @@ void EidosClass::RaiseForDispatchUninitialized(void) const
 	EIDOS_TERMINATION << "ERROR (EidosClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ClassName() << "." << EidosTerminate(nullptr);
 }
 
+void EidosClass::AddSignatureForProperty(EidosPropertySignature_CSP p_property_signature)
+{
+#if DEBUG
+		if (!dispatches_cached_)
+			RaiseForDispatchUninitialized();
+#endif
+	
+	EidosGlobalStringID property_id = p_property_signature->property_id_;
+	
+	if (property_id < (EidosGlobalStringID)property_signatures_dispatch_capacity_)
+	{
+		// The property id fits into our existing dispatch table, so we can just fill it in.
+		// However, it is an error if this slot in the dispatch table is already in use.
+		if (property_signatures_dispatch_[property_id])
+			EIDOS_TERMINATION << "ERROR (EidosClass::AddSignatureForProperty): (internal error) dispatch table slot is already in use for property name '" << p_property_signature->property_name_ << "'." << EidosTerminate(nullptr);
+		
+		property_signatures_dispatch_[property_id] = p_property_signature;
+	}
+	else
+	{
+		// The property id does not fit into the existing dispatch table, so we need to realloc, zero
+		// out all the new entries in the expanded dispatch table, and set the requested entry.  Note
+		// that for dynamically generated property ids, the dispatch table might get a lot bigger!
+		int32_t new_capacity = std::max(property_signatures_dispatch_capacity_, (int32_t)property_id) + 1;
+		
+		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)realloc(property_signatures_dispatch_, new_capacity * sizeof(EidosPropertySignature_CSP));
+		if (!property_signatures_dispatch_)
+			EIDOS_TERMINATION << "ERROR (EidosClass::AddSignatureForProperty): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		EIDOS_BZERO(property_signatures_dispatch_ + property_signatures_dispatch_capacity_, (new_capacity - property_signatures_dispatch_capacity_) * sizeof(EidosPropertySignature_CSP));
+		property_signatures_dispatch_capacity_ = new_capacity;
+		
+		property_signatures_dispatch_[property_id] = p_property_signature;
+	}
+}
+
 const std::vector<EidosPropertySignature_CSP> *EidosClass::Properties(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
@@ -709,21 +745,6 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
 
-EidosValue_SP EidosClass::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size) const
-{
-#pragma unused (p_property_id, p_targets, p_targets_size)
-    
-	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty_NO_SIGNATURE): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ClassNameForDisplay() << "." << EidosTerminate(nullptr);
-}
-
-void EidosClass::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size, const EidosValue &p_value) const
-{
-#pragma unused (p_property_id, p_targets, p_targets_size, p_value)
-    
-	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty_NO_SIGNATURE): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ClassNameForDisplay() << "." << EidosTerminate(nullptr);
-}
 
 
 

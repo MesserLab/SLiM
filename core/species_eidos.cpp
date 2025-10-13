@@ -1598,6 +1598,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): (internal error) initializeTrait() was called with an implicitly defined trait.  However, the cause of this cannot be diagnosed, indicating an internal logic error." << EidosTerminate();
 	}
+	else
+	{
+		if (num_mutation_type_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot be called after initializeMutationType() has been called; all traits in the species must be defined before a mutation type is created." << EidosTerminate();
+	}
 	
 	if (traits_.size() >= SLIM_MAX_TRAITS)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot make a new trait because the maximum number of traits allowed per species (" << SLIM_MAX_TRAITS << ") has already been reached." << EidosTerminate();
@@ -1612,19 +1617,16 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	
 	// name
 	std::string name = name_value->StringAtIndex_NOCAST(0, nullptr);
-	bool name_problem = (name.length() == 0);
-	const std::vector<EidosPropertySignature_CSP> *individual_properties = gSLiM_Individual_Class->Properties();
+	
+	if (name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name be a non-empty string." << EidosTerminate();
+	
+	if (!EidosScript::Eidos_IsIdentifier(name))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is a valid Eidos identifier." << EidosTerminate(nullptr);
 	
 	for (Trait *trait : traits_)
 		if (trait->Name() == name)
-			name_problem = true;
-	
-	for (EidosPropertySignature_CSP property_signature : *individual_properties)
-		if (property_signature->property_name_ == name)
-			name_problem = true;
-	
-	if (name_problem)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires a non-zero-length name that is unique within the species and does not conflict with any Individual property name." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
 	
 	// type
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
@@ -1684,6 +1686,58 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	// Add it to our registry; AddTrait() takes its retain count
 	AddTrait(trait);
 	num_trait_inits_++;
+	
+	// Register new property signatures based upon the trait.  Note that these signatures are added at the
+	// class level, so they will be visible on objects regardless of which species they belong to; if
+	// accessed on an object of the wrong species, however, they will raise a "property not found" error.
+	// More than one species can have a trait with the same name; in that case, the signature will be
+	// registered only once, but the objects in more than one species will respond to it.  More oddly, in
+	// SLiMgui the traits from one model will show up in a different model running at the same time, and
+	// registered trait properties will not go away when you recycle.  I'm ok with that.
+	EidosGlobalStringID trait_stringID = EidosStringRegistry::GlobalStringIDForString(name);
+	
+	{
+		// add a Species property that returns the trait object
+		const EidosPropertySignature *existing_signature = gSLiM_Species_Class->SignatureForProperty(trait_stringID);
+		
+		if (existing_signature)
+		{
+			// an existing signature must return a singleton Trait object etc., otherwise we have a conflict
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskObject | kEidosValueMaskSingleton)) ||
+				(existing_signature->value_class_ != gSLiM_Trait_Class) || (existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Species class, but the name '" << name << "' conflicts with an existing property on Species.  A different name must be used for this trait." << EidosTerminate();
+			
+			// no conflict, so we don't need to do anything; a different species has already registered the property
+		}
+		else
+		{
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Species_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add an Individual property that returns the phenotype for the trait in an individual
+		const EidosPropertySignature *existing_signature = gSLiM_Individual_Class->SignatureForProperty(trait_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Individual class, but the name '" << name << "' conflicts with an existing property on Individual.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Individual_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	// FIXME MULTITRAIT: auto-complete on trait names off of "sim" or individuals doesn't presently work; the initializeTrait() call should add entries to the autocompletion mechanism somehow!
 	
 	if (SLiM_verbosity_level >= 1)
 	{
@@ -2095,7 +2149,15 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
+		{
+			// Here we implement a special behavior: you can do species.traitName to access a trait object directly.
+			Trait *trait = TraitFromStringID(p_property_id);
+			
+			if (trait)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
+			
 			return super::GetProperty(p_property_id);
+		}
 	}
 }
 

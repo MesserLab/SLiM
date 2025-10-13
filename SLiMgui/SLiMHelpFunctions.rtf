@@ -1480,19 +1480,39 @@ The
 \f2\fs20  class documentation.\
 The 
 \f1\fs18 name
-\f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not conflict with any other trait in any species in the model, it must not conflict with any global variable or constant, and it must not conflict with the name of any existing property on the 
+\f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not have the same name as another trait in the species, it must be syntactically valid as an Eidos symbol (not containing a space, for example), and it must not conflict with the name of any existing property on the 
 \f1\fs18 Individual
-\f2\fs20  class.  The second requirement is because, after the new trait is created, a new global constant is defined that represents the trait\'92s index within the species, for quick reference to the trait in various contexts.  The third requirement is because, after the new trait is created, a new property is added to individuals of the species, with the same name as the new trait, that allows the trait values of individuals to be accessed directly as properties.  For example, if the new trait is named 
-\f1\fs18 myTraitT
-\f2\fs20 , a new global constant 
-\f1\fs18 myTraitT
-\f2\fs20  would be defined as 
-\f1\fs18 myTraitT
-\f2\fs20 \'92s index in the species, and access to an individual\'92s trait value would be possible through the property 
-\f1\fs18 individual.myTraitT
-\f2\fs20 .  It is suggested, but not required, that trait names should end with a capital 
-\f1\fs18 T
-\f2\fs20 .\
+\f2\fs20  or 
+\f1\fs18 Species
+\f2\fs20  classes.  These requirements are necessary because, after the new trait is created, new properties added to the 
+\f1\fs18 Individual
+\f2\fs20  and 
+\f1\fs18 Species
+\f2\fs20  classes, with the same name as the new trait, for convenience.  The new 
+\f1\fs18 Individual
+\f2\fs20  property allows trait values to be accessed directly through a property; for example, if the new trait is named 
+\f1\fs18 heightT
+\f2\fs20 , getting and setting an individual\'92s trait value would be possible through the property 
+\f1\fs18 individual.heightT
+\f2\fs20 .  The new 
+\f1\fs18 Species
+\f2\fs20  property allows traits themselves to be accessed directly through a property; continuing the previous example, 
+\f1\fs18 sim.heightT
+\f2\fs20  would provide the 
+\f1\fs18 Trait
+\f2\fs20  object named 
+\f1\fs18 heightT
+\f2\fs20 .  If desired, 
+\f1\fs18 defineConstant()
+\f2\fs20  may also be used to set up a global constant for a trait; for example, 
+\f1\fs18 defineConstant("heightT", heightT)
+\f2\fs20  would allow the 
+\f1\fs18 Trait
+\f2\fs20  object to be referenced simply as 
+\f1\fs18 heightT
+\f2\fs20 .  For clarity, it is suggested that trait names end in a 
+\f1\fs18 "T"
+\f2\fs20  to differentiate them from other variables and properties, but this is not required.\
 The 
 \f1\fs18 type
 \f2\fs20  parameter gives the type of trait to be created, as a 
@@ -1501,7 +1521,11 @@ The
 \f1\fs18 "multiplicative"
 \f2\fs20 , if the trait value should be the result of multiplying effects together (as in a typical population-genetics model), or 
 \f1\fs18 "additive"
-\f2\fs20 , if the trait value should be the result of adding effects together (as in a typical quantitative-genetics model).\
+\f2\fs20 , if the trait value should be the result of adding effects together (as in a typical quantitative-genetics model).  The shorter versions 
+\f1\fs18 "mul"
+\f2\fs20  and 
+\f1\fs18 "add"
+\f2\fs20  are also allowed.\
 The 
 \f1\fs18 baselineOffset
 \f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) to the trait value of every individual.  If 

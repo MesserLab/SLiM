@@ -55,7 +55,7 @@ public:
 	
 	bool read_only_;									// true if the property is read-only, false if it is read-write
 	EidosValueMask value_mask_;							// a mask for the type returned; singleton is used, optional is not
-	const EidosClass *value_class_;				// optional type-check for object values; used only if this is not nullptr
+	const EidosClass *value_class_;						// optional type-check for object values; used only if this is not nullptr
 	
 	bool accelerated_get_;									// if true, can be read using a fast-access GetProperty_Accelerated_X() method
 	Eidos_AcceleratedPropertyGetter accelerated_getter;		// a pointer to a (static member) function that handles the accelerated get
@@ -64,7 +64,9 @@ public:
 	Eidos_AcceleratedPropertySetter accelerated_setter;		// a pointer to a (static member) function that handles the accelerated set
 	
 	bool deprecated_ = false;							// if true, the API represented by this signature has been deprecated
-
+	
+	std::string dynamic_owner_;							// if non-empty, indicates a dynamically generated property owned by a given owner
+	
 	EidosPropertySignature(const EidosPropertySignature&) = delete;					// no copying
 	EidosPropertySignature& operator=(const EidosPropertySignature&) = delete;		// no copying
 	EidosPropertySignature(void) = delete;											// no null construction
@@ -88,6 +90,11 @@ public:
 	
 	// API deprecation; this prevents deprecated API from being shown in code completion, etc., even though it remains in the doc
 	EidosPropertySignature *MarkDeprecated(void);
+	
+	// Dynamic property generation; the goal is to prevent dynamically generated properties from conflicting
+	// with built-in properties, or with each other, so we mark them with an "owner" string for recognition
+	EidosPropertySignature *MarkAsDynamicWithOwner(std::string p_owner) { dynamic_owner_ = p_owner; return this; }
+	bool IsDynamicWithOwner(std::string p_owner) const { return (!dynamic_owner_.empty() && (dynamic_owner_ == p_owner)); }
 };
 
 // These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.

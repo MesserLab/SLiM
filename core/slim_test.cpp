@@ -42,6 +42,23 @@ static int gSLiMTestSuccessCount = 0;
 static int gSLiMTestFailureCount = 0;
 
 
+static void _SLiMTestCleanup(Community *community)
+{
+	if (community)
+		for (Species *species : community->AllSpecies())
+			species->DeleteAllMutationRuns();
+	
+	delete community;
+	InteractionType::DeleteSparseVectorFreeList();
+	
+	ClearErrorContext();
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+}
+
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumber)
 {
@@ -89,25 +106,13 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		return;
 	}
 	
-	if (community)
-		for (Species *species : community->AllSpecies())
-			species->DeleteAllMutationRuns();
-	
-	delete community;
-	InteractionType::DeleteSparseVectorFreeList();
-	
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
 	gSLiMTestSuccessCount++;
 	
 	//std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	
-	ClearErrorContext();
-	
-	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
-	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+	_SLiMTestCleanup(community);
+	}	
 }
 
 void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position, bool p_error_is_in_stop)
@@ -203,20 +208,8 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 		}
 	}
 	
-	if (community)
-		for (Species *species : community->AllSpecies())
-			species->DeleteAllMutationRuns();
-	
-	delete community;
-	InteractionType::DeleteSparseVectorFreeList();
-	
-	ClearErrorContext();
-	
-	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-		std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	_SLiMTestCleanup(community);
 	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
@@ -272,20 +265,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 		}
 	}
 	
-	if (community)
-		for (Species *species : community->AllSpecies())
-			species->DeleteAllMutationRuns();
-	
-	delete community;
-	InteractionType::DeleteSparseVectorFreeList();
-	
-	ClearErrorContext();
-	
-	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-		std::cerr << "WARNING (SLiMAssertScriptStop): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	_SLiMTestCleanup(community);
 	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip, int p_lineNumber)
@@ -365,20 +346,8 @@ void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int
 			}
 		}
 		
-		if (community)
-			for (Species *species : community->AllSpecies())
-				species->DeleteAllMutationRuns();
-		
-		delete community;
-		InteractionType::DeleteSparseVectorFreeList();
-		
-		ClearErrorContext();
-		
-		if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-			std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+		_SLiMTestCleanup(community);
 	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 

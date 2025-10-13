@@ -443,8 +443,18 @@ public:
 	// Trait configuration and access
 	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
 	inline __attribute__((always_inline)) int64_t TraitCount(void)	{ return (int64_t)traits_.size(); }
-	Trait *TraitFromName(const std::string &p_name);
-	Trait *TraitFromStringID(EidosGlobalStringID p_string_id);
+	Trait *TraitFromName(const std::string &p_name) const;
+	inline __attribute__((always_inline)) Trait *TraitFromStringID(EidosGlobalStringID p_string_id) const
+	{
+		// This is used for (hopefully) very fast lookup of a trait based on a string id in Eidos,
+		// so that the user can do "individual.trait" and get a trait value like a property access
+		auto iter = trait_from_string_id.find(p_string_id);
+		
+		if (iter == trait_from_string_id.end())
+			return nullptr;
+		
+		return (*iter).second;
+	}
 	void MakeImplicitTrait(void);
 	void AddTrait(Trait *p_trait);													// takes over a retain count from the caller
 	
