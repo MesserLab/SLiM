@@ -8,6 +8,7 @@ The code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kas
 
 **Changelog:**
 
+- *24 September 2025*: updated to tskit C_1.2.0 (=1.0.0b2) (still kastore C_2.1.1)
 - *15 April 2025*: updated to tskit C_1.1.4 (=0.6.2) (still kastore C_2.1.1)
 - *7 November 2023*: updated to tskit C_1.1.2 (=0.5.5) (still kastore C_2.1.1)
 - *2 June 2022*: updated to tskit C_1.0.0 and kastore C_2.1.1
