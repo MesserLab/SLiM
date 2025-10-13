@@ -417,7 +417,7 @@ if(BUILD_SLIMGUI)
   file(GLOB_RECURSE QTSLIM_SOURCES ${PROJECT_SOURCE_DIR}/QtSLiM/*.cpp ${PROJECT_SOURCE_DIR}/QtSLiM/*.qrc ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
   add_executable(${TARGET_NAME_SLIMGUI} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
   set_target_properties( ${TARGET_NAME_SLIMGUI} PROPERTIES LINKER_LANGUAGE CXX)
-  target_compile_definitions( ${TARGET_NAME_SLIMGUI} PRIVATE EIDOSGUI=1 SLIMGUI=1)
+  target_compile_definitions( ${TARGET_NAME_SLIMGUI} PRIVATE EIDOS_GUI=1 SLIMGUI=1)
   target_include_directories(${TARGET_NAME_SLIMGUI} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/QtSLiM" "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
   
   # Qt dependencies, which depend on the Qt version used.  For Qt6, we also need C++17; the last -std flag supplied ought to take priority.
