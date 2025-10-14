@@ -443,8 +443,9 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -457,8 +458,9 @@ EidosValue *Mutation::GetProperty_Accelerated_id(EidosObject **p_values, size_t 
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -471,8 +473,9 @@ EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -485,8 +488,9 @@ EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosObject **p_valu
 	return logical_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -510,8 +514,9 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values,
 	return string_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -528,8 +533,9 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_va
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -542,8 +548,9 @@ EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values,
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_position(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -556,8 +563,9 @@ EidosValue *Mutation::GetProperty_Accelerated_position(EidosObject **p_values, s
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -570,8 +578,9 @@ EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosObject **p_values, s
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -588,8 +597,9 @@ EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_selectionCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -602,8 +612,9 @@ EidosValue *Mutation::GetProperty_Accelerated_selectionCoeff(EidosObject **p_val
 	return float_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_dominanceCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -616,8 +627,9 @@ EidosValue *Mutation::GetProperty_Accelerated_dominanceCoeff(EidosObject **p_val
 	return float_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -683,8 +695,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 	}
 }
 
-void Mutation::SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Mutation::SetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
@@ -701,8 +714,9 @@ void Mutation::SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p
 	}
 }
 
-void Mutation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Mutation::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{

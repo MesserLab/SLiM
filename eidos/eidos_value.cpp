@@ -2224,7 +2224,7 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 	{
 		// Accelerated property access is enabled for this property, so the class will do all the work for us
 		// We put this case below the (values_size == 1) case so the accelerated getter can focus on the vectorized case
-		EidosValue_SP result = EidosValue_SP(signature->accelerated_getter(values_, values_size));
+		EidosValue_SP result = EidosValue_SP(signature->accelerated_getter(p_property_id, values_, values_size));
 		
 		// BCH 4/16/2025: New in SLiM 5, an accelerated getter can return nullptr to say "I don't want to
 		// handle this case, send it down to GetProperty() and do it the slow way", so we fall through.
@@ -2322,7 +2322,7 @@ void EidosValue_Object::SetPropertyOfElements(EidosGlobalStringID p_property_id,
 		if (signature->accelerated_set_)
 		{
 			// Accelerated property writing is enabled for this property, so we call the setter directly
-			signature->accelerated_setter(values_, values_size, p_value, p_value_count);
+			signature->accelerated_setter(p_property_id, values_, values_size, p_value, p_value_count);
 		}
 		else
 		{
@@ -2337,7 +2337,7 @@ void EidosValue_Object::SetPropertyOfElements(EidosGlobalStringID p_property_id,
 			if (signature->accelerated_set_)
 			{
 				// Accelerated property writing is enabled for this property, so we call the setter directly
-				signature->accelerated_setter(values_, values_size, p_value, p_value_count);
+				signature->accelerated_setter(p_property_id, values_, values_size, p_value, p_value_count);
 			}
 			else
 			{

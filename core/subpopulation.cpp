@@ -4501,7 +4501,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -4889,7 +4889,7 @@ bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, slim_pe
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -4975,7 +4975,7 @@ bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, slim_pe
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5058,7 +5058,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5260,7 +5260,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5536,7 +5536,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_ped
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5622,7 +5622,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_ped
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
-	individual->_DrawTraitOffsets();
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -6468,8 +6468,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6482,8 +6483,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, si
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6496,8 +6498,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6510,8 +6513,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject *
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6528,8 +6532,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, s
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6584,8 +6589,9 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 	}
 }
 
-void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Subpopulation::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
@@ -6603,8 +6609,9 @@ void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p
 	}
 }
 
-void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);

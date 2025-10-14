@@ -528,8 +528,9 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *MutationType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *MutationType::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -542,8 +543,9 @@ EidosValue *MutationType::GetProperty_Accelerated_id(EidosObject **p_values, siz
 	return int_result;
 }
 
-EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *MutationType::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -651,8 +653,9 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	}
 }
 
-void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		eidos_logical_t source_value = p_source.LogicalAtIndex_NOCAST(0, nullptr);
@@ -669,8 +672,9 @@ void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObject **p
 	}
 }
 
-void MutationType::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void MutationType::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{

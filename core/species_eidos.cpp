@@ -1733,7 +1733,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		else
 		{
 			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
-			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait")->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_VALUE));
 			
 			gSLiM_Individual_Class->AddSignatureForProperty(signature);
 		}

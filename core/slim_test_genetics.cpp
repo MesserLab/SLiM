@@ -1081,10 +1081,10 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.weight = sim.traitsWithNames('weight'); }", "new value for read-only property", __LINE__);
 		
 		// individual trait property access (not yet fully implemented)
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height; }", "trait height cannot be accessed (FIXME MULTITRAIT)", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.weight; }", "trait weight cannot be accessed (FIXME MULTITRAIT)", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height = 10.0; }", "trait height cannot be accessed (FIXME MULTITRAIT)", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.weight = 10.0; }", "trait weight cannot be accessed (FIXME MULTITRAIT)", __LINE__);
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.height, rep(0.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.weight, rep(0.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = 10.0; if (!identical(p1.individuals.height, rep(10.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 10.0; if (!identical(p1.individuals.weight, rep(10.0, 5))) stop(); }");
 	}
 	
 	std::cout << "_RunMultitraitTests() done" << std::endl;

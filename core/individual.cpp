@@ -84,7 +84,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	}
 	
 	// Set up per-trait information such as phenotype caches and individual offsets
-	_DrawTraitOffsets();
+	_InitializePerTraitInformation();
 	
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -103,7 +103,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 #endif
 }
 
-void Individual::_DrawTraitOffsets(void)
+void Individual::_InitializePerTraitInformation(void)
 {
 	// Set up per-trait individual-level information such as individual offsets.  This is called by
 	// Individual::Individual(), but also in various other places where individuals are re-used.
@@ -133,19 +133,23 @@ void Individual::_DrawTraitOffsets(void)
 	
 	if (trait_count == 1)
 	{
-		offsets_for_traits_ = &offset_for_trait_0_;
-		offset_for_trait_0_ = traits[0]->DrawIndividualOffset();
+		trait_info_ = &trait_info_0_;
+		trait_info_0_.value_ = 0.0;
+		trait_info_0_.offset_ = traits[0]->DrawIndividualOffset();
 	}
 	else if (trait_count == 0)
 	{
-		offsets_for_traits_ = nullptr;
+		trait_info_ = nullptr;
 	}
 	else
 	{
-		offsets_for_traits_ = static_cast<slim_effect_t *>(malloc(trait_count * sizeof(slim_effect_t)));
+		trait_info_ = static_cast<SLiM_PerTraitInfo *>(malloc(trait_count * sizeof(SLiM_PerTraitInfo)));
 		
 		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-			offsets_for_traits_[trait_index] = traits[trait_index]->DrawIndividualOffset();
+		{
+			trait_info_[trait_index].value_ = 0.0;
+			trait_info_[trait_index].offset_ = traits[trait_index]->DrawIndividualOffset();
+		}
 	}
 }
 
@@ -181,12 +185,12 @@ Individual::~Individual(void)
 	if (haplosomes_ != hapbuffer_)
 		free(haplosomes_);
 	
-	if (offsets_for_traits_ != &offset_for_trait_0_)
-		free(offsets_for_traits_);
+	if (trait_info_ != &trait_info_0_)
+		free(trait_info_);
 	
 #if DEBUG
 	haplosomes_ = nullptr;
-	offsets_for_traits_ = nullptr;
+	trait_info_ = nullptr;
 #endif
 }
 
@@ -1726,17 +1730,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (trait)
 			{
-				// We got a hit, but don't know what to do with it for now.  When this is hooked up to the trait value,
-				// I should add an accelerated getter since vectorized access for these trait properties will be very common.
-				// That will require modifying the accelerated getter mechanism to pass the property id in to the method, though.
-				// It would do:
-				//Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
-				//Trait *trait = species->TraitFromStringID(p_property_id);
-				// If the individuals don't belong to a single species, it would look up the species for each individual to get the right trait, I guess,
-				// since two species could have traits with the same name but at different trait indices, so you have to look up the right index.
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
-				// we want something like this
-				//return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_value));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].value_));
 			}
 			
 			return super::GetProperty(p_property_id);
@@ -1744,8 +1738,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Individual::GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_index(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1758,8 +1753,9 @@ EidosValue *Individual::GetProperty_Accelerated_index(EidosObject **p_values, si
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	size_t value_index = 0;
 	
@@ -1785,8 +1781,9 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1803,8 +1800,9 @@ EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_->community_.ModelType() == SLiMModelType::kModelTypeWF))
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
 	
@@ -1820,8 +1818,9 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_->species_.PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 	
@@ -1837,8 +1836,9 @@ EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject *
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1855,8 +1855,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObject **p_values, siz
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1872,8 +1873,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1889,8 +1891,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1906,8 +1909,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1923,8 +1927,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1940,8 +1945,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_migrant(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1954,8 +1960,9 @@ EidosValue *Individual::GetProperty_Accelerated_migrant(EidosObject **p_values, 
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1968,8 +1975,9 @@ EidosValue *Individual::GetProperty_Accelerated_fitnessScaling(EidosObject **p_v
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1982,8 +1990,9 @@ EidosValue *Individual::GetProperty_Accelerated_x(EidosObject **p_values, size_t
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_y(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1996,8 +2005,9 @@ EidosValue *Individual::GetProperty_Accelerated_y(EidosObject **p_values, size_t
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_z(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -2010,8 +2020,9 @@ EidosValue *Individual::GetProperty_Accelerated_z(EidosObject **p_values, size_t
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	Species *consensus_species = Community::SpeciesForIndividualsVector((Individual **)p_values, (int)p_values_size);
 	EidosValue_Float *float_result;
 	
@@ -2093,8 +2104,9 @@ EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -2110,8 +2122,9 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_va
 	return object_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2178,8 +2191,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosObject **p_v
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2250,8 +2264,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObjec
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2318,8 +2333,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_v
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2390,8 +2406,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObjec
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2420,8 +2437,9 @@ EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosObject **p_value
 	return object_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2448,6 +2466,41 @@ EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosObject **
 	}
 	
 	return object_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	
+	if (species)
+	{
+		Trait *trait = species->TraitFromStringID(p_property_id);
+		int64_t trait_index = trait->Index();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			
+			float_result->set_float_no_check(value->trait_info_[trait_index].value_, value_index);
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+			int64_t trait_index = trait->Index();
+			
+			float_result->set_float_no_check(value->trait_info_[trait_index].value_, value_index);
+		}
+	}
+	
+	return float_result;
 }
 
 void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -2575,10 +2628,8 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			if (trait)
 			{
-				// We got a hit, but don't know what to do with it for now.
-				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): trait " << trait->Name() << " cannot be accessed (FIXME MULTITRAIT)." << EidosTerminate();
-				// we want something like this
-				//trait_value = p_value.FloatAtIndex_NOCAST(0, nullptr);
+				trait_info_[trait->Index()].value_ = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+				return;
 			}
 			
 			return super::SetProperty(p_property_id, p_value);
@@ -2586,8 +2637,9 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	}
 }
 
-void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tag_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
@@ -2607,8 +2659,9 @@ void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_va
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagF_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
@@ -2628,8 +2681,9 @@ void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_v
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL0(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2659,8 +2713,9 @@ void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2689,8 +2744,9 @@ void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2719,8 +2775,9 @@ void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL3(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2749,8 +2806,9 @@ void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2821,8 +2879,9 @@ bool Individual::_SetFitnessScaling_N(const double *source_data, EidosObject **p
 	return saw_error;
 }
 
-void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	Individual::s_any_individual_fitness_scaling_set_ = true;
 	bool needs_raise = false;
 	
@@ -2843,8 +2902,9 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, 
 		EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 }
 
-void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -2861,8 +2921,9 @@ void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_valu
 	}
 }
 
-void Individual::SetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_y(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -2879,8 +2940,9 @@ void Individual::SetProperty_Accelerated_y(EidosObject **p_values, size_t p_valu
 	}
 }
 
-void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_z(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -2897,9 +2959,9 @@ void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_valu
 	}
 }
 
-void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_color(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-#pragma unused (p_values, p_values_size, p_source, p_source_size)
+#pragma unused (p_property_id, p_values, p_values_size, p_source, p_source_size)
 #ifdef SLIMGUI
 	// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
 	if (p_source_size == 1)
@@ -2954,8 +3016,9 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 #endif
 }
 
-void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
@@ -2970,6 +3033,39 @@ void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_va
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->age_ = SLiMCastToAgeTypeOrRaise(source_data[value_index]);
+	}
+}
+
+void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+#pragma unused (p_property_id)
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	const double *source_data = p_source.FloatData();
+	
+	if (species)
+	{	
+		Trait *trait = species->TraitFromStringID(p_property_id);
+		int64_t trait_index = trait->Index();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			
+			value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+			int64_t trait_index = trait->Index();
+			
+			value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+		}
 	}
 }
 
@@ -3177,7 +3273,7 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 	if (trait_indices.size() == 1)
 	{
 		int64_t trait_index = trait_indices[0];
-		slim_effect_t offset = offsets_for_traits_[trait_index];
+		slim_effect_t offset = trait_info_[trait_index].offset_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(offset));
 	}
@@ -3187,7 +3283,7 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 		
 		for (int64_t trait_index : trait_indices)
 		{
-			slim_effect_t offset = offsets_for_traits_[trait_index];
+			slim_effect_t offset = trait_info_[trait_index].offset_;
 			
 			float_result->push_float_no_check(offset);
 		}
@@ -4122,7 +4218,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			{
 				Individual *ind = individuals_buffer[individual_index];
 				
-				ind->offsets_for_traits_[trait_index] = offset;
+				ind->trait_info_[trait_index].offset_ = offset;
 			}
 		}
 	}
@@ -4137,7 +4233,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			int64_t trait_index = trait_indices[0];
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-				individuals_buffer[individual_index]->offsets_for_traits_[trait_index] = offset;
+				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 		}
 		else
 		{
@@ -4146,7 +4242,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				Individual *ind = individuals_buffer[individual_index];
 				
 				for (int64_t trait_index : trait_indices)
-					ind->offsets_for_traits_[trait_index] = offset;
+					ind->trait_info_[trait_index].offset_ = offset;
 			}
 		}
 	}
@@ -4163,7 +4259,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			{
 				Individual *ind = individuals_buffer[individual_index];
 				
-				ind->offsets_for_traits_[trait_index] = offset;
+				ind->trait_info_[trait_index].offset_ = offset;
 			}
 		}
 	}
@@ -4182,7 +4278,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				int64_t trait_index = trait_indices[0];
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					individuals_buffer[individual_index]->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_int++));
+					individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_int++));
 			}
 			else
 			{
@@ -4191,7 +4287,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					Individual *ind = individuals_buffer[individual_index];
 					
 					for (int64_t trait_index : trait_indices)
-						ind->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_int++));
+						ind->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_int++));
 				}
 			}
 		}
@@ -4206,7 +4302,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				int64_t trait_index = trait_indices[0];
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					individuals_buffer[individual_index]->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_float++));
+					individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_float++));
 			}
 			else
 			{
@@ -4215,7 +4311,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					Individual *ind = individuals_buffer[individual_index];
 					
 					for (int64_t trait_index : trait_indices)
-						ind->offsets_for_traits_[trait_index] = static_cast<slim_effect_t>(*(offsets_float++));
+						ind->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_float++));
 				}
 			}
 		}

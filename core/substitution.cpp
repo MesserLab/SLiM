@@ -203,8 +203,9 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -217,8 +218,9 @@ EidosValue *Substitution::GetProperty_Accelerated_id(EidosObject **p_values, siz
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -242,8 +244,9 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObject **p_val
 	return string_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -260,8 +263,9 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObject **
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_originTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -274,8 +278,9 @@ EidosValue *Substitution::GetProperty_Accelerated_originTick(EidosObject **p_val
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_fixationTick(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_fixationTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -288,8 +293,9 @@ EidosValue *Substitution::GetProperty_Accelerated_fixationTick(EidosObject **p_v
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_position(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -302,8 +308,9 @@ EidosValue *Substitution::GetProperty_Accelerated_position(EidosObject **p_value
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -316,8 +323,9 @@ EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObject **p_value
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -334,8 +342,9 @@ EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObject **p_values, si
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -348,8 +357,9 @@ EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObject **p
 	return float_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_dominanceCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -362,8 +372,9 @@ EidosValue *Substitution::GetProperty_Accelerated_dominanceCoeff(EidosObject **p
 	return float_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)

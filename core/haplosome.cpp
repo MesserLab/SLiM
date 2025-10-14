@@ -481,8 +481,9 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Haplosome::GetProperty_Accelerated_haplosomePedigreeID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_haplosomePedigreeID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	size_t value_index = 0;
 	
@@ -508,8 +509,9 @@ EidosValue *Haplosome::GetProperty_Accelerated_haplosomePedigreeID(EidosObject *
 	return int_result;
 }
 
-EidosValue *Haplosome::GetProperty_Accelerated_chromosomeSubposition(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_chromosomeSubposition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -523,8 +525,9 @@ EidosValue *Haplosome::GetProperty_Accelerated_chromosomeSubposition(EidosObject
 	return int_result;
 }
 
-EidosValue *Haplosome::GetProperty_Accelerated_isNullHaplosome(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_isNullHaplosome(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -537,8 +540,9 @@ EidosValue *Haplosome::GetProperty_Accelerated_isNullHaplosome(EidosObject **p_v
 	return logical_result;
 }
 
-EidosValue *Haplosome::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -575,8 +579,9 @@ void Haplosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 	}
 }
 
-void Haplosome::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Haplosome::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	Individual::s_any_haplosome_tag_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present

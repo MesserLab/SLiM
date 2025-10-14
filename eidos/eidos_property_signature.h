@@ -34,7 +34,7 @@ class EidosClass;
 // vector of property values given a buffer of EidosObjects.  The getter is expected to return the correct type for the
 // property (this is checked).  The getter is guaranteed that the EidosObjects are of the correct class; it is allowed to
 // do a cast of p_values directly to its own type without checking, according to the calling conventions used here.
-typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosObject **p_values, size_t p_values_size);
+typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 
 // This typedef is for an "accelerated property setter".  These are static member functions on a class, designed to set a property
 // value across a buffer of EidosObjects.  This is more complex than the getter case, because there are two possibilities:
@@ -44,7 +44,7 @@ typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosObject **p_values, s
 // to be of the correct class, and may be cast directly.  (This is actually guaranteed and checked by the property signature, so if
 // the signature is declared incorrectly then a mismatch is possible; but that is not the getter/setter's problem to detect.)  The
 // type of p_source is also checked against the signature, and so may be assumed to be of the declared type.
-typedef void (*Eidos_AcceleratedPropertySetter)(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+typedef void (*Eidos_AcceleratedPropertySetter)(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 
 
 class EidosPropertySignature
