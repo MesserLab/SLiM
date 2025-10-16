@@ -24,6 +24,7 @@
 #include "slim_globals.h"
 #include "population.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
@@ -423,7 +424,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	size_t chromosomes_count = chromosomes.size();
 	bool has_genetics = species_.HasGenetics();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = has_genetics ? species_.SpeciesMutationBlock()->mutation_buffer_ : nullptr;
 	
 	if (!has_genetics && (chromosomes_count != 0))
 		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
@@ -2455,7 +2456,8 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
+	Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
+	slim_objectid_t mutation_type_id = (mut_block_ptr + p_mutation)->mutation_type_ptr_->mutation_type_id_;
 	
 	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
@@ -2538,7 +2540,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					EidosValue_Object local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
+					EidosValue_Object local_mut(mut_block_ptr + p_mutation, gSLiM_Mutation_Class);
 					EidosValue_Float local_effect(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
@@ -2957,7 +2959,7 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 		single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
 	}
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
 	
 	if (haplosome1_null && haplosome2_null)
 	{
@@ -2979,7 +2981,7 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			// Cache non-neutral mutations and read from the non-neutral buffers
 			const MutationIndex *haplosome_iter, *haplosome_max;
 			
-			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
 			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
@@ -3023,8 +3025,8 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			// Cache non-neutral mutations and read from the non-neutral buffers
 			const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
 			
-			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun1->beginend_nonneutral_pointers(mut_block_ptr, &haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun2->beginend_nonneutral_pointers(mut_block_ptr, &haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
 			const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
@@ -3284,7 +3286,7 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
 		}
 		
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
 		const int32_t mutrun_count = haplosome->mutrun_count_;
 		double w = 1.0;
 		
@@ -3296,7 +3298,7 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			// Cache non-neutral mutations and read from the non-neutral buffers
 			const MutationIndex *haplosome_iter, *haplosome_max;
 			
-			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
 			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();

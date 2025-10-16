@@ -22,6 +22,7 @@
 #include "subpopulation.h"
 #include "species.h"
 #include "community.h"
+#include "mutation_block.h"
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 #include "polymorphism.h"
@@ -870,7 +871,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome_index];
 		PolymorphismMap polymorphisms;
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 		
 		// add all polymorphisms for this chromosome
 		for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
@@ -1465,7 +1466,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			vec->reserve(total_mutation_count);
 			
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 			
 			for (Chromosome *chromosome : species.Chromosomes())
 			{
@@ -3038,7 +3039,7 @@ void Individual::SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, 
 
 void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-#pragma unused (p_property_id)
+#pragma unused (p_property_id, p_source_size)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
 	const double *source_data = p_source.FloatData();
@@ -3184,7 +3185,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species->SpeciesMutationBlock()->mutation_buffer_;
 	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
@@ -3421,7 +3422,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Sum the selection coefficients of mutations of the given type
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species->SpeciesMutationBlock()->mutation_buffer_;
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_elements_size);
 	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
@@ -3530,7 +3531,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	if (only_haploid_haplosomes || (vec_reserve_size < 100))	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
 		vec->reserve(vec_reserve_size);	
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	
 	for (Chromosome *chromosome : species.Chromosomes())
 	{
@@ -3802,7 +3803,7 @@ EidosValue_SP Individual::ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStrin
 	// loop through the chromosomes
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	
 	for (slim_chromosome_index_t chromosome_index : chromosome_indices)
 	{
@@ -4501,7 +4502,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 inline __attribute__((always_inline)) static void
 _AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haplosome_last_mutrun_modified, MutationRun *&haplosome_last_mutrun,
 					std::vector<MutationIndex> &alt_allele_mut_indices, slim_position_t mut_position, Species *species, MutationRunContext *mutrun_context,
-					bool all_target_haplosomes_started_empty, bool recording_mutations)
+					Mutation *mut_block_ptr, bool all_target_haplosomes_started_empty, bool recording_mutations)
 {
 	if (call == 0)
 		return;
@@ -4527,10 +4528,10 @@ _AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haploso
 	if (all_target_haplosomes_started_empty)
 		haplosome_last_mutrun->emplace_back(mut_index);
 	else
-		haplosome_last_mutrun->insert_sorted_mutation(mut_index);
+		haplosome_last_mutrun->insert_sorted_mutation(mut_block_ptr, mut_index);
 	
 	if (recording_mutations)
-		species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_position));
+		species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_block_ptr, mut_position));
 }
 
 //	*********************	+ (o<Mutation>)readIndividualsFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
@@ -4553,6 +4554,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): " << "readIndividualsFromVCF() requires that all target individuals belong to the same species." << EidosTerminate();
 	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	Individual * const *individuals_data = (Individual * const *)p_target->ObjectData();
 	int individuals_size = p_target->Count();
 	
@@ -5032,7 +5035,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				}
 				
 				// instantiate the mutation with the values decided upon
-				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 				Mutation *new_mut;
 				
 				if (info_mutids.size() > 0)
@@ -5040,12 +5043,12 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 					slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 					
-					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				else
 				{
 					// no mutation ID supplied, so use whatever is next
-					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
@@ -5265,14 +5268,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 								
 								// add the called mutation to the haplosome at haplosomes_index
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 													all_target_haplosomes_started_empty, recording_mutations);
 							}
 							else if (haplosomes[haplosomes_index + 1])
 							{
 								// add the called mutation to the haplosome at haplosomes_index + 1
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index + 1], haplosomes_last_mutrun_modified[haplosomes_index + 1], haplosomes_last_mutrun[haplosomes_index + 1],
-													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 													all_target_haplosomes_started_empty, recording_mutations);
 							}
 							else
@@ -5286,7 +5289,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 							{
 								// add the called mutation to the haplosome at haplosomes_index
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 													all_target_haplosomes_started_empty, recording_mutations);
 							}
 							else
@@ -5306,7 +5309,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						if (haplosomes[haplosomes_index])
 						{
 							_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-												alt_allele_mut_indices, mut_position, species, &mutrun_context,
+												alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 												all_target_haplosomes_started_empty, recording_mutations);
 						}
 						else
@@ -5318,7 +5321,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						if (haplosomes[haplosomes_index])
 						{
 							_AddCallToHaplosome(genotype_call2, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-												alt_allele_mut_indices, mut_position, species, &mutrun_context,
+												alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 												all_target_haplosomes_started_empty, recording_mutations);
 						}
 						else
@@ -5335,7 +5338,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	}
 	
 	// Return the instantiated mutations
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mutation_count = (int)mutation_indices.size();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	

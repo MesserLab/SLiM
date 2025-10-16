@@ -99,9 +99,6 @@ void SLiM_WarmUp(void)
 		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 			eidos_class->CacheDispatchTables();
 		
-		// Set up our shared pool for Mutation objects
-		SLiM_CreateMutationBlock();
-		
 		// Configure the Eidos context information
 		SLiM_ConfigureContext();
 		
@@ -519,6 +516,7 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 	p_usage.totalMemoryUsage =
 		p_usage.communityObjects +
 		p_usage.mutationRefcountBuffer +
+		p_usage.mutationPerTraitBuffer +
 		p_usage.mutationUnusedPoolSpace +
 		p_usage.interactionTypeObjects +
 		p_usage.interactionTypeKDTrees +
@@ -596,6 +594,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	p_total.communityObjects += p_usage.communityObjects;
 	
 	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
+	p_total.mutationPerTraitBuffer += p_usage.mutationPerTraitBuffer;
 	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
 	
 	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
@@ -2587,6 +2586,7 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		snprintf(buf, 256, "%0.2f", mem_tot_S.mutationObjects_count / ddiv);
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.mutationObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationObjects, final_total) << "</tt> : Mutation objects (" << buf << " / " << mem_last_S.mutationObjects_count << ")<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationRefcountBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationRefcountBuffer, final_total) << "</tt> : refcount buffer<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationPerTraitBuffer, final_total) << "</tt> : per-trait buffer<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total) << "</tt> : unused pool space</p>\n\n";
 		
 		// MutationRun

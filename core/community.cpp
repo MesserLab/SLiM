@@ -30,6 +30,7 @@
 #include "polymorphism.h"
 #include "subpopulation.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -2546,23 +2547,28 @@ void Community::AllSpecies_CheckIntegrity(void)
 		const MutationIndex *registry = species->population_.MutationRegistry(&registry_size);
 		std::vector<MutationIndex> indices;
 		
-		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		if (registry_size)
 		{
-			MutationIndex mutation_index = registry[registry_index];
+			MutationIndex mutBlockCapacity = species->SpeciesMutationBlock()->capacity_;
 			
-			if ((mutation_index < 0) || (mutation_index >= gSLiM_Mutation_Block_Capacity))
-				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			{
+				MutationIndex mutation_index = registry[registry_index];
+				
+				if ((mutation_index < 0) || (mutation_index >= mutBlockCapacity))
+					EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+				
+				indices.push_back(mutation_index);
+			}
 			
-			indices.push_back(mutation_index);
+			size_t original_size = indices.size();
+			
+			std::sort(indices.begin(), indices.end());
+			indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
+			
+			if (indices.size() != original_size)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
 		}
-		
-		size_t original_size = indices.size();
-		
-		std::sort(indices.begin(), indices.end());
-		indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
-		
-		if (indices.size() != original_size)
-			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
 	}
 #endif
 }
@@ -3393,8 +3399,19 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	p_usage->communityObjects = p_usage->communityObjects_count * sizeof(Community);
 	
 	// Mutation global buffers
-	p_usage->mutationRefcountBuffer = SLiMMemoryUsageForMutationRefcounts();
-	p_usage->mutationUnusedPoolSpace = SLiMMemoryUsageForFreeMutations();		// note that in SLiMgui everybody shares this
+	// FIXME MULTITRAIT need to shift these memory usage metrics down to the species level
+	p_usage->mutationRefcountBuffer = 0.0;
+	p_usage->mutationPerTraitBuffer = 0.0;
+	p_usage->mutationUnusedPoolSpace = 0.0;
+	
+	for (Species *species : all_species_)
+	{
+		MutationBlock *mutation_block = species->SpeciesMutationBlock();
+		
+		p_usage->mutationRefcountBuffer += mutation_block->MemoryUsageForMutationRefcounts();
+		p_usage->mutationPerTraitBuffer += mutation_block->MemoryUsageForTraitInfo();
+		p_usage->mutationUnusedPoolSpace += mutation_block->MemoryUsageForFreeMutations();
+	}
 	
 	// InteractionType
 	{

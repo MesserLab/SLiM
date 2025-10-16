@@ -984,6 +984,7 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	// Mutation
 	out << "   Mutation objects (" << usage_all_species.mutationObjects_count << "): " << PrintBytes(usage_all_species.mutationObjects) << std::endl;
 	out << "      Refcount buffer: " << PrintBytes(usage_community.mutationRefcountBuffer) << std::endl;
+	out << "      Per-trait buffer: " << PrintBytes(usage_community.mutationPerTraitBuffer) << std::endl;
 	out << "      Unused pool space: " << PrintBytes(usage_community.mutationUnusedPoolSpace) << std::endl;
 	
 	// MutationRun

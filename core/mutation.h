@@ -41,7 +41,7 @@ extern EidosClass *gSLiM_Mutation_Class;
 // A global counter used to assign all Mutation objects a unique ID
 extern slim_mutationid_t gSLiM_next_mutation_id;
 
-// A MutationIndex is an index into gSLiM_Mutation_Block (see below); it is used as, in effect, a Mutation *, but is 32-bit.
+// A MutationIndex is an index into a MutationBlock (see mutation_block.h); it is used as, in effect, a Mutation *, but is 32-bit.
 // Note that type int32_t is used instead of uint32_t so that -1 can be used as a "null pointer"; perhaps UINT32_MAX would be
 // better, but on the other hand using int32_t has the virtue that if we run out of room we will probably crash hard rather
 // than perhaps just silently overrunning gSLiM_Mutation_Block with mysterious memory corruption bugs that are hard to catch.
@@ -51,11 +51,25 @@ extern slim_mutationid_t gSLiM_next_mutation_id;
 // difficult to code since MutationRun's internal buffer of MutationIndex is accessible and used directly by many clients.
 typedef int32_t MutationIndex;
 
-// forward declaration of Mutation block allocation; see bottom of header
-class Mutation;
-extern Mutation *gSLiM_Mutation_Block;
-extern MutationIndex gSLiM_Mutation_Block_Capacity;
-
+// This structure contains all of the information about how a mutation influences a particular trait: in particular, its
+// effect size and dominance coefficient.  Each mutation keeps this information for each trait in its species, and since
+// the number of traits is determined at runtime, the size of this data -- the number of MutationTraitInfo records kept
+// by each mutation -- is also determined at runtime.  We don't want to make a separate malloced block for each mutation;
+// that would be far too expensive.  Instead, MutationBlock keeps a block of MutationTraitInfo records for the species,
+// with a number of records per mutation that is determined when it is constructed.
+typedef struct _MutationTraitInfo
+{
+	slim_effect_t mutation_effect_;			// selection coefficient (s) or additive effect (a)
+	slim_effect_t dominance_coeff_;			// dominance coefficient (h), inherited from MutationType by default
+	
+	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
+	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
+	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
+	// values use slim_effect_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
+	slim_effect_t homozygous_effect_;		// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
+	slim_effect_t heterozygous_effect_;		// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+	slim_effect_t hemizygous_effect_;		// a cached value for (1 + hemizygous_dominance_coeff_ * selection_coeff_), clamped to 0.0 minimum
+} MutationTraitInfo;
 
 typedef enum {
 	kNewMutation = 0,			// the state after new Mutation()
@@ -122,8 +136,6 @@ public:
 	
 	virtual void SelfDelete(void) override;
 	
-	inline __attribute__((always_inline)) MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
-	
 	//
 	// Eidos support
 	//
@@ -185,73 +197,6 @@ public:
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
-
-
-//
-//		Mutation block allocation
-//
-
-// All Mutation objects get allocated out of a single shared pool, for speed.  We do not use EidosObjectPool for this
-// any more, because we need the allocation to be out of a single contiguous block of memory that we realloc as needed,
-// allowing Mutation objects to be referred to using 32-bit indexes into this contiguous block.  So we have a custom
-// pool, declared here and implemented in mutation.cpp.  Note that this is a global, to make it easy for users of
-// MutationIndex to look up mutations without needing to track down a pointer to the mutation block from the sim.  This
-// means that in SLiMgui a single block will be used for all mutations in all simulations; that should be harmless.
-class MutationRun;
-
-extern Mutation *gSLiM_Mutation_Block;
-extern MutationIndex gSLiM_Mutation_FreeIndex;
-extern MutationIndex gSLiM_Mutation_Block_LastUsedIndex;
-
-#ifdef DEBUG_LOCKS_ENABLED
-// We do not arbitrate access to the mutation block with a lock; instead, we expect that clients
-// will manage their own multithreading issues.  In DEBUG mode we check for incorrect uses (races).
-// We use this lock to check.  Any failure to acquire the lock indicates a race.
-extern EidosDebugLock gSLiM_Mutation_LOCK;
-#endif
-
-extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parallel to gSLiM_Mutation_Block, to increase memory cache efficiency
-													// note that I tried keeping the fitness cache values and positions in separate buffers too, not a win
-void SLiM_CreateMutationBlock(void);
-void SLiM_IncreaseMutationBlockCapacity(void);
-void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry, bool p_registry_only);
-size_t SLiMMemoryUsageForMutationBlock(void);
-size_t SLiMMemoryUsageForFreeMutations(void);
-size_t SLiMMemoryUsageForMutationRefcounts(void);
-
-inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
-{
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.start_critical(0);
-#endif
-	
-	if (gSLiM_Mutation_FreeIndex == -1)
-		SLiM_IncreaseMutationBlockCapacity();
-	
-	MutationIndex result = gSLiM_Mutation_FreeIndex;
-	
-	gSLiM_Mutation_FreeIndex = *(MutationIndex *)(gSLiM_Mutation_Block + result);
-	
-	if (gSLiM_Mutation_Block_LastUsedIndex < result)
-		gSLiM_Mutation_Block_LastUsedIndex = result;
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.end_critical();
-#endif
-	
-	return result;	// no need to zero out the memory, we are just an allocater, not a constructor
-}
-
-inline __attribute__((always_inline)) void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
-{
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_DisposeMutationToBlock(): gSLiM_Mutation_Block change");
-	
-	void *mut_ptr = gSLiM_Mutation_Block + p_mutation_index;
-	
-	*(MutationIndex *)mut_ptr = gSLiM_Mutation_FreeIndex;
-	gSLiM_Mutation_FreeIndex = p_mutation_index;
-}
-
 
 #endif /* defined(__SLiM__mutation__) */
 

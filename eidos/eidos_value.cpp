@@ -1739,7 +1739,7 @@ void EidosValue_Float::erase_index(size_t p_index)
 #pragma mark -
 
 // See comments on EidosValue_Object::EidosValue_Object() below.  Note this is shared by all species.
-std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
+std::vector<EidosValue_Object *> EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
 
 EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject),
 	values_(&singleton_value_), count_(0), capacity_(1), class_(p_class)
@@ -1755,17 +1755,18 @@ EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(Eid
 	// is some way to do this without pushing the hack down into Eidos, but at the moment I'm not seeing it.
 	// On the bright side, this scheme actually seems pretty robust; the only way it fails is if somebody avoids
 	// using the constructor or the destructor for EidosValue_Object, I think, which seems unlikely.
-	// Note this is shared by all species, since the mutation block itself is shared by all species.
+	// Note this is shared by all species, since the mutation block itself is shared by all species; and in
+	// SLiMgui is is shared across all of the running simulations, but it turns out that works fine.
 	const std::string *element_type = &(class_->ClassName());
 										
 	if (element_type == &gEidosStr_Mutation)
 	{
-		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::EidosValue_Object(): static_EidosValue_Object_Mutation_Registry change");
 		
-		gEidosValue_Object_Mutation_Registry.emplace_back(this);
+		static_EidosValue_Object_Mutation_Registry.emplace_back(this);
 		registered_for_patching_ = true;
 		
-		//std::cout << "pushed Mutation EidosValue_Object, count == " << gEidosValue_Object_Mutation_Registry.size() << std::endl;
+		//std::cout << "pushed Mutation EidosValue_Object, count == " << static_EidosValue_Object_Mutation_Registry.size() << std::endl;
 	}
 	else
 	{
@@ -1865,16 +1866,16 @@ EidosValue_Object::~EidosValue_Object(void)
 	// See comment on EidosValue_Object::EidosValue_Object() above
 	if (registered_for_patching_)
 	{
-		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::~EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::~EidosValue_Object(): static_EidosValue_Object_Mutation_Registry change");
 		
-		auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
+		auto erase_iter = std::find(static_EidosValue_Object_Mutation_Registry.begin(), static_EidosValue_Object_Mutation_Registry.end(), this);
 		
-		if (erase_iter != gEidosValue_Object_Mutation_Registry.end())
-			gEidosValue_Object_Mutation_Registry.erase(erase_iter);
+		if (erase_iter != static_EidosValue_Object_Mutation_Registry.end())
+			static_EidosValue_Object_Mutation_Registry.erase(erase_iter);
 		else
 			EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Mutation." << EidosTerminate(nullptr);
 		
-		//std::cout << "popped Mutation EidosValue_Object, count == " << gEidosValue_Object_Mutation_Registry.size() << std::endl;
+		//std::cout << "popped Mutation EidosValue_Object, count == " << static_EidosValue_Object_Mutation_Registry.size() << std::endl;
 	}
 	
 	if (class_uses_retain_release_)
@@ -1890,30 +1891,6 @@ EidosValue_Object::~EidosValue_Object(void)
 	
 	if (values_ != &singleton_value_)
 		free(values_);
-}
-
-// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-void EidosValue_Object::PatchPointersByAdding(std::uintptr_t p_pointer_difference)
-{
-	for (size_t i = 0; i < count_; ++i)
-	{
-		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
-		std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
-		
-		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);				// NOLINT(*-no-int-to-ptr)
-	}
-}
-
-// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-void EidosValue_Object::PatchPointersBySubtracting(std::uintptr_t p_pointer_difference)
-{
-	for (size_t i = 0; i < count_; ++i)
-	{
-		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
-		std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
-		
-		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);				// NOLINT(*-no-int-to-ptr)
-	}
 }
 
 void EidosValue_Object::RaiseForClassMismatch(void) const

@@ -23,6 +23,7 @@
 #import "CocoaExtra.h"
 
 #include "community.h"
+#include "mutation_block.h"
 
 
 NSString *SLiMChromosomeSelectionChangedNotification = @"SLiMChromosomeSelectionChangedNotification";
@@ -639,7 +640,7 @@ static const int spaceBetweenChromosomes = 5;
 	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = displaySpecies->SpeciesMutationBlock()->mutation_buffer_;
 	
 	if ((registry_size < 1000) || (displayedRange.length < interiorRect.size.width))
 	{

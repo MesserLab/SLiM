@@ -4407,6 +4407,12 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(" : refcount buffer\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationPerTraitBuffer, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : per-trait buffer\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
 		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);

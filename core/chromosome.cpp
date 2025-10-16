@@ -27,6 +27,7 @@
 #include "species.h"
 #include "individual.h"
 #include "subpopulation.h"
+#include "mutation_block.h"
 
 #include <iostream>
 #include <fstream>
@@ -1038,10 +1039,11 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	slim_effect_t selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
-	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+	MutationBlock *mutation_block = mutation_block_;
+	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
-	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
 	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, p_subpop_index, p_tick, -1);	// FIXME MULTITRAIT
 	
@@ -1408,15 +1410,16 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	slim_effect_t selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
-	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
-	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	MutationBlock *mutation_block = mutation_block_;
+	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
 	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, p_subpop_index, p_tick, nucleotide);	// FIXME MULTITRAIT
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
-		Mutation *post_callback_mut = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
+		Mutation *post_callback_mut = ApplyMutationCallbacks(mutation, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
 		// If the callback didn't return the proposed mutation, it will not be used; dispose of it
 		if (post_callback_mut != mutation)
@@ -1434,7 +1437,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		
 		// Otherwise, we will request the addition of whatever mutation it returned (which might be the proposed mutation).
 		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background haplosome.
-		MutationIndex post_callback_mut_index = post_callback_mut->BlockIndex();
+		MutationIndex post_callback_mut_index = mutation_block->IndexInBlock(post_callback_mut);
 		
 		if (new_mut_index != post_callback_mut_index)
 		{

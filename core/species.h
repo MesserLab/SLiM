@@ -55,6 +55,7 @@ extern "C" {
 class Community;
 class EidosInterpreter;
 class Individual;
+class MutationBlock;
 class MutationType;
 class GenomicElementType;
 class InteractionType;
@@ -181,6 +182,11 @@ private:
 	
 	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
+	// We keep a MutationBlock object that stores all of the Mutation objects that belong to this species.
+	// Our mutations get allocated and freed using this block, and we use MutationIndex to reference them.
+	// This remains nullptr in no-genetics species, and is allocated only after initialize() is done.
+	MutationBlock *mutation_block_ = nullptr;			// OWNED; contains all of our mutations
+	
 	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
 	// as well as hash tables for quick lookup by id and symbol
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -230,9 +236,9 @@ private:
 	// private initialization methods
 #if EIDOS_ROBIN_HOOD_HASHING
 	typedef robin_hood::unordered_flat_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
- #elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING
 	typedef std::unordered_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
- #endif
+#endif
 	
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
 	void _CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter);				// clean up in anticipation of loading new species state
@@ -322,17 +328,17 @@ private:
 	
 	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
 	
-    std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
+	std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
 												// actually be shared by multiple haplosomes in different chromosomes
 	//Individual *current_new_individual_;
 	
 #if EIDOS_ROBIN_HOOD_HASHING
 	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
- #elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING
 	typedef std::unordered_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
- #endif
+#endif
 	INDIVIDUALS_HASH tabled_individuals_hash_;	// look up individuals table row numbers from pedigree IDs
-
+	
 	bool running_coalescence_checks_ = false;	// true if we check for coalescence after each simplification
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
 	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ cycles
@@ -468,6 +474,7 @@ public:
 	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id);
 	void RunInitializeCallbacks(void);
+	void CreateAndPromulgateMutationBlock(void);
 	void EndCurrentChromosome(bool starting_new_chromosome);
 	bool HasDoneAnyInitialization(void);
 	void PrepareForCycle(void);
@@ -524,6 +531,7 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
+	inline __attribute__((always_inline)) MutationBlock *SpeciesMutationBlock(void)											{ return mutation_block_; }		// FIXME MULTICHROM: We could cache a ref to this in some key spots like Chromosome, MutationType, and Subpopulation
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }

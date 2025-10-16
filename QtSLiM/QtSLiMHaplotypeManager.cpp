@@ -46,6 +46,7 @@
 #include "eidos_globals.h"
 #include "subpopulation.h"
 #include "species.h"
+#include "mutation_block.h"
 
 
 const int QtSLiM_SubpopulationStripWidth = 5;
@@ -480,7 +481,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 	mutationPositions = static_cast<slim_position_t *>(malloc(sizeof(slim_position_t) * mutationIndexCount));
 	
 	// Copy the information we need on each mutation in use
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
 	
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{

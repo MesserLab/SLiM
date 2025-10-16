@@ -22,204 +22,13 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "species.h"
+#include "mutation_block.h"
 
 #include <algorithm>
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <csignal>
-
-
-// All Mutation objects get allocated out of a single shared block, for speed; see SLiM_WarmUp()
-// Note this is shared by all species; the mutations for every species come out of the same shared block.
-Mutation *gSLiM_Mutation_Block = nullptr;
-MutationIndex gSLiM_Mutation_Block_Capacity = 0;
-MutationIndex gSLiM_Mutation_FreeIndex = -1;
-MutationIndex gSLiM_Mutation_Block_LastUsedIndex = -1;
-
-#ifdef DEBUG_LOCKS_ENABLED
-EidosDebugLock gSLiM_Mutation_LOCK("gSLiM_Mutation_LOCK");
-#endif
-
-slim_refcount_t *gSLiM_Mutation_Refcounts = nullptr;
-
-#define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable		// NOLINT(*-macro-to-enum) : this is fine
-
-extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	// this is in Eidos; see SLiM_IncreaseMutationBlockCapacity()
-
-void SLiM_CreateMutationBlock(void)
-{
-	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block address change");
-	
-	// first allocate the block; no need to zero the memory
-	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
-	gSLiM_Mutation_Block = (Mutation *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
-	gSLiM_Mutation_Refcounts = (slim_refcount_t *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
-	
-	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
-		EIDOS_TERMINATION << "ERROR (SLiM_CreateMutationBlock): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-	//std::cout << "Allocating initial mutation block, " << SLIM_MUTATION_BLOCK_INITIAL_SIZE * sizeof(Mutation) << " bytes (sizeof(Mutation) == " << sizeof(Mutation) << ")" << std::endl;
-	
-	// now we need to set up our free list inside the block; initially all blocks are free
-	for (MutationIndex i = 0; i < gSLiM_Mutation_Block_Capacity - 1; ++i)
-		*(MutationIndex *)(gSLiM_Mutation_Block + i) = i + 1;
-	
-	*(MutationIndex *)(gSLiM_Mutation_Block + gSLiM_Mutation_Block_Capacity - 1) = -1;
-	
-	// now that the block is set up, we can start the free list
-	gSLiM_Mutation_FreeIndex = 0;
-}
-
-void SLiM_IncreaseMutationBlockCapacity(void)
-{
-	// We do not use a THREAD_SAFETY macro here because this needs to be checked in release builds also;
-	// we are not able to completely protect against this occurring at runtime, and it corrupts the run.
-	// It's OK for this to be called when we're inside an inactive parallel region; there is then no
-	// race condition.  When a parallel region is active, even inside a critical region, reallocating
-	// the mutation block has the potential for a race with other threads.
-	if (omp_in_parallel())
-	{
-		std::cerr << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) SLiM_IncreaseMutationBlockCapacity() was called to reallocate gSLiM_Mutation_Block inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
-		raise(SIGTRAP);
-	}
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.start_critical(1);
-#endif
-	
-	if (!gSLiM_Mutation_Block)
-		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
-	
-	// We need to expand the size of our Mutation block.  This has the consequence of invalidating
-	// every Mutation * in the program.  In general that is fine; we are careful to only keep
-	// pointers to Mutation temporarily, and for long-term reference we use MutationIndex.  The
-	// exception to this is EidosValue_Object; the user can put references to mutations into
-	// variables that need to remain valid across reallocs like this.  We therefore have to hunt
-	// down every EidosValue_Object that contains Mutations, and fix the pointer inside each of
-	// them.  Because in SLiMgui all of the running simulations share a single Mutation block at
-	// the moment, in SLiMgui this patching has to occur across all of the simulations, not just
-	// the one that made this call.  Yes, this is very gross.  This is why pointers are evil.  :->
-	
-	// First let's do our realloc.  We just need to note the change in value for the pointer.
-	// For now we will just double in size; we don't want to waste too much memory, but we
-	// don't want to have to realloc too often, either.
-	// BCH 11 May 2020: the realloc of gSLiM_Mutation_Block is technically problematic, because
-	// Mutation is non-trivially copyable according to C++.  But it is safe, so I cast to void*
-	// in the hopes that that will make the warning go away.
-	std::uintptr_t old_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
-	MutationIndex old_block_capacity = gSLiM_Mutation_Block_Capacity;
-	
-	//std::cout << "old capacity: " << old_block_capacity << std::endl;
-	
-	// BCH 25 July 2023: check for increasing our block beyond the maximum size of 2^31 mutations.
-	// See https://github.com/MesserLab/SLiM/issues/361.  Note that the initial size should be
-	// a power of 2, so that we actually reach the maximum; see SLIM_MUTATION_BLOCK_INITIAL_SIZE.
-	// In other words, we expect to be at exactly 0x0000000040000000UL here, and thus to double
-	// to 0x0000000080000000UL, which is a capacity of 2^31, which is the limit of int32_t.
-	if ((size_t)old_block_capacity > 0x0000000040000000UL)	// >2^30 means >2^31 when doubled
-		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): too many mutations; there is a limit of 2^31 (2147483648) segregating mutations in SLiM." << EidosTerminate(nullptr);
-	
-	gSLiM_Mutation_Block_Capacity *= 2;
-	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));						// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
-	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
-	
-	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
-		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-	//std::cout << "new capacity: " << gSLiM_Mutation_Block_Capacity << std::endl;
-	
-	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
-	
-	// Set up the free list to extend into the new portion of the buffer.  If we are called when
-	// gSLiM_Mutation_FreeIndex != -1, the free list will start with the new region.
-	for (MutationIndex i = old_block_capacity; i < gSLiM_Mutation_Block_Capacity - 1; ++i)
-		*(MutationIndex *)(gSLiM_Mutation_Block + i) = i + 1;
-	
-	*(MutationIndex *)(gSLiM_Mutation_Block + gSLiM_Mutation_Block_Capacity - 1) = gSLiM_Mutation_FreeIndex;
-	
-	gSLiM_Mutation_FreeIndex = old_block_capacity;
-	
-	// Now we go out and fix Mutation * references in EidosValue_Object in all symbol tables
-	if (new_mutation_block != old_mutation_block)
-	{
-		// This may be excessively cautious, but I want to avoid subtracting these uintptr_t values
-		// to produce a negative number; that seems unwise and possibly platform-dependent.
-		if (old_mutation_block > new_mutation_block)
-		{
-			std::uintptr_t ptr_diff = old_mutation_block - new_mutation_block;
-			
-			for (EidosValue_Object *mutation_value : gEidosValue_Object_Mutation_Registry)
-				mutation_value->PatchPointersBySubtracting(ptr_diff);
-		}
-		else
-		{
-			std::uintptr_t ptr_diff = new_mutation_block - old_mutation_block;
-			
-			for (EidosValue_Object *mutation_value : gEidosValue_Object_Mutation_Registry)
-				mutation_value->PatchPointersByAdding(ptr_diff);
-		}
-	}
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.end_critical();
-#endif
-}
-
-void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry, bool p_registry_only)
-{
-	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ZeroRefcountBlock(): gSLiM_Mutation_Block change");
-	
-#ifdef SLIMGUI
-	// BCH 11/25/2017: This code path needs to be used in SLiMgui to avoid modifying the refcounts
-	// for mutations in other simulations sharing the mutation block.
-	p_registry_only = true;
-#endif
-	
-	if (p_registry_only)
-	{
-		// This code path zeros out refcounts just for the mutations currently in use in the registry.
-		// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
-		// BCH 6/8/2023: This is necessary in SLiMgui, as noted above, but also in multispecies sims
-		// so that one species does not step on the toes of another species.
-		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-		const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
-		const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
-		
-		while (registry_iter != registry_iter_end)
-			*(refcount_block_ptr + (*registry_iter++)) = 0;
-	}
-	else
-	{
-		// Zero out the whole thing with EIDOS_BZERO(), without worrying about which bits are in use.
-		// This hits more memory, but avoids having to read the registry, and should write whole cache lines.
-		EIDOS_BZERO(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
-	}
-}
-
-size_t SLiMMemoryUsageForMutationBlock(void)
-{
-	return gSLiM_Mutation_Block_Capacity * sizeof(Mutation);
-}
-
-size_t SLiMMemoryUsageForFreeMutations(void)
-{
-	size_t mut_count = 0;
-	MutationIndex nextFreeBlock = gSLiM_Mutation_FreeIndex;
-	
-	while (nextFreeBlock != -1)
-	{
-		mut_count++;
-		nextFreeBlock = *(MutationIndex *)(gSLiM_Mutation_Block + nextFreeBlock);
-	}
-	
-	return mut_count * sizeof(Mutation);
-}
-
-size_t SLiMMemoryUsageForMutationRefcounts(void)
-{
-	return gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t);
-}
 
 
 #pragma mark -
@@ -233,8 +42,11 @@ Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(p_selection_coeff), dominance_coeff_(p_dominance_coeff), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 #ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.start_critical(2);
+	mutation_block_LOCK.start_critical(2);
 #endif
+	
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -244,15 +56,43 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
 	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
-	// zero out our refcount, which is now kept in a separate buffer
-	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
+	// zero out our refcount and per-trait information, which is now kept in a separate buffer
+	// FIXME MULTITRAIT: The per-trait info will soon supplant selection_coeff_ and dominance_coeff_; this initialization code needs to be fleshed out
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
+	mutation_block->refcount_buffer_[mutation_index] = 0;
+	
+	int trait_count = mutation_block->trait_count_;
+	MutationTraitInfo *traitInfoBase = mutation_block->trait_info_buffer_ + trait_count * mutation_index;
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		MutationTraitInfo *traitInfoRec = traitInfoBase + trait_index;
+		Trait *trait = species.Traits()[trait_index];
+		TraitType traitType = trait->Type();
+		
+		traitInfoRec->mutation_effect_ = selection_coeff_;
+		traitInfoRec->dominance_coeff_ = dominance_coeff_;
+		
+		if (traitType == TraitType::kMultiplicative)
+		{
+			traitInfoRec->homozygous_effect_ = 0.0;
+			traitInfoRec->heterozygous_effect_ = 0.0;
+			traitInfoRec->hemizygous_effect_ = 0.0;
+		}
+		else
+		{
+			traitInfoRec->homozygous_effect_ = 0.0;
+			traitInfoRec->heterozygous_effect_ = 0.0;
+			traitInfoRec->hemizygous_effect_ = 0.0;
+		}
+	}
 	
 #if DEBUG_MUTATIONS
 	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
 #ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.end_critical();
+	mutation_block_LOCK.end_critical();
 #endif
 	
 #if 0
@@ -303,6 +143,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(p_selection_coeff), dominance_coeff_(p_dominance_coeff), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
@@ -311,8 +154,36 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
 	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
-	// zero out our refcount, which is now kept in a separate buffer
-	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
+	// zero out our refcount and per-trait information, which is now kept in a separate buffer
+	// FIXME MULTITRAIT: The per-trait info will soon supplant selection_coeff_ and dominance_coeff_; this initialization code needs to be fleshed out
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
+	mutation_block->refcount_buffer_[mutation_index] = 0;
+	
+	int trait_count = mutation_block->trait_count_;
+	MutationTraitInfo *traitInfoBase = mutation_block->trait_info_buffer_ + trait_count * mutation_index;
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		MutationTraitInfo *traitInfoRec = traitInfoBase + trait_index;
+		Trait *trait = species.Traits()[trait_index];
+		TraitType traitType = trait->Type();
+		
+		traitInfoRec->mutation_effect_ = selection_coeff_;
+		traitInfoRec->dominance_coeff_ = dominance_coeff_;
+		
+		if (traitType == TraitType::kMultiplicative)
+		{
+			traitInfoRec->homozygous_effect_ = 0.0;
+			traitInfoRec->heterozygous_effect_ = 0.0;
+			traitInfoRec->hemizygous_effect_ = 0.0;
+		}
+		else
+		{
+			traitInfoRec->homozygous_effect_ = 0.0;
+			traitInfoRec->heterozygous_effect_ = 0.0;
+			traitInfoRec->hemizygous_effect_ = 0.0;
+		}
+	}
 	
 #if DEBUG_MUTATIONS
 	std::cout << "Mutation constructed: " << this << std::endl;
@@ -331,10 +202,12 @@ void Mutation::SelfDelete(void)
 {
 	// This is called when our retain count reaches zero
 	// We destruct ourselves and return our memory to our shared pool
-	MutationIndex mutation_index = BlockIndex();
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
 	
 	this->~Mutation();
-	SLiM_DisposeMutationToBlock(mutation_index);
+	mutation_block->DisposeMutationToBlock(mutation_index);
 }
 
 // This is unused except by debugging code and in the debugger itself

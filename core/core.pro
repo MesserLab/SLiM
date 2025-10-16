@@ -95,6 +95,7 @@ SOURCES += \
     individual.cpp \
     interaction_type.cpp \
     log_file.cpp \
+    mutation_block.cpp \
     mutation_run.cpp \
     mutation_type.cpp \
     mutation.cpp \
@@ -125,6 +126,7 @@ HEADERS += \
     individual.h \
     interaction_type.h \
     log_file.h \
+    mutation_block.h \
     mutation_run.h \
     mutation_type.h \
     mutation.h \

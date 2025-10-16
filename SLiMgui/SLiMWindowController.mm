@@ -2233,6 +2233,12 @@
 		[content eidosAppendString:@" : refcount buffer\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationPerTraitBuffer / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationPerTraitBuffer total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : per-trait buffer\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationUnusedPoolSpace total:final_total attributes:menlo11_d]];

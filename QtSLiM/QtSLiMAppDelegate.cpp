@@ -244,7 +244,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
 
     // This lambda (1) ensures that visible top-level windows remain on screen;
     // (2) raises the active window to the front on the appropriate screen, if appropriate.
-    auto ensureOnScreen = [this]() {
+    auto ensureOnScreen = []() {
         const auto topLevels = QApplication::topLevelWidgets();
         QWidget *active = qApp->activeWindow();
         for (QWidget *w : topLevels)

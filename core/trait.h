@@ -86,6 +86,7 @@ public:
 	
 	inline __attribute__((always_inline)) int64_t Index(void) const				{ return index_; }
 	inline __attribute__((always_inline)) void SetIndex(int64_t p_index)		{ index_ = p_index; }	// only from AddTrait()
+	inline __attribute__((always_inline)) TraitType Type(void) const			{ return type_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const	{ return name_; }
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_

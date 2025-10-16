@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9801EEB72E9F28A10017C779 /* mutation_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9801EEB62E9F28980017C779 /* mutation_block.cpp */; };
+		9801EEB82E9F28A10017C779 /* mutation_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9801EEB62E9F28980017C779 /* mutation_block.cpp */; };
+		9801EEB92E9F28A10017C779 /* mutation_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9801EEB62E9F28980017C779 /* mutation_block.cpp */; };
+		9801EEBA2E9F28A10017C779 /* mutation_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9801EEB62E9F28980017C779 /* mutation_block.cpp */; };
+		9801EEBB2E9F28A10017C779 /* mutation_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9801EEB62E9F28980017C779 /* mutation_block.cpp */; };
 		98024742215D85880025D29C /* FindRecipePanel.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98024740215D85880025D29C /* FindRecipePanel.xib */; };
 		980566E225A7C5B9008D3C7F /* fdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 980566E125A7C5B9008D3C7F /* fdist.c */; };
 		980566E325A7C5B9008D3C7F /* fdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 980566E125A7C5B9008D3C7F /* fdist.c */; };
@@ -1747,6 +1752,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9801EEB52E9F28840017C779 /* mutation_block.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mutation_block.h; sourceTree = "<group>"; };
+		9801EEB62E9F28980017C779 /* mutation_block.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_block.cpp; sourceTree = "<group>"; };
 		98024741215D85880025D29C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/FindRecipePanel.xib; sourceTree = "<group>"; };
 		980566E125A7C5B9008D3C7F /* fdist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fdist.c; sourceTree = "<group>"; };
 		98076602244934A800F6CBB4 /* zutil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zutil.h; sourceTree = "<group>"; };
@@ -2535,6 +2542,8 @@
 				98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */,
 				98606AED1DED0DCD00821CFF /* mutation_run.h */,
 				98606AEC1DED0DCD00821CFF /* mutation_run.cpp */,
+				9801EEB52E9F28840017C779 /* mutation_block.h */,
+				9801EEB62E9F28980017C779 /* mutation_block.cpp */,
 				98E9A6891A3CCFD0000AD4FC /* mutation.h */,
 				98E9A6881A3CCFD0000AD4FC /* mutation.cpp */,
 				98E9A69E1A3CD551000AD4FC /* substitution.h */,
@@ -3928,6 +3937,7 @@
 				98606AEE1DED0DCD00821CFF /* mutation_run.cpp in Sources */,
 				98C821241C7A980000548839 /* inline.c in Sources */,
 				98CEFD6C2AAFABAA00D2C9B4 /* inline.c in Sources */,
+				9801EEB72E9F28A10017C779 /* mutation_block.cpp in Sources */,
 				98DE4C131B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */,
 				98076614244934A800F6CBB4 /* compress.c in Sources */,
 				98E9A6961A3CD51A000AD4FC /* genomic_element_type.cpp in Sources */,
@@ -4105,6 +4115,7 @@
 				9861521B2B167AED0083E68F /* species.cpp in Sources */,
 				986152162B167AED0083E68F /* spatial_kernel.cpp in Sources */,
 				986152562B167B4E0083E68F /* coerce.c in Sources */,
+				9801EEBB2E9F28A10017C779 /* mutation_block.cpp in Sources */,
 				986152592B167B4E0083E68F /* init.c in Sources */,
 				986152662B167B4E0083E68F /* init.c in Sources */,
 				9861524A2B167B4E0083E68F /* ddot.c in Sources */,
@@ -4484,6 +4495,7 @@
 				98CF527F294A3FC900557BBA /* GraphView_MutationFixationTimeHistogram.mm in Sources */,
 				98CF5280294A3FC900557BBA /* eidos_functions_files.cpp in Sources */,
 				98CF5281294A3FC900557BBA /* rowcol.c in Sources */,
+				9801EEBA2E9F28A10017C779 /* mutation_block.cpp in Sources */,
 				98CF5282294A3FC900557BBA /* gausszig.c in Sources */,
 				98CF5283294A3FC900557BBA /* eidos_type_interpreter.cpp in Sources */,
 				98D7D6672AB24CBC002AFE34 /* chisq.c in Sources */,
@@ -4836,6 +4848,7 @@
 				986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */,
 				981DC35128E26F8B000ABE91 /* eidos_functions_files.cpp in Sources */,
 				98332AED1FDBC29400274FF0 /* rowcol.c in Sources */,
+				9801EEB92E9F28A10017C779 /* mutation_block.cpp in Sources */,
 				98C8214D1C7A983700548839 /* gausszig.c in Sources */,
 				9893C7EA1CDFE9870029AC94 /* eidos_type_interpreter.cpp in Sources */,
 				98D7D6662AB24CBC002AFE34 /* chisq.c in Sources */,
@@ -5125,6 +5138,7 @@
 				98D7ECEC28CE58FC00DEAAC4 /* GitSHA1_Xcode.cpp in Sources */,
 				98D7ECED28CE58FC00DEAAC4 /* eidos_class_Object.cpp in Sources */,
 				98CEFD732AAFABAA00D2C9B4 /* inline.c in Sources */,
+				9801EEB82E9F28A10017C779 /* mutation_block.cpp in Sources */,
 				98D7ECEE28CE58FC00DEAAC4 /* lodepng.cpp in Sources */,
 				98D7ECEF28CE58FC00DEAAC4 /* mutation_run.cpp in Sources */,
 				98D7ECF028CE58FC00DEAAC4 /* inline.c in Sources */,

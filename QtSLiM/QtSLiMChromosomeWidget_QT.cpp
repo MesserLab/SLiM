@@ -24,6 +24,8 @@
 
 #include <QtDebug>
 
+#include "mutation_block.h"
+
 #include <map>
 #include <algorithm>
 #include <vector>
@@ -174,7 +176,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
     {
         int registry_size;
         const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-        Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+        Mutation *mut_block_ptr = displaySpecies->SpeciesMutationBlock()->mutation_buffer_;
         slim_chromosome_index_t chromosome_index = chromosome->Index();
         
         for (int registry_index = 0; registry_index < registry_size; ++registry_index)

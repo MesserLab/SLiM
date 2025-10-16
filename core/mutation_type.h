@@ -41,6 +41,7 @@
 #include "slim_globals.h"
 
 class Species;
+class MutationBlock;
 
 
 extern EidosClass *gSLiM_MutationType_Class;
@@ -92,6 +93,7 @@ public:
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
 	Species &species_;
+	MutationBlock *mutation_block_ = nullptr;	// NOT OWNED; a pointer to the MutationBlock from the species
 	
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes

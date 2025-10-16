@@ -23,6 +23,8 @@
 
 #include <string>
 
+#include "mutation_block.h"
+
 
 QtSLiMGraphView_1DPopulationSFS::QtSLiMGraphView_1DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
@@ -89,9 +91,10 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	Population &pop = graphSpecies->population_;
 	
 	pop.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+    
+    MutationBlock *mutation_block = graphSpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+    slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
     int registry_size;
     const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	
@@ -101,7 +104,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
         Chromosome *mut_chromosome = graphSpecies->Chromosomes()[mutation->chromosome_index_];
         double totalHaplosomeCount = ((mut_chromosome->total_haplosome_count_ == 0) ? 1 : mut_chromosome->total_haplosome_count_);   // prevent a zero count from producing NAN frequencies below
 		
-		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
+		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation_block->IndexInBlock(mutation));
 		double mutationFrequency = mutationRefCount / totalHaplosomeCount;
 		int mutationBin = static_cast<int>(floor(mutationFrequency * binCount));
 		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;

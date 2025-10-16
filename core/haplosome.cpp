@@ -26,6 +26,7 @@
 #include "species.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
+#include "mutation_block.h"
 #include "eidos_sorting.h"
 
 #include <algorithm>
@@ -334,7 +335,7 @@ void Haplosome::record_derived_states(Species *p_species) const
 	// This is called by Species::RecordAllDerivedStatesFromSLiM() to record all the derived states present
 	// in a given haplosome that was just created by readFromPopulationFile() or some similar situation.  It should
 	// make calls to record the derived state at each position in the haplosome that has any mutation.
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = p_species->SpeciesMutationBlock()->mutation_buffer_;
 	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::record_derived_states(): usage of statics");
 
@@ -445,7 +446,7 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 			if (IsDeferred())
 				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 			
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = individual_->subpopulation_->species_.SpeciesMutationBlock()->mutation_buffer_;
 			int mut_count = mutation_count();
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mut_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
@@ -852,7 +853,7 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosO
 	
 	// Count the number of mutations of the given type
 	const int32_t mutrun_count = ((Haplosome *)(p_elements[0]))->mutrun_count_;
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species->SpeciesMutationBlock()->mutation_buffer_;
 	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	bool saw_error = false;
 	
@@ -907,7 +908,7 @@ EidosValue_SP Haplosome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_met
 	
 	// We want to return a singleton if we can, but we also want to avoid scanning through all our mutations twice.
 	// We do this by not creating a vector until we see the second match; with one match, we make a singleton.
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	Mutation *first_match = nullptr;
 	EidosValue_Object *vec = nullptr;
 	EidosValue_SP result_SP;
@@ -1263,7 +1264,7 @@ EidosValue_SP Haplosome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStr
 	
 	// Return the positions of mutations of the given type
 	EidosValue_Int *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
@@ -1299,7 +1300,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Sum the selection coefficients of mutations of the given type
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	double selcoeff_sum = 0.0;
 	int mutrun_count = mutrun_count_;
 	
@@ -1322,9 +1323,9 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 }
 
 // print the sample represented by haplosomes, using SLiM's own format
-void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags)
+void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, Species &p_species, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags)
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = p_species.SpeciesMutationBlock()->mutation_buffer_;
 	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
 	
 	// get the polymorphisms within the sample
@@ -1416,9 +1417,9 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome 
 }
 
 // print the sample represented by haplosomes, using "ms" format
-void Haplosome::PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic)
+void Haplosome::PrintHaplosomes_MS(std::ostream &p_out, Species &p_species, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic)
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = p_species.SpeciesMutationBlock()->mutation_buffer_;
 	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
 	
 	// BCH 7 Nov. 2016: sort the polymorphisms by position since that is the expected sort
@@ -1686,7 +1687,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 	Species &species = p_chromosome.species_;
 	bool nucleotide_based = species.IsNucleotideBased();
 	NucleotideArray *ancestral_seq = p_chromosome.AncestralSequence();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	int64_t individual_count;
 	
 	// if groupAsIndividuals is false, we just act as though the chromosome is haploid
@@ -2282,6 +2283,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_addMutations");
 	
 	Community &community = species->community_;
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// All haplosomes must belong to the same chromosome, and all mutations being added must belong to that chromosome too.
 	// It's important that a mismatch result in an error; attempts to add mutations to chromosomes inconsistently should be flagged.
@@ -2515,9 +2518,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 					if (add_pos / mutrun_length != mutrun_index)
 						break;
 					
-					if (target_run->enforce_stack_policy_for_addition(mut_to_add->position_, mut_to_add->mutation_type_ptr_))
+					if (target_run->enforce_stack_policy_for_addition(mut_block_ptr, mut_to_add->position_, mut_to_add->mutation_type_ptr_))
 					{
-						target_run->insert_sorted_mutation_if_unique(mut_to_add->BlockIndex());
+						target_run->insert_sorted_mutation_if_unique(mut_block_ptr, mutation_block->IndexInBlock(mut_to_add));
 						
 						// No need to add the mutation to the registry; how would the user ever get a Mutation that was not already in it?
 						// Similarly, no need to check and set pure_neutral_ and all_pure_neutral_DFE_; the mutation is already in the system
@@ -2547,7 +2550,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 			std::vector<slim_position_t> &haplosome_positions = haplosome_pair.second;
 			
 			for (slim_position_t position : haplosome_positions)
-				species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(position));
+				species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(mut_block_ptr, position));
 		}
 	}
 	
@@ -2588,6 +2591,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_addNewMutation");
 	
 	Community &community = species->community_;
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// All haplosomes must belong to the same chromosome.  It's important that a mismatch result in an error;
 	// attempts to add mutations to chromosomes inconsistently should be flagged.
@@ -2900,9 +2905,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 						nucleotide = nucleotide_lookup[(unsigned char)(arg_nucleotide->StringAtIndex_NOCAST(mut_parameter_index, nullptr)[0])];
 				}
 				
-				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 				
-				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
+				Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
@@ -2923,11 +2928,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		// BCH 18 January 2020: If a vector of positions was provided, mutations_to_add might be out of sorted
 		// order, which is expected below by clear_set_and_merge(), so we sort here
 		if ((position_count != 1) && (mutations_to_add.size() > 1))
-		{
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			
 			std::sort(mutations_to_add.begin(), mutations_to_add.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
-		}
 		
 		// Now start the bulk operation and add mutations_to_add to every target haplosome
 		Haplosome::BulkOperationStart(operation_id, mutrun_index);
@@ -2945,7 +2946,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 			if (modifiable_mutrun)
 			{
 				// We merge the original run (which has not yet been freed!) and mutations_to_add into modifiable_mutrun
-				modifiable_mutrun->clear_set_and_merge(*original_run, mutations_to_add);
+				modifiable_mutrun->clear_set_and_merge(mut_block_ptr, *original_run, mutations_to_add);
 			}
 			
 			// TREE SEQUENCE RECORDING
@@ -2960,12 +2961,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				
 				while (muts != muts_end)
 				{
-					Mutation *mut = gSLiM_Mutation_Block + *(muts++);
+					Mutation *mut = mut_block_ptr + *(muts++);
 					slim_position_t pos = mut->position_;
 					
 					if (pos != previous_position)
 					{
-						species->RecordNewDerivedState(target_haplosome, pos, *target_haplosome->derived_mutation_ids_at_position(pos));
+						species->RecordNewDerivedState(target_haplosome, pos, *target_haplosome->derived_mutation_ids_at_position(mut_block_ptr, pos));
 						previous_position = pos;
 					}
 				}
@@ -3163,9 +3164,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		
 		// Call out to print the actual sample
 		if (p_method_id == gID_outputHaplosomes)
-			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, output_object_tags);
+			Haplosome::PrintHaplosomes_SLiM(output_stream, *species, haplosomes, output_object_tags);
 		else if (p_method_id == gID_outputHaplosomesToMS)
-			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
+			Haplosome::PrintHaplosomes_MS(output_stream, *species, haplosomes, *chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputHaplosomesToVCF)
 			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs);
 	}
@@ -3198,10 +3199,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					
 					outfile << " " << outfile_path << std::endl;
 					
-					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, output_object_tags);
+					Haplosome::PrintHaplosomes_SLiM(outfile, *species, haplosomes, output_object_tags);
 					break;
 				case gID_outputHaplosomesToMS:
-					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);
+					Haplosome::PrintHaplosomes_MS(outfile, *species, haplosomes, *chromosome, filter_monomorphic);
 					break;
 				case gID_outputHaplosomesToVCF:
 					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs);
@@ -3258,6 +3259,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readHaplosomesFromMS() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
 	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromMS");
+	
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// For MS input, we need to know the chromosome to calculate positions from the normalized interval [0, 1].
 	// We infer it from the haplosomes, and in a multi-chromosome species all the haplosomes must belong to it.
@@ -3401,9 +3405,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 				nucleotide++;
 		}
 		
-		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
+		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -3420,7 +3424,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	}
 	
 	// Sort the mutations by position so we can add them in order, and make an "order" vector for accessing calls in the sorted order
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	std::vector<int64_t> order_vec = EidosSortIndexes(positions);
 	
 	std::sort(mutation_indices.begin(), mutation_indices.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
@@ -3473,10 +3476,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 				if (haplosome_started_empty)
 					current_mutrun->emplace_back(mut_index);
 				else
-					current_mutrun->insert_sorted_mutation(mut_index);
+					current_mutrun->insert_sorted_mutation(mut_block_ptr, mut_index);
 				
 				if (recording_mutations)
-					species.RecordNewDerivedState(haplosome, mut_pos, *haplosome->derived_mutation_ids_at_position(mut_pos));
+					species.RecordNewDerivedState(haplosome, mut_pos, *haplosome->derived_mutation_ids_at_position(mut_block_ptr, mut_pos));
 			}
 		}
 	}
@@ -3512,6 +3515,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): " << "readHaplosomesFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF");
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// All haplosomes must belong to the same chromosome, and in multichrom models the CHROM field must match its symbol
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
@@ -4042,7 +4048,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			}
 			
 			// instantiate the mutation with the values decided upon
-			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 			Mutation *new_mut;
 			
 			if (info_mutids.size() > 0)
@@ -4050,12 +4056,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 				slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 				
-				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			else
 			{
 				// no mutation ID supplied, so use whatever is next
-				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			
 			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
@@ -4103,16 +4109,15 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				if (all_target_haplosomes_started_empty)
 					haplosome_last_mutrun->emplace_back(mut_index);
 				else
-					haplosome_last_mutrun->insert_sorted_mutation(mut_index);
+					haplosome_last_mutrun->insert_sorted_mutation(mut_block_ptr, mut_index);
 				
 				if (recording_mutations)
-					species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_position));
+					species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_block_ptr, mut_position));
 			}
 		}
 	}
 	
 	// Return the instantiated mutations
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mutation_count = (int)mutation_indices.size();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
@@ -4130,7 +4135,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	EidosValue *mutations_value = p_arguments[0].get();
 	EidosValue *substitute_value = p_arguments[1].get();
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int target_size = p_target->Count();
 	
 	if (target_size == 0)
@@ -4141,6 +4145,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// All haplosomes must belong to the same chromosome, and all mutations being added must belong to that chromosome too.
 	// It's important that a mismatch result in an error; attempts to add mutations to chromosomes inconsistently should be flagged.
@@ -4475,7 +4482,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 							if (haplosome->scratch_ == 1)
 							{
 								for (slim_position_t position : unique_positions)
-									species->RecordNewDerivedState(haplosome, position, *haplosome->derived_mutation_ids_at_position(position));
+									species->RecordNewDerivedState(haplosome, position, *haplosome->derived_mutation_ids_at_position(mut_block_ptr, position));
 								haplosome->scratch_ = 0;
 							}
 						}
@@ -4533,7 +4540,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 						for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
 						{
 							Mutation *mut_to_remove = mutations_to_remove[mut_index];
-							MutationIndex mut_to_remove_index = mut_to_remove->BlockIndex();
+							MutationIndex mut_to_remove_index = mutation_block->IndexInBlock(mut_to_remove);
 							
 							if (mut_to_remove_index == candidate_mutation)
 							{
@@ -4586,7 +4593,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				std::vector<slim_position_t> &haplosome_positions = haplosome_pair.second;
 				
 				for (slim_position_t position : haplosome_positions)
-					species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(position));
+					species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(mut_block_ptr, position));
 			}
 		}
 	}
@@ -4623,6 +4630,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 #pragma mark HaplosomeWalker
 #pragma mark -
 
+HaplosomeWalker::HaplosomeWalker(Haplosome *p_haplosome) : haplosome_(p_haplosome), mutrun_index_(-1), mutrun_ptr_(nullptr), mutrun_end_(nullptr), mutation_(nullptr), mut_block_ptr_(haplosome_->individual_->subpopulation_->species_.SpeciesMutationBlock()->mutation_buffer_)
+{
+	NextMutation();
+};
+
 void HaplosomeWalker::NextMutation(void)
 {
 	// the !mutrun_ptr_ is actually not necessary, but ASAN wants it to be here...
@@ -4645,7 +4657,7 @@ void HaplosomeWalker::NextMutation(void)
 		while (mutrun_ptr_ == mutrun_end_);
 	}
 	
-	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
+	mutation_ = mut_block_ptr_ + *mutrun_ptr_;
 }
 
 void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
@@ -4683,7 +4695,7 @@ void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 	}
 	
 	// if the mutation found is at or after the requested position, we are already done
-	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
+	mutation_ = mut_block_ptr_ + *mutrun_ptr_;
 	
 	if (mutation_->position_ >= p_position)
 		return;
@@ -4716,7 +4728,7 @@ bool HaplosomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
 	for (const MutationIndex *search_ptr_ = mutrun_ptr_; search_ptr_ != mutrun_end_; ++search_ptr_)
 	{
 		MutationIndex mutindex = *search_ptr_;
-		Mutation *mut = gSLiM_Mutation_Block + mutindex;
+		Mutation *mut = mut_block_ptr_ + mutindex;
 		
 		if (mut == p_search_mut)
 			return true;
@@ -4751,8 +4763,8 @@ bool HaplosomeWalker::IdenticalAtCurrentPositionTo(HaplosomeWalker &p_other_walk
 	
 	do
 	{
-		Mutation *mut_1 = (search_ptr_1 != mutrun_end_) ? (gSLiM_Mutation_Block + *search_ptr_1) : nullptr;
-		Mutation *mut_2 = (search_ptr_2 != p_other_walker.mutrun_end_) ? (gSLiM_Mutation_Block + *search_ptr_2) : nullptr;
+		Mutation *mut_1 = (search_ptr_1 != mutrun_end_) ? (mut_block_ptr_ + *search_ptr_1) : nullptr;
+		Mutation *mut_2 = (search_ptr_2 != p_other_walker.mutrun_end_) ? (mut_block_ptr_ + *search_ptr_2) : nullptr;
 		bool has_mut_at_position_1 = (mut_1) ? (mut_1->position_ == pos) : false;
 		bool has_mut_at_position_2 = (mut_2) ? (mut_2->position_ == pos) : false;
 		
@@ -4792,7 +4804,7 @@ int8_t HaplosomeWalker::NucleotideAtCurrentPosition(void)
 	for (const MutationIndex *search_ptr_ = mutrun_ptr_ + 1; search_ptr_ != mutrun_end_; ++search_ptr_)
 	{
 		MutationIndex mutindex = *search_ptr_;
-		Mutation *mut = gSLiM_Mutation_Block + mutindex;
+		Mutation *mut = mut_block_ptr_ + mutindex;
 		
 		if (mut->position_ != pos)
 			return -1;

@@ -470,7 +470,7 @@ public:
 		mutation_count_ += p_copy_count;
 	}
 	
-	inline void insert_sorted_mutation(MutationIndex p_mutation_index)
+	inline void insert_sorted_mutation(Mutation *p_mut_block_ptr, MutationIndex p_mutation_index)
 	{
 		// first push it back on the end, which deals with capacity/locking issues
 		emplace_back(p_mutation_index);
@@ -480,12 +480,12 @@ public:
 			return;
 		
 		// then find the proper position for it
-		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		Mutation *mut_ptr_to_insert = p_mut_block_ptr + p_mutation_index;
 		MutationIndex *sort_position = begin_pointer();
 		const MutationIndex *end_position = end_pointer_const() - 1;		// the position of the newly added element
 		
 		for ( ; sort_position != end_position; ++sort_position)
-			if (CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
+			if (CompareMutations(mut_ptr_to_insert, p_mut_block_ptr + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 				break;
 		
 		// if we got all the way to the end, then the mutation belongs at the end, so we're done
@@ -541,7 +541,7 @@ public:
 		*sort_position = p_mutation_index;
 	}*/
 	
-	inline void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
+	inline void insert_sorted_mutation_if_unique(Mutation *p_mut_block_ptr, MutationIndex p_mutation_index)
 	{
 		// first push it back on the end, which deals with capacity/locking issues
 		emplace_back(p_mutation_index);
@@ -551,13 +551,13 @@ public:
 			return;
 		
 		// then find the proper position for it
-		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		Mutation *mut_ptr_to_insert = p_mut_block_ptr + p_mutation_index;
 		MutationIndex *sort_position = begin_pointer();
 		const MutationIndex *end_position = end_pointer_const() - 1;		// the position of the newly added element
 		
 		for ( ; sort_position != end_position; ++sort_position)
 		{
-			if (CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
+			if (CompareMutations(mut_ptr_to_insert, p_mut_block_ptr + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 			{
 				break;
 			}
@@ -580,8 +580,8 @@ public:
 		*sort_position = p_mutation_index;
 	}
 	
-	bool _EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
-	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr);	// below
+	bool _EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
+	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationType *p_mut_type_ptr);	// below
 	
 	inline __attribute__((always_inline)) void copy_from_run(const MutationRun &p_source_run)
 	{
@@ -626,11 +626,11 @@ public:
 	// this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 	// bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position, and it
 	// must be guaranteed that none of the mutations in the two given runs are the same.
-	void clear_set_and_merge(const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add);
+	void clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add);
 	
 	// This is used by the tree sequence recording code to get the full derived state at a given position.
 	// Note that the vector returned is cached internally and reused with each call, for speed.
-	const std::vector<Mutation *> *derived_mutation_ids_at_position(slim_position_t p_position) const;
+	const std::vector<Mutation *> *derived_mutation_ids_at_position(Mutation *p_mut_block_ptr, slim_position_t p_position) const;
 	
 	inline __attribute__((always_inline)) const MutationIndex *begin_pointer_const(void) const
 	{
@@ -652,14 +652,14 @@ public:
 		return mutations_ + mutation_count_;
 	}
 	
-	void _RemoveFixedMutations(void);
-	inline __attribute__((always_inline)) void RemoveFixedMutations(int64_t p_operation_id)
+	void _RemoveFixedMutations(Mutation *p_mut_block_ptr);
+	inline __attribute__((always_inline)) void RemoveFixedMutations(Mutation *p_mut_block_ptr, int64_t p_operation_id)
 	{
 		if (operation_id_ != p_operation_id)
 		{
 			operation_id_ = p_operation_id;
 			
-			_RemoveFixedMutations();
+			_RemoveFixedMutations(p_mut_block_ptr);
 		}
 	}
 	
@@ -694,7 +694,7 @@ public:
 	}
 	
 	// splitting mutation runs
-	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const;
+	void split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.
@@ -737,13 +737,13 @@ public:
 		++nonneutral_mutations_count_;
 	}
 	
-	void cache_nonneutral_mutations_REGIME_1() const;
-	void cache_nonneutral_mutations_REGIME_2() const;
-	void cache_nonneutral_mutations_REGIME_3() const;
+	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const;
+	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const;
+	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const;
 	
 	void check_nonneutral_mutation_cache() const;
 	
-	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
+	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(Mutation *p_mut_block_ptr, const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
 	{
 		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
 		{
@@ -757,9 +757,9 @@ public:
 			
 			switch (p_nonneutral_regime)
 			{
-				case 1: cache_nonneutral_mutations_REGIME_1(); break;
-				case 2: cache_nonneutral_mutations_REGIME_2(); break;
-				case 3: cache_nonneutral_mutations_REGIME_3(); break;
+				case 1: cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
+				case 2: cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
+				case 3: cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
 			}
 			
 #if (SLIMPROFILING == 1)
@@ -838,7 +838,7 @@ public:
 // We need MutationType below, but we can't include it at top because it requires MutationRun to be defined...
 #include "mutation_type.h"
 
-inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationType *p_mut_type_ptr)
 {
 	MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
 	
@@ -850,7 +850,7 @@ inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for
 	else
 	{
 		// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-		return _EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
+		return _EnforceStackPolicyForAddition(p_mut_block_ptr, p_position, policy, p_mut_type_ptr->stack_group_);
 	}
 }
 

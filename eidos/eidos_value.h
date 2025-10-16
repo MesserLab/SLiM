@@ -951,7 +951,7 @@ class EidosValue_Object final : public EidosValue
 {
 private:
 	typedef EidosValue super;
-
+	
 protected:
 	// singleton/vector design: values_ will either point to singleton_value_, or to a malloced buffer; it will never be nullptr
 	// in the case of a zero-length vector, note that values_ will point to singleton_value_ with count_ == 0 but capacity_ == 1
@@ -986,10 +986,6 @@ protected:
 		}
 	}
 	void RaiseForClassMismatch(void) const;
-	
-	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-	void PatchPointersByAdding(std::uintptr_t p_pointer_difference);
-	void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference);
 	
 public:
 	EidosValue_Object(void) = delete;												// no default constructor
@@ -1083,7 +1079,7 @@ public:
 		else
 			reserve(capacity_ << 1);
 	}
-
+	
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
 	inline __attribute__((always_inline)) EidosObject **data_mutable(void) { WILL_MODIFY(this); return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
@@ -1108,7 +1104,12 @@ public:
 	void set_object_element_no_check_no_previous_RR(EidosObject *p_object, size_t p_index);		// specifies retain/release, previous value assumed invalid from resize_no_initialize_RR
 	void set_object_element_no_check_NORR(EidosObject *p_object, size_t p_index);	// specifies no retain/release
 	
-	friend void SLiM_IncreaseMutationBlockCapacity(void);	// for PatchPointersByAdding() / PatchPointersBySubtracting()
+private:
+	// See comments on EidosValue_Object::EidosValue_Object().  Note this is shared by all species, and in
+	// SLiMgui it is shared by all running simulations, so we need to be careful not to step on any toes.
+	static std::vector<EidosValue_Object *> static_EidosValue_Object_Mutation_Registry;
+	
+	friend class MutationBlock;		// so it can access the above registry; see IncreaseMutationBlockCapacity()
 };
 
 inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_CRR(EidosObject *p_object)

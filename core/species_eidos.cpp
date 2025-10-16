@@ -27,6 +27,7 @@
 #include "subpopulation.h"
 #include "polymorphism.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -2050,7 +2051,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutations:
 		{
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 			int registry_size;
 			const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(registry_size);
@@ -3247,7 +3248,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "mutationsOfType()");		// SPECIES CONSISTENCY CHECK
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// track calls per cycle to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
@@ -3343,7 +3344,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// track calls per cycle to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
@@ -3632,7 +3633,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 	
 	int mutations_count = mutations_value->Count();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	
 	if (mutations_count > 0)
 	{
@@ -4192,7 +4193,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	
 	// We will scan forward looking for a match, and will keep track of the first match we find.  If we only find one, we return
 	// a singleton; if we find a second, we will start accumulating a vector result.
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	int registry_size;
 	const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 	int match_count = 0, registry_index;

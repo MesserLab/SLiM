@@ -451,8 +451,9 @@ typedef struct
 	int64_t communityObjects_count;
 	size_t communityObjects;
 	
-	size_t mutationRefcountBuffer;			// this pool is kept globally by Mutation
-	size_t mutationUnusedPoolSpace;			// this pool is kept globally by Mutation
+	size_t mutationRefcountBuffer;			// this pool is kept by Species
+	size_t mutationPerTraitBuffer;			// this pool is kept by Species
+	size_t mutationUnusedPoolSpace;			// this pool is kept by Species
 	
 	int64_t interactionTypeObjects_count;	// InteractionType is kept by Community now
 	size_t interactionTypeObjects;

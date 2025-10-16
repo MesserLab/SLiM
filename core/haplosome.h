@@ -62,6 +62,7 @@ class Population;
 class Subpopulation;
 class Individual;
 class HaplosomeWalker;
+class MutationBlock;
 
 
 extern EidosClass *gSLiM_Haplosome_Class;
@@ -284,7 +285,7 @@ public:
 	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	
 	// Remove all mutations in p_haplosome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
-	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+	inline __attribute__((always_inline)) void RemoveFixedMutations(Mutation *p_mut_block_ptr, int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
@@ -296,7 +297,7 @@ public:
 		// Population::RemoveAllFixedMutations() for further context on this.
 		MutationRun *mutrun = const_cast<MutationRun *>(mutruns_[p_mutrun_index]);
 		
-		mutrun->RemoveFixedMutations(p_operation_id);
+		mutrun->RemoveFixedMutations(p_mut_block_ptr, p_operation_id);
 	}
 	
 	// TallyHaplosomeReferences_Checkback() counts up the total MutationRun references, using their usage counts, as a checkback
@@ -392,20 +393,20 @@ public:
 		// subpop_ = p_source_haplosome.subpop_;
 	}
 	
-	inline const std::vector<Mutation *> *derived_mutation_ids_at_position(slim_position_t p_position) const
+	inline const std::vector<Mutation *> *derived_mutation_ids_at_position(Mutation *p_mut_block_ptr, slim_position_t p_position) const
 	{
 		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(p_position / mutrun_length_);
 		
-		return mutruns_[run_index]->derived_mutation_ids_at_position(p_position);
+		return mutruns_[run_index]->derived_mutation_ids_at_position(p_mut_block_ptr, p_position);
 	}
 	
 	void record_derived_states(Species *p_species) const;
 	
 	// print the sample represented by haplosomes, using SLiM's own format
-	static void PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags);
+	static void PrintHaplosomes_SLiM(std::ostream &p_out, Species &p_species, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags);
 	
 	// print the sample represented by haplosomes, using "ms" format
-	static void PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
+	static void PrintHaplosomes_MS(std::ostream &p_out, Species &p_species, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
 	
 	// print the sample represented by haplosomes, using "vcf" format
 	static void PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs);
@@ -493,13 +494,14 @@ private:
 	const MutationIndex *mutrun_ptr_;			// a pointer to the current element in the mutation run
 	const MutationIndex *mutrun_end_;			// an end pointer for the mutation run
 	Mutation *mutation_;						// the current mutation pointer, or nullptr if we have reached the end of the haplosome
+	Mutation *mut_block_ptr_;					// a cached mutation block buffer pointer for our haplosome's species
 	
 public:
 	HaplosomeWalker(void) = delete;
 	HaplosomeWalker(const HaplosomeWalker &p_original) = default;
 	HaplosomeWalker& operator= (const HaplosomeWalker &p_original) = default;
 	
-	inline HaplosomeWalker(Haplosome *p_haplosome) : haplosome_(p_haplosome), mutrun_index_(-1), mutrun_ptr_(nullptr), mutrun_end_(nullptr), mutation_(nullptr) { NextMutation(); };
+	explicit HaplosomeWalker(Haplosome *p_haplosome);
 	HaplosomeWalker(HaplosomeWalker&&) = default;
 	inline ~HaplosomeWalker(void) {};
 	
