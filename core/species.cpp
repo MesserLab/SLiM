@@ -187,6 +187,11 @@ Species::~Species(void)
 	std::fill(chromosome_for_haplosome_index_.begin(), chromosome_for_haplosome_index_.end(), nullptr);
 	chromosome_for_haplosome_index_.clear();
 	
+	// Free our Trait objects
+	for (Trait *trait : traits_)
+		delete trait;
+	traits_.clear();
+	
 	// Free our MutationBlock, and make those with copies of it forget it; see CreateAndPromulgateMutationBlock
 	{
 		delete mutation_block_;

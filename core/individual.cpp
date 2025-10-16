@@ -85,6 +85,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	}
 	
 	// Set up per-trait information such as phenotype caches and individual offsets
+	trait_info_ = nullptr;
 	_InitializePerTraitInformation();
 	
 	// Initialize tag values to the "unset" value
@@ -106,8 +107,8 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 
 void Individual::_InitializePerTraitInformation(void)
 {
-	// Set up per-trait individual-level information such as individual offsets.  This is called by
-	// Individual::Individual(), but also in various other places where individuals are re-used.
+	// Set up per-trait individual-level information such as individual offsets.  This is called by Individual::Individual(),
+	// but also in various other places where individuals are re-used, so the trait_info_ record might already be allocated.
 	
 	// FIXME MULTITRAIT: this will probably be a pain point; maybe we can skip it if offsets have never been changed by the user?
 	// I imagine a design where there is a bool flag that says "the offsets for this individual have been initialized".  This
@@ -134,17 +135,46 @@ void Individual::_InitializePerTraitInformation(void)
 	
 	if (trait_count == 1)
 	{
+#if DEBUG
+		// If there is existing trait info, the number of traits should not have changed, so we should not need to adjust
+		if (trait_info_ && (trait_info_ != &trait_info_0_))
+		{
+			free(trait_info_);
+			std::cout << "_InitializePerTraitInformation(): (internal error) unmatched trait info! (case 1)" << std::endl;
+		}
+#endif
+		
 		trait_info_ = &trait_info_0_;
 		trait_info_0_.value_ = 0.0;
 		trait_info_0_.offset_ = traits[0]->DrawIndividualOffset();
 	}
 	else if (trait_count == 0)
 	{
+#if DEBUG
+		// If there is existing trait info, the number of traits should not have changed, so we should not need to adjust
+		if (trait_info_)
+		{
+			if (trait_info_ != &trait_info_0_)
+				free(trait_info_);
+			std::cout << "_InitializePerTraitInformation(): (internal error) unmatched trait info! (case 2)" << std::endl;
+		}
+#endif
+		
 		trait_info_ = nullptr;
 	}
 	else
 	{
-		trait_info_ = static_cast<SLiM_PerTraitInfo *>(malloc(trait_count * sizeof(SLiM_PerTraitInfo)));
+#if DEBUG
+		// If there is existing trait info, the number of traits should not have changed, so we should not need to adjust
+		// Note that in this case if there is allocated trait info we assume it is the correct size; we have no way to check that
+		if (trait_info_ && (trait_info_ == &trait_info_0_))
+		{
+			std::cout << "_InitializePerTraitInformation(): (internal error) unmatched trait info! (case 3)" << std::endl;
+		}
+#endif
+		
+		if (!trait_info_)
+			trait_info_ = static_cast<SLiM_PerTraitInfo *>(malloc(trait_count * sizeof(SLiM_PerTraitInfo)));
 		
 		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
 		{

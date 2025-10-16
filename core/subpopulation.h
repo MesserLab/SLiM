@@ -294,6 +294,7 @@ public:
 			back->subpopulation_ = this;
 			
 			// Draw new individual trait offsets from each trait's individual-offset distribution
+			// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 			back->_InitializePerTraitInformation();
 			
 			return back;

@@ -62,6 +62,7 @@ public:
 #endif
 	
 	explicit MutationBlock(Species &p_species, int p_trait_count);
+	~MutationBlock(void);
 	
 	void IncreaseMutationBlockCapacity(void);
 	void ZeroRefcountBlock(MutationRun &p_mutation_registry);

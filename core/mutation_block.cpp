@@ -50,6 +50,23 @@ MutationBlock::MutationBlock(Species &p_species, int p_trait_count) : species_(p
 	free_index_ = 0;
 }
 
+MutationBlock::~MutationBlock(void)
+{
+	free(mutation_buffer_);
+	mutation_buffer_ = nullptr;
+	
+	free(refcount_buffer_);
+	refcount_buffer_ = nullptr;
+	
+	free(trait_info_buffer_);
+	trait_info_buffer_ = nullptr;
+	
+	capacity_ = 0;
+	free_index_ = -1;
+	last_used_index_ = -1;
+	trait_count_ = 0;
+}
+
 void MutationBlock::IncreaseMutationBlockCapacity(void)
 {
 	// We do not use a THREAD_SAFETY macro here because this needs to be checked in release builds also;

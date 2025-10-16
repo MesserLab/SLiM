@@ -4503,6 +4503,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
@@ -4891,6 +4892,7 @@ bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, slim_pe
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
@@ -4977,6 +4979,7 @@ bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, slim_pe
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
@@ -5060,6 +5063,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
@@ -5262,6 +5266,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
@@ -5538,6 +5543,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_ped
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
@@ -5624,6 +5630,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_ped
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
