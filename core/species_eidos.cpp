@@ -1714,7 +1714,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		else
 		{
 			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
-			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))
+												 ->MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Species_Class->AddSignatureForProperty(signature);
 		}
@@ -1734,7 +1735,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		else
 		{
 			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
-			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait")->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_VALUE));
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait")->
+												 DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_VALUE)->
+												 DeclareAcceleratedSet(Individual::SetProperty_Accelerated_TRAIT_VALUE));
 			
 			gSLiM_Individual_Class->AddSignatureForProperty(signature);
 		}

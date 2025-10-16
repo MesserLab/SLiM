@@ -2627,7 +2627,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			Species &species = subpopulation_->species_;
 			Trait *trait = species.TraitFromStringID(p_property_id);
 			
-			if (trait)
+			if (trait)				// ACCELERATED
 			{
 				trait_info_[trait->Index()].value_ = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 				return;
@@ -3039,7 +3039,7 @@ void Individual::SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, 
 
 void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-#pragma unused (p_property_id, p_source_size)
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
 	const double *source_data = p_source.FloatData();
@@ -3049,23 +3049,53 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 		Trait *trait = species->TraitFromStringID(p_property_id);
 		int64_t trait_index = trait->Index();
 		
-		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		if (p_source_size == 1)
 		{
-			const Individual *value = individuals_buffer[value_index];
+			slim_effect_t source_value = (slim_effect_t)source_data[0];
 			
-			value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				
+				value->trait_info_[trait_index].value_ = source_value;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				
+				value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+			}
 		}
 	}
 	else
 	{
 		// with a mixed-species target, the species and trait have to be looked up for each individual
-		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		if (p_source_size == 1)
 		{
-			const Individual *value = individuals_buffer[value_index];
-			Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
-			int64_t trait_index = trait->Index();
+			slim_effect_t source_value = (slim_effect_t)source_data[0];
 			
-			value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+				int64_t trait_index = trait->Index();
+				
+				value->trait_info_[trait_index].value_ = source_value;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+				int64_t trait_index = trait->Index();
+				
+				value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+			}
 		}
 	}
 }
