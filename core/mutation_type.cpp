@@ -87,9 +87,9 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	all_pure_neutral_DFE_ = ((p_dfe_type == DFEType::kFixed) && (p_dfe_parameters[0] == 0.0));
 	
 	// set up DE entries for all traits
-	int64_t trait_count = species_.TraitCount();
+	int trait_count = species_.TraitCount();
 	
-	for (int64_t trait_index = 0; trait_index < trait_count; trait_index++)
+	for (int trait_index = 0; trait_index < trait_count; trait_index++)
 	{
 		EffectDistributionInfo ed_info;
 		

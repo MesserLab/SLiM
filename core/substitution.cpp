@@ -23,6 +23,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "species.h"
+#include "mutation_block.h"
 
 #include <iostream>
 #include <algorithm>
@@ -40,11 +41,38 @@ Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
 {
 	AddKeysAndValuesFrom(&p_mutation);
 	// No call to ContentsChanged() here; we know we use Dictionary not DataFrame, and Mutation already vetted the dictionary
+	
+	// Copy per-trait information over from the mutation object
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationIndex mut_index = mutation_block->IndexInBlock(&p_mutation);
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoIndex(mut_index);
+	int trait_count = species.TraitCount();
+	
+	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
+	
+	for (int trait_index = 0; trait_index < trait_count; trait_index++)
+	{
+		trait_info_[trait_index].effect_size_ = mut_trait_info[trait_index].effect_size_;
+		trait_info_[trait_index].dominance_coeff_ = mut_trait_info[trait_index].dominance_coeff_;
+	}
 }
 
 Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_effect_t>(p_selection_coeff)), dominance_coeff_(static_cast<slim_effect_t>(p_dominance_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
 {
+	// FIXME MULTITRAIT: This code path is hit when loading substitutions from an output file, also needs to initialize the multitrait info; this is just a
+	// placeholder.  The file being read in ought to specify per-trait values, which hasn't happened yet, so there are lots of details to be worked out...
+	Species &species = mutation_type_ptr_->species_;
+	int trait_count = species.TraitCount();
+	
+	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
+	
+	for (int trait_index = 0; trait_index < trait_count; trait_index++)
+	{
+		trait_info_[trait_index].effect_size_ = 0.0;
+		trait_info_[trait_index].dominance_coeff_ = 0.0;
+	}
 }
 
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const

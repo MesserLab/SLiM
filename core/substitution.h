@@ -37,6 +37,18 @@
 
 extern EidosClass *gSLiM_Substitution_Class;
 
+// This structure contains all of the information about how a substitution influenced a particular trait: in particular, its
+// effect size and dominance coefficient.  Each substitution keeps this information for each trait in its species, and since
+// the number of traits is determined at runtime, the size of this data -- the number of SubstitutionTraitInfo records kept
+// by each substitution -- is also determined at runtime.  This is parallel to the MutationTraitInfo struct for mutations,
+// but keeps less information since it is not used during fitness evaluation.  Also unlike Mutation, which keeps all this
+// in a block maintained by MutationBlock, we simply make a malloced block for each substitution; substitution is relatively
+// rare and substitutions don't go away once created, so there is no need to overcomplicate this design.
+typedef struct _SubstitutionTraitInfo
+{
+	slim_effect_t effect_size_;				// selection coefficient (s) or additive effect (a)
+	slim_effect_t dominance_coeff_;			// dominance coefficient (h), inherited from MutationType by default
+} SubstitutionTraitInfo;
 
 class Substitution : public EidosDictionaryRetained
 {
@@ -59,14 +71,17 @@ public:
 	const slim_mutationid_t mutation_id_;		// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;					// a user-defined tag value
 	
+	// Per-trait information
+	SubstitutionTraitInfo *trait_info_;			// OWNED: a malloced block of per-trait information
+	
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
 	Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick);	// construct from the mutation that has fixed, and the tick in which it fixed
 	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
 	
-	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
-	inline virtual ~Substitution(void) override { }
+	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though
+	inline virtual ~Substitution(void) override { free(trait_info_); trait_info_ = nullptr; }
 	
 	void PrintForSLiMOutput(std::ostream &p_out) const;
 	void PrintForSLiMOutput_Tag(std::ostream &p_out) const;

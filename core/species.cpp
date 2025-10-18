@@ -609,7 +609,7 @@ void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices,
 {
 	EidosValueType traits_value_type = traits_value->Type();
 	int traits_value_count = traits_value->Count();
-	int64_t trait_count = TraitCount();
+	int trait_count = TraitCount();
 	
 	switch (traits_value_type)
 	{
@@ -2825,7 +2825,7 @@ void Species::CreateAndPromulgateMutationBlock(void)
 		EIDOS_TERMINATION << "ERROR (Species::CreateAndPromulgateMutationBlock): (internal error) a mutation block has already been allocated." << EidosTerminate();
 	
 	// first we make a new MutationBlock object for ourselves
-	mutation_block_ = new MutationBlock(*this, (int)TraitCount());
+	mutation_block_ = new MutationBlock(*this, TraitCount());
 	
 	// then we promulgate it to the masses, so that they have it on hand (avoiding the non-local memory access
 	// of getting it from us), since it is referred to very actively in many places

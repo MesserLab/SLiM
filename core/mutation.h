@@ -59,7 +59,7 @@ typedef int32_t MutationIndex;
 // with a number of records per mutation that is determined when it is constructed.
 typedef struct _MutationTraitInfo
 {
-	slim_effect_t mutation_effect_;			// selection coefficient (s) or additive effect (a)
+	slim_effect_t effect_size_;				// selection coefficient (s) or additive effect (a)
 	slim_effect_t dominance_coeff_;			// dominance coefficient (h), inherited from MutationType by default
 	
 	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation

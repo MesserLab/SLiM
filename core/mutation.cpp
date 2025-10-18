@@ -70,7 +70,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		Trait *trait = species.Traits()[trait_index];
 		TraitType traitType = trait->Type();
 		
-		traitInfoRec->mutation_effect_ = selection_coeff_;
+		traitInfoRec->effect_size_ = selection_coeff_;
 		traitInfoRec->dominance_coeff_ = dominance_coeff_;
 		
 		if (traitType == TraitType::kMultiplicative)
@@ -168,7 +168,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		Trait *trait = species.Traits()[trait_index];
 		TraitType traitType = trait->Type();
 		
-		traitInfoRec->mutation_effect_ = selection_coeff_;
+		traitInfoRec->effect_size_ = selection_coeff_;
 		traitInfoRec->dominance_coeff_ = dominance_coeff_;
 		
 		if (traitType == TraitType::kMultiplicative)

@@ -448,7 +448,7 @@ public:
 	
 	// Trait configuration and access
 	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
-	inline __attribute__((always_inline)) int64_t TraitCount(void)	{ return (int64_t)traits_.size(); }
+	inline __attribute__((always_inline)) int TraitCount(void)	{ return (int)traits_.size(); }
 	Trait *TraitFromName(const std::string &p_name) const;
 	inline __attribute__((always_inline)) Trait *TraitFromStringID(EidosGlobalStringID p_string_id) const
 	{
