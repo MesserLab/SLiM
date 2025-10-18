@@ -2907,7 +2907,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				
 				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 				
-				Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
+				Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
@@ -3407,7 +3407,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		
 		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 		
-		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
+		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -3966,7 +3966,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			if (info_domcoeffs.size() > 0)
 				dominance_coeff = info_domcoeffs[alt_allele_index];
 			else
-				dominance_coeff = mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_;	// FIXME MULTITRAIT
+				dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT
 			
 			// get the selection coefficient from S, or draw one from the mutation type
 			slim_effect_t selection_coeff;

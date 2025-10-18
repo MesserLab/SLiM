@@ -4183,10 +4183,11 @@ See also
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The parameter 
+The parameter 
 \f3\fs18 offset
-\f4\fs20  must follow one of four patterns.  In the first pattern, offset is 
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 offset
+\f4\fs20  is 
 \f3\fs18 NULL
 \f4\fs20 ; this draws the offset for each of the specified traits from each trait\'92s individual-offset distribution (defined by each trait\'92s 
 \f3\fs18 individualOffsetMean
@@ -6146,7 +6147,45 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)setDominanceCoeff(float$\'a0dominanceCoeff)\
+\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the mutation\'92s dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 ; for both multiplicative traits and additive traits this is the dominance coefficient 
+\f1\i h
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the mutation\'92s effect size for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 ; for multiplicative traits, this is typically the selection coefficient 
+\f1\i s
+\f4\i0 , whereas for additive traits it is typically the additive effect size 
+\f1\i a
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effects for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setDominanceCoeff(float$\'a0dominanceCoeff)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the dominance coefficient of the mutation to 
@@ -6159,6 +6198,68 @@ Changing this will normally affect the fitness values calculated toward the end 
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the mutation\'92s dominance coefficient(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+The parameter 
+\f3\fs18 dominance
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 dominance
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this sets the dominance for each of the specified traits to the default dominance coefficient from the mutation type of the mutation in each target mutation.  (Note that mutation dominance coefficients are automatically set to these defaults when a mutation is created; this re-sets default dominance values.)  In the second pattern, 
+\f3\fs18 dominance
+\f4\fs20  is a singleton value; this sets the given dominance for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits; this sets the dominance for each of the specified traits to the corresponding dominance value in each target mutation.  In the fourth pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
+\f3\fs18 dominance
+\f4\fs20  to provide a different dominance coefficient for each trait in each mutation, using consecutive values from 
+\f3\fs18 dominance
+\f4\fs20  to set the dominance for each of the specified traits in one mutation before moving to the next mutation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effect\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the mutation\'92s effect(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+The parameter 
+\f3\fs18 effect
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 effect
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this draws the effect for each of the specified traits from the corresponding distribution of effect sizes from the mutation type of the mutation in each target mutation.  (Note that mutation offsets are automatically drawn from these distributions when a mutation is created; this re-draws new effect values.)  In the second pattern, 
+\f3\fs18 effect
+\f4\fs20  is a singleton value; this sets the given effect for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 effect
+\f4\fs20  is of length equal to the number of specified traits; this sets the effect for each of the specified traits to the corresponding effect value in each target mutation.  In the fourth pattern, 
+\f3\fs18 effect
+\f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
+\f3\fs18 effect
+\f4\fs20  to provide a different effect value for each trait in each mutation, using consecutive values from 
+\f3\fs18 effect
+\f4\fs20  to set the effect for each of the specified traits in one mutation before moving to the next mutation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)\
@@ -13912,12 +14013,48 @@ nucleotide <\'96> (string$)\
 \f1\i\fs22 \cf0 5.18.2  
 \f2\fs18 Substitution
 \f1\fs22  methods\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f5\i0 \cf0 \
+\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the substitution\'92s dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , carried over from the original mutation object.  For both multiplicative traits and additive traits this is the dominance coefficient 
+\f1\i h
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .
+\f5\fs22 \cf0 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the substitution\'92s effect size for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , carried over from the original mutation object.  For multiplicative traits, this is typically the selection coefficient 
+\f1\i s
+\f4\i0 , whereas for additive traits it is typically the additive effect size 
+\f1\i a
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effects for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b \cf2 5.19  Class Trait\
+\f0\b\fs22 \cf2 5.19  Class Trait\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf2 5.19.1  

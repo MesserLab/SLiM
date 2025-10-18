@@ -227,6 +227,27 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
+			// Here we implement a special behavior: you can do mutation.<trait>Effect and mutation.<trait>Dominance to access a trait's values directly.
+			Species &species = mutation_type_ptr_->species_;
+			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+			
+			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].effect_size_));
+			}
+			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 9);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].dominance_coeff_));
+			}
+			
 			return super::GetProperty(p_property_id);
 	}
 }
@@ -472,7 +493,77 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
+		case gID_effectForTrait:	return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_dominanceForTrait:	return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		default:					return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+	}
+}
+
+//	*********************	- (float)effectForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<int64_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		slim_effect_t effect = trait_info_[trait_index].effect_size_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(effect));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t effect = trait_info_[trait_index].effect_size_;
+			
+			float_result->push_float_no_check(effect);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
+//	*********************	- (float)dominanceForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<int64_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "dominanceForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_;
+			
+			float_result->push_float_no_check(dominance);
+		}
+		
+		return EidosValue_SP(float_result);
 	}
 }
 
@@ -525,6 +616,9 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 		THREAD_SAFETY_IN_ANY_PARALLEL("Substitution_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -950,7 +950,7 @@ R"V0G0N(
 initialize() {
 	defineConstant("T_height", initializeTrait("height", "multiplicative", 2.0));
 	defineConstant("T_weight", initializeTrait("weight", "additive", 186.0));
-	initializeMutationRate(1e-7);
+	initializeMutationRate(1e-5);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
@@ -966,8 +966,8 @@ initialize() {
 	initializeSLiMModelType("nonWF");
 	defineConstant("T_height", initializeTrait("height", "multiplicative", 2.0));
 	defineConstant("T_weight", initializeTrait("weight", "additive", 186.0));
-	initializeMutationRate(1e-7);
-	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationRate(1e-5);
+	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution = T;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
@@ -1019,7 +1019,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithNames(c('weight', 'height')))) stop(); }");
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithNames('typo'); }", "trait with the given name (typo)", __LINE__);
 		
-		// basic trait properties
+		// basic trait properties: baselineOffset, directFitnessEffect, index, individualOffsetMean, individualOffsetSD, name, species, tag, type
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.baselineOffset, 2.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.baselineOffset, 186.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.baselineOffset = 12.5; if (!identical(T_height.baselineOffset, 12.5)) stop(); }");
@@ -1087,6 +1087,67 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 10.0; if (!identical(p1.individuals.weight, rep(10.0, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = 10.0:14; if (!identical(p1.individuals.height, 10.0:14)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 11.0:15; if (!identical(p1.individuals.weight, 11.0:15)) stop(); }");
+		
+		// Mutation effectForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(0), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(1), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(NULL), c(0.0, 0.0))) stop(); }");
+		
+		// Mutation setEffectForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, 3); mut.setEffectForTrait(1, 4.5); if (!identical(mut.effectForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, 1:5 * 2 - 1); mut.setEffectForTrait(1, 1:5 * 2); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(NULL, 1:10); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(NULL, 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10); if (!identical(mut.effectForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.effectForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// Mutation dominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(0), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(1), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.5, 0.5))) stop(); }");
+		
+		// Mutation setDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(0, 3); mut.setDominanceForTrait(1, 4.5); if (!identical(mut.dominanceForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(0, 1:5 * 2 - 1); mut.setDominanceForTrait(1, 1:5 * 2); if (!identical(mut.dominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(NULL, 1:10); if (!identical(mut.dominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(NULL, 1:10 + 0.5); if (!identical(mut.dominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(0,1), 1:10); if (!identical(mut.dominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10); if (!identical(mut.dominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// Substitution effectForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(0), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(1), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(NULL), c(0.0, 0.0))) stop(); }");
+		
+		// Substitution dominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(0), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(1), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(NULL), c(0.5, 0.5))) stop(); }");
+		
+		// Mutation <trait>Effect property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightEffect, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightEffect, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = 0.25; if (!identical(mut.heightEffect, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightEffect = 0.25; if (!identical(mut.weightEffect, 0.25)) stop(); }");
+		
+		// Mutation <trait>Dominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightDominance, 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightDominance, 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightDominance = 0.25; if (!identical(mut.heightDominance, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightDominance = 0.25; if (!identical(mut.weightDominance, 0.25)) stop(); }");
+		
+		// Substitution <trait>Effect property
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.heightEffect, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.weightEffect, 0.0)) stop(); }");
+		
+		// Substitution <trait>Dominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.heightDominance, 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "100 late() { sub = sim.substitutions[0]; if (!identical(sub.weightDominance, 0.5)) stop(); }");
+		
 	}
 	
 	std::cout << "_RunMultitraitTests() done" << std::endl;

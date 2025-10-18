@@ -1696,6 +1696,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	// SLiMgui the traits from one model will show up in a different model running at the same time, and
 	// registered trait properties will not go away when you recycle.  I'm ok with that.
 	EidosGlobalStringID trait_stringID = EidosStringRegistry::GlobalStringIDForString(name);
+	EidosGlobalStringID traitEffect_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Effect");
+	EidosGlobalStringID traitDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Dominance");
 	
 	{
 		// add a Species property that returns the trait object
@@ -1706,14 +1708,15 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 			// an existing signature must return a singleton Trait object etc., otherwise we have a conflict
 			if (!existing_signature->IsDynamicWithOwner("Trait") ||
 				(existing_signature->value_mask_ != (kEidosValueMaskObject | kEidosValueMaskSingleton)) ||
-				(existing_signature->value_class_ != gSLiM_Trait_Class) || (existing_signature->read_only_ == false))
+				(existing_signature->value_class_ != gSLiM_Trait_Class) ||
+				(existing_signature->read_only_ == false))
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Species class, but the name '" << name << "' conflicts with an existing property on Species.  A different name must be used for this trait." << EidosTerminate();
 			
 			// no conflict, so we don't need to do anything; a different species has already registered the property
 		}
 		else
 		{
-			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
 			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))
 												 ->MarkAsDynamicWithOwner("Trait"));
 			
@@ -1734,7 +1737,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		}
 		else
 		{
-			// see also SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
 			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
 												 MarkAsDynamicWithOwner("Trait")->
 												 DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_VALUE)->
@@ -1744,7 +1747,89 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		}
 	}
 	
-	// FIXME MULTITRAIT: auto-complete on trait names off of "sim" or individuals doesn't presently work; the initializeTrait() call should add entries to the autocompletion mechanism somehow!
+	{
+		// add a Mutation property that returns the effect size for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitEffect_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Mutation class, but the name '" << name << "' conflicts with an existing property on Mutation.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Effect", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Mutation property that returns the dominance for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Mutation class, but the name '" << name << "' conflicts with an existing property on Mutation.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Dominance", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution property that returns the effect size for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitEffect_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Substitution class, but the name '" << name << "' conflicts with an existing property on Substitution.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Effect", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution property that returns the dominance for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Substitution class, but the name '" << name << "' conflicts with an existing property on Substitution.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Dominance", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
+		}
+	}
 	
 	if (SLiM_verbosity_level >= 1)
 	{

@@ -247,6 +247,13 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 	}
 }
 
+double MutationType::DefaultDominanceForTrait(int64_t p_trait_index) const
+{
+	const EffectDistributionInfo &de_info = effect_distributions_[p_trait_index];
+	
+	return de_info.default_dominance_coeff_;
+}
+
 double MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 {
 	const EffectDistributionInfo &de_info = effect_distributions_[p_trait_index];
@@ -720,20 +727,15 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 	if (trait_indices.size() == 1)
 	{
 		int64_t trait_index = trait_indices[0];
-		EffectDistributionInfo &de_info = effect_distributions_[trait_index];
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(de_info.default_dominance_coeff_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DefaultDominanceForTrait(trait_index)));
 	}
 	else
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
 		for (int64_t trait_index : trait_indices)
-		{
-			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
-			
-			float_result->push_float_no_check(de_info.default_dominance_coeff_);
-		}
+			float_result->push_float_no_check(DefaultDominanceForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
 	}

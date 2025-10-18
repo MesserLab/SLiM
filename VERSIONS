@@ -60,6 +60,10 @@ multitrait branch:
 	shift from a single global mutation block into per-species mutation blocks, and make a new C++ class, MutationBlock, to encapsulate this
 		this is a forced move because we want the mutation block to have a separate buffer of per-trait state for mutations, and the number of traits varies among species
 	add effect size and dominance coefficient properties to Mutation and Substitution (but not hooked up to the simulation yet)
+		add -effectForTrait([Nio<Trait> traits = NULL]) and -dominanceForTrait([Nio<Trait> traits = NULL]) methods to Mutation and Substitution
+		add +setEffectForTrait([Nio<Trait> traits = NULL], [Nif effect = NULL]) and +setDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) methods to Mutation
+		add <trait>Effect and <trait>Dominance properties to Mutation, both read-write float$
+		add <trait>Effect and <trait>Dominance properties to Substitution, both read-only float$
 
 
 version 5.1 (Eidos version 4.1):

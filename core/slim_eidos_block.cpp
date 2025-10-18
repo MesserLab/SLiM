@@ -2006,16 +2006,27 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 		
 		if (trait_name_token->token_type_ == EidosTokenType::kTokenString)
 		{
-			// initializeTrait() has the side effect of defining dynamic properties on Species and Individual;
-			// we need to set up the information needed to make that work with code completion; we do that
+			// initializeTrait() has the side effect of defining dynamic properties on various classes;
+			// we need to set up the information needed to make that work with code completion.  We do that
 			// with AddSignatureForProperty_TYPE_INTERPRETER(), a version of AddSignatureForProperty() that
 			// uses scratch space belonging only to us, so we don't interfere with anything in SLiM itself.
 			const std::string &trait_name = trait_name_token->token_string_;
-			EidosPropertySignature_CSP species_signature((new EidosPropertySignature(trait_name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
-			EidosPropertySignature_CSP individual_signature((new EidosPropertySignature(trait_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			const std::string &traitEffect_name = trait_name + "Effect";
+			const std::string &traitDominance_name = trait_name + "Dominance";
 			
-			gSLiM_Species_Class->AddSignatureForProperty_TYPE_INTERPRETER(species_signature);
-			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_signature);
+			EidosPropertySignature_CSP species_trait_signature((new EidosPropertySignature(trait_name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP individual_trait_signature((new EidosPropertySignature(trait_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitEffect_signature((new EidosPropertySignature(traitEffect_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitDominance_signature((new EidosPropertySignature(traitDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitEffect_signature((new EidosPropertySignature(traitEffect_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitDominance_signature((new EidosPropertySignature(traitDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Species_Class->AddSignatureForProperty_TYPE_INTERPRETER(species_trait_signature);
+			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_trait_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitEffect_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitDominance_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitEffect_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitDominance_signature);
 		}
 	}
 	

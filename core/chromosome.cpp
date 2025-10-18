@@ -1045,7 +1045,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
 	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, p_subpop_index, p_tick, -1);	// FIXME MULTITRAIT
+	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, mutation_type_ptr->DefaultDominanceForTrait(0), p_subpop_index, p_tick, -1);	// FIXME MULTITRAIT
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -1414,7 +1414,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, p_subpop_index, p_tick, nucleotide);	// FIXME MULTITRAIT
+	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, mutation_type_ptr->DefaultDominanceForTrait(0), p_subpop_index, p_tick, nucleotide);	// FIXME MULTITRAIT
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)

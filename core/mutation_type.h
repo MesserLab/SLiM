@@ -182,7 +182,8 @@ public:
 	static void ParseDFEParameters(std::string &p_dfe_type_string, const EidosValue_SP *const p_arguments, int p_argument_count,
 								   DFEType *p_dfe_type, std::vector<double> *p_dfe_parameters, std::vector<std::string> *p_dfe_strings);
 	
-	double DrawEffectForTrait(int64_t p_trait_index) const;		// draw a selection coefficient from the DE for a trait
+	double DefaultDominanceForTrait(int64_t p_trait_index) const;		// get the default dominance coefficient for a trait
+	double DrawEffectForTrait(int64_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
 	
 	bool IsPureNeutralDFE(void) const { return all_pure_neutral_DFE_; }
 	
