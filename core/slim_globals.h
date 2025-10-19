@@ -840,13 +840,12 @@ extern const std::string &gStr_nucleotide;
 extern const std::string &gStr_nucleotideValue;
 extern const std::string &gStr_originTick;
 extern const std::string &gStr_position;
-extern const std::string &gStr_selectionCoeff;
 extern const std::string &gStr_subpopID;
 extern const std::string &gStr_convertToSubstitution;
 extern const std::string &gStr_defaultDominanceForTrait;
 extern const std::string &gStr_effectDistributionTypeForTrait;
 extern const std::string &gStr_effectDistributionParamsForTrait;
-extern const std::string &gStr_dominanceCoeff;
+extern const std::string &gStr_dominance;
 extern const std::string &gStr_hemizygousDominanceCoeff;
 extern const std::string &gStr_mutationStackGroup;
 extern const std::string &gStr_mutationStackPolicy;
@@ -971,8 +970,6 @@ extern const std::string &gStr_effectForTrait;
 extern const std::string &gStr_dominanceForTrait;
 extern const std::string &gStr_setEffectForTrait;
 extern const std::string &gStr_setDominanceForTrait;
-extern const std::string &gStr_setSelectionCoeff;
-extern const std::string &gStr_setDominanceCoeff;
 extern const std::string &gStr_setMutationType;
 extern const std::string &gStr_drawEffectForTrait;
 extern const std::string &gStr_setDefaultDominanceForTrait;
@@ -1321,13 +1318,12 @@ enum _SLiMGlobalStringID : int {
 	gID_nucleotideValue,
 	gID_originTick,
 	gID_position,
-	gID_selectionCoeff,
 	gID_subpopID,
 	gID_convertToSubstitution,
 	gID_defaultDominanceForTrait,
 	gID_effectDistributionTypeForTrait,
 	gID_effectDistributionParamsForTrait,
-	gID_dominanceCoeff,
+	gID_dominance,
 	gID_hemizygousDominanceCoeff,
 	gID_mutationStackGroup,
 	gID_mutationStackPolicy,
@@ -1452,8 +1448,6 @@ enum _SLiMGlobalStringID : int {
 	gID_dominanceForTrait,
 	gID_setEffectForTrait,
 	gID_setDominanceForTrait,
-	gID_setSelectionCoeff,
-	gID_setDominanceCoeff,
 	gID_setMutationType,
 	gID_drawEffectForTrait,
 	gID_setDefaultDominanceForTrait,

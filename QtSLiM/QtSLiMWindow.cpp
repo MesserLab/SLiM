@@ -2154,6 +2154,19 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             (selectionString == "drawSelectionCoefficient"))
         return offerAndExecuteAutofix(selection, "drawEffectForTrait", "The `drawSelectionCoefficient()` method of MutationType has become the method `drawEffectForTrait()`.", terminationMessage);
     
+    if ((afterSelection1String == "(") &&
+            terminationMessage.contains("method setSelectionCoeff() is not defined on object element type Mutation") &&
+            (selectionPlus1AfterString == "setSelectionCoeff("))
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectForTrait(NULL, ", "The `setSelectionCoeff()` method of Mutation has become the method `setEffectForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property selectionCoeff is not defined for object element type Mutation") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Mutation has become the property `effect`.", terminationMessage);
+    
+    if (terminationMessage.contains("property selectionCoeff is not defined for object element type Substitution") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Substitution has become the property `effect`.", terminationMessage);
+    
     return false;
 }
 

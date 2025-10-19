@@ -173,13 +173,61 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
-		case gID_selectionCoeff:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
-		case gID_dominanceCoeff:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));
+		case gID_effect:
+		{
+			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			const std::vector<Trait *> &traits = species.Traits();
+			size_t trait_count = traits.size();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));	// FIXME MULTITRAIT
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t effect = trait_info_[trait_index].effect_size_;
+					
+					float_result->push_float_no_check(effect);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
+		case gID_dominance:
+		{
+			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			const std::vector<Trait *> &traits = species.Traits();
+			size_t trait_count = traits.size();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));	// FIXME MULTITRAIT
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_;
+					
+					float_result->push_float_no_check(dominance);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
 		case gID_originTick:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
-		case gID_fixationTick:		// ACCELERATED
+		case gID_fixationTick:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(fixation_tick_));
 			
 			// variables
@@ -391,36 +439,6 @@ EidosValue *Substitution::GetProperty_Accelerated_tag(EidosGlobalStringID p_prop
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
-{
-#pragma unused (p_property_id)
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
-	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-	{
-		Substitution *value = (Substitution *)(p_values[value_index]);
-		
-		float_result->set_float_no_check(value->selection_coeff_, value_index);
-	}
-	
-	return float_result;
-}
-
-EidosValue *Substitution::GetProperty_Accelerated_dominanceCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
-{
-#pragma unused (p_property_id)
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
-	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-	{
-		Substitution *value = (Substitution *)(p_values[value_index]);
-		
-		float_result->set_float_no_check(value->dominance_coeff_, value_index);
-	}
-	
-	return float_result;
-}
-
 EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
 #pragma unused (p_property_id)
@@ -592,8 +610,8 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_dominanceCoeff));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,			true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));

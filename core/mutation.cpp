@@ -263,10 +263,64 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_position:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
-		case gID_selectionCoeff:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
-		case gID_dominanceCoeff:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));
+		case gID_effect:
+		{
+			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			MutationBlock *mutation_block = species.SpeciesMutationBlock();
+			MutationIndex mut_index = mutation_block->IndexInBlock(this);
+			MutationTraitInfo *trait_info = mutation_block->TraitInfoIndex(mut_index);
+			const std::vector<Trait *> &traits = species.Traits();
+			size_t trait_count = traits.size();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));	// FIXME MULTITRAIT
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t effect = trait_info[trait_index].effect_size_;
+					
+					float_result->push_float_no_check(effect);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
+		case gID_dominance:
+		{
+			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			MutationBlock *mutation_block = species.SpeciesMutationBlock();
+			MutationIndex mut_index = mutation_block->IndexInBlock(this);
+			MutationTraitInfo *trait_info = mutation_block->TraitInfoIndex(mut_index);
+			const std::vector<Trait *> &traits = species.Traits();
+			size_t trait_count = traits.size();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));	// FIXME MULTITRAIT
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t dominance = trait_info[trait_index].dominance_coeff_;
+					
+					float_result->push_float_no_check(dominance);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
 			
 			// variables
 		case gID_nucleotide:		// ACCELERATED
@@ -495,36 +549,6 @@ EidosValue *Mutation::GetProperty_Accelerated_tag(EidosGlobalStringID p_property
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_selectionCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
-{
-#pragma unused (p_property_id)
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
-	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-	{
-		Mutation *value = (Mutation *)(p_values[value_index]);
-		
-		float_result->set_float_no_check(value->selection_coeff_, value_index);
-	}
-	
-	return float_result;
-}
-
-EidosValue *Mutation::GetProperty_Accelerated_dominanceCoeff(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
-{
-#pragma unused (p_property_id)
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
-	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-	{
-		Mutation *value = (Mutation *)(p_values[value_index]);
-		
-		float_result->set_float_no_check(value->dominance_coeff_, value_index);
-	}
-	
-	return float_result;
-}
-
 EidosValue *Mutation::GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
 #pragma unused (p_property_id)
@@ -668,8 +692,6 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	{
 		case gID_effectForTrait:	return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_dominanceForTrait:	return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setSelectionCoeff:	return ExecuteMethod_setSelectionCoeff(p_method_id, p_arguments, p_interpreter);
-		case gID_setDominanceCoeff:	return ExecuteMethod_setDominanceCoeff(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationType:	return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
 		default:					return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
@@ -753,69 +775,6 @@ EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_me
 	}
 }
 
-//	*********************	- (void)setSelectionCoeff(float$ selectionCoeff)
-//
-EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *selectionCoeff_value = p_arguments[0].get();
-	
-	double value = selectionCoeff_value->FloatAtIndex_NOCAST(0, nullptr);
-	slim_effect_t old_coeff = selection_coeff_;
-	
-	selection_coeff_ = static_cast<slim_effect_t>(value);
-	// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
-	// also, the dominance coefficient modifies the selection coefficient, so values < -1 are in fact meaningfully different
-	
-	// since this selection coefficient came from the user, check and set pure_neutral_ and all_pure_neutral_DFE_
-	if (selection_coeff_ != 0.0)
-	{
-		Species &species = mutation_type_ptr_->species_;
-		
-		species.pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
-		mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
-		
-		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
-		if (old_coeff == 0.0)
-		{
-			species.nonneutral_change_counter_++;
-		}
-	}
-	else if (old_coeff != 0.0)	// && (selection_coeff_ == 0.0) implied by the "else"
-	{
-		Species &species = mutation_type_ptr_->species_;
-		
-		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
-		species.nonneutral_change_counter_++;
-	}
-	
-	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
-	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	- (void)setDominanceCoeff(float$ dominanceCoeff)
-//
-EidosValue_SP Mutation::ExecuteMethod_setDominanceCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *dominanceCoeff_value = p_arguments[0].get();
-	
-	double value = dominanceCoeff_value->FloatAtIndex_NOCAST(0, nullptr);
-	
-	dominance_coeff_ = static_cast<slim_effect_t>(value);		// intentionally no bounds check
-	
-	// cache values used by the fitness calculation code for speed; see header
-	//cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dominance_coeff_ * selection_coeff_);
-	//cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
-	
-	return gStaticEidosValueVOID;
-}
-
 //	*********************	- (void)setMutationType(io<MutationType>$ mutType)
 //
 EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -874,8 +833,8 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotideValue));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_originTick));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_position));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_selectionCoeff));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_dominanceCoeff));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_subpopID)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_tag));
 		
@@ -899,8 +858,6 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setEffectForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("effect", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setDominanceForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDominanceCoeff, kEidosValueMaskVOID))->AddFloat_S("dominanceCoeff"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

@@ -38,8 +38,7 @@ multitrait branch:
 		add Community property allTraits => (object<Trait>)
 	make a single implicit trait with MakeImplicitTrait() (defaulting to kMultiplicative with a direct fitness effect) if initializeTrait() is not called before initializeMutationType() is called
 	add a C++ dominance_coeff_ property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
-		add dominanceCoeff properties to Mutation and Substitution
-		add a setDominanceCoeff() method to Mutation, yay!
+		add dominance properties to Mutation and Substitution
 		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
 	revamp MutationType for multiple traits
 		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
@@ -64,6 +63,8 @@ multitrait branch:
 		add +setEffectForTrait([Nio<Trait> traits = NULL], [Nif effect = NULL]) and +setDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) methods to Mutation
 		add <trait>Effect and <trait>Dominance properties to Mutation, both read-write float$
 		add <trait>Effect and <trait>Dominance properties to Substitution, both read-only float$
+	remove Mutation method setSelectionCoeff(), autofixing to setEffectForTrait(NULL, )
+	rename the selectionCoeff property to effect, for both Mutation and Substitution; it changes from float$ to float, and now returns all trait effects; and SLiMgui autofixes this change
 
 
 version 5.1 (Eidos version 4.1):

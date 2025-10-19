@@ -5948,27 +5948,23 @@ You can get the
 \f4\fs20  object with which the mutation is associated.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 dominanceCoeff => (float$)\
+\f3\fs18 \cf2 dominance => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The dominance coefficient of the mutation, taken from the default dominance coefficient of its 
+\f4\fs20 \cf2 The dominance coefficient(s) of the mutation, taken from the default dominance coefficient(s) of its 
 \f3\fs18 MutationType
-\f4\fs20 .  If a mutation has a 
-\f3\fs18 selectionCoeff
-\f4\fs20  of 
-\f1\i s
-\f4\i0  and a 
-\f3\fs18 dominanceCoeff
-\f4\fs20  of 
-\f1\i h
-\f4\i0 , the multiplicative fitness effect of the mutation in a homozygote is 1+
-\f1\i s
-\f4\i0 , and in a heterozygote is 1+
-\f1\i hs
-\f4\i0 .  The dominance coefficient of a mutation can be changed with the 
-\f3\fs18 setDominanceCoeff()
+\f4\fs20 .  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
+\f3\fs18 height
+\f4\fs20 , for example, then 
+\f3\fs18 Mutation
+\f4\fs20  objects will have a dynamic property named 
+\f3\fs18 heightDominance
+\f4\fs20  to access the dominance for that trait.  The dominance coefficient(s) of a mutation can be changed with the 
+\f3\fs18 setDominanceForTrait()
 \f4\fs20  method.\
-Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s dominance coefficient to some number 
 \f3\fs18 x
@@ -5976,11 +5972,34 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f3\fs18 mut.dominanceCoeff==x
 \f4\fs20  may be 
 \f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
-\f3\fs18 id
-\f4\fs20  or 
-\f3\fs18 tag
-\f4\fs20  properties to identify particular mutations.\
+\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 effect => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The effect size(s) of the mutation, drawn from the distribution of effect sizes of its 
+\f3\fs18 MutationType
+\f4\fs20 .  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 effectForTrait()
+\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
+\f3\fs18 height
+\f4\fs20 , for example, then 
+\f3\fs18 Mutation
+\f4\fs20  objects will have a dynamic property named 
+\f3\fs18 heightEffect
+\f4\fs20  to access the effect for that trait.  The effect size of a mutation can be changed with the 
+\f3\fs18 setEffectForTrait()
+\f4\fs20  method.\
+Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\f3\fs18 mut
+\f4\fs20 \'92s effect size to some number 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 mut.effect==x
+\f4\fs20  may be 
+\f3\fs18 F
+\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 id => (integer$)\
@@ -6076,42 +6095,6 @@ nucleotide <\'96> (string$)\
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 selectionCoeff => (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
-\f3\fs18 MutationType
-\f5\fs20 .
-\f4 \cf2 \expnd0\expndtw0\kerning0
-  If a mutation has a 
-\f3\fs18 selectionCoeff
-\f4\fs20  of 
-\f1\i s
-\f4\i0 , the multiplicative fitness effect of the mutation in a homozygote is 1+
-\f1\i s
-\f4\i0 ; in a heterozygote it is 1+
-\f1\i hs
-\f4\i0 , where 
-\f1\i h
-\f4\i0  is the dominance coefficient kept by the mutation type.
-\f5 \cf0 \kerning1\expnd0\expndtw0 \
-
-\f4 Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
-\f3\fs18 mut
-\f4\fs20 \'92s selection coefficient to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 mut.selectionCoeff==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
-\f3\fs18 id
-\f4\fs20  or 
-\f3\fs18 tag
-\f4\fs20  properties to identify particular mutations.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf0 subpopID <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6185,21 +6168,6 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setDominanceCoeff(float$\'a0dominanceCoeff)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Set the dominance coefficient of the mutation to 
-\f3\fs18 dominanceCoeff
-\f4\fs20 .  The dominance coefficient will be changed for all individuals that possess the mutation, since they all share a single 
-\f3\fs18 Mutation
-\f4\fs20  object (note that the selection coefficient will remain unchanged).\
-Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6271,31 +6239,14 @@ The parameter
 \f3\fs18 integer
 \f4\fs20  identifier or a 
 \f3\fs18 MutationType
-\f4\fs20  object).  The selection coefficients and dominance coefficients of existing mutations are not changed, since they are properties of the mutation objects themselves; they can be changed explicitly using the 
-\f3\fs18 setSelectionCoeff()
+\f4\fs20  object).  The effects and dominance coefficients of existing mutations are not changed, since those are properties of the mutation objects themselves; they can be changed explicitly using the 
+\f3\fs18 setEffectForTrait()
 \f4\fs20  and 
-\f3\fs18 setDominanceCoeff()
+\f3\fs18 setDominanceForTrait()
 \f4\fs20  methods of 
 \f3\fs18 Mutation
 \f4\fs20  if so desired.\
 In nucleotide-based models, a restriction applies: nucleotide-based mutations may not be changed to a non-nucleotide-based mutation type, and non-nucleotide-based mutations may not be changed to a nucleotide-based mutation type.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Set the selection coefficient of the mutation to 
-\f3\fs18 selectionCoeff
-\f4\fs20 .  The selection coefficient will be changed for all individuals that possess the mutation, since they all share a single 
-\f3\fs18 Mutation
-\f4\fs20  object (note that the dominance coefficient will remain unchanged).\
-Often setting up a 
-\f3\fs18 mutationEffect()
-\f4\fs20  callback is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.11  Class MutationType\
@@ -6536,7 +6487,7 @@ The species to which the target object belongs.\
 \f4\fs20  property, but that can be changed later with the 
 \f3\fs18 Mutation
 \f4\fs20  method 
-\f3\fs18 setDominanceCoeff()
+\f3\fs18 setDominanceForTrait()
 \f4\fs20 .\
 Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
 \f3\fs18 1.0
@@ -13894,10 +13845,18 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  object with which the mutation is associated.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 dominanceCoeff => (float$)\
+\f3\fs18 \cf2 dominance => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The dominance coefficient of the mutation, carried over from the original mutation object.\
+\f4\fs20 \cf2 The dominance coefficient(s) of the mutation, carried over from the original mutation object.  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
+\f3\fs18 height
+\f4\fs20 , for example, then 
+\f3\fs18 Substitution
+\f4\fs20  objects will have a dynamic property named 
+\f3\fs18 heightDominance
+\f4\fs20  to access the dominance for that trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 id => (integer$)\
