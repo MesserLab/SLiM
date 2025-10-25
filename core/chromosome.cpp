@@ -1036,8 +1036,6 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_effect_t selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
-	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationBlock *mutation_block = mutation_block_;
 	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
@@ -1045,7 +1043,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
 	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, mutation_type_ptr->DefaultDominanceForTrait(0), p_subpop_index, p_tick, -1);	// FIXME MULTITRAIT
+	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, p_subpop_index, p_tick, -1);
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -1407,14 +1405,12 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Draw mutation type and selection coefficient, and create the new mutation
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_effect_t selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
-	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationBlock *mutation_block = mutation_block_;
 	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, mutation_type_ptr->DefaultDominanceForTrait(0), p_subpop_index, p_tick, nucleotide);	// FIXME MULTITRAIT
+	new (mutation) Mutation(mutation_type_ptr, index_, position, p_subpop_index, p_tick, nucleotide);
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
@@ -1439,11 +1435,10 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background haplosome.
 		MutationIndex post_callback_mut_index = mutation_block->IndexInBlock(post_callback_mut);
 		
-		if (new_mut_index != post_callback_mut_index)
-		{
-			//std::cout << "replacing mutation!" << std::endl;
-			new_mut_index = post_callback_mut_index;
-		}
+		//if (new_mut_index != post_callback_mut_index)
+		//	std::cout << "replacing mutation!" << std::endl;
+		
+		new_mut_index = post_callback_mut_index;
 	}
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy

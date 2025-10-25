@@ -69,8 +69,13 @@ public:
 	
 	inline __attribute__((always_inline)) Mutation *MutationForIndex(MutationIndex p_index) const { return mutation_buffer_ + p_index; }
 	inline __attribute__((always_inline)) slim_refcount_t RefcountForIndex(MutationIndex p_index) const { return refcount_buffer_[p_index]; }
-	inline __attribute__((always_inline)) MutationTraitInfo *TraitInfoIndex(MutationIndex p_index) const { return trait_info_buffer_ + (p_index * trait_count_); }
+	inline __attribute__((always_inline)) MutationTraitInfo *TraitInfoForIndex(MutationIndex p_index) const { return trait_info_buffer_ + (p_index * trait_count_); }
 	
+	inline __attribute__((always_inline)) MutationTraitInfo *TraitInfoForMutation(const Mutation *p_mutation) const
+	{
+		MutationIndex mut_index = (MutationIndex)(p_mutation - mutation_buffer_);
+		return trait_info_buffer_ + (mut_index * trait_count_);
+	}
 	inline __attribute__((always_inline)) MutationIndex IndexInBlock(const Mutation *p_mutation) const
 	{
 		return (MutationIndex)(p_mutation - mutation_buffer_);

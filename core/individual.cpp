@@ -3470,6 +3470,8 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	if (p_elements_size == 0)
 		return gStaticEidosValue_Float_ZeroVec;
 	
+	// FIXME MULTITRAIT: This should perhaps take a trait as its second parameter, so that it can be used with any trait; and its doc needs to be rewritten; and it should be deprecated
+	
 	// SPECIES CONSISTENCY CHECK
 	Species *species = Community::SpeciesForIndividualsVector((Individual **)p_elements, (int)p_elements_size);
 	
@@ -3482,7 +3484,8 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Sum the selection coefficients of mutations of the given type
-	Mutation *mut_block_ptr = species->SpeciesMutationBlock()->mutation_buffer_;
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_elements_size);
 	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
@@ -3507,12 +3510,16 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 					int haplosome1_count = mutrun->size();
 					const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
 					
-					for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+					for (int index_in_mutrun = 0; index_in_mutrun < haplosome1_count; ++index_in_mutrun)
 					{
-						Mutation *mut_ptr = mut_block_ptr + haplosome1_ptr[mut_index];
+						MutationIndex mut_index = haplosome1_ptr[index_in_mutrun];
+						Mutation *mut_ptr = mut_block_ptr + mut_index;
 						
 						if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
-							selcoeff_sum += mut_ptr->selection_coeff_;
+						{
+							MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mut_index);
+							selcoeff_sum += mut_trait_info[0].effect_size_;
+						}
 					}
 				}
 			}
@@ -5013,7 +5020,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_domcoeffs.size() > 0)
 					dominance_coeff = info_domcoeffs[alt_allele_index];
 				else
-					dominance_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DefaultDominanceForTrait(0));	// FIXME MULTITRAIT
+					dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT
 				
 				// get the selection coefficient from S, or draw one from the mutation type
 				slim_effect_t selection_coeff;
@@ -5021,7 +5028,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_selcoeffs.size() > 0)
 					selection_coeff = info_selcoeffs[alt_allele_index];
 				else
-					selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
+					selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;
@@ -5108,6 +5115,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				else
 				{
 					// no mutation ID supplied, so use whatever is next
+					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				

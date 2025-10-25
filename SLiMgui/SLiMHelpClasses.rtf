@@ -13859,6 +13859,20 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  to access the dominance for that trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 effect => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The selection coefficient(s) of the mutation, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 effectForTrait()
+\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
+\f3\fs18 height
+\f4\fs20 , for example, then 
+\f3\fs18 Substitution
+\f4\fs20  objects will have a dynamic property named 
+\f3\fs18 heightEffect
+\f4\fs20  to access the effect for that trait.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -13929,14 +13943,6 @@ nucleotide <\'96> (string$)\
 
 \f4\fs20 \cf0 The position in the chromosome of this mutation.
 \f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 selectionCoeff => (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
-\f3\fs18 MutationType
-\f5\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 subpopID <\'96> (integer$)\

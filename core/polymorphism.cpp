@@ -20,6 +20,7 @@
 
 #include "polymorphism.h"
 #include "species.h"
+#include "mutation_block.h"
 
 #include <fstream>
 #include <map>
@@ -45,13 +46,32 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 	
 	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->selection_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
+	// write out per-trait information
+	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
+	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
+	int trait_count = species.TraitCount();
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
+		p_out << double_buf;
+	}
 	
 	p_out << " ";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].dominance_coeff_);		// necessary precision for non-lossiness
+		p_out << double_buf;
+	}
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
@@ -80,13 +100,32 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	
 	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->selection_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
+	// write out per-trait information
+	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
+	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
+	int trait_count = species.TraitCount();
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
+		p_out << double_buf;
+	}
 	
 	p_out << " ";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].dominance_coeff_);		// necessary precision for non-lossiness
+		p_out << double_buf;
+	}
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
@@ -115,8 +154,34 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
+	p_out << " ";
+	
+	// write out per-trait information
+	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
+	int trait_count = species.TraitCount();
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		p_out << mut_trait_info[trait_index].effect_size_;
+	}
+	
+	p_out << " ";
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		p_out << mut_trait_info[trait_index].dominance_coeff_;
+	}
+	
 	// and then the remainder of the output line
-	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
@@ -151,8 +216,34 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
+	p_out << " ";
+	
+	// write out per-trait information
+	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
+	int trait_count = species.TraitCount();
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		p_out << mut_trait_info[trait_index].effect_size_;
+	}
+	
+	p_out << " ";
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		if (trait_index > 0)
+			p_out << ",";
+		
+		p_out << mut_trait_info[trait_index].dominance_coeff_;
+	}
+	
 	// and then the remainder of the output line
-	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)

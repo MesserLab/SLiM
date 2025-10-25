@@ -5190,27 +5190,6 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 }
 #endif
 
-void Population::ValidateMutationFitnessCaches(void)
-{
-	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-	int registry_size;
-	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
-	const MutationIndex *registry_iter_end = registry_iter + registry_size;
-	
-	while (registry_iter != registry_iter_end)
-	{
-		MutationIndex mut_index = (*registry_iter++);
-		Mutation *mut = mut_block_ptr + mut_index;
-		slim_effect_t sel_coeff = mut->selection_coeff_;
-		slim_effect_t dom_coeff = mut->dominance_coeff_;
-		slim_effect_t hemizygous_dom_coeff = mut->mutation_type_ptr_->hemizygous_dominance_coeff_;
-		
-		mut->cached_one_plus_sel_ = (slim_effect_t)std::max(0.0, 1.0 + sel_coeff);
-		mut->cached_one_plus_dom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
-		mut->cached_one_plus_hemizygousdom_sel_ = (slim_effect_t)std::max(0.0, 1.0 + hemizygous_dom_coeff * sel_coeff);
-	}
-}
-
 void Population::RecalculateFitness(slim_tick_t p_tick)
 {
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
@@ -8173,13 +8152,17 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			const Polymorphism &polymorphism = polymorphism_pair.second;
 			const Mutation *mutation_ptr = polymorphism.mutation_ptr_;
 			const MutationType *mutation_type_ptr = mutation_ptr->mutation_type_ptr_;
+			const MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(mutation_ptr);
 			
 			slim_polymorphismid_t polymorphism_id = polymorphism.polymorphism_id_;
 			int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = mutation_ptr->position_;
-			slim_effect_t selection_coeff = mutation_ptr->selection_coeff_;
-			slim_effect_t dominance_coeff = mutation_ptr->dominance_coeff_;
+			
+			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
+			slim_effect_t selection_coeff = mut_trait_info->effect_size_;
+			slim_effect_t dominance_coeff = mut_trait_info->dominance_coeff_;
+			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
@@ -8335,8 +8318,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			int64_t mutation_id = substitution_ptr->mutation_id_;
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = substitution_ptr->position_;
-			slim_effect_t selection_coeff = substitution_ptr->selection_coeff_;
-			slim_effect_t dominance_coeff = substitution_ptr->dominance_coeff_;
+			
+			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
+			slim_effect_t selection_coeff = substitution_ptr->trait_info_[0].effect_size_;
+			slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_;
+			
 			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
 			slim_tick_t origin_tick = substitution_ptr->origin_tick_;
 			slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;

@@ -481,7 +481,8 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 	mutationPositions = static_cast<slim_position_t *>(malloc(sizeof(slim_position_t) * mutationIndexCount));
 	
 	// Copy the information we need on each mutation in use
-	Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
+    MutationBlock *mutation_block = graphSpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
@@ -493,6 +494,10 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		
 		haplo_mut->position_ = mut_position;
 		*(mutationPositions + mut_index) = mut_position;
+        
+        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+        MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+        slim_effect_t selection_coeff = mut_trait_info[0].effect_size_;
 		
 		if (!mut_type->color_.empty())
 		{
@@ -502,10 +507,10 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		}
 		else
 		{
-			RGBForSelectionCoeff(static_cast<double>(mut->selection_coeff_), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
+			RGBForSelectionCoeff(static_cast<double>(selection_coeff), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
 		}
 		
-		haplo_mut->neutral_ = (mut->selection_coeff_ == 0.0f);
+		haplo_mut->neutral_ = (selection_coeff == 0.0f);
 		
 		haplo_mut->display_ = mut_type->mutation_type_displayed_;
 	}

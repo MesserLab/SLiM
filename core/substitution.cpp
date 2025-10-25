@@ -36,7 +36,7 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
-	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), dominance_coeff_(p_mutation.dominance_coeff_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 	AddKeysAndValuesFrom(&p_mutation);
@@ -45,8 +45,7 @@ Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
 	// Copy per-trait information over from the mutation object
 	Species &species = mutation_type_ptr_->species_;
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	MutationIndex mut_index = mutation_block->IndexInBlock(&p_mutation);
-	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoIndex(mut_index);
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(&p_mutation);
 	int trait_count = species.TraitCount();
 	
 	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
@@ -59,7 +58,7 @@ Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
 }
 
 Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_effect_t>(p_selection_coeff)), dominance_coeff_(static_cast<slim_effect_t>(p_dominance_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
 {
 	// FIXME MULTITRAIT: This code path is hit when loading substitutions from an output file, also needs to initialize the multitrait info; this is just a
 	// placeholder.  The file being read in ought to specify per-trait values, which hasn't happened yet, so there are lots of details to be worked out...
@@ -68,7 +67,10 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	
 	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
 	
-	for (int trait_index = 0; trait_index < trait_count; trait_index++)
+	trait_info_[0].effect_size_ = p_selection_coeff;
+	trait_info_[0].dominance_coeff_ = p_dominance_coeff;
+	
+	for (int trait_index = 1; trait_index < trait_count; trait_index++)
 	{
 		trait_info_[trait_index].effect_size_ = 0.0;
 		trait_info_[trait_index].dominance_coeff_ = 0.0;
@@ -91,8 +93,15 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
+	// write out per-trait information
+	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
+	int trait_count = species.TraitCount();
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;
+	
 	// and then the remainder of the output line
-	p_out << " " << selection_coeff_ << " " << dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
+	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
 	
 	// output a nucleotide if available
 	if (mutation_type_ptr_->nucleotide_based_)
@@ -119,8 +128,15 @@ void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
 		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
+	// write out per-trait information
+	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
+	int trait_count = species.TraitCount();
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;
+	
 	// and then the remainder of the output line
-	p_out << " " << selection_coeff_ << " " << dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
+	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
 	
 	// output a nucleotide if available
 	if (mutation_type_ptr_->nucleotide_based_)
@@ -150,7 +166,8 @@ const EidosClass *Substitution::Class(void) const
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassNameForDisplay() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
+	// BCH 10/19/2025: Changing from selection_coeff_ to position_ here, as part of multitrait work
+	p_ostream << Class()->ClassNameForDisplay() << "<" << mutation_id_ << ":" << position_ << ">";
 }
 
 EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
@@ -182,7 +199,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));	// FIXME MULTITRAIT
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[0].effect_size_));
 			else if (trait_count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
 			else
@@ -208,7 +225,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));	// FIXME MULTITRAIT
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[0].dominance_coeff_));
 			else if (trait_count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
 			else

@@ -456,14 +456,25 @@ void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr)
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
 		MutationIndex mutindex = mutations_[bufindex];
+		Mutation *mutptr = p_mut_block_ptr + mutindex;
 		
-		if ((p_mut_block_ptr + mutindex)->selection_coeff_ != 0.0)
+		if (!mutptr->is_neutral_)
 			add_to_nonneutral_buffer(mutindex);
 	}
 }
 
 void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const
 {
+	// FIXME MULTICHROM: I think regime 2 needs to be rethought with multitrait.  We won't have
+	// constant mutationEffect() callbacks any more; all of those optimizations, including regime 2,
+	// can be ripped out.  Instead, QTL mutations will contribute an additive effect to a quantitative
+	// trait, and their effect on whatever multiplicative trait might be in the model will be zero
+	// (absent pleiotropy).  That is the case that we will now want to detect and optimize somehow.
+	// I'm not sure what the right strategy would be.  What exactly will the role of non-neutral
+	// caches be?  Should mutations that are non-neutral for *any* trait be put into them, which would
+	// be best for universal pleiotropy?  Or maybe we have separate non-neutral caches for each trait,
+	// which would be best for zero pleiotropy?  Or some kind of adaptive approach?
+	
 	//
 	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
 	//	make their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
@@ -483,7 +494,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr)
 		// The result of && is not order-dependent, but the first condition is checked first.
 		// I expect many mutations would fail the first test (thus short-circuiting), whereas
 		// few would fail the second test (i.e. actually be 0.0) in a QTL model.
-		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && (mutptr->selection_coeff_ != 0.0))
+		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && !mutptr->is_neutral_)
 			add_to_nonneutral_buffer(mutindex);
 	}
 }
@@ -508,7 +519,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr)
 		
 		// The result of || is not order-dependent, but the first condition is checked first.
 		// I have reordered this to put the fast test first; or I'm guessing it's the fast test.
-		if ((mutptr->selection_coeff_ != 0.0) || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
+		if (!mutptr->is_neutral_ || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
 			add_to_nonneutral_buffer(mutindex);
 	}
 }

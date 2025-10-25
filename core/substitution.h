@@ -61,8 +61,6 @@ public:
 	
 	MutationType *mutation_type_ptr_;			// mutation type identifier
 	slim_position_t position_;					// position
-	slim_effect_t selection_coeff_;				// selection coefficient (s)
-	slim_effect_t dominance_coeff_;				// dominance coefficient (h), inherited from MutationType by default
 	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
 	slim_tick_t origin_tick_;					// tick in which mutation arose
 	slim_tick_t fixation_tick_;					// tick in which mutation fixed

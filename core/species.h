@@ -403,9 +403,6 @@ public:
 	int32_t nonneutral_change_counter_ = 0;
 	int32_t last_nonneutral_regime_ = 0;		// see mutation_run.h; 1 = no mutationEffect() callbacks, 2 = only constant-effect neutral callbacks, 3 = arbitrary callbacks
 	
-	// this flag is set if the dominance coeff (regular or haploid) changes on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
-	bool any_dominance_coeff_changed_ = false;
-	
 	// state about what symbols/names/identifiers have been used or are being used
 	// used_subpop_ids_ has every subpop id ever used, even if no longer in use, with the *last* name used for that subpop
 	// used_subpop_names_ has every name ever used EXCEPT standard p1, p2... names, even if the name got replaced by a new name later

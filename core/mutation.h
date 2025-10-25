@@ -66,9 +66,9 @@ typedef struct _MutationTraitInfo
 	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
 	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
 	// values use slim_effect_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
-	slim_effect_t homozygous_effect_;		// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
-	slim_effect_t heterozygous_effect_;		// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
-	slim_effect_t hemizygous_effect_;		// a cached value for (1 + hemizygous_dominance_coeff_ * selection_coeff_), clamped to 0.0 minimum
+	slim_effect_t homozygous_effect_;		// a cached value for 1 + s, clamped to 0.0 minimum;  OR for 2a
+	slim_effect_t heterozygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha
+	slim_effect_t hemizygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha (h = hemizygous_dominance_coeff_)
 } MutationTraitInfo;
 
 typedef enum {
@@ -90,12 +90,17 @@ public:
 	
 	MutationType *mutation_type_ptr_;					// mutation type identifier
 	const slim_position_t position_;					// position on the chromosome
-	slim_effect_t selection_coeff_;						// selection coefficient (s)
-	slim_effect_t dominance_coeff_;						// dominance coefficient (h), inherited from MutationType by default
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_tick_t origin_tick_;						// tick in which the mutation arose
 	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
-	int8_t state_;										// see MutationState above
+	int state_ : 4;										// see MutationState above; 4 bits so we can represent -1
+	
+	// is_neutral_ is true if all mutation effects are 0.0 (note this might be overridden by a callback);
+	// the 0 state is sticky, so if the mutation is ever marked non-neutral then it stays marked non-neutral,
+	// just because re-evaluating that requires scanning across the effects for all traits -- not worth it
+	// this is used to make constructing non-neutral caches for fitness evaluation fast with multiple traits
+	unsigned int is_neutral_ : 1;
+	
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
@@ -106,14 +111,6 @@ public:
 	mutable slim_refcount_t gui_scratch_reference_count_;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	
-	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
-	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
-	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
-	// values use slim_effect_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
-	slim_effect_t cached_one_plus_sel_;					// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
-	slim_effect_t cached_one_plus_dom_sel_;				// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
-	slim_effect_t cached_one_plus_hemizygousdom_sel_;	// a cached value for (1 + hemizygous_dominance_coeff_ * selection_coeff_), clamped to 0.0 minimum
-	
 #if DEBUG
 	mutable slim_refcount_t refcount_CHECK_;					// scratch space for checking of parallel refcounting
 #endif
@@ -121,8 +118,22 @@ public:
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
+	
+	// This constructor is used when making a new mutation with effects DRAWN from each trait's DES, and dominance taken from each trait's default dominance coefficient, both from the given mutation type
+	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller
+	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
 	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller, AND a mutation id provided by the caller
+	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
+	void SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
+	void SetDominance(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
+	void HemizygousDominanceChanged(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS

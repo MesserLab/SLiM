@@ -1379,15 +1379,6 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 {
 	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
 	
-	// The FitnessOfParent...() methods called by this method rely upon cached fitness values
-	// kept inside the Mutation objects.  Those caches may need to be validated before we can
-	// calculate fitness values.  We check for that condition and repair it first.
-	if (species_.any_dominance_coeff_changed_)
-	{
-		population_.ValidateMutationFitnessCaches();	// note one subpop triggers it, but the recaching occurs for the whole sim
-		species_.any_dominance_coeff_changed_ = false;
-	}
-	
 	// This function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
 	
@@ -2959,7 +2950,8 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 		single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
 	}
 	
-	Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
+	MutationBlock *mutation_block = species_.SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	if (haplosome1_null && haplosome2_null)
 	{
@@ -2994,17 +2986,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			{
 				MutationIndex haplosome_mutindex = *haplosome_iter++;
 				Mutation *mutation = mut_block_ptr + haplosome_mutindex;
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_hemizygousdom_sel = mutation_block->TraitInfoForIndex(haplosome_mutindex)[0].hemizygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, mutation->cached_one_plus_hemizygousdom_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, cached_one_plus_hemizygousdom_sel, p_mutationEffect_callbacks, haplosome->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_hemizygousdom_sel_;
+					w *= cached_one_plus_hemizygousdom_sel;
 				}
 			}
 		}
@@ -3048,17 +3042,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 					{
 						// Process a mutation in haplosome1 since it is leading
 						Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+						// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+						slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
 						
 						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 						{
-							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= mutation->cached_one_plus_dom_sel_;
+							w *= cached_one_plus_dom_sel;
 						}
 						
 						if (++haplosome1_iter == haplosome1_max)
@@ -3072,17 +3068,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 					{
 						// Process a mutation in haplosome2 since it is leading
 						Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+						// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+						slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
 						
 						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 						{
-							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= mutation->cached_one_plus_dom_sel_;
+							w *= cached_one_plus_dom_sel;
 						}
 						
 						if (++haplosome2_iter == haplosome2_max)
@@ -3110,17 +3108,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
 									Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+									// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+									slim_effect_t cached_one_plus_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].homozygous_effect_;
 									
 									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 									{
-										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, cached_one_plus_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 										
 										if (w <= 0.0)
 											return 0.0;
 									}
 									else
 									{
-										w *= mutation->cached_one_plus_sel_;
+										w *= cached_one_plus_sel;
 									}
 									goto homozygousExit1;
 								}
@@ -3131,17 +3131,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 							{
 								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+								slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
 								
 								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 								{
-									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 									
 									if (w <= 0.0)
 										return 0.0;
 								}
 								else
 								{
-									w *= mutation->cached_one_plus_dom_sel_;
+									w *= cached_one_plus_dom_sel;
 								}
 							}
 							
@@ -3175,17 +3177,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 							{
 								Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+								// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+								slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
 								
 								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 								{
-									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 									
 									if (w <= 0.0)
 										return 0.0;
 								}
 								else
 								{
-									w *= mutation->cached_one_plus_dom_sel_;
+									w *= cached_one_plus_dom_sel;
 								}
 							}
 							
@@ -3216,17 +3220,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			{
 				MutationIndex haplosome1_mutindex = *haplosome1_iter++;
 				Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_dom_sel_;
+					w *= cached_one_plus_dom_sel;
 				}
 			}
 			
@@ -3235,17 +3241,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			{
 				MutationIndex haplosome2_mutindex = *haplosome2_iter++;
 				Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_dom_sel_;
+					w *= cached_one_plus_dom_sel;
 				}
 			}
 		}
@@ -3286,7 +3294,8 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
 		}
 		
-		Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
+		MutationBlock *mutation_block = species_.SpeciesMutationBlock();
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 		const int32_t mutrun_count = haplosome->mutrun_count_;
 		double w = 1.0;
 		
@@ -3310,17 +3319,19 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			{
 				MutationIndex haplosome_mutation = *haplosome_iter++;
 				Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_sel = mutation_block->TraitInfoForIndex(haplosome_mutation)[0].homozygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, cached_one_plus_sel, p_mutationEffect_callbacks, haplosome->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_sel_;
+					w *= cached_one_plus_sel;
 				}
 			}
 		}

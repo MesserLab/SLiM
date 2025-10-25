@@ -220,9 +220,6 @@ public:
 	Individual *(Subpopulation::*GenerateIndividualSelfed_TEMPLATED)(Individual *p_parent) = nullptr;
 	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(Individual *p_parent) = nullptr;
 
-	// An internal method that validates cached fitness values kept by Mutation objects
-	void ValidateMutationFitnessCaches(void);
-	
 	// Recalculate all fitness values for the parental generation, including the use of mutationEffect() callbacks
 	void RecalculateFitness(slim_tick_t p_tick);
 	

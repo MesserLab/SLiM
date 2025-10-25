@@ -26,6 +26,7 @@
 #include "slim_eidos_block.h"
 #include "species.h"
 #include "community.h"
+#include "mutation_block.h"
 
 #include <iostream>
 #include <sstream>
@@ -247,14 +248,7 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 	}
 }
 
-double MutationType::DefaultDominanceForTrait(int64_t p_trait_index) const
-{
-	const EffectDistributionInfo &de_info = effect_distributions_[p_trait_index];
-	
-	return de_info.default_dominance_coeff_;
-}
-
-double MutationType::DrawEffectForTrait(int64_t p_trait_index) const
+slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 {
 	const EffectDistributionInfo &de_info = effect_distributions_[p_trait_index];
 	
@@ -264,36 +258,36 @@ double MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 	// So here and in similar places, we fetch the RNG rather than passing it in to keep single-threaded fast.
 	switch (de_info.dfe_type_)
 	{
-		case DFEType::kFixed:			return de_info.dfe_parameters_[0];
+		case DFEType::kFixed:			return static_cast<slim_effect_t>(de_info.dfe_parameters_[0]);
 			
 		case DFEType::kGamma:
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return gsl_ran_gamma(rng, de_info.dfe_parameters_[1], de_info.dfe_parameters_[0] / de_info.dfe_parameters_[1]);
+			return static_cast<slim_effect_t>(gsl_ran_gamma(rng, de_info.dfe_parameters_[1], de_info.dfe_parameters_[0] / de_info.dfe_parameters_[1]));
 		}
 			
 		case DFEType::kExponential:
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return gsl_ran_exponential(rng, de_info.dfe_parameters_[0]);
+			return static_cast<slim_effect_t>(gsl_ran_exponential(rng, de_info.dfe_parameters_[0]));
 		}
 			
 		case DFEType::kNormal:
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return gsl_ran_gaussian(rng, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0];
+			return static_cast<slim_effect_t>(gsl_ran_gaussian(rng, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
 		}
 			
 		case DFEType::kWeibull:
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return gsl_ran_weibull(rng, de_info.dfe_parameters_[0], de_info.dfe_parameters_[1]);
+			return static_cast<slim_effect_t>(gsl_ran_weibull(rng, de_info.dfe_parameters_[0], de_info.dfe_parameters_[1]));
 		}
 			
 		case DFEType::kLaplace:
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return gsl_ran_laplace(rng, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0];
+			return static_cast<slim_effect_t>(gsl_ran_laplace(rng, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
 		}
 			
 		case DFEType::kScript:
@@ -407,7 +401,7 @@ double MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 			DrawEffectForTrait_InterpreterLock.end_critical();
 #endif
 			
-			return sel_coeff;
+			return static_cast<slim_effect_t>(sel_coeff);
 		}
 	}
 	EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): (internal error) unexpected dfe_type_ value." << EidosTerminate();
@@ -604,9 +598,40 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 			hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(value);		// intentionally no bounds check
 			
-			// Changing the hemizygous dominance coefficient means that the cached fitness effects of all mutations using this type
-			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
-			species_.any_dominance_coeff_changed_ = true;
+			// Changing the hemizygous dominance coefficient means that the cached hemizygous fitness effects of
+			// all mutations using this type become invalid.  We recache correct values for those mutations here.
+			// This is heavyweight for a property, but it is much simpler than having a deferred recache scheme,
+			// and changing the hemizygous dominance coefficient is expected to be extremely infrequent.
+			{
+				Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+				int registry_size;
+				const MutationIndex *registry_iter = species_.population_.MutationRegistry(&registry_size);
+				const MutationIndex *registry_iter_end = registry_iter + registry_size;
+				
+				while (registry_iter != registry_iter_end)
+				{
+					MutationIndex mut_index = (*registry_iter++);
+					Mutation *mut = mut_block_ptr + mut_index;
+					
+					if (mut->mutation_type_ptr_ == this)
+					{
+						MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForIndex(mut_index);
+						
+						// loop over the traits and validate the cached hemizygous effect for each one
+						const std::vector<Trait *> &traits = species_.Traits();
+						size_t trait_count = traits.size();
+						
+						for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							Trait *trait = traits[trait_index];
+							
+							mut->HemizygousDominanceChanged(trait->Type(), mut_trait_info + trait_index, hemizygous_dominance_coeff_);
+						}
+					}
+				}
+			}
+			
+			// We also let the community know that a mutation type changed, for GUI redisplay
 			species_.community_.mutation_types_changed_ = true;
 			
 			return;
@@ -914,7 +939,6 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	// effects of all mutations using this type become invalid; it is now just the *default* coefficient,
 	// and changing it does not change the state of mutations that have already derived from it.  We do
 	// still want to let the community know that a mutation type has changed, though.
-	//species_.any_dominance_coeff_changed_ = true;
 	species_.community_.mutation_types_changed_ = true;
 	
 	return gStaticEidosValueVOID;

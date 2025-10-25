@@ -7771,7 +7771,16 @@ void Species::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_m
 		EIDOS_TERMINATION << "ERROR (Species::MetadataForMutation): (internal error) bad parameters to MetadataForMutation()." << EidosTerminate();
 	
 	p_metadata->mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
-	p_metadata->selection_coeff_ = p_mutation->selection_coeff_;
+	
+	// FIXME MULTITRAIT: We need to figure out where we're going to multitrait information in .trees
+	// For now we just write out the effect for trait 0, but we need the dominance coeff too, and we need
+	// it for all traits in the model not just trait 0; this design is not going to work. See
+	// https://github.com/MesserLab/SLiM/issues/569
+	MutationBlock *mutation_block = p_mutation->mutation_type_ptr_->mutation_block_;
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(p_mutation);
+	
+	p_metadata->selection_coeff_ = mut_trait_info[0].effect_size_;
+	
 	p_metadata->subpop_index_ = p_mutation->subpop_index_;
 	p_metadata->origin_tick_ = p_mutation->origin_tick_;
 	p_metadata->nucleotide_ = p_mutation->nucleotide_;
@@ -7785,7 +7794,13 @@ void Species::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 		EIDOS_TERMINATION << "ERROR (Species::MetadataForSubstitution): (internal error) bad parameters to MetadataForSubstitution()." << EidosTerminate();
 	
 	p_metadata->mutation_type_id_ = p_substitution->mutation_type_ptr_->mutation_type_id_;
-	p_metadata->selection_coeff_ = p_substitution->selection_coeff_;
+	
+	// FIXME MULTITRAIT: We need to figure out where we're going to multitrait information in .trees
+	// For now we just write out the effect for trait 0, but we need the dominance coeff too, and we need
+	// it for all traits in the model not just trait 0; this design is not going to work.  See
+	// https://github.com/MesserLab/SLiM/issues/569
+	p_metadata->selection_coeff_ = p_substitution->trait_info_[0].effect_size_;
+	
 	p_metadata->subpop_index_ = p_substitution->subpop_index_;
 	p_metadata->origin_tick_ = p_substitution->origin_tick_;
 	p_metadata->nucleotide_ = p_substitution->nucleotide_;

@@ -512,7 +512,8 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						RGBForSelectionCoeff(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 				}
@@ -584,7 +585,8 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						RGBForSelectionCoeff(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -640,14 +642,16 @@ static const int spaceBetweenChromosomes = 5;
 	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-	Mutation *mut_block_ptr = displaySpecies->SpeciesMutationBlock()->mutation_buffer_;
+	MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	if ((registry_size < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
 		// This is the simple version of the display code, avoiding the memory allocations and such
 		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			const Mutation *mutation = mut_block_ptr + registry[registry_index];
+			MutationIndex mut_index = registry[registry_index];
+			const Mutation *mutation = mut_block_ptr + mut_index;
 			
 			if (mutation->chromosome_index_ == chromosome_index)	// display only mutations in the displayed chromosome
 			{
@@ -665,8 +669,11 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
+						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
 						float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
-						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						
+						RGBForSelectionCoeff(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -714,9 +721,11 @@ static const int spaceBetweenChromosomes = 5;
 					// Scan through the mutation list for mutations of this type with the right selcoeff
 					for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 					{
-						const Mutation *mutation = mut_block_ptr + registry[registry_index];
+						MutationIndex mut_index = registry[registry_index];
+						const Mutation *mutation = mut_block_ptr + mut_index;
 						
-						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_ == mut_type_selcoeff)))
 						{
 							if (mutation->chromosome_index_ == chromosome_index)
 							{
@@ -792,16 +801,19 @@ static const int spaceBetweenChromosomes = 5;
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[registry_index])
 					{
-						const Mutation *mutation = mut_block_ptr + registry[registry_index];
+						MutationIndex mut_index = registry[registry_index];
+						const Mutation *mutation = mut_block_ptr + mut_index;
 						
 						if (mutation->chromosome_index_ == chromosome_index)
 						{
+							// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+							slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
 							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 							slim_position_t mutationPosition = mutation->position_;
 							NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 							
 							mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-							RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							RGBForSelectionCoeff(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 							[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 							NSRectFill(mutationTickRect);
 						}
@@ -853,9 +865,12 @@ static const int spaceBetweenChromosomes = 5;
 					if (height)
 					{
 						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
-						const Mutation *mutation = mut_block_ptr + mutationBuffer[binIndex];
+						MutationIndex mut_index = mutationBuffer[binIndex];
 						
-						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
+						
+						RGBForSelectionCoeff(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 						NSRectFill(mutationTickRect);
 					}

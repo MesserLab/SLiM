@@ -1327,6 +1327,8 @@
 <p class="p6">The <span class="s1">Chromosome</span> object with which the mutation is associated.</p>
 <p class="p5">dominance =&gt; (float)</p>
 <p class="p6">The dominance coefficient(s) of the mutation, carried over from the original mutation object.<span class="Apple-converted-space">  </span>In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).<span class="Apple-converted-space">  </span>For more control, see the <span class="s1">dominanceForTrait()</span> method.<span class="Apple-converted-space">  </span>Also note that dynamic properties are defined for each trait in the model; if there is a trait named <span class="s1">height</span>, for example, then <span class="s1">Substitution</span> objects will have a dynamic property named <span class="s1">heightDominance</span> to access the dominance for that trait.</p>
+<p class="p5">effect =&gt; (float)</p>
+<p class="p6">The selection coefficient(s) of the mutation, carried over from the original mutation object.<span class="Apple-converted-space">  </span>In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).<span class="Apple-converted-space">  </span>For more control, see the <span class="s1">effectForTrait()</span> method.<span class="Apple-converted-space">  </span>Also note that dynamic properties are defined for each trait in the model; if there is a trait named <span class="s1">height</span>, for example, then <span class="s1">Substitution</span> objects will have a dynamic property named <span class="s1">heightEffect</span> to access the effect for that trait.</p>
 <p class="p3">id =&gt; (integer$)</p>
 <p class="p4">The identifier for this mutation.<span class="Apple-converted-space">  </span>Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run, and that identifier is carried over to the <span class="s1">Substitution</span> object when the mutation fixes.</p>
 <p class="p3">fixationTick =&gt; (integer$)</p>
@@ -1341,8 +1343,6 @@
 <p class="p4">The tick in which this mutation arose.</p>
 <p class="p3">position =&gt; (integer$)</p>
 <p class="p4">The position in the chromosome of this mutation.</p>
-<p class="p3">selectionCoeff =&gt; (float$)</p>
-<p class="p4">The selection coefficient of the mutation, drawn from the distribution of fitness effects of its <span class="s1">MutationType</span><span class="s2">.</span></p>
 <p class="p3">subpopID &lt;–&gt; (integer$)</p>
 <p class="p4">The identifier of the subpopulation in which this mutation arose.<span class="Apple-converted-space">  </span>This value is carried over from the <span class="s1">Mutation</span> object directly; if a “tag” value was used in the <span class="s1">Mutation</span> object, that value will carry over to the corresponding <span class="s1">Substitution</span> object.<span class="Apple-converted-space">  </span>The <span class="s1">subpopID</span> in <span class="s1">Substitution</span> is a read-write property to allow it to be used as a “tag” in the same way, if the origin subpopulation identifier is not needed.</p>
 <p class="p3">tag &lt;–&gt; (integer$)</p>

@@ -1291,6 +1291,8 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
+	// FIXME MULTITRAIT: This should perhaps take a trait as its second parameter, so that it can be used with any trait; and its doc needs to be rewritten; and it should be deprecated
+	
 	if (IsDeferred())
 		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_sumOfMutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
@@ -1300,7 +1302,8 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Sum the selection coefficients of mutations of the given type
-	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	double selcoeff_sum = 0.0;
 	int mutrun_count = mutrun_count_;
 	
@@ -1310,12 +1313,16 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 		int haplosome1_count = mutrun->size();
 		const MutationIndex *haplosome_ptr = mutrun->begin_pointer_const();
 		
-		for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+		for (int index_in_mutrun = 0; index_in_mutrun < haplosome1_count; ++index_in_mutrun)
 		{
-			Mutation *mut_ptr = mut_block_ptr + haplosome_ptr[mut_index];
+			MutationIndex mut_index = haplosome_ptr[index_in_mutrun];
+			Mutation *mut_ptr = mut_block_ptr + mut_index;
 			
 			if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
-				selcoeff_sum += mut_ptr->selection_coeff_;
+			{
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mut_index);
+				selcoeff_sum += mut_trait_info[0].effect_size_;
+			}
 		}
 	}
 	
@@ -1687,7 +1694,8 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 	Species &species = p_chromosome.species_;
 	bool nucleotide_based = species.IsNucleotideBased();
 	NucleotideArray *ancestral_seq = p_chromosome.AncestralSequence();
-	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	int64_t individual_count;
 	
 	// if groupAsIndividuals is false, we just act as though the chromosome is haploid
@@ -1952,7 +1960,12 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
-					p_out << polymorphism->mutation_ptr_->selection_coeff_;
+					
+					// FIXME MULTITRAIT: need to write out all trait info, not just trait 0
+					const Mutation *mut = polymorphism->mutation_ptr_;
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					
+					p_out << mut_trait_info[0].effect_size_;
 				}
 				p_out << ";";
 				
@@ -1961,7 +1974,12 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
-					p_out << polymorphism->mutation_ptr_->dominance_coeff_;
+					
+					// FIXME MULTITRAIT: need to write out all trait info, not just trait 0
+					const Mutation *mut = polymorphism->mutation_ptr_;
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					
+					p_out << mut_trait_info[0].dominance_coeff_;
 				}
 				p_out << ";";
 				
@@ -2084,9 +2102,12 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 					p_out << "\t1000\tPASS\t";
 					
 					// emit the INFO fields and the Genotype marker
+					// FIXME MULTITRAIT: need to write out all trait info, not just trait 0
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+					
 					p_out << "MID=" << mutation->mutation_id_ << ";";
-					p_out << "S=" << mutation->selection_coeff_ << ";";
-					p_out << "DOM=" << mutation->dominance_coeff_ << ";";
+					p_out << "S=" << mut_trait_info->effect_size_ << ";";
+					p_out << "DOM=" << mut_trait_info->dominance_coeff_ << ";";
 					p_out << "PO=" << mutation->subpop_index_ << ";";
 					p_out << "TO=" << mutation->origin_tick_ << ";";
 					p_out << "MT=" << mutation->mutation_type_ptr_->mutation_type_id_ << ";";
@@ -2809,7 +2830,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	// for the singleton case for each of the parameters, get all the info
 	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 	
-	double singleton_selection_coeff = (arg_selcoeff ? arg_selcoeff->NumericAtIndex_NOCAST(0, nullptr) : 0.0);
+	slim_effect_t singleton_selection_coeff = (arg_selcoeff ? (slim_effect_t)arg_selcoeff->NumericAtIndex_NOCAST(0, nullptr) : 0.0);
 	
 	slim_position_t singleton_position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex_NOCAST(0, nullptr));
 	
@@ -2864,7 +2885,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		// It is possible that some mutations will not actually be added to any haplosome, due to stacking; they will be cleared from the
 		// registry as lost mutations in the next cycle.  All mutations are returned to the user, whether actually added or not.
 		MutationType *mutation_type_ptr = singleton_mutation_type_ptr;
-		double selection_coeff = singleton_selection_coeff;
 		slim_position_t position = singleton_position;
 		slim_objectid_t origin_subpop_id = singleton_origin_subpop_id;
 		int64_t nucleotide = singleton_nucleotide;
@@ -2879,14 +2899,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 			{
 				if (muttype_count != 1)
 					mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, mut_parameter_index, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
-				
-				if (selcoeff_count != 1)
-				{
-					if (arg_selcoeff)
-						selection_coeff = arg_selcoeff->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
-					else
-						selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
-				}
 				
 				if (origin_subpop_count != 1)
 				{
@@ -2906,15 +2918,38 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				}
 				
 				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+				Mutation *new_mut;
 				
-				Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);	// FIXME MULTITRAIT
-				
-				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-				// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
-				if (selection_coeff != 0.0)
+				if (p_method_id == gID_addNewDrawnMutation)
 				{
-					species->pure_neutral_ = false;
-					mutation_type_ptr->all_pure_neutral_DFE_ = false;
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, origin_subpop_id, origin_tick, (int8_t)nucleotide);
+					
+					// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+					if (!mutation_type_ptr->all_pure_neutral_DFE_)
+						species->pure_neutral_ = false;
+				}
+				else	// (p_method_id == gID_addNewMutation)
+				{
+					slim_effect_t selection_coeff = singleton_selection_coeff;
+					
+					if (selcoeff_count != 1)
+					{
+						if (arg_selcoeff)
+							selection_coeff = (slim_effect_t)arg_selcoeff->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
+						else
+							selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+					}
+					
+					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);
+					
+					// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+					// The selection coefficient was supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
+					if (selection_coeff != 0.0)
+					{
+						species->pure_neutral_ = false;
+						mutation_type_ptr->all_pure_neutral_DFE_ = false;
+					}
 				}
 				
 				// add to the registry, return value, haplosome, etc.
@@ -3389,7 +3424,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	for (int mut_index = 0; mut_index < segsites; ++mut_index)
 	{
 		slim_position_t position = positions[mut_index];
-		double selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+		slim_effect_t selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
 		slim_objectid_t subpop_index = -1;
 		slim_tick_t origin_tick = community.Tick();
 		int8_t nucleotide = -1;
@@ -3407,7 +3442,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		
 		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 		
-		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);	// FIXME MULTITRAIT
+		// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
+		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -4061,6 +4097,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			else
 			{
 				// no mutation ID supplied, so use whatever is next
+				// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			
@@ -4323,6 +4360,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 		// Construct a vector of mutations to remove that is sorted by position
 		std::vector<Mutation *> mutations_to_remove;
 		Mutation * const *mutations_data = (Mutation * const *)mutations_value->ObjectData();
+		int trait_count = species->TraitCount();
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
@@ -4336,8 +4374,20 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			
 			mutations_to_remove.emplace_back(mut);
 			
-			if (mut->selection_coeff_ != 0.0)
-				any_nonneutral_removed = true;
+			// If we're not already aware of having removed a non-neutral mutation, check on that now
+			if (!any_nonneutral_removed)
+			{
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				
+				for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					if (mut_trait_info[trait_index].effect_size_ != 0.0)
+					{
+						any_nonneutral_removed = true;
+						break;
+					}
+				}
+			}
 		}
 		
 		std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});

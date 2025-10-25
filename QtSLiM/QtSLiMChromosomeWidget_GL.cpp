@@ -177,10 +177,12 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
     static std::vector<const Mutation *> mutations;
     mutations.resize(0);
     
+    MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
+    Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+    
     {
         int registry_size;
         const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-        Mutation *mut_block_ptr = displaySpecies->SpeciesMutationBlock()->mutation_buffer_;
         slim_chromosome_index_t chromosome_index = chromosome->Index();
         
         for (int registry_index = 0; registry_index < registry_size; ++registry_index)
@@ -220,7 +222,10 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
             }
             else
             {
-                RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+                MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                
+                RGBForSelectionCoeff(static_cast<double>(mut_trait_info[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
             }
             
             int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
@@ -281,7 +286,10 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wfloat-equal"
                             // We do want to do an exact floating-point equality compare here; we want to see whether the mutation's selcoeff is unmodified from the fixed DFE
-							if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+                            // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+                            MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                            
+                            if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mut_trait_info[0].effect_size_ == mut_type_selcoeff)))
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 							{
@@ -369,7 +377,11 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
                         int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
 						
                         mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
-						RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        
+                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+                        MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                        
+						RGBForSelectionCoeff(static_cast<double>(mut_trait_info[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -421,8 +433,11 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
                         mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - barHeight);
                         
 						const Mutation *mutation = mutationBuffer[binIndex];
-						
-						RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        
+                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+                        MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                        
+						RGBForSelectionCoeff(static_cast<double>(mut_trait_info[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -489,7 +504,8 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					}
 					else
 					{
-						RGBForSelectionCoeff(static_cast<double>(substitution->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						RGBForSelectionCoeff(static_cast<double>(substitution->trait_info_[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
 					}
 				}
 				
@@ -568,7 +584,8 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					}
 					else
 					{
-						RGBForSelectionCoeff(static_cast<double>(substitution->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+						RGBForSelectionCoeff(static_cast<double>(substitution->trait_info_[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
 					}
 					
                     mutationTickRect.setX(interiorRect.x() + binIndex);

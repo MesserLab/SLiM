@@ -128,8 +128,8 @@ void _RunMutationTypeTests(void)
 	
 	// Test MutationType - (float)drawSelectionCoefficient([integer$ n = 1])
 	// the parameters here are chosen so that these tests should fail extremely rarely
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (m1.drawEffectForTrait() == 2.2) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (identical(m1.drawEffectForTrait(NULL, 10), rep(2.2, 10))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (abs(m1.drawEffectForTrait() - 2.2) < 1e-6) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (all(abs(m1.drawEffectForTrait(NULL, 10) - rep(2.2, 10)) < 1e-6)) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 3.1) < 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3.0); m1.drawEffectForTrait(); }", __LINE__);
@@ -683,13 +683,13 @@ void _RunSubstitutionTests(void)
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.originTick > 0 & sub.originTick <= 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.position >= 0 & sub.position <= 99999) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { if (sum(sim.substitutions.selectionCoeff == 500.0) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { if (sum(sim.substitutions.effect == 500.0) == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.fixationTick = 10; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.originTick = 10; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.selectionCoeff = 50.0; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.effect = 50.0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 }
 
