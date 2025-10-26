@@ -1068,6 +1068,20 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(3.5, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(2.5, 5))) stop(); }");
 		
+		// individual phenotype
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.phenotypeForTrait(T_height), p1.individuals.height)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.phenotypeForTrait(T_weight), p1.individuals.weight)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.phenotypeForTrait(NULL), asVector(cbind(p1.individuals.height, p1.individuals.weight)))) stop(); }");
+		
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, 3); p1.individuals.setOffsetForTrait(1, 4.5); if (!identical(p1.individuals.offsetForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, 1:5 * 2 - 1); p1.individuals.setOffsetForTrait(1, 1:5 * 2); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(NULL, 1:10); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(NULL, 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1.0:10)) stop(); }");
+//		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
 		// species trait property access
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.height, sim.traitsWithNames('height'))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.weight, sim.traitsWithNames('weight'))) stop(); }");

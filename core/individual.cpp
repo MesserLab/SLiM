@@ -145,7 +145,7 @@ void Individual::_InitializePerTraitInformation(void)
 #endif
 		
 		trait_info_ = &trait_info_0_;
-		trait_info_0_.value_ = 0.0;
+		trait_info_0_.phenotype_ = 0.0;
 		trait_info_0_.offset_ = traits[0]->DrawIndividualOffset();
 	}
 	else if (trait_count == 0)
@@ -174,11 +174,11 @@ void Individual::_InitializePerTraitInformation(void)
 #endif
 		
 		if (!trait_info_)
-			trait_info_ = static_cast<SLiM_PerTraitInfo *>(malloc(trait_count * sizeof(SLiM_PerTraitInfo)));
+			trait_info_ = static_cast<IndividualTraitInfo *>(malloc(trait_count * sizeof(IndividualTraitInfo)));
 		
 		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
-			trait_info_[trait_index].value_ = 0.0;
+			trait_info_[trait_index].phenotype_ = 0.0;
 			trait_info_[trait_index].offset_ = traits[trait_index]->DrawIndividualOffset();
 		}
 	}
@@ -1761,7 +1761,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (trait)
 			{
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].value_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].phenotype_));
 			}
 			
 			return super::GetProperty(p_property_id);
@@ -2515,7 +2515,7 @@ EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID 
 		{
 			const Individual *value = individuals_buffer[value_index];
 			
-			float_result->set_float_no_check(value->trait_info_[trait_index].value_, value_index);
+			float_result->set_float_no_check(value->trait_info_[trait_index].phenotype_, value_index);
 		}
 	}
 	else
@@ -2527,7 +2527,7 @@ EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID 
 			Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
 			int64_t trait_index = trait->Index();
 			
-			float_result->set_float_no_check(value->trait_info_[trait_index].value_, value_index);
+			float_result->set_float_no_check(value->trait_info_[trait_index].phenotype_, value_index);
 		}
 	}
 	
@@ -2659,7 +2659,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			if (trait)				// ACCELERATED
 			{
-				trait_info_[trait->Index()].value_ = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+				trait_info_[trait->Index()].phenotype_ = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 				return;
 			}
 			
@@ -3087,7 +3087,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			{
 				const Individual *value = individuals_buffer[value_index];
 				
-				value->trait_info_[trait_index].value_ = source_value;
+				value->trait_info_[trait_index].phenotype_ = source_value;
 			}
 		}
 		else
@@ -3096,7 +3096,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			{
 				const Individual *value = individuals_buffer[value_index];
 				
-				value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+				value->trait_info_[trait_index].phenotype_ = (slim_effect_t)source_data[value_index];
 			}
 		}
 	}
@@ -3113,7 +3113,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
 				int64_t trait_index = trait->Index();
 				
-				value->trait_info_[trait_index].value_ = source_value;
+				value->trait_info_[trait_index].phenotype_ = source_value;
 			}
 		}
 		else
@@ -3124,7 +3124,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
 				int64_t trait_index = trait->Index();
 				
-				value->trait_info_[trait_index].value_ = (slim_effect_t)source_data[value_index];
+				value->trait_info_[trait_index].phenotype_ = (slim_effect_t)source_data[value_index];
 			}
 		}
 	}
@@ -3138,6 +3138,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		//case gID_countOfMutationsOfType:	return ExecuteMethod_Accelerated_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
 		case gID_offsetForTrait:			return ExecuteMethod_offsetForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_phenotypeForTrait:			return ExecuteMethod_phenotypeForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_interpreter);
 		case gID_sharedParentCount:			return ExecuteMethod_sharedParentCount(p_method_id, p_arguments, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -3347,6 +3348,40 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 			slim_effect_t offset = trait_info_[trait_index].offset_;
 			
 			float_result->push_float_no_check(offset);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
+//	*********************	- (float)phenotypeForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = subpopulation_->species_;
+	std::vector<int64_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "phenotypeForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		slim_effect_t phenotype = trait_info_[trait_index].phenotype_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(phenotype));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t phenotype = trait_info_[trait_index].phenotype_;
+			
+			float_result->push_float_no_check(phenotype);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -4209,6 +4244,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_offsetForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_phenotypeForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setOffsetForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("offset", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));

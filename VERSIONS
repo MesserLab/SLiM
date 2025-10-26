@@ -66,6 +66,7 @@ multitrait branch:
 	remove Mutation method setSelectionCoeff(), autofixing to setEffectForTrait(NULL, )
 	rename the selectionCoeff property to effect, for both Mutation and Substitution; it changes from float$ to float, and now returns all trait effects; and SLiMgui autofixes this change
 	remove the old C++ selection_coeff_ and dominance_coeff_ ivars in Mutation and Substitution, and begin the transition over to the new MutationTraitInfo struct
+	add Individual method -(float)phenotypeForTrait([Nio<Trait> traits = NULL]) to get trait values
 
 
 version 5.1 (Eidos version 4.1):

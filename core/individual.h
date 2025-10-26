@@ -65,11 +65,11 @@ inline slim_pedigreeid_t SLiM_GetNextPedigreeID_Block(int p_block_size)
 
 // This struct contains all information for a single trait in a single individual.  In a multitrait
 // model, each individual has a pointer to a buffer of these records, providing per-trait information.
-typedef struct _SLiM_PerTraitInfo
+typedef struct _IndividualTraitInfo
 {
-	slim_effect_t value_;		// the phenotypic value for a trait
+	slim_effect_t phenotype_;	// the phenotypic value for a trait
 	slim_effect_t offset_;		// the individual offset combined in to produce a trait value
-} SLiM_PerTraitInfo;
+} IndividualTraitInfo;
 
 class Individual : public EidosDictionaryUnretained
 {
@@ -161,8 +161,8 @@ public:
 	// Per-trait information: trait offsets, trait values.  If the species has 0 traits, the pointer is
 	// nullptr; if 1 trait, it points to trait_info_0_ for memory locality and to avoid mallocs; if 2+
 	// trait, it points to an OWNED malloced buffer.
-	SLiM_PerTraitInfo trait_info_0_;
-	SLiM_PerTraitInfo *trait_info_;
+	IndividualTraitInfo trait_info_0_;
+	IndividualTraitInfo *trait_info_;
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
 	double spatial_x_, spatial_y_, spatial_z_;
@@ -340,6 +340,7 @@ public:
 	static EidosValue_SP ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_haplosomesForChromosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_offsetForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sharedParentCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	static EidosValue_SP ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
