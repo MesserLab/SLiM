@@ -1360,6 +1360,7 @@ const std::string &gStr_haplosomesForChromosomes = EidosRegisteredString("haplos
 const std::string &gStr_offsetForTrait = EidosRegisteredString("offsetForTrait", gID_offsetForTrait);
 const std::string &gStr_phenotypeForTrait = EidosRegisteredString("phenotypeForTrait", gID_phenotypeForTrait);
 const std::string &gStr_setOffsetForTrait = EidosRegisteredString("setOffsetForTrait", gID_setOffsetForTrait);
+const std::string &gStr_setPhenotypeForTrait = EidosRegisteredString("setPhenotypeForTrait", gID_setPhenotypeForTrait);
 const std::string &gStr_relatedness = EidosRegisteredString("relatedness", gID_relatedness);
 const std::string &gStr_sharedParentCount = EidosRegisteredString("sharedParentCount", gID_sharedParentCount);
 const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);

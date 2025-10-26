@@ -4246,6 +4246,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_offsetForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_phenotypeForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setOffsetForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("offset", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setPhenotypeForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddNumeric("phenotype"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->MarkDeprecated());
@@ -4267,6 +4268,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 	switch (p_method_id)
 	{
 		case gID_setOffsetForTrait:			return ExecuteMethod_setOffsetForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setPhenotypeForTrait:		return ExecuteMethod_setPhenotypeForTrait(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_outputIndividuals:			return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_outputIndividualsToVCF:	return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
@@ -4422,6 +4424,133 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires that offset be (a) NULL, requesting the default offset value for each trait, (b) singleton, providing one offset value for all traits, (c) equal in length to the number of traits in the species, providing one offset value per trait, or (d) equal in length to the number of traits times the number of target individuals, providing one offset value per trait per individual." << EidosTerminate();
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	+ (void)setPhenotypeForTrait([Nio<Trait> trait = NULL], [Nif phenotype = NULL])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *phenotype_value = p_arguments[1].get();
+	
+	int individuals_count = p_target->Count();
+	int phenotype_count = phenotype_value->Count();
+	
+	if (individuals_count == 0)
+		return gStaticEidosValueVOID;
+	
+	Individual **individuals_buffer = (Individual **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<int64_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setPhenotypeForTrait");
+	int trait_count = (int)trait_indices.size();
+	
+	if (phenotype_count == 1)
+	{
+		// pattern 1: setting a single phenotype value across one or more traits in one or more individuals
+		slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(0, nullptr));
+		
+		if (trait_count == 1)
+		{
+			// optimized case for one trait
+			int64_t trait_index = trait_indices[0];
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = phenotype;
+		}
+		else
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				for (int64_t trait_index : trait_indices)
+					ind->trait_info_[trait_index].phenotype_ = phenotype;
+			}
+		}
+	}
+	else if (phenotype_count == trait_count)
+	{
+		// pattern 2: setting one phenotype value per trait, in one or more individuals
+		int phenotype_index = 0;
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(phenotype_index++, nullptr));
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				ind->trait_info_[trait_index].phenotype_ = phenotype;
+			}
+		}
+	}
+	else if (phenotype_count == trait_count * individuals_count)
+	{
+		// pattern 3: setting different phenotype values for each trait in each individual; in this case,
+		// all phenotypes for the specified traits in a given individual are given consecutively
+		if (phenotype_value->Type() == EidosValueType::kValueInt)
+		{
+			// integer phenotype values
+			const int64_t *phenotypes_int = phenotype_value->IntData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				int64_t trait_index = trait_indices[0];
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_int++));
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (int64_t trait_index : trait_indices)
+						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_int++));
+				}
+			}
+		}
+		else
+		{
+			// float phenotype values
+			const double *phenotypes_float = phenotype_value->FloatData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				int64_t trait_index = trait_indices[0];
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_float++));
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (int64_t trait_index : trait_indices)
+						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_float++));
+				}
+			}
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires that phenotype be (a) singleton, providing one phenotype for all traits, (b) equal in length to the number of traits in the species, providing one phenotype per trait, or (c) equal in length to the number of traits times the number of target individuals, providing one phenotype per trait per individual." << EidosTerminate();
 	
 	return gStaticEidosValueVOID;
 }
