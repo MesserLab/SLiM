@@ -40,7 +40,7 @@
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -70,7 +70,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-time"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d MUTDEFS=\&apos;initializeMutationType(\\&quot;m1\\&quot;, 0.5, &quot;f&quot;, 0.0);\&apos; &quot;/Users/bhaller/Desktop/cmdline test.slim&quot;"
@@ -86,7 +86,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-mem"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-define &quot;N=1000&quot; -d &quot;THETA=5&quot; -d &quot;mu=THETA/(4*N)&quot;"
@@ -98,7 +98,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-testSLiM"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-x"

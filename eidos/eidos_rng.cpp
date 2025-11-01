@@ -35,6 +35,47 @@
 #endif
 
 
+// GSL-compatible wrapper for the PCG64 generator
+static void Eidos_GSL_RNG_PCG64_set(void *state, unsigned long int seed)
+{
+#pragma unused(state, seed)
+	// BCH 11/1/2025: This should never be called, because gsl_rng_set() should never be called.  The reason
+	// is that the pcg64_fast generator is a bit fussy about seeds; we should always seed it through the
+	// procedure followed in _Eidos_SetOneRNGSeed().  For that reason, we just skip seeding here.
+#if 0
+	EidosRNG_64_bit *rng_64 = static_cast<EidosRNG_64_bit *>(state);
+	
+	rng_64->seed(seed);
+#endif
+}
+
+static unsigned long int Eidos_GSL_RNG_PCG64_get(void *state)
+{
+	EidosRNG_64_bit *rng_64 = static_cast<EidosRNG_64_bit *>(state);
+	
+	return (*rng_64)();
+}
+
+static double Eidos_GSL_RNG_PCG64_get_double(void *state)
+{
+	EidosRNG_64_bit *rng_64 = static_cast<EidosRNG_64_bit *>(state);
+	
+	// generates a random double in [0,1) -- including 0 but NOT 1
+	// this is a copy of Eidos_rng_uniform_doubleCO()
+	return ((*rng_64)() >> 11) * (1.0/9007199254740992.0);
+}
+
+static const gsl_rng_type gEidos_GSL_RNG_PCG64 = {
+	"PCG64",
+	UINT_MAX,
+	0,
+	sizeof(EidosRNG_64_bit),
+	Eidos_GSL_RNG_PCG64_set,
+	Eidos_GSL_RNG_PCG64_get,
+	Eidos_GSL_RNG_PCG64_get_double
+};
+
+
 bool gEidos_RNG_Initialized = false;
 
 #ifndef _OPENMP
@@ -46,10 +87,11 @@ std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 
 static unsigned long int _Eidos_GenerateRNGSeed(void)
 {
+	unsigned long int seed;
+	
 #ifdef _WIN32
 	// On Windows, use the Cryptography API: Next Generation (CNG) to get a
 	// cryptographically secure random number for use as a seed.
-	unsigned long int seed;
 
 	// Ensure this section is thread-safe. If multiple threads request a seed
 	// simultaneously, they must take turns to avoid corrupting system resources.
@@ -65,24 +107,30 @@ static unsigned long int _Eidos_GenerateRNGSeed(void)
 			exit(EXIT_FAILURE);
 		}	
 	}
-	
-	return seed;
 #else
-	// on other platforms, we now use /dev/urandom as a source of seeds, which is more reliably random
-	// thanks to https://security.stackexchange.com/a/184211/288172 for the basis of this code
-	// chose urandom rather than random to avoid stalls if the random pool's entropy is low;
-	// semi-pseudorandom seeds should be good enough for our purposes here
-	unsigned long int seed;
+	// On other platforms, we now use /dev/urandom as a source of seeds, which is more reliably random.
+	// Thanks to https://security.stackexchange.com/a/184211/288172 for the basis of this code.
+	// I chose urandom rather than random to avoid stalls if the random pool's entropy is low;
+	// semi-pseudorandom seeds should be good enough for our purposes here.
 	
+	// Ensure this section is thread-safe. If multiple threads request a seed
+	// simultaneously, they must take turns to avoid corrupting system resources.
 #pragma omp critical (Eidos_GenerateRNGSeed)
 	{
 		int fd = open("/dev/urandom", O_RDONLY);
 		(void)(read(fd, &seed, sizeof(seed)) + 1);	// ignore the result without a warning, ugh; see https://stackoverflow.com/a/13999461
 		close(fd);
 	}
+#endif
+	
+	// Our new pcg32_fast and pcg64_fast generators have a quirk: they ignore the lowest two bits of
+	// the seed, and thus in _Eidos_SetOneRNGSeed() we shift the given seed left two places.  We want
+	// to make room for that without overflow, so we shift right here.  I've chosen to shift right
+	// by three places here, in fact, so that we have some extra headroom for the user to increment
+	// the generated seed a couple of times without risking overflow.
+	seed >>= 3;
 	
 	return seed;
-#endif
 }
 
 unsigned long int Eidos_GenerateRNGSeed(void)
@@ -92,6 +140,8 @@ unsigned long int Eidos_GenerateRNGSeed(void)
 	// true; if _Eidos_GenerateRNGSeed() is generating cryptographically secure seeds, that ought
 	// to be harmless.  We do this so that the seed reported to the user always matches the seed
 	// value generated (otherwise a discrepancy is visible in SLiMgui).
+	// BCH 11/1/2025: Avoiding zero was needed for the old taus2 RNG in the GSL.  This is not really
+	// needed any more, I think; but maybe avoiding zero is good anyway?
 	int64_t seed_i64;
 	
 	do
@@ -110,16 +160,17 @@ void _Eidos_InitializeOneRNG(Eidos_RNG_State &r)
 	// Note that this is now called from each thread, when running parallel
 	r.rng_last_seed_ = 0;
 	
-	r.gsl_rng_ = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
+	r.pcg32_rng_.seed(0);
+	r.pcg64_rng_.seed(0);
 	
-	r.mt_rng_.mt_ = static_cast<uint64_t *>(malloc(Eidos_MT64_NN * sizeof(uint64_t)));
-	r.mt_rng_.mti_ = Eidos_MT64_NN + 1;				// mti==NN+1 means mt[NN] is not initialized
+	// we do not call gsl_rng_alloc(), because our gsl_rng instance is inline; the GSL unfortunately
+	// does not cater to this possibility, so we've got a bit of copied init code here from the GSL
+	r.gsl_rng_.type = &gEidos_GSL_RNG_PCG64;
+	r.gsl_rng_.state = &r.pcg64_rng_;	// the "state" pointer points to our 64-bit PCG generator
+	//gsl_rng_set(&r.gsl_rng_, 0);      // the generator was already seeded above through pcg64_rng_
 	
 	r.random_bool_bit_counter_ = 0;
 	r.random_bool_bit_buffer_ = 0;
-	
-	if (!r.gsl_rng_ || !r.mt_rng_.mt_)
-		EIDOS_TERMINATION << "ERROR (_Eidos_InitializeOneRNG): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 }
 
 void Eidos_InitializeRNG(void)
@@ -165,18 +216,8 @@ void _Eidos_FreeOneRNG(Eidos_RNG_State &r)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("_Eidos_FreeOneRNG(): RNG change");
 	
-	if (r.gsl_rng_)
-	{
-		gsl_rng_free(r.gsl_rng_);
-		r.gsl_rng_ = NULL;
-	}
-	
-	if (r.mt_rng_.mt_)
-	{
-		free(r.mt_rng_.mt_);
-		r.mt_rng_.mt_ = NULL;
-	}
-	r.mt_rng_.mti_ = 0;
+	r.gsl_rng_.type = NULL;		// not owned
+	r.gsl_rng_.state = NULL;	// not owned
 	
 	r.random_bool_bit_buffer_ = 0;
 	r.random_bool_bit_counter_ = 0;
@@ -214,30 +255,21 @@ void _Eidos_SetOneRNGSeed(Eidos_RNG_State &r, unsigned long int p_seed)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("_Eidos_SetOneRNGSeed(): RNG change");
 	
-	// BCH 12 Sept. 2016: it turns out that gsl_rng_taus2 produces exactly the same sequence for seeds 0 and 1.  This is obviously
-	// undesirable; people will often do a set of runs with sequential seeds starting at 0 and counting up, and they will get
-	// identical runs for 0 and 1.  There is no way to re-map the seed space to get rid of the problem altogether; all we can do
-	// is shift it to a place where it is unlikely to cause a problem.  So that's what we do.
-	// BCH 10/2/2025: suppressing the cppcheck warning on this; it is correct, this expression is wrong, because
-	// unsigned long int is 32-bit on many platforms; but it isn't worth breaking backward compatibility to clean
-	// this up; it's really the GSL's fault for using such a vague type to begin with, they should use uintX_t.
-	if ((p_seed > 0) && (p_seed < 10000000000000000000UL))	// cppcheck-suppress incorrectLogicOperator
-		gsl_rng_set(r.gsl_rng_, p_seed + 1);	// map 1 -> 2, 2-> 3, 3-> 4, etc.
-	else
-		gsl_rng_set(r.gsl_rng_, p_seed);		// 0 stays 0
-	
-	// BCH 13 May 2018: set the seed on the MT64 generator as well; we keep them synchronized in their seeding
-	Eidos_MT64_init_genrand64(&r.mt_rng_, p_seed);
-	
 	//std::cout << "***** Setting seed " << p_seed << " on RNG" << std::endl;
 	
-	// remember the seed as part of the RNG state
+	// pcg32_rng_ and pcg64_rng_ need the seed to be shifted left by two; the lowest two bits don't matter
+	// see https://github.com/imneme/pcg-cpp/issues/79 for details on this, which seems to be a bug
+	r.pcg32_rng_.seed(p_seed << 2);
+	r.pcg64_rng_.seed(p_seed << 2);
 	
-	// BCH 12 Sept. 2016: we want to return the user the same seed they requested, if they call getSeed(), so we save the requested
-	// seed, not the seed shifted by one that is actually passed to the GSL above.
+	// we seem to need to re-point gsl_rng_ to pcg64_rng_; I don't really understand quite why...
+	r.gsl_rng_.state = &r.pcg64_rng_;
+	//gsl_rng_set(&r.gsl_rng_, p_seed);      // the generator was already seeded above through pcg64_rng_
+	
+	// remember the original user-supplied seed as part of the RNG state
 	r.rng_last_seed_ = p_seed;
 	
-	// These need to be zeroed out, too; they are part of our RNG state
+	// The random bit buffer state needs to be zeroed out, too; it is part of our RNG state
 	r.random_bool_bit_counter_ = 0;
 	r.random_bool_bit_buffer_ = 0;
 }
@@ -283,104 +315,6 @@ double Eidos_FastRandomPoisson_PRECALCULATE(double p_mu)
 	return exp(-p_mu);
 }
 #endif
-
-
-#pragma mark -
-#pragma mark 64-bit MT
-#pragma mark -
-
-// This is a 64-bit Mersenne Twister implementation.  The code below is used in accordance with its license,
-// reproduced in eidos_rng.h.  See eidos_rng.h for further comments on this code; most of the code is there.
-
-/* initializes mt[NN] with a seed */
-void Eidos_MT64_init_genrand64(Eidos_MT_State *r, uint64_t seed)
-{
-	r->mt_[0] = seed;
-	for (r->mti_ = 1; r->mti_ < Eidos_MT64_NN; r->mti_++) 
-		r->mt_[r->mti_] =  (6364136223846793005ULL * (r->mt_[r->mti_ - 1] ^ (r->mt_[r->mti_ - 1] >> 62)) + r->mti_);
-}
-
-/* initialize by an array with array-length */
-/* init_key is the array for initializing keys */
-/* key_length is its length */
-void Eidos_MT64_init_by_array64(Eidos_MT_State *r, const uint64_t init_key[], uint64_t key_length)
-{
-	uint64_t i, j, k;
-	Eidos_MT64_init_genrand64(r, 19650218ULL);
-	i=1; j=0;
-	k = (Eidos_MT64_NN>key_length ? Eidos_MT64_NN : key_length);
-	for (; k; k--) {
-		r->mt_[i] = (r->mt_[i] ^ ((r->mt_[i-1] ^ (r->mt_[i-1] >> 62)) * 3935559000370003845ULL))
-		+ init_key[j] + j; /* non linear */
-		i++; j++;
-		if (i>=Eidos_MT64_NN) { r->mt_[0] = r->mt_[Eidos_MT64_NN-1]; i=1; }
-		if (j>=key_length) j=0;
-	}
-	for (k=Eidos_MT64_NN-1; k; k--) {
-		r->mt_[i] = (r->mt_[i] ^ ((r->mt_[i-1] ^ (r->mt_[i-1] >> 62)) * 2862933555777941757ULL))
-		- i; /* non linear */
-		i++;
-		if (i>=Eidos_MT64_NN) { r->mt_[0] = r->mt_[Eidos_MT64_NN-1]; i=1; }
-	}
-	
-	r->mt_[0] = 1ULL << 63; /* MSB is 1; assuring non-zero initial array */ 
-}
-
-/* BCH: fill the next Eidos_MT64_NN words; used internally by genrand64_int64() */
-void _Eidos_MT64_fill(Eidos_MT_State *r)
-{
-	/* generate NN words at one time */
-	/* if init_genrand64() has not been called, */
-	/* a default initial seed is used     */
-	int i;
-	static const uint64_t mag01[2]={0ULL, Eidos_MT64_MATRIX_A};
-	uint64_t x;
-	
-	// In the original code, this would fall back to some default seed value, but we
-	// don't want to allow the RNG to be used without being seeded first.  BCH 5/13/2018
-	if (r->mti_ == Eidos_MT64_NN+1) 
-		abort(); 
-	
-	for (i=0;i<Eidos_MT64_NN-Eidos_MT64_MM;i++) {
-		x = (r->mt_[i]&Eidos_MT64_UM)|(r->mt_[i+1]&Eidos_MT64_LM);
-		r->mt_[i] = r->mt_[i+Eidos_MT64_MM] ^ (x>>1) ^ mag01[(int)(x&1ULL)];
-	}
-	for (;i<Eidos_MT64_NN-1;i++) {
-		x = (r->mt_[i]&Eidos_MT64_UM)|(r->mt_[i+1]&Eidos_MT64_LM);
-		r->mt_[i] = r->mt_[i+(Eidos_MT64_MM-Eidos_MT64_NN)] ^ (x>>1) ^ mag01[(int)(x&1ULL)];
-	}
-	x = (r->mt_[Eidos_MT64_NN-1]&Eidos_MT64_UM)|(r->mt_[0]&Eidos_MT64_LM);
-	r->mt_[Eidos_MT64_NN-1] = r->mt_[Eidos_MT64_MM-1] ^ (x>>1) ^ mag01[(int)(x&1ULL)];
-	
-	r->mti_ = 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

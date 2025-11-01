@@ -1286,7 +1286,7 @@ int RunEidosTests(void)
 	{
 		std::cout << std::endl << "SORTING TESTS:" << std::endl;
 		
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// the single-threaded RNG
+		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());		// the single-threaded RNG
 		typedef std::string SORT_TYPE;
 		
 		{

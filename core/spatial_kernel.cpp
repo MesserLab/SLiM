@@ -404,29 +404,33 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 {
 	// Draw a displacement from the kernel center, weighted by kernel density
 	// Note that we could be going either plus or minus from the center
-	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
-	gsl_rng *rng = rng_state->gsl_rng_;
-	
 	switch (kernel_type_)
 	{
 		case SpatialKernelType::kFixed:
 		{
-			displacement[0] = Eidos_rng_uniform(rng) * 2 * max_distance_ - max_distance_;
+			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+			
+			displacement[0] = Eidos_rng_uniform_doubleCO(rng_64) * 2 * max_distance_ - max_distance_;
 			return;
 		}
 		case SpatialKernelType::kLinear:
 		{
-			double d = (1 - sqrt(Eidos_rng_uniform(rng))) * max_distance_;
+			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+			EidosRNG_64_bit &rng_64 = rng_state->pcg64_rng_;
+			
+			double d = (1 - sqrt(Eidos_rng_uniform_doubleCO(rng_64))) * max_distance_;
 			
 			displacement[0] = (Eidos_RandomBool(rng_state) ? d : -d);
 			return;
 		}
 		case SpatialKernelType::kExponential:
 		{
+			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+			gsl_rng *rng_gsl = &rng_state->gsl_rng_;
 			double d;
 			
 			do {
-				d = gsl_ran_exponential(rng, 1.0 / kernel_param2_);
+				d = gsl_ran_exponential(rng_gsl, 1.0 / kernel_param2_);
 			} while (d > max_distance_);
 			
 			displacement[0] = (Eidos_RandomBool(rng_state) ? d : -d);
@@ -434,10 +438,11 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 		}
 		case SpatialKernelType::kNormal:
 		{
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 			double d;
 			
 			do {
-				d = gsl_ran_gaussian(rng, kernel_param2_);
+				d = gsl_ran_gaussian(rng_gsl, kernel_param2_);
 			} while (d > max_distance_);
 			
 			displacement[0] = d;
@@ -445,10 +450,11 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 		}
 		case SpatialKernelType::kStudentsT:
 		{
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 			double d;
 			
 			do {
-				d = gsl_ran_tdist(rng, kernel_param2_) * kernel_param3_;
+				d = gsl_ran_tdist(rng_gsl, kernel_param2_) * kernel_param3_;
 			} while (d > max_distance_);
 			
 			displacement[0] = d;
@@ -467,35 +473,40 @@ void SpatialKernel::DrawDisplacement_S2(double *displacement)
 {
 	// Draw a displacement from the kernel center, weighted by kernel density
 	// Note that we could be going in any direction from the center
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	switch (kernel_type_)
 	{
 		case SpatialKernelType::kFixed:
 		{
-			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
-			double d = sqrt(Eidos_rng_uniform(rng)) * max_distance_;
+			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+			double theta = Eidos_rng_uniform_doubleCO(rng_64) * 2 * M_PI;
+			double d = sqrt(Eidos_rng_uniform_doubleCO(rng_64)) * max_distance_;
 			displacement[0] = cos(theta) * d;
 			displacement[1] = sin(theta) * d;
 			return;
 		}
 		case SpatialKernelType::kLinear:
 		{
-			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
-			double d = gsl_ran_beta(rng, 2.0, 2.0) * max_distance_;
+			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+			gsl_rng *rng_gsl = &rng_state->gsl_rng_;
+			EidosRNG_64_bit &rng_64 = rng_state->pcg64_rng_;
+			double theta = Eidos_rng_uniform_doubleCO(rng_64) * 2 * M_PI;
+			double d = gsl_ran_beta(rng_gsl, 2.0, 2.0) * max_distance_;
 			displacement[0] = cos(theta) * d;
 			displacement[1] = sin(theta) * d;
 			return;
 		}
 		case SpatialKernelType::kExponential:
 		{
+			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+			gsl_rng *rng_gsl = &rng_state->gsl_rng_;
+			EidosRNG_64_bit &rng_64 = rng_state->pcg64_rng_;
 			double d;
 			
 			do {
-				d = gsl_ran_gamma(rng, 2.0, 1.0 / kernel_param2_);
+				d = gsl_ran_gamma(rng_gsl, 2.0, 1.0 / kernel_param2_);
 			} while (d > max_distance_);
 			
-			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
+			double theta = Eidos_rng_uniform_doubleCO(rng_64) * 2 * M_PI;
 			
 			displacement[0] = cos(theta) * d;
 			displacement[1] = sin(theta) * d;
@@ -503,11 +514,12 @@ void SpatialKernel::DrawDisplacement_S2(double *displacement)
 		}
 		case SpatialKernelType::kNormal:
 		{
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 			double d1, d2;
 			
 			do {
-				d1 = gsl_ran_gaussian(rng, kernel_param2_);
-				d2 = gsl_ran_gaussian(rng, kernel_param2_);
+				d1 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
+				d2 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
 			} while (sqrt(d1*d1 + d2*d2) > max_distance_);
 			
 			displacement[0] = d1;
@@ -517,14 +529,15 @@ void SpatialKernel::DrawDisplacement_S2(double *displacement)
 		case SpatialKernelType::kStudentsT:
 		{
 			// df (nu) is kernel_param2_, scale is kernel_param3_
+			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 			double d;
 			
 			do {
-				double x = 0.5 + abs(Eidos_rng_uniform(rng) - 0.5);
+				double x = 0.5 + abs(Eidos_rng_uniform_doubleCO(rng_64) - 0.5);
 				d = sqrt(std::max(0.0, kernel_param2_ * (pow(2.0 - 2.0 * x, -2.0 / (kernel_param2_ - 1.0)) - 1.0))) * kernel_param3_;
 			} while (d > max_distance_);
 			
-			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
+			double theta = Eidos_rng_uniform_doubleCO(rng_64) * 2 * M_PI;
 			
 			displacement[0] = cos(theta) * d;
 			displacement[1] = sin(theta) * d;
@@ -543,17 +556,18 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 {
 	// Draw a displacement from the kernel center, weighted by kernel density
 	// Note that we could be going in any direction from the center
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	switch (kernel_type_)
 	{
 		case SpatialKernelType::kFixed:
 		{
-			double dx = gsl_ran_gaussian(rng, 1.0);
-			double dy = gsl_ran_gaussian(rng, 1.0);
-			double dz = gsl_ran_gaussian(rng, 1.0);
+			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+			double dx = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dy = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dz = gsl_ran_gaussian(rng_gsl, 1.0);
 			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
-			double d = pow(Eidos_rng_uniform(rng), 1/3.0) * max_distance_;
+			double d = pow(Eidos_rng_uniform_doubleCO(rng_64), 1/3.0) * max_distance_;
 			
 			displacement[0] = dx * d / sphere_dist;
 			displacement[1] = dy * d / sphere_dist;
@@ -562,11 +576,11 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 		}
 		case SpatialKernelType::kLinear:
 		{
-			double dx = gsl_ran_gaussian(rng, 1.0);
-			double dy = gsl_ran_gaussian(rng, 1.0);
-			double dz = gsl_ran_gaussian(rng, 1.0);
+			double dx = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dy = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dz = gsl_ran_gaussian(rng_gsl, 1.0);
 			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
-			double d = gsl_ran_beta(rng, 3.0, 2.0) * max_distance_;
+			double d = gsl_ran_beta(rng_gsl, 3.0, 2.0) * max_distance_;
 			
 			displacement[0] = dx * d / sphere_dist;
 			displacement[1] = dy * d / sphere_dist;
@@ -575,14 +589,14 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 		}
 		case SpatialKernelType::kExponential:
 		{
-			double dx = gsl_ran_gaussian(rng, 1.0);
-			double dy = gsl_ran_gaussian(rng, 1.0);
-			double dz = gsl_ran_gaussian(rng, 1.0);
+			double dx = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dy = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dz = gsl_ran_gaussian(rng_gsl, 1.0);
 			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
 			double d;
 			
 			do {
-				d = gsl_ran_gamma(rng, 3.0, 1.0 / kernel_param2_);
+				d = gsl_ran_gamma(rng_gsl, 3.0, 1.0 / kernel_param2_);
 			} while (d > max_distance_);
 			
 			displacement[0] = dx * d / sphere_dist;
@@ -595,9 +609,9 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 			double d1, d2, d3;
 			
 			do {
-				d1 = gsl_ran_gaussian(rng, kernel_param2_);
-				d2 = gsl_ran_gaussian(rng, kernel_param2_);
-				d3 = gsl_ran_gaussian(rng, kernel_param2_);
+				d1 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
+				d2 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
+				d3 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
 			} while (sqrt(d1*d1 + d2*d2 + d3*d3) > max_distance_);
 			
 			displacement[0] = d1;
