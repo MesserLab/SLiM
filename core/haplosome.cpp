@@ -3375,7 +3375,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 	std::vector<MutationIndex> mutation_indices;
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 	
 	for (int mut_index = 0; mut_index < segsites; ++mut_index)
 	{
@@ -3390,7 +3390,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 			// select a nucleotide that is different from the ancestral state at this position
 			int8_t ancestral = (int8_t)chromosome->AncestralSequence()->NucleotideAtIndex(position);
 			
-			nucleotide = (int8_t)Eidos_rng_uniform_int(rng, 3);	// 0, 1, 2
+			nucleotide = (int8_t)Eidos_rng_interval_uint32(rng_32, 3);	// 0, 1, 2
 			
 			if (nucleotide == ancestral)
 				nucleotide++;

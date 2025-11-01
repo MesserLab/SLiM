@@ -2117,6 +2117,34 @@ void _RunTreeSeqTests(const std::string &temp_path)
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 early() { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_2.trees', simplify=T, includeModel=F); stop(); }", __LINE__);
 	}
 	
+	// test that RNG seeds are working as expected; the next test relies upon this
+	SLiMAssertScriptSuccess(R"V0G0N(
+initialize() {
+	defineConstant('SEED', getSeed());
+	x = runif(10); y = sample(1:1000, 5); z = rbeta(10, 0.5, 1.75);
+	
+	setSeed(SEED+1);
+	a1 = runif(10);
+	a2 = sample(1:1000, 5);
+	a3 = rbeta(10, 0.5, 1.75);
+	
+	setSeed(SEED+1);
+	b1 = runif(10);
+	b2 = sample(1:1000, 5);
+	b3 = rbeta(10, 0.5, 1.75);
+	
+	if (!identical(a1, b1))
+		stop('64-bit generator is out of sync');
+	if (!identical(a2, b2))
+		stop('32-bit generator is out of sync');
+	if (!identical(a3, b3))
+		stop('gsl generator is out of sync');
+}
+1 early()
+{
+}
+)V0G0N");
+	
 	// test remembering, saving, and loading with each chromosome type
 	// this relies on being able to write to the temporary directory on the machine
 	if (Eidos_TemporaryDirectoryExists())
@@ -2166,7 +2194,7 @@ initialize() {
 	else
 	{
 		if (s != sim.getValue("s"))
-			stop("s value mismatch for chromosome type " + CHR_TYPE);
+			stop("s value mismatch for chromosome type " + CHR_TYPE + "(" + s + " versus " + sim.getValue("s") + "), SEED == " + SEED + ".");
 		else
 			catn("s value match (" + s + ") for chromosome type " + CHR_TYPE);
 	}
@@ -2351,11 +2379,11 @@ void _RunNucleotideFunctionTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(randomNucleotides(0, format='char'), string(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(randomNucleotides(0, format='integer'), integer(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(1, format='string'), 'A')) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(1); if (identical(randomNucleotides(1, format='char'), 'T')) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(2); if (identical(randomNucleotides(1, format='integer'), 2)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(3); if (identical(randomNucleotides(10, format='string'), 'ACACATATGA')) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(4); if (identical(randomNucleotides(10, format='char'), c('A','G','C','A','C','T','C','G','C','T'))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(5); if (identical(randomNucleotides(10, format='integer'), c(2,2,0,1,2,2,0,2,1,3))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(1); if (identical(randomNucleotides(1, format='char'), 'C')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(2); if (identical(randomNucleotides(1, format='integer'), 1)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(3); if (identical(randomNucleotides(10, format='string'), 'CAGGGTAGGA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(4); if (identical(randomNucleotides(10, format='char'), c('A','T','G','G','G','T','C','A','A','C'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(5); if (identical(randomNucleotides(10, format='integer'), c(0,3,0,1,0,0,3,2,0,2))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(1, basis=c(1.0,0,0,0), format='string'), 'A')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(1, basis=c(1.0,0,0,0), format='char'), 'A')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(1, basis=c(1.0,0,0,0), format='integer'), 0)) stop(); }", __LINE__);
@@ -2380,9 +2408,9 @@ void _RunNucleotideFunctionTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(10, basis=c(0,0,0,1.0), format='string'), 'TTTTTTTTTT')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(10, basis=c(0,0,0,1.0), format='char'), rep('T',10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(10, basis=c(0,0,0,1.0), format='integer'), rep(3,10))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(100, basis=c(10.0,1.0,2.0,3.0), format='string'), 'ATAAAAAAAGAAATAAACTATGAATATCATAAAATACAAAATAAAATAATTTGTAAGAGTAAATTATTAGTATGAATCTAACATAATAAAAAATAATATA')) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(100, basis=c(10.0,1.0,2.0,3.0), format='char'), c('A','T','A','A','A','A','A','A','A','G','A','A','A','T','A','A','A','C','T','A','T','G','A','A','T','A','T','C','A','T','A','A','A','A','T','A','C','A','A','A','A','T','A','A','A','A','T','A','A','T','T','T','G','T','A','A','G','A','G','T','A','A','A','T','T','A','T','T','A','G','T','A','T','G','A','A','T','C','T','A','A','C','A','T','A','A','T','A','A','A','A','A','A','T','A','A','T','A','T','A'))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(100, basis=c(10.0,1.0,2.0,3.0), format='integer'), c(0,3,0,0,0,0,0,0,0,2,0,0,0,3,0,0,0,1,3,0,3,2,0,0,3,0,3,1,0,3,0,0,0,0,3,0,1,0,0,0,0,3,0,0,0,0,3,0,0,3,3,3,2,3,0,0,2,0,2,3,0,0,0,3,3,0,3,3,0,2,3,0,3,2,0,0,3,1,3,0,0,1,0,3,0,0,3,0,0,0,0,0,0,3,0,0,3,0,3,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(100, basis=c(10.0,1.0,2.0,3.0), format='string'), 'AAAAAAGAGAAAAAAGACAAAAAAACAAAAAAGAACAAAAATATAAAAGGTAAATCAAAAAAAATGAGAATAACGGAAAAAGATATAAAAAAAAAAATAA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(100, basis=c(10.0,1.0,2.0,3.0), format='char'), c('A','A','A','A','A','A','G','A','G','A','A','A','A','A','A','G','A','C','A','A','A','A','A','A','A','C','A','A','A','A','A','A','G','A','A','C','A','A','A','A','A','T','A','T','A','A','A','A','G','G','T','A','A','A','T','C','A','A','A','A','A','A','A','A','T','G','A','G','A','A','T','A','A','C','G','G','A','A','A','A','A','G','A','T','A','T','A','A','A','A','A','A','A','A','A','A','A','T','A','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { setSeed(0); if (identical(randomNucleotides(100, basis=c(10.0,1.0,2.0,3.0), format='integer'), c(0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,2,0,0,1,0,0,0,0,0,3,0,3,0,0,0,0,2,2,3,0,0,0,3,1,0,0,0,0,0,0,0,0,3,2,0,2,0,0,3,0,0,1,2,2,0,0,0,0,0,2,0,3,0,3,0,0,0,0,0,0,0,0,0,0,0,3,0,0))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { randomNucleotides(-1); }", "requires length to be in [0, 2e9]", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { randomNucleotides(0, basis=3.0); }", "requires basis to be either", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { randomNucleotides(0, basis=c(0.0,0.0,0.0,0.0)); }", "requires at least one basis value to be > 0.0", __LINE__);
