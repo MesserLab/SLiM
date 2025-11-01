@@ -6096,7 +6096,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, survival_buffer, parent_subpop_size_) firstprivate(individual_data) if(parent_subpop_size_ >= EIDOS_OMPMIN_SURVIVAL) num_threads(thread_count)
 		{
 			uint8_t *survival_buf_perthread = survival_buffer;
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 			
 #pragma omp for schedule(dynamic, 1024) nowait
 			for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
@@ -6107,7 +6107,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 				
 				if (fitness <= 0.0)			survived = false;
 				else if (fitness >= 1.0)	survived = true;
-				else						survived = (Eidos_rng_uniform(rng) < fitness);
+				else						survived = (Eidos_rng_uniform_doubleCO(rng_64) < fitness);
 				
 				survival_buf_perthread[individual_index] = survived;
 			}
@@ -6118,14 +6118,14 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	{
 		// this is the complex case with callbacks, and therefore a shuffle buffer to randomize processing order
 		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 		
 		for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
 		{
 			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
 			Individual *individual = individual_data[individual_index];
 			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
-			double draw = Eidos_rng_uniform(rng);		// always need a draw to pass to the callback
+			double draw = Eidos_rng_uniform_doubleCO(rng_64);		// always need a draw to pass to the callback
 			uint8_t survived = (draw < fitness);
 			
 			// run the survival() callbacks to allow the above decision to be modified
@@ -6744,9 +6744,9 @@ IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_ch
 			
 			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				
-				offspring_sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+				offspring_sex = ((Eidos_rng_uniform_doubleCO(rng_64) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
 			}
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex passed to " << p_caller_name << "." << EidosTerminate();
@@ -6916,9 +6916,9 @@ IndividualSex Subpopulation::_SexForSexValue(EidosValue *p_sex_value, bool p_sex
 		if (sex_value_type == EidosValueType::kValueNULL)
 		{
 			// in sexual simulations, NULL (the default) means pick a sex with equal probability
-			Eidos_RNG_State *rng = EIDOS_STATE_RNG(omp_get_thread_num());
+			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 			
-			sex = (Eidos_RandomBool(rng) ? IndividualSex::kMale : IndividualSex::kFemale);
+			sex = (Eidos_RandomBool(rng_state) ? IndividualSex::kMale : IndividualSex::kFemale);
 		}
 		else if (sex_value_type == EidosValueType::kValueString)
 		{
@@ -6938,9 +6938,9 @@ IndividualSex Subpopulation::_SexForSexValue(EidosValue *p_sex_value, bool p_sex
 			
 			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				
-				sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+				sex = ((Eidos_rng_uniform_doubleCO(rng_64) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
 			}
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
@@ -9134,7 +9134,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	// are common, though.
 	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || (boundary == BoundaryCondition::kAbsorbing) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
 	{
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 		double stddev = kernel0.kernel_param2_;
 		double bx0 = bounds_x0_, bx1 = bounds_x1_;
 		double by0 = bounds_y0_, by1 = bounds_y1_;
@@ -9145,8 +9145,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				a0 = std::max(bx0, std::min(bx1, a0));
 				a1 = std::max(by0, std::min(by1, a1));
@@ -9161,8 +9161,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				while (true)
 				{
@@ -9191,8 +9191,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 				double a1_original = ind->spatial_y_;
 				
 			reprise_specialcase:
-				double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
-				double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+				double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
@@ -9208,8 +9208,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
@@ -9225,8 +9225,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				// (note periodic_x and periodic_y are required to be true above)
 				while (a0 < 0.0)	a0 += bx1;
@@ -9596,7 +9596,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 	// which is pretty marginal, but it's an easy optimization.
 	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && !periodic_x && !periodic_y && !periodic_z && ((boundary == BoundaryCondition::kReprising) || (boundary == BoundaryCondition::kAbsorbing)))
 	{
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+		EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 		double stddev = kernel0.kernel_param2_;
 		double bx0 = bounds_x0_, bx1 = bounds_x1_;
 		double by0 = bounds_y0_, by1 = bounds_y1_;
@@ -9619,8 +9620,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 					if (++num_tries == 1000000)
 						EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 					
-					double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
-					double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+					double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
+					double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -9646,7 +9647,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 					else
 					{
 						// intermediate: do a random number draw, where value_for_point is P(within bounds)
-						if (Eidos_rng_uniform(rng) > value_for_point)
+						if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 							goto reprise_specialcase;
 					}
 					
@@ -9668,8 +9669,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 					if (++num_tries == 1000000)
 						EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 					
-					double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
-					double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+					double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
+					double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -9692,7 +9693,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 					else
 					{
 						// intermediate: do a random number draw, where value_for_point is P(within bounds)
-						if (Eidos_rng_uniform(rng) > value_for_point)
+						if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 							goto reprise_specialcase_nointerp;
 					}
 					
@@ -9709,8 +9710,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				{
 					Individual *ind = individuals[individual_index];
-					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
-					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
+					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -9739,7 +9740,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 						else
 						{
 							// intermediate: do a random number draw, where value_for_point is P(within bounds)
-							if (Eidos_rng_uniform(rng) > value_for_point)
+							if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 								result->push_object_element_capcheck_NORR(ind);
 						}
 					}
@@ -9754,8 +9755,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				{
 					Individual *ind = individuals[individual_index];
-					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
-					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
+					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -9781,7 +9782,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 						else
 						{
 							// intermediate: do a random number draw, where value_for_point is P(within bounds)
-							if (Eidos_rng_uniform(rng) > value_for_point)
+							if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 								result->push_object_element_capcheck_NORR(ind);
 						}
 					}
@@ -9795,7 +9796,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 	}
 	
 	// main code path; note that here we may have multiple kernels defined, one per individual
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 	
 	switch (dimensionality)
 	{
@@ -9852,7 +9853,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 						else
 						{
 							// intermediate: do a random number draw, where value_for_point is P(within bounds)
-							if (Eidos_rng_uniform(rng) > value_for_point)
+							if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 								goto reprise_1;
 						}
 						
@@ -9885,7 +9886,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 							else
 							{
 								// intermediate: do a random number draw, where value_for_point is P(within bounds)
-								if (Eidos_rng_uniform(rng) > value_for_point)
+								if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 									result->push_object_element_capcheck_NORR(ind);
 							}
 						}
@@ -9966,7 +9967,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 						else
 						{
 							// intermediate: do a random number draw, where value_for_point is P(within bounds)
-							if (Eidos_rng_uniform(rng) > value_for_point)
+							if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 								goto reprise_2;
 						}
 						
@@ -10001,7 +10002,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 							else
 							{
 								// intermediate: do a random number draw, where value_for_point is P(within bounds)
-								if (Eidos_rng_uniform(rng) > value_for_point)
+								if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 									result->push_object_element_capcheck_NORR(ind);
 							}
 						}
@@ -10093,7 +10094,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 						else
 						{
 							// intermediate: do a random number draw, where value_for_point is P(within bounds)
-							if (Eidos_rng_uniform(rng) > value_for_point)
+							if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 								goto reprise_3;
 						}
 						
@@ -10130,7 +10131,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 							else
 							{
 								// intermediate: do a random number draw, where value_for_point is P(within bounds)
-								if (Eidos_rng_uniform(rng) > value_for_point)
+								if (Eidos_rng_uniform_doubleCO(rng_64) > value_for_point)
 									result->push_object_element_capcheck_NORR(ind);
 							}
 						}
@@ -10250,7 +10251,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	// are common, though.
 	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
 	{
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 		double stddev = kernel0.kernel_param2_;
 		double bx0 = bounds_x0_, bx1 = bounds_x1_;
 		double by0 = bounds_y0_, by1 = bounds_y1_;
@@ -10259,8 +10260,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
-				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
-				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				a0 = std::max(bx0, std::min(bx1, a0));
 				a1 = std::max(by0, std::min(by1, a1));
@@ -10273,8 +10274,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
-				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
-				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				while (true)
 				{
@@ -10301,8 +10302,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				double a1_original = *(point_buf_ptr++);
 				
 			reprise_specialcase:
-				double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
-				double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+				double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
@@ -10316,8 +10317,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
-				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
-				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
 				
 				// (note periodic_x and periodic_y are required to be true above)
 				while (a0 < 0.0)	a0 += bx1;
@@ -11003,13 +11004,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM_1D);
 #pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM_1D) num_threads(thread_count)
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
 				
 #pragma omp for schedule(static)
 				for (int64_t point_index = 0; point_index < point_count; ++point_index)
 				{
-					float_result_data[point_index] = Eidos_rng_uniform(rng) * xsize + xbase;
+					float_result_data[point_index] = Eidos_rng_uniform_doubleCO(rng_64) * xsize + xbase;
 				}
 			}
 			break;
@@ -11019,15 +11020,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM_2D);
 #pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM_2D) num_threads(thread_count)
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
 				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
 				
 #pragma omp for schedule(static)
 				for (int64_t point_index = 0; point_index < point_count; ++point_index)
 				{
-					float_result_data[point_index * 2] = Eidos_rng_uniform(rng) * xsize + xbase;
-					float_result_data[point_index * 2 + 1] = Eidos_rng_uniform(rng) * ysize + ybase;
+					float_result_data[point_index * 2] = Eidos_rng_uniform_doubleCO(rng_64) * xsize + xbase;
+					float_result_data[point_index * 2 + 1] = Eidos_rng_uniform_doubleCO(rng_64) * ysize + ybase;
 				}
 			}
 			break;
@@ -11037,7 +11038,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM_3D);
 #pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM_3D) num_threads(thread_count)
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
 				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
 				double zsize = bounds_z1_ - bounds_z0_, zbase = bounds_z0_;
@@ -11045,9 +11046,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 #pragma omp for schedule(static)
 				for (int64_t point_index = 0; point_index < point_count; ++point_index)
 				{
-					float_result_data[point_index * 3] = Eidos_rng_uniform(rng) * xsize + xbase;
-					float_result_data[point_index * 3 + 1] = Eidos_rng_uniform(rng) * ysize + ybase;
-					float_result_data[point_index * 3 + 2] = Eidos_rng_uniform(rng) * zsize + zbase;
+					float_result_data[point_index * 3] = Eidos_rng_uniform_doubleCO(rng_64) * xsize + xbase;
+					float_result_data[point_index * 3 + 1] = Eidos_rng_uniform_doubleCO(rng_64) * ysize + ybase;
+					float_result_data[point_index * 3 + 2] = Eidos_rng_uniform_doubleCO(rng_64) * zsize + zbase;
 				}
 			}
 			break;
@@ -11132,7 +11133,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 		case 1:
 		{
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
 				
 				for (int64_t point_index = 0; point_index < point_count; ++point_index)
@@ -11145,14 +11146,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() failed to find a successful drawn point after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 						
 						// ValueAtPoint_S1() requires points normalized to [0, 1] in the map's spatiality
-						point_base[0] = Eidos_rng_uniform(rng);
+						point_base[0] = Eidos_rng_uniform_doubleCO(rng_64);
 						double value_for_point = map->ValueAtPoint_S1(point_base);
 						
 						if (value_for_point <= 0)
 							continue;
 						else if (value_for_point >= 1)
 							break;
-						else if (Eidos_rng_uniform(rng) <= value_for_point)
+						else if (Eidos_rng_uniform_doubleCO(rng_64) <= value_for_point)
 							break;
 					} while (true);
 					
@@ -11164,7 +11165,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 		case 2:
 		{
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
 				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
 				
@@ -11178,15 +11179,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() failed to find a successful drawn point after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 						
 						// ValueAtPoint_S2() requires points normalized to [0, 1] in the map's spatiality
-						point_base[0] = Eidos_rng_uniform(rng);
-						point_base[1] = Eidos_rng_uniform(rng);
+						point_base[0] = Eidos_rng_uniform_doubleCO(rng_64);
+						point_base[1] = Eidos_rng_uniform_doubleCO(rng_64);
 						double value_for_point = map->ValueAtPoint_S2(point_base);
 						
 						if (value_for_point <= 0)
 							continue;
 						else if (value_for_point >= 1)
 							break;
-						else if (Eidos_rng_uniform(rng) <= value_for_point)
+						else if (Eidos_rng_uniform_doubleCO(rng_64) <= value_for_point)
 							break;
 					} while (true);
 					
@@ -11199,7 +11200,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 		case 3:
 		{
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
 				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
 				double zsize = bounds_z1_ - bounds_z0_, zbase = bounds_z0_;
@@ -11214,16 +11215,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() failed to find a successful drawn point after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 						
 						// ValueAtPoint_S3() requires points normalized to [0, 1] in the map's spatiality
-						point_base[0] = Eidos_rng_uniform(rng);
-						point_base[1] = Eidos_rng_uniform(rng);
-						point_base[2] = Eidos_rng_uniform(rng);
+						point_base[0] = Eidos_rng_uniform_doubleCO(rng_64);
+						point_base[1] = Eidos_rng_uniform_doubleCO(rng_64);
+						point_base[2] = Eidos_rng_uniform_doubleCO(rng_64);
 						double value_for_point = map->ValueAtPoint_S3(point_base);
 						
 						if (value_for_point <= 0)
 							continue;
 						else if (value_for_point >= 1)
 							break;
-						else if (Eidos_rng_uniform(rng) <= value_for_point)
+						else if (Eidos_rng_uniform_doubleCO(rng_64) <= value_for_point)
 							break;
 					} while (true);
 					
@@ -11643,8 +11644,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		if (sample_size == 1)
 		{
 			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+			EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+			int sample_index = (int)Eidos_rng_interval_uint32(rng_32, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index >= excluded_index))
 				sample_index++;
@@ -11661,12 +11662,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(candidate_count, first_candidate_index, excluded_index, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_1) num_threads(thread_count)
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 				
 #pragma omp for schedule(static)
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
-					int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+					int sample_index = (int)Eidos_rng_interval_uint32(rng_32, candidate_count) + first_candidate_index;
 					
 					if ((excluded_index != -1) && (sample_index >= excluded_index))
 						sample_index++;
@@ -11694,9 +11695,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			// note that the code above guarantees that here there are at least two candidates to draw
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 			EidosValue_Object *result = ((EidosValue_Object *)result_SP.get())->resize_no_initialize(sample_size);
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 			
-			int sample_index1 = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+			int sample_index1 = (int)Eidos_rng_interval_uint32(rng_32, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index1 >= excluded_index))
 				sample_index1++;
@@ -11707,7 +11708,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			
 			do
 			{
-				sample_index2 = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+				sample_index2 = (int)Eidos_rng_interval_uint32(rng_32, candidate_count) + first_candidate_index;
 				
 				if ((excluded_index != -1) && (sample_index2 >= excluded_index))
 					sample_index2++;
@@ -11731,11 +11732,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// the number of candidates versus the number of *valid* candidates, and there's no way to know.
 	if ((sample_size == 1) && (candidate_count >= 30))
 	{
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 		
 		for (int try_count = 0; try_count < 20; ++try_count)
 		{
-			int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+			int sample_index = (int)Eidos_rng_interval_uint32(rng_32, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index >= excluded_index))
 				sample_index++;
@@ -11921,12 +11922,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_2);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size, index_buffer) firstprivate(candidate_count, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_2) num_threads(thread_count)
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 				
 #pragma omp for schedule(static)
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
-					int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)candidate_count);
+					int rose_index = (int)Eidos_rng_interval_uint32(rng_32, (uint32_t)candidate_count);
 					
 					object_result_data[samples_generated] = parent_individuals_[index_buffer[rose_index]];
 				}
@@ -11946,7 +11947,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		else
 		{
 			// base case without replacement; this is not parallelized because of contention over index_buffer removals
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
@@ -11956,7 +11957,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 #endif
 			
-				int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)candidate_count);
+				int rose_index = (int)Eidos_rng_interval_uint32(rng_32, (uint32_t)candidate_count);
 				
 				result->set_object_element_no_check_NORR(parent_individuals_[index_buffer[rose_index]], samples_generated);
 				

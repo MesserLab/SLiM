@@ -4153,18 +4153,18 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 	// than the GSL; and for large counts the GSL is surely a win.  Trying to figure out exactly where
 	// the crossover is in all cases would be overkill; my testing indicates the performance difference
 	// between the two methods is not really that large anyway.
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	if (weight_total > 0.0)
 	{
 		if (draw_count > 50)		// the empirically determined crossover point in performance
 		{
 			// Use gsl_ran_discrete() to do the drawing
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			
 			gsl_ran_discrete_t *gsl_lookup = gsl_ran_discrete_preproc(n_weights, weights);
 			
 			for (int64_t draw_index = 0; draw_index < draw_count; ++draw_index)
 			{
-				int hit_index = (int)gsl_ran_discrete(rng, gsl_lookup);
+				int hit_index = (int)gsl_ran_discrete(rng_gsl, gsl_lookup);
 				
 				draw_indices.emplace_back(hit_index);
 			}
@@ -4174,9 +4174,11 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 		else
 		{
 			// Use linear search to do the drawing
+			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+			
 			for (int64_t draw_index = 0; draw_index < draw_count; ++draw_index)
 			{
-				double the_rose_in_the_teeth = Eidos_rng_uniform(rng) * weight_total;
+				double the_rose_in_the_teeth = Eidos_rng_uniform_doubleCO(rng_64) * weight_total;
 				double cumulative_weight = 0.0;
 				int hit_index;
 				
@@ -4360,13 +4362,13 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					if (nnz > 0)
 					{
 						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-						gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+						EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 						
 						result_vec->resize_no_initialize(count);
 						
 						for (int64_t result_index = 0; result_index < count; ++result_index)
 						{
-							int presence_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+							int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
 							uint32_t exerter_index = columns[presence_index];
 							Individual *chosen_individual = exerters[exerter_index];
 							
@@ -4523,13 +4525,13 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 						if (nnz > 0)
 						{
 							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-							gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+							EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 							
 							result_vec->resize_no_initialize(count);
 							
 							for (int64_t result_index = 0; result_index < count; ++result_index)
 							{
-								int presence_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+								int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
 								uint32_t exerter_index = columns[presence_index];
 								Individual *chosen_individual = exerters[exerter_index];
 								

@@ -2604,7 +2604,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(coordinate_count);
 	double *result_ptr = float_result->data_mutable();
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 	
 	if (spatiality_ == 1)
 	{
@@ -2649,7 +2649,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			double original_map_value = ValueAtPoint_S1(rescaled_point);
 			double map_value = ValueAtPoint_S1(rescaled_displaced);
 			
-			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
+			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform_doubleCO(rng_64)))
 				*(result_ptr++) = displaced_point[0];
 			else
 				*(result_ptr++) = point_a;
@@ -2709,7 +2709,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			double original_map_value = ValueAtPoint_S2(rescaled_point);
 			double map_value = ValueAtPoint_S2(rescaled_displaced);
 			
-			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
+			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform_doubleCO(rng_64)))
 			{
 				*(result_ptr++) = displaced_point[0];
 				*(result_ptr++) = displaced_point[1];
@@ -2786,7 +2786,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			double original_map_value = ValueAtPoint_S3(rescaled_point);
 			double map_value = ValueAtPoint_S3(rescaled_displaced);
 			
-			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
+			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform_doubleCO(rng_64)))
 			{
 				*(result_ptr++) = displaced_point[0];
 				*(result_ptr++) = displaced_point[1];
@@ -2845,7 +2845,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(coordinate_count);
 	double *result_ptr = float_result->data_mutable();
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
 	
 	if (spatiality_ == 1)
 	{
@@ -2892,7 +2892,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 				rescaled_point[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
 				map_value = ValueAtPoint_S1(rescaled_point);
 			}
-			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
+			while (values_max_ * Eidos_rng_uniform_doubleCO(rng_64) > map_value);
 			
 			*(result_ptr++) = displaced_point[0];
 		}
@@ -2952,7 +2952,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 				rescaled_point[1] = (displaced_point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
 				map_value = ValueAtPoint_S2(rescaled_point);
 			}
-			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
+			while (values_max_ * Eidos_rng_uniform_doubleCO(rng_64) > map_value);
 			
 			*(result_ptr++) = displaced_point[0];
 			*(result_ptr++) = displaced_point[1];
@@ -3023,7 +3023,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 				rescaled_point[2] = (displaced_point[2] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
 				map_value = ValueAtPoint_S3(rescaled_point);
 			}
-			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
+			while (values_max_ * Eidos_rng_uniform_doubleCO(rng_64) > map_value);
 			
 			*(result_ptr++) = displaced_point[0];
 			*(result_ptr++) = displaced_point[1];

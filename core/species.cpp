@@ -4530,8 +4530,8 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		
 		if (shuffle_buf_size_ > 0)
 		{
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			Eidos_ran_shuffle(rng, buffer_contents, shuffle_buf_size_);
+			EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+			Eidos_ran_shuffle_uint32(rng_32, buffer_contents, shuffle_buf_size_);
 		}
 	}
 	else

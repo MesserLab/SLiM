@@ -15,6 +15,7 @@ development head (in the master branch):
 	extend text() to support drawing text at an angle, with new [float angle = 0.0] parameter
 	add mtext() call to Plot, for drawing text in the margins outside the plot area
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
+	add the PCG random number generator, switch to pcg32_fast and pcg64_fast, remove all use of the old taus2 and MT19937-64 generators; note this completely breaks backward reproducibility
 	----- last merge into multitrait was done here
 
 

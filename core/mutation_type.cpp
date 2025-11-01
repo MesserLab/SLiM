@@ -262,32 +262,32 @@ slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 			
 		case DFEType::kGamma:
 		{
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_gamma(rng, de_info.dfe_parameters_[1], de_info.dfe_parameters_[0] / de_info.dfe_parameters_[1]));
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			return static_cast<slim_effect_t>(gsl_ran_gamma(rng_gsl, de_info.dfe_parameters_[1], de_info.dfe_parameters_[0] / de_info.dfe_parameters_[1]));
 		}
 			
 		case DFEType::kExponential:
 		{
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_exponential(rng, de_info.dfe_parameters_[0]));
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			return static_cast<slim_effect_t>(gsl_ran_exponential(rng_gsl, de_info.dfe_parameters_[0]));
 		}
 			
 		case DFEType::kNormal:
 		{
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_gaussian(rng, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			return static_cast<slim_effect_t>(gsl_ran_gaussian(rng_gsl, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
 		}
 			
 		case DFEType::kWeibull:
 		{
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_weibull(rng, de_info.dfe_parameters_[0], de_info.dfe_parameters_[1]));
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			return static_cast<slim_effect_t>(gsl_ran_weibull(rng_gsl, de_info.dfe_parameters_[0], de_info.dfe_parameters_[1]));
 		}
 			
 		case DFEType::kLaplace:
 		{
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_laplace(rng, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			return static_cast<slim_effect_t>(gsl_ran_laplace(rng_gsl, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
 		}
 			
 		case DFEType::kScript:

@@ -2203,6 +2203,8 @@
 		98D7D6642AB24CBC002AFE34 /* chisq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = chisq.c; sourceTree = "<group>"; };
 		98D7EBEE28CE557C00DEAAC4 /* eidos_multi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eidos_multi; sourceTree = BUILT_PRODUCTS_DIR; };
 		98D7ED2D28CE58FC00DEAAC4 /* slim_multi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim_multi; sourceTree = BUILT_PRODUCTS_DIR; };
+		98D957882EB53494008314C1 /* pcg_extras.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = pcg_extras.hpp; sourceTree = "<group>"; };
+		98D957892EB53494008314C1 /* pcg_random.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = pcg_random.hpp; sourceTree = "<group>"; };
 		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
 		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
 		98DC9838289986B300160DD8 /* GitSHA1.cpp.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GitSHA1.cpp.in; sourceTree = "<group>"; };
@@ -2403,6 +2405,8 @@
 				98235687252FDD120096A745 /* lodepng.h */,
 				98235681252FDCF50096A745 /* lodepng.cpp */,
 				98186DB8254A8B1600F9118C /* robin_hood.h */,
+				98D957882EB53494008314C1 /* pcg_extras.hpp */,
+				98D957892EB53494008314C1 /* pcg_random.hpp */,
 			);
 			name = dependencies;
 			sourceTree = "<group>";
