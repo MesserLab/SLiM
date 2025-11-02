@@ -1200,7 +1200,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 
 // WF only:
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_dfe_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_DES_present)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
 	
@@ -1727,7 +1727,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
 		species_.Chromosomes()[0]->StartMutationRunExperimentClock();
 	
-	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_dfe_present)
+	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_DES_present)
 	{
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
@@ -3163,14 +3163,14 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
 #ifdef _OPENMP
 				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
 #else
@@ -3805,14 +3805,14 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
 #ifdef _OPENMP
 				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
 #else
@@ -4207,14 +4207,14 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
 #ifdef _OPENMP
 				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
 #else

@@ -513,7 +513,7 @@ static const int spaceBetweenChromosomes = 5;
 					else
 					{
 						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						RGBForSelectionCoeff(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						RGBForEffectSize(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 				}
@@ -586,7 +586,7 @@ static const int spaceBetweenChromosomes = 5;
 					else
 					{
 						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						RGBForSelectionCoeff(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						RGBForEffectSize(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -673,7 +673,7 @@ static const int spaceBetweenChromosomes = 5;
 						slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
 						float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 						
-						RGBForSelectionCoeff(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						RGBForEffectSize(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -687,10 +687,10 @@ static const int spaceBetweenChromosomes = 5;
 	{
 		// We have a lot of mutations, so let's try to be smarter.  It's hard to be smarter.  The overhead from allocating the NSColors and such
 		// is pretty negligible; practially all the time is spent in NSRectFill().  Unfortunately, NSRectFillListWithColors() provides basically
-		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DFE,
+		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DES,
 		// and thus a fixed color, we can do a radix sort of mutations into bins corresponding to each pixel in our displayed image.  Then we
-		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DFEs, and mutations which have
-		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
+		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DESs, and mutations which have
+		// had their effect changed, will be drawn at the end in the usual (slow) way.
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		int displayPixelWidth = (int)interiorRect.size.width;
 		int16_t *heightBuffer = (int16_t *)malloc(displayPixelWidth * sizeof(int16_t));
@@ -709,23 +709,23 @@ static const int spaceBetweenChromosomes = 5;
 			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
-				EffectDistributionInfo &ed_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+				EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
 				
-				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-				if ((ed_info.dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+				// We optimize fixed-DES mutation types only, and those using a fixed color set by the user
+				if ((DES_info.DES_type_ == DESType::kFixed) || mut_type_fixed_color)
 				{
-					slim_effect_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_effect_t)ed_info.dfe_parameters_[0]);
+					slim_effect_t mut_type_effect = (mut_type_fixed_color ? 0.0 : (slim_effect_t)DES_info.DES_parameters_[0]);
 					
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
-					// Scan through the mutation list for mutations of this type with the right selcoeff
+					// Scan through the mutation list for mutations of this type with the right effect
 					for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 					{
 						MutationIndex mut_index = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mut_index;
 						
 						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_ == mut_type_selcoeff)))
+						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_ == mut_type_effect)))
 						{
 							if (mutation->chromosome_index_ == chromosome_index)
 							{
@@ -755,7 +755,7 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						RGBForEffectSize(mut_type_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -813,7 +813,7 @@ static const int spaceBetweenChromosomes = 5;
 							NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 							
 							mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-							RGBForSelectionCoeff(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							RGBForEffectSize(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 							[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 							NSRectFill(mutationTickRect);
 						}
@@ -870,7 +870,7 @@ static const int spaceBetweenChromosomes = 5;
 						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
 						slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
 						
-						RGBForSelectionCoeff(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						RGBForEffectSize(mut_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 						NSRectFill(mutationTickRect);
 					}
@@ -1028,7 +1028,7 @@ static const int spaceBetweenChromosomes = 5;
 			MutationType *muttype = muttype_iter.second;
 			slim_objectid_t muttype_id = muttype->mutation_type_id_;
 			
-			if (!muttype->IsPureNeutralDFE())
+			if (!muttype->IsPureNeutralDES())
 				display_muttypes_.emplace_back(muttype_id);
 		}
 		

@@ -20,8 +20,8 @@
 /*
  
  The class MutationType represents a type of mutation defined in the input file, such as a synonymous mutation or an adaptive mutation.
- A particular mutation type is defined by its distribution of fitness effects (DFE) and its dominance coefficient.  Once a mutation type
- is defined, a draw from its DFE can be generated to determine the selection coefficient of a particular mutation of that type.
+ A particular mutation type is defined by its distribution of effect sizes (DES) and its dominance coefficient.  Once a mutation type
+ is defined, a draw from its DES can be generated to determine the selection coefficient of a particular mutation of that type.
  
  */
 
@@ -47,8 +47,8 @@ class MutationBlock;
 extern EidosClass *gSLiM_MutationType_Class;
 
 
-// This enumeration represents a type of distribution of fitness effects (DFE) that a mutation type can draw from
-enum class DFEType : char {
+// This enumeration represents a type of distribution of effect sizes (DES) that a mutation type can draw from
+enum class DESType : char {
 	kFixed = 0,
 	kGamma,
 	kExponential,
@@ -58,7 +58,7 @@ enum class DFEType : char {
 	kScript
 };
 
-std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
+std::ostream& operator<<(std::ostream& p_out, DESType p_DES_type);
 
 
 // This struct holds information about a distribution of effects (including dominance) for one trait.
@@ -66,12 +66,12 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
 typedef struct _EffectDistributionInfo {
 	slim_effect_t default_dominance_coeff_;		// the default dominance coefficient (h) inherited by mutations of this type
 	
-	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
-	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
-	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
+	DESType DES_type_;							// distribution of effect size (DES) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
+	std::vector<double> DES_parameters_;		// DES parameters, of type double (originally float or integer type)
+	std::vector<std::string> DES_strings_;		// DES parameters, of type std::string (originally string type)
 } EffectDistributionInfo;
 
-	
+
 class MutationType : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -100,7 +100,7 @@ public:
 	
 	std::vector<EffectDistributionInfo> effect_distributions_;	// DEs for each trait in the species
 	
-	slim_effect_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null
+	slim_effect_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null	// FIXME MULTITRAIT move into EffectDistributionInfo
 	
 	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
 	
@@ -115,7 +115,7 @@ public:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
 
-	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE
+	mutable EidosScript *cached_DES_script_;	// used by DES type 's' to hold a cached script for the DES		// FIXME MULTITRAIT move into EffectDistributionInfo
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// MutationType now has the ability to (optionally) keep a registry of all extant mutations of its type in the simulation,
@@ -131,17 +131,17 @@ public:
 #endif
 	
 	// For optimizing the fitness calculation code, the exact situation for each mutation type is of great interest: does it have
-	// a neutral DFE, and if so has any mutation of that type had its selection coefficient changed to be non-zero, are mutations
+	// a neutral DES, and if so has any mutation of that type had its selection coefficient changed to be non-zero, are mutations
 	// of this type made neutral by a constant callback like "return 1.0;", and so forth.  Different parts of the code need to
 	// know slightly different things, so we have several different flags of this sort.
 	
-	// all_pure_neutral_DFE_ is true if the DFE is "f" 0.0.  It is cleared if any mutation of this type has its selection coefficient
+	// all_pure_neutral_DES_ is true if the DES is "f" 0.0.  It is cleared if any mutation of this type has its selection coefficient
 	// changed, so it can be used as a reliable indicator that mutations of a given mutation type are actually neutral – except for
 	// the effects of mutationEffect() callbacks, which might make them non-neutral in a given tick / subpopulation.
-	mutable bool all_pure_neutral_DFE_;
+	mutable bool all_pure_neutral_DES_;
 	
 	// is_pure_neutral_now_ is set up by Subpopulation::UpdateFitness(), and is valid only inside a given UpdateFitness() call.
-	// If set, it indicates that the mutation type is currently pure neutral – either because all_pure_neutral_DFE_ is set and the
+	// If set, it indicates that the mutation type is currently pure neutral – either because all_pure_neutral_DES_ is set and the
 	// mutation type cannot be influenced by any callbacks in the current subpopulation / tick, or because an active callback
 	// actually sets the mutation type to be a constant value of 1.0 in this subpopulation / tick.  Mutations for which this
 	// flag is set can be safely elided from fitness calculations altogether; the flag will not be set if other active callbacks
@@ -158,7 +158,7 @@ public:
 	
 	// subject_to_mutationEffect_callback_ is set by RecalculateFitness() if the muttype is currently influenced by a callback in any subpop.
 	// Mutations with this flag set are considered to be non-neutral, since their fitness value is unpredictable; mutations without
-	// this flag set, on the other hand, are not influenced by any callback (active or inactive), so their selcoeff may be consulted.
+	// this flag set, on the other hand, are not influenced by any callback (active or inactive), so their effect may be consulted.
 	// This flag is valid only when the "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 3 (non-constant or non-neutral
 	// callbacks present); it is not valid in other scenarios, so it should be used with extreme caution.
 	mutable bool subject_to_mutationEffect_callback_ = false;
@@ -173,25 +173,25 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
+	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index);
 #else
-	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
+	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings);
 #endif
 	~MutationType(void);
 	
-	static void ParseDFEParameters(std::string &p_dfe_type_string, const EidosValue_SP *const p_arguments, int p_argument_count,
-								   DFEType *p_dfe_type, std::vector<double> *p_dfe_parameters, std::vector<std::string> *p_dfe_strings);
+	static void ParseDESParameters(std::string &p_DES_type_string, const EidosValue_SP *const p_arguments, int p_argument_count,
+								   DESType *p_DES_type, std::vector<double> *p_DES_parameters, std::vector<std::string> *p_DES_strings);
 	
 	slim_effect_t DefaultDominanceForTrait(int64_t p_trait_index) const
 	{
-		const EffectDistributionInfo &de_info = effect_distributions_[p_trait_index];
+		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
 		
-		return de_info.default_dominance_coeff_;
+		return DES_info.default_dominance_coeff_;
 	}
 	
 	slim_effect_t DrawEffectForTrait(int64_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
 	
-	bool IsPureNeutralDFE(void) const { return all_pure_neutral_DFE_; }
+	bool IsPureNeutralDES(void) const { return all_pure_neutral_DES_; }
 	
 	//
 	// Eidos support

@@ -85,7 +85,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			is_neutral_ = false;
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
 			
 			if (traitType == TraitType::kMultiplicative)
@@ -155,9 +155,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	is_neutral_ = true;		// will be set to false below as needed
 	
-	if (mutation_type_ptr_->all_pure_neutral_DFE_)
+	if (mutation_type_ptr_->all_pure_neutral_DES_)
 	{
-		// The DFE of the mutation type is pure neutral, so we don't need to do any draws; we can short-circuit
+		// The DES of the mutation type is pure neutral, so we don't need to do any draws; we can short-circuit
 		// most of the work here and just set up neutral effects for all of the traits.
 		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
@@ -184,7 +184,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	}
 	else
 	{
-		// The DFE of the mutation type is not pure neutral.  Note that species.pure_neutral_ might still be true
+		// The DES of the mutation type is not pure neutral.  Note that species.pure_neutral_ might still be true
 		// at this point; the mutation type for this mutation might not be used by any genomic element type,
 		// because we might be getting called by addNewDrawn() mutation for a type that is otherwise unused.
 		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
@@ -287,7 +287,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			is_neutral_ = false;
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
 			
 			if (traitType == TraitType::kMultiplicative)
@@ -351,7 +351,7 @@ void Mutation::SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, s
 			Species &species = mutation_type_ptr_->species_;
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
 		}
 		
@@ -1042,13 +1042,13 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	mutation_type_ptr_ = mutation_type_ptr;
 	
 	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral
-	// FIXME MULTITRAIT: I think it might be useful for MutationType to keep a flag separately for each trait, whether *that* trait is all_pure_neutral_DFE_ or not
+	// FIXME MULTITRAIT: I think it might be useful for MutationType to keep a flag separately for each trait, whether *that* trait is all_pure_neutral_DES_ or not
 	int trait_count = species.TraitCount();
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
 	
 	if (!is_neutral_)
-		mutation_type_ptr_->all_pure_neutral_DFE_ = false;
+		mutation_type_ptr_->all_pure_neutral_DES_ = false;
 	
 	// Cache values used by the fitness calculation code for speed; changing the mutation type no longer changes
 	// the dominance coefficient, but hemizygous_dominance_coeff_ still comes from the muttype, and so might

@@ -529,7 +529,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 		mutation_fractions.emplace_back(proportion);
 		
 		// check whether we are using a mutation type that is non-neutral; check and set pure_neutral_
-		if (!mutation_type_ptr->IsPureNeutralDFE())
+		if (!mutation_type_ptr->IsPureNeutralDES())
 			pure_neutral_ = false;
 	}
 	
@@ -608,31 +608,31 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
 	double dominance_coeff = dominanceCoeff_value->NumericAtIndex_NOCAST(0, nullptr);
-	std::string dfe_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
+	std::string DES_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (community_.MutationTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() mutation type m" << map_identifier << " already defined." << EidosTerminate();
 	
-	// Parse the DFE type and parameters, and do various sanity checks
-	DFEType dfe_type;
-	std::vector<double> dfe_parameters;
-	std::vector<std::string> dfe_strings;
+	// Parse the DES type and parameters, and do various sanity checks
+	DESType DES_type;
+	std::vector<double> DES_parameters;
+	std::vector<std::string> DES_strings;
 	
-	MutationType::ParseDFEParameters(dfe_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &dfe_type, &dfe_parameters, &dfe_strings);
+	MutationType::ParseDESParameters(DES_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &DES_type, &DES_parameters, &DES_strings);
 	
 #ifdef SLIMGUI
 	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings, num_mutation_type_inits_);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, DES_type, DES_parameters, DES_strings, num_mutation_type_inits_);
 #else
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, DES_type, DES_parameters, DES_strings);
 #endif
 	
 	mutation_types_.emplace(map_identifier, new_mutation_type);
 	community_.mutation_types_changed_ = true;
 	
-	// keep track of whether we have ever seen a type 's' (scripted) DFE; if so, we switch to a slower case when evolving
-	if (dfe_type == DFEType::kScript)
-		type_s_dfes_present_ = true;
+	// keep track of whether we have ever seen a type 's' (scripted) DES; if so, we switch to a slower case when evolving
+	if (DES_type == DESType::kScript)
+		type_s_DESs_present_ = true;
 	
 	// define a new Eidos variable to refer to the new mutation type
 	EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
@@ -651,17 +651,17 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		}
 		else
 		{
-			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
+			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff << ", \"" << DES_type << "\"";
 			
-			if (dfe_parameters.size() > 0)
+			if (DES_parameters.size() > 0)
 			{
-				for (double dfe_param : dfe_parameters)
-					output_stream << ", " << dfe_param;
+				for (double DES_param : DES_parameters)
+					output_stream << ", " << DES_param;
 			}
 			else
 			{
-				for (const std::string &dfe_param : dfe_strings)
-					output_stream << ", \"" << dfe_param << "\"";
+				for (const std::string &DES_param : DES_strings)
+					output_stream << ", \"" << DES_param << "\"";
 			}
 			
 			output_stream << ");" << std::endl;

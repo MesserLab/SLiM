@@ -1412,8 +1412,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	}
 	
 	// Can we skip chromosome-based fitness calculations altogether, and just call fitnessEffect() callbacks if any?
-	// We can do this if (a) all mutation types either use a neutral DFE, or have been made neutral with a "return 1.0;"
-	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
+	// We can do this if (a) all mutation types either use a neutral DES, or have been made neutral with a "return 1.0;"
+	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DES, no mutation has had its
 	// selection coefficient changed, and (c) no mutationEffect() callbacks are active apart from "return 1.0;" type callbacks.
 	// This is often the case for QTL-based models (such as Misha's coral model), and should produce a big speed gain,
 	// so we do a pre-check here for this case.  Note that we can ignore fitnessEffect() callbacks in this situation,
@@ -1464,9 +1464,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	// by mutationEffect() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
 	if (skip_chromosomal_fitness)
 	{
-		// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
+		// first set a flag on all mut types indicating whether they are pure neutral according to their DES
 		for (auto &mut_type_iter : mut_types)
-			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
+			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DES_;
 		
 		// then go through the mutationEffect() callback list and set the pure neutral flag for mut types neutralized by an active callback
 		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)

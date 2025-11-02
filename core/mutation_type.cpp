@@ -35,17 +35,17 @@
 
 
 // stream output for enumerations
-std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
+std::ostream& operator<<(std::ostream& p_out, DESType p_DES_type)
 {
-	switch (p_dfe_type)
+	switch (p_DES_type)
 	{
-		case DFEType::kFixed:			p_out << gStr_f;		break;
-		case DFEType::kGamma:			p_out << gStr_g;		break;
-		case DFEType::kExponential:		p_out << gStr_e;		break;
-		case DFEType::kNormal:			p_out << gEidosStr_n;	break;
-		case DFEType::kWeibull:			p_out << gStr_w;		break;
-		case DFEType::kLaplace:			p_out << gStr_p;		break;
-		case DFEType::kScript:			p_out << gEidosStr_s;	break;
+		case DESType::kFixed:			p_out << gStr_f;		break;
+		case DESType::kGamma:			p_out << gStr_g;		break;
+		case DESType::kExponential:		p_out << gStr_e;		break;
+		case DESType::kNormal:			p_out << gEidosStr_n;	break;
+		case DESType::kWeibull:			p_out << gStr_w;		break;
+		case DESType::kLaplace:			p_out << gStr_p;		break;
+		case DESType::kScript:			p_out << gEidosStr_s;	break;
 	}
 	
 	return p_out;
@@ -57,12 +57,12 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 #pragma mark -
 
 #ifdef SLIMGUI
-MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index) :
+MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index) :
 #else
-MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
+MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), hemizygous_dominance_coeff_(1.0), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
+	species_(p_species), mutation_type_id_(p_mutation_type_id), hemizygous_dominance_coeff_(1.0), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_DES_script_(nullptr)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
 #endif
@@ -77,41 +77,26 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	if (species_.community_.ModelType() == SLiMModelType::kModelTypeWF)
 		convert_to_substitution_ = true;
 	
-	if ((p_dfe_parameters.size() == 0) && (p_dfe_strings.size() == 0))
+	if ((p_DES_parameters.size() == 0) && (p_DES_strings.size() == 0))
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << EidosTerminate();
-	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
+	// intentionally no bounds checks for DES parameters; the count of DES parameters is checked prior to construction
 	// intentionally no bounds check for dominance_coeff_
 	
 	// determine whether this mutation type is initially pure neutral; note that this flag will be
-	// cleared if any mutation of this type has its selection coefficient changed
+	// cleared if any mutation of this type has its effect changed
 	// note also that we do not set Species.pure_neutral_ here; we wait until this muttype is used
-	all_pure_neutral_DFE_ = ((p_dfe_type == DFEType::kFixed) && (p_dfe_parameters[0] == 0.0));
+	all_pure_neutral_DES_ = ((p_DES_type == DESType::kFixed) && (p_DES_parameters[0] == 0.0));
 	
-	// set up DE entries for all traits
-	int trait_count = species_.TraitCount();
+	// set up DE entries for all traits; every trait is initialized identically, from the parameters given
+	EffectDistributionInfo DES_info;
 	
-	for (int trait_index = 0; trait_index < trait_count; trait_index++)
-	{
-		EffectDistributionInfo ed_info;
-		
-		if (trait_index == 0)
-		{
-			// the DE for the first trait gets set from the parameters passed in
-			ed_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);
-			ed_info.dfe_type_ = p_dfe_type;
-			ed_info.dfe_parameters_ = std::move(p_dfe_parameters);
-			ed_info.dfe_strings_ = std::move(p_dfe_strings);
-		}
-		else
-		{
-			// remaining traits default to neutral, with a dominance coefficient of 0.0
-			ed_info.default_dominance_coeff_ = 0.5;
-			ed_info.dfe_type_ = DFEType::kFixed;
-			ed_info.dfe_parameters_.push_back(0.0);
-		}
-		
-		effect_distributions_.emplace_back(ed_info);
-	}
+	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);
+	DES_info.DES_type_ = p_DES_type;
+	DES_info.DES_parameters_ = p_DES_parameters;
+	DES_info.DES_strings_ = p_DES_strings;
+	
+	for (int trait_index = 0; trait_index < species_.TraitCount(); trait_index++)
+		effect_distributions_.push_back(DES_info);
 	
 	// Nucleotide-based mutations use a special stacking group, -1, and always use stacking policy "l"
 	if (p_nuc_based)
@@ -126,8 +111,8 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 
 MutationType::~MutationType(void)
 {
-	delete cached_dfe_script_;
-	cached_dfe_script_ = nullptr;
+	delete cached_DES_script_;
+	cached_DES_script_ = nullptr;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	if (keeping_muttype_registry_)
@@ -138,111 +123,111 @@ MutationType::~MutationType(void)
 #endif
 }
 
-void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const EidosValue_SP *const p_arguments, int p_argument_count, DFEType *p_dfe_type, std::vector<double> *p_dfe_parameters, std::vector<std::string> *p_dfe_strings)
+void MutationType::ParseDESParameters(std::string &p_DES_type_string, const EidosValue_SP *const p_arguments, int p_argument_count, DESType *p_DES_type, std::vector<double> *p_DES_parameters, std::vector<std::string> *p_DES_strings)
 {
-	// First we figure out the DFE type from p_dfe_type_string, and set up expectations based on that
-	int expected_dfe_param_count = 0;
+	// First we figure out the DES type from p_DES_type_string, and set up expectations based on that
+	int expected_DES_param_count = 0;
 	bool params_are_numeric = true;
 	
-	if (p_dfe_type_string.compare(gStr_f) == 0)
+	if (p_DES_type_string.compare(gStr_f) == 0)
 	{
-		*p_dfe_type = DFEType::kFixed;
-		expected_dfe_param_count = 1;
+		*p_DES_type = DESType::kFixed;
+		expected_DES_param_count = 1;
 	}
-	else if (p_dfe_type_string.compare(gStr_g) == 0)
+	else if (p_DES_type_string.compare(gStr_g) == 0)
 	{
-		*p_dfe_type = DFEType::kGamma;
-		expected_dfe_param_count = 2;
+		*p_DES_type = DESType::kGamma;
+		expected_DES_param_count = 2;
 	}
-	else if (p_dfe_type_string.compare(gStr_e) == 0)
+	else if (p_DES_type_string.compare(gStr_e) == 0)
 	{
-		*p_dfe_type = DFEType::kExponential;
-		expected_dfe_param_count = 1;
+		*p_DES_type = DESType::kExponential;
+		expected_DES_param_count = 1;
 	}
-	else if (p_dfe_type_string.compare(gEidosStr_n) == 0)
+	else if (p_DES_type_string.compare(gEidosStr_n) == 0)
 	{
-		*p_dfe_type = DFEType::kNormal;
-		expected_dfe_param_count = 2;
+		*p_DES_type = DESType::kNormal;
+		expected_DES_param_count = 2;
 	}
-	else if (p_dfe_type_string.compare(gStr_w) == 0)
+	else if (p_DES_type_string.compare(gStr_w) == 0)
 	{
-		*p_dfe_type = DFEType::kWeibull;
-		expected_dfe_param_count = 2;
+		*p_DES_type = DESType::kWeibull;
+		expected_DES_param_count = 2;
 	}
-	else if (p_dfe_type_string.compare(gStr_p) == 0)
+	else if (p_DES_type_string.compare(gStr_p) == 0)
 	{
-		*p_dfe_type = DFEType::kLaplace;
-		expected_dfe_param_count = 2;
+		*p_DES_type = DESType::kLaplace;
+		expected_DES_param_count = 2;
 	}
-	else if (p_dfe_type_string.compare(gEidosStr_s) == 0)
+	else if (p_DES_type_string.compare(gEidosStr_s) == 0)
 	{
-		*p_dfe_type = DFEType::kScript;
-		expected_dfe_param_count = 1;
+		*p_DES_type = DESType::kScript;
+		expected_DES_param_count = 1;
 		params_are_numeric = false;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): distribution type '" << p_dfe_type_string << "' must be 'f', 'g', 'e', 'n', 'w', or 's'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): distribution type '" << p_DES_type_string << "' must be 'f', 'g', 'e', 'n', 'w', or 's'." << EidosTerminate();
 	
-	if (p_argument_count != expected_dfe_param_count)
-		EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): distribution type '" << *p_dfe_type << "' requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << EidosTerminate();
+	if (p_argument_count != expected_DES_param_count)
+		EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): distribution type '" << *p_DES_type << "' requires exactly " << expected_DES_param_count << " DES parameter" << (expected_DES_param_count == 1 ? "" : "s") << "." << EidosTerminate();
 	
 	// Next we extract the parameter values, checking their types in accordance with params_are_numeric
-	p_dfe_parameters->clear();
-	p_dfe_strings->clear();
+	p_DES_parameters->clear();
+	p_DES_strings->clear();
 	
-	for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
+	for (int DES_param_index = 0; DES_param_index < expected_DES_param_count; ++DES_param_index)
 	{
-		EidosValue *dfe_param_value = p_arguments[dfe_param_index].get();
-		EidosValueType dfe_param_type = dfe_param_value->Type();
+		EidosValue *DES_param_value = p_arguments[DES_param_index].get();
+		EidosValueType DES_param_type = DES_param_value->Type();
 		
 		if (params_are_numeric)
 		{
-			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type '" << *p_dfe_type << "' must be of type numeric (integer or float)." << EidosTerminate();
+			if ((DES_param_type != EidosValueType::kValueFloat) && (DES_param_type != EidosValueType::kValueInt))
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): the parameters for a DES of type '" << *p_DES_type << "' must be of type numeric (integer or float)." << EidosTerminate();
 			
-			p_dfe_parameters->emplace_back(dfe_param_value->NumericAtIndex_NOCAST(0, nullptr));
+			p_DES_parameters->emplace_back(DES_param_value->NumericAtIndex_NOCAST(0, nullptr));
 		}
 		else
 		{
-			if (dfe_param_type != EidosValueType::kValueString)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type '" << *p_dfe_type << "' must be of type string." << EidosTerminate();
+			if (DES_param_type != EidosValueType::kValueString)
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): the parameters for a DES of type '" << *p_DES_type << "' must be of type string." << EidosTerminate();
 			
-			p_dfe_strings->emplace_back(dfe_param_value->StringAtIndex_NOCAST(0, nullptr));
+			p_DES_strings->emplace_back(DES_param_value->StringAtIndex_NOCAST(0, nullptr));
 		}
 	}
 	
-	// Finally, we bounds-check the DFE parameters in the cases where there is a hard bound
-	switch (*p_dfe_type)
+	// Finally, we bounds-check the DES parameters in the cases where there is a hard bound
+	switch (*p_DES_type)
 	{
-		case DFEType::kFixed:
-			// no limits on fixed DFEs; we could check that s >= -1, but that assumes that the selection coefficients are being used as selection coefficients
+		case DESType::kFixed:
+			// no limits on fixed DESs; we could check that s >= -1, but that assumes that the selection coefficients are being used as selection coefficients
 			break;
-		case DFEType::kGamma:
+		case DESType::kGamma:
 			// mean is unrestricted, shape parameter must be >0 (officially mean > 0, but we allow mean <= 0 and the GSL handles it)
-			if ((*p_dfe_parameters)[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'g' must have a shape parameter > 0." << EidosTerminate();
+			if ((*p_DES_parameters)[1] <= 0.0)
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): a DES of type 'g' must have a shape parameter > 0." << EidosTerminate();
 			break;
-		case DFEType::kExponential:
-			// no limits on exponential DFEs (officially scale > 0, but we allow scale <= 0 and the GSL handles it)
+		case DESType::kExponential:
+			// no limits on exponential DESs (officially scale > 0, but we allow scale <= 0 and the GSL handles it)
 			break;
-		case DFEType::kNormal:
+		case DESType::kNormal:
 			// mean is unrestricted, sd parameter must be >= 0
-			if ((*p_dfe_parameters)[1] < 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'n' must have a standard deviation parameter >= 0." << EidosTerminate();
+			if ((*p_DES_parameters)[1] < 0.0)
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): a DES of type 'n' must have a standard deviation parameter >= 0." << EidosTerminate();
 			break;
-		case DFEType::kWeibull:
+		case DESType::kWeibull:
 			// scale and shape must both be > 0
-			if ((*p_dfe_parameters)[0] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'w' must have a scale parameter > 0." << EidosTerminate();
-			if ((*p_dfe_parameters)[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'w' must have a shape parameter > 0." << EidosTerminate();
+			if ((*p_DES_parameters)[0] <= 0.0)
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): a DES of type 'w' must have a scale parameter > 0." << EidosTerminate();
+			if ((*p_DES_parameters)[1] <= 0.0)
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): a DES of type 'w' must have a shape parameter > 0." << EidosTerminate();
 			break;
-		case DFEType::kLaplace:
+		case DESType::kLaplace:
 			// mean is unrestricted, scale parameter must be > 0
-			if ((*p_dfe_parameters)[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'p' must have a scale parameter > 0." << EidosTerminate();
+			if ((*p_DES_parameters)[1] <= 0.0)
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDESParameters): a DES of type 'p' must have a scale parameter > 0." << EidosTerminate();
 			break;
-		case DFEType::kScript:
+		case DESType::kScript:
 			// no limits on script here; the script is checked when it gets tokenized/parsed/executed
 			break;
 	}
@@ -250,47 +235,47 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 
 slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 {
-	const EffectDistributionInfo &de_info = effect_distributions_[p_trait_index];
+	const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
 	
 	// BCH 11/11/2022: Note that EIDOS_GSL_RNG(omp_get_thread_num()) can take a little bit of time when running
 	// parallel.  We don't want to pass the RNG in, though, because that would slow down the single-threaded
 	// case, where the EIDOS_GSL_RNG(omp_get_thread_num()) call basically compiles away to a global var access.
 	// So here and in similar places, we fetch the RNG rather than passing it in to keep single-threaded fast.
-	switch (de_info.dfe_type_)
+	switch (DES_info.DES_type_)
 	{
-		case DFEType::kFixed:			return static_cast<slim_effect_t>(de_info.dfe_parameters_[0]);
+		case DESType::kFixed:			return static_cast<slim_effect_t>(DES_info.DES_parameters_[0]);
 			
-		case DFEType::kGamma:
+		case DESType::kGamma:
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_gamma(rng_gsl, de_info.dfe_parameters_[1], de_info.dfe_parameters_[0] / de_info.dfe_parameters_[1]));
+			return static_cast<slim_effect_t>(gsl_ran_gamma(rng_gsl, DES_info.DES_parameters_[1], DES_info.DES_parameters_[0] / DES_info.DES_parameters_[1]));
 		}
 			
-		case DFEType::kExponential:
+		case DESType::kExponential:
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_exponential(rng_gsl, de_info.dfe_parameters_[0]));
+			return static_cast<slim_effect_t>(gsl_ran_exponential(rng_gsl, DES_info.DES_parameters_[0]));
 		}
 			
-		case DFEType::kNormal:
+		case DESType::kNormal:
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_gaussian(rng_gsl, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
+			return static_cast<slim_effect_t>(gsl_ran_gaussian(rng_gsl, DES_info.DES_parameters_[1]) + DES_info.DES_parameters_[0]);
 		}
 			
-		case DFEType::kWeibull:
+		case DESType::kWeibull:
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_weibull(rng_gsl, de_info.dfe_parameters_[0], de_info.dfe_parameters_[1]));
+			return static_cast<slim_effect_t>(gsl_ran_weibull(rng_gsl, DES_info.DES_parameters_[0], DES_info.DES_parameters_[1]));
 		}
 			
-		case DFEType::kLaplace:
+		case DESType::kLaplace:
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_laplace(rng_gsl, de_info.dfe_parameters_[1]) + de_info.dfe_parameters_[0]);
+			return static_cast<slim_effect_t>(gsl_ran_laplace(rng_gsl, DES_info.DES_parameters_[1]) + DES_info.DES_parameters_[0]);
 		}
 			
-		case DFEType::kScript:
+		case DESType::kScript:
 		{
 			// We have a script string that we need to execute, and it will return a float or integer to us.  This
 			// is basically a lambda call, so the code here is parallel to the executeLambda() code in many ways.
@@ -313,17 +298,17 @@ slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 			EidosErrorContext error_context_save = gEidosErrorContext;
 			
 			// We try to do tokenization and parsing once per script, by caching the script
-			if (!cached_dfe_script_)
+			if (!cached_DES_script_)
 			{
-				std::string script_string = de_info.dfe_strings_[0];
-				cached_dfe_script_ = new EidosScript(script_string);
+				std::string script_string = DES_info.DES_strings_[0];
+				cached_DES_script_ = new EidosScript(script_string);
 				
-				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_};
+				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_DES_script_};
 				
 				try
 				{
-					cached_dfe_script_->Tokenize();
-					cached_dfe_script_->ParseInterpreterBlockToAST(false);
+					cached_DES_script_->Tokenize();
+					cached_DES_script_->ParseInterpreterBlockToAST(false);
 				}
 				catch (...)
 				{
@@ -333,26 +318,26 @@ slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 						TranslateErrorContextToUserScript("DrawEffectForTrait()");
 					}
 					
-					delete cached_dfe_script_;
-					cached_dfe_script_ = nullptr;
+					delete cached_DES_script_;
+					cached_DES_script_ = nullptr;
 					
 #ifdef DEBUG_LOCKS_ENABLED
 					DrawEffectForTrait_InterpreterLock.end_critical();
 #endif
 					
-					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): tokenize/parse error in type 's' DFE callback script." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): tokenize/parse error in type 's' DES callback script." << EidosTerminate(nullptr);
 				}
 			}
 			
 			// Execute inside try/catch so we can handle errors well
-			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_};
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_DES_script_};
 			
 			try
 			{
 				Community &community = species_.community_;
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &community.SymbolTable());
 				EidosFunctionMap &function_map = community.FunctionMap();
-				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, &community, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+				EidosInterpreter interpreter(*cached_DES_script_, client_symbols, function_map, &community, SLIM_OUTSTREAM, SLIM_ERRSTREAM
 #ifdef SLIMGUI
 					, community.check_infinite_loops_
 #endif
@@ -368,7 +353,7 @@ slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 				else if ((result_type == EidosValueType::kValueInt) && (result_count == 1))
 					sel_coeff = result->IntData()[0];
 				else
-					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): type 's' DFE callbacks must provide a singleton float or integer return value." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): type 's' DES callbacks must provide a singleton float or integer return value." << EidosTerminate(nullptr);
 			}
 			catch (...)
 			{
@@ -404,32 +389,32 @@ slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
 			return static_cast<slim_effect_t>(sel_coeff);
 		}
 	}
-	EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): (internal error) unexpected dfe_type_ value." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): (internal error) unexpected DES_type_ value." << EidosTerminate();
 }
 
 // This is unused except by debugging code and in the debugger itself
 // FIXME MULTITRAIT commented this out for now
 /*std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type)
 {
-	p_outstream << "MutationType{default_dominance_coeff_ " << p_mutation_type.default_dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ <";
+	p_outstream << "MutationType{default_dominance_coeff_ " << p_mutation_type.default_dominance_coeff_ << ", DES_type_ '" << p_mutation_type.des_type_ << "', DES_parameters_ <";
 	
-	if (p_mutation_type.dfe_parameters_.size() > 0)
+	if (p_mutation_type.des_parameters_.size() > 0)
 	{
-		for (unsigned int i = 0; i < p_mutation_type.dfe_parameters_.size(); ++i)
+		for (unsigned int i = 0; i < p_mutation_type.des_parameters_.size(); ++i)
 		{
-			p_outstream << p_mutation_type.dfe_parameters_[i];
+			p_outstream << p_mutation_type.des_parameters_[i];
 			
-			if (i < p_mutation_type.dfe_parameters_.size() - 1)
+			if (i < p_mutation_type.des_parameters_.size() - 1)
 				p_outstream << " ";
 		}
 	}
 	else
 	{
-		for (unsigned int i = 0; i < p_mutation_type.dfe_strings_.size(); ++i)
+		for (unsigned int i = 0; i < p_mutation_type.des_strings_.size(); ++i)
 		{
-			p_outstream << "\"" << p_mutation_type.dfe_strings_[i] << "\"";
+			p_outstream << "\"" << p_mutation_type.des_strings_[i] << "\"";
 			
-			if (i < p_mutation_type.dfe_strings_.size() - 1)
+			if (i < p_mutation_type.des_strings_.size() - 1)
 				p_outstream << " ";
 		}
 	}
@@ -783,9 +768,9 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	
 	for (int64_t trait_index : trait_indices)
 	{
-		EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		
-		if (de_info.dfe_parameters_.size() > 0)
+		if (DES_info.DES_parameters_.size() > 0)
 			is_float = true;
 		else
 			is_string = true;
@@ -800,9 +785,9 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 		
 		for (int64_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
-			for (double param : de_info.dfe_parameters_)
+			for (double param : DES_info.DES_parameters_)
 				float_result->push_float(param);
 		}
 		
@@ -814,9 +799,9 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 		
 		for (int64_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
-			for (const std::string &param : de_info.dfe_strings_)
+			for (const std::string &param : DES_info.DES_strings_)
 				string_result->PushString(param);
 		}
 		
@@ -840,17 +825,17 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGl
 	
 	for (int64_t trait_index : trait_indices)
 	{
-		EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		
-		switch (de_info.dfe_type_)
+		switch (DES_info.DES_type_)
 		{
-			case DFEType::kFixed:			string_result->PushString(gStr_f); break;
-			case DFEType::kGamma:			string_result->PushString(gStr_g); break;
-			case DFEType::kExponential:		string_result->PushString(gStr_e); break;
-			case DFEType::kNormal:			string_result->PushString(gEidosStr_n); break;
-			case DFEType::kWeibull:			string_result->PushString(gStr_w); break;
-			case DFEType::kLaplace:			string_result->PushString(gStr_p); break;
-			case DFEType::kScript:			string_result->PushString(gEidosStr_s); break;
+			case DESType::kFixed:			string_result->PushString(gStr_f); break;
+			case DESType::kGamma:			string_result->PushString(gStr_g); break;
+			case DESType::kExponential:		string_result->PushString(gStr_e); break;
+			case DESType::kNormal:			string_result->PushString(gEidosStr_n); break;
+			case DESType::kWeibull:			string_result->PushString(gStr_w); break;
+			case DESType::kLaplace:			string_result->PushString(gStr_p); break;
+			case DESType::kScript:			string_result->PushString(gEidosStr_s); break;
 			default:						return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 		}
 	}
@@ -916,9 +901,9 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 		
 		for (int64_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
-			de_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
+			DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
 		}
 	}
 	else if (dominance_count == (int)trait_indices.size())
@@ -926,10 +911,10 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 		for (int dominance_index = 0; dominance_index < dominance_count; dominance_index++)
 		{
 			int64_t trait_index = trait_indices[dominance_index];
-			EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
 			
-			de_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
+			DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
 		}
 	}
 	else
@@ -951,41 +936,41 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	EidosValue *distributionType_value = p_arguments[1].get();
-	std::string dfe_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
+	std::string DES_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	// get the trait indices, with bounds-checking
 	std::vector<int64_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setDefaultDominanceForTrait");
 	
-	// Parse the DFE type and parameters, and do various sanity checks
-	DFEType dfe_type;
-	std::vector<double> dfe_parameters;
-	std::vector<std::string> dfe_strings;
+	// Parse the DES type and parameters, and do various sanity checks
+	DESType DES_type;
+	std::vector<double> DES_parameters;
+	std::vector<std::string> DES_strings;
 	
-	MutationType::ParseDFEParameters(dfe_type_string, p_arguments.data() + 2, (int)p_arguments.size() - 2, &dfe_type, &dfe_parameters, &dfe_strings);
+	MutationType::ParseDESParameters(DES_type_string, p_arguments.data() + 2, (int)p_arguments.size() - 2, &DES_type, &DES_parameters, &DES_strings);
 	
-	// keep track of whether we have ever seen a type 's' (scripted) DFE; if so, we switch to a slower case when evolving
-	if (dfe_type == DFEType::kScript)
-		species_.type_s_dfes_present_ = true;
+	// keep track of whether we have ever seen a type 's' (scripted) DES; if so, we switch to a slower case when evolving
+	if (DES_type == DESType::kScript)
+		species_.type_s_DESs_present_ = true;
 	
 	// Everything seems to be in order, so replace our distribution info (in each specified trait) with the new info
 	for (int64_t trait_index : trait_indices)
 	{
-		EffectDistributionInfo &de_info = effect_distributions_[trait_index];
+		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		
-		de_info.dfe_type_ = dfe_type;
-		de_info.dfe_parameters_ = dfe_parameters;
-		de_info.dfe_strings_ = dfe_strings;
+		DES_info.DES_type_ = DES_type;
+		DES_info.DES_parameters_ = DES_parameters;
+		DES_info.DES_strings_ = DES_strings;
 	}
 	
 	// mark that mutation types changed, so they get redisplayed in SLiMgui
 	species_.community_.mutation_types_changed_ = true;
 	
-	// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DFE_
-	if ((dfe_type != DFEType::kFixed) || (dfe_parameters[0] != 0.0))
+	// check whether we are now using a DES type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DES_
+	if ((DES_type != DESType::kFixed) || (DES_parameters[0] != 0.0))
 	{
 		species_.pure_neutral_ = false;
-		all_pure_neutral_DFE_ = false;
+		all_pure_neutral_DES_ = false;
 	}
 	
 	return gStaticEidosValueVOID;

@@ -49,7 +49,8 @@ multitrait branch:
 		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
 		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
 		transition MutationType's internals to keep a separate DE for each trait using a new EffectDistributionInfo struct
-		added C++ IsPureNeutralDFE() method to represent whether all of the effects of a given mutation type are all neutral
+		added a C++ IsPureNeutralDES() method to represent whether all of the effects of a given mutation type are all neutral
+		make initializeMutationType()'s DES set up the DES for all traits (then separately configurable with setEffectDistributionForTrait())
 	add support in Individual for the individual's offset for each trait
 		add -(float)offsetForTrait([Nio<Trait> trait = NULL])
 		add +(void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
@@ -69,6 +70,7 @@ multitrait branch:
 	remove the old C++ selection_coeff_ and dominance_coeff_ ivars in Mutation and Substitution, and begin the transition over to the new MutationTraitInfo struct
 	add Individual method -(float)phenotypeForTrait([Nio<Trait> traits = NULL]) to get trait values
 	add Individual method +(void)setPhenotypeForTrait([Nio<Trait> trait = NULL], [Nif phenotype = NULL]) to set trait values
+	the addNewMutation() method's "selectionCoeff" parameter is now renamed to "effect"; SLiMgui will autofix this as needed
 
 
 version 5.1 (Eidos version 4.1):

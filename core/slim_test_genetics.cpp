@@ -123,10 +123,10 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, -7.5); }", "must have a shape parameter > 0", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'return foo;'); } 100 early() { stop(); }", "undefined identifier foo", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DFE callback script", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DFE callback script", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
 	
-	// Test MutationType - (float)drawSelectionCoefficient([integer$ n = 1])
+	// Test MutationType - (float)drawEffectForTrait([integer$ n = 1])
 	// the parameters here are chosen so that these tests should fail extremely rarely
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (abs(m1.drawEffectForTrait() - 2.2) < 1e-6) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (all(abs(m1.drawEffectForTrait(NULL, 10) - rep(2.2, 10)) < 1e-6)) stop(); }", __LINE__);
@@ -738,7 +738,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(1, 5000, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(1, 5000, -1); stop(); }", "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Nio<Subpopulation> originSubpop])
+	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [Nio<Subpopulation> originSubpop])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, p1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, 1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
@@ -778,7 +778,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewDrawnMutation(1, 5000, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewDrawnMutation(1, 5000, -1); stop(); }", "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
+	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000, p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000); stop(); }", __LINE__);

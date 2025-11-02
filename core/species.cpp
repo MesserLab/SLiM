@@ -1401,11 +1401,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
+			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DES_
 			if (selection_coeff != 0.0)
 			{
 				pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DFE_ = false;
+				mutation_type_ptr->all_pure_neutral_DES_ = false;
 			}
 		}
 		
@@ -2166,11 +2166,11 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
+			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DES_
 			if (selection_coeff != 0.0)
 			{
 				pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DFE_ = false;
+				mutation_type_ptr->all_pure_neutral_DES_ = false;
 			}
 		}
 		
@@ -2789,7 +2789,7 @@ void Species::RunInitializeCallbacks(void)
 				
 				for (auto muttype : getype->mutation_type_ptrs_)
 				{
-					if (muttype->IsPureNeutralDFE())
+					if (muttype->IsPureNeutralDES())
 						using_neutral_muttype = true;
 				}
 			}
@@ -3016,9 +3016,9 @@ void Species::WF_GenerateOffspring(void)
 	bool mutation_callbacks_present = mutation_callbacks.size();
 	bool no_active_callbacks = true;
 	
-	// a type 's' DFE needs to count as an active callback; it could activate other callbacks,
+	// a type 's' DES needs to count as an active callback; it could activate other callbacks,
 	// and in any case we need EvolveSubpopulation() to take the non-parallel code path
-	if (type_s_dfes_present_)
+	if (type_s_DESs_present_)
 		no_active_callbacks = false;
 	
 	// if there are no active callbacks of any type, we can pretend there are no callbacks at all
@@ -3118,7 +3118,7 @@ void Species::WF_GenerateOffspring(void)
 		
 		// then evolve each subpop
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present_);
+			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_DESs_present_);
 	}
 }
 
@@ -9868,11 +9868,11 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 #endif
 		}
 		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
+		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DES_
 		if (metadata.selection_coeff_ != 0.0)
 		{
 			pure_neutral_ = false;
-			mutation_type_ptr->all_pure_neutral_DFE_ = false;
+			mutation_type_ptr->all_pure_neutral_DES_ = false;
 		}
 	}
 }

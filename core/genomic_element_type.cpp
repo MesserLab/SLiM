@@ -407,8 +407,8 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		mutation_fractions.emplace_back(proportion);
 		
 		// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
-		if (!mutation_type_ptr->IsPureNeutralDFE())
-		//if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
+		if (!mutation_type_ptr->IsPureNeutralDES())
+		//if ((mutation_type_ptr->des_type_ != DESType::kFixed) || (mutation_type_ptr->des_parameters_[0] != 0.0))
 			species_.pure_neutral_ = false;
 	}
 	

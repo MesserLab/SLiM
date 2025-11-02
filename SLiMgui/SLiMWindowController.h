@@ -179,7 +179,7 @@ class Community;
 	// Misc
 	bool observingKeyPaths;
 	
-	SLiMFunctionGraphToolTipWindow *functionGraphToolTipWindow;		// for previews of muttype DFEs or interaction type IFs
+	SLiMFunctionGraphToolTipWindow *functionGraphToolTipWindow;		// for previews of muttype DESs or interaction type IFs
 }
 
 + (NSColor *)blackContrastingColorForIndex:(int)index;

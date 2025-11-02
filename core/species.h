@@ -387,15 +387,15 @@ public:
 	bool has_recalculated_fitness_ = false;		// set to true when recalculateFitness() is called, so we know fitness values are valid
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
-	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
+	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DES, or (d) a mutation's selection coefficient is
 	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
 	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.  BCH 12 January 2018: Also, note that this flag
 	// is unaffected by the fitness_scaling_ properties on Subpopulation and Individual, which are taken into account even when this flag is set.
 	bool pure_neutral_ = true;														// optimization flag
 	
 	// this flag tracks whether a type 's' mutation type has ever been seen; we just set it to true if we see one, we never set it back to false again, for simplicity
-	// this switches to a less optimized case when evolving in WF models, if a type 's' DFE could be present, since that can open up various cans of worms
-	bool type_s_dfes_present_ = false;												// optimization flag
+	// this switches to a less optimized case when evolving in WF models, if a type 's' DES could be present, since that can open up various cans of worms
+	bool type_s_DESs_present_ = false;												// optimization flag
 	
 	// this counter is incremented when a selection coefficient is changed on any mutation object in the simulation.  This is used as a signal to mutation runs that their
 	// cache of non-neutral mutations is invalid (because their counter is not equal to this counter).  The caches will be re-validated the next time they are used.  Other

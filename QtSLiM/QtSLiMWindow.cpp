@@ -1913,14 +1913,15 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method now requires a vector of subpopulations to evaluate.", terminationMessage);
     }
     
-    if (terminationMessage.contains("named argument immediate skipped over required argument subpops") && (selectionString == "evaluate"))
+    if (terminationMessage.contains("named argument 'immediate' skipped over required argument 'subpops'") && (selectionString == "evaluate"))
     {
         QTextCursor entireCall = selection;
         entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
         entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 22);
         QString entireCallString = entireCall.selectedText();
         
-        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);"))
+        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);") ||
+            (entireCallString == "evaluate(immediate = T);") || (entireCallString == "evaluate(immediate = F);"))
             return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
     }
     
@@ -2166,6 +2167,10 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("property selectionCoeff is not defined for object element type Substitution") &&
             (selectionString == "selectionCoeff"))
         return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Substitution has become the property `effect`.", terminationMessage);
+    
+    if (terminationMessage.contains("unrecognized named argument 'selectionCoeff' to addNewMutation()") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` parameter to addNewMutation() has been renamed to `effect`.", terminationMessage);
     
     return false;
 }

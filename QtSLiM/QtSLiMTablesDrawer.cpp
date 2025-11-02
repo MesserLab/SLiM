@@ -81,15 +81,15 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 	
 	if (mut_type)
 	{
-		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DFE samples.
+		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DES samples.
 		// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
 		// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
-		EffectDistributionInfo &ed_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+		EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
         
-		sample_size = (ed_info.dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		sample_size = (DES_info.DES_type_ == DESType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
 		
 		if (!rng_initialized)
@@ -541,7 +541,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             std::advance(mutTypeIter, p_index.row());
             slim_objectid_t mutTypeID = mutTypeIter->first;
             MutationType *mutationType = mutTypeIter->second;
-            EffectDistributionInfo &ed_info = mutationType->effect_distributions_[0];	// FIXME MULTITRAIT
+            EffectDistributionInfo &DES_info = mutationType->effect_distributions_[0];	// FIXME MULTITRAIT
             
             if (p_index.column() == 0)
             {
@@ -554,59 +554,59 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             }
             else if (p_index.column() == 1)
             {
-                return QVariant(QString("%1").arg(static_cast<double>(ed_info.default_dominance_coeff_), 0, 'f', 3));
+                return QVariant(QString("%1").arg(static_cast<double>(DES_info.default_dominance_coeff_), 0, 'f', 3));
             }
             else if (p_index.column() == 2)
             {
-                switch (ed_info.dfe_type_)
+                switch (DES_info.DES_type_)
                 {
-                    case DFEType::kFixed:			return QVariant(QString("fixed"));
-                    case DFEType::kGamma:			return QVariant(QString("gamma"));
-                    case DFEType::kExponential:		return QVariant(QString("exp"));
-                    case DFEType::kNormal:			return QVariant(QString("normal"));
-                    case DFEType::kWeibull:			return QVariant(QString("Weibull"));
-                    case DFEType::kLaplace:			return QVariant(QString("Laplace"));
-                    case DFEType::kScript:			return QVariant(QString("script"));
+                    case DESType::kFixed:			return QVariant(QString("fixed"));
+                    case DESType::kGamma:			return QVariant(QString("gamma"));
+                    case DESType::kExponential:		return QVariant(QString("exp"));
+                    case DESType::kNormal:			return QVariant(QString("normal"));
+                    case DESType::kWeibull:			return QVariant(QString("Weibull"));
+                    case DESType::kLaplace:			return QVariant(QString("Laplace"));
+                    case DESType::kScript:			return QVariant(QString("script"));
                 }
             }
             else if (p_index.column() == 3)
             {
                 QString paramString;
                 
-                if (ed_info.dfe_type_ == DFEType::kScript)
+                if (DES_info.DES_type_ == DESType::kScript)
                 {
-                    // DFE type 's' has parameters of type string
-                    for (unsigned int paramIndex = 0; paramIndex < ed_info.dfe_strings_.size(); ++paramIndex)
+                    // DES type 's' has parameters of type string
+                    for (unsigned int paramIndex = 0; paramIndex < DES_info.DES_strings_.size(); ++paramIndex)
                     {
-                        QString dfe_string = QString::fromStdString(ed_info.dfe_strings_[paramIndex]);
+                        QString DES_string = QString::fromStdString(DES_info.DES_strings_[paramIndex]);
                         
-                        paramString += ("\"" + dfe_string + "\"");
+                        paramString += ("\"" + DES_string + "\"");
                         
-                        if (paramIndex < ed_info.dfe_strings_.size() - 1)
+                        if (paramIndex < DES_info.DES_strings_.size() - 1)
                             paramString += ", ";
                     }
                 }
                 else
                 {
-                    // All other DFEs have parameters of type double
-                    for (unsigned int paramIndex = 0; paramIndex < ed_info.dfe_parameters_.size(); ++paramIndex)
+                    // All other DESs have parameters of type double
+                    for (unsigned int paramIndex = 0; paramIndex < DES_info.DES_parameters_.size(); ++paramIndex)
                     {
                         QString paramSymbol;
                         
-                        switch (ed_info.dfe_type_)
+                        switch (DES_info.DES_type_)
                         {
-                            case DFEType::kFixed:			paramSymbol = "s"; break;
-                            case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? "s̄" : "α"); break;
-                            case DFEType::kExponential:		paramSymbol = "s̄"; break;
-                            case DFEType::kNormal:			paramSymbol = (paramIndex == 0 ? "s̄" : "σ"); break;
-                            case DFEType::kWeibull:			paramSymbol = (paramIndex == 0 ? "λ" : "k"); break;
-                            case DFEType::kLaplace:			paramSymbol = (paramIndex == 0 ? "s̄" : "b"); break;
-                            case DFEType::kScript:			break;
+                            case DESType::kFixed:			paramSymbol = "s"; break;
+                            case DESType::kGamma:			paramSymbol = (paramIndex == 0 ? "s̄" : "α"); break;
+                            case DESType::kExponential:		paramSymbol = "s̄"; break;
+                            case DESType::kNormal:			paramSymbol = (paramIndex == 0 ? "s̄" : "σ"); break;
+                            case DESType::kWeibull:			paramSymbol = (paramIndex == 0 ? "λ" : "k"); break;
+                            case DESType::kLaplace:			paramSymbol = (paramIndex == 0 ? "s̄" : "b"); break;
+                            case DESType::kScript:			break;
                         }
                         
-                        paramString += QString("%1=%2").arg(paramSymbol).arg(ed_info.dfe_parameters_[paramIndex], 0, 'f', 3);
+                        paramString += QString("%1=%2").arg(paramSymbol).arg(DES_info.DES_parameters_[paramIndex], 0, 'f', 3);
                         
-                        if (paramIndex < ed_info.dfe_parameters_.size() - 1)
+                        if (paramIndex < DES_info.DES_parameters_.size() - 1)
                             paramString += ", ";
                     }
                 }
@@ -666,7 +666,7 @@ QVariant QtSLiMMutTypeTableModel::headerData(int section,
         {
         case 0: return QVariant("ID");
         case 1: return QVariant("h");
-        case 2: return QVariant("DFE");
+        case 2: return QVariant("DES");
         case 3: return QVariant("Params");
         default: return QVariant("");
         }
@@ -677,8 +677,8 @@ QVariant QtSLiMMutTypeTableModel::headerData(int section,
         {
         case 0: return QVariant("the ID for the mutation type");
         case 1: return QVariant("the dominance coefficient");
-        case 2: return QVariant("the distribution of fitness effects");
-        case 3: return QVariant("the DFE parameters");
+        case 2: return QVariant("the distribution of effect sizes");
+        case 3: return QVariant("the DES parameters");
         default: return QVariant("");
         }
     }

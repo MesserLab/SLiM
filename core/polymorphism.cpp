@@ -39,7 +39,7 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 	// mutation_ptr_->tag_value_ added at the end
 	
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Switched to full-precision output of selcoeff and domcoeff, for accurate reloading; BCH 22 March 2019
+	// Switched to full-precision output of effect and domcoeff, for accurate reloading; BCH 22 March 2019
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID_Tag(): usage of statics");
 	
 	static char double_buf[40];
@@ -93,7 +93,7 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 void Polymorphism::Print_ID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Switched to full-precision output of selcoeff and domcoeff, for accurate reloading; BCH 22 March 2019
+	// Switched to full-precision output of effect and domcoeff, for accurate reloading; BCH 22 March 2019
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID(): usage of statics");
 	
 	static char double_buf[40];
@@ -139,7 +139,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Note that Print_ID() now outputs selcoeff and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
+	// Note that Print_ID() now outputs effect and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
 	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
 	
 	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
@@ -201,7 +201,7 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 void Polymorphism::Print_NoID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Note that Print_ID() now outputs selcoeff and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
+	// Note that Print_ID() now outputs effect and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
 	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
 	
 	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position

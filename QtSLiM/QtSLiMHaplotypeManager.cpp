@@ -507,7 +507,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		}
 		else
 		{
-			RGBForSelectionCoeff(static_cast<double>(selection_coeff), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
+			RGBForEffectSize(static_cast<double>(selection_coeff), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
 		}
 		
 		haplo_mut->neutral_ = (selection_coeff == 0.0f);

@@ -42,7 +42,7 @@ bool SLiM_AmIBeingDebugged(void);
 @end
 
 void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForEffectSize(double effect, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 
 // Classes to show a selection index marker when dragging out a selection in a ChromosomeView
 @interface SLiMSelectionView : NSView
@@ -70,7 +70,7 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 
 @end
 
-// Classes to show a custom tooltip view displaying a graph of a mutation type's DFE in the muttype table view
+// Classes to show a custom tooltip view displaying a graph of a mutation type's DES in the muttype table view
 // Now also used for similarly displaying an interaction type's IF in the interaction type table view
 @interface SLiMFunctionGraphToolTipView : NSView
 @end

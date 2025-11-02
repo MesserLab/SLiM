@@ -115,7 +115,7 @@ void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colo
 	}
 }
 
-void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
 	// apply a scaling factor; this could be user-adjustible since different models have different relevant fitness ranges
 	value *= scalingFactor;
@@ -549,15 +549,15 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	
 	if (mut_type)
 	{
-		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DFE samples.
+		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DES samples.
 		// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
 		// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
-		EffectDistributionInfo &ed_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+		EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
 		
-		sample_size = (ed_info.dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		sample_size = (DES_info.DES_type_ == DESType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
 		
 		if (!rng_initialized)

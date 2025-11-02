@@ -133,7 +133,7 @@ private:
 	// are three separate regimes in which these caches are used:
 	//
 	//	1. No mutationEffect() callbacks defined.  Here caches depend solely upon mutation selection coefficients,
-	//		and can be carried forward through cycles with impunity.  If any mutation's selcoeff is changed between
+	//		and can be carried forward through cycles with impunity.  If any mutation's effect is changed between
 	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
 	//
 	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through

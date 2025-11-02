@@ -1824,8 +1824,8 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo();", 35, "missing required argument 'x'");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5, 6);", 35, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5);", 35, "return value cannot be type integer");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument 'y' skipped over required argument 'x'");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 39, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 44, "unrecognized named argument 'y'");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", 16);
