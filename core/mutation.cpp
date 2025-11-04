@@ -60,7 +60,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	int trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
-	slim_effect_t hemizygous_dominance = mutation_type_ptr_->hemizygous_dominance_coeff_;
 	
 	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
@@ -76,9 +75,11 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
 		slim_effect_t effect = trait_index ? p_selection_coeff : 0.0;
 		slim_effect_t dominance = trait_index ? p_dominance_coeff : 0.5;
+		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
 		
 		traitInfoRec->effect_size_ = effect;
 		traitInfoRec->dominance_coeff_ = dominance;
+		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 		
 		if (effect != 0.0)
 		{
@@ -148,7 +149,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	int trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
-	slim_effect_t hemizygous_dominance = mutation_type_ptr_->hemizygous_dominance_coeff_;
 	
 	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
@@ -167,6 +167,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			traitInfoRec->effect_size_ = 0.0;
 			traitInfoRec->dominance_coeff_ = mutation_type_ptr_->DefaultDominanceForTrait(trait_index);
+			traitInfoRec->hemizygous_dominance_coeff_ = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
@@ -195,9 +196,11 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			slim_effect_t effect = mutation_type_ptr_->DrawEffectForTrait(trait_index);
 			slim_effect_t dominance = mutation_type_ptr_->DefaultDominanceForTrait(trait_index);
+			slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
 			
 			traitInfoRec->effect_size_ = effect;
 			traitInfoRec->dominance_coeff_ = dominance;
+			traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 			
 			if (effect != 0.0)
 			{
@@ -262,7 +265,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	int trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->trait_info_buffer_ + trait_count * mutation_index;
-	slim_effect_t hemizygous_dominance = mutation_type_ptr_->hemizygous_dominance_coeff_;
 	
 	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
@@ -278,9 +280,11 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		// FIXME MULTITRAIT: The per-trait info will soon supplant selection_coeff_ and dominance_coeff_; this initialization code needs to be fleshed out
 		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : 0.0;
 		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : 0.5;
+		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
 		
 		traitInfoRec->effect_size_ = effect;
 		traitInfoRec->dominance_coeff_ = dominance;
+		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 		
 		if (effect != 0.0)
 		{
@@ -338,6 +342,7 @@ void Mutation::SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, s
 {
 	slim_effect_t old_effect = traitInfoRec->effect_size_;
 	slim_effect_t dominance = traitInfoRec->dominance_coeff_;
+	slim_effect_t hemizygous_dominance = traitInfoRec->hemizygous_dominance_coeff_;
 	
 	traitInfoRec->effect_size_ = p_new_effect;
 	
@@ -356,9 +361,6 @@ void Mutation::SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, s
 		}
 		
 		// cache values used by the fitness calculation code for speed; see header
-		// FIXME MULTICHROM: the hemizygous dominance coeff for a given mutation type could/should be per-trait;
-		// we cache hemizygous_effect_ for each trait separately anyway, so there's no waste there...
-		slim_effect_t hemizygous_dominance = mutation_type_ptr_->hemizygous_dominance_coeff_;
 		
 		if (traitType == TraitType::kMultiplicative)
 		{
@@ -427,12 +429,13 @@ void Mutation::SetDominance(TraitType traitType, MutationTraitInfo *traitInfoRec
 	}
 }
 
-void Mutation::HemizygousDominanceChanged(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance)
+void Mutation::SetHemizygousDominance(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance)
 {
-	// The hemizygous dominance coefficient is kept by the mutation type, so this does not actually set it,
-	// unlike SetEffect() and SetDominance() above.  This is called from MutationType::SetProperty() when
-	// the hemizygous dominance coefficient changes, to ask us to recache fitness values.  As with the
-	// SetDominance() method above, this has no effect on is_neutral_ and similar.
+	traitInfoRec->hemizygous_dominance_coeff_ = p_new_dominance;
+	
+	// We only need to recache the hemizygous_effect_ values, since only they are affected by the change in
+	// dominance coefficient.  Changing dominance has no effect on is_neutral_ or any of the other is-neutral
+	// flags.  So this is very simple.
 	
 	if (traitType == TraitType::kMultiplicative)
 	{
@@ -569,6 +572,34 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				return EidosValue_SP(float_result);
 			}
 		}
+		case gID_hemizygousDominance:
+		{
+			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			MutationBlock *mutation_block = species.SpeciesMutationBlock();
+			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+			const std::vector<Trait *> &traits = species.Traits();
+			size_t trait_count = traits.size();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[0].hemizygous_dominance_coeff_));
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+					
+					float_result->push_float_no_check(dominance);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
 			
 			// variables
 		case gID_nucleotide:		// ACCELERATED
@@ -615,7 +646,10 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			// Here we implement a special behavior: you can do mutation.<trait>Effect and mutation.<trait>Dominance to access a trait's values directly.
+			// Here we implement a special behavior: you can do mutation.<trait-name>Effect, mutation.<trait-name>Dominance,
+			// and mutation.<trait-name>HemizygousDominance to access a trait's values directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = mutation_type_ptr_->species_;
 			MutationBlock *mutation_block = species.SpeciesMutationBlock();
 			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
@@ -628,6 +662,14 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				
 				if (trait)
 					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[trait->Index()].effect_size_));
+			}
+			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 19);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[trait->Index()].hemizygous_dominance_coeff_));
 			}
 			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
 			{
@@ -859,7 +901,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			
 		default:
 		{
-			// Here we implement a special behavior: you can do mutation.<trait>Effect and mutation.<trait>Dominance to access a trait's values directly.
+			// Here we implement a special behavior: you can do mutation.<trait-name>Effect and mutation.<trait-name>Dominance to access a trait's values directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = mutation_type_ptr_->species_;
 			MutationBlock *mutation_block = species.SpeciesMutationBlock();
 			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
@@ -876,6 +920,20 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					slim_effect_t new_effect = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
 					SetEffect(trait->Type(), traitInfoRec, new_effect);
+					return;
+				}
+			}
+			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 19);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
+					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					
+					SetHemizygousDominance(trait->Type(), traitInfoRec, new_dominance);
 					return;
 				}
 			}
@@ -942,10 +1000,11 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 {
 	switch (p_method_id)
 	{
-		case gID_effectForTrait:	return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_dominanceForTrait:	return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setMutationType:	return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
-		default:					return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gID_effectForTrait:				return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_dominanceForTrait:				return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_hemizygousDominanceForTrait:	return ExecuteMethod_hemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setMutationType:				return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
+		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -1025,6 +1084,44 @@ EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_me
 	}
 }
 
+//	*********************	- (float)hemizygousDominanceForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<int64_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "hemizygousDominanceForTrait");
+	
+	// get the trait info for this mutation
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+			
+			float_result->push_float_no_check(dominance);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
 //	*********************	- (void)setMutationType(io<MutationType>$ mutType)
 //
 EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1043,25 +1140,15 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	
 	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral
 	// FIXME MULTITRAIT: I think it might be useful for MutationType to keep a flag separately for each trait, whether *that* trait is all_pure_neutral_DES_ or not
-	int trait_count = species.TraitCount();
-	MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	//int trait_count = species.TraitCount();
+	//MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	//MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
 	
 	if (!is_neutral_)
 		mutation_type_ptr_->all_pure_neutral_DES_ = false;
 	
-	// Cache values used by the fitness calculation code for speed; changing the mutation type no longer changes
-	// the dominance coefficient, but hemizygous_dominance_coeff_ still comes from the muttype, and so might
-	// have changed.  Note that is_neutral_ and similar do not change as a result of this, since the mutation
-	// effect remains the same (neutral or non-neutral).
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-		Trait *trait = species.Traits()[trait_index];
-		TraitType traitType = trait->Type();
-		
-		HemizygousDominanceChanged(traitType, traitInfoRec, mutation_type_ptr_->hemizygous_dominance_coeff_);
-	}
+	// Changing the mutation type no longer changes the dominance coefficient or the hemizygous dominance
+	// coefficient, so there are no longer any side effects on trait effects / fitness to be managed here.
 	
 	return gStaticEidosValueVOID;
 }
@@ -1098,6 +1185,7 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,	true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_subpopID)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_tag));
 		
@@ -1119,8 +1207,10 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setEffectForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("effect", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setDominanceForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setHemizygousDominanceForTrait, kEidosValueMaskVOID))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -1133,8 +1223,9 @@ EidosValue_SP Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id
 {
 	switch (p_method_id)
 	{
-		case gID_setEffectForTrait:			return ExecuteMethod_setEffectForTrait(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_setDominanceForTrait:		return ExecuteMethod_setDominanceForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setEffectForTrait:					return ExecuteMethod_setEffectForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setDominanceForTrait:
+		case gID_setHemizygousDominanceForTrait:	return ExecuteMethod_setDominanceForTrait(p_method_id, p_target, p_arguments, p_interpreter);
 		default:
 			return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
@@ -1327,10 +1418,13 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 }
 
 //	*********************	+ (void)setDominanceForTrait([Nio<Trait> trait = NULL], [Nif dominance = NULL])
+//	*********************	+ (void)setHemizygousDominanceForTrait([Nio<Trait> trait = NULL], [Nif dominance = NULL])
 //
 EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
+	const char *method_name = (p_method_id == gID_setDominanceForTrait) ? "setDominanceForTrait" : "setHemizygousDominanceForTrait"; 
+	
 	EidosValue *trait_value = p_arguments[0].get();
 	EidosValue *dominance_value = p_arguments[1].get();
 	
@@ -1346,14 +1440,14 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 	Species *species = Community::SpeciesForMutations(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setDominanceForTrait): setDominanceForTrait() requires that all mutations belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that all mutations belong to the same species." << EidosTerminate();
 	
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	const std::vector<Trait *> &traits = species->Traits();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<int64_t> trait_indices;
-	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setDominanceForTrait");
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, method_name);
 	int trait_count = (int)trait_indices.size();
 	
 	// note there is intentionally no bounds check of dominance coefficients
@@ -1368,9 +1462,12 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 				MutationType *muttype = mut->mutation_type_ptr_;
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-				slim_effect_t dominance = muttype->DefaultDominanceForTrait(trait_index);
+				slim_effect_t dominance = ((p_method_id == gID_setDominanceForTrait) ? muttype->DefaultDominanceForTrait(trait_index) : muttype->DefaultHemizygousDominanceForTrait(trait_index));
 				
-				mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+				if (p_method_id == gID_setDominanceForTrait)
+					mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+				else
+					mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 			}
 		}
 	}
@@ -1390,7 +1487,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 				
-				mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+				if (p_method_id == gID_setDominanceForTrait)
+					mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+				else
+					mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 			}
 		}
 		else
@@ -1404,7 +1504,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 				{
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 					
-					mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+					if (p_method_id == gID_setDominanceForTrait)
+						mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+					else
+						mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 				}
 			}
 		}
@@ -1424,7 +1527,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 				
-				mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+				if (p_method_id == gID_setDominanceForTrait)
+					mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+				else
+					mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 			}
 		}
 	}
@@ -1449,7 +1555,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 					slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_int++));
 					
-					mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+					if (p_method_id == gID_setDominanceForTrait)
+						mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+					else
+						mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 				}
 			}
 			else
@@ -1464,7 +1573,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 						slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_int++));
 						
-						mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+						if (p_method_id == gID_setDominanceForTrait)
+							mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+						else
+							mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 					}
 				}
 			}
@@ -1486,7 +1598,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 					slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_float++));
 					
-					mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+					if (p_method_id == gID_setDominanceForTrait)
+						mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+					else
+						mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 				}
 			}
 			else
@@ -1501,14 +1616,17 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 						slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_float++));
 						
-						mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+						if (p_method_id == gID_setDominanceForTrait)
+							mut->SetDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
+						else
+							mut->SetHemizygousDominance(traits[trait_index]->Type(), traitInfoRec, dominance);
 					}
 				}
 			}
 		}
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setDominanceForTrait): setDominanceForTrait() requires that dominance be (a) NULL, requesting the default dominance coefficient from the mutation's mutation type for each trait, (b) singleton, providing one dominance value for all traits, (c) equal in length to the number of traits in the species, providing one dominance value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one dominance value per trait per mutation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that dominance be (a) NULL, requesting the default" << ((p_method_id == gID_setDominanceForTrait) ? " " : " hemizygous ") << "dominance coefficient from the mutation's mutation type for each trait, (b) singleton, providing one dominance value for all traits, (c) equal in length to the number of traits in the species, providing one dominance value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one dominance value per trait per mutation." << EidosTerminate();
 	
 	return gStaticEidosValueVOID;
 }

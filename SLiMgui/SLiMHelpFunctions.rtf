@@ -1,9 +1,9 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
-\f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 Menlo-Bold;
-\f6\fnil\fcharset0 AppleColorEmoji;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
+\f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 AppleColorEmoji;
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab397
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
@@ -893,8 +893,12 @@ The
 \f1\fs18 1.0
 \f2\fs20  complete dominance, and values greater than 
 \f1\fs18 1.0
-\f2\fs20 , overdominance.  The default dominance coefficient for the mutation type for a specific trait can subsequently be separately configured with the 
+\f2\fs20 , overdominance.  The default dominance coefficient for the mutation type for a specific trait can subsequently be configured with the 
 \f1\fs18 setDefaultDominanceForTrait()
+\f2\fs20  method if desired.  Note that the mutation type\'92s default hemizygous dominance coefficient is not supplied to this function; it always defaults to 
+\f1\fs18 1.0
+\f2\fs20 , but can subsequently be configured with the 
+\f1\fs18 setDefaultHemizygousDominanceForTrait()
 \f2\fs20  method if desired.\
 The 
 \f1\fs18 distributionType
@@ -1170,22 +1174,6 @@ There is no way to disable sex once it has been enabled; if you don\'92t want to
 \f2\fs20  property of 
 \f1\fs18 Individual
 \f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0\b \cf2 The 
-\f5\fs18 xDominanceCoeff
-\f0\fs20  parameter has been deprecated and removed.
-\f2\b0   In SLiM 5 and later, use the 
-\f1\fs18 hemizygousDominanceCoeff
-\f2\fs20  property of 
-\f1\fs18 MutationType
-\f2\fs20  instead.  \cf3 If the 
-\f1\fs18 chromosomeType
-\f2\fs20  is 
-\f1\fs18 "X"
-\f2\fs20 , the optional 
-\f1\fs18 xDominanceCoeff
-\f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)initializeSLiMModelType(string$\'a0modelType)
@@ -1461,11 +1449,11 @@ The
 \f1\fs18 avatar
 \f2\fs20  should generally be a single character \'96 usually an emoji corresponding to the species, such as 
 \f1\fs18 "
-\f6\fs14 \uc0\u55358 \u56714 
+\f5\fs14 \uc0\u55358 \u56714 
 \f1\fs18 "
 \f2\fs20  for foxes or 
 \f1\fs18 "
-\f6\fs14 \uc0\u55357 \u56365 
+\f5\fs14 \uc0\u55357 \u56365 
 \f1\fs18 "
 \f2\fs20  for mice.  If 
 \f1\fs18 avatar
@@ -2797,11 +2785,11 @@ The implementation
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
-\f7\i \uc0\u960 
+\f6\i \uc0\u960 
 \f2\i0  (nucleotide diversity, a metric of genetic diversity) for a vector of haplosomes (containing at least two elements), based upon the mutations in the haplosomes.  
-\f7\i \uc0\u960 
+\f6\i \uc0\u960 
 \f2\i0  is computed by calculating the mean number of pairwise differences at each site, summing across all sites, and dividing by the number of sites.  Therefore, it is interpretable as the number of differences per site expected between two randomly chosen sequences.  The mathematical formulation (as an estimator of the population parameter 
-\f7\i \uc0\u952 
+\f6\i \uc0\u952 
 \f2\i0 ) is based on work in Nei and Li (1979), Nei and Tajima (1981), and Tajima (1983; equation A3).  The exact formula used here is common in textbooks (e.g., equations 9.1\'969.5 in Li 1997, equation 3.3 in Hahn 2018, or equation 2.2 in Coop 2020).\
 Often 
 \f1\fs18 haplosomes
@@ -2821,7 +2809,7 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f2\fs20  of 
 \f1\fs18 NULL
 \f2\fs20 , provides the haplosome-wide value of 
-\f7\i \uc0\u960 
+\f6\i \uc0\u960 
 \f2\i0 .\
 The implementation of 
 \f1\fs18 calcPi()
@@ -2830,7 +2818,7 @@ The implementation of
 \f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  One could regard this choice as embodying an infinite-sites interpretation of the segregating mutations, as with 
 \f1\fs18 calcHeterozygosity()
 \f2\fs20 .  Indeed, finite-sites models of 
-\f7\i \uc0\u960 
+\f6\i \uc0\u960 
 \f2\i0  have been derived (Tajima 1996) though are not used here.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph and Chase Nelson.\
@@ -3001,9 +2989,9 @@ The implementation of
 \f2\fs20 .  Indeed, Tajima\'92s 
 \f3\i D
 \f2\i0  can be modified with finite-sites models of 
-\f7\i \uc0\u960 
+\f6\i \uc0\u960 
 \f2\i0  and 
-\f7\i \uc0\u952 
+\f6\i \uc0\u952 
 \f2\i0  (Misawa and Tajima 1997) though these are not used here.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph.\

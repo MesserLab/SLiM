@@ -1629,6 +1629,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		if (trait->Name() == name)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
 	
+	if (Eidos_string_hasSuffix(name, "Effect") || Eidos_string_hasSuffix(name, "Dominance") || Eidos_string_hasSuffix(name, "Hemizygous"))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not end in 'Effect', 'Dominance', or 'Hemizygous' to avoid naming conflicts and general confusion." << EidosTerminate();
+	
 	// type
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
 	TraitType type;
@@ -1698,9 +1701,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	EidosGlobalStringID trait_stringID = EidosStringRegistry::GlobalStringIDForString(name);
 	EidosGlobalStringID traitEffect_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Effect");
 	EidosGlobalStringID traitDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Dominance");
+	EidosGlobalStringID traitHemizygousDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "HemizygousDominance");
 	
 	{
-		// add a Species property that returns the trait object
+		// add a Species <trait-name> property that returns the trait object
 		const EidosPropertySignature *existing_signature = gSLiM_Species_Class->SignatureForProperty(trait_stringID);
 		
 		if (existing_signature)
@@ -1725,7 +1729,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add an Individual property that returns the phenotype for the trait in an individual
+		// add an Individual <trait-name> property that returns the phenotype for the trait in an individual
 		const EidosPropertySignature *existing_signature = gSLiM_Individual_Class->SignatureForProperty(trait_stringID);
 		
 		if (existing_signature)
@@ -1748,7 +1752,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add a Mutation property that returns the effect size for the trait in a mutation
+		// add a Mutation <trait-name>Effect property that returns the effect size for the trait in a mutation
 		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitEffect_stringID);
 		
 		if (existing_signature)
@@ -1769,7 +1773,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add a Mutation property that returns the dominance for the trait in a mutation
+		// add a Mutation <trait-name>Dominance property that returns the dominance for the trait in a mutation
 		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitDominance_stringID);
 		
 		if (existing_signature)
@@ -1790,7 +1794,28 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add a Substitution property that returns the effect size for the trait in a substitution
+		// add a Mutation <trait-name>HemizygousDominance property that returns the hemizygous dominance for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitHemizygousDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Mutation class, but the name '" << name << "' conflicts with an existing property on Mutation.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "HemizygousDominance", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution <trait-name>Effect property that returns the effect size for the trait in a substitution
 		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitEffect_stringID);
 		
 		if (existing_signature)
@@ -1811,7 +1836,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add a Substitution property that returns the dominance for the trait in a substitution
+		// add a Substitution <trait-name>Dominance property that returns the dominance for the trait in a substitution
 		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitDominance_stringID);
 		
 		if (existing_signature)
@@ -1825,6 +1850,27 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		{
 			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
 			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Dominance", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution <trait-name>HemizygousDominance property that returns the hemizygous dominance for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitHemizygousDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Substitution class, but the name '" << name << "' conflicts with an existing property on Substitution.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "HemizygousDominance", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
 												 MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
@@ -2242,7 +2288,9 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			// all others, including gID_none
 		default:
 		{
-			// Here we implement a special behavior: you can do species.traitName to access a trait object directly.
+			// Here we implement a special behavior: you can do species.<trait-name> to access a trait object directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Trait *trait = TraitFromStringID(p_property_id);
 			
 			if (trait)

@@ -46,8 +46,9 @@ extern EidosClass *gSLiM_Substitution_Class;
 // rare and substitutions don't go away once created, so there is no need to overcomplicate this design.
 typedef struct _SubstitutionTraitInfo
 {
-	slim_effect_t effect_size_;				// selection coefficient (s) or additive effect (a)
-	slim_effect_t dominance_coeff_;			// dominance coefficient (h), inherited from MutationType by default
+	slim_effect_t effect_size_;					// selection coefficient (s) or additive effect (a)
+	slim_effect_t dominance_coeff_;				// dominance coefficient (h), inherited from MutationType by default
+	slim_effect_t hemizygous_dominance_coeff_;	// hemizygous dominance coefficient (h_hemi), inherited from MutationType by default
 } SubstitutionTraitInfo;
 
 class Substitution : public EidosDictionaryRetained
@@ -95,6 +96,7 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);

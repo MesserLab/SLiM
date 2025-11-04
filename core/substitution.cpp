@@ -54,6 +54,7 @@ Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
 	{
 		trait_info_[trait_index].effect_size_ = mut_trait_info[trait_index].effect_size_;
 		trait_info_[trait_index].dominance_coeff_ = mut_trait_info[trait_index].dominance_coeff_;
+		trait_info_[trait_index].hemizygous_dominance_coeff_ = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 	}
 }
 
@@ -69,11 +70,13 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	trait_info_[0].effect_size_ = p_selection_coeff;
 	trait_info_[0].dominance_coeff_ = p_dominance_coeff;
+	trait_info_[0].hemizygous_dominance_coeff_ = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(0);		// FIXME MULTITRAIT: needs to be passed in
 	
 	for (int trait_index = 1; trait_index < trait_count; trait_index++)
 	{
 		trait_info_[trait_index].effect_size_ = 0.0;
 		trait_info_[trait_index].dominance_coeff_ = 0.0;
+		trait_info_[trait_index].hemizygous_dominance_coeff_ = 1.0;		// FIXME MULTITRAIT: needs to be passed in
 	}
 }
 
@@ -98,7 +101,7 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	int trait_count = species.TraitCount();
 	
 	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;
+		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;	// FIXME MULTITRAIT: hemizygous dominance coeff?
 	
 	// and then the remainder of the output line
 	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
@@ -133,7 +136,7 @@ void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
 	int trait_count = species.TraitCount();
 	
 	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;
+		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;	// FIXME MULTITRAIT: hemizygous dominance coeff?
 	
 	// and then the remainder of the output line
 	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
@@ -242,6 +245,32 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				return EidosValue_SP(float_result);
 			}
 		}
+		case gID_hemizygousDominance:
+		{
+			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			const std::vector<Trait *> &traits = species.Traits();
+			size_t trait_count = traits.size();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[0].hemizygous_dominance_coeff_));
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
+					
+					float_result->push_float_no_check(dominance);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
 		case gID_originTick:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_fixationTick:			// ACCELERATED
@@ -292,7 +321,10 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			// Here we implement a special behavior: you can do mutation.<trait>Effect and mutation.<trait>Dominance to access a trait's values directly.
+			// Here we implement a special behavior: you can do substitution.<trait-name>Effect, substitution.<trait-name>Dominance,
+			// and substitution.<trait-name>HemizygousDominance to access a trait's values directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = mutation_type_ptr_->species_;
 			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 			
@@ -303,6 +335,14 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				
 				if (trait)
 					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].effect_size_));
+			}
+			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 19);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].hemizygous_dominance_coeff_));
 			}
 			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
 			{
@@ -528,9 +568,10 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		case gID_effectForTrait:	return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_dominanceForTrait:	return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		default:					return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gID_effectForTrait:				return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_dominanceForTrait:				return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_hemizygousDominanceForTrait:	return ExecuteMethod_hemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -602,6 +643,40 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 	}
 }
 
+//	*********************	- (float)hemizygousDominanceForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<int64_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "hemizygousDominanceForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
+			
+			float_result->push_float_no_check(dominance);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
 
 //
 //	Substitution_Class
@@ -629,11 +704,12 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,			true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originTick));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTick,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationTick));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originTick));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTick,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationTick));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
@@ -654,6 +730,7 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

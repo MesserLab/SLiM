@@ -1755,7 +1755,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			// all others, including gID_none
 		default:
 		{
-			// Here we implement a special behavior: you can do individual.traitName to access a trait value directly.
+			// Here we implement a special behavior: you can do individual.<trait-name> to access a trait value directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = subpopulation_->species_;
 			Trait *trait = species.TraitFromStringID(p_property_id);
 			
@@ -2653,7 +2655,9 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			// all others, including gID_none
 		default:
 		{
-			// Here we implement a special behavior: you can do individual.traitName to access a trait value directly.
+			// Here we implement a special behavior: you can do individual.<trait-name> to access a trait value directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = subpopulation_->species_;
 			Trait *trait = species.TraitFromStringID(p_property_id);
 			
@@ -5185,7 +5189,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_domcoeffs.size() > 0)
 					dominance_coeff = info_domcoeffs[alt_allele_index];
 				else
-					dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT
+					dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT; also think about hemizygous dominance
 				
 				// get the selection coefficient from S, or draw one from the mutation type
 				slim_effect_t selection_coeff;

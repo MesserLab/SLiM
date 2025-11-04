@@ -59,8 +59,9 @@ typedef int32_t MutationIndex;
 // with a number of records per mutation that is determined when it is constructed.
 typedef struct _MutationTraitInfo
 {
-	slim_effect_t effect_size_;				// selection coefficient (s) or additive effect (a)
-	slim_effect_t dominance_coeff_;			// dominance coefficient (h), inherited from MutationType by default
+	slim_effect_t effect_size_;					// selection coefficient (s) or additive effect (a)
+	slim_effect_t dominance_coeff_;				// dominance coefficient (h), inherited from MutationType by default
+	slim_effect_t hemizygous_dominance_coeff_;	// hemizygous dominance coefficient (h_hemi), inherited from MutationType by default
 	
 	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
 	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
@@ -68,7 +69,7 @@ typedef struct _MutationTraitInfo
 	// values use slim_effect_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
 	slim_effect_t homozygous_effect_;		// a cached value for 1 + s, clamped to 0.0 minimum;  OR for 2a
 	slim_effect_t heterozygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha
-	slim_effect_t hemizygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha (h = hemizygous_dominance_coeff_)
+	slim_effect_t hemizygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha (h = h_hemi)
 } MutationTraitInfo;
 
 typedef enum {
@@ -133,7 +134,7 @@ public:
 	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
 	void SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
 	void SetDominance(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
-	void HemizygousDominanceChanged(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
+	void SetHemizygousDominance(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
@@ -158,8 +159,7 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_setEffectForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-	EidosValue_SP ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
@@ -211,6 +211,7 @@ public:
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
 	EidosValue_SP ExecuteMethod_setEffectForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_setHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 
 #endif /* defined(__SLiM__mutation__) */

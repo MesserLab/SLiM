@@ -62,7 +62,7 @@ MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_i
 MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), hemizygous_dominance_coeff_(1.0), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_DES_script_(nullptr)
+	species_(p_species), mutation_type_id_(p_mutation_type_id), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_DES_script_(nullptr)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
 #endif
@@ -91,6 +91,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	EffectDistributionInfo DES_info;
 	
 	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);
+	DES_info.default_hemizygous_dominance_coeff_ = 1.0;
 	DES_info.DES_type_ = p_DES_type;
 	DES_info.DES_parameters_ = p_DES_parameters;
 	DES_info.DES_strings_ = p_DES_strings;
@@ -466,8 +467,6 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_sub_));
 		case gID_convertToSubstitution:
 			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		case gID_hemizygousDominanceCoeff:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(hemizygous_dominance_coeff_));
 		case gID_mutationStackGroup:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(stack_group_));
 		case gID_nucleotideBased:
@@ -577,51 +576,6 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			return;
 		}
 			
-		case gID_hemizygousDominanceCoeff:
-		{
-			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
-			
-			hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(value);		// intentionally no bounds check
-			
-			// Changing the hemizygous dominance coefficient means that the cached hemizygous fitness effects of
-			// all mutations using this type become invalid.  We recache correct values for those mutations here.
-			// This is heavyweight for a property, but it is much simpler than having a deferred recache scheme,
-			// and changing the hemizygous dominance coefficient is expected to be extremely infrequent.
-			{
-				Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-				int registry_size;
-				const MutationIndex *registry_iter = species_.population_.MutationRegistry(&registry_size);
-				const MutationIndex *registry_iter_end = registry_iter + registry_size;
-				
-				while (registry_iter != registry_iter_end)
-				{
-					MutationIndex mut_index = (*registry_iter++);
-					Mutation *mut = mut_block_ptr + mut_index;
-					
-					if (mut->mutation_type_ptr_ == this)
-					{
-						MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForIndex(mut_index);
-						
-						// loop over the traits and validate the cached hemizygous effect for each one
-						const std::vector<Trait *> &traits = species_.Traits();
-						size_t trait_count = traits.size();
-						
-						for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
-						{
-							Trait *trait = traits[trait_index];
-							
-							mut->HemizygousDominanceChanged(trait->Type(), mut_trait_info + trait_index, hemizygous_dominance_coeff_);
-						}
-					}
-				}
-			}
-			
-			// We also let the community know that a mutation type changed, for GUI redisplay
-			species_.community_.mutation_types_changed_ = true;
-			
-			return;
-		}
-			
 		case gID_mutationStackGroup:
 		{
 			int64_t new_group = p_value.IntAtIndex_NOCAST(0, nullptr);
@@ -713,13 +667,15 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		case gID_defaultDominanceForTrait:			return ExecuteMethod_defaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_effectDistributionTypeForTrait:	return ExecuteMethod_effectDistributionTypeForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_effectDistributionParamsForTrait:	return ExecuteMethod_effectDistributionParamsForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_drawEffectForTrait:				return ExecuteMethod_drawEffectForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setDefaultDominanceForTrait:		return ExecuteMethod_setDefaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setEffectDistributionForTrait:		return ExecuteMethod_setEffectDistributionForTrait(p_method_id, p_arguments, p_interpreter);
-		default:									return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gID_defaultDominanceForTrait:				return ExecuteMethod_defaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_defaultHemizygousDominanceForTrait:	return ExecuteMethod_defaultHemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectDistributionTypeForTrait:		return ExecuteMethod_effectDistributionTypeForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectDistributionParamsForTrait:		return ExecuteMethod_effectDistributionParamsForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_drawEffectForTrait:					return ExecuteMethod_drawEffectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setDefaultDominanceForTrait:			return ExecuteMethod_setDefaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setDefaultHemizygousDominanceForTrait:	return ExecuteMethod_setDefaultHemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setEffectDistributionForTrait:			return ExecuteMethod_setEffectDistributionForTrait(p_method_id, p_arguments, p_interpreter);
+		default:										return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -746,6 +702,34 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 		
 		for (int64_t trait_index : trait_indices)
 			float_result->push_float_no_check(DefaultDominanceForTrait(trait_index));
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
+//	*********************	- (float$)defaultHemizygousDominanceForTrait([Nio<Trait> trait = NULL])
+//
+EidosValue_SP MutationType::ExecuteMethod_defaultHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<int64_t> trait_indices;
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "defaultHemizygousDominanceForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		int64_t trait_index = trait_indices[0];
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DefaultHemizygousDominanceForTrait(trait_index)));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (int64_t trait_index : trait_indices)
+			float_result->push_float_no_check(DefaultHemizygousDominanceForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
 	}
@@ -929,6 +913,54 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (void)setDefaultHemizygousDominanceForTrait(Nio<Trait> trait, float dominance)
+//
+EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *dominance_value = p_arguments[1].get();
+	int dominance_count = dominance_value->Count();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<int64_t> trait_indices;
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setDefaultHemizygousDominanceForTrait");
+	
+	if (dominance_count == 1)
+	{
+		// get the dominance coefficient
+		double dominance = dominance_value->FloatAtIndex_NOCAST(0, nullptr);
+		
+		for (int64_t trait_index : trait_indices)
+		{
+			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			
+			DES_info.default_hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
+		}
+	}
+	else if (dominance_count == (int)trait_indices.size())
+	{
+		for (int dominance_index = 0; dominance_index < dominance_count; dominance_index++)
+		{
+			int64_t trait_index = trait_indices[dominance_index];
+			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
+			
+			DES_info.default_hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (ExecuteMethod_setDefaultHemizygousDominanceForTrait): setDefaultHemizygousDominanceForTrait() requires parameter dominance to be of length 1, or equal in length to the number of specified traits." << EidosTerminate(nullptr);
+	
+	// BCH 7/2/2025: Changing the default dominance coefficient no longer means that the cached fitness
+	// effects of all mutations using this type become invalid; it is now just the *default* coefficient,
+	// and changing it does not change the state of mutations that have already derived from it.  We do
+	// still want to let the community know that a mutation type has changed, though.
+	species_.community_.mutation_types_changed_ = true;
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	- (void)setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
 //
 EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -940,7 +972,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 	
 	// get the trait indices, with bounds-checking
 	std::vector<int64_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setDefaultDominanceForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectDistributionForTrait");
 	
 	// Parse the DES type and parameters, and do various sanity checks
 	DESType DES_type;
@@ -999,7 +1031,6 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_convertToSubstitution));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominanceCoeff,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackGroup,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideBased,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
@@ -1024,11 +1055,13 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultDominanceForTrait, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultDominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultHemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionParamsForTrait, kEidosValueMaskFloat | kEidosValueMaskString))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionTypeForTrait, kEidosValueMaskString | kEidosValueMaskSingleton))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionTypeForTrait, kEidosValueMaskString))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawEffectForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddInt_OS("n", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultDominanceForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddFloat("dominance"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultHemizygousDominanceForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddFloat("dominance"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setEffectDistributionForTrait, kEidosValueMaskVOID))->AddIntObject_N("trait", gSLiM_Trait_Class)->AddString_S("distributionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

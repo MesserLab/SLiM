@@ -64,7 +64,8 @@ std::ostream& operator<<(std::ostream& p_out, DESType p_DES_type);
 // This struct holds information about a distribution of effects (including dominance) for one trait.
 // MutationEffect then keeps a vector of these structs, one for each trait.
 typedef struct _EffectDistributionInfo {
-	slim_effect_t default_dominance_coeff_;		// the default dominance coefficient (h) inherited by mutations of this type
+	slim_effect_t default_dominance_coeff_;				// the default dominance coefficient (h) inherited by mutations of this type
+	slim_effect_t default_hemizygous_dominance_coeff_;	// the default dominance coefficient (h) used when one haplosome is null
 	
 	DESType DES_type_;							// distribution of effect size (DES) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
 	std::vector<double> DES_parameters_;		// DES parameters, of type double (originally float or integer type)
@@ -98,9 +99,7 @@ public:
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
-	std::vector<EffectDistributionInfo> effect_distributions_;	// DEs for each trait in the species
-	
-	slim_effect_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null	// FIXME MULTITRAIT move into EffectDistributionInfo
+	std::vector<EffectDistributionInfo> effect_distributions_;	// DESs for each trait in the species
 	
 	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
 	
@@ -189,6 +188,13 @@ public:
 		return DES_info.default_dominance_coeff_;
 	}
 	
+	slim_effect_t DefaultHemizygousDominanceForTrait(int64_t p_trait_index) const
+	{
+		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
+		
+		return DES_info.default_hemizygous_dominance_coeff_;
+	}
+	
 	slim_effect_t DrawEffectForTrait(int64_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
 	
 	bool IsPureNeutralDES(void) const { return all_pure_neutral_DES_; }
@@ -206,10 +212,12 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_defaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_defaultHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_effectDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_effectDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_drawEffectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setDefaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setDefaultHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setEffectDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism

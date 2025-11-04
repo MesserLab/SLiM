@@ -6012,7 +6012,7 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f4\fs20 \'92s dominance coefficient to some number 
 \f3\fs18 x
 \f4\fs20 , 
-\f3\fs18 mut.dominanceCoeff==x
+\f3\fs18 mut.dominance==x
 \f4\fs20  may be 
 \f3\fs18 F
 \f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
@@ -6040,6 +6040,33 @@ Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM 
 \f3\fs18 x
 \f4\fs20 , 
 \f3\fs18 mut.effect==x
+\f4\fs20  may be 
+\f3\fs18 F
+\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hemizygousDominance => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the mutation, taken from the default hemizygous dominance coefficient(s) of its 
+\f3\fs18 MutationType
+\f4\fs20 .  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
+\f3\fs18 height
+\f4\fs20 , for example, then 
+\f3\fs18 Mutation
+\f4\fs20  objects will have a dynamic property named 
+\f3\fs18 heightHemizygousDominance
+\f4\fs20  to access the hemizygous dominance for that trait.  The hemizygous dominance coefficient(s) of a mutation can be changed with the 
+\f3\fs18 setHemizygousDominanceForTrait()
+\f4\fs20  method.\
+Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\f3\fs18 mut
+\f4\fs20 \'92s hemizygous dominance coefficient to some number 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 mut.hemizygousDominance==x
 \f4\fs20  may be 
 \f3\fs18 F
 \f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
@@ -6211,6 +6238,25 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the mutation\'92s hemizygous dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 ; for both multiplicative traits and additive traits this is the hemizygous dominance coefficient 
+\f1\i h
+\f4\i0\fs13\fsmilli6667 \sub hemi
+\fs20 \nosupersub .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6271,6 +6317,37 @@ The parameter
 \f4\fs20  to provide a different effect value for each trait in each mutation, using consecutive values from 
 \f3\fs18 effect
 \f4\fs20  to set the effect for each of the specified traits in one mutation before moving to the next mutation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setHemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the mutation\'92s hemizygous dominance coefficient(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+The parameter 
+\f3\fs18 dominance
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 dominance
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this sets the dominance for each of the specified traits to the default hemizygous dominance coefficient from the mutation type of the mutation in each target mutation.  (Note that mutation hemizygous dominance coefficients are automatically set to these defaults when a mutation is created; this re-sets default hemizygous dominance values.)  In the second pattern, 
+\f3\fs18 dominance
+\f4\fs20  is a singleton value; this sets the given hemizygous dominance for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits; this sets the hemizygous dominance for each of the specified traits to the corresponding dominance value in each target mutation.  In the fourth pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
+\f3\fs18 dominance
+\f4\fs20  to provide a different hemizygous dominance coefficient for each trait in each mutation, using consecutive values from 
+\f3\fs18 dominance
+\f4\fs20  to set the hemizygous dominance for each of the specified traits in one mutation before moving to the next mutation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)\
@@ -6380,26 +6457,7 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f4\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 hemizygousDominanceCoeff <\'96> (float$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null haplosome (as can occur in sex-chromosome models and models involving a mix of haploids and diploids).  This defaults to 
-\f3\fs18 1.0
-\f4\fs20 , and is used only in models where null haplosomes are present; the 
-\f3\fs18 dominanceCoeff
-\f4\fs20  property is the dominance coefficient used in most circumstances.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
-As with the 
-\f3\fs18 dominanceCoeff
-\f4\fs20  property, this is stored internally using a single-precision float; see the documentation for 
-\f3\fs18 dominanceCoeff
-\f4\fs20  for discussion.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 id => (integer$)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The identifier for this mutation type; for mutation type 
@@ -6516,7 +6574,7 @@ The species to which the target object belongs.\
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(float$)defaultDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(float)defaultDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the default dominance coefficient used for the specified trait or traits, for mutations of this type when heterozygous.  The traits can be specified as 
@@ -6526,11 +6584,37 @@ The species to which the target object belongs.\
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species.  The default dominance coefficient is taken by new mutations of this mutation type when they are created, as the value of their 
-\f3\fs18 dominanceCoeff
+\f3\fs18 dominance
 \f4\fs20  property, but that can be changed later with the 
 \f3\fs18 Mutation
 \f4\fs20  method 
 \f3\fs18 setDominanceForTrait()
+\f4\fs20 .\
+Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
+\f3\fs18 1.0
+\f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
+Also note that dominance coefficients have a quirk: they are stored internally in SLiM as a single-precision 
+\f3\fs18 float
+\f4\fs20 , not the double-precision 
+\f3\fs18 float
+\f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)defaultHemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the default hemizygous dominance coefficient used for the specified trait or traits, for mutations of this type when hemizygous (i.e., when present in only one copy because they are facing a null haplosome, such as for an X chromosome in a male).  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The default hemizygous dominance coefficient is taken by new mutations of this mutation type when they are created, as the value of their 
+\f3\fs18 hemizygousDominance
+\f4\fs20  property, but that can be changed later with the 
+\f3\fs18 Mutation
+\f4\fs20  method 
+\f3\fs18 setHemizygousDominanceForTrait()
 \f4\fs20 .\
 Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
 \f3\fs18 1.0
@@ -6578,7 +6662,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  for all other DES types.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string$)effectDistributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(string)effectDistributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the type of distribution of effects for the specified trait or traits.  The traits can be specified as 
@@ -6616,9 +6700,25 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species.  The value of 
-\f3\fs18 defaultDominance
+\f3\fs18 dominance
 \f4\fs20  must either be singleton (in which case it is set as the default dominance for all specified traits), or must match the number of specified traits (in which case one element of 
 \f3\fs18 defaultDominance
+\f4\fs20  is used for each corresponding trait).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setDefaultHemizygousDominanceForTrait(Nio<Trait>\'a0trait, float\'a0dominance)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Set the default hemizygous dominance coefficient for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The value of 
+\f3\fs18 dominance
+\f4\fs20  must either be singleton (in which case it is set as the default hemizygous dominance for all specified traits), or must match the number of specified traits (in which case one element of 
+\f3\fs18 dominance
 \f4\fs20  is used for each corresponding trait).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -13916,6 +14016,20 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  to access the effect for that trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 hemizygousDominance => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the mutation, carried over from the original mutation object.  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
+\f3\fs18 height
+\f4\fs20 , for example, then 
+\f3\fs18 Substitution
+\f4\fs20  objects will have a dynamic property named 
+\f3\fs18 heightHemizygousDominance
+\f4\fs20  to access the dominance for that trait.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -14058,6 +14172,25 @@ nucleotide <\'96> (string$)\
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effects for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the substitution\'92s hemizygous dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , carried over from the original mutation object.  For both multiplicative traits and additive traits this is the hemizygous dominance coefficient 
+\f1\i h
+\f4\i0\fs13\fsmilli6667 \sub hemi
+\fs20 \nosupersub .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0

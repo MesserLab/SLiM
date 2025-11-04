@@ -1381,6 +1381,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			
 			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -2139,6 +2140,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			
 			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -2442,6 +2444,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			
 			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -9841,7 +9844,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
+			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
@@ -9855,7 +9858,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			
-			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
+			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry

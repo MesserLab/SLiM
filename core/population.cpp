@@ -8167,6 +8167,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			slim_effect_t dominance_coeff = mut_trait_info->dominance_coeff_;
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
 			slim_refcount_t prevalence = polymorphism.prevalence_;

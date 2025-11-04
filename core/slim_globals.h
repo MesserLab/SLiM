@@ -843,10 +843,11 @@ extern const std::string &gStr_position;
 extern const std::string &gStr_subpopID;
 extern const std::string &gStr_convertToSubstitution;
 extern const std::string &gStr_defaultDominanceForTrait;
+extern const std::string &gStr_defaultHemizygousDominanceForTrait;
 extern const std::string &gStr_effectDistributionTypeForTrait;
 extern const std::string &gStr_effectDistributionParamsForTrait;
 extern const std::string &gStr_dominance;
-extern const std::string &gStr_hemizygousDominanceCoeff;
+extern const std::string &gStr_hemizygousDominance;
 extern const std::string &gStr_mutationStackGroup;
 extern const std::string &gStr_mutationStackPolicy;
 //extern const std::string &gStr_start;		now gEidosStr_start
@@ -970,11 +971,14 @@ extern const std::string &gStr_setMutationFractions;
 extern const std::string &gStr_setMutationMatrix;
 extern const std::string &gStr_effectForTrait;
 extern const std::string &gStr_dominanceForTrait;
+extern const std::string &gStr_hemizygousDominanceForTrait;
 extern const std::string &gStr_setEffectForTrait;
 extern const std::string &gStr_setDominanceForTrait;
+extern const std::string &gStr_setHemizygousDominanceForTrait;
 extern const std::string &gStr_setMutationType;
 extern const std::string &gStr_drawEffectForTrait;
 extern const std::string &gStr_setDefaultDominanceForTrait;
+extern const std::string &gStr_setDefaultHemizygousDominanceForTrait;
 extern const std::string &gStr_setEffectDistributionForTrait;
 extern const std::string &gStr_addPatternForClone;
 extern const std::string &gStr_addPatternForCross;
@@ -1323,10 +1327,11 @@ enum _SLiMGlobalStringID : int {
 	gID_subpopID,
 	gID_convertToSubstitution,
 	gID_defaultDominanceForTrait,
+	gID_defaultHemizygousDominanceForTrait,
 	gID_effectDistributionTypeForTrait,
 	gID_effectDistributionParamsForTrait,
 	gID_dominance,
-	gID_hemizygousDominanceCoeff,
+	gID_hemizygousDominance,
 	gID_mutationStackGroup,
 	gID_mutationStackPolicy,
 	//gID_start,	now gEidosID_start
@@ -1450,11 +1455,14 @@ enum _SLiMGlobalStringID : int {
 	gID_setMutationMatrix,
 	gID_effectForTrait,
 	gID_dominanceForTrait,
+	gID_hemizygousDominanceForTrait,
 	gID_setEffectForTrait,
 	gID_setDominanceForTrait,
+	gID_setHemizygousDominanceForTrait,
 	gID_setMutationType,
 	gID_drawEffectForTrait,
 	gID_setDefaultDominanceForTrait,
+	gID_setDefaultHemizygousDominanceForTrait,
 	gID_setEffectDistributionForTrait,
 	gID_addPatternForClone,
 	gID_addPatternForCross,

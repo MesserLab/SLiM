@@ -2013,20 +2013,25 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 			const std::string &trait_name = trait_name_token->token_string_;
 			const std::string &traitEffect_name = trait_name + "Effect";
 			const std::string &traitDominance_name = trait_name + "Dominance";
+			const std::string &traitHemizygousDominance_name = trait_name + "HemizygousDominance";
 			
 			EidosPropertySignature_CSP species_trait_signature((new EidosPropertySignature(trait_name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
 			EidosPropertySignature_CSP individual_trait_signature((new EidosPropertySignature(trait_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
 			EidosPropertySignature_CSP mutation_traitEffect_signature((new EidosPropertySignature(traitEffect_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
 			EidosPropertySignature_CSP mutation_traitDominance_signature((new EidosPropertySignature(traitDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitHemizygousDominance_signature((new EidosPropertySignature(traitHemizygousDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
 			EidosPropertySignature_CSP substitution_traitEffect_signature((new EidosPropertySignature(traitEffect_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
 			EidosPropertySignature_CSP substitution_traitDominance_signature((new EidosPropertySignature(traitDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitHemizygousDominance_signature((new EidosPropertySignature(traitHemizygousDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Species_Class->AddSignatureForProperty_TYPE_INTERPRETER(species_trait_signature);
 			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_trait_signature);
 			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitEffect_signature);
 			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitDominance_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitHemizygousDominance_signature);
 			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitEffect_signature);
 			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitDominance_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitHemizygousDominance_signature);
 		}
 	}
 	

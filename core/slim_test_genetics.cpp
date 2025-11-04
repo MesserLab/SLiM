@@ -42,6 +42,7 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectDistributionParamsForTrait() == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectDistributionTypeForTrait() == 'f') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.defaultDominanceForTrait() == 0.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.defaultHemizygousDominanceForTrait() == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.color = ''; } 2 early() { if (m1.color == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.color = 'red'; } 2 early() { if (m1.color == 'red') stop(); }", __LINE__);
@@ -70,6 +71,9 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(NULL, 0.3); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(0, 0.3); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(sim.traits, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(NULL, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(0, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(sim.traits, 0.3); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (m1.effectDistributionTypeForTrait() == 'f' & m1.effectDistributionParamsForTrait() == 2.2) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'g' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3); if (m1.effectDistributionTypeForTrait() == 'e' & m1.effectDistributionParamsForTrait() == -3) stop(); }", __LINE__);
@@ -1126,6 +1130,43 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10); if (!identical(mut.dominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
 		
+		// MutationType defaultDominanceForTrait() and setDefaultDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(0), 0.5)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(1), 0.5)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(c(0,1)), c(0.5, 0.5))) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(0, 0.25); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(1, 0.25); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.5, 0.25))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(NULL, c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.25, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(0,1), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(0,1)), c(0.25, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(1,0), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(1,0)), c(0.25, 1.0))) stop(); }");
+		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(1,0), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(0,1)), c(0.25, 1.0))) stop(); }");
+		
+		// Mutation hemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(0), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(1), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(1.0, 1.0))) stop(); }");
+		
+		// Mutation setHemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, 3); mut.setHemizygousDominanceForTrait(1, 4.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, 1:5 * 2 - 1); mut.setHemizygousDominanceForTrait(1, 1:5 * 2); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(NULL, 1:10); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(NULL, 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(0,1), 1:10); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(1,0), 1:10); if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// MutationType defaultHemizygousDominanceForTrait() and setDefaultHemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(0), 1.0)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(1), 1.0)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(c(0,1)), c(1.0, 1.0))) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.5, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(1, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(1.0, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(0,1), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		
 		// Substitution effectForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(0), 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(1), 0.0)) stop(); }");
@@ -1136,26 +1177,40 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(1), 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(NULL), c(0.5, 0.5))) stop(); }");
 		
-		// Mutation <trait>Effect property
+		// Substitution hemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(0), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(1), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(NULL), c(1.0, 1.0))) stop(); }");
+		
+		// Mutation <trait-name>Effect property
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightEffect, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightEffect, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = 0.25; if (!identical(mut.heightEffect, 0.25)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightEffect = 0.25; if (!identical(mut.weightEffect, 0.25)) stop(); }");
 		
-		// Mutation <trait>Dominance property
+		// Mutation <trait-name>Dominance property
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightDominance, 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightDominance, 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightDominance = 0.25; if (!identical(mut.heightDominance, 0.25)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightDominance = 0.25; if (!identical(mut.weightDominance, 0.25)) stop(); }");
 		
-		// Substitution <trait>Effect property
+		// Mutation <trait-name>HemizygousDominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightHemizygousDominance, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightHemizygousDominance, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = 0.25; if (!identical(mut.heightHemizygousDominance, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightHemizygousDominance = 0.25; if (!identical(mut.weightHemizygousDominance, 0.25)) stop(); }");
+		
+		// Substitution <trait-name>Effect property
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightEffect, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightEffect, 0.0)) stop(); }");
 		
-		// Substitution <trait>Dominance property
+		// Substitution <trait-name>Dominance property
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightDominance, 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightDominance, 0.5)) stop(); }");
 		
+		// Substitution <trait-name>HemizygousDominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightHemizygousDominance, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightHemizygousDominance, 1.0)) stop(); }");
 	}
 	
 	std::cout << "_RunMultitraitTests() done" << std::endl;

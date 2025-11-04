@@ -63,14 +63,23 @@ multitrait branch:
 	add effect size and dominance coefficient properties to Mutation and Substitution (but not hooked up to the simulation yet)
 		add -effectForTrait([Nio<Trait> traits = NULL]) and -dominanceForTrait([Nio<Trait> traits = NULL]) methods to Mutation and Substitution
 		add +setEffectForTrait([Nio<Trait> traits = NULL], [Nif effect = NULL]) and +setDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) methods to Mutation
-		add <trait>Effect and <trait>Dominance properties to Mutation, both read-write float$
-		add <trait>Effect and <trait>Dominance properties to Substitution, both read-only float$
+		add <trait-name>Effect and <trait-name>Dominance properties to Mutation, both read-write float$
+		add <trait-name>Effect and <trait-name>Dominance properties to Substitution, both read-only float$
 	remove Mutation method setSelectionCoeff(), autofixing to setEffectForTrait(NULL, )
 	rename the selectionCoeff property to effect, for both Mutation and Substitution; it changes from float$ to float, and now returns all trait effects; and SLiMgui autofixes this change
 	remove the old C++ selection_coeff_ and dominance_coeff_ ivars in Mutation and Substitution, and begin the transition over to the new MutationTraitInfo struct
 	add Individual method -(float)phenotypeForTrait([Nio<Trait> traits = NULL]) to get trait values
 	add Individual method +(void)setPhenotypeForTrait([Nio<Trait> trait = NULL], [Nif phenotype = NULL]) to set trait values
 	the addNewMutation() method's "selectionCoeff" parameter is now renamed to "effect"; SLiMgui will autofix this as needed
+	turn the hemizygous dominance coefficient into a first-class citizen handled identically to the regular dominance coefficient
+		MutationType: shift the C++ hemizygous_dominance_coeff_ property to be default_hemizygous_dominance_coeff_, kept per-trait
+		MutationType: remove the hemizygousDominanceCoeff property
+		MutationType: add defaultHemizygousDominanceForTrait([Nio<Trait> trait = NULL]) and setDefaultHemizygousDominanceForTrait(Nio<Trait> trait, float dominance) methods
+		Mutation: add a C++ hemizygous_dominance_coeff_ property to Mutation, per-trait, with a value inherited from MutationType's default_hemizygous_dominance_coeff_ property
+		Mutation and Substitution: add hemizygousDominance property and -hemizygousDominanceForTrait([Nio<Trait> traits = NULL]) method
+		Mutation: add +setHemizygousDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) method
+		Mutation: add read-write <trait-name>HemizygousDominance property to Mutation
+		Substitution: add read-only <trait-name>HemizygousDominance property
 
 
 version 5.1 (Eidos version 4.1):

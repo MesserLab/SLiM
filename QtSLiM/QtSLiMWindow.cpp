@@ -2138,6 +2138,14 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             (selectionString == "dominanceCoeff"))
         return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "The `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
     
+    // the above autofix is imperfect; if the user is assigning into dominanceCoeff, it really needs to be corrected to be a call to setDefaultDominanceForTrait()
+    
+    if (terminationMessage.contains("property hemizygousDominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "hemizygousDominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultHemizygousDominanceForTrait()", "The `hemizygousDominanceCoeff` property of MutationType has become the method `defaultHemizygousDominanceForTrait()`.", terminationMessage);
+    
+    // the above autofix is imperfect; if the user is assigning into hemizygousDominanceCoeff, it really needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
+    
     if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
             (selectionString == "distributionType"))
         return offerAndExecuteAutofix(selection, "effectDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectDistributionTypeForTrait()`.", terminationMessage);
