@@ -1289,6 +1289,8 @@
 						   @"nucleotideBased =>",
 						   @"nucleotide <–>",
 						   @"nucleotideValue <–>",
+						   @"nucleotide =>",
+						   @"nucleotideValue =>",
 						   @"mutationMatrix =>",
 						   @"–\u00A0setMutationMatrix()",
 						   @"–\u00A0ancestralNucleotides()",

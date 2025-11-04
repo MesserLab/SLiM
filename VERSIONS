@@ -80,6 +80,7 @@ multitrait branch:
 		Mutation: add +setHemizygousDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) method
 		Mutation: add read-write <trait-name>HemizygousDominance property to Mutation
 		Substitution: add read-only <trait-name>HemizygousDominance property
+	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
 
 
 version 5.1 (Eidos version 4.1):
