@@ -39,6 +39,7 @@
 #ifdef _OPENMP
 	Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true, /* max per-task thread counts */ "maxThreads");
 #endif
+	SLiM_ConfigureContext();
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	

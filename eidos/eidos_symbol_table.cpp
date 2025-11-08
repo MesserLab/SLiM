@@ -159,6 +159,7 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 			nanConstant = new EidosSymbolTableEntry(gEidosID_NAN, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::numeric_limits<double>::quiet_NaN())));
 			
 			// ensure that the constant_ flag is set on all of these values, to prevent modification in all code paths
+			// note that gStaticEidosValue_LogicalT, gStaticEidosValue_LogicalF, and gStaticEidosValueNULL are already marked as constant
 			piConstant->second->MarkAsConstant();
 			eConstant->second->MarkAsConstant();
 			infConstant->second->MarkAsConstant();
@@ -319,6 +320,29 @@ bool EidosSymbolTable::SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) 
 	}
 	while (current_table);
 	
+	return false;
+}
+
+bool EidosSymbolTable::SymbolDefinedAnywhere_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const
+{
+	// This follows ContainsSymbol_IsConstant() but follows parent_symbol_table_ instead of chain_symbol_table_.
+	const EidosSymbolTable *current_table = this;
+	
+	do
+	{
+		// try the current table, if the symbol is within its capacity
+		if ((p_symbol_name < current_table->capacity_) && (current_table->slots_[p_symbol_name].symbol_value_SP_))
+		{
+			*p_is_const = current_table->table_type_is_constant_;
+			return true;
+		}
+		
+		// We didn't get a hit, so try our parent table
+		current_table = current_table->parent_symbol_table_;
+	}
+	while (current_table);
+	
+	*p_is_const = false;
 	return false;
 }
 
@@ -541,8 +565,12 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	// First make sure this symbol is not in use as either a variable or a constant
 	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
 	// currently in scope or not – as soon as the conflicting scope comes into scope, the conflict will be manifest.
+	std::string symbol_string = EidosStringRegistry::StringForGlobalStringID(p_symbol_name);
+	
 	if (SymbolDefinedAnywhere(p_symbol_name))
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' is already defined." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << symbol_string << "' is already defined." << EidosTerminate(nullptr);
+	if (!Eidos_GoodSymbolForDefine(symbol_string))
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << symbol_string << "' is reserved, and cannot be used for a global constant." << EidosTerminate(nullptr);
 	
 	// Search through our chain for a defined constants table; if we don't find one, add one
 	EidosSymbolTable *definedConstantsTable;
@@ -615,8 +643,12 @@ void EidosSymbolTable::DefineConstantForSymbolNoCopy(EidosGlobalStringID p_symbo
 	// First make sure this symbol is not in use as either a variable or a constant
 	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
 	// currently in scope or not – as soon as the conflicting scope comes into scope, the conflict will be manifest.
+	std::string symbol_string = EidosStringRegistry::StringForGlobalStringID(p_symbol_name);
+	
 	if (SymbolDefinedAnywhere(p_symbol_name))
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' is already defined." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): identifier '" << symbol_string << "' is already defined." << EidosTerminate(nullptr);
+	if (!Eidos_GoodSymbolForDefine(symbol_string))
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): identifier '" << symbol_string << "' is reserved, and cannot be used for a global constant." << EidosTerminate(nullptr);
 	
 	// Search through our chain for a defined constants table; if we don't find one, add one
 	EidosSymbolTable *definedConstantsTable;
@@ -669,6 +701,15 @@ void EidosSymbolTable::DefineConstantForSymbolNoCopy(EidosGlobalStringID p_symbo
 void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosSymbolTable::DefineGlobalForSymbol(): symbol table change");
+	
+	std::string symbol_string = EidosStringRegistry::StringForGlobalStringID(p_symbol_name);
+	bool is_constant = false;
+	
+	if (SymbolDefinedAnywhere_IsConstant(p_symbol_name, &is_constant))
+		if (is_constant)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineGlobalForSymbol): identifier '" << symbol_string << "' is already defined as a constant." << EidosTerminate(nullptr);
+	if (!Eidos_GoodSymbolForDefine(symbol_string))
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineGlobalForSymbol): identifier '" << symbol_string << "' is reserved, and cannot be used for a global variable." << EidosTerminate(nullptr);
 	
 	// First find the global variables table
 	EidosSymbolTable *global_variables_table = this;

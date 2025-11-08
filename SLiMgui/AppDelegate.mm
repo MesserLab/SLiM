@@ -230,6 +230,7 @@ typedef enum SLiMLaunchAction
 	Eidos_WarmUpOpenMP(&std::cout, true, 4, false, /* default per-task thread counts */ "");
 #endif
 	
+	SLiM_ConfigureContext();
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	

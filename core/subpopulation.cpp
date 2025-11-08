@@ -2552,6 +2552,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 						// We can use that method because we know the lifetime of the symbol table is shorter than that of
 						// the value objects, and we know that the values we are setting here will not change (the objects
 						// referred to by the values may change, but the values themselves will not change).
+						// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 						if (mutationEffect_callback->contains_mut_)
 						{
 							local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
@@ -2719,6 +2720,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 					// We can use that method because we know the lifetime of the symbol table is shorter than that of
 					// the value objects, and we know that the values we are setting here will not change (the objects
 					// referred to by the values may change, but the values themselves will not change).
+					// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 					if (fitnessEffect_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
 					if (fitnessEffect_callback->contains_subpop_)
@@ -5751,6 +5753,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 					// We can use that method because we know the lifetime of the symbol table is shorter than that of
 					// the value objects, and we know that the values we are setting here will not change (the objects
 					// referred to by the values may change, but the values themselves will not change).
+					// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 					if (reproduction_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
 					if (reproduction_callback->contains_subpop_)
@@ -5966,6 +5969,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 					// We can use that method because we know the lifetime of the symbol table is shorter than that of
 					// the value objects, and we know that the values we are setting here will not change (the objects
 					// referred to by the values may change, but the values themselves will not change).
+					// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 					if (survival_callback->contains_fitness_)
 					{
 						local_fitness.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this

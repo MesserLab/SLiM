@@ -632,6 +632,23 @@ void _RunBasicTests(void)
 							)V0G0N");
 	
 	SLiMAssertScriptRaise(ltb3_script, "long-term reference has been kept", 0, false);	// sim.getValue('x') is not scoped, so there is a long-term reference
+	
+	// Test protection against conflicts and shadowing involving global constants and variables
+	SLiMAssertScriptSuccess("initialize() { defineConstant('foo', 17); } 1 early() { }");
+	SLiMAssertScriptRaise("initialize() { defineConstant('if', 17); } 1 early() { }", "identifier 'if' is reserved", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('PI', 17); } 1 early() { }", "identifier 'PI' is already defined", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('subpop', 17); } 1 early() { }", "identifier 'subpop' is reserved", __LINE__);
+	
+	SLiMAssertScriptSuccess("species foo initialize() { } ticks all 1 early() { }");
+	SLiMAssertScriptSuccess("species sim initialize() { } ticks all 1 early() { }");
+	SLiMAssertScriptRaise("species if initialize() { } ticks all 1 early() { }", "unexpected token '<if>' in species specifier", __LINE__);
+	SLiMAssertScriptRaise("species PI initialize() { } ticks all 1 early() { }", "that name is already in use", __LINE__, /* p_expect_error_position */ false);
+	SLiMAssertScriptRaise("species subpop initialize() { } ticks all 1 early() { }", "the symbol 'subpop' is reserved", __LINE__, /* p_expect_error_position */ false);
+	SLiMAssertScriptRaise("species all initialize() { defineConstant('foo', 17); } species foo initialize() { } ticks all 1 early() { }", "that name is already in use", __LINE__, /* p_expect_error_position */ false);
+	SLiMAssertScriptRaise("species all initialize() { defineConstant('sim', 17); } species sim initialize() { } ticks all 1 early() { }", "identifier 'sim' is reserved", __LINE__);
+	
+	SLiMAssertScriptSuccess("initialize() { initializeSLiMOptions(dimensionality='xy'); } 1 late() { sim.addSubpop('p1', 100); p1.individuals.setSpatialPosition(p1.pointUniform(100)); } late() { summarizeIndividuals(p1.individuals, c(10, 10), p1.spatialBounds, operation='individuals.size();', empty=0.0, perUnitArea=T); }");
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xy'); defineConstant('individuals', 17); } 1 late() { sim.addSubpop('p1', 100); p1.individuals.setSpatialPosition(p1.pointUniform(100)); } late() { summarizeIndividuals(p1.individuals, c(10, 10), p1.spatialBounds, operation='individuals.size();', empty=0.0, perUnitArea=T); }", "can't set up a local variable named 'individuals'", __LINE__);
 }
 
 #pragma mark error position tracking

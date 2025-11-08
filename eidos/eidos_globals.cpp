@@ -321,7 +321,6 @@ void Eidos_PrepareForProfiling(void)
 #pragma mark Warm-up and command line processing
 #pragma mark -
 
-bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
 
 
@@ -1375,6 +1374,25 @@ void Eidos_WarmUp(void)
 
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 {
+	// Unfortunately, some symbols need to be reserved to prevent potential conflicts down the road.  In
+	// particular, anything that we would later define with InitializeConstantSymbolEntry() without checking
+	// for a conflict at that point needs to be reserved up front here.  This applies particularly to
+	// pseudo-parameters in SLiM, which get defined with InitializeConstantSymbolEntry() for speed; we don't
+	// want to take the time to check for a conflict at that point, so we have to reserve the symbol up front.
+	// Note that this does *not* prevent the use of such symbols as local variable names; in that use case
+	// the conflict would be detected when the local variable was defined, since the conflicting pseudo-
+	// parameter would already exist (or, if created in a deeper scope later, would not conflict with the local
+	// variable in the outside scope since it is not visible anyway).  It only prevents the use of such symbols
+	// as global variables or constants, because those are supposed to be in scope everywhere, and so they will
+	// conflict with the same symbol defined in any subsequent scope.
+	// see https://github.com/MesserLab/SLiM/issues/574
+	
+	// There are three sources of prohibited symbols.  One is Eidos keywords like "if", which we shouldn't allow
+	// since they won't be usable later – the tokenizer will see the keyword, not the identifier.  Two is things
+	// like "applyValue" that are used inside Eidos.  Three is things like "subpop" that are defined by SLiM,
+	// or by any other Context, as conflicts -- in particular because they are pseudo-parameters, but there are
+	// other symbols like "slimgui" that we want to block as well.
+	
 	bool good_symbol = true;
 	
 	// Eidos constants are reserved
@@ -1382,12 +1400,21 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 		good_symbol = false;
 	
 	// Eidos keywords are reserved (probably won't reach here anyway)
-	if ((p_symbol_name == "if") || (p_symbol_name == "else") || (p_symbol_name == "do") || (p_symbol_name == "while") || (p_symbol_name == "for") || (p_symbol_name == "in") || (p_symbol_name == "next") || (p_symbol_name == "break") || (p_symbol_name == "return") || (p_symbol_name == "function"))
+	if ((p_symbol_name == gEidosStr_if) ||
+		(p_symbol_name == gEidosStr_else) ||
+		(p_symbol_name == gEidosStr_do) ||
+		(p_symbol_name == gEidosStr_while) ||
+		(p_symbol_name == gEidosStr_for) ||
+		(p_symbol_name == gEidosStr_in) ||
+		(p_symbol_name == gEidosStr_next) ||
+		(p_symbol_name == gEidosStr_break) ||
+		(p_symbol_name == gEidosStr_return) ||
+		(p_symbol_name == gEidosStr_function))
 		good_symbol = false;
 	
 	// SLiM constants are reserved too; this code belongs in SLiM, but only
 	// SLiM uses this facility right now anyway, so I'm not going to sweat it...
-	if ((p_symbol_name == "community") || (p_symbol_name == "sim") || (p_symbol_name == "slimgui"))
+	if (std::find(gEidosContextReservedSymbols.begin(), gEidosContextReservedSymbols.end(), p_symbol_name) != gEidosContextReservedSymbols.end())
 		good_symbol = false;
 	
 	int len = (int)p_symbol_name.length();
@@ -1483,6 +1510,14 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 					if (left_node && (left_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (left_node->children_.size() == 0))
 					{
 						std::string symbol_name = left_node->token_->token_string_;
+						EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
+						
+						if (gEidosConstantsSymbolTable->ContainsSymbol(symbol_id))
+						{
+							gEidosTerminateThrows = save_throws;
+							
+							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): symbol '" << symbol_name << "' is already defined." << EidosTerminate(nullptr);
+						}
 						
 						// OK, if the symbol name is acceptable, keep digging
 						if (Eidos_GoodSymbolForDefine(symbol_name))
@@ -1517,7 +1552,6 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 									//std::cout << "define " << symbol_name << " = " << value_expression << std::endl;
 									
 									// Permanently alter the global Eidos symbol table; don't do this at home!
-									EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 									EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
 									
 									gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
@@ -1530,7 +1564,7 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 						{
 							gEidosTerminateThrows = save_throws;
 							
-							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): illegal defined constant name '" << symbol_name << "'." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): identifier '" << symbol_name << "' is reserved, and cannot be used for a global constant." << EidosTerminate(nullptr);
 						}
 					}
 				}
@@ -1564,6 +1598,7 @@ double gEidosContextVersion = 0.0;
 std::string gEidosContextVersionString;
 std::string gEidosContextLicense;
 std::string gEidosContextCitation;
+std::vector<std::string> gEidosContextReservedSymbols;	// see Eidos_GoodSymbolForDefine()
 
 
 // *******************************************************************************************************************

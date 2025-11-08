@@ -2311,7 +2311,19 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	
 	// set up global symbols for all species, and for ourselves
 	for (Species *species : all_species_)
-		simulation_constants_->InitializeConstantSymbolEntry(species->SymbolTableEntry());
+	{
+		EidosSymbolTableEntry &symbol_entry = species->SymbolTableEntry();
+		EidosGlobalStringID symbol_id = symbol_entry.first;
+		std::string symbol_string = EidosStringRegistry::StringForGlobalStringID(symbol_id);
+		
+		if (simulation_constants_->ContainsSymbol(symbol_id))
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_RunInitializeCallbacks): A species with name '" << symbol_string << "' cannot be defined because that name is already in use." << EidosTerminate();
+		if (!Eidos_GoodSymbolForDefine(symbol_string) && (symbol_string != "sim"))
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_RunInitializeCallbacks): A species with name '" << symbol_string << "' cannot be defined because the symbol '" << symbol_string << "' is reserved." << EidosTerminate();
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+	}
+	
 	simulation_constants_->InitializeConstantSymbolEntry(SymbolTableEntry());
 	
 	// we're done with the initialization tick, so remove the zero-tick functions

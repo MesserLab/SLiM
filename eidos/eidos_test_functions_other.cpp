@@ -871,7 +871,7 @@ void _RunFunctionMiscTests(const std::string &temp_path)
 	
 	// defineGlobal()
 	EidosAssertScriptSuccess_I("defineGlobal('foo', 5:10); sum(foo);", 45);
-	EidosAssertScriptRaise("defineGlobal('T', 5:10);", 0, "cannot be redefined");
+	EidosAssertScriptRaise("defineGlobal('T', 5:10);", 0, "is already defined as a constant");
 	EidosAssertScriptSuccess_I("defineGlobal('foo', 5:11); defineGlobal('foo', 5:10); sum(foo);", 45);
 	EidosAssertScriptSuccess_I("foo = 5:11; defineGlobal('foo', 5:10); sum(foo);", 45);		// we're in the global namespace anyway
 	EidosAssertScriptRaise("defineGlobal('foo', 5:10); rm('foo'); sum(foo);", 42, "undefined identifier");
@@ -1886,10 +1886,10 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function(void)foo(void) { defineConstant('x', 5); } foo(); defineConstant('x', 10);", 59, "already defined");
 	
 	EidosAssertScriptRaise("defineGlobal('x', 5); defineConstant('x', 10);", 22, "already defined");
-	EidosAssertScriptRaise("defineConstant('x', 10); defineGlobal('x', 5);", 25, "is a constant");
+	EidosAssertScriptRaise("defineConstant('x', 10); defineGlobal('x', 5);", 25, "is already defined as a constant");
 	EidosAssertScriptRaise("defineGlobal('x', 5); function(void)foo(void) { defineConstant('x', 10); } foo();", 75, "already defined");
-	EidosAssertScriptRaise("defineConstant('x', 10); function(void)foo(void) { defineGlobal('x', 5); } foo();", 75, "is a constant");
-	EidosAssertScriptRaise("function(void)foo(void) { defineConstant('x', 10); } foo(); defineGlobal('x', 5);", 60, "is a constant");
+	EidosAssertScriptRaise("defineConstant('x', 10); function(void)foo(void) { defineGlobal('x', 5); } foo();", 75, "is already defined as a constant");
+	EidosAssertScriptRaise("function(void)foo(void) { defineConstant('x', 10); } foo(); defineGlobal('x', 5);", 60, "is already defined as a constant");
 	EidosAssertScriptRaise("function(void)foo(void) { defineGlobal('x', 5); } foo(); defineConstant('x', 10); foo();", 57, "already defined");
 	
 	// Mutual recursion with lambdas

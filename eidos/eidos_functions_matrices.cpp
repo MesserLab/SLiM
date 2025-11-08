@@ -269,7 +269,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	catch (...)
 	{
 		// If exceptions throw, then we want to set up the error information to highlight the
-		// sapply() that failed, since we can't highlight the actual error.  (If exceptions
+		// apply() that failed, since we can't highlight the actual error.  (If exceptions
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)

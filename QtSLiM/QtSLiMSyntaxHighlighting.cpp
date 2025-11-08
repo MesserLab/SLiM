@@ -90,6 +90,7 @@ void QtSLiMOutputHighlighter::highlightBlock(const QString &text)
                         setFormat(match.capturedStart(), match.capturedLength(), genomicElementFormat);
                     else if (matchString[0] == 'm')
                         setFormat(match.capturedStart(), match.capturedLength(), mutationTypeFormat);
+					// we don't presently color sX or iX in the output
                 }
             }
         }
