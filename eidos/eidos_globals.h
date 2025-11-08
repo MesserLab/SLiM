@@ -117,6 +117,9 @@ extern double gEidosContextVersion;
 extern std::string gEidosContextVersionString;
 extern std::string gEidosContextLicense;
 extern std::string gEidosContextCitation;
+extern std::vector<std::string> gEidosContextReservedSymbols;	// see Eidos_GoodSymbolForDefine()
+
+bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 
 
 // *******************************************************************************************************************

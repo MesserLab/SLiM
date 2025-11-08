@@ -162,6 +162,7 @@ public:
 	bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
 	bool ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const;
 	bool SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) const;
+	bool SymbolDefinedAnywhere_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const;
 	
 	// Set as a variable (raises if already defined as a constant)
 	void SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);

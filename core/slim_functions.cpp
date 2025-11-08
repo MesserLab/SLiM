@@ -2146,6 +2146,9 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	EidosValue *perUnitArea_value = p_arguments[5].get();
 	EidosValue *spatiality_value = p_arguments[6].get();
 	
+	if (p_interpreter.SymbolTable().SymbolDefinedAnywhere(gID_individuals))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() can't set up a local variable named 'individuals' because a symbol with that name is already defined." << EidosTerminate();
+	
 	// Get individuals vector; complicated as usual by singleton vs. vector
 	int individuals_count = individuals_value->Count();
 	
@@ -2419,6 +2422,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 			
 			// We set up a "constant" value for `individuals` that refers to the stack-allocated object vector made above
 			// For each grid cell we will munge the contents of that vector, without having to touch the symbol table again
+			// BCH 11/7/2025: Note that we now check for conflicts with this symbol up at the top
 			constants.InitializeConstantSymbolEntry(gID_individuals, EidosValue_SP(&individuals_vec));
 			
 			// go through the individuals and tally them
@@ -2465,7 +2469,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		catch (...)
 		{
 			// If exceptions throw, then we want to set up the error information to highlight the
-			// sapply() that failed, since we can't highlight the actual error.  (If exceptions
+			// function call that failed, since we can't highlight the actual error.  (If exceptions
 			// don't throw, this catch block will never be hit; exit() will already have been called
 			// and the error will have been reported from the context of the lambda script string.)
 			if (gEidosTerminateThrows)

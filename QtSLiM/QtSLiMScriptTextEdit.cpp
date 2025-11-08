@@ -512,8 +512,13 @@ void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)
     else if (searchString == "//")              searchString = "comments";
     else if (searchString == "if")              searchString = "if and if–else statements";
     else if (searchString == "else")            searchString = "if and if–else statements";
+    else if (searchString == "do")              searchString = "do–while statements";
+    else if (searchString == "while")           searchString = "while statements";    // this brings up both while and do-while statements, correctly
     else if (searchString == "for")             searchString = "for statements";
     else if (searchString == "in")              searchString = "for statements";
+    else if (searchString == "next")            searchString = "next statements";
+    else if (searchString == "break")           searchString = "break statements";
+    else if (searchString == "return")          searchString = "return statements";
     else if (searchString == "function")        searchString = "user-defined functions";
     // and SLiM substitutions; "initialize" is deliberately omitted here so that the initialize...() methods also come up
     else if (searchString == "first")			searchString = "Eidos events";

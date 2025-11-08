@@ -595,6 +595,7 @@
 		slimgui = new SLiMgui(*community, self);
 		
 		// set up the "slimgui" symbol for it immediately
+		// BCH 11/7/2025: note this symbol is now protected in SLiM_ConfigureContext()
 		community->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
 	}
 }

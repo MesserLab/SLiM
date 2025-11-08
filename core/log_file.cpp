@@ -213,6 +213,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 #endif
 			);
 		
+		// BCH 11/7/2025: note this symbol is now protected in SLiM_ConfigureContext()
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
 		result_SP = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
@@ -265,6 +266,7 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 #endif
 			);
 		
+		// BCH 11/7/2025: note this symbol is now protected in SLiM_ConfigureContext()
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
 		result_SP = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value

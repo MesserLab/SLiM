@@ -100,8 +100,10 @@ void SLiM_WarmUp(void)
 		// Set up our shared pool for Mutation objects
 		SLiM_CreateMutationBlock();
 		
-		// Configure the Eidos context information
-		SLiM_ConfigureContext();
+		// Make sure the Eidos context information has already been configured; this has to be done first thing,
+		// so that any customizations to Eidos that SLiM introduces take effect before anything else happens
+		if (gEidosContextVersion == 0.0)
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) SLiM_ConfigureContext() was not called before SLiMWarmUp()." << EidosTerminate();
 		
 		// Allocate global permanents
 		gStaticEidosValue_StringA = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
@@ -1655,6 +1657,39 @@ void SLiM_ConfigureContext(void)
 		gEidosContextVersionString = std::string("SLiM version ") + std::string(SLIM_VERSION_STRING);
 		gEidosContextLicense = "SLiM is free software: you can redistribute it and/or\nmodify it under the terms of the GNU General Public\nLicense as published by the Free Software Foundation,\neither version 3 of the License, or (at your option)\nany later version.\n\nSLiM is distributed in the hope that it will be\nuseful, but WITHOUT ANY WARRANTY; without even the\nimplied warranty of MERCHANTABILITY or FITNESS FOR\nA PARTICULAR PURPOSE.  See the GNU General Public\nLicense for more details.\n\nYou should have received a copy of the GNU General\nPublic License along with SLiM.  If not, see\n<http://www.gnu.org/licenses/>.\n";
 		gEidosContextCitation = "To cite SLiM in publications please use:\n\nHaller, B.C., and Messer, P.W. (2023). SLiM 4:\nMultispecies eco-evolutionary modeling. The American\nNaturalist 201(5). DOI: https://doi.org/10.1086/723601\n\nFor papers using tree-sequence recording, please cite:\n\nHaller, B.C., Galloway, J., Kelleher, J., Messer, P.W.,\n& Ralph, P.L. (2019). Tree‐sequence recording in SLiM\nopens new horizons for forward‐time simulation of whole\ngenomes. Molecular Ecology Resources 19(2), 552-566.\nDOI: https://doi.org/10.1111/1755-0998.12968\n";
+		
+		// Make a list of symbols that are not allowed as global constants or variables, because they would
+		// potentially conflict with pseudo-parameters or other facilities downstream.
+		gEidosContextReservedSymbols.push_back("self");
+		gEidosContextReservedSymbols.push_back("community");
+		gEidosContextReservedSymbols.push_back("sim");
+		gEidosContextReservedSymbols.push_back("slimgui");
+		gEidosContextReservedSymbols.push_back("context");		// defined by LogFile
+		gEidosContextReservedSymbols.push_back("distance");		// defined in ApplyInteractionCallbacks()
+		gEidosContextReservedSymbols.push_back("strength");		// defined in ApplyInteractionCallbacks()
+		gEidosContextReservedSymbols.push_back("receiver");		// defined in ApplyInteractionCallbacks()
+		gEidosContextReservedSymbols.push_back("exerter");		// defined in ApplyInteractionCallbacks()
+		gEidosContextReservedSymbols.push_back("mut");			// defined in ApplyMutationEffectCallbacks() etc.
+		gEidosContextReservedSymbols.push_back("effect");		// defined in ApplyMutationEffectCallbacks()
+		gEidosContextReservedSymbols.push_back("individual");	// defined in ApplyMutationEffectCallbacks() etc.
+		gEidosContextReservedSymbols.push_back("subpop");		// defined in ApplyMutationEffectCallbacks() etc.
+		gEidosContextReservedSymbols.push_back("homozygous");	// defined in ApplyMutationEffectCallbacks()
+		gEidosContextReservedSymbols.push_back("fitness");		// defined in ApplySurvivalCallbacks()
+		gEidosContextReservedSymbols.push_back("draw");			// defined in ApplySurvivalCallbacks()
+		gEidosContextReservedSymbols.push_back("surviving");	// defined in ApplySurvivalCallbacks()
+		gEidosContextReservedSymbols.push_back("sourceSubpop");	// defined in ApplyMateChoiceCallbacks() etc.
+		gEidosContextReservedSymbols.push_back("weights");		// defined in ApplyMateChoiceCallbacks()
+		gEidosContextReservedSymbols.push_back("child");		// defined in ApplyModifyChildCallbacks()
+		gEidosContextReservedSymbols.push_back("parent1");		// defined in ApplyModifyChildCallbacks()
+		gEidosContextReservedSymbols.push_back("isSelfing");	// defined in ApplyModifyChildCallbacks()
+		gEidosContextReservedSymbols.push_back("isCloning");	// defined in ApplyModifyChildCallbacks()
+		gEidosContextReservedSymbols.push_back("parent2");		// defined in ApplyModifyChildCallbacks()
+		gEidosContextReservedSymbols.push_back("haplosome1");	// defined in ApplyRecombinationCallbacks()
+		gEidosContextReservedSymbols.push_back("haplosome2");	// defined in ApplyRecombinationCallbacks()
+		gEidosContextReservedSymbols.push_back("parent");		// defined in ApplyMutationCallbacks()
+		gEidosContextReservedSymbols.push_back("haplosome");	// defined in ApplyMutationCallbacks()
+		gEidosContextReservedSymbols.push_back("element");		// defined in ApplyMutationCallbacks()
+		gEidosContextReservedSymbols.push_back("originalNuc");	// defined in ApplyMutationCallbacks()
 	}
 }
 

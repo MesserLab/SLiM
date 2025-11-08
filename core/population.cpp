@@ -786,6 +786,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				// We can use that method because we know the lifetime of the symbol table is shorter than that of
 				// the value objects, and we know that the values we are setting here will not change (the objects
 				// referred to by the values may change, but the values themselves will not change).
+				// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 				if (mate_choice_callback->contains_individual_)
 				{
 					Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
@@ -1123,6 +1124,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 			// We can use that method because we know the lifetime of the symbol table is shorter than that of
 			// the value objects, and we know that the values we are setting here will not change (the objects
 			// referred to by the values may change, but the values themselves will not change).
+			// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 			if (modify_child_callback->contains_child_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_child, p_child->CachedEidosValue());
 			
@@ -2734,6 +2736,7 @@ bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_
 			// We can use that method because we know the lifetime of the symbol table is shorter than that of
 			// the value objects, and we know that the values we are setting here will not change (the objects
 			// referred to by the values may change, but the values themselves will not change).
+			// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 			if (recombination_callback->contains_individual_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_parent->CachedEidosValue());
 			if (recombination_callback->contains_haplosome1_)

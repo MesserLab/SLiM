@@ -189,6 +189,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     QCoreApplication::setApplicationVersion(SLIM_VERSION_STRING);
     
     // Warm up our back ends before anything else happens, including our own class objects
+    SLiM_ConfigureContext();
     Eidos_WarmUp();
     SLiM_WarmUp();
     

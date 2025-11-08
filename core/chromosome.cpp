@@ -1129,6 +1129,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 					// We can use that method because we know the lifetime of the symbol table is shorter than that of
 					// the value objects, and we know that the values we are setting here will not change (the objects
 					// referred to by the values may change, but the values themselves will not change).
+					// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 					if (mutation_callback->contains_mut_)
 					{
 						local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
