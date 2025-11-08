@@ -18,6 +18,9 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifdef EIDOS_GUI
+// EidosTypeTable and EidosTypeInterpreter are only used in EidosScribe, SLiMguiLegacy, and QtSLiM
+
 #include "eidos_type_table.h"
 
 #include <algorithm>
@@ -165,6 +168,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTypeTable &p_symb
 	return p_outstream;
 }
 
+#endif // EIDOS_GUI
 
 
 

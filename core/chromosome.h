@@ -198,6 +198,7 @@ public:
 	
 	Community &community_;
 	Species &species_;
+	MutationBlock *mutation_block_ = nullptr;				// NOT OWNED; a pointer to the MutationBlock from the species
 	
 	// the total haplosome count depends on the chromosome; it will be different for an autosome versus a sex chromosome, for example
 	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count

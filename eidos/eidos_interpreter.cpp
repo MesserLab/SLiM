@@ -1275,7 +1275,18 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 							
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							// Special error-handling for evaluate() because its immediate parameter was removed in SLiM 3.5
+							if ((p_call_signature->call_name_ == "evaluate") && (named_arg == "immediate"))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The evaluate() method was changed in SLiM 4.0, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							
+							// Check whether this named argument exists in the call signature, but is skipping over a required argument, or if it doesn't
+							// match any named argument in the call.  If the latter, we emit a more specific error message now.  To help with autofixing,
+							// it marks the position of the argument name as the error position, which is not how most errors here are reported.
+							for (int sig_check_index = 0; sig_check_index < sig_arg_count; ++sig_check_index)
+								if (p_call_signature->arg_names_[sig_check_index] == named_arg)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "(); check that the argument name is spelled correctly." << EidosTerminate(named_arg_name_node->token_);
 						}
 						
 						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1373,7 +1384,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument '" << named_arg << "' to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
+				// BCH 11/2/2025: Changing this to highlight the named argument, rather than the call, to help with autofixing
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "(); check that the argument name is spelled correctly." << EidosTerminate(named_arg_name_node->token_);
 			}
 			else
 			{
