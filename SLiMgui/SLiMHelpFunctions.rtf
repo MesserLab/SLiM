@@ -812,7 +812,7 @@ If the optional
 \f2\fs20  function is a useful convenience function if you wish to read the mutation rate map from a file.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (void)initializeMutationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."])\
+\f1\fs18 \cf2 (void)initializeMutationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."], [string$\'a0sex\'a0=\'a0"*"])\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Set a mutation rate map from data read from the file at 
@@ -862,7 +862,9 @@ See
 \f1\fs18 dec
 \f2\fs20 , which are passed through to it; and see 
 \f1\fs18 initializeMutationRate()
-\f2\fs20  for details on how the rate map is validated and used.\
+\f2\fs20  for details on how the rate map is validated and used, and how the 
+\f1\fs18 sex
+\f2\fs20  parameter is used.\
 This function is written in Eidos, and its source code can be viewed with 
 \f1\fs18 functionSource()
 \f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\

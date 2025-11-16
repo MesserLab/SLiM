@@ -93,7 +93,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
 
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		
 		// Internal SLiM functions
@@ -1018,7 +1018,7 @@ R"V0G0N({
 #pragma mark Other built-in functions
 #pragma mark -
 
-#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."])
+#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
 const char *gSLiMSourceCode_initializeMutationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeMutationRateFromFile): ";
@@ -1055,7 +1055,7 @@ R"V0G0N({
 	else
 		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
 	
-	initializeMutationRate(rates * scale, ends);
+	initializeMutationRate(rates * scale, ends, sex);
 })V0G0N";
 
 #pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])

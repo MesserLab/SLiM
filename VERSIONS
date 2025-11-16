@@ -83,6 +83,7 @@ multitrait branch:
 		Mutation: add read-write <trait-name>HemizygousDominance property to Mutation
 		Substitution: add read-only <trait-name>HemizygousDominance property
 	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
+	fix #564, initializeMutationRateFromFile() needs a `sex` parameter; I'm doing this in multitrait to avoid the annoying doc conflicts
 
 
 version 5.1 (Eidos version 4.1):
