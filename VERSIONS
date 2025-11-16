@@ -17,6 +17,7 @@ development head (in the master branch):
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
 	add the PCG random number generator, switch to pcg32_fast and pcg64_fast, remove all use of the old taus2 and MT19937-64 generators; note this completely breaks backward reproducibility
 	fix various bugs involving conflicts between defined constants and other symbols, including #573 and #574; this sets new definition rules that could break some existing scripts (but is unlikely to)
+	fix #575, QtSLiM terminates early when single-stepping with a rescheduled script block
 	----- last merge into multitrait was done here
 
 
