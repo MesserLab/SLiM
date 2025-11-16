@@ -3418,11 +3418,14 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	
 	for (Species *species : all_species_)
 	{
-		MutationBlock *mutation_block = species->SpeciesMutationBlock();
-		
-		p_usage->mutationRefcountBuffer += mutation_block->MemoryUsageForMutationRefcounts();
-		p_usage->mutationPerTraitBuffer += mutation_block->MemoryUsageForTraitInfo();
-		p_usage->mutationUnusedPoolSpace += mutation_block->MemoryUsageForFreeMutations();
+		if (species->HasGenetics())
+		{
+			MutationBlock *mutation_block = species->SpeciesMutationBlock();
+			
+			p_usage->mutationRefcountBuffer += mutation_block->MemoryUsageForMutationRefcounts();
+			p_usage->mutationPerTraitBuffer += mutation_block->MemoryUsageForTraitInfo();
+			p_usage->mutationUnusedPoolSpace += mutation_block->MemoryUsageForFreeMutations();
+		}
 	}
 	
 	// InteractionType
