@@ -8975,21 +8975,33 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	int source_subpops_count = sourceSubpops_value->Count();
 	int rates_count = rates_value->Count();
 	std::vector<slim_objectid_t> subpops_seen;
+	bool saw_nonzero_rate = false, saw_self_reference = false;
 	
-	if (source_subpops_count != rates_count)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() requires sourceSubpops and rates to be equal in size." << EidosTerminate();
+	if ((source_subpops_count != rates_count) && (rates_count != 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() requires sourceSubpops and rates to be equal in size, or rates to be singleton." << EidosTerminate();
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
 		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, &species_.community_, &species_, "setMigrationRates()");		// SPECIES CONSISTENCY CHECK
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
+		double migrant_fraction = ((rates_count == 1) ? rates_value->NumericAtIndex_NOCAST(0, nullptr) : rates_value->NumericAtIndex_NOCAST(value_index, nullptr));
 		
+		// BCH 11/16/2025: We used to require that the target subpop was not a member of sourceSubpops; we would
+		// raise an error in all cases if that occurred.  Now we relax those rules slightly, to make it easier
+		// to zero out all immigration into a subpop or subpops; we allow self-reference, but *only* if *all*
+		// rates specified in the call are 0.0.  So you can do, e.g., allSubpops.setMigrationRates(allSubpops, 0).
+		// See https://github.com/MesserLab/SLiM/issues/570.  As part of that fix, we also now allow rates to
+		// provide a singleton value, used for all sourceSubpops.
+		if (migrant_fraction != 0.0)
+			saw_nonzero_rate = true;
 		if (source_subpop_id == subpopulation_id_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)." << EidosTerminate();
+			saw_self_reference = true;
+		if (saw_self_reference && saw_nonzero_rate)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation), except when all rates are zero (for convenience)." << EidosTerminate();
+		
+		// can't specify the same source subpopulation twice
 		if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << EidosTerminate();
-		
-		double migrant_fraction = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		
 		population_.SetMigration(*this, source_subpop_id, migrant_fraction);
 		subpops_seen.emplace_back(source_subpop_id);

@@ -13663,7 +13663,7 @@ This method is similar to getting the
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Set the migration rates to this subpopulation from the subpopulations in 
+\f4\fs20 \cf2 Set the migration rates to this subpopulation from the subpopulations in 
 \f3\fs18 sourceSubpops
 \f4\fs20  to the corresponding rates specified in 
 \f3\fs18 rates
@@ -13671,14 +13671,26 @@ This method is similar to getting the
 \f3\fs18 rates
 \f4\fs20  gives the expected fractions of the children in this subpopulation that will subsequently be generated from parents in the subpopulations 
 \f3\fs18 sourceSubpops
-\f4\fs20  (see the SLiM manual for further details).  This method will only set the migration fractions from the subpopulations given; migration rates from other subpopulations will be left unchanged (explicitly set a zero rate to turn off migration from a given subpopulation).  The type of 
+\f4\fs20  (see section 24.2.1).  The 
+\f3\fs18 rates
+\f4\fs20  parameter may be a singleton value, in which case that rate is used for all subpopulations in 
+\f3\fs18 sourceSubpops
+\f4\fs20 .  This method will only set the migration fractions from the subpopulations given; migration rates from other subpopulations will be left unchanged (explicitly set a zero rate to turn off migration from a given subpopulation).  The type of 
 \f3\fs18 sourceSubpops
 \f4\fs20  may be either 
 \f3\fs18 integer
 \f4\fs20 , specifying subpopulations by identifier, or 
 \f3\fs18 object
-\f4\fs20 , specifying subpopulations directly.
-\f5 \
+\f4\fs20 , specifying subpopulations directly.\
+In general it is illegal to try to set the migration rate into a subpopulation from itself; that rate is, by definition, equal to the remainder after all migration from other subpopulations.  As a special case for convenience, it is legal to set a rate of 
+\f3\fs18 0.0
+\f4\fs20  for all subpopulations in the species, including the target subpopulation.  For example, 
+\f3\fs18 subpops.setMigrationRates(allSubpops, 0.0)
+\f4\fs20  will turn off all migration into the subpopulations in 
+\f3\fs18 subpops
+\f4\fs20 .  The given rate of 
+\f3\fs18 0.0
+\f4\fs20  from a subpop into itself is simply ignored, for this specific case only.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)setSelfingRate(numeric$\'a0rate)

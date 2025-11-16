@@ -84,6 +84,10 @@ multitrait branch:
 		Substitution: add read-only <trait-name>HemizygousDominance property
 	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
 	fix #564, initializeMutationRateFromFile() needs a `sex` parameter; I'm doing this in multitrait to avoid the annoying doc conflicts
+	fix #570, setMigrationRates() should make it easier to stop all migration (done in multitrait to avoid the annoying doc conflicts)
+		specifically, this entails two changes:
+			allow a singleton migration rate value, applied for all subpops given
+			allow the destination subpop to be given as a source, iff all rates supplied are 0.0, to stop all migration: allSubpops.setMigrationRates(allSubpops, 0.0)
 
 
 version 5.1 (Eidos version 4.1):
