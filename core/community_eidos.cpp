@@ -1257,6 +1257,10 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			}
 		}
 		
+		last_script_block_tick_cached_ = false;
+		script_block_types_cached_ = false;
+		scripts_changed_ = true;
+		
 #ifdef SLIMGUI
 		gSLiMScheduling << "\t\trescheduleScriptBlock() called (with a ticks schedule) for block: ";
 		block->PrintDeclaration(gSLiMScheduling, this);
