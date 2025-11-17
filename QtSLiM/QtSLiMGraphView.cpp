@@ -48,6 +48,7 @@
 #include "subpopulation.h"
 #include "haplosome.h"
 #include "mutation_run.h"
+#include "mutation_block.h"
 
 
 QFont QtSLiMGraphView::labelFontOfPointSize(double size)
@@ -2551,7 +2552,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     Population &population = graphSpecies->population_;
     size_t subpop_total_haplosome_count = 0;
     
-    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
     {
         int registry_size;
@@ -2618,7 +2619,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Haplosome *
     
     Population &population = graphSpecies->population_;
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
     {
         int registry_size;

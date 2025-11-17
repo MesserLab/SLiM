@@ -34,7 +34,7 @@ class EidosClass;
 // vector of property values given a buffer of EidosObjects.  The getter is expected to return the correct type for the
 // property (this is checked).  The getter is guaranteed that the EidosObjects are of the correct class; it is allowed to
 // do a cast of p_values directly to its own type without checking, according to the calling conventions used here.
-typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosObject **p_values, size_t p_values_size);
+typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 
 // This typedef is for an "accelerated property setter".  These are static member functions on a class, designed to set a property
 // value across a buffer of EidosObjects.  This is more complex than the getter case, because there are two possibilities:
@@ -44,7 +44,7 @@ typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosObject **p_values, s
 // to be of the correct class, and may be cast directly.  (This is actually guaranteed and checked by the property signature, so if
 // the signature is declared incorrectly then a mismatch is possible; but that is not the getter/setter's problem to detect.)  The
 // type of p_source is also checked against the signature, and so may be assumed to be of the declared type.
-typedef void (*Eidos_AcceleratedPropertySetter)(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+typedef void (*Eidos_AcceleratedPropertySetter)(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 
 
 class EidosPropertySignature
@@ -55,7 +55,7 @@ public:
 	
 	bool read_only_;									// true if the property is read-only, false if it is read-write
 	EidosValueMask value_mask_;							// a mask for the type returned; singleton is used, optional is not
-	const EidosClass *value_class_;				// optional type-check for object values; used only if this is not nullptr
+	const EidosClass *value_class_;						// optional type-check for object values; used only if this is not nullptr
 	
 	bool accelerated_get_;									// if true, can be read using a fast-access GetProperty_Accelerated_X() method
 	Eidos_AcceleratedPropertyGetter accelerated_getter;		// a pointer to a (static member) function that handles the accelerated get
@@ -64,7 +64,9 @@ public:
 	Eidos_AcceleratedPropertySetter accelerated_setter;		// a pointer to a (static member) function that handles the accelerated set
 	
 	bool deprecated_ = false;							// if true, the API represented by this signature has been deprecated
-
+	
+	std::string dynamic_owner_;							// if non-empty, indicates a dynamically generated property owned by a given owner
+	
 	EidosPropertySignature(const EidosPropertySignature&) = delete;					// no copying
 	EidosPropertySignature& operator=(const EidosPropertySignature&) = delete;		// no copying
 	EidosPropertySignature(void) = delete;											// no null construction
@@ -88,6 +90,11 @@ public:
 	
 	// API deprecation; this prevents deprecated API from being shown in code completion, etc., even though it remains in the doc
 	EidosPropertySignature *MarkDeprecated(void);
+	
+	// Dynamic property generation; the goal is to prevent dynamically generated properties from conflicting
+	// with built-in properties, or with each other, so we mark them with an "owner" string for recognition
+	EidosPropertySignature *MarkAsDynamicWithOwner(std::string p_owner) { dynamic_owner_ = p_owner; return this; }
+	bool IsDynamicWithOwner(std::string p_owner) const { return (!dynamic_owner_.empty() && (dynamic_owner_ == p_owner)); }
 };
 
 // These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.

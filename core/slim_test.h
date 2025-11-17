@@ -49,6 +49,7 @@ extern void _RunGenomicElementTests(void);
 extern void _RunChromosomeTests(void);
 extern void _RunMutationTests(void);
 extern void _RunHaplosomeTests(const std::string &temp_path);
+extern void _RunMultitraitTests(void);
 extern void _RunSubpopulationTests(void);
 extern void _RunIndividualTests(void);
 extern void _RunErrorPositionTests(void);

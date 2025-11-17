@@ -22,6 +22,7 @@
 #import "SLiMWindowController.h"
 
 #include "community.h"
+#include "mutation_block.h"
 
 
 @implementation GraphView_MutationFrequencyTrajectory
@@ -304,7 +305,7 @@
 	int haplosome_count_per_individual = displaySpecies->HaplosomeCountPerIndividual();
 	int subpop_total_haplosome_count = 0;
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = displaySpecies->SpeciesMutationBlock()->mutation_buffer_;
 	const MutationIndex *registry_iter = registry;
 	const MutationIndex *registry_iter_end = registry + registry_size;
 	

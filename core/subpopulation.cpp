@@ -24,6 +24,7 @@
 #include "slim_globals.h"
 #include "population.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
@@ -131,7 +132,7 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 			bool is_female = (index < p_first_male);
 			
 			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-		
+			
 			for (Chromosome *chromosome : chromosomes)
 			{
 				// Determine what kind of haplosomes to make for this chromosome
@@ -423,7 +424,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	size_t chromosomes_count = chromosomes.size();
 	bool has_genetics = species_.HasGenetics();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = has_genetics ? species_.SpeciesMutationBlock()->mutation_buffer_ : nullptr;
 	
 	if (!has_genetics && (chromosomes_count != 0))
 		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
@@ -1378,15 +1379,6 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 {
 	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
 	
-	// The FitnessOfParent...() methods called by this method rely upon cached fitness values
-	// kept inside the Mutation objects.  Those caches may need to be validated before we can
-	// calculate fitness values.  We check for that condition and repair it first.
-	if (species_.any_dominance_coeff_changed_)
-	{
-		population_.ValidateMutationFitnessCaches();	// note one subpop triggers it, but the recaching occurs for the whole sim
-		species_.any_dominance_coeff_changed_ = false;
-	}
-	
 	// This function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
 	
@@ -1420,8 +1412,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	}
 	
 	// Can we skip chromosome-based fitness calculations altogether, and just call fitnessEffect() callbacks if any?
-	// We can do this if (a) all mutation types either use a neutral DFE, or have been made neutral with a "return 1.0;"
-	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
+	// We can do this if (a) all mutation types either use a neutral DES, or have been made neutral with a "return 1.0;"
+	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DES, no mutation has had its
 	// selection coefficient changed, and (c) no mutationEffect() callbacks are active apart from "return 1.0;" type callbacks.
 	// This is often the case for QTL-based models (such as Misha's coral model), and should produce a big speed gain,
 	// so we do a pre-check here for this case.  Note that we can ignore fitnessEffect() callbacks in this situation,
@@ -1472,9 +1464,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	// by mutationEffect() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
 	if (skip_chromosomal_fitness)
 	{
-		// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
+		// first set a flag on all mut types indicating whether they are pure neutral according to their DES
 		for (auto &mut_type_iter : mut_types)
-			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
+			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DES_;
 		
 		// then go through the mutationEffect() callback list and set the pure neutral flag for mut types neutralized by an active callback
 		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
@@ -2455,7 +2447,8 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
+	Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
+	slim_objectid_t mutation_type_id = (mut_block_ptr + p_mutation)->mutation_type_ptr_->mutation_type_id_;
 	
 	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
@@ -2538,7 +2531,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					EidosValue_Object local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
+					EidosValue_Object local_mut(mut_block_ptr + p_mutation, gSLiM_Mutation_Class);
 					EidosValue_Float local_effect(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
@@ -2959,7 +2952,8 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 		single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
 	}
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationBlock *mutation_block = species_.SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	if (haplosome1_null && haplosome2_null)
 	{
@@ -2981,7 +2975,7 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			// Cache non-neutral mutations and read from the non-neutral buffers
 			const MutationIndex *haplosome_iter, *haplosome_max;
 			
-			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
 			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
@@ -2994,17 +2988,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			{
 				MutationIndex haplosome_mutindex = *haplosome_iter++;
 				Mutation *mutation = mut_block_ptr + haplosome_mutindex;
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_hemizygousdom_sel = mutation_block->TraitInfoForIndex(haplosome_mutindex)[0].hemizygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, mutation->cached_one_plus_hemizygousdom_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, cached_one_plus_hemizygousdom_sel, p_mutationEffect_callbacks, haplosome->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_hemizygousdom_sel_;
+					w *= cached_one_plus_hemizygousdom_sel;
 				}
 			}
 		}
@@ -3025,8 +3021,8 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			// Cache non-neutral mutations and read from the non-neutral buffers
 			const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
 			
-			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun1->beginend_nonneutral_pointers(mut_block_ptr, &haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun2->beginend_nonneutral_pointers(mut_block_ptr, &haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
 			const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
@@ -3048,17 +3044,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 					{
 						// Process a mutation in haplosome1 since it is leading
 						Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+						// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+						slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
 						
 						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 						{
-							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= mutation->cached_one_plus_dom_sel_;
+							w *= cached_one_plus_dom_sel;
 						}
 						
 						if (++haplosome1_iter == haplosome1_max)
@@ -3072,17 +3070,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 					{
 						// Process a mutation in haplosome2 since it is leading
 						Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+						// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+						slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
 						
 						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 						{
-							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= mutation->cached_one_plus_dom_sel_;
+							w *= cached_one_plus_dom_sel;
 						}
 						
 						if (++haplosome2_iter == haplosome2_max)
@@ -3110,17 +3110,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
 									Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+									// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+									slim_effect_t cached_one_plus_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].homozygous_effect_;
 									
 									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 									{
-										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, cached_one_plus_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 										
 										if (w <= 0.0)
 											return 0.0;
 									}
 									else
 									{
-										w *= mutation->cached_one_plus_sel_;
+										w *= cached_one_plus_sel;
 									}
 									goto homozygousExit1;
 								}
@@ -3131,17 +3133,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 							{
 								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+								slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
 								
 								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 								{
-									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 									
 									if (w <= 0.0)
 										return 0.0;
 								}
 								else
 								{
-									w *= mutation->cached_one_plus_dom_sel_;
+									w *= cached_one_plus_dom_sel;
 								}
 							}
 							
@@ -3175,17 +3179,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
 							{
 								Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+								// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+								slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
 								
 								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 								{
-									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 									
 									if (w <= 0.0)
 										return 0.0;
 								}
 								else
 								{
-									w *= mutation->cached_one_plus_dom_sel_;
+									w *= cached_one_plus_dom_sel;
 								}
 							}
 							
@@ -3216,17 +3222,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			{
 				MutationIndex haplosome1_mutindex = *haplosome1_iter++;
 				Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_dom_sel_;
+					w *= cached_one_plus_dom_sel;
 				}
 			}
 			
@@ -3235,17 +3243,19 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			{
 				MutationIndex haplosome2_mutindex = *haplosome2_iter++;
 				Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_dom_sel_;
+					w *= cached_one_plus_dom_sel;
 				}
 			}
 		}
@@ -3286,7 +3296,8 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
 		}
 		
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		MutationBlock *mutation_block = species_.SpeciesMutationBlock();
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 		const int32_t mutrun_count = haplosome->mutrun_count_;
 		double w = 1.0;
 		
@@ -3298,7 +3309,7 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			// Cache non-neutral mutations and read from the non-neutral buffers
 			const MutationIndex *haplosome_iter, *haplosome_max;
 			
-			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
 			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
@@ -3310,17 +3321,19 @@ double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vect
 			{
 				MutationIndex haplosome_mutation = *haplosome_iter++;
 				Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
+				slim_effect_t cached_one_plus_sel = mutation_block->TraitInfoForIndex(haplosome_mutation)[0].homozygous_effect_;
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, cached_one_plus_sel, p_mutationEffect_callbacks, haplosome->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_sel_;
+					w *= cached_one_plus_sel;
 				}
 			}
 		}
@@ -4502,6 +4515,10 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4887,6 +4904,10 @@ bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, slim_pe
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	const int currentHaplosomeIndex = 0;
@@ -4970,6 +4991,10 @@ bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, slim_pe
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	const int currentHaplosomeIndex = 0;
@@ -5049,6 +5074,10 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5248,6 +5277,10 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5522,6 +5555,10 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_ped
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	const int currentHaplosomeIndex = 0;
@@ -5604,6 +5641,10 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_ped
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Draw new individual trait offsets from each trait's individual-offset distribution
+	// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+	individual->_InitializePerTraitInformation();
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -6451,8 +6492,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6465,8 +6507,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, si
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6479,8 +6522,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6493,8 +6537,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject *
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6511,8 +6556,9 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, s
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6567,8 +6613,9 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 	}
 }
 
-void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Subpopulation::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
@@ -6586,8 +6633,9 @@ void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p
 	}
 }
 
-void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -8927,21 +8975,33 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	int source_subpops_count = sourceSubpops_value->Count();
 	int rates_count = rates_value->Count();
 	std::vector<slim_objectid_t> subpops_seen;
+	bool saw_nonzero_rate = false, saw_self_reference = false;
 	
-	if (source_subpops_count != rates_count)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() requires sourceSubpops and rates to be equal in size." << EidosTerminate();
+	if ((source_subpops_count != rates_count) && (rates_count != 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() requires sourceSubpops and rates to be equal in size, or rates to be singleton." << EidosTerminate();
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
 		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, &species_.community_, &species_, "setMigrationRates()");		// SPECIES CONSISTENCY CHECK
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
+		double migrant_fraction = ((rates_count == 1) ? rates_value->NumericAtIndex_NOCAST(0, nullptr) : rates_value->NumericAtIndex_NOCAST(value_index, nullptr));
 		
+		// BCH 11/16/2025: We used to require that the target subpop was not a member of sourceSubpops; we would
+		// raise an error in all cases if that occurred.  Now we relax those rules slightly, to make it easier
+		// to zero out all immigration into a subpop or subpops; we allow self-reference, but *only* if *all*
+		// rates specified in the call are 0.0.  So you can do, e.g., allSubpops.setMigrationRates(allSubpops, 0).
+		// See https://github.com/MesserLab/SLiM/issues/570.  As part of that fix, we also now allow rates to
+		// provide a singleton value, used for all sourceSubpops.
+		if (migrant_fraction != 0.0)
+			saw_nonzero_rate = true;
 		if (source_subpop_id == subpopulation_id_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)." << EidosTerminate();
+			saw_self_reference = true;
+		if (saw_self_reference && saw_nonzero_rate)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation), except when all rates are zero (for convenience)." << EidosTerminate();
+		
+		// can't specify the same source subpopulation twice
 		if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << EidosTerminate();
-		
-		double migrant_fraction = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		
 		population_.SetMigration(*this, source_subpop_id, migrant_fraction);
 		subpops_seen.emplace_back(source_subpop_id);
