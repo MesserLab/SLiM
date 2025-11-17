@@ -88,6 +88,7 @@ multitrait branch:
 		specifically, this entails two changes:
 			allow a singleton migration rate value, applied for all subpops given
 			allow the destination subpop to be given as a source, iff all rates supplied are 0.0, to stop all migration: allSubpops.setMigrationRates(allSubpops, 0.0)
+	fix #567, plot windows can have their aspect ratio distorted due to screen size and other constraints
 
 
 version 5.1 (Eidos version 4.1):

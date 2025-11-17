@@ -5034,6 +5034,40 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         
         if (createdWindow)
             QtSLiMMakeWindowVisibleAndExposed(graphWindow);
+        
+        // BCH 11/16/2025: There is one tricky thing here, which is that in practice the plot window might not be allowed
+        // to be the requested size, due to screen constraints.  We don't know that until we try.  Before the call to
+        // the QtSLiMMakeWindowVisibleAndExposed() the window is still at the original size we requested (on macOS, at
+        // least).  After that call, it has been constrained by whatever factors (screen size, dock/menubar, etc.) exist.
+        // We can't do anything about those constraints; but we do want to try to preserve the original aspect ratio
+        // requested by the user, and we emit a warning to the console.  See https://github.com/MesserLab/SLiM/issues/567
+        double realized_width = customPlot->width(), realized_height = customPlot->height();
+        double trim_width = graphWindow->width() - realized_width, trim_height = graphWindow->height() - realized_height;
+        
+        if ((realized_width != width) || (realized_height != height))
+        {
+            std::cout << "SLiMgui: the requested graph window size (" << width << ", " << height << ") was not attainable; the realized size was (" <<
+                         realized_width << ", " << realized_height << ").  Resizing to try to preserve the requested aspect ratio." << std::endl;
+            
+            double requested_aspect_ratio = width / height;
+            double realized_aspect_ratio = realized_width / realized_height;
+            
+            if (realized_aspect_ratio > requested_aspect_ratio)
+            {
+                // the width is, proportionally, larger than requested and needs to be reduced
+                double corrected_width = std::round(requested_aspect_ratio * realized_height + trim_width);
+                graphWindow->resize(corrected_width, graphWindow->height());
+            }
+            else if (realized_aspect_ratio < requested_aspect_ratio)
+            {
+                // the height is, proportionally, larger than requested and needs to be reduced
+                double corrected_height = std::round(realized_width / requested_aspect_ratio + trim_height);
+                graphWindow->resize(graphWindow->width(), corrected_height);
+            }
+            
+            //std::cout << "   requested aspect ratio " << requested_aspect_ratio << "; final aspect ratio after correction " <<
+            //          (customPlot->width() / (double)customPlot->height()) << std::endl;
+        }
     }
     else
     {
