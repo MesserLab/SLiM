@@ -6756,7 +6756,8 @@ typedef struct {
 typedef struct {
     tsk_mutation_t mut;
     int num_descendants;
-} mutation_canonical_sort_t;
+    double node_time;
+} mutation_sort_t;
 
 typedef struct {
     tsk_individual_t ind;
@@ -6797,39 +6798,30 @@ cmp_site(const void *a, const void *b)
 static int
 cmp_mutation(const void *a, const void *b)
 {
-    const tsk_mutation_t *ia = (const tsk_mutation_t *) a;
-    const tsk_mutation_t *ib = (const tsk_mutation_t *) b;
-    /* Compare mutations by site */
-    int ret = (ia->site > ib->site) - (ia->site < ib->site);
-    /* Within a particular site sort by time if known, then ID. This ensures that
-     * relative ordering within a site is maintained */
-    if (ret == 0 && !tsk_is_unknown_time(ia->time) && !tsk_is_unknown_time(ib->time)) {
-        ret = (ia->time < ib->time) - (ia->time > ib->time);
-    }
-    if (ret == 0) {
-        ret = (ia->id > ib->id) - (ia->id < ib->id);
-    }
-    return ret;
-}
-
-static int
-cmp_mutation_canonical(const void *a, const void *b)
-{
-    const mutation_canonical_sort_t *ia = (const mutation_canonical_sort_t *) a;
-    const mutation_canonical_sort_t *ib = (const mutation_canonical_sort_t *) b;
+    const mutation_sort_t *ia = (const mutation_sort_t *) a;
+    const mutation_sort_t *ib = (const mutation_sort_t *) b;
     /* Compare mutations by site */
     int ret = (ia->mut.site > ib->mut.site) - (ia->mut.site < ib->mut.site);
+
+    /* Within a particular site sort by time if known */
     if (ret == 0 && !tsk_is_unknown_time(ia->mut.time)
         && !tsk_is_unknown_time(ib->mut.time)) {
         ret = (ia->mut.time < ib->mut.time) - (ia->mut.time > ib->mut.time);
     }
+    /* Or node times when mutation times are unknown or equal */
+    if (ret == 0) {
+        ret = (ia->node_time < ib->node_time) - (ia->node_time > ib->node_time);
+    }
+    /* If node times are equal, sort by number of descendants */
     if (ret == 0) {
         ret = (ia->num_descendants < ib->num_descendants)
               - (ia->num_descendants > ib->num_descendants);
     }
+    /* If number of descendants are equal, sort by node */
     if (ret == 0) {
         ret = (ia->mut.node > ib->mut.node) - (ia->mut.node < ib->mut.node);
     }
+    /* Final tiebreaker: ID */
     if (ret == 0) {
         ret = (ia->mut.id > ib->mut.id) - (ia->mut.id < ib->mut.id);
     }
@@ -7059,74 +7051,12 @@ tsk_table_sorter_sort_mutations(tsk_table_sorter_t *self)
 {
     int ret = 0;
     tsk_size_t j;
-    tsk_id_t ret_id, parent, mapped_parent;
-    tsk_mutation_table_t *mutations = &self->tables->mutations;
-    tsk_size_t num_mutations = mutations->num_rows;
-    tsk_mutation_table_t copy;
-    tsk_mutation_t *sorted_mutations
-        = tsk_malloc(num_mutations * sizeof(*sorted_mutations));
-    tsk_id_t *mutation_id_map = tsk_malloc(num_mutations * sizeof(*mutation_id_map));
-
-    ret = tsk_mutation_table_copy(mutations, &copy, 0);
-    if (ret != 0) {
-        goto out;
-    }
-    if (mutation_id_map == NULL || sorted_mutations == NULL) {
-        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
-        goto out;
-    }
-
-    for (j = 0; j < num_mutations; j++) {
-        tsk_mutation_table_get_row_unsafe(&copy, (tsk_id_t) j, sorted_mutations + j);
-        sorted_mutations[j].site = self->site_id_map[sorted_mutations[j].site];
-    }
-    ret = tsk_mutation_table_clear(mutations);
-    if (ret != 0) {
-        goto out;
-    }
-
-    qsort(sorted_mutations, (size_t) num_mutations, sizeof(*sorted_mutations),
-        cmp_mutation);
-
-    /* Make a first pass through the sorted mutations to build the ID map. */
-    for (j = 0; j < num_mutations; j++) {
-        mutation_id_map[sorted_mutations[j].id] = (tsk_id_t) j;
-    }
-
-    for (j = 0; j < num_mutations; j++) {
-        mapped_parent = TSK_NULL;
-        parent = sorted_mutations[j].parent;
-        if (parent != TSK_NULL) {
-            mapped_parent = mutation_id_map[parent];
-        }
-        ret_id = tsk_mutation_table_add_row(mutations, sorted_mutations[j].site,
-            sorted_mutations[j].node, mapped_parent, sorted_mutations[j].time,
-            sorted_mutations[j].derived_state, sorted_mutations[j].derived_state_length,
-            sorted_mutations[j].metadata, sorted_mutations[j].metadata_length);
-        if (ret_id < 0) {
-            ret = (int) ret_id;
-            goto out;
-        }
-    }
-    ret = 0;
-
-out:
-    tsk_safe_free(mutation_id_map);
-    tsk_safe_free(sorted_mutations);
-    tsk_mutation_table_free(&copy);
-    return ret;
-}
-
-static int
-tsk_table_sorter_sort_mutations_canonical(tsk_table_sorter_t *self)
-{
-    int ret = 0;
-    tsk_size_t j;
     tsk_id_t ret_id, parent, mapped_parent, p;
     tsk_mutation_table_t *mutations = &self->tables->mutations;
+    tsk_node_table_t *nodes = &self->tables->nodes;
     tsk_size_t num_mutations = mutations->num_rows;
     tsk_mutation_table_t copy;
-    mutation_canonical_sort_t *sorted_mutations
+    mutation_sort_t *sorted_mutations
         = tsk_malloc(num_mutations * sizeof(*sorted_mutations));
     tsk_id_t *mutation_id_map = tsk_malloc(num_mutations * sizeof(*mutation_id_map));
 
@@ -7158,6 +7088,7 @@ tsk_table_sorter_sort_mutations_canonical(tsk_table_sorter_t *self)
     for (j = 0; j < num_mutations; j++) {
         tsk_mutation_table_get_row_unsafe(&copy, (tsk_id_t) j, &sorted_mutations[j].mut);
         sorted_mutations[j].mut.site = self->site_id_map[sorted_mutations[j].mut.site];
+        sorted_mutations[j].node_time = nodes->time[sorted_mutations[j].mut.node];
     }
     ret = tsk_mutation_table_clear(mutations);
     if (ret != 0) {
@@ -7165,7 +7096,7 @@ tsk_table_sorter_sort_mutations_canonical(tsk_table_sorter_t *self)
     }
 
     qsort(sorted_mutations, (size_t) num_mutations, sizeof(*sorted_mutations),
-        cmp_mutation_canonical);
+        cmp_mutation);
 
     /* Make a first pass through the sorted mutations to build the ID map. */
     for (j = 0; j < num_mutations; j++) {
@@ -10986,11 +10917,159 @@ out:
     return ret;
 }
 
+static int TSK_WARN_UNUSED
+tsk_table_collection_compute_mutation_parents_to_array(
+    const tsk_table_collection_t *self, tsk_id_t *mutation_parent)
+{
+    int ret = 0;
+    const tsk_id_t *I, *O;
+    const tsk_edge_table_t edges = self->edges;
+    const tsk_node_table_t nodes = self->nodes;
+    const tsk_site_table_t sites = self->sites;
+    const tsk_mutation_table_t mutations = self->mutations;
+    const tsk_id_t M = (tsk_id_t) edges.num_rows;
+    tsk_id_t tj, tk;
+    tsk_id_t *parent = NULL;
+    tsk_id_t *bottom_mutation = NULL;
+    tsk_id_t u;
+    double left, right;
+    tsk_id_t site;
+    /* Using unsigned values here avoids potentially undefined behaviour */
+    tsk_size_t j, mutation, first_mutation;
+
+    parent = tsk_malloc(nodes.num_rows * sizeof(*parent));
+    bottom_mutation = tsk_malloc(nodes.num_rows * sizeof(*bottom_mutation));
+    if (parent == NULL || bottom_mutation == NULL) {
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+        goto out;
+    }
+    tsk_memset(parent, 0xff, nodes.num_rows * sizeof(*parent));
+    tsk_memset(bottom_mutation, 0xff, nodes.num_rows * sizeof(*bottom_mutation));
+    tsk_memset(mutation_parent, 0xff, self->mutations.num_rows * sizeof(tsk_id_t));
+
+    I = self->indexes.edge_insertion_order;
+    O = self->indexes.edge_removal_order;
+    tj = 0;
+    tk = 0;
+    site = 0;
+    mutation = 0;
+    left = 0;
+    while (tj < M || left < self->sequence_length) {
+        while (tk < M && edges.right[O[tk]] == left) {
+            parent[edges.child[O[tk]]] = TSK_NULL;
+            tk++;
+        }
+        while (tj < M && edges.left[I[tj]] == left) {
+            parent[edges.child[I[tj]]] = edges.parent[I[tj]];
+            tj++;
+        }
+        right = self->sequence_length;
+        if (tj < M) {
+            right = TSK_MIN(right, edges.left[I[tj]]);
+        }
+        if (tk < M) {
+            right = TSK_MIN(right, edges.right[O[tk]]);
+        }
+
+        /* Tree is now ready. We look at each site on this tree in turn */
+        while (site < (tsk_id_t) sites.num_rows && sites.position[site] < right) {
+            /* Create a mapping from mutations to nodes. If we see more than one
+             * mutation at a node, the previously seen one must be the parent
+             * of the current since we assume they are in order. */
+            first_mutation = mutation;
+            while (mutation < mutations.num_rows && mutations.site[mutation] == site) {
+                u = mutations.node[mutation];
+                if (bottom_mutation[u] != TSK_NULL) {
+                    mutation_parent[mutation] = bottom_mutation[u];
+                }
+                bottom_mutation[u] = (tsk_id_t) mutation;
+                mutation++;
+            }
+            /* Make the common case of 1 mutation fast */
+            if (mutation > first_mutation + 1) {
+                /* If we have more than one mutation, compute the parent for each
+                 * one by traversing up the tree until we find a node that has a
+                 * mutation. */
+                for (j = first_mutation; j < mutation; j++) {
+                    if (mutation_parent[j] == TSK_NULL) {
+                        u = parent[mutations.node[j]];
+                        while (u != TSK_NULL && bottom_mutation[u] == TSK_NULL) {
+                            u = parent[u];
+                        }
+                        if (u != TSK_NULL) {
+                            mutation_parent[j] = bottom_mutation[u];
+                        }
+                    }
+                }
+            }
+            /* Reset the mapping for the next site */
+            for (j = first_mutation; j < mutation; j++) {
+                u = mutations.node[j];
+                bottom_mutation[u] = TSK_NULL;
+                /* Check that we haven't violated the sortedness property */
+                if (mutation_parent[j] > (tsk_id_t) j) {
+                    ret = tsk_trace_error(TSK_ERR_MUTATION_PARENT_AFTER_CHILD);
+                    goto out;
+                }
+            }
+            site++;
+        }
+        /* Move on to the next tree */
+        left = right;
+    }
+
+out:
+    tsk_safe_free(parent);
+    tsk_safe_free(bottom_mutation);
+    return ret;
+}
+
+static int TSK_WARN_UNUSED
+tsk_table_collection_check_mutation_parents(const tsk_table_collection_t *self)
+{
+    int ret = 0;
+    tsk_mutation_table_t mutations = self->mutations;
+    tsk_id_t *new_parents = NULL;
+    tsk_size_t j;
+
+    if (mutations.num_rows == 0) {
+        return ret;
+    }
+
+    new_parents = tsk_malloc(mutations.num_rows * sizeof(*new_parents));
+    if (new_parents == NULL) {
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+        goto out;
+    }
+
+    ret = tsk_table_collection_compute_mutation_parents_to_array(self, new_parents);
+    if (ret != 0) {
+        goto out;
+    }
+
+    for (j = 0; j < mutations.num_rows; j++) {
+        if (mutations.parent[j] != new_parents[j]) {
+            ret = tsk_trace_error(TSK_ERR_BAD_MUTATION_PARENT);
+            goto out;
+        }
+    }
+
+out:
+    tsk_safe_free(new_parents);
+    return ret;
+}
+
 tsk_id_t TSK_WARN_UNUSED
 tsk_table_collection_check_integrity(
     const tsk_table_collection_t *self, tsk_flags_t options)
 {
     tsk_id_t ret = 0;
+    int mut_ret = 0;
+
+    if (options & TSK_CHECK_MUTATION_PARENTS) {
+        /* If we're checking mutation parents, we need to check the trees first */
+        options |= TSK_CHECK_TREES;
+    }
 
     if (options & TSK_CHECK_TREES) {
         /* Checking the trees implies these checks */
@@ -11042,6 +11121,14 @@ tsk_table_collection_check_integrity(
         ret = tsk_table_collection_check_tree_integrity(self);
         if (ret < 0) {
             goto out;
+        }
+        /* This check requires tree integrity so do it last */
+        if (options & TSK_CHECK_MUTATION_PARENTS) {
+            mut_ret = tsk_table_collection_check_mutation_parents(self);
+            if (mut_ret != 0) {
+                ret = mut_ret;
+                goto out;
+            }
         }
     }
 out:
@@ -12245,7 +12332,7 @@ tsk_table_collection_canonicalise(tsk_table_collection_t *self, tsk_flags_t opti
     if (ret != 0) {
         goto out;
     }
-    sorter.sort_mutations = tsk_table_sorter_sort_mutations_canonical;
+    sorter.sort_mutations = tsk_table_sorter_sort_mutations;
     sorter.sort_individuals = tsk_table_sorter_sort_individuals_canonical;
 
     nodes = tsk_malloc(self->nodes.num_rows * sizeof(*nodes));
@@ -12346,117 +12433,25 @@ out:
 
 int TSK_WARN_UNUSED
 tsk_table_collection_compute_mutation_parents(
-    tsk_table_collection_t *self, tsk_flags_t TSK_UNUSED(options))
+    tsk_table_collection_t *self, tsk_flags_t options)
 {
     int ret = 0;
-    tsk_id_t num_trees;
-    const tsk_id_t *I, *O;
-    const tsk_edge_table_t edges = self->edges;
-    const tsk_node_table_t nodes = self->nodes;
-    const tsk_site_table_t sites = self->sites;
-    const tsk_mutation_table_t mutations = self->mutations;
-    const tsk_id_t M = (tsk_id_t) edges.num_rows;
-    tsk_id_t tj, tk;
-    tsk_id_t *parent = NULL;
-    tsk_id_t *bottom_mutation = NULL;
-    tsk_id_t u;
-    double left, right;
-    tsk_id_t site;
-    /* Using unsigned values here avoids potentially undefined behaviour */
-    tsk_size_t j, mutation, first_mutation;
 
-    /* Set the mutation parent to TSK_NULL so that we don't check the
-     * parent values we are about to write over. */
-    tsk_memset(mutations.parent, 0xff, mutations.num_rows * sizeof(*mutations.parent));
-    num_trees = tsk_table_collection_check_integrity(self, TSK_CHECK_TREES);
-    if (num_trees < 0) {
-        ret = (int) num_trees;
-        goto out;
+    if (!(options & TSK_NO_CHECK_INTEGRITY)) {
+        /* Safe to cast here as we're not counting trees */
+        ret = (int) tsk_table_collection_check_integrity(self, TSK_CHECK_TREES);
+        if (ret < 0) {
+            goto out;
+        }
     }
-    parent = tsk_malloc(nodes.num_rows * sizeof(*parent));
-    bottom_mutation = tsk_malloc(nodes.num_rows * sizeof(*bottom_mutation));
-    if (parent == NULL || bottom_mutation == NULL) {
-        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+
+    ret = tsk_table_collection_compute_mutation_parents_to_array(
+        self, self->mutations.parent);
+    if (ret != 0) {
         goto out;
-    }
-    tsk_memset(parent, 0xff, nodes.num_rows * sizeof(*parent));
-    tsk_memset(bottom_mutation, 0xff, nodes.num_rows * sizeof(*bottom_mutation));
-    tsk_memset(mutations.parent, 0xff, self->mutations.num_rows * sizeof(tsk_id_t));
-
-    I = self->indexes.edge_insertion_order;
-    O = self->indexes.edge_removal_order;
-    tj = 0;
-    tk = 0;
-    site = 0;
-    mutation = 0;
-    left = 0;
-    while (tj < M || left < self->sequence_length) {
-        while (tk < M && edges.right[O[tk]] == left) {
-            parent[edges.child[O[tk]]] = TSK_NULL;
-            tk++;
-        }
-        while (tj < M && edges.left[I[tj]] == left) {
-            parent[edges.child[I[tj]]] = edges.parent[I[tj]];
-            tj++;
-        }
-        right = self->sequence_length;
-        if (tj < M) {
-            right = TSK_MIN(right, edges.left[I[tj]]);
-        }
-        if (tk < M) {
-            right = TSK_MIN(right, edges.right[O[tk]]);
-        }
-
-        /* Tree is now ready. We look at each site on this tree in turn */
-        while (site < (tsk_id_t) sites.num_rows && sites.position[site] < right) {
-            /* Create a mapping from mutations to nodes. If we see more than one
-             * mutation at a node, the previously seen one must be the parent
-             * of the current since we assume they are in order. */
-            first_mutation = mutation;
-            while (mutation < mutations.num_rows && mutations.site[mutation] == site) {
-                u = mutations.node[mutation];
-                if (bottom_mutation[u] != TSK_NULL) {
-                    mutations.parent[mutation] = bottom_mutation[u];
-                }
-                bottom_mutation[u] = (tsk_id_t) mutation;
-                mutation++;
-            }
-            /* Make the common case of 1 mutation fast */
-            if (mutation > first_mutation + 1) {
-                /* If we have more than one mutation, compute the parent for each
-                 * one by traversing up the tree until we find a node that has a
-                 * mutation. */
-                for (j = first_mutation; j < mutation; j++) {
-                    if (mutations.parent[j] == TSK_NULL) {
-                        u = parent[mutations.node[j]];
-                        while (u != TSK_NULL && bottom_mutation[u] == TSK_NULL) {
-                            u = parent[u];
-                        }
-                        if (u != TSK_NULL) {
-                            mutations.parent[j] = bottom_mutation[u];
-                        }
-                    }
-                }
-            }
-            /* Reset the mapping for the next site */
-            for (j = first_mutation; j < mutation; j++) {
-                u = mutations.node[j];
-                bottom_mutation[u] = TSK_NULL;
-                /* Check that we haven't violated the sortedness property */
-                if (mutations.parent[j] > (tsk_id_t) j) {
-                    ret = tsk_trace_error(TSK_ERR_MUTATION_PARENT_AFTER_CHILD);
-                    goto out;
-                }
-            }
-            site++;
-        }
-        /* Move on to the next tree */
-        left = right;
     }
 
 out:
-    tsk_safe_free(parent);
-    tsk_safe_free(bottom_mutation);
     return ret;
 }
 
@@ -12494,6 +12489,7 @@ tsk_table_collection_compute_mutation_times(
     for (j = 0; j < mutations.num_rows; j++) {
         mutations.time[j] = TSK_UNKNOWN_TIME;
     }
+    /* TSK_CHECK_MUTATION_PARENTS isn't needed here as we're not using the parents */
     num_trees = tsk_table_collection_check_integrity(self, TSK_CHECK_TREES);
     if (num_trees < 0) {
         ret = (int) num_trees;
@@ -13446,167 +13442,5 @@ tsk_squash_edges(tsk_edge_t *edges, tsk_size_t num_edges, tsk_size_t *num_output
     *num_output_edges = (tsk_size_t) l + 1;
 
 out:
-    return ret;
-}
-
-/* ======================================================== *
- * Tree diff iterator.
- * ======================================================== */
-
-int TSK_WARN_UNUSED
-tsk_diff_iter_init(tsk_diff_iter_t *self, const tsk_table_collection_t *tables,
-    tsk_id_t num_trees, tsk_flags_t options)
-{
-    int ret = 0;
-
-    tsk_bug_assert(tables != NULL);
-    tsk_memset(self, 0, sizeof(tsk_diff_iter_t));
-    self->num_nodes = tables->nodes.num_rows;
-    self->num_edges = tables->edges.num_rows;
-    self->tables = tables;
-    self->insertion_index = 0;
-    self->removal_index = 0;
-    self->tree_left = 0;
-    self->tree_index = -1;
-    if (num_trees < 0) {
-        num_trees = tsk_table_collection_check_integrity(self->tables, TSK_CHECK_TREES);
-        if (num_trees < 0) {
-            ret = (int) num_trees;
-            goto out;
-        }
-    }
-    self->last_index = num_trees;
-
-    if (options & TSK_INCLUDE_TERMINAL) {
-        self->last_index = self->last_index + 1;
-    }
-    self->edge_list_nodes = tsk_malloc(self->num_edges * sizeof(*self->edge_list_nodes));
-    if (self->edge_list_nodes == NULL) {
-        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
-        goto out;
-    }
-out:
-    return ret;
-}
-
-int
-tsk_diff_iter_free(tsk_diff_iter_t *self)
-{
-    tsk_safe_free(self->edge_list_nodes);
-    return 0;
-}
-
-void
-tsk_diff_iter_print_state(const tsk_diff_iter_t *self, FILE *out)
-{
-    fprintf(out, "tree_diff_iterator state\n");
-    fprintf(out, "num_edges = %lld\n", (long long) self->num_edges);
-    fprintf(out, "insertion_index = %lld\n", (long long) self->insertion_index);
-    fprintf(out, "removal_index = %lld\n", (long long) self->removal_index);
-    fprintf(out, "tree_left = %f\n", self->tree_left);
-    fprintf(out, "tree_index = %lld\n", (long long) self->tree_index);
-}
-
-int TSK_WARN_UNUSED
-tsk_diff_iter_next(tsk_diff_iter_t *self, double *ret_left, double *ret_right,
-    tsk_edge_list_t *edges_out_ret, tsk_edge_list_t *edges_in_ret)
-{
-    int ret = 0;
-    tsk_id_t k;
-    const double sequence_length = self->tables->sequence_length;
-    double left = self->tree_left;
-    double right = sequence_length;
-    tsk_size_t next_edge_list_node = 0;
-    tsk_edge_list_node_t *out_head = NULL;
-    tsk_edge_list_node_t *out_tail = NULL;
-    tsk_edge_list_node_t *in_head = NULL;
-    tsk_edge_list_node_t *in_tail = NULL;
-    tsk_edge_list_node_t *w = NULL;
-    tsk_edge_list_t edges_out;
-    tsk_edge_list_t edges_in;
-    const tsk_edge_table_t *edges = &self->tables->edges;
-    const tsk_id_t *insertion_order = self->tables->indexes.edge_insertion_order;
-    const tsk_id_t *removal_order = self->tables->indexes.edge_removal_order;
-
-    tsk_memset(&edges_out, 0, sizeof(edges_out));
-    tsk_memset(&edges_in, 0, sizeof(edges_in));
-
-    if (self->tree_index + 1 < self->last_index) {
-        /* First we remove the stale records */
-        while (self->removal_index < (tsk_id_t) self->num_edges
-               && left == edges->right[removal_order[self->removal_index]]) {
-            k = removal_order[self->removal_index];
-            tsk_bug_assert(next_edge_list_node < self->num_edges);
-            w = &self->edge_list_nodes[next_edge_list_node];
-            next_edge_list_node++;
-            w->edge.id = k;
-            w->edge.left = edges->left[k];
-            w->edge.right = edges->right[k];
-            w->edge.parent = edges->parent[k];
-            w->edge.child = edges->child[k];
-            w->edge.metadata = edges->metadata + edges->metadata_offset[k];
-            w->edge.metadata_length
-                = edges->metadata_offset[k + 1] - edges->metadata_offset[k];
-            w->next = NULL;
-            w->prev = NULL;
-            if (out_head == NULL) {
-                out_head = w;
-                out_tail = w;
-            } else {
-                out_tail->next = w;
-                w->prev = out_tail;
-                out_tail = w;
-            }
-            self->removal_index++;
-        }
-        edges_out.head = out_head;
-        edges_out.tail = out_tail;
-
-        /* Now insert the new records */
-        while (self->insertion_index < (tsk_id_t) self->num_edges
-               && left == edges->left[insertion_order[self->insertion_index]]) {
-            k = insertion_order[self->insertion_index];
-            tsk_bug_assert(next_edge_list_node < self->num_edges);
-            w = &self->edge_list_nodes[next_edge_list_node];
-            next_edge_list_node++;
-            w->edge.id = k;
-            w->edge.left = edges->left[k];
-            w->edge.right = edges->right[k];
-            w->edge.parent = edges->parent[k];
-            w->edge.child = edges->child[k];
-            w->edge.metadata = edges->metadata + edges->metadata_offset[k];
-            w->edge.metadata_length
-                = edges->metadata_offset[k + 1] - edges->metadata_offset[k];
-            w->next = NULL;
-            w->prev = NULL;
-            if (in_head == NULL) {
-                in_head = w;
-                in_tail = w;
-            } else {
-                in_tail->next = w;
-                w->prev = in_tail;
-                in_tail = w;
-            }
-            self->insertion_index++;
-        }
-        edges_in.head = in_head;
-        edges_in.tail = in_tail;
-
-        right = sequence_length;
-        if (self->insertion_index < (tsk_id_t) self->num_edges) {
-            right = TSK_MIN(right, edges->left[insertion_order[self->insertion_index]]);
-        }
-        if (self->removal_index < (tsk_id_t) self->num_edges) {
-            right = TSK_MIN(right, edges->right[removal_order[self->removal_index]]);
-        }
-        self->tree_index++;
-        ret = TSK_TREE_OK;
-    }
-    *edges_out_ret = edges_out;
-    *edges_in_ret = edges_in;
-    *ret_left = left;
-    *ret_right = right;
-    /* Set the left coordinate for the next tree */
-    self->tree_left = right;
     return ret;
 }
