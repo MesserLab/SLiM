@@ -227,24 +227,14 @@ EidosValue_SP Eidos_ExecuteFunction_readLine(const std::vector<EidosValue_SP> &p
 {
 #pragma unused (p_arguments)
 	
+#ifdef EIDOS_GUI
+	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readLine): function readLine() is not available in GUI environments (SLiMgui, SLiMguiLegacy, or EidosScribe)." << EidosTerminate(nullptr);
+#endif
+
+	// This function was implemented by Chris Talbot 11/19/25 for use in reinforcement learning environments.
+	// Associated with issue #576.
+	
 	EidosValue_SP result_SP(nullptr);
-	
-	// Check if running in SLiMgui 
-	// Also check if stdin is a TTY to catch redirected input
-	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
-	EidosGlobalStringID slimgui_id = EidosStringRegistry::GlobalStringIDForString("slimgui");
-	bool in_slimgui = symbols.ContainsSymbol(slimgui_id);
-	bool stdin_is_tty = isatty(fileno(stdin));
-	
-	if (in_slimgui || !stdin_is_tty)
-	{
-		// Emit a warning and return empty string to avoid blocking the GUI
-		if (!gEidosSuppressWarnings)
-			p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readLine): function readLine() is not available when stdin is not connected to an interactive terminal (e.g., when running in SLiMgui or with redirected input). Returning empty string." << std::endl;
-		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
-		return result_SP;
-	}
 	
 	// Read a single line from stdin (command-line mode with interactive terminal)
 	std::string line;
