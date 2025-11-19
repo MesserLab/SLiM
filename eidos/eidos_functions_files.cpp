@@ -27,7 +27,9 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <fstream>
+#include <iostream>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "../eidos_zlib/zlib.h"
 
@@ -215,6 +217,50 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const std::vector<EidosValue_SP> &p
 				p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() encountered stream errors while reading file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValueNULL;
 		}
+	}
+	
+	return result_SP;
+}
+
+//	(string$)readLine(void)
+EidosValue_SP Eidos_ExecuteFunction_readLine(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_arguments)
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	// Check if running in SLiMgui 
+	// Also check if stdin is a TTY to catch redirected input
+	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
+	EidosGlobalStringID slimgui_id = EidosStringRegistry::GlobalStringIDForString("slimgui");
+	bool in_slimgui = symbols.ContainsSymbol(slimgui_id);
+	bool stdin_is_tty = isatty(fileno(stdin));
+	
+	if (in_slimgui || !stdin_is_tty)
+	{
+		// Emit a warning and return empty string to avoid blocking the GUI
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readLine): function readLine() is not available when stdin is not connected to an interactive terminal (e.g., when running in SLiMgui or with redirected input). Returning empty string." << std::endl;
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+		return result_SP;
+	}
+	
+	// Read a single line from stdin (command-line mode with interactive terminal)
+	std::string line;
+	
+	if (std::getline(std::cin, line))
+	{
+		// Control for CRLF vs. LF line endings
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.pop_back();
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(line));
+	}
+	else
+	{
+		// EOF or error reading from stdin; return empty string
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
 	}
 	
 	return result_SP;
