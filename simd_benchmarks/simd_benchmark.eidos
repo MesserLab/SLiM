@@ -1,0 +1,65 @@
+// SIMD Benchmark for Eidos math functions
+// Tests performance with large float arrays
+
+defineGlobal("ARRAY_SIZE", 1000000);
+defineGlobal("ITERATIONS", 100);
+
+catn("SIMD Benchmark");
+catn("Array size: " + ARRAY_SIZE);
+catn("Iterations: " + ITERATIONS);
+catn("----------------------------------------");
+
+// Generate test data
+x = runif(ARRAY_SIZE);
+
+// Benchmark sqrt
+t0 = clock();
+for (i in 1:ITERATIONS) { y = sqrt(x); }
+t1 = clock();
+catn("sqrt():    " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark abs
+t0 = clock();
+for (i in 1:ITERATIONS) { y = abs(x - 0.5); }
+t1 = clock();
+catn("abs():     " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark floor
+t0 = clock();
+for (i in 1:ITERATIONS) { y = floor(x * 100); }
+t1 = clock();
+catn("floor():   " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark ceil
+t0 = clock();
+for (i in 1:ITERATIONS) { y = ceil(x * 100); }
+t1 = clock();
+catn("ceil():    " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark round
+t0 = clock();
+for (i in 1:ITERATIONS) { y = round(x * 100); }
+t1 = clock();
+catn("round():   " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark trunc
+t0 = clock();
+for (i in 1:ITERATIONS) { y = trunc(x * 100); }
+t1 = clock();
+catn("trunc():   " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark sum
+t0 = clock();
+for (i in 1:ITERATIONS) { y = sum(x); }
+t1 = clock();
+catn("sum():     " + format("%.3f", (t1-t0)) + " sec");
+
+// Benchmark product (smaller array to avoid underflow)
+x_small = runif(1000, 0.99, 1.01);
+t0 = clock();
+for (i in 1:(ITERATIONS*100)) { y = product(x_small); }
+t1 = clock();
+catn("product(): " + format("%.3f", (t1-t0)) + " sec (1000 elements, 10000 iters)");
+
+catn("----------------------------------------");
+catn("Done.");

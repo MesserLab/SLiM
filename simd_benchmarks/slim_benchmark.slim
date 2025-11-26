@@ -1,0 +1,34 @@
+// SLiM Benchmark: Simple simulation with recombination and selection
+// Tests whether SIMD optimizations provide any incidental speedup
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+
+	// Neutral and selected mutations
+	initializeMutationType("m1", 0.5, "f", 0.0);         // neutral
+	initializeMutationType("m2", 0.5, "g", -0.03, 0.2);  // deleterious (gamma)
+	initializeMutationType("m3", 0.5, "e", 0.1);         // beneficial (exponential)
+
+	initializeGenomicElementType("g1", c(m1, m2, m3), c(0.7, 0.25, 0.05));
+	initializeGenomicElement(g1, 0, 999999);  // 1 Mb chromosome
+}
+
+1 early() {
+	sim.addSubpop("p1", 5000);
+	catn("Starting simulation: N=5000, 1Mb chromosome, 500 generations");
+	catn("Mutation rate: 1e-7, Recombination rate: 1e-8");
+	defineGlobal("start_time", clock());
+}
+
+5000 late() {
+	end_time = clock();
+	elapsed = end_time - start_time;
+
+	catn("\n----------------------------------------");
+	catn("Simulation complete");
+	catn("Elapsed time: " + format("%.2f", elapsed) + " seconds");
+	catn("Final mutation count: " + size(sim.mutations));
+	catn("Population size: " + p1.individualCount);
+	catn("----------------------------------------");
+}
