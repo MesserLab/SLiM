@@ -31,6 +31,7 @@
 #include <assert.h>
 
 #include <tskit/trees.h>
+#include <tskit/genotypes.h>
 
 static inline bool
 is_discrete(double x)
@@ -2223,20 +2224,18 @@ out:
  ***********************************/
 
 static int
-get_allele_samples(const tsk_site_t *site, const tsk_bit_array_t *state,
-    tsk_bit_array_t *out_allele_samples, tsk_size_t *out_num_alleles)
+get_allele_samples(const tsk_site_t *site, tsk_size_t site_offset,
+    const tsk_bitset_t *state, tsk_bitset_t *out_allele_samples,
+    tsk_size_t *out_num_alleles)
 {
     int ret = 0;
     tsk_mutation_t mutation, parent_mut;
-    tsk_size_t mutation_index, allele, alt_allele_length;
+    tsk_size_t mutation_index, allele, alt_allele, alt_allele_length;
     /* The allele table */
     tsk_size_t max_alleles = site->mutations_length + 1;
     const char **alleles = tsk_malloc(max_alleles * sizeof(*alleles));
     tsk_size_t *allele_lengths = tsk_calloc(max_alleles, sizeof(*allele_lengths));
-    const char *alt_allele;
-    tsk_bit_array_t state_row;
-    tsk_bit_array_t allele_samples_row;
-    tsk_bit_array_t alt_allele_samples_row;
+    const char *alt_allele_state;
     tsk_size_t num_alleles = 1;
 
     if (alleles == NULL || allele_lengths == NULL) {
@@ -2267,29 +2266,29 @@ get_allele_samples(const tsk_site_t *site, const tsk_bit_array_t *state,
         }
 
         /* Add the mutation's samples to this allele */
-        tsk_bit_array_get_row(out_allele_samples, allele, &allele_samples_row);
-        tsk_bit_array_get_row(state, mutation_index, &state_row);
-        tsk_bit_array_add(&allele_samples_row, &state_row);
+        tsk_bitset_union(
+            out_allele_samples, allele + site_offset, state, mutation_index);
 
         /* Get the index for the alternate allele that we must subtract from */
-        alt_allele = site->ancestral_state;
+        alt_allele_state = site->ancestral_state;
         alt_allele_length = site->ancestral_state_length;
         if (mutation.parent != TSK_NULL) {
             parent_mut = site->mutations[mutation.parent - site->mutations[0].id];
-            alt_allele = parent_mut.derived_state;
+            alt_allele_state = parent_mut.derived_state;
             alt_allele_length = parent_mut.derived_state_length;
         }
-        for (allele = 0; allele < num_alleles; allele++) {
-            if (alt_allele_length == allele_lengths[allele]
-                && tsk_memcmp(alt_allele, alleles[allele], allele_lengths[allele])
+        for (alt_allele = 0; alt_allele < num_alleles; alt_allele++) {
+            if (alt_allele_length == allele_lengths[alt_allele]
+                && tsk_memcmp(
+                       alt_allele_state, alleles[alt_allele], allele_lengths[alt_allele])
                        == 0) {
                 break;
             }
         }
         tsk_bug_assert(allele < num_alleles);
 
-        tsk_bit_array_get_row(out_allele_samples, allele, &alt_allele_samples_row);
-        tsk_bit_array_subtract(&alt_allele_samples_row, &allele_samples_row);
+        tsk_bitset_subtract(out_allele_samples, alt_allele + site_offset,
+            out_allele_samples, allele + site_offset);
     }
     *out_num_alleles = num_alleles;
 out:
@@ -2310,7 +2309,6 @@ norm_hap_weighted(tsk_size_t result_dim, const double *hap_weights,
     for (k = 0; k < result_dim; k++) {
         weight_row = GET_2D_ROW(hap_weights, 3, k);
         n = (double) args.sample_set_sizes[k];
-        // TODO: what to do when n = 0
         result[k] = weight_row[0] / n;
     }
     return 0;
@@ -2347,111 +2345,108 @@ norm_total_weighted(tsk_size_t result_dim, const double *TSK_UNUSED(hap_weights)
     tsk_size_t n_a, tsk_size_t n_b, double *result, void *TSK_UNUSED(params))
 {
     tsk_size_t k;
+    double norm = 1 / (double) (n_a * n_b);
 
     for (k = 0; k < result_dim; k++) {
-        result[k] = 1 / (double) (n_a * n_b);
+        result[k] = norm;
     }
     return 0;
 }
 
 static void
-get_all_samples_bits(tsk_bit_array_t *all_samples, tsk_size_t n)
+get_all_samples_bits(tsk_bitset_t *all_samples, tsk_size_t n)
 {
     tsk_size_t i;
-    const tsk_bit_array_value_t all = ~((tsk_bit_array_value_t) 0);
-    const tsk_bit_array_value_t remainder_samples = n % TSK_BIT_ARRAY_NUM_BITS;
+    const tsk_bitset_val_t all = ~((tsk_bitset_val_t) 0);
+    const tsk_bitset_val_t remainder_samples = n % TSK_BITSET_BITS;
 
-    all_samples->data[all_samples->size - 1]
+    all_samples->data[all_samples->row_len - 1]
         = remainder_samples ? ~(all << remainder_samples) : all;
-    for (i = 0; i < all_samples->size - 1; i++) {
+    for (i = 0; i < all_samples->row_len - 1; i++) {
         all_samples->data[i] = all;
     }
 }
 
+// Stores the intermediate values for computing two-locus statistics.
+typedef struct {
+    double *weights;
+    double *norm;
+    double *result_tmp;
+    tsk_bitset_t AB_samples;
+} two_locus_work_t;
+
 static int
-compute_general_two_site_stat_result(const tsk_bit_array_t *site_a_state,
-    const tsk_bit_array_t *site_b_state, tsk_size_t num_a_alleles,
-    tsk_size_t num_b_alleles, tsk_size_t num_samples, tsk_size_t state_dim,
-    const tsk_bit_array_t *sample_sets, tsk_size_t result_dim, general_stat_func_t *f,
-    sample_count_stat_params_t *f_params, norm_func_t *norm_f, bool polarised,
-    double *result)
+two_locus_work_init(tsk_size_t max_alleles, tsk_size_t num_samples,
+    tsk_size_t result_dim, tsk_size_t state_dim, two_locus_work_t *out)
 {
     int ret = 0;
-    tsk_bit_array_t A_samples, B_samples;
-    // ss_ prefix refers to a sample set
-    tsk_bit_array_t ss_row;
-    tsk_bit_array_t ss_A_samples, ss_B_samples, ss_AB_samples, AB_samples;
+
+    out->weights = tsk_malloc(3 * state_dim * sizeof(*out->weights));
+    out->norm = tsk_malloc(result_dim * sizeof(*out->norm));
+    out->result_tmp
+        = tsk_malloc(result_dim * max_alleles * max_alleles * sizeof(*out->result_tmp));
+    tsk_memset(&out->AB_samples, 0, sizeof(out->AB_samples));
+    if (out->weights == NULL || out->norm == NULL || out->result_tmp == NULL) {
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+        goto out;
+    }
+    ret = tsk_bitset_init(&out->AB_samples, num_samples, 1);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static void
+two_locus_work_free(two_locus_work_t *work)
+{
+    tsk_safe_free(work->weights);
+    tsk_safe_free(work->norm);
+    tsk_safe_free(work->result_tmp);
+    tsk_bitset_free(&work->AB_samples);
+}
+
+static int
+compute_general_normed_two_site_stat_result(const tsk_bitset_t *state,
+    const tsk_size_t *allele_counts, tsk_size_t a_off, tsk_size_t b_off,
+    tsk_size_t num_a_alleles, tsk_size_t num_b_alleles, tsk_size_t state_dim,
+    tsk_size_t result_dim, general_stat_func_t *f, sample_count_stat_params_t *f_params,
+    norm_func_t *norm_f, bool polarised, two_locus_work_t *restrict work, double *result)
+{
+    int ret = 0;
     // Sample sets and b sites are rows, a sites are columns
     //       b1           b2           b3
     // a1   [s1, s2, s3] [s1, s2, s3] [s1, s2, s3]
     // a2   [s1, s2, s3] [s1, s2, s3] [s1, s2, s3]
     // a3   [s1, s2, s3] [s1, s2, s3] [s1, s2, s3]
-    tsk_size_t k, mut_a, mut_b;
-    tsk_size_t result_row_len = num_b_alleles * result_dim;
-    tsk_size_t w_A = 0, w_B = 0, w_AB = 0;
-    uint8_t polarised_val = polarised ? 1 : 0;
-    double *hap_weight_row;
-    double *result_tmp_row;
-    double *weights = tsk_malloc(3 * state_dim * sizeof(*weights));
-    double *norm = tsk_malloc(result_dim * sizeof(*norm));
-    double *result_tmp
-        = tsk_malloc(result_row_len * num_a_alleles * sizeof(*result_tmp));
+    tsk_size_t k, mut_a, mut_b, result_row_len = num_b_alleles * result_dim;
+    uint8_t is_polarised = polarised ? 1 : 0;
+    double *restrict hap_row, *restrict result_tmp_row;
+    double *restrict norm = work->norm;
+    double *restrict weights = work->weights;
+    double *restrict result_tmp = work->result_tmp;
+    tsk_bitset_t AB_samples = work->AB_samples;
 
-    tsk_memset(&ss_A_samples, 0, sizeof(ss_A_samples));
-    tsk_memset(&ss_B_samples, 0, sizeof(ss_B_samples));
-    tsk_memset(&ss_AB_samples, 0, sizeof(ss_AB_samples));
-    tsk_memset(&AB_samples, 0, sizeof(AB_samples));
-
-    if (weights == NULL || norm == NULL || result_tmp == NULL) {
-        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
-        goto out;
-    }
-
-    ret = tsk_bit_array_init(&ss_A_samples, num_samples, 1);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = tsk_bit_array_init(&ss_B_samples, num_samples, 1);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = tsk_bit_array_init(&ss_AB_samples, num_samples, 1);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = tsk_bit_array_init(&AB_samples, num_samples, 1);
-    if (ret != 0) {
-        goto out;
-    }
-
-    for (mut_a = polarised_val; mut_a < num_a_alleles; mut_a++) {
+    for (mut_a = is_polarised; mut_a < num_a_alleles; mut_a++) {
         result_tmp_row = GET_2D_ROW(result_tmp, result_row_len, mut_a);
-        for (mut_b = polarised_val; mut_b < num_b_alleles; mut_b++) {
-            tsk_bit_array_get_row(site_a_state, mut_a, &A_samples);
-            tsk_bit_array_get_row(site_b_state, mut_b, &B_samples);
-            tsk_bit_array_intersect(&A_samples, &B_samples, &AB_samples);
+        for (mut_b = is_polarised; mut_b < num_b_alleles; mut_b++) {
             for (k = 0; k < state_dim; k++) {
-                tsk_bit_array_get_row(sample_sets, k, &ss_row);
-                hap_weight_row = GET_2D_ROW(weights, 3, k);
-
-                tsk_bit_array_intersect(&A_samples, &ss_row, &ss_A_samples);
-                tsk_bit_array_intersect(&B_samples, &ss_row, &ss_B_samples);
-                tsk_bit_array_intersect(&AB_samples, &ss_row, &ss_AB_samples);
-
-                w_AB = tsk_bit_array_count(&ss_AB_samples);
-                w_A = tsk_bit_array_count(&ss_A_samples);
-                w_B = tsk_bit_array_count(&ss_B_samples);
-
-                hap_weight_row[0] = (double) w_AB;
-                hap_weight_row[1] = (double) (w_A - w_AB); // w_Ab
-                hap_weight_row[2] = (double) (w_B - w_AB); // w_aB
+                tsk_bitset_intersect(state, a_off + (mut_a * state_dim) + k, state,
+                    b_off + (mut_b * state_dim) + k, &AB_samples);
+                hap_row = GET_2D_ROW(weights, 3, k);
+                hap_row[0] = (double) tsk_bitset_count(&AB_samples, 0);
+                hap_row[1] = (double) allele_counts[a_off + (mut_a * state_dim) + k]
+                             - hap_row[0];
+                hap_row[2] = (double) allele_counts[b_off + (mut_b * state_dim) + k]
+                             - hap_row[0];
             }
             ret = f(state_dim, weights, result_dim, result_tmp_row, f_params);
             if (ret != 0) {
                 goto out;
             }
-            ret = norm_f(result_dim, weights, num_a_alleles - polarised_val,
-                num_b_alleles - polarised_val, norm, f_params);
+            ret = norm_f(result_dim, weights, num_a_alleles - is_polarised,
+                num_b_alleles - is_polarised, norm, f_params);
             if (ret != 0) {
                 goto out;
             }
@@ -2461,15 +2456,38 @@ compute_general_two_site_stat_result(const tsk_bit_array_t *site_a_state,
             result_tmp_row += result_dim; // Advance to the next column
         }
     }
-
 out:
-    tsk_safe_free(weights);
-    tsk_safe_free(norm);
-    tsk_safe_free(result_tmp);
-    tsk_bit_array_free(&ss_A_samples);
-    tsk_bit_array_free(&ss_B_samples);
-    tsk_bit_array_free(&ss_AB_samples);
-    tsk_bit_array_free(&AB_samples);
+    return ret;
+}
+
+static int
+compute_general_two_site_stat_result(const tsk_bitset_t *state,
+    const tsk_size_t *allele_counts, tsk_size_t a_off, tsk_size_t b_off,
+    tsk_size_t state_dim, tsk_size_t result_dim, general_stat_func_t *f,
+    sample_count_stat_params_t *f_params, two_locus_work_t *restrict work,
+    double *result)
+{
+    int ret = 0;
+    tsk_size_t k;
+    tsk_bitset_t AB_samples = work->AB_samples;
+    tsk_size_t mut_a = 1, mut_b = 1;
+    double *restrict hap_row, *restrict weights = work->weights;
+
+    for (k = 0; k < state_dim; k++) {
+        tsk_bitset_intersect(state, a_off + (mut_a * state_dim) + k, state,
+            b_off + (mut_b * state_dim) + k, &AB_samples);
+        hap_row = GET_2D_ROW(weights, 3, k);
+        hap_row[0] = (double) tsk_bitset_count(&AB_samples, 0);
+        hap_row[1]
+            = (double) allele_counts[a_off + (mut_a * state_dim) + k] - hap_row[0];
+        hap_row[2]
+            = (double) allele_counts[b_off + (mut_b * state_dim) + k] - hap_row[0];
+    }
+    ret = f(state_dim, weights, result_dim, result, f_params);
+    if (ret != 0) {
+        goto out;
+    }
+out:
     return ret;
 }
 
@@ -2520,7 +2538,7 @@ get_site_row_col_indices(tsk_size_t n_rows, const tsk_id_t *row_sites, tsk_size_
 
 static int
 get_mutation_samples(const tsk_treeseq_t *ts, const tsk_id_t *sites, tsk_size_t n_sites,
-    tsk_size_t *num_alleles, tsk_bit_array_t *allele_samples)
+    tsk_size_t *num_alleles, tsk_bitset_t *allele_samples)
 {
     int ret = 0;
     const tsk_flags_t *restrict flags = ts->tables->nodes.flags;
@@ -2528,7 +2546,7 @@ get_mutation_samples(const tsk_treeseq_t *ts, const tsk_id_t *sites, tsk_size_t 
     const tsk_size_t *restrict site_muts_len = ts->site_mutations_length;
     tsk_site_t site;
     tsk_tree_t tree;
-    tsk_bit_array_t all_samples_bits, mut_samples, mut_samples_row, out_row;
+    tsk_bitset_t all_samples_bits, mut_samples;
     tsk_size_t max_muts_len, site_offset, num_nodes, site_idx, s, m, n;
     tsk_id_t node, *nodes = NULL;
     void *tmp_nodes;
@@ -2538,16 +2556,14 @@ get_mutation_samples(const tsk_treeseq_t *ts, const tsk_id_t *sites, tsk_size_t 
 
     max_muts_len = 0;
     for (s = 0; s < n_sites; s++) {
-        if (site_muts_len[sites[s]] > max_muts_len) {
-            max_muts_len = site_muts_len[sites[s]];
-        }
+        max_muts_len = TSK_MAX(site_muts_len[sites[s]], max_muts_len);
     }
     // Allocate a bit array of size max alleles for all sites
-    ret = tsk_bit_array_init(&mut_samples, num_samples, max_muts_len);
+    ret = tsk_bitset_init(&mut_samples, num_samples, max_muts_len);
     if (ret != 0) {
         goto out;
     }
-    ret = tsk_bit_array_init(&all_samples_bits, num_samples, 1);
+    ret = tsk_bitset_init(&all_samples_bits, num_samples, 1);
     if (ret != 0) {
         goto out;
     }
@@ -2572,15 +2588,11 @@ get_mutation_samples(const tsk_treeseq_t *ts, const tsk_id_t *sites, tsk_size_t 
             goto out;
         }
         nodes = tmp_nodes;
-
-        tsk_bit_array_get_row(allele_samples, site_offset, &out_row);
-        tsk_bit_array_add(&out_row, &all_samples_bits);
-
+        tsk_bitset_union(allele_samples, site_offset, &all_samples_bits, 0);
         // Zero out results before the start of each iteration
         tsk_memset(mut_samples.data, 0,
-            mut_samples.size * max_muts_len * sizeof(tsk_bit_array_value_t));
+            mut_samples.row_len * max_muts_len * sizeof(tsk_bitset_val_t));
         for (m = 0; m < site.mutations_length; m++) {
-            tsk_bit_array_get_row(&mut_samples, m, &mut_samples_row);
             node = site.mutations[m].node;
             ret = tsk_tree_preorder_from(&tree, node, nodes, &num_nodes);
             if (ret != 0) {
@@ -2589,43 +2601,77 @@ get_mutation_samples(const tsk_treeseq_t *ts, const tsk_id_t *sites, tsk_size_t 
             for (n = 0; n < num_nodes; n++) {
                 node = nodes[n];
                 if (flags[node] & TSK_NODE_IS_SAMPLE) {
-                    tsk_bit_array_add_bit(&mut_samples_row,
-                        (tsk_bit_array_value_t) ts->sample_index_map[node]);
+                    tsk_bitset_set_bit(
+                        &mut_samples, m, (tsk_bitset_val_t) ts->sample_index_map[node]);
                 }
             }
         }
+        get_allele_samples(
+            &site, site_offset, &mut_samples, allele_samples, &(num_alleles[site_idx]));
         site_offset += site.mutations_length + 1;
-        get_allele_samples(&site, &mut_samples, &out_row, &(num_alleles[site_idx]));
     }
 // if adding code below, check ret before continuing
 out:
     tsk_safe_free(nodes);
     tsk_tree_free(&tree);
-    tsk_bit_array_free(&mut_samples);
-    tsk_bit_array_free(&all_samples_bits);
+    tsk_bitset_free(&mut_samples);
+    tsk_bitset_free(&all_samples_bits);
     return ret == TSK_TREE_OK ? 0 : ret;
+}
+
+// Given the samples under each allele's node and the sample sets, get the samples under
+// each allele's node for each sample set. We pack this data into a bitset
+// (`allele_sample_sets`) that is size m x n, where m is (n_alleles * num_sample_sets)
+// and n is the size of the largest sample set. In addition, we compute the number of
+// samples contained in the intersection of each allele's samples and each sample set in
+// an array (`allele_sample_sets`) of length (n_alleles * num_sample_sets).
+static void
+get_mutation_sample_sets(const tsk_bitset_t *allele_samples, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    const tsk_id_t *sample_index_map, tsk_bitset_t *allele_sample_sets,
+    tsk_size_t *allele_sample_set_counts)
+{
+    tsk_bitset_val_t k, sample;
+    tsk_size_t i, j, ss_off;
+
+    for (i = 0; i < allele_samples->len; i++) {
+        ss_off = 0;
+        for (j = 0; j < num_sample_sets; j++) {
+            for (k = 0; k < sample_set_sizes[j]; k++) {
+                sample = (tsk_bitset_val_t) sample_index_map[sample_sets[k + ss_off]];
+                if (tsk_bitset_contains(allele_samples, i, sample)) {
+                    tsk_bitset_set_bit(allele_sample_sets, j + i * num_sample_sets, k);
+                    allele_sample_set_counts[j + i * num_sample_sets]++;
+                }
+            }
+            ss_off += sample_set_sizes[j];
+        }
+    }
 }
 
 static int
 tsk_treeseq_two_site_count_stat(const tsk_treeseq_t *self, tsk_size_t state_dim,
-    const tsk_bit_array_t *sample_sets, tsk_size_t result_dim, general_stat_func_t *f,
+    tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
+    const tsk_id_t *sample_sets, tsk_size_t result_dim, general_stat_func_t *f,
     sample_count_stat_params_t *f_params, norm_func_t *norm_f, tsk_size_t n_rows,
     const tsk_id_t *row_sites, tsk_size_t n_cols, const tsk_id_t *col_sites,
     tsk_flags_t options, double *result)
 {
-
     int ret = 0;
-    tsk_bit_array_t allele_samples, c_state, r_state;
-    bool polarised = false;
+    tsk_bitset_t allele_samples, allele_sample_sets;
+    bool polarised = options & TSK_STAT_POLARISED;
     tsk_id_t *sites;
-    tsk_size_t r, c, s, n_alleles, n_sites, *row_idx, *col_idx;
+    tsk_size_t i, j, n_sites, *row_idx, *col_idx;
     double *result_row;
     const tsk_size_t num_samples = self->num_samples;
-    tsk_size_t *num_alleles = NULL, *site_offsets = NULL;
+    tsk_size_t *num_alleles = NULL, *site_offsets = NULL, *allele_counts = NULL;
     tsk_size_t result_row_len = n_cols * result_dim;
+    tsk_size_t max_ss_size = 0, max_alleles = 0, n_alleles = 0;
+    two_locus_work_t work;
 
+    tsk_memset(&work, 0, sizeof(work));
     tsk_memset(&allele_samples, 0, sizeof(allele_samples));
-
+    tsk_memset(&allele_sample_sets, 0, sizeof(allele_sample_sets));
     sites = tsk_malloc(self->tables->sites.num_rows * sizeof(*sites));
     row_idx = tsk_malloc(self->tables->sites.num_rows * sizeof(*row_idx));
     col_idx = tsk_malloc(self->tables->sites.num_rows * sizeof(*col_idx));
@@ -2635,44 +2681,67 @@ tsk_treeseq_two_site_count_stat(const tsk_treeseq_t *self, tsk_size_t state_dim,
     }
     get_site_row_col_indices(
         n_rows, row_sites, n_cols, col_sites, sites, &n_sites, row_idx, col_idx);
-
-    // We rely on n_sites to allocate these arrays, which are initialized
-    // to NULL for safe deallocation if the previous allocation fails
+    // depends on n_sites
     num_alleles = tsk_malloc(n_sites * sizeof(*num_alleles));
     site_offsets = tsk_malloc(n_sites * sizeof(*site_offsets));
     if (num_alleles == NULL || site_offsets == NULL) {
         ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
-
-    n_alleles = 0;
-    for (s = 0; s < n_sites; s++) {
-        site_offsets[s] = n_alleles;
-        n_alleles += self->site_mutations_length[sites[s]] + 1;
+    for (i = 0; i < n_sites; i++) {
+        site_offsets[i] = n_alleles * num_sample_sets;
+        n_alleles += self->site_mutations_length[sites[i]] + 1;
+        max_alleles = TSK_MAX(self->site_mutations_length[sites[i]], max_alleles);
     }
-    ret = tsk_bit_array_init(&allele_samples, num_samples, n_alleles);
+    max_alleles++; // add 1 for the ancestral allele
+    // depends on n_alleles
+    ret = tsk_bitset_init(&allele_samples, num_samples, n_alleles);
     if (ret != 0) {
         goto out;
     }
+    for (i = 0; i < num_sample_sets; i++) {
+        max_ss_size = TSK_MAX(sample_set_sizes[i], max_ss_size);
+    }
+    // depend on n_alleles and max_ss_size
+    ret = tsk_bitset_init(&allele_sample_sets, max_ss_size, n_alleles * num_sample_sets);
+    if (ret != 0) {
+        goto out;
+    }
+    allele_counts = tsk_calloc(n_alleles * num_sample_sets, sizeof(*allele_counts));
+    if (allele_counts == NULL) {
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+        goto out;
+    }
+    // depends on max_ss_size and max_alleles
+    ret = two_locus_work_init(max_alleles, max_ss_size, result_dim, state_dim, &work);
+    if (ret != 0) {
+        goto out;
+    }
+    // we track the number of alleles to account for backmutations
     ret = get_mutation_samples(self, sites, n_sites, num_alleles, &allele_samples);
     if (ret != 0) {
         goto out;
     }
-
-    if (options & TSK_STAT_POLARISED) {
-        polarised = true;
-    }
-
+    get_mutation_sample_sets(&allele_samples, num_sample_sets, sample_set_sizes,
+        sample_sets, self->sample_index_map, &allele_sample_sets, allele_counts);
     // For each row/column pair, fill in the sample set in the result matrix.
-    for (r = 0; r < n_rows; r++) {
-        result_row = GET_2D_ROW(result, result_row_len, r);
-        for (c = 0; c < n_cols; c++) {
-            tsk_bit_array_get_row(&allele_samples, site_offsets[row_idx[r]], &r_state);
-            tsk_bit_array_get_row(&allele_samples, site_offsets[col_idx[c]], &c_state);
-            ret = compute_general_two_site_stat_result(&r_state, &c_state,
-                num_alleles[row_idx[r]], num_alleles[col_idx[c]], num_samples, state_dim,
-                sample_sets, result_dim, f, f_params, norm_f, polarised,
-                &(result_row[c * result_dim]));
+    for (i = 0; i < n_rows; i++) {
+        result_row = GET_2D_ROW(result, result_row_len, i);
+        for (j = 0; j < n_cols; j++) {
+            if (num_alleles[row_idx[i]] == 2 && num_alleles[col_idx[j]] == 2) {
+                // both sites are biallelic
+                ret = compute_general_two_site_stat_result(&allele_sample_sets,
+                    allele_counts, site_offsets[row_idx[i]], site_offsets[col_idx[j]],
+                    state_dim, result_dim, f, f_params, &work,
+                    &(result_row[j * result_dim]));
+            } else {
+                // at least one site is multiallelic
+                ret = compute_general_normed_two_site_stat_result(&allele_sample_sets,
+                    allele_counts, site_offsets[row_idx[i]], site_offsets[col_idx[j]],
+                    num_alleles[row_idx[i]], num_alleles[col_idx[j]], state_dim,
+                    result_dim, f, f_params, norm_f, polarised, &work,
+                    &(result_row[j * result_dim]));
+            }
             if (ret != 0) {
                 goto out;
             }
@@ -2685,37 +2754,37 @@ out:
     tsk_safe_free(col_idx);
     tsk_safe_free(num_alleles);
     tsk_safe_free(site_offsets);
-    tsk_bit_array_free(&allele_samples);
+    tsk_safe_free(allele_counts);
+    two_locus_work_free(&work);
+    tsk_bitset_free(&allele_samples);
+    tsk_bitset_free(&allele_sample_sets);
     return ret;
 }
 
 static int
-sample_sets_to_bit_array(const tsk_treeseq_t *self, const tsk_size_t *sample_set_sizes,
+sample_sets_to_bitset(const tsk_treeseq_t *self, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_sample_sets,
-    tsk_bit_array_t *sample_sets_bits)
+    tsk_bitset_t *sample_sets_bits)
 {
     int ret;
-    tsk_bit_array_t bits_row;
     tsk_size_t j, k, l;
     tsk_id_t u, sample_index;
 
-    ret = tsk_bit_array_init(sample_sets_bits, self->num_samples, num_sample_sets);
+    ret = tsk_bitset_init(sample_sets_bits, self->num_samples, num_sample_sets);
     if (ret != 0) {
         return ret;
     }
-
     j = 0;
     for (k = 0; k < num_sample_sets; k++) {
-        tsk_bit_array_get_row(sample_sets_bits, k, &bits_row);
         for (l = 0; l < sample_set_sizes[k]; l++) {
             u = sample_sets[j];
             sample_index = self->sample_index_map[u];
-            if (tsk_bit_array_contains(
-                    &bits_row, (tsk_bit_array_value_t) sample_index)) {
+            if (tsk_bitset_contains(
+                    sample_sets_bits, k, (tsk_bitset_val_t) sample_index)) {
                 ret = tsk_trace_error(TSK_ERR_DUPLICATE_SAMPLE);
                 goto out;
             }
-            tsk_bit_array_add_bit(&bits_row, (tsk_bit_array_value_t) sample_index);
+            tsk_bitset_set_bit(sample_sets_bits, k, (tsk_bitset_val_t) sample_index);
             j++;
         }
     }
@@ -2852,7 +2921,7 @@ out:
 
 typedef struct {
     tsk_tree_t tree;
-    tsk_bit_array_t *node_samples;
+    tsk_bitset_t *node_samples;
     tsk_id_t *parent;
     tsk_id_t *edges_out;
     tsk_id_t *edges_in;
@@ -2876,7 +2945,7 @@ iter_state_init(iter_state *self, const tsk_treeseq_t *ts, tsk_size_t state_dim)
         ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
-    ret = tsk_bit_array_init(self->node_samples, ts->num_samples, state_dim * num_nodes);
+    ret = tsk_bitset_init(self->node_samples, ts->num_samples, state_dim * num_nodes);
     if (ret != 0) {
         goto out;
     }
@@ -2895,29 +2964,25 @@ out:
 
 static int
 get_node_samples(const tsk_treeseq_t *ts, tsk_size_t state_dim,
-    const tsk_bit_array_t *sample_sets, tsk_bit_array_t *node_samples)
+    const tsk_bitset_t *sample_sets, tsk_bitset_t *node_samples)
 {
     int ret = 0;
     tsk_size_t n, k;
-    tsk_bit_array_t sample_set_row, node_samples_row;
     tsk_size_t num_nodes = ts->tables->nodes.num_rows;
-    tsk_bit_array_value_t sample;
+    tsk_bitset_val_t sample;
     const tsk_id_t *restrict sample_index_map = ts->sample_index_map;
     const tsk_flags_t *restrict flags = ts->tables->nodes.flags;
 
-    ret = tsk_bit_array_init(node_samples, ts->num_samples, num_nodes * state_dim);
+    ret = tsk_bitset_init(node_samples, ts->num_samples, num_nodes * state_dim);
     if (ret != 0) {
         goto out;
     }
     for (k = 0; k < state_dim; k++) {
-        tsk_bit_array_get_row(sample_sets, k, &sample_set_row);
         for (n = 0; n < num_nodes; n++) {
             if (flags[n] & TSK_NODE_IS_SAMPLE) {
-                sample = (tsk_bit_array_value_t) sample_index_map[n];
-                if (tsk_bit_array_contains(&sample_set_row, sample)) {
-                    tsk_bit_array_get_row(
-                        node_samples, (state_dim * n) + k, &node_samples_row);
-                    tsk_bit_array_add_bit(&node_samples_row, sample);
+                sample = (tsk_bitset_val_t) sample_index_map[n];
+                if (tsk_bitset_contains(sample_sets, k, sample)) {
+                    tsk_bitset_set_bit(node_samples, (state_dim * n) + k, sample);
                 }
             }
         }
@@ -2928,7 +2993,7 @@ out:
 
 static void
 iter_state_clear(iter_state *self, tsk_size_t state_dim, tsk_size_t num_nodes,
-    const tsk_bit_array_t *node_samples)
+    const tsk_bitset_t *node_samples)
 {
     self->n_edges_out = 0;
     self->n_edges_in = 0;
@@ -2938,14 +3003,14 @@ iter_state_clear(iter_state *self, tsk_size_t state_dim, tsk_size_t num_nodes,
     tsk_memset(self->edges_in, TSK_NULL, num_nodes * sizeof(*self->edges_in));
     tsk_memset(self->branch_len, 0, num_nodes * sizeof(*self->branch_len));
     tsk_memcpy(self->node_samples->data, node_samples->data,
-        node_samples->size * state_dim * num_nodes * sizeof(*node_samples->data));
+        node_samples->row_len * state_dim * num_nodes * sizeof(*node_samples->data));
 }
 
 static void
 iter_state_free(iter_state *self)
 {
     tsk_tree_free(&self->tree);
-    tsk_bit_array_free(self->node_samples);
+    tsk_bitset_free(self->node_samples);
     tsk_safe_free(self->node_samples);
     tsk_safe_free(self->parent);
     tsk_safe_free(self->edges_out);
@@ -3025,40 +3090,25 @@ static int
 compute_two_tree_branch_state_update(const tsk_treeseq_t *ts, tsk_id_t c,
     const iter_state *A_state, const iter_state *B_state, tsk_size_t state_dim,
     tsk_size_t result_dim, int sign, general_stat_func_t *f,
-    sample_count_stat_params_t *f_params, double *result)
+    sample_count_stat_params_t *f_params, two_locus_work_t *restrict work,
+    double *result)
 {
     int ret = 0;
     double a_len, b_len;
     double *restrict B_branch_len = B_state->branch_len;
-    double *weights = NULL, *weights_row, *result_tmp = NULL;
+    double *weights_row;
     tsk_size_t n, k, a_row, b_row;
-    tsk_bit_array_t A_samples, B_samples, AB_samples, B_samples_tmp;
     const double *restrict A_branch_len = A_state->branch_len;
-    const tsk_bit_array_t *restrict A_state_samples = A_state->node_samples;
-    const tsk_bit_array_t *restrict B_state_samples = B_state->node_samples;
-    tsk_size_t num_samples = ts->num_samples;
+    const tsk_bitset_t *restrict A_state_samples = A_state->node_samples;
+    const tsk_bitset_t *restrict B_state_samples = B_state->node_samples;
     tsk_size_t num_nodes = ts->tables->nodes.num_rows;
+    double *weights = work->weights;
+    double *result_tmp = work->result_tmp;
+    tsk_bitset_t AB_samples = work->AB_samples;
+
     b_len = B_branch_len[c] * sign;
     if (b_len == 0) {
         return ret;
-    }
-
-    tsk_memset(&AB_samples, 0, sizeof(AB_samples));
-    tsk_memset(&B_samples_tmp, 0, sizeof(B_samples_tmp));
-
-    weights = tsk_calloc(3 * state_dim, sizeof(*weights));
-    result_tmp = tsk_calloc(result_dim, sizeof(*result_tmp));
-    if (weights == NULL || result_tmp == NULL) {
-        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
-        goto out;
-    }
-    ret = tsk_bit_array_init(&AB_samples, num_samples, 1);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = tsk_bit_array_init(&B_samples_tmp, num_samples, 1);
-    if (ret != 0) {
-        goto out;
     }
     for (n = 0; n < num_nodes; n++) {
         a_len = A_branch_len[n];
@@ -3068,15 +3118,14 @@ compute_two_tree_branch_state_update(const tsk_treeseq_t *ts, tsk_id_t c,
         for (k = 0; k < state_dim; k++) {
             a_row = (state_dim * n) + k;
             b_row = (state_dim * (tsk_size_t) c) + k;
-            tsk_bit_array_get_row(A_state_samples, a_row, &A_samples);
-            tsk_bit_array_get_row(B_state_samples, b_row, &B_samples);
-            tsk_bit_array_intersect(&A_samples, &B_samples, &AB_samples);
             weights_row = GET_2D_ROW(weights, 3, k);
-            weights_row[0] = (double) tsk_bit_array_count(&AB_samples); // w_AB
+            tsk_bitset_intersect(
+                A_state_samples, a_row, B_state_samples, b_row, &AB_samples);
+            weights_row[0] = (double) tsk_bitset_count(&AB_samples, 0);
             weights_row[1]
-                = (double) tsk_bit_array_count(&A_samples) - weights_row[0]; // w_Ab
+                = (double) tsk_bitset_count(A_state_samples, a_row) - weights_row[0];
             weights_row[2]
-                = (double) tsk_bit_array_count(&B_samples) - weights_row[0]; // w_aB
+                = (double) tsk_bitset_count(B_state_samples, b_row) - weights_row[0];
         }
         ret = f(state_dim, weights, result_dim, result_tmp, f_params);
         if (ret != 0) {
@@ -3087,10 +3136,6 @@ compute_two_tree_branch_state_update(const tsk_treeseq_t *ts, tsk_id_t c,
         }
     }
 out:
-    tsk_safe_free(weights);
-    tsk_safe_free(result_tmp);
-    tsk_bit_array_free(&AB_samples);
-    tsk_bit_array_free(&B_samples_tmp);
     return ret;
 }
 
@@ -3106,10 +3151,17 @@ compute_two_tree_branch_stat(const tsk_treeseq_t *ts, const iter_state *l_state,
     const tsk_id_t *restrict edges_child = ts->tables->edges.child;
     const tsk_id_t *restrict edges_parent = ts->tables->edges.parent;
     const tsk_size_t num_nodes = ts->tables->nodes.num_rows;
-    tsk_bit_array_t updates, row, ec_row, *r_samples = r_state->node_samples;
+    tsk_bitset_t updates, *r_samples = r_state->node_samples;
+    two_locus_work_t work;
 
+    tsk_memset(&work, 0, sizeof(work));
     tsk_memset(&updates, 0, sizeof(updates));
-    ret = tsk_bit_array_init(&updates, num_nodes, 1);
+    // only two alleles are possible for branch stats
+    ret = two_locus_work_init(2, ts->num_samples, result_dim, state_dim, &work);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = tsk_bitset_init(&updates, num_nodes, 1);
     if (ret != 0) {
         goto out;
     }
@@ -3126,18 +3178,18 @@ compute_two_tree_branch_stat(const tsk_treeseq_t *ts, const iter_state *l_state,
         c = edges_child[e];
         // Identify affected nodes above child
         while (p != TSK_NULL) {
-            tsk_bit_array_add_bit(&updates, (tsk_bit_array_value_t) c);
+            tsk_bitset_set_bit(&updates, 0, (tsk_bitset_val_t) c);
             c = p;
             p = r_state->parent[p];
         }
     }
     // Subtract the whole contribution from the child node
-    tsk_bit_array_get_items(&updates, updated_nodes, &n_updates);
+    tsk_bitset_get_items(&updates, 0, updated_nodes, &n_updates);
     while (n_updates != 0) {
         n_updates--;
         c = updated_nodes[n_updates];
-        compute_two_tree_branch_state_update(
-            ts, c, l_state, r_state, state_dim, result_dim, -1, f, f_params, result);
+        compute_two_tree_branch_state_update(ts, c, l_state, r_state, state_dim,
+            result_dim, -1, f, f_params, &work, result);
     }
     // Remove samples under nodes from removed edges to parent nodes
     for (j = 0; j < r_state->n_edges_out; j++) {
@@ -3146,10 +3198,8 @@ compute_two_tree_branch_stat(const tsk_treeseq_t *ts, const iter_state *l_state,
         ec = edges_child[e]; // edge child
         while (p != TSK_NULL) {
             for (k = 0; k < state_dim; k++) {
-                tsk_bit_array_get_row(
-                    r_samples, (state_dim * (tsk_size_t) ec) + k, &ec_row);
-                tsk_bit_array_get_row(r_samples, (state_dim * (tsk_size_t) p) + k, &row);
-                tsk_bit_array_subtract(&row, &ec_row);
+                tsk_bitset_subtract(r_samples, (state_dim * (tsk_size_t) p) + k,
+                    r_samples, (state_dim * (tsk_size_t) ec) + k);
             }
             p = r_state->parent[p];
         }
@@ -3164,12 +3214,10 @@ compute_two_tree_branch_stat(const tsk_treeseq_t *ts, const iter_state *l_state,
         r_state->branch_len[c] = time[p] - time[c];
         r_state->parent[c] = p;
         while (p != TSK_NULL) {
-            tsk_bit_array_add_bit(&updates, (tsk_bit_array_value_t) c);
+            tsk_bitset_set_bit(&updates, 0, (tsk_bitset_val_t) c);
             for (k = 0; k < state_dim; k++) {
-                tsk_bit_array_get_row(
-                    r_samples, (state_dim * (tsk_size_t) ec) + k, &ec_row);
-                tsk_bit_array_get_row(r_samples, (state_dim * (tsk_size_t) p) + k, &row);
-                tsk_bit_array_add(&row, &ec_row);
+                tsk_bitset_union(r_samples, (state_dim * (tsk_size_t) p) + k, r_samples,
+                    (state_dim * (tsk_size_t) ec) + k);
             }
             c = p;
             p = r_state->parent[p];
@@ -3177,22 +3225,24 @@ compute_two_tree_branch_stat(const tsk_treeseq_t *ts, const iter_state *l_state,
     }
     // Update all affected child nodes (fully subtracted, deferred from addition)
     n_updates = 0;
-    tsk_bit_array_get_items(&updates, updated_nodes, &n_updates);
+    tsk_bitset_get_items(&updates, 0, updated_nodes, &n_updates);
     while (n_updates != 0) {
         n_updates--;
         c = updated_nodes[n_updates];
-        compute_two_tree_branch_state_update(
-            ts, c, l_state, r_state, state_dim, result_dim, +1, f, f_params, result);
+        compute_two_tree_branch_state_update(ts, c, l_state, r_state, state_dim,
+            result_dim, +1, f, f_params, &work, result);
     }
 out:
     tsk_safe_free(updated_nodes);
-    tsk_bit_array_free(&updates);
+    two_locus_work_free(&work);
+    tsk_bitset_free(&updates);
     return ret;
 }
 
 static int
 tsk_treeseq_two_branch_count_stat(const tsk_treeseq_t *self, tsk_size_t state_dim,
-    const tsk_bit_array_t *sample_sets, tsk_size_t result_dim, general_stat_func_t *f,
+    tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
+    const tsk_id_t *sample_sets, tsk_size_t result_dim, general_stat_func_t *f,
     sample_count_stat_params_t *f_params, norm_func_t *TSK_UNUSED(norm_f),
     tsk_size_t n_rows, const double *row_positions, tsk_size_t n_cols,
     const double *col_positions, tsk_flags_t TSK_UNUSED(options), double *result)
@@ -3201,11 +3251,12 @@ tsk_treeseq_two_branch_count_stat(const tsk_treeseq_t *self, tsk_size_t state_di
     int r, c;
     tsk_id_t *row_indexes = NULL, *col_indexes = NULL;
     tsk_size_t i, j, k, row, col, *row_repeats = NULL, *col_repeats = NULL;
-    tsk_bit_array_t node_samples;
+    tsk_bitset_t node_samples, sample_sets_bits;
     iter_state l_state, r_state;
     double *result_tmp = NULL, *result_row;
     const tsk_size_t num_nodes = self->tables->nodes.num_rows;
 
+    tsk_memset(&sample_sets_bits, 0, sizeof(sample_sets_bits));
     tsk_memset(&node_samples, 0, sizeof(node_samples));
     tsk_memset(&l_state, 0, sizeof(l_state));
     tsk_memset(&r_state, 0, sizeof(r_state));
@@ -3219,6 +3270,11 @@ tsk_treeseq_two_branch_count_stat(const tsk_treeseq_t *self, tsk_size_t state_di
         goto out;
     }
     ret = iter_state_init(&r_state, self, state_dim);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = sample_sets_to_bitset(
+        self, sample_set_sizes, sample_sets, num_sample_sets, &sample_sets_bits);
     if (ret != 0) {
         goto out;
     }
@@ -3238,7 +3294,7 @@ tsk_treeseq_two_branch_count_stat(const tsk_treeseq_t *self, tsk_size_t state_di
     if (ret != 0) {
         goto out;
     }
-    ret = get_node_samples(self, state_dim, sample_sets, &node_samples);
+    ret = get_node_samples(self, state_dim, &sample_sets_bits, &node_samples);
     if (ret != 0) {
         goto out;
     }
@@ -3289,7 +3345,42 @@ out:
     tsk_safe_free(col_repeats);
     iter_state_free(&l_state);
     iter_state_free(&r_state);
-    tsk_bit_array_free(&node_samples);
+    tsk_bitset_free(&node_samples);
+    tsk_bitset_free(&sample_sets_bits);
+    return ret;
+}
+
+static int
+check_sample_set_dups(tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
+    const tsk_id_t *sample_sets, const tsk_id_t *restrict sample_index_map,
+    tsk_size_t num_samples)
+{
+    int ret;
+    tsk_size_t j, k, l;
+    tsk_id_t u, sample_index;
+    tsk_bitset_t tmp;
+
+    tsk_memset(&tmp, 0, sizeof(tmp));
+    ret = tsk_bitset_init(&tmp, num_samples, 1);
+    if (ret != 0) {
+        goto out;
+    }
+    j = 0;
+    for (k = 0; k < num_sample_sets; k++) {
+        tsk_memset(tmp.data, 0, sizeof(*tmp.data) * tmp.row_len);
+        for (l = 0; l < sample_set_sizes[k]; l++) {
+            u = sample_sets[j];
+            sample_index = sample_index_map[u];
+            if (tsk_bitset_contains(&tmp, 0, (tsk_bitset_val_t) sample_index)) {
+                ret = tsk_trace_error(TSK_ERR_DUPLICATE_SAMPLE);
+                goto out;
+            }
+            tsk_bitset_set_bit(&tmp, 0, (tsk_bitset_val_t) sample_index);
+            j++;
+        }
+    }
+out:
+    tsk_bitset_free(&tmp);
     return ret;
 }
 
@@ -3304,7 +3395,6 @@ tsk_treeseq_two_locus_count_stat(const tsk_treeseq_t *self, tsk_size_t num_sampl
     // TODO: generalize this function if we ever decide to do weighted two_locus stats.
     //       We only implement count stats and therefore we don't handle weights.
     int ret = 0;
-    tsk_bit_array_t sample_sets_bits;
     bool stat_site = !!(options & TSK_STAT_SITE);
     bool stat_branch = !!(options & TSK_STAT_BRANCH);
     tsk_size_t state_dim = num_sample_sets;
@@ -3312,8 +3402,6 @@ tsk_treeseq_two_locus_count_stat(const tsk_treeseq_t *self, tsk_size_t num_sampl
         .num_sample_sets = num_sample_sets,
         .sample_set_sizes = sample_set_sizes,
         .set_indexes = set_indexes };
-
-    tsk_memset(&sample_sets_bits, 0, sizeof(sample_sets_bits));
 
     // We do not support two-locus node stats
     if (!!(options & TSK_STAT_NODE)) {
@@ -3338,12 +3426,6 @@ tsk_treeseq_two_locus_count_stat(const tsk_treeseq_t *self, tsk_size_t num_sampl
         ret = tsk_trace_error(TSK_ERR_BAD_RESULT_DIMS);
         goto out;
     }
-    ret = sample_sets_to_bit_array(
-        self, sample_set_sizes, sample_sets, num_sample_sets, &sample_sets_bits);
-    if (ret != 0) {
-        goto out;
-    }
-
     if (stat_site) {
         ret = check_sites(row_sites, out_rows, self->tables->sites.num_rows);
         if (ret != 0) {
@@ -3353,9 +3435,14 @@ tsk_treeseq_two_locus_count_stat(const tsk_treeseq_t *self, tsk_size_t num_sampl
         if (ret != 0) {
             goto out;
         }
-        ret = tsk_treeseq_two_site_count_stat(self, state_dim, &sample_sets_bits,
-            result_dim, f, &f_params, norm_f, out_rows, row_sites, out_cols, col_sites,
-            options, result);
+        ret = check_sample_set_dups(num_sample_sets, sample_set_sizes, sample_sets,
+            self->sample_index_map, self->num_samples);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = tsk_treeseq_two_site_count_stat(self, state_dim, num_sample_sets,
+            sample_set_sizes, sample_sets, result_dim, f, &f_params, norm_f, out_rows,
+            row_sites, out_cols, col_sites, options, result);
     } else if (stat_branch) {
         ret = check_positions(
             row_positions, out_rows, tsk_treeseq_get_sequence_length(self));
@@ -3367,13 +3454,11 @@ tsk_treeseq_two_locus_count_stat(const tsk_treeseq_t *self, tsk_size_t num_sampl
         if (ret != 0) {
             goto out;
         }
-        ret = tsk_treeseq_two_branch_count_stat(self, state_dim, &sample_sets_bits,
-            result_dim, f, &f_params, norm_f, out_rows, row_positions, out_cols,
-            col_positions, options, result);
+        ret = tsk_treeseq_two_branch_count_stat(self, state_dim, num_sample_sets,
+            sample_set_sizes, sample_sets, result_dim, f, &f_params, norm_f, out_rows,
+            row_positions, out_cols, col_positions, options, result);
     }
-
 out:
-    tsk_bit_array_free(&sample_sets_bits);
     return ret;
 }
 
@@ -10686,6 +10771,9 @@ tsk_matvec_calculator_run(tsk_matvec_calculator_t *self)
         if (self->options & TSK_DEBUG) {
             tsk_matvec_calculator_print_state(self, tsk_get_debug_stream());
         }
+    }
+    if (!!(self->options & TSK_STAT_SPAN_NORMALISE)) {
+        span_normalise(self->num_windows, windows, out_size, self->result);
     }
 
     /* out: */

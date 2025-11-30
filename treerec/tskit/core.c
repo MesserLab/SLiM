@@ -584,6 +584,14 @@ tsk_strerror_internal(int err)
             ret = "Must have at least one allele when specifying an allele map. "
                   "(TSK_ERR_ZERO_ALLELES)";
             break;
+        case TSK_ERR_BAD_ALLELE_LENGTH:
+            ret = "Alleles used when decoding alignments must have length one. "
+                  "(TSK_ERR_BAD_ALLELE_LENGTH)";
+            break;
+        case TSK_ERR_MISSING_CHAR_COLLISION:
+            ret = "Alleles used when decoding alignments must not match the missing "
+                  "data character. (TSK_ERR_MISSING_CHAR_COLLISION)";
+            break;
 
         /* Distance metric errors */
         case TSK_ERR_SAMPLE_SIZE_MISMATCH:
@@ -1260,16 +1268,16 @@ tsk_avl_tree_int_ordered_nodes(const tsk_avl_tree_int_t *self, tsk_avl_node_int_
 }
 
 // Bit Array implementation. Allows us to store unsigned integers in a compact manner.
-// Currently implemented as an array of 32-bit unsigned integers for ease of counting.
+// Currently implemented as an array of 32-bit unsigned integers.
 
 int
-tsk_bit_array_init(tsk_bit_array_t *self, tsk_size_t num_bits, tsk_size_t length)
+tsk_bitset_init(tsk_bitset_t *self, tsk_size_t num_bits, tsk_size_t length)
 {
     int ret = 0;
 
-    self->size = (num_bits >> TSK_BIT_ARRAY_CHUNK)
-                 + (num_bits % TSK_BIT_ARRAY_NUM_BITS ? 1 : 0);
-    self->data = tsk_calloc(self->size * length, sizeof(*self->data));
+    self->row_len = (num_bits / TSK_BITSET_BITS) + (num_bits % TSK_BITSET_BITS ? 1 : 0);
+    self->len = length;
+    self->data = tsk_calloc(self->row_len * length, sizeof(*self->data));
     if (self->data == NULL) {
         ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
@@ -1278,96 +1286,111 @@ out:
     return ret;
 }
 
-void
-tsk_bit_array_get_row(const tsk_bit_array_t *self, tsk_size_t row, tsk_bit_array_t *out)
-{
-    out->size = self->size;
-    out->data = self->data + (row * self->size);
-}
+#define BITSET_DATA_ROW(bs, row) ((bs)->data + (row) * (bs)->row_len)
 
 void
-tsk_bit_array_intersect(
-    const tsk_bit_array_t *self, const tsk_bit_array_t *other, tsk_bit_array_t *out)
+tsk_bitset_intersect(const tsk_bitset_t *self, tsk_size_t self_row,
+    const tsk_bitset_t *other, tsk_size_t other_row, tsk_bitset_t *out)
 {
-    for (tsk_size_t i = 0; i < self->size; i++) {
-        out->data[i] = self->data[i] & other->data[i];
+    const tsk_bitset_val_t *restrict self_d = BITSET_DATA_ROW(self, self_row);
+    const tsk_bitset_val_t *restrict other_d = BITSET_DATA_ROW(other, other_row);
+    tsk_bitset_val_t *restrict out_d = out->data;
+    for (tsk_size_t i = 0; i < self->row_len; i++) {
+        out_d[i] = self_d[i] & other_d[i];
     }
 }
 
 void
-tsk_bit_array_subtract(tsk_bit_array_t *self, const tsk_bit_array_t *other)
+tsk_bitset_subtract(tsk_bitset_t *self, tsk_size_t self_row, const tsk_bitset_t *other,
+    tsk_size_t other_row)
 {
-    for (tsk_size_t i = 0; i < self->size; i++) {
-        self->data[i] &= ~(other->data[i]);
+    tsk_bitset_val_t *restrict self_d = BITSET_DATA_ROW(self, self_row);
+    const tsk_bitset_val_t *restrict other_d = BITSET_DATA_ROW(other, other_row);
+    for (tsk_size_t i = 0; i < self->row_len; i++) {
+        self_d[i] &= ~(other_d[i]);
     }
 }
 
 void
-tsk_bit_array_add(tsk_bit_array_t *self, const tsk_bit_array_t *other)
+tsk_bitset_union(tsk_bitset_t *self, tsk_size_t self_row, const tsk_bitset_t *other,
+    tsk_size_t other_row)
 {
-    for (tsk_size_t i = 0; i < self->size; i++) {
-        self->data[i] |= other->data[i];
+    tsk_bitset_val_t *restrict self_d = BITSET_DATA_ROW(self, self_row);
+    const tsk_bitset_val_t *restrict other_d = BITSET_DATA_ROW(other, other_row);
+    for (tsk_size_t i = 0; i < self->row_len; i++) {
+        self_d[i] |= other_d[i];
     }
 }
 
 void
-tsk_bit_array_add_bit(tsk_bit_array_t *self, const tsk_bit_array_value_t bit)
+tsk_bitset_set_bit(tsk_bitset_t *self, tsk_size_t row, const tsk_bitset_val_t bit)
 {
-    tsk_bit_array_value_t i = bit >> TSK_BIT_ARRAY_CHUNK;
-    self->data[i] |= (tsk_bit_array_value_t) 1 << (bit - (TSK_BIT_ARRAY_NUM_BITS * i));
+    tsk_bitset_val_t i = (bit / TSK_BITSET_BITS);
+    *(BITSET_DATA_ROW(self, row) + i) |= (tsk_bitset_val_t) 1
+                                         << (bit - (TSK_BITSET_BITS * i));
 }
 
 bool
-tsk_bit_array_contains(const tsk_bit_array_t *self, const tsk_bit_array_value_t bit)
+tsk_bitset_contains(const tsk_bitset_t *self, tsk_size_t row, const tsk_bitset_val_t bit)
 {
-    tsk_bit_array_value_t i = bit >> TSK_BIT_ARRAY_CHUNK;
-    return self->data[i]
-           & ((tsk_bit_array_value_t) 1 << (bit - (TSK_BIT_ARRAY_NUM_BITS * i)));
+    tsk_bitset_val_t i = (bit / TSK_BITSET_BITS);
+    return *(BITSET_DATA_ROW(self, row) + i)
+           & ((tsk_bitset_val_t) 1 << (bit - (TSK_BITSET_BITS * i)));
 }
 
-tsk_size_t
-tsk_bit_array_count(const tsk_bit_array_t *self)
+static inline uint32_t
+popcount(tsk_bitset_val_t v)
 {
-    // Utilizes 12 operations per bit array. NB this only works on 32 bit integers.
+    // Utilizes 12 operations per chunk. NB this only works on 32 bit integers.
     // Taken from:
     //   https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
     // There's a nice breakdown of this algorithm here:
     //   https://stackoverflow.com/a/109025
-    // Could probably do better with explicit SIMD (instead of SWAR), but not as
-    // portable: https://arxiv.org/pdf/1611.07612.pdf
     //
-    // There is one solution to explore further, which uses __builtin_popcountll.
-    // This option is relatively simple, but requires a 64 bit bit array and also
-    // involves some compiler flag plumbing (-mpopcnt)
+    // The gcc/clang compiler flag will -mpopcnt will convert this code to a
+    // popcnt instruction (most if not all modern CPUs will support this). The
+    // popcnt instruction will yield some speed improvements, which depend on
+    // the tree sequence.
+    //
+    // NB: 32bit counting is typically faster than 64bit counting for this task.
+    //     (at least on x86-64)
 
-    tsk_bit_array_value_t tmp;
-    tsk_size_t i, count = 0;
+    v = v - ((v >> 1) & 0x55555555);
+    v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+    return (((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+}
 
-    for (i = 0; i < self->size; i++) {
-        tmp = self->data[i] - ((self->data[i] >> 1) & 0x55555555);
-        tmp = (tmp & 0x33333333) + ((tmp >> 2) & 0x33333333);
-        count += (((tmp + (tmp >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+tsk_size_t
+tsk_bitset_count(const tsk_bitset_t *self, tsk_size_t row)
+{
+    tsk_size_t i = 0;
+    tsk_size_t count = 0;
+    const tsk_bitset_val_t *restrict self_d = BITSET_DATA_ROW(self, row);
+
+    for (i = 0; i < self->row_len; i++) {
+        count += popcount(self_d[i]);
     }
     return count;
 }
 
 void
-tsk_bit_array_get_items(
-    const tsk_bit_array_t *self, tsk_id_t *items, tsk_size_t *n_items)
+tsk_bitset_get_items(
+    const tsk_bitset_t *self, tsk_size_t row, tsk_id_t *items, tsk_size_t *n_items)
 {
     // Get the items stored in the row of a bitset.
-    // Uses a de Bruijn sequence lookup table to determine the lowest bit set. See the
-    // wikipedia article for more info: https://w.wiki/BYiF
+    // Uses a de Bruijn sequence lookup table to determine the lowest bit set.
+    // See the wikipedia article for more info: https://w.wiki/BYiF
 
     tsk_size_t i, n, off;
-    tsk_bit_array_value_t v, lsb; // least significant bit
+    tsk_bitset_val_t v, lsb; // least significant bit
     static const tsk_id_t lookup[32] = { 0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25,
         17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9 };
+    const tsk_bitset_val_t *restrict self_d = BITSET_DATA_ROW(self, row);
 
     n = 0;
-    for (i = 0; i < self->size; i++) {
-        v = self->data[i];
-        off = i * ((tsk_size_t) TSK_BIT_ARRAY_NUM_BITS);
+    for (i = 0; i < self->row_len; i++) {
+        v = self_d[i];
+        off = i * TSK_BITSET_BITS;
         if (v == 0) {
             continue;
         }
@@ -1381,7 +1404,7 @@ tsk_bit_array_get_items(
 }
 
 void
-tsk_bit_array_free(tsk_bit_array_t *self)
+tsk_bitset_free(tsk_bitset_t *self)
 {
     tsk_safe_free(self->data);
 }

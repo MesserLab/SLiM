@@ -933,16 +933,19 @@ path from `p` to `c`. For instance, if `p` is the parent of `n` and `n`
 is the parent of `c`, then the span of the edges from `p` to `n` and
 `n` to `c` are extended, and the span of the edge from `p` to `c` is
 reduced. However, any edges whose child node is a sample are not
-modified.  The `node` of certain mutations may also be remapped; to do this
+modified.  See Fritze et al. (2025):
+https://doi.org/10.1093/genetics/iyaf198 for more details.
+
+The method works by iterating over the genome to look for edges that can
+be extended in this way; the maximum number of such iterations is
+controlled by ``max_iter``.
+
+The `node` of certain mutations may also be remapped; to do this
 unambiguously we need to know mutation times. If mutations times are unknown,
 use `tsk_table_collection_compute_mutation_times` first.
 
 The method will not affect any tables except the edge table, or the node
 column in the mutation table.
-
-The method works by iterating over the genome to look for edges that can
-be extended in this way; the maximum number of such iterations is
-controlled by ``max_iter``.
 
 @rst
 
@@ -965,6 +968,52 @@ int tsk_treeseq_split_edges(const tsk_treeseq_t *self, double time, tsk_flags_t 
     tsk_flags_t options, tsk_treeseq_t *output);
 
 bool tsk_treeseq_has_reference_sequence(const tsk_treeseq_t *self);
+
+/**
+@brief Decode full-length alignments for specified nodes over an interval.
+
+@rst
+Fills a caller-provided buffer with per-node sequence alignments for the interval
+``[left, right)``. Each row is exactly ``L = right - left`` bytes with no trailing
+terminator, and rows are tightly packed in row-major order in the output buffer.
+
+The output at non-site positions comes from the provided ``ref_seq`` slice
+(``ref_seq[left:right]``); per-site alleles are overlaid onto this for each node.
+
+If the :c:macro:`TSK_ISOLATED_NOT_MISSING` option is
+not set, nodes that are isolated (no parent and no children) within a tree
+interval in ``[left, right)`` are rendered as the ``missing_data_character`` for
+that interval. At site positions, decoded genotypes override any previous value;
+if a genotype is missing (``TSK_MISSING_DATA``), the ``missing_data_character`` is
+overlaid onto the reference base.
+
+Requirements and validation:
+
+- The tree sequence must have a discrete genome.
+- ``left`` and ``right`` must be integers with ``0 <= left < right <= sequence_length``.
+- ``ref_seq`` must be non-NULL and ``ref_seq_length == sequence_length``.
+- Each allele at a site must be exactly one byte; alleles equal to
+  ``missing_data_character`` are not permitted.
+
+@endrst
+
+@param self A pointer to a :c:type:`tsk_treeseq_t` object.
+@param ref_seq Pointer to a reference sequence buffer of length ``ref_seq_length``.
+@param ref_seq_length The total length of ``ref_seq``; must equal the tree sequence
+length.
+@param nodes Array of node IDs to decode (may include non-samples).
+@param num_nodes The number of nodes in ``nodes`` and rows in the output.
+@param left The inclusive-left genomic coordinate of the output interval.
+@param right The exclusive-right genomic coordinate of the output interval.
+@param missing_data_character The byte to use for missing data.
+@param alignments_out Output buffer of size at least ``num_nodes * (right - left)``.
+@param options Bitwise option flags; supports :c:macro:`TSK_ISOLATED_NOT_MISSING`.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_treeseq_decode_alignments(const tsk_treeseq_t *self, const char *ref_seq,
+    tsk_size_t ref_seq_length, const tsk_id_t *nodes, tsk_size_t num_nodes, double left,
+    double right, char missing_data_character, char *alignments_out,
+    tsk_flags_t options);
 
 int tsk_treeseq_get_individuals_population(const tsk_treeseq_t *self, tsk_id_t *output);
 int tsk_treeseq_get_individuals_time(const tsk_treeseq_t *self, double *output);

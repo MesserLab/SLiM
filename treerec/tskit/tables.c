@@ -11078,7 +11078,7 @@ tsk_table_collection_check_integrity(
                    | TSK_CHECK_MIGRATION_ORDERING | TSK_CHECK_INDEXES;
     }
 
-    if (self->sequence_length <= 0) {
+    if (!tsk_isfinite(self->sequence_length) || self->sequence_length <= 0) {
         ret = tsk_trace_error(TSK_ERR_BAD_SEQUENCE_LENGTH);
         goto out;
     }
@@ -12436,8 +12436,27 @@ tsk_table_collection_compute_mutation_parents(
     tsk_table_collection_t *self, tsk_flags_t options)
 {
     int ret = 0;
+    tsk_mutation_table_t *mutations = &self->mutations;
+    tsk_id_t *parent_backup = NULL;
+    bool restore_parents = false;
 
     if (!(options & TSK_NO_CHECK_INTEGRITY)) {
+        if (mutations->num_rows > 0) {
+            /* We need to wipe the parent column before computing, as otherwise invalid
+             * parents can cause integrity checks to fail. We take a copy to restore on
+             * error */
+            parent_backup = tsk_malloc(mutations->num_rows * sizeof(*parent_backup));
+            if (parent_backup == NULL) {
+                ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+                goto out;
+            }
+            tsk_memcpy(parent_backup, mutations->parent,
+                mutations->num_rows * sizeof(*parent_backup));
+            /* Set the parent pointers to TSK_NULL */
+            tsk_memset(mutations->parent, 0xff,
+                mutations->num_rows * sizeof(*mutations->parent));
+            restore_parents = true;
+        }
         /* Safe to cast here as we're not counting trees */
         ret = (int) tsk_table_collection_check_integrity(self, TSK_CHECK_TREES);
         if (ret < 0) {
@@ -12452,6 +12471,11 @@ tsk_table_collection_compute_mutation_parents(
     }
 
 out:
+    if (ret != 0 && restore_parents) {
+        tsk_memcpy(mutations->parent, parent_backup,
+            mutations->num_rows * sizeof(*parent_backup));
+    }
+    tsk_safe_free(parent_backup);
     return ret;
 }
 
@@ -13202,6 +13226,8 @@ tsk_table_collection_union(tsk_table_collection_t *self,
     tsk_id_t *site_map = NULL;
     bool add_populations = !(options & TSK_UNION_NO_ADD_POP);
     bool check_shared_portion = !(options & TSK_UNION_NO_CHECK_SHARED);
+    bool all_edges = !!(options & TSK_UNION_ALL_EDGES);
+    bool all_mutations = !!(options & TSK_UNION_ALL_MUTATIONS);
 
     /* Not calling TSK_CHECK_TREES so casting to int is safe */
     ret = (int) tsk_table_collection_check_integrity(self, 0);
@@ -13285,7 +13311,7 @@ tsk_table_collection_union(tsk_table_collection_t *self,
     // edges
     for (k = 0; k < (tsk_id_t) other->edges.num_rows; k++) {
         tsk_edge_table_get_row_unsafe(&other->edges, k, &edge);
-        if ((other_node_mapping[edge.parent] == TSK_NULL)
+        if (all_edges || (other_node_mapping[edge.parent] == TSK_NULL)
             || (other_node_mapping[edge.child] == TSK_NULL)) {
             new_parent = node_map[edge.parent];
             new_child = node_map[edge.child];
@@ -13298,14 +13324,31 @@ tsk_table_collection_union(tsk_table_collection_t *self,
         }
     }
 
-    // mutations and sites
+    // sites
+    // first do the "disjoint" (all_mutations) case, where we just add all sites;
+    // otherwise we want to just add sites for new mutations
+    if (all_mutations) {
+        for (k = 0; k < (tsk_id_t) other->sites.num_rows; k++) {
+            tsk_site_table_get_row_unsafe(&other->sites, k, &site);
+            ret_id = tsk_site_table_add_row(&self->sites, site.position,
+                site.ancestral_state, site.ancestral_state_length, site.metadata,
+                site.metadata_length);
+            if (ret_id < 0) {
+                ret = (int) ret_id;
+                goto out;
+            }
+            site_map[site.id] = ret_id;
+        }
+    }
+
+    // mutations (and maybe sites)
     i = 0;
     for (k = 0; k < (tsk_id_t) other->sites.num_rows; k++) {
         tsk_site_table_get_row_unsafe(&other->sites, k, &site);
         while ((i < (tsk_id_t) other->mutations.num_rows)
                && (other->mutations.site[i] == site.id)) {
             tsk_mutation_table_get_row_unsafe(&other->mutations, i, &mut);
-            if (other_node_mapping[mut.node] == TSK_NULL) {
+            if (all_mutations || (other_node_mapping[mut.node] == TSK_NULL)) {
                 if (site_map[site.id] == TSK_NULL) {
                     ret_id = tsk_site_table_add_row(&self->sites, site.position,
                         site.ancestral_state, site.ancestral_state_length, site.metadata,

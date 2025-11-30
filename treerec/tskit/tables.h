@@ -858,11 +858,21 @@ equality of the subsets.
 */
 #define TSK_UNION_NO_CHECK_SHARED (1 << 0)
 /**
- By default, all nodes new to ``self`` are assigned new populations. If this
+By default, all nodes new to ``self`` are assigned new populations. If this
 option is specified, nodes that are added to ``self`` will retain the
 population IDs they have in ``other``.
  */
 #define TSK_UNION_NO_ADD_POP (1 << 1)
+/**
+By default, union only adds edges adjacent to a newly added node;
+this option adds all edges.
+ */
+#define TSK_UNION_ALL_EDGES (1 << 2)
+/**
+By default, union only adds only mutations on newly added edges, and
+sites for those mutations; this option adds all mutations and all sites.
+ */
+#define TSK_UNION_ALL_MUTATIONS (1 << 3)
 /** @} */
 
 /**
@@ -4413,6 +4423,10 @@ that are exclusive ``other`` are added to ``self``, along with:
 
 By default, populations of newly added nodes are assumed to be new populations,
 and added to the population table as well.
+
+The behavior can be changed by the flags ``TSK_UNION_ALL_EDGES`` and
+``TSK_UNION_ALL_MUTATIONS``, which will (respectively) add *all* edges
+or *all* sites and mutations instead.
 
 This operation will also sort the resulting tables, so the tables may change
 even if nothing new is added, if the original tables were not sorted.
