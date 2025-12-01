@@ -5671,8 +5671,62 @@ void Species::RetractNewIndividual()
 	// around the code since it seems to keep coming back...
 	//current_new_individual_ = nullptr;
 	
-	for (TreeSeqInfo &tsinfo : treeseq_)
-		tsk_table_collection_truncate(&tsinfo.tables_, &tsinfo.table_position_);
+	size_t trees_count = treeseq_.size();
+	
+	if (trees_count > 0)
+	{
+		TreeSeqInfo &tsinfo_0 = treeseq_[0];
+		
+		// BCH 12/1/2025: The base table collection can restore its bookmarked position directly;
+		// that will reset the bookmarked positions in all of the shared tables as well.
+		tsk_table_collection_truncate(&tsinfo_0.tables_, &tsinfo_0.table_position_);
+		
+		// BCH 12/1/2025: In the multichrom case we need to protect against a segfault inside
+		// tsk_table_collection_truncate() for the secondary table collections.  This is because
+		// they have NULL for their various column pointers, and tsk_table_collection_truncate()
+		// accesses index 0 of every offset column to get the offset for row 0.  (It is always
+		// for row 0 in the shared tables because they are zeroed out; their num_rows was zero
+		// in RecordTablePosition().)  See https://github.com/MesserLab/SLiM/issues/579 for details.
+		// BEWARE: This code will need updating if new shared tables are added, or new columns
+		// are added within the existing shared table.  Any offset column that is accessed in the
+		// ..._truncate() functions for the shared tables needs to be protected here.
+		tsk_size_t zero_value = 0;
+		tsk_size_t *pointer_to_zero_value = &zero_value;
+		
+		for (size_t trees_index = 1; trees_index < trees_count; ++trees_index)
+		{
+			TreeSeqInfo &tsinfo_i = treeseq_[trees_index];
+			
+#if DEBUG
+			// This protection scheme relies upon the bookmarked row being zero for shared tables;
+			// only the zeroth element of each offset column is set up by the hack here.
+			if ((tsinfo_i.table_position_.nodes != 0) ||
+				(tsinfo_i.table_position_.individuals != 0) ||
+				(tsinfo_i.table_position_.populations != 0))
+				EIDOS_TERMINATION << "ERROR (Species::RetractNewIndividual): (internal error) tree sequence bookmark for a shared table in a secondary table collection is non-zero." << EidosTerminate();
+#endif
+			
+			tsinfo_i.tables_.nodes.metadata_offset = pointer_to_zero_value;
+			tsinfo_i.tables_.individuals.location_offset = pointer_to_zero_value;
+			tsinfo_i.tables_.individuals.parents_offset = pointer_to_zero_value;
+			tsinfo_i.tables_.individuals.metadata_offset = pointer_to_zero_value;
+			tsinfo_i.tables_.populations.metadata_offset = pointer_to_zero_value;
+			
+			tsk_table_collection_truncate(&tsinfo_i.tables_, &tsinfo_i.table_position_);
+			
+			tsinfo_i.tables_.nodes.metadata_offset = NULL;
+			tsinfo_i.tables_.individuals.location_offset = NULL;
+			tsinfo_i.tables_.individuals.parents_offset = NULL;
+			tsinfo_i.tables_.individuals.metadata_offset = NULL;
+			tsinfo_i.tables_.populations.metadata_offset = NULL;
+		}
+	}
+	
+	// The above code boils down to this, which was the old code before #579 came along.
+	// It is the same apart from the complicated protection against segfaults:
+	//
+	//	for (TreeSeqInfo &tsinfo : treeseq_)
+	//		tsk_table_collection_truncate(&tsinfo.tables_, &tsinfo.table_position_);
 }
 
 void Species::RecordNewHaplosome(slim_position_t *p_breakpoints, int p_breakpoints_count, Haplosome *p_new_haplosome, 
