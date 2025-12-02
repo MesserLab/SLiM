@@ -7468,7 +7468,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 		// Add in the mutation.parent information; valid tree sequences need parents, but we don't keep them while running
 		ret = tsk_table_collection_build_index(&output_tables, 0);
 		if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
-		ret = tsk_table_collection_compute_mutation_parents(&output_tables, 0);
+		ret = tsk_table_collection_compute_mutation_parents(&output_tables, TSK_NO_CHECK_INTEGRITY);
 		if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
 		
 		{
@@ -7855,7 +7855,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				ret = tsk_table_collection_build_index(tables_copy, 0);
 				if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
 				
-				ret = tsk_table_collection_compute_mutation_parents(tables_copy, 0);
+				ret = tsk_table_collection_compute_mutation_parents(tables_copy, TSK_NO_CHECK_INTEGRITY);
 				if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
 				
 			}

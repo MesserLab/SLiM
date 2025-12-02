@@ -147,12 +147,12 @@ sizes and types of externally visible structs.
 The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define TSK_VERSION_MINOR   1
+#define TSK_VERSION_MINOR   3
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   4
+#define TSK_VERSION_PATCH   0
 /** @} */
 
 /*
@@ -283,7 +283,7 @@ A file could not be read because it is in the wrong format
 /**
 The file is in tskit format, but the version is too old for the
 library to read. The file should be upgraded to the latest version
-using the ``tskit upgrade`` command line utility.
+using the ``tskit upgrade`` command line utility from tskit version<0.6.2.
 */
 #define TSK_ERR_FILE_VERSION_TOO_OLD                                -101
 /**
@@ -510,6 +510,12 @@ Some mutations have TSK_UNKNOWN_TIME in an algorithm where that's
 disallowed (use compute_mutation_times?).
 */
 #define TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME                    -510
+
+/** 
+A mutation's parent was not consistent with the topology of the tree.
+ */
+#define TSK_ERR_BAD_MUTATION_PARENT                                 -511
+
 /** @} */
 
 /**
@@ -740,13 +746,17 @@ Sample times do not all equal the start of first time window
 */
 #define TSK_ERR_BAD_SAMPLE_PAIR_TIMES                               -923
 /**
-Time windows are not strictly increasing ending at infinity
+Time windows are not strictly increasing
 */
 #define TSK_ERR_BAD_TIME_WINDOWS                                    -924
 /**
+Time windows do not end at infinity
+*/
+#define TSK_ERR_BAD_TIME_WINDOWS_END                                -925
+/**
 Node time does not fall within assigned time window
 */
-#define TSK_ERR_BAD_NODE_TIME_WINDOW                                -925
+#define TSK_ERR_BAD_NODE_TIME_WINDOW                                -926
 /** @} */
 
 /**
@@ -793,6 +803,14 @@ More than 2147483647 alleles were specified.
 A user-specified allele map was used, but it contained zero alleles.
 */
 #define TSK_ERR_ZERO_ALLELES                                       -1103
+/**
+An allele used when decoding alignments had length other than one.
+*/
+#define TSK_ERR_BAD_ALLELE_LENGTH                                  -1104
+/**
+An allele used when decoding alignments matched the missing data character.
+*/
+#define TSK_ERR_MISSING_CHAR_COLLISION                             -1105
 /** @} */
 
 /**
@@ -1094,29 +1112,31 @@ FILE *tsk_get_debug_stream(void);
 
 /* Bit Array functionality */
 
-typedef uint32_t tsk_bit_array_value_t;
+// define a 32-bit chunk size for our bitsets.
+// this means we'll be able to hold 32 distinct items in each 32 bit uint
+#define TSK_BITSET_BITS ((tsk_size_t) 32)
+typedef uint32_t tsk_bitset_val_t;
+
 typedef struct {
-    tsk_size_t size;             // Number of chunks per row
-    tsk_bit_array_value_t *data; // Array data
-} tsk_bit_array_t;
+    tsk_size_t row_len; // Number of size TSK_BITSET_BITS chunks per row
+    tsk_size_t len;     // Number of rows
+    tsk_bitset_val_t *data;
+} tsk_bitset_t;
 
-#define TSK_BIT_ARRAY_CHUNK 5U
-#define TSK_BIT_ARRAY_NUM_BITS (1U << TSK_BIT_ARRAY_CHUNK)
-
-int tsk_bit_array_init(tsk_bit_array_t *self, tsk_size_t num_bits, tsk_size_t length);
-void tsk_bit_array_free(tsk_bit_array_t *self);
-void tsk_bit_array_get_row(
-    const tsk_bit_array_t *self, tsk_size_t row, tsk_bit_array_t *out);
-void tsk_bit_array_intersect(
-    const tsk_bit_array_t *self, const tsk_bit_array_t *other, tsk_bit_array_t *out);
-void tsk_bit_array_subtract(tsk_bit_array_t *self, const tsk_bit_array_t *other);
-void tsk_bit_array_add(tsk_bit_array_t *self, const tsk_bit_array_t *other);
-void tsk_bit_array_add_bit(tsk_bit_array_t *self, const tsk_bit_array_value_t bit);
-bool tsk_bit_array_contains(
-    const tsk_bit_array_t *self, const tsk_bit_array_value_t bit);
-tsk_size_t tsk_bit_array_count(const tsk_bit_array_t *self);
-void tsk_bit_array_get_items(
-    const tsk_bit_array_t *self, tsk_id_t *items, tsk_size_t *n_items);
+int tsk_bitset_init(tsk_bitset_t *self, tsk_size_t num_bits, tsk_size_t length);
+void tsk_bitset_free(tsk_bitset_t *self);
+void tsk_bitset_intersect(const tsk_bitset_t *self, tsk_size_t self_row,
+    const tsk_bitset_t *other, tsk_size_t other_row, tsk_bitset_t *out);
+void tsk_bitset_subtract(tsk_bitset_t *self, tsk_size_t self_row,
+    const tsk_bitset_t *other, tsk_size_t other_row);
+void tsk_bitset_union(tsk_bitset_t *self, tsk_size_t self_row, const tsk_bitset_t *other,
+    tsk_size_t other_row);
+void tsk_bitset_set_bit(tsk_bitset_t *self, tsk_size_t row, const tsk_bitset_val_t bit);
+bool tsk_bitset_contains(
+    const tsk_bitset_t *self, tsk_size_t row, const tsk_bitset_val_t bit);
+tsk_size_t tsk_bitset_count(const tsk_bitset_t *self, tsk_size_t row);
+void tsk_bitset_get_items(
+    const tsk_bitset_t *self, tsk_size_t row, tsk_id_t *items, tsk_size_t *n_items);
 
 #ifdef __cplusplus
 }

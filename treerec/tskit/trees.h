@@ -71,6 +71,11 @@ when the tree sequence is initialised. Indexes are required for a valid
 tree sequence, and are not built by default for performance reasons.
 */
 #define TSK_TS_INIT_BUILD_INDEXES (1 << 0)
+/**
+If specified, mutation parents in the table collection will be overwritten
+with those computed from the topology when the tree sequence is initialised.
+*/
+#define TSK_TS_INIT_COMPUTE_MUTATION_PARENTS (1 << 1)
 /** @} */
 
 // clang-format on
@@ -928,16 +933,19 @@ path from `p` to `c`. For instance, if `p` is the parent of `n` and `n`
 is the parent of `c`, then the span of the edges from `p` to `n` and
 `n` to `c` are extended, and the span of the edge from `p` to `c` is
 reduced. However, any edges whose child node is a sample are not
-modified.  The `node` of certain mutations may also be remapped; to do this
+modified.  See Fritze et al. (2025):
+https://doi.org/10.1093/genetics/iyaf198 for more details.
+
+The method works by iterating over the genome to look for edges that can
+be extended in this way; the maximum number of such iterations is
+controlled by ``max_iter``.
+
+The `node` of certain mutations may also be remapped; to do this
 unambiguously we need to know mutation times. If mutations times are unknown,
 use `tsk_table_collection_compute_mutation_times` first.
 
 The method will not affect any tables except the edge table, or the node
 column in the mutation table.
-
-The method works by iterating over the genome to look for edges that can
-be extended in this way; the maximum number of such iterations is
-controlled by ``max_iter``.
 
 @rst
 
@@ -961,6 +969,52 @@ int tsk_treeseq_split_edges(const tsk_treeseq_t *self, double time, tsk_flags_t 
 
 bool tsk_treeseq_has_reference_sequence(const tsk_treeseq_t *self);
 
+/**
+@brief Decode full-length alignments for specified nodes over an interval.
+
+@rst
+Fills a caller-provided buffer with per-node sequence alignments for the interval
+``[left, right)``. Each row is exactly ``L = right - left`` bytes with no trailing
+terminator, and rows are tightly packed in row-major order in the output buffer.
+
+The output at non-site positions comes from the provided ``ref_seq`` slice
+(``ref_seq[left:right]``); per-site alleles are overlaid onto this for each node.
+
+If the :c:macro:`TSK_ISOLATED_NOT_MISSING` option is
+not set, nodes that are isolated (no parent and no children) within a tree
+interval in ``[left, right)`` are rendered as the ``missing_data_character`` for
+that interval. At site positions, decoded genotypes override any previous value;
+if a genotype is missing (``TSK_MISSING_DATA``), the ``missing_data_character`` is
+overlaid onto the reference base.
+
+Requirements and validation:
+
+- The tree sequence must have a discrete genome.
+- ``left`` and ``right`` must be integers with ``0 <= left < right <= sequence_length``.
+- ``ref_seq`` must be non-NULL and ``ref_seq_length == sequence_length``.
+- Each allele at a site must be exactly one byte; alleles equal to
+  ``missing_data_character`` are not permitted.
+
+@endrst
+
+@param self A pointer to a :c:type:`tsk_treeseq_t` object.
+@param ref_seq Pointer to a reference sequence buffer of length ``ref_seq_length``.
+@param ref_seq_length The total length of ``ref_seq``; must equal the tree sequence
+length.
+@param nodes Array of node IDs to decode (may include non-samples).
+@param num_nodes The number of nodes in ``nodes`` and rows in the output.
+@param left The inclusive-left genomic coordinate of the output interval.
+@param right The exclusive-right genomic coordinate of the output interval.
+@param missing_data_character The byte to use for missing data.
+@param alignments_out Output buffer of size at least ``num_nodes * (right - left)``.
+@param options Bitwise option flags; supports :c:macro:`TSK_ISOLATED_NOT_MISSING`.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_treeseq_decode_alignments(const tsk_treeseq_t *self, const char *ref_seq,
+    tsk_size_t ref_seq_length, const tsk_id_t *nodes, tsk_size_t num_nodes, double left,
+    double right, char missing_data_character, char *alignments_out,
+    tsk_flags_t options);
+
 int tsk_treeseq_get_individuals_population(const tsk_treeseq_t *self, tsk_id_t *output);
 int tsk_treeseq_get_individuals_time(const tsk_treeseq_t *self, double *output);
 
@@ -981,15 +1035,17 @@ typedef int general_stat_func_t(tsk_size_t state_dim, const double *state,
 int tsk_treeseq_general_stat(const tsk_treeseq_t *self, tsk_size_t K, const double *W,
     tsk_size_t M, general_stat_func_t *f, void *f_params, tsk_size_t num_windows,
     const double *windows, tsk_flags_t options, double *result);
-// TODO: expose this externally?
-/* int tsk_treeseq_two_locus_general_stat(const tsk_treeseq_t *self, */
-/*     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes, */
-/*     const tsk_id_t *sample_sets, tsk_size_t result_dim, const tsk_id_t *set_indexes,
- */
-/*     general_stat_func_t *f, norm_func_t *norm_f, tsk_size_t num_left_windows, */
-/*     const double *left_windows, tsk_size_t num_right_windows, */
-/*     const double *right_windows, tsk_flags_t options, tsk_size_t num_result, */
-/*     double *result); */
+
+typedef int norm_func_t(tsk_size_t result_dim, const double *hap_weights, tsk_size_t n_a,
+    tsk_size_t n_b, double *result, void *params);
+
+int tsk_treeseq_two_locus_count_stat(const tsk_treeseq_t *self,
+    tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
+    const tsk_id_t *sample_sets, tsk_size_t result_dim, const tsk_id_t *set_indexes,
+    general_stat_func_t *f, norm_func_t *norm_f, tsk_size_t out_rows,
+    const tsk_id_t *row_sites, const double *row_positions, tsk_size_t out_cols,
+    const tsk_id_t *col_sites, const double *col_positions, tsk_flags_t options,
+    double *result);
 
 /* One way weighted stats */
 
@@ -1056,30 +1112,13 @@ int tsk_treeseq_Y1(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
 int tsk_treeseq_allele_frequency_spectrum(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_windows, const double *windows,
-    tsk_flags_t options, double *result);
+    tsk_size_t num_time_windows, const double *time_windows, tsk_flags_t options,
+    double *result);
 
 typedef int general_sample_stat_method(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_indexes, const tsk_id_t *indexes,
     tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
-
-int tsk_treeseq_divergence(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
-    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
-    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, tsk_flags_t options, double *result);
-int tsk_treeseq_Y2(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
-    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
-    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, tsk_flags_t options, double *result);
-int tsk_treeseq_f2(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
-    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
-    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, tsk_flags_t options, double *result);
-int tsk_treeseq_genetic_relatedness(const tsk_treeseq_t *self,
-    tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
-    const tsk_id_t *sample_sets, tsk_size_t num_index_tuples,
-    const tsk_id_t *index_tuples, tsk_size_t num_windows, const double *windows,
-    tsk_flags_t options, double *result);
 
 typedef int two_locus_count_stat_method(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
@@ -1134,6 +1173,51 @@ int tsk_treeseq_Dz_unbiased(const tsk_treeseq_t *self, tsk_size_t num_sample_set
     double *result);
 int tsk_treeseq_pi2_unbiased(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets, tsk_size_t num_rows,
+    const tsk_id_t *row_sites, const double *row_positions, tsk_size_t num_cols,
+    const tsk_id_t *col_sites, const double *col_positions, tsk_flags_t options,
+    double *result);
+
+typedef int k_way_two_locus_count_stat_method(const tsk_treeseq_t *self,
+    tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
+    const tsk_id_t *sample_sets, tsk_size_t num_index_tuples,
+    const tsk_id_t *index_tuples, tsk_size_t num_rows, const tsk_id_t *row_sites,
+    const double *row_positions, tsk_size_t num_cols, const tsk_id_t *col_sites,
+    const double *col_positions, tsk_flags_t options, double *result);
+
+/* Two way sample set stats */
+
+int tsk_treeseq_divergence(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
+    const double *windows, tsk_flags_t options, double *result);
+int tsk_treeseq_Y2(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
+    const double *windows, tsk_flags_t options, double *result);
+int tsk_treeseq_f2(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
+    const double *windows, tsk_flags_t options, double *result);
+int tsk_treeseq_genetic_relatedness(const tsk_treeseq_t *self,
+    tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
+    const tsk_id_t *sample_sets, tsk_size_t num_index_tuples,
+    const tsk_id_t *index_tuples, tsk_size_t num_windows, const double *windows,
+    tsk_flags_t options, double *result);
+int tsk_treeseq_D2_ij(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_rows,
+    const tsk_id_t *row_sites, const double *row_positions, tsk_size_t num_cols,
+    const tsk_id_t *col_sites, const double *col_positions, tsk_flags_t options,
+    double *result);
+int tsk_treeseq_D2_ij_unbiased(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_rows,
+    const tsk_id_t *row_sites, const double *row_positions, tsk_size_t num_cols,
+    const tsk_id_t *col_sites, const double *col_positions, tsk_flags_t options,
+    double *result);
+int tsk_treeseq_r2_ij(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
+    tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_rows,
     const tsk_id_t *row_sites, const double *row_positions, tsk_size_t num_cols,
     const tsk_id_t *col_sites, const double *col_positions, tsk_flags_t options,
     double *result);
@@ -1270,6 +1354,13 @@ int tsk_tree_copy(const tsk_tree_t *self, tsk_tree_t *dest, tsk_flags_t options)
 @{
 */
 
+/** @brief Option to seek by skipping to the target tree, adding and removing as few
+   edges as possible. If not specified, a linear time algorithm is used instead.
+
+    @ingroup TREE_API_SEEKING_GROUP
+*/
+#define TSK_SEEK_SKIP (1 << 0)
+
 /**
 @brief Seek to the first tree in the sequence.
 
@@ -1375,12 +1466,22 @@ we will have ``position < tree.interval.right``.
 
 Seeking to a position currently covered by the tree is
 a constant time operation.
+
+Seeking to a position from a non-null tree uses a linear time
+algorithm by default, unless the option :c:macro:`TSK_SEEK_SKIP`
+is specified. In this case, a faster algorithm is employed which skips
+to the target tree by removing and adding the minimal number of edges
+possible. However, this approach does not guarantee that edges are
+inserted and removed in time-sorted order.
+
+.. warning:: Using the :c:macro:`TSK_SEEK_SKIP` option
+    may lead to edges not being inserted or removed in time-sorted order.
+
 @endrst
 
 @param self A pointer to an initialised tsk_tree_t object.
 @param position The position in genome coordinates
-@param options Seek options. Currently unused. Set to 0 for compatibility
-    with future versions of tskit.
+@param options Seek options. See the notes above for details.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_tree_seek(tsk_tree_t *self, double position, tsk_flags_t options);
@@ -1903,9 +2004,6 @@ bool tsk_tree_is_sample(const tsk_tree_t *self, tsk_id_t u);
  * Remove?
  */
 bool tsk_tree_equals(const tsk_tree_t *self, const tsk_tree_t *other);
-
-int tsk_diff_iter_init_from_ts(
-    tsk_diff_iter_t *self, const tsk_treeseq_t *tree_sequence, tsk_flags_t options);
 
 int tsk_tree_position_init(
     tsk_tree_position_t *self, const tsk_treeseq_t *tree_sequence, tsk_flags_t options);
