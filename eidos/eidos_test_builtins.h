@@ -110,7 +110,8 @@ for (iter in 1:100)
 	x = rnorm(10);		// float
 	xbuiltin = cumProduct(x);
 	xuserdef = cumProduct_func(x);
-	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of cumProduct(f)');
+	// tolerance because product() can get a little roundoff error due to SIMD
+	if (!all(abs(xbuiltin - xuserdef) < abs(xuserdef) * 1e-10 + 1e-15)) stop('Mismatch in test of cumProduct(f)');
 }
 
 // ***********************************************************************************************
@@ -418,7 +419,8 @@ for (iter in 1:100)
 	x = rnorm(10);		// float
 	xbuiltin = product(x);
 	xuserdef = product_func(x);
-	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of product(f)');
+	// tolerance because product() can get a little roundoff error due to SIMD
+	if (abs(xbuiltin - xuserdef) > abs(xuserdef) * 1e-10 + 1e-15) stop('Mismatch in test of product(f)');
 }
 
 // ***********************************************************************************************

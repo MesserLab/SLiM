@@ -286,6 +286,44 @@ if(BUILD_LTO)
     endif()
 endif()
 
+#
+# SIMD SUPPORT (independent of OpenMP)
+#
+
+# Option to disable SIMD entirely
+option(USE_SIMD "Enable SIMD optimizations (SSE4.2/AVX2)" ON)
+
+if(USE_SIMD AND NOT WIN32)
+    include(CheckCXXCompilerFlag)
+
+    # Check for AVX2 support
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+    check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE42)
+    check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
+
+    if(COMPILER_SUPPORTS_AVX2)
+        message(STATUS "SIMD: AVX2 support detected")
+        add_compile_definitions(EIDOS_HAS_AVX2=1)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+        if(COMPILER_SUPPORTS_FMA)
+            message(STATUS "SIMD: FMA support detected")
+            add_compile_definitions(EIDOS_HAS_FMA=1)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
+        endif()
+    elseif(COMPILER_SUPPORTS_SSE42)
+        message(STATUS "SIMD: SSE4.2 support detected (no AVX2)")
+        add_compile_definitions(EIDOS_HAS_SSE42=1)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+    else()
+        message(STATUS "SIMD: No SIMD support detected, using scalar fallback")
+    endif()
+elseif(USE_SIMD AND WIN32)
+    # Windows/MSVC detection not yet implemented
+    message(STATUS "SIMD: Windows SIMD detection not yet implemented, using scalar fallback")
+else()
+    message(STATUS "SIMD: Disabled by user")
+endif()
+
 # GSL - adding /usr/local/include so all targets that use GSL_INCLUDES get omp.h
 set(TARGET_NAME_GSL gsl)
 file(GLOB_RECURSE GSL_SOURCES ${PROJECT_SOURCE_DIR}/gsl/*.c ${PROJECT_SOURCE_DIR}/gsl/*/*.c)
