@@ -19,6 +19,7 @@ development head (in the master branch):
 	fix various bugs involving conflicts between defined constants and other symbols, including #573 and #574; this sets new definition rules that could break some existing scripts (but is unlikely to)
 	fix #575, QtSLiM terminates early when single-stepping with a rescheduled script block
 	fix #579, crash in models with (a) tree-seq recording, (b) multiple chromosomes, AND (c) rejection of proposed offspring in modifyChild()
+	add readLine() function for obtaining stdin input to running models, thanks to Chris Talbot
 
 
 version 5.1 (Eidos version 4.1):

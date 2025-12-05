@@ -6686,6 +6686,24 @@ The task keys recognized, and the tasks they govern, are:\
 \f3\fs20 \cf2 Typically, a dictionary of task keys and thread counts is read from a file and set up with this function at initialization time, but it is also possible to change new task thread counts dynamically.  If Eidos is not configured to run multithreaded, this function has no effect.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (string$)readLine(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Reads a line of input from the \'93standard input\'94 file.
+\f3\b0   This function is intended to allow for communication between a running Eidos script (such as a SLiM simulation) and an external process that is sending input to it.  It reads one line from the standard input and returns it as a singleton 
+\f1\fs18 string
+\f3\fs20 .  This is done with the C++ function 
+\f1\fs18 std::getline()
+\f3\fs20 , using the 
+\f1\fs18 std::cin
+\f3\fs20  file.  If that call returns false (typically because the end-of-file was reached or there was a read error of some kind), the empty string 
+\f1\fs18 ""
+\f3\fs20  will be returned.  The 
+\f1\fs18 system()
+\f3\fs20  function can also be helpful for related situations.\
+This function will raise an error if called in a GUI environment such as EidosScribe, SLiMgui, or SLiMguiLegacy, since there is no standard input set up for the running script in those environments.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (void)rm([Ns\'a0variableNames\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
