@@ -222,3 +222,47 @@ To read in a tree sequence, SLiM requires that:
 This is because of how `__TabulateSubpopulationsFromTreeSequence` works;
 probably it could be made more general, but it isn't.
 
+## Multiple chromosomes and multiple tree sequences
+
+In SLiM 5.0 we added support for simulating multiple chromosomes in SLiM, and that added
+some wrinkles to how tree-sequence recording is implemented in SLiM.  In particular, we
+now keep one tree sequence per chromosome being simulated.  In `species.h` we now define
+a struct named `TreeSeqInfo` that keeps the `tsk_table_collection_t`, in particular, as
+well as a couple of other bits of information.  Each Species then keeps its own `std::vector`
+of `TreeSeqInfo` structs, named `treeseq_`.  Where operations used to involve the table
+collection, they now typically involve a loop over the elements of `treeseq_` to perform
+the operation on each table collection in turn.
+
+The main complication here is that all of these table collections share three tskit tables:
+the node, individual, and population tables.  This means that the table collections all
+have a shared structure, and that needs to be preserved across operations like simplify.
+The shared tables are kept by the first chromosome's table collection, in `treeseq_[0]`.
+The other table collections zero-fill their node, individual, and population tables most
+of the time.  That means that, in that state, they are not compliant with tskit
+requirements, and trying to use them will often produce a segfault due to a dereference
+of a NULL pointer.  That is deliberate and useful; it makes it easy to debug situations
+where the table collections are being used when they should not be.  Sometimes we want the
+table collections to actually be usable.  For that, `Species::CopySharedTablesIn()` will
+do a bitwise, shallow copy of the shared tables into a given table collection; it should
+be matched by `DisconnectCopiedSharedTables()` as soon as the operation is done, restoring
+the zero-filled table state.  See https://github.com/tskit-dev/tskit/pull/2665 for
+Jerome's original multi-chromosome parallel simplification example, from which this design
+was derived.
+
+The end goal is that this will allow parallel simplification to happen in SLiM.  The code
+in `Species::SimplifyAllTreeSequences()` now implements the extra bookkeeping needed to
+maintain the shared table structure, so the design is ready to be parallelized when I
+return to the parallelization project.
+
+Single-chromosome simulations still get saved out as a .trees tree sequence file.  With
+multiple chromosomes, we now save out a "trees archive" with one .trees file per chromosome.
+This is not directly supported on the tskit side at the moment; you can just iterate over
+the files in the trees archive and process them as you wish in Python.  An example of this
+is provided in the SimHumanity paper, https://doi.org/10.47248/hpgg2505040006.
+
+There is some new top-level metadata associated with trees archives and multiple chromosomes.
+This is detailed in section 29.1 of the SLiM manual.  In particular, there are new top-level
+keys `this_chromosome` and `chromosomes` that should be provided in every .trees file.  The
+`chromosomes` key provides a table of all of the chromosomes involved in the trees archive.
+The `this_chromosome` key provides information about the particular chromosome represented
+by one particular .trees file in the trees archive.
