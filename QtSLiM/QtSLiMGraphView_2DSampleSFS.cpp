@@ -33,6 +33,7 @@
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 #include "mutation_type.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_2DSampleSFS::QtSLiMGraphView_2DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -347,7 +348,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         int registry_size;
         const MutationIndex *registry = population.MutationRegistry(&registry_size);
         const MutationIndex *registry_iter_end = registry + registry_size;
-        Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+        Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
         
         // Find our subpops and mutation type
         Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);

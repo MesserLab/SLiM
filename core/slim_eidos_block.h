@@ -255,6 +255,8 @@ public:
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 };
 
+#ifdef EIDOS_GUI
+// SLiMTypeTable and SLiMTypeInterpreter are only used in SLiMgui and QtSLiM
 
 #pragma mark -
 #pragma mark SLiMTypeTable
@@ -311,6 +313,7 @@ public:
 	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments) override;
 };
 
+#endif	// EIDOS_GUI
 
 #endif /* defined(__SLiM__slim_script_block__) */
 

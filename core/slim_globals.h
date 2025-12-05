@@ -124,7 +124,7 @@ typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 
 typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; over many ticks in a large model maybe 64 bits?
 typedef int64_t slim_haplosomeid_t;		// identifiers for pedigreed haplosomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
-typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
+typedef float slim_effect_t;			// storage of trait effects (e.g., selection coefficients) in memory-tight classes; also dominance coefficients
 
 #define SLIM_MAX_TICK			(1000000000L)	// ticks range from 0 (init time) to this; SLIM_MAX_TICK + 1 is an "infinite" marker value
 #define SLIM_MAX_BASE_POSITION	(1000000000000000L)	// base positions in the chromosome can range from 0 to 1e15; see above
@@ -451,8 +451,9 @@ typedef struct
 	int64_t communityObjects_count;
 	size_t communityObjects;
 	
-	size_t mutationRefcountBuffer;			// this pool is kept globally by Mutation
-	size_t mutationUnusedPoolSpace;			// this pool is kept globally by Mutation
+	size_t mutationRefcountBuffer;			// this pool is kept by Species
+	size_t mutationPerTraitBuffer;			// this pool is kept by Species
+	size_t mutationUnusedPoolSpace;			// this pool is kept by Species
 	
 	int64_t interactionTypeObjects_count;	// InteractionType is kept by Community now
 	size_t interactionTypeObjects;
@@ -571,6 +572,12 @@ enum class SLiMCycleStage
 };
 
 std::string StringForSLiMCycleStage(SLiMCycleStage p_stage);
+
+// This enumeration represents the type of a trait: multiplicative or additive.
+enum class TraitType : uint8_t {
+	kMultiplicative = 0,
+	kAdditive
+};
 
 // This enumeration represents the type of a chromosome.  Note that the sex of an individual cannot always be inferred
 // from chromosomal state, and the user is allowed to play games with null haplosomes; the chromosomes follow the sex
@@ -762,6 +769,7 @@ extern const std::string &gStr_initializeGenomicElement;
 extern const std::string &gStr_initializeGenomicElementType;
 extern const std::string &gStr_initializeMutationType;
 extern const std::string &gStr_initializeMutationTypeNuc;
+extern const std::string &gStr_initializeTrait;
 extern const std::string &gStr_initializeChromosome;
 extern const std::string &gStr_initializeGeneConversion;
 extern const std::string &gStr_initializeMutationRate;
@@ -773,6 +781,12 @@ extern const std::string &gStr_initializeSpecies;
 extern const std::string &gStr_initializeTreeSeq;
 extern const std::string &gStr_initializeSLiMModelType;
 extern const std::string &gStr_initializeInteractionType;
+
+//extern const std::string &gStr_type;		now gEidosStr_type
+extern const std::string &gStr_baselineOffset;
+extern const std::string &gStr_individualOffsetMean;
+extern const std::string &gStr_individualOffsetSD;
+extern const std::string &gStr_directFitnessEffect;
 
 extern const std::string &gStr_genomicElements;
 extern const std::string &gStr_lastPosition;
@@ -826,13 +840,14 @@ extern const std::string &gStr_nucleotide;
 extern const std::string &gStr_nucleotideValue;
 extern const std::string &gStr_originTick;
 extern const std::string &gStr_position;
-extern const std::string &gStr_selectionCoeff;
 extern const std::string &gStr_subpopID;
 extern const std::string &gStr_convertToSubstitution;
-extern const std::string &gStr_distributionType;
-extern const std::string &gStr_distributionParams;
-extern const std::string &gStr_dominanceCoeff;
-extern const std::string &gStr_hemizygousDominanceCoeff;
+extern const std::string &gStr_defaultDominanceForTrait;
+extern const std::string &gStr_defaultHemizygousDominanceForTrait;
+extern const std::string &gStr_effectDistributionTypeForTrait;
+extern const std::string &gStr_effectDistributionParamsForTrait;
+extern const std::string &gStr_dominance;
+extern const std::string &gStr_hemizygousDominance;
 extern const std::string &gStr_mutationStackGroup;
 extern const std::string &gStr_mutationStackPolicy;
 //extern const std::string &gStr_start;		now gEidosStr_start
@@ -846,6 +861,7 @@ extern const std::string &gStr_allMutationTypes;
 extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_allSubpopulations;
+extern const std::string &gStr_allTraits;
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomes;
 extern const std::string &gStr_genomicElementTypes;
@@ -871,6 +887,7 @@ extern const std::string &gStr_tagL1;
 extern const std::string &gStr_tagL2;
 extern const std::string &gStr_tagL3;
 extern const std::string &gStr_tagL4;
+extern const std::string &gStr_traits;
 extern const std::string &gStr_migrant;
 extern const std::string &gStr_fitnessScaling;
 extern const std::string &gStr_firstMaleIndex;
@@ -931,6 +948,10 @@ extern const std::string &gStr_countOfMutationsOfType;
 extern const std::string &gStr_positionsOfMutationsOfType;
 extern const std::string &gStr_containsMarkerMutation;
 extern const std::string &gStr_haplosomesForChromosomes;
+extern const std::string &gStr_offsetForTrait;
+extern const std::string &gStr_phenotypeForTrait;
+extern const std::string &gStr_setOffsetForTrait;
+extern const std::string &gStr_setPhenotypeForTrait;
 extern const std::string &gStr_relatedness;
 extern const std::string &gStr_sharedParentCount;
 extern const std::string &gStr_mutationsOfType;
@@ -948,10 +969,17 @@ extern const std::string &gStr_removeMutations;
 extern const std::string &gStr_setGenomicElementType;
 extern const std::string &gStr_setMutationFractions;
 extern const std::string &gStr_setMutationMatrix;
-extern const std::string &gStr_setSelectionCoeff;
+extern const std::string &gStr_effectForTrait;
+extern const std::string &gStr_dominanceForTrait;
+extern const std::string &gStr_hemizygousDominanceForTrait;
+extern const std::string &gStr_setEffectForTrait;
+extern const std::string &gStr_setDominanceForTrait;
+extern const std::string &gStr_setHemizygousDominanceForTrait;
 extern const std::string &gStr_setMutationType;
-extern const std::string &gStr_drawSelectionCoefficient;
-extern const std::string &gStr_setDistribution;
+extern const std::string &gStr_drawEffectForTrait;
+extern const std::string &gStr_setDefaultDominanceForTrait;
+extern const std::string &gStr_setDefaultHemizygousDominanceForTrait;
+extern const std::string &gStr_setEffectDistributionForTrait;
 extern const std::string &gStr_addPatternForClone;
 extern const std::string &gStr_addPatternForCross;
 extern const std::string &gStr_addPatternForNull;
@@ -961,6 +989,8 @@ extern const std::string &gStr_addSubpopSplit;
 extern const std::string &gStr_chromosomesOfType;
 extern const std::string &gStr_chromosomesWithIDs;
 extern const std::string &gStr_chromosomesWithSymbols;
+extern const std::string &gStr_traitsWithIndices;
+extern const std::string &gStr_traitsWithNames;
 extern const std::string &gStr_estimatedLastTick;
 extern const std::string &gStr_deregisterScriptBlock;
 extern const std::string &gStr_genomicElementTypesWithIDs;
@@ -1135,6 +1165,7 @@ extern const std::string &gStr_setBorderless;
 extern const std::string &gStr_text;
 extern const std::string &gStr_title;
 
+extern const std::string &gStr_Trait;
 extern const std::string &gStr_Chromosome;
 //extern const std::string &gStr_Haplosome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gStr_GenomicElement;
@@ -1223,6 +1254,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
 	gID_initializeMutationTypeNuc,
+	gID_initializeTrait,
 	gID_initializeChromosome,
 	gID_initializeGeneConversion,
 	gID_initializeMutationRate,
@@ -1234,6 +1266,11 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeTreeSeq,
 	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
+	
+	gID_baselineOffset,
+	gID_individualOffsetMean,
+	gID_individualOffsetSD,
+	gID_directFitnessEffect,
 	
 	gID_genomicElements,
 	gID_lastPosition,
@@ -1287,13 +1324,14 @@ enum _SLiMGlobalStringID : int {
 	gID_nucleotideValue,
 	gID_originTick,
 	gID_position,
-	gID_selectionCoeff,
 	gID_subpopID,
 	gID_convertToSubstitution,
-	gID_distributionType,
-	gID_distributionParams,
-	gID_dominanceCoeff,
-	gID_hemizygousDominanceCoeff,
+	gID_defaultDominanceForTrait,
+	gID_defaultHemizygousDominanceForTrait,
+	gID_effectDistributionTypeForTrait,
+	gID_effectDistributionParamsForTrait,
+	gID_dominance,
+	gID_hemizygousDominance,
 	gID_mutationStackGroup,
 	gID_mutationStackPolicy,
 	//gID_start,	now gEidosID_start
@@ -1307,8 +1345,10 @@ enum _SLiMGlobalStringID : int {
 	gID_allScriptBlocks,
 	gID_allSpecies,
 	gID_allSubpopulations,
+	gID_allTraits,
 	gID_chromosome,
 	gID_chromosomes,
+	gID_traits,
 	gID_genomicElementTypes,
 	gID_lifetimeReproductiveOutput,
 	gID_lifetimeReproductiveOutputM,
@@ -1392,6 +1432,10 @@ enum _SLiMGlobalStringID : int {
 	gID_positionsOfMutationsOfType,
 	gID_containsMarkerMutation,
 	gID_haplosomesForChromosomes,
+	gID_offsetForTrait,
+	gID_phenotypeForTrait,
+	gID_setOffsetForTrait,
+	gID_setPhenotypeForTrait,
 	gID_relatedness,
 	gID_sharedParentCount,
 	gID_mutationsOfType,
@@ -1409,10 +1453,17 @@ enum _SLiMGlobalStringID : int {
 	gID_setGenomicElementType,
 	gID_setMutationFractions,
 	gID_setMutationMatrix,
-	gID_setSelectionCoeff,
+	gID_effectForTrait,
+	gID_dominanceForTrait,
+	gID_hemizygousDominanceForTrait,
+	gID_setEffectForTrait,
+	gID_setDominanceForTrait,
+	gID_setHemizygousDominanceForTrait,
 	gID_setMutationType,
-	gID_drawSelectionCoefficient,
-	gID_setDistribution,
+	gID_drawEffectForTrait,
+	gID_setDefaultDominanceForTrait,
+	gID_setDefaultHemizygousDominanceForTrait,
+	gID_setEffectDistributionForTrait,
 	gID_addPatternForClone,
 	gID_addPatternForCross,
 	gID_addPatternForNull,
@@ -1421,6 +1472,8 @@ enum _SLiMGlobalStringID : int {
 	gID_chromosomesOfType,
 	gID_chromosomesWithIDs,
 	gID_chromosomesWithSymbols,
+	gID_traitsWithIndices,
+	gID_traitsWithNames,
 	gID_addSubpopSplit,
 	gID_estimatedLastTick,
 	gID_deregisterScriptBlock,
@@ -1596,6 +1649,7 @@ enum _SLiMGlobalStringID : int {
 	gID_text,
 	gID_title,
 	
+	gID_Trait,
 	gID_Chromosome,
 	gID_Haplosome,
 	gID_GenomicElement,

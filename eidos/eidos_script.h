@@ -88,6 +88,8 @@ public:
 	
 	virtual ~EidosScript(void);
 	
+	static bool Eidos_IsIdentifier(const std::string &symbol_name);
+	
 	void SetFinalSemicolonOptional(bool p_optional_semicolon)		{ final_semicolon_optional_ = p_optional_semicolon; }
 	
 	inline EidosScript *UserScript(void) const { return user_script_; }

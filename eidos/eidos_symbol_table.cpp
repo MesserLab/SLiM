@@ -885,6 +885,8 @@ void EidosSymbolTable::PrintSymbolTableChain(std::ostream &p_outstream)
 	p_outstream << "================================================" << std::endl;
 }
 
+#ifdef EIDOS_GUI
+// EidosTypeTable and EidosTypeInterpreter are only used in EidosScribe, SLiMguiLegacy, and QtSLiM
 void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
 {
 	// recurse to get the symbols from our chained symbol table
@@ -904,6 +906,7 @@ void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
 		symbol = slot->next_;
 	}
 }
+#endif	// EIDOS_GUI
 
 // This stream output method for EidosSymbolTable dumps all available symbols
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols)
