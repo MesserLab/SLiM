@@ -27,7 +27,9 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <fstream>
+#include <iostream>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "../eidos_zlib/zlib.h"
 
@@ -215,6 +217,40 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const std::vector<EidosValue_SP> &p
 				p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() encountered stream errors while reading file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValueNULL;
 		}
+	}
+	
+	return result_SP;
+}
+
+//	(string$)readLine(void)
+EidosValue_SP Eidos_ExecuteFunction_readLine(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_arguments)
+	
+#ifdef EIDOS_GUI
+	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readLine): function readLine() is not available in GUI environments (SLiMgui, SLiMguiLegacy, or EidosScribe)." << EidosTerminate(nullptr);
+#endif
+
+	// This function was implemented by Chris Talbot 11/19/25 for use in reinforcement learning environments.
+	// Associated with issue #576.
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	// Read a single line from stdin (command-line mode with interactive terminal)
+	std::string line;
+	
+	if (std::getline(std::cin, line))
+	{
+		// Control for CRLF vs. LF line endings
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.pop_back();
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(line));
+	}
+	else
+	{
+		// EOF or error reading from stdin; return empty string
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
 	}
 	
 	return result_SP;
