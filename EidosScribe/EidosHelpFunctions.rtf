@@ -2747,6 +2747,34 @@ If a value is supplied for
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (logical$)allClose(float\'a0x, float\'a0y, [float$\'a0rtol\'a0=\'a01e-5], [float$\'a0atol\'a0=\'a01e-8], [logical$\'a0equalNAN\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns 
+\f1\fs18 T
+\f3\fs20  if 
+\f0\b all pairs of values between 
+\f11\fs18 x
+\f0\fs20  and y are \'93close\'94
+\f3\b0 ; if any pair of values is not close, returns 
+\f1\fs18 F
+\f3\fs20 .  The definition of \'93close\'94 matches that used in the 
+\f1\fs18 isClose()
+\f3\fs20  function; see that documentation for all further details, including the way that values in 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are paired, as well as the meaning of the 
+\f1\fs18 rtol
+\f3\fs20 , 
+\f1\fs18 atol
+\f3\fs20 , and 
+\f1\fs18 equalNAN
+\f3\fs20  parameters.  This function is essentially equivalent to 
+\f1\fs18 all(isClose(x, y, rtol, atol, equalNAN))
+\f3\fs20 , but is more efficient.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf0 (logical$)any(logical
 \f2 \'a0
 \f1 x, ...)\
@@ -3249,6 +3277,109 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 test
 \f3\fs20 , unlike in R.  Value expressions without side effects are therefore recommended.
 \f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)isClose(float\'a0x, float\'a0y, [float$\'a0rtol\'a0=\'a01e-5], [float$\'a0atol\'a0=\'a01e-8], [logical$\'a0equalNAN\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a logical vector indicating 
+\f0\b whether each pair of values in 
+\f11\fs18 x
+\f0\fs20  and 
+\f11\fs18 y
+\f0\fs20  are \'93close\'94
+\f3\b0 ; if any pair of values is not close, returns 
+\f1\fs18 F
+\f3\fs20 .  See the 
+\f1\fs18 allClose()
+\f3\fs20  function for an efficient way to test whether 
+\f7\i all
+\f3\i0  pairs of values in 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are close.\
+A pair of values 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20  is considered \'93close\'94 according to the following criteria.  If both 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20  are finite, they are close if 
+\f1\fs18 abs(a \uc0\u8722  b) <= (atol + rtol * abs(b))
+\f3\fs20 .  If both 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20  are infinite, they are close if they have the same sign.  If both 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20  are 
+\f1\fs18 NAN
+\f3\fs20 , they are close if 
+\f1\fs18 equalNAN
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 .  In all other cases, 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20  are not close.  For finite values, 
+\f1\fs18 rtol
+\f3\fs20  thus defines a relative tolerance, and 
+\f1\fs18 atol
+\f3\fs20  an absolute tolerance; the relative difference 
+\f1\fs18 rtol * abs(b)
+\f3\fs20  and the absolute difference 
+\f1\fs18 atol
+\f3\fs20  are added together and compared against the absolute difference between 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20  to determine closeness.\
+Note that the default value for 
+\f1\fs18 atol
+\f3\fs20  is not appropriate when comparing numbers with magnitudes much smaller than one; be sure to select 
+\f1\fs18 atol
+\f3\fs20  for the use case at hand, especially for defining the threshold below which a non-zero value 
+\f1\fs18 a
+\f3\fs20  will be considered \'93close\'94 to a very small or zero value 
+\f1\fs18 b
+\f3\fs20 .  Note also that 
+\f1\fs18 isClose()
+\f3\fs20  is not symmetric in 
+\f1\fs18 a
+\f3\fs20  and 
+\f1\fs18 b
+\f3\fs20 ; it assumes that b is the reference value for calculating the relative difference.\
+Regarding how values in 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are paired, three cases are supported.  If 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are the same length, then 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are paired element-wise; if 
+\f1\fs18 x
+\f3\fs20  is singleton, the single 
+\f1\fs18 x
+\f3\fs20  value is paired with each value in 
+\f1\fs18 y
+\f3\fs20 ; or if 
+\f1\fs18 y
+\f3\fs20  is singleton, each value in 
+\f1\fs18 x
+\f3\fs20  is paired with the single 
+\f1\fs18 y
+\f3\fs20  value.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0

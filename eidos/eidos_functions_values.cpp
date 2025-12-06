@@ -1134,6 +1134,74 @@ EidosValue_SP Eidos_ExecuteFunction_all(const std::vector<EidosValue_SP> &p_argu
 	return result_SP;
 }
 
+//	(logical)allClose(float x, float y, [float$ rtol = 1e-5], [float$ atol = 1e-8], [logical$ equalNAN = F])
+EidosValue_SP Eidos_ExecuteFunction_allClose(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	// BEWARE: This method shares code with Eidos_ExecuteFunction_isClose(); they should be changed in parallel.
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *y_value = p_arguments[1].get();
+	EidosValue *rtol_value = p_arguments[2].get();
+	EidosValue *atol_value = p_arguments[3].get();
+	EidosValue *equalNAN_value = p_arguments[4].get();
+	int x_count = x_value->Count();
+	int y_count = y_value->Count();
+	
+	// rtol
+	double rtol = rtol_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (rtol < 0.0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_allClose): function allClose() requires rtol >= 0.0." << EidosTerminate(nullptr);
+	
+	// atol
+	double atol = atol_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (atol < 0.0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_allClose): function allClose() requires atol >= 0.0." << EidosTerminate(nullptr);
+	
+	// equalNAN
+	eidos_logical_t equalNAN = equalNAN_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	if ((x_count == y_count) || (x_count == 1) || (y_count == 1))
+	{
+		const double *x_data = x_value->FloatData();
+		const double *y_data = y_value->FloatData();
+		const double xv_singleton = (x_count == 1) ? x_data[0] : 0.0;
+		const double yv_singleton = (y_count == 1) ? y_data[0] : 0.0;
+		int value_count = std::max(x_count, y_count);
+		
+		for (int value_index = 0; value_index < value_count; ++value_index)
+		{
+			double xv = (x_count == 1) ? xv_singleton : x_data[value_index];
+			double yv = (y_count == 1) ? yv_singleton : y_data[value_index];
+			
+			if (std::isfinite(xv) && std::isfinite(yv))
+			{
+				if (std::abs(xv - yv) <= atol + rtol * std::abs(yv))
+					continue;
+			}
+			else if (std::isinf(xv) && std::isinf(yv))
+			{
+				if (std::signbit(xv) == std::signbit(yv))
+					continue;
+			}
+			else if (std::isnan(xv) && std::isnan(yv))
+			{
+				if (equalNAN)
+					continue;
+			}
+			
+			return gStaticEidosValue_LogicalF;
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_allClose): function allClose() requires the lengths of x and y to be equal, or that either x or y is singleton." << EidosTerminate(nullptr);
+	
+	return gStaticEidosValue_LogicalT;
+}
+
 //	(logical$)any(logical x, ...)
 EidosValue_SP Eidos_ExecuteFunction_any(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -1683,6 +1751,103 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 	result_SP->CopyDimensionsFromValue(test_value);
 	
 	return result_SP;
+}
+
+//	(logical)isClose(float x, float y, [float$ rtol = 1e-5], [float$ atol = 1e-8], [logical$ equalNAN = F])
+EidosValue_SP Eidos_ExecuteFunction_isClose(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	// BEWARE: This method shares code with Eidos_ExecuteFunction_allClose(); they should be changed in parallel.
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *y_value = p_arguments[1].get();
+	EidosValue *rtol_value = p_arguments[2].get();
+	EidosValue *atol_value = p_arguments[3].get();
+	EidosValue *equalNAN_value = p_arguments[4].get();
+	int x_count = x_value->Count();
+	int y_count = y_value->Count();
+	
+	// rtol
+	double rtol = rtol_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (rtol < 0.0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_isClose): function isClose() requires rtol >= 0.0." << EidosTerminate(nullptr);
+	
+	// atol
+	double atol = atol_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (atol < 0.0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_isClose): function isClose() requires atol >= 0.0." << EidosTerminate(nullptr);
+	
+	// equalNAN
+	eidos_logical_t equalNAN = equalNAN_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	if ((x_count == y_count) || (x_count == 1) || (y_count == 1))
+	{
+		if ((x_count == 1) && (y_count == 1))
+		{
+			double xv = x_value->FloatAtIndex_NOCAST(0, nullptr);
+			double yv = y_value->FloatAtIndex_NOCAST(0, nullptr);
+			
+			if (std::isfinite(xv) && std::isfinite(yv))
+			{
+				// if xv and yv are finite, they are "close" if absolute(xv - yv) <= (atol + rtol * absolute(yv))
+				// note that this mirrors the behavior of the numpy function isclose(), which this is based upon;
+				// it is documented at https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
+				// Note that Python's built-in math.isclose() has a different criterion, and different defaults;
+				// see https://docs.python.org/3/library/math.html#math.isclose.
+				bool close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
+				
+				return (close ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+			}
+			else
+			{
+				// if xv and yv are infinite, they are "close" if and only if they have the same sign
+				if (std::isinf(xv) && std::isinf(yv))
+					return ((std::signbit(xv) == std::signbit(yv)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				
+				// if xv and yv are NAN, they are "close" if and only if the equalNAN flag is true
+				if (std::isnan(xv) && std::isnan(yv))
+					return (equalNAN ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				
+				// all other cases involving INF and/or NAN are not "close"
+				return gStaticEidosValue_LogicalF;
+			}
+		}
+		else
+		{
+			const double *x_data = x_value->FloatData();
+			const double *y_data = y_value->FloatData();
+			const double xv_singleton = (x_count == 1) ? x_data[0] : 0.0;
+			const double yv_singleton = (y_count == 1) ? y_data[0] : 0.0;
+			
+			int value_count = std::max(x_count, y_count);
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(value_count);
+			
+			for (int value_index = 0; value_index < value_count; ++value_index)
+			{
+				double xv = (x_count == 1) ? xv_singleton : x_data[value_index];
+				double yv = (y_count == 1) ? yv_singleton : y_data[value_index];
+				bool close;
+				
+				if (std::isfinite(xv) && std::isfinite(yv))
+					close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
+				else if (std::isinf(xv) && std::isinf(yv))
+					close = (std::signbit(xv) == std::signbit(yv));
+				else if (std::isnan(xv) && std::isnan(yv))
+					close = equalNAN;
+				else
+					close = false;
+				
+				logical_result->set_logical_no_check(close, value_index);
+			}
+			
+			return EidosValue_SP(logical_result);
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_isClose): function isClose() requires the lengths of x and y to be equal, or that either x or y is singleton." << EidosTerminate(nullptr);
 }
 
 //	(integer)match(* x, * table)

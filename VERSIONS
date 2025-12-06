@@ -20,6 +20,7 @@ development head (in the master branch):
 	fix #575, QtSLiM terminates early when single-stepping with a rescheduled script block
 	fix #579, crash in models with (a) tree-seq recording, (b) multiple chromosomes, AND (c) rejection of proposed offspring in modifyChild()
 	add readLine() function for obtaining stdin input to running models, thanks to Chris Talbot
+	fix #580, add isClose() and allClose() Eidos functions for comparison within a given tolerance
 
 
 multitrait branch:
