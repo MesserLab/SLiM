@@ -2514,12 +2514,12 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 			// case across multiple threads seems excessively complex; instead we look for an overflow afterwards
 			const int64_t *int_data = x_value->IntData();
 			double sum_d = 0;
-			
+
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SUM_INTEGER);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int_data) reduction(+: sum_d) if(parallel:x_count >= EIDOS_OMPMIN_SUM_INTEGER) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum_d += int_data[value_index];
-				
+
 			// 2^53 is the largest integer such that it and all smaller integers can be represented in double losslessly
 			int64_t sum = (int64_t)sum_d;
 			bool fits_in_integer = (((double)sum == sum_d) && (sum < 9007199254740992L) && (sum > -9007199254740992L));
@@ -2535,7 +2535,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 	{
 		const double *float_data = x_value->FloatData();
 		double sum = 0;
-
+		
 #ifdef _OPENMP
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SUM_FLOAT);
 		#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data) reduction(+: sum) if(parallel:x_count >= EIDOS_OMPMIN_SUM_FLOAT) num_threads(thread_count)
@@ -2544,7 +2544,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 #else
 		sum = Eidos_SIMD::sum_float64(float_data, x_count);
 #endif
-
+		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sum));
 	}
 	else if (x_type == EidosValueType::kValueLogical)
