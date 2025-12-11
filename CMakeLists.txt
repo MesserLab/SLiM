@@ -291,9 +291,19 @@ endif()
 #
 
 # Option to disable SIMD entirely
-option(USE_SIMD "Enable SIMD optimizations (SSE4.2/AVX2)" ON)
+option(USE_SIMD "Enable SIMD optimizations (SSE4.2/AVX2 on x86_64, NEON on ARM64)" ON)
 
-if(USE_SIMD AND NOT WIN32)
+# Check architecture
+# CMAKE_SYSTEM_PROCESSOR is "x86_64" on Intel Macs and Linux x86_64, "arm64"/"aarch64" on ARM
+set(IS_X86_64 FALSE)
+set(IS_ARM64 FALSE)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64|i686|i386")
+    set(IS_X86_64 TRUE)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64|ARM64")
+    set(IS_ARM64 TRUE)
+endif()
+
+if(USE_SIMD AND NOT WIN32 AND IS_X86_64)
     include(CheckCXXCompilerFlag)
 
     # Check for AVX2 support
@@ -315,8 +325,14 @@ if(USE_SIMD AND NOT WIN32)
         add_compile_definitions(EIDOS_HAS_SSE42=1)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
     else()
-        message(STATUS "SIMD: No SIMD support detected, using scalar fallback")
+        message(STATUS "SIMD: No x86 SIMD support detected, using scalar fallback")
     endif()
+elseif(USE_SIMD AND NOT WIN32 AND IS_ARM64)
+    # ARM64 NEON is always available on ARM64, no compiler flag needed
+    message(STATUS "SIMD: ARM64 NEON support enabled")
+    add_compile_definitions(EIDOS_HAS_NEON=1)
+elseif(USE_SIMD AND NOT WIN32)
+    message(STATUS "SIMD: Unknown architecture (${CMAKE_SYSTEM_PROCESSOR}), using scalar fallback")
 elseif(USE_SIMD AND WIN32)
     # Windows/MSVC detection not yet implemented
     message(STATUS "SIMD: Windows SIMD detection not yet implemented, using scalar fallback")

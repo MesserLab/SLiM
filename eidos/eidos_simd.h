@@ -22,7 +22,10 @@
  SIMD acceleration for Eidos math operations, independent of OpenMP.
 
  This header provides vectorized implementations of common math operations
- using SSE4.2 or AVX2 intrinsics when available, with scalar fallbacks.
+ using platform-specific SIMD intrinsics when available:
+   - x86_64: SSE4.2 or AVX2 via <immintrin.h>
+   - ARM64: NEON via <arm_neon.h>
+ Falls back to scalar code when no SIMD is available.
 
  */
 
@@ -42,6 +45,10 @@
     #include <smmintrin.h>
     #define EIDOS_SIMD_WIDTH 2          // 2 doubles per SSE register
     #define EIDOS_SIMD_FLOAT_WIDTH 4    // 4 floats per SSE register
+#elif defined(EIDOS_HAS_NEON)
+    #include <arm_neon.h>
+    #define EIDOS_SIMD_WIDTH 2          // 2 doubles per NEON register
+    #define EIDOS_SIMD_FLOAT_WIDTH 4    // 4 floats per NEON register
 #else
     #define EIDOS_SIMD_WIDTH 1          // Scalar fallback
     #define EIDOS_SIMD_FLOAT_WIDTH 1
@@ -78,6 +85,14 @@ inline void sqrt_float64(const double *input, double *output, int64_t count)
         __m128d r = _mm_sqrt_pd(v);
         _mm_storeu_pd(&output[i], r);
     }
+#elif defined(EIDOS_HAS_NEON)
+    // Process 2 doubles at a time
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        float64x2_t r = vsqrtq_f64(v);
+        vst1q_f64(&output[i], r);
+    }
 #endif
 
     // Scalar remainder
@@ -109,6 +124,13 @@ inline void abs_float64(const double *input, double *output, int64_t count)
         __m128d r = _mm_andnot_pd(sign_mask, v);
         _mm_storeu_pd(&output[i], r);
     }
+#elif defined(EIDOS_HAS_NEON)
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        float64x2_t r = vabsq_f64(v);
+        vst1q_f64(&output[i], r);
+    }
 #endif
 
     for (; i < count; i++)
@@ -135,6 +157,13 @@ inline void floor_float64(const double *input, double *output, int64_t count)
         __m128d v = _mm_loadu_pd(&input[i]);
         __m128d r = _mm_floor_pd(v);
         _mm_storeu_pd(&output[i], r);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        float64x2_t r = vrndmq_f64(v);  // Round toward minus infinity (floor)
+        vst1q_f64(&output[i], r);
     }
 #endif
 
@@ -163,6 +192,13 @@ inline void ceil_float64(const double *input, double *output, int64_t count)
         __m128d r = _mm_ceil_pd(v);
         _mm_storeu_pd(&output[i], r);
     }
+#elif defined(EIDOS_HAS_NEON)
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        float64x2_t r = vrndpq_f64(v);  // Round toward plus infinity (ceil)
+        vst1q_f64(&output[i], r);
+    }
 #endif
 
     for (; i < count; i++)
@@ -190,6 +226,13 @@ inline void trunc_float64(const double *input, double *output, int64_t count)
         __m128d r = _mm_round_pd(v, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
         _mm_storeu_pd(&output[i], r);
     }
+#elif defined(EIDOS_HAS_NEON)
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        float64x2_t r = vrndq_f64(v);  // Round toward zero (truncate)
+        vst1q_f64(&output[i], r);
+    }
 #endif
 
     for (; i < count; i++)
@@ -216,6 +259,13 @@ inline void round_float64(const double *input, double *output, int64_t count)
         __m128d v = _mm_loadu_pd(&input[i]);
         __m128d r = _mm_round_pd(v, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
         _mm_storeu_pd(&output[i], r);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        float64x2_t r = vrndaq_f64(v);  // Round to nearest, ties away from zero
+        vst1q_f64(&output[i], r);
     }
 #endif
 
@@ -298,6 +348,15 @@ inline double sum_float64(const double *input, int64_t count)
     __m128d shuf = _mm_shuffle_pd(vsum, vsum, 1);
     vsum = _mm_add_sd(vsum, shuf);
     sum = _mm_cvtsd_f64(vsum);
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t vsum = vdupq_n_f64(0.0);
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        vsum = vaddq_f64(vsum, v);
+    }
+    // Horizontal sum of 2 doubles
+    sum = vaddvq_f64(vsum);
 #endif
 
     // Scalar remainder
@@ -339,6 +398,15 @@ inline double product_float64(const double *input, int64_t count)
     __m128d shuf = _mm_shuffle_pd(vprod, vprod, 1);
     vprod = _mm_mul_sd(vprod, shuf);
     prod = _mm_cvtsd_f64(vprod);
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t vprod = vdupq_n_f64(1.0);
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v = vld1q_f64(&input[i]);
+        vprod = vmulq_f64(vprod, v);
+    }
+    // Horizontal product of 2 doubles
+    prod = vgetq_lane_f64(vprod, 0) * vgetq_lane_f64(vprod, 1);
 #endif
 
     for (; i < count; i++)
