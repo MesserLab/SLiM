@@ -378,7 +378,7 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
 	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
 	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); all(abs(rowSums(y) - apply(y, 0, 'sum(applyValue);')) < 1e-10);", true);  // tolerance for SIMD
-
+	
 	// colSums()
 	EidosAssertScriptSuccess_L("x = c(T,T,F,F,T,F,F,T,T,F,F,T); y = matrix(x, nrow=3); identical(colSums(y), c(2, 1, 2, 1));", true);
 	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(colSums(y), c(6, 15, 24, 33));", true);

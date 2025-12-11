@@ -2,7 +2,7 @@
 //  eidos_simd.h
 //  Eidos
 //
-//  Created by Ben Haller on 11/26/2024.
+//  Created by Andrew Kern on 11/26/2025.
 //  Copyright (c) 2024-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
