@@ -205,8 +205,8 @@ jobs:
           - { os: macos-14, qt: 6.7.3 }
           # macOS Intel with older Qt6
           - { os: macos-15-intel, qt: 6.7.3 }
-          # new macOS with most recent Qt6 LTS
-          - { os: macos-26, qt: 6.8.3 }
+          # new macOS with most recent Qt6 LTS; note Qt 6.8.4 or later is required here
+          - { os: macos-26, qt: 6.8.4 }
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: -D NO_QT_VERSION_ERROR
