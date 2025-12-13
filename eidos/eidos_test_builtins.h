@@ -110,7 +110,8 @@ for (iter in 1:100)
 	x = rnorm(10);		// float
 	xbuiltin = cumProduct(x);
 	xuserdef = cumProduct_func(x);
-	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of cumProduct(f)');
+	// tolerance because product() can get a little roundoff error due to SIMD
+	if (!allClose(xbuiltin, xuserdef)) stop('Mismatch in test of cumProduct(f)');
 }
 
 // ***********************************************************************************************
@@ -135,7 +136,7 @@ for (iter in 1:100)
 	xbuiltin = cumSum(x);
 	xuserdef = cumSum_func(x);
 	// tolerance because sum() can get a little roundoff error due to SIMD
-	if (!all(abs(xbuiltin - xuserdef) < 1e-10)) stop('Mismatch in test of cumSum(f)');
+	if (!allClose(xbuiltin, xuserdef)) stop('Mismatch in test of cumSum(f)');
 }
 
 // ***********************************************************************************************
@@ -271,7 +272,7 @@ for (iter in 1:100)
 	xbuiltin = mean(x);
 	xuserdef = mean_func(x);
 	// tolerance because sum() can get a little roundoff error due to SIMD
-	if (!all(abs(xbuiltin - xuserdef) < 1e-10)) stop('Mismatch in test of mean(f)');
+	if (!allClose(xbuiltin, xuserdef)) stop('Mismatch in test of mean(f)');
 }
 
 // ***********************************************************************************************
@@ -418,7 +419,8 @@ for (iter in 1:100)
 	x = rnorm(10);		// float
 	xbuiltin = product(x);
 	xuserdef = product_func(x);
-	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of product(f)');
+	// tolerance because product() can get a little roundoff error due to SIMD
+	if (!allClose(xbuiltin, xuserdef)) stop('Mismatch in test of product(f)');
 }
 
 // ***********************************************************************************************
@@ -793,7 +795,7 @@ for (iter in 1:100)
 	xbuiltin = sum(x);
 	xuserdef = sum_func(x);
 	// tolerance because sum() can get a little roundoff error due to SIMD
-	if (!all(abs(xbuiltin - xuserdef) < 1e-10)) stop('Mismatch in test of sum(f)');
+	if (!allClose(xbuiltin, xuserdef)) stop('Mismatch in test of sum(f)');
 }
 
 // ***********************************************************************************************
