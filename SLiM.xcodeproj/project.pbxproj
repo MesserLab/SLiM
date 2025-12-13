@@ -1953,6 +1953,7 @@
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
 		986070E82AACECD600FD6143 /* spatial_kernel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = spatial_kernel.cpp; sourceTree = "<group>"; };
 		986070E92AACECD600FD6143 /* spatial_kernel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = spatial_kernel.h; sourceTree = "<group>"; };
+		9860DCB22EEDAADD004B9CC0 /* eidos_simd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_simd.h; sourceTree = "<group>"; };
 		986764A92089066A00E81B2E /* tables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tables.h; path = treerec/tskit/tables.h; sourceTree = "<group>"; };
 		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
 		986926D31AA1337A0000E138 /* graph_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu.pdf; sourceTree = "<group>"; };
@@ -2690,6 +2691,7 @@
 			isa = PBXGroup;
 			children = (
 				9873B12328CE26CD00582D83 /* eidos_openmp.h */,
+				9860DCB22EEDAADD004B9CC0 /* eidos_simd.h */,
 				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
 				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
 				98321F931B406B67007337A3 /* eidos_globals.h */,

@@ -130,6 +130,7 @@ HEADERS += \
     eidos_property_signature.h \
     eidos_rng.h \
     eidos_script.h \
+	eidos_simd.h \
 	eidos_sorting.h \
     eidos_symbol_table.h \
     eidos_test_builtins.h \
