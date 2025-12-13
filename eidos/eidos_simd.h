@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Andrew Kern on 11/26/2025.
-//  Copyright (c) 2024-2025 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
