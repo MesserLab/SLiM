@@ -350,7 +350,7 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_I("tr(matrix(1:9, ncol=3));", 1 + 5 + 9);
 	EidosAssertScriptSuccess_F("tr(matrix(1.0:9, ncol=3));", 1 + 5 + 9);
 	EidosAssertScriptSuccess_F("tr(matrix(c(1.25, -7.8, 3.4, 6.1, 4.75, 8.2, -0.3, 8.6, -1.5), ncol=3));", 1.25 + 4.75 + -1.5);
-	EidosAssertScriptSuccess_L("x = matrix(runif(100), ncol=10); identical(tr(x), sum(diag(x)));", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(100), ncol=10); allClose(tr(x), sum(diag(x)));", true);  // tolerance for SIMD
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(100, -1000, 1000), ncol=10); identical(tr(x), sum(diag(x)));", true);
 	
 	// upperTri()
@@ -377,7 +377,7 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(rowSums(y), c(22.0, 26, 30));", true);
 	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
 	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
-	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); allClose(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);  // tolerance for SIMD
 	
 	// colSums()
 	EidosAssertScriptSuccess_L("x = c(T,T,F,F,T,F,F,T,T,F,F,T); y = matrix(x, nrow=3); identical(colSums(y), c(2, 1, 2, 1));", true);
@@ -385,7 +385,7 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(colSums(y), c(6.0, 15, 24, 33));", true);
 	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
 	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
-	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); allClose(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);  // tolerance for SIMD
 }
 
 #pragma mark filesystem access

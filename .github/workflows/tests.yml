@@ -23,10 +23,10 @@ jobs:
           - { os: ubuntu-22.04, gcc: 9, python: 3.9 }
           - { os: ubuntu-24.04, gcc: 12, python: 3.12 }
           # macOS, oldest supported version
-          # (macos-10.15, macos-11, and macos-12 were removed by GitHub)
-          - { os: macos-13, python: 3.9 }
+          # (macos-10.15, macos-11, macos-12, and macos-13 were removed by GitHub)
+          - { os: macos-14, python: 3.9 }
           # macOS, newest supported version
-          - { os: macos-15, python: 3.12 }
+          - { os: macos-26, python: 3.13 }
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -197,13 +197,16 @@ jobs:
           - { os: ubuntu-22.04, qt: 5.15.2, gcc: 12 }
           # Ubuntu 24.04 with the most recent Qt6 and GCC.
           - { os: ubuntu-22.04, qt: 6.8.2, gcc: 12 }
-          # old macOS with oldest supported Qt5; macos-12 was removed by GitHub,
-          # so we can't CI with Qt 5.9.5 any more, oh well
-          #- {os: macos-12, qt: 5.9.5}
+          # macos-12 and macos-13 were removed by GitHub,
+          # so we can't CI with Qt 5.X on macOS any more, oh well
           # old macOS with last official LTS Qt5
-          - { os: macos-13, qt: 5.15.2 }
-          # new macOS with most recent Qt6
-          - { os: macos-15, qt: 6.8.2 }
+          #- { os: macos-13, qt: 5.15.2 }
+          # old macOS ARM64 with older Qt6
+          - { os: macos-14, qt: 6.7.3 }
+          # macOS Intel with older Qt6
+          - { os: macos-15-intel, qt: 6.7.3 }
+          # new macOS with a very recent Qt6
+          - { os: macos-26, qt: 6.9.2 }
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: -D NO_QT_VERSION_ERROR

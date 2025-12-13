@@ -286,6 +286,60 @@ if(BUILD_LTO)
     endif()
 endif()
 
+#
+# SIMD SUPPORT (independent of OpenMP)
+#
+
+# Option to disable SIMD entirely
+option(USE_SIMD "Enable SIMD optimizations (SSE4.2/AVX2 on x86_64, NEON on ARM64)" ON)
+
+# Check architecture
+# CMAKE_SYSTEM_PROCESSOR is "x86_64" on Intel Macs and Linux x86_64, "arm64"/"aarch64" on ARM
+set(IS_X86_64 FALSE)
+set(IS_ARM64 FALSE)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64|i686|i386")
+    set(IS_X86_64 TRUE)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64|ARM64")
+    set(IS_ARM64 TRUE)
+endif()
+
+if(USE_SIMD AND NOT WIN32 AND IS_X86_64)
+    include(CheckCXXCompilerFlag)
+
+    # Check for AVX2 support
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+    check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE42)
+    check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
+
+    if(COMPILER_SUPPORTS_AVX2)
+        message(STATUS "SIMD: AVX2 support detected")
+        add_compile_definitions(EIDOS_HAS_AVX2=1)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+        if(COMPILER_SUPPORTS_FMA)
+            message(STATUS "SIMD: FMA support detected")
+            add_compile_definitions(EIDOS_HAS_FMA=1)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
+        endif()
+    elseif(COMPILER_SUPPORTS_SSE42)
+        message(STATUS "SIMD: SSE4.2 support detected (no AVX2)")
+        add_compile_definitions(EIDOS_HAS_SSE42=1)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+    else()
+        message(STATUS "SIMD: No x86 SIMD support detected, using scalar fallback")
+    endif()
+elseif(USE_SIMD AND NOT WIN32 AND IS_ARM64)
+    # ARM64 NEON is always available on ARM64, no compiler flag needed
+    message(STATUS "SIMD: ARM64 NEON support enabled")
+    add_compile_definitions(EIDOS_HAS_NEON=1)
+elseif(USE_SIMD AND NOT WIN32)
+    message(STATUS "SIMD: Unknown architecture (${CMAKE_SYSTEM_PROCESSOR}), using scalar fallback")
+elseif(USE_SIMD AND WIN32)
+    # Windows/MSVC detection not yet implemented
+    message(STATUS "SIMD: Windows SIMD detection not yet implemented, using scalar fallback")
+else()
+    message(STATUS "SIMD: Disabled by user")
+endif()
+
 # GSL - adding /usr/local/include so all targets that use GSL_INCLUDES get omp.h
 set(TARGET_NAME_GSL gsl)
 file(GLOB_RECURSE GSL_SOURCES ${PROJECT_SOURCE_DIR}/gsl/*.c ${PROJECT_SOURCE_DIR}/gsl/*/*.c)
