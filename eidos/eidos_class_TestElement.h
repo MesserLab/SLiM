@@ -69,8 +69,8 @@ public:
 	EidosValue_SP ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size);
-	static void SetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size);
+	static EidosValue *GetProperty_Accelerated__yolk(EidosGlobalStringID p_property_id, EidosObject **p_elements, size_t p_elements_size);
+	static void SetProperty_Accelerated__yolk(EidosGlobalStringID p_property_id, EidosObject **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 class EidosTestElement_Class : public EidosDictionaryRetained_Class
