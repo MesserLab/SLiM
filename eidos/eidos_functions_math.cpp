@@ -354,7 +354,7 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
-
+		
 #ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_EXP_FLOAT);
@@ -681,7 +681,7 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
-
+		
 #ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG_FLOAT);
@@ -692,9 +692,9 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 		Eidos_SIMD::log_float64(float_data, float_result_data, x_count);
 #endif
 	}
-
+	
 	result_SP->CopyDimensionsFromValue(x_value);
-
+	
 	return result_SP;
 }
 
@@ -702,16 +702,16 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-
+	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-
+	
 	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
-
+		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(log10(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
@@ -721,7 +721,7 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
-
+		
 #ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG10_FLOAT);
@@ -732,9 +732,9 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 		Eidos_SIMD::log10_float64(float_data, float_result_data, x_count);
 #endif
 	}
-
+	
 	result_SP->CopyDimensionsFromValue(x_value);
-
+	
 	return result_SP;
 }
 
@@ -742,16 +742,16 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-
+	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-
+	
 	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
-
+		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(log2(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
@@ -761,7 +761,7 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
-
+		
 #ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG2_FLOAT);

@@ -1682,9 +1682,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// FIXME: TO BE PARALLELIZED
 	Eidos_SIMD::exp_float64(values_, values_, values_size_);
-
+	
 	_ValuesChanged();
-
+	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
