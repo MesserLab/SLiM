@@ -2,6 +2,9 @@
 
 This document explains how the SIMD and SLEEF build flags work and interact in the SLiM/Eidos codebase.
 
+## Author
+These flags and configurations were developed by Andrew Kern as part of SIMD optimization work for SLiM.
+
 ## Overview
 
 There are three layers:

@@ -2,6 +2,9 @@
 
 This document explains how to regenerate the SLEEF inline headers if needed.
 
+## Author
+These flags and configurations were developed by Andrew Kern as part of SIMD optimization work for SLiM.
+
 ## Background
 
 [SLEEF](https://github.com/shibatch/sleef) (SIMD Library for Evaluating Elementary Functions) provides vectorized implementations of transcendental math functions (exp, log, sin, cos, etc.) with guaranteed accuracy.
@@ -17,8 +20,9 @@ We use SLEEF's **inline headers** which are self-contained header files that can
 
 Both headers are from **SLEEF 4.0.0** (generated December 2024).
 
-## Why Patching is Required
+## Patching is Required
 
+I have to do a bit of patching here of the generated headers because
 SLEEF's generated headers use **C99 hexadecimal floating-point literals** like:
 
 ```c
