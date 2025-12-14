@@ -70,17 +70,17 @@ cd / && rm -rf "$TMPDIR"
 
 ## Generating the ARM NEON Header (ARM64)
 
-Must be run on an ARM64 machine (Apple Silicon Mac or ARM64 Linux). There's a helper script in the repo:
+Must be run on an ARM64 machine (Apple Silicon Mac or ARM64 Linux). There's a helper script in `simd_benchmarks/`:
 
 ```bash
 # From an x86_64 machine, run on a remote ARM64 machine:
-ssh arm-machine "bash -s" < generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
+ssh arm-machine "bash -s" < simd_benchmarks/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
 
 # Or run directly on an ARM64 machine:
-./generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
+./simd_benchmarks/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
 ```
 
-The script (`generate_arm_sleef.sh` in repo root) handles:
+The script (`simd_benchmarks/generate_arm_sleef.sh`) handles:
 1. Cloning SLEEF
 2. Building with `-DCMAKE_OSX_ARCHITECTURES=arm64` (for Apple Silicon)
 3. Patching hex float literals
@@ -153,4 +153,4 @@ The license file is included at `eidos/sleef/LICENSE`.
 | `eidos/sleef/sleefinline_advsimd.h` | Patched SLEEF ARM NEON header (~6900 lines) |
 | `eidos/sleef/sleef_config.h` | Architecture selection macros |
 | `eidos/sleef/LICENSE` | Boost Software License |
-| `generate_arm_sleef.sh` | Script to generate ARM header on remote machine |
+| `simd_benchmarks/generate_arm_sleef.sh` | Script to generate ARM header on remote machine |
