@@ -22,6 +22,7 @@
 #include "spatial_kernel.h"
 #include "subpopulation.h"
 #include "eidos_class_Image.h"
+#include "eidos_simd.h"
 
 #include "gsl_math.h"
 #include "gsl_spline.h"
@@ -1680,11 +1681,10 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// FIXME: TO BE PARALLELIZED
-	for (int64_t i = 0; i < values_size_; ++i)
-		values_[i] = exp(values_[i]);
-	
+	Eidos_SIMD::exp_float64(values_, values_, values_size_);
+
 	_ValuesChanged();
-	
+
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 

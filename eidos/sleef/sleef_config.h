@@ -36,6 +36,9 @@
 #ifndef sleef_config_h
 #define sleef_config_h
 
+// Allow command-line override with -DEIDOS_SLEEF_AVAILABLE=0
+#ifndef EIDOS_SLEEF_AVAILABLE
+
 // ================================
 // AVX2+FMA Configuration (x86_64)
 // ================================
@@ -89,5 +92,12 @@
     #define EIDOS_SLEEF_AVAILABLE 0
     #define EIDOS_SLEEF_VEC_SIZE 1
 #endif
+
+#else // EIDOS_SLEEF_AVAILABLE was defined externally
+    // When disabled via command-line -DEIDOS_SLEEF_AVAILABLE=0, set VEC_SIZE to 1
+    #if !EIDOS_SLEEF_AVAILABLE
+        #define EIDOS_SLEEF_VEC_SIZE 1
+    #endif
+#endif // ifndef EIDOS_SLEEF_AVAILABLE
 
 #endif /* sleef_config_h */
