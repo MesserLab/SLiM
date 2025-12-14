@@ -93,6 +93,25 @@ To convert a hex float to decimal (Python):
 '709.78271289338397'
 ```
 
+## __float128 Compatibility Patch
+
+SLEEF headers generated on Linux/GCC unconditionally define `SLEEF_FLOAT128_IS_IEEEQP`, which causes the header to use `__float128` for the `Sleef_quad` type. However, `__float128` is a GCC extension not supported by Clang/AppleClang on macOS.
+
+The generation scripts patch this by replacing:
+```c
+#define SLEEF_FLOAT128_IS_IEEEQP
+```
+
+with:
+```c
+// Only define SLEEF_FLOAT128_IS_IEEEQP on compilers that support __float128
+#if defined(__GNUC__) && !defined(__clang__) && defined(__SIZEOF_FLOAT128__)
+#define SLEEF_FLOAT128_IS_IEEEQP
+#endif
+```
+
+This allows the header to fall back to a struct-based `Sleef_quad` type on compilers without `__float128` support. Since SLiM doesn't use quad-precision SLEEF functions, this fallback is safe.
+
 ## Verifying the Patched Headers
 
 After patching, verify the headers compile with C++11:
