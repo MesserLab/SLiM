@@ -31,42 +31,18 @@ These are valid in C99/C11 and C++17, but **not in C++11/C++14**. Since SLiM use
 
 ## Generating the AVX2 Header (x86_64)
 
-Run on any x86_64 Linux or macOS machine:
+Run on any x86_64 Linux or macOS machine. There's a helper script in `simd_benchmarks/`:
 
 ```bash
-#!/bin/bash
-# generate_avx2_sleef.sh
-
-set -e
-TMPDIR=$(mktemp -d)
-cd "$TMPDIR"
-
-# Clone and build SLEEF
-git clone --depth 1 https://github.com/shibatch/sleef.git
-cd sleef && mkdir build && cd build
-
-cmake .. \
-    -DSLEEF_BUILD_INLINE_HEADERS=TRUE \
-    -DSLEEF_BUILD_TESTS=OFF \
-    -DSLEEF_BUILD_LIBM=OFF \
-    -DSLEEF_BUILD_DFT=OFF \
-    -DSLEEF_BUILD_QUAD=OFF \
-    -DCMAKE_INSTALL_PREFIX="$TMPDIR/install"
-
-make inline_headers
-
-# Patch hex floats and output
-sed \
-    -e 's/0x1\.2ced32p+126/9.99999968028569247e+37/g' \
-    -e 's/0x1\.62e42fefa39efp+9/7.09782712893383973e+02/g' \
-    -e 's/0x1\.c7b1f3cac7433p+1019/9.99999999999999986e+306/g' \
-    -e 's/0x1p-1022/2.22507385850720138e-308/g' \
-    -e 's/0x1p-126/1.17549435082228751e-38/g' \
-    include/sleefinline_avx2.h
-
-# Cleanup
-cd / && rm -rf "$TMPDIR"
+# Run directly on an x86_64 machine:
+./simd_benchmarks/generate_avx2_sleef.sh > eidos/sleef/sleefinline_avx2.h
 ```
+
+The script (`simd_benchmarks/generate_avx2_sleef.sh`) handles:
+1. Cloning SLEEF
+2. Building the inline headers
+3. Patching hex float literals
+4. Outputting the patched header to stdout
 
 ## Generating the ARM NEON Header (ARM64)
 
@@ -153,4 +129,5 @@ The license file is included at `eidos/sleef/LICENSE`.
 | `eidos/sleef/sleefinline_advsimd.h` | Patched SLEEF ARM NEON header (~6900 lines) |
 | `eidos/sleef/sleef_config.h` | Architecture selection macros |
 | `eidos/sleef/LICENSE` | Boost Software License |
+| `simd_benchmarks/generate_avx2_sleef.sh` | Script to generate AVX2 header |
 | `simd_benchmarks/generate_arm_sleef.sh` | Script to generate ARM header on remote machine |
