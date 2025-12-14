@@ -64,23 +64,23 @@
 // ================================
 #elif defined(EIDOS_HAS_NEON)
     #include <arm_neon.h>
-    // Note: sleefinline_advsimd.h needs to be generated on ARM and patched
-    // #include "sleefinline_advsimd.h"
+    #include "sleefinline_advsimd.h"
 
-    // For now, fall back to scalar until ARM header is available
-    #define EIDOS_SLEEF_AVAILABLE 0
-    #define EIDOS_SLEEF_VEC_SIZE 1
+    #define EIDOS_SLEEF_AVAILABLE 1
+    #define EIDOS_SLEEF_VEC_SIZE 2
 
-    // Placeholder for when ARM header is added:
-    // #define EIDOS_SLEEF_AVAILABLE 1
-    // #define EIDOS_SLEEF_VEC_SIZE 2
-    // #define EIDOS_SLEEF_TYPE_D float64x2_t
-    // #define EIDOS_SLEEF_LOAD_D(ptr) vld1q_f64(ptr)
-    // #define EIDOS_SLEEF_STORE_D(ptr, v) vst1q_f64(ptr, v)
-    // #define EIDOS_SLEEF_EXP_D(v) Sleef_expd2_u10advsimd(v)
-    // #define EIDOS_SLEEF_LOG_D(v) Sleef_logd2_u10advsimd(v)
-    // #define EIDOS_SLEEF_LOG10_D(v) Sleef_log10d2_u10advsimd(v)
-    // #define EIDOS_SLEEF_LOG2_D(v) Sleef_log2d2_u10advsimd(v)
+    // Type definitions
+    #define EIDOS_SLEEF_TYPE_D float64x2_t
+
+    // Load/Store operations
+    #define EIDOS_SLEEF_LOAD_D(ptr) vld1q_f64(ptr)
+    #define EIDOS_SLEEF_STORE_D(ptr, v) vst1q_f64(ptr, v)
+
+    // Transcendental functions (u10 = 1.0 ULP accuracy)
+    #define EIDOS_SLEEF_EXP_D(v) Sleef_expd2_u10advsimd(v)
+    #define EIDOS_SLEEF_LOG_D(v) Sleef_logd2_u10advsimd(v)
+    #define EIDOS_SLEEF_LOG10_D(v) Sleef_log10d2_u10advsimd(v)
+    #define EIDOS_SLEEF_LOG2_D(v) Sleef_log2d2_u10advsimd(v)
 
 // ================================
 // Scalar Fallback (SSE4.2-only or no SIMD)
