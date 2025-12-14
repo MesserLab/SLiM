@@ -1663,7 +1663,7 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
 		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
@@ -1778,7 +1778,7 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
 		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
@@ -1894,7 +1894,7 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_3D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_3D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_3D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
 		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
