@@ -2,8 +2,6 @@
 
 This directory contains benchmark scripts used during the development of SIMD optimizations for SLiM. These files are provided for internal development use and are **not used in the build of SLiM**.
 
-Also contained here are helper scripts and documentation for generating the SLEEF inline headers used for SIMD math functions.
-
 ## Contents
 
 - **`run_benchmarks.sh`** - Shell script that builds SLiM with and without SIMD, runs both benchmark scripts, and reports speedup comparisons.
@@ -12,13 +10,9 @@ Also contained here are helper scripts and documentation for generating the SLEE
 
 - **`slim_benchmark.slim`** - SLiM simulation benchmark (N=5000, 1Mb chromosome, 5000 generations with selection) for measuring overall simulation performance.
 
-- **`generate_avx2_sleef.sh`** - Script to generate the SLEEF AVX2 inline header on x86_64 machines.
-
-- **`generate_arm_sleef.sh`** - Script to generate the SLEEF ARM NEON inline header on ARM64 machines.
-
 - **`SIMD_BUILD_FLAGS.md`** - Documentation on how SIMD and SLEEF build flags are set and interact.
 
-- **`SLEEF_HEADER_GENERATION.md`** - Documentation on how to generate and patch the SLEEF inline headers.
+For SLEEF header generation scripts and documentation, see `eidos/sleef/`.
 
 ## Author
 

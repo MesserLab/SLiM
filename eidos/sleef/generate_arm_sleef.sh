@@ -1,6 +1,6 @@
 #!/bin/bash
 # generate_arm_sleef.sh - Run this on an ARM64 machine to generate SLEEF NEON header
-# Usage: ssh arm-machine "bash -s" < generate_arm_sleef.sh > sleefinline_advsimd.h
+# Usage: ssh arm-machine "bash -s" < eidos/sleef/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
 
 set -e
 

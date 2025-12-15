@@ -1,6 +1,6 @@
 #!/bin/bash
 # generate_avx2_sleef.sh - Run this on an x86_64 machine to generate SLEEF AVX2 header
-# Usage: ./generate_avx2_sleef.sh > eidos/sleef/sleefinline_avx2.h
+# Usage: ./eidos/sleef/generate_avx2_sleef.sh > eidos/sleef/sleefinline_avx2.h
 
 set -e
 

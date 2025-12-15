@@ -35,14 +35,14 @@ These are valid in C99/C11 and C++17, but **not in C++11/C++14**. Since SLiM use
 
 ## Generating the AVX2 Header (x86_64)
 
-Run on any x86_64 Linux or macOS machine. There's a helper script in `simd_benchmarks/`:
+Run on any x86_64 Linux or macOS machine. There's a helper script in this directory:
 
 ```bash
 # Run directly on an x86_64 machine:
-./simd_benchmarks/generate_avx2_sleef.sh > eidos/sleef/sleefinline_avx2.h
+./eidos/sleef/generate_avx2_sleef.sh > eidos/sleef/sleefinline_avx2.h
 ```
 
-The script (`simd_benchmarks/generate_avx2_sleef.sh`) handles:
+The script (`eidos/sleef/generate_avx2_sleef.sh`) handles:
 1. Cloning SLEEF
 2. Building the inline headers
 3. Patching hex float literals
@@ -50,17 +50,17 @@ The script (`simd_benchmarks/generate_avx2_sleef.sh`) handles:
 
 ## Generating the ARM NEON Header (ARM64)
 
-Must be run on an ARM64 machine (Apple Silicon Mac or ARM64 Linux). There's a helper script in `simd_benchmarks/`:
+Must be run on an ARM64 machine (Apple Silicon Mac or ARM64 Linux). There's a helper script in this directory:
 
 ```bash
 # From an x86_64 machine, run on a remote ARM64 machine:
-ssh arm-machine "bash -s" < simd_benchmarks/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
+ssh arm-machine "bash -s" < eidos/sleef/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
 
 # Or run directly on an ARM64 machine:
-./simd_benchmarks/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
+./eidos/sleef/generate_arm_sleef.sh > eidos/sleef/sleefinline_advsimd.h
 ```
 
-The script (`simd_benchmarks/generate_arm_sleef.sh`) handles:
+The script (`eidos/sleef/generate_arm_sleef.sh`) handles:
 1. Cloning SLEEF
 2. Building with `-DCMAKE_OSX_ARCHITECTURES=arm64` (for Apple Silicon)
 3. Patching hex float literals
@@ -152,5 +152,5 @@ The license file is included at `eidos/sleef/LICENSE`.
 | `eidos/sleef/sleefinline_advsimd.h` | Patched SLEEF ARM NEON header (~6900 lines) |
 | `eidos/sleef/sleef_config.h` | Architecture selection macros |
 | `eidos/sleef/LICENSE` | Boost Software License |
-| `simd_benchmarks/generate_avx2_sleef.sh` | Script to generate AVX2 header |
-| `simd_benchmarks/generate_arm_sleef.sh` | Script to generate ARM header on remote machine |
+| `eidos/sleef/generate_avx2_sleef.sh` | Script to generate AVX2 header |
+| `eidos/sleef/generate_arm_sleef.sh` | Script to generate ARM header on remote machine |
