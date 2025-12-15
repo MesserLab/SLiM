@@ -1,0 +1,53 @@
+// Benchmark dnorm() SIMD optimization
+// Tests both singleton and variable mu/sigma cases
+
+defineGlobal("N", 1000000);
+defineGlobal("ITERS", 10);
+
+// Generate test data
+x = rnorm(N, 0, 1);
+
+catn("dnorm() SIMD Benchmark");
+catn("  N = " + N + ", iterations = " + ITERS);
+catn("");
+
+// Path 1: singleton mu and sigma (most common case)
+start = clock();
+for (i in 1:ITERS)
+	result = dnorm(x, 0.0, 1.0);
+elapsed = clock() - start;
+catn("Path 1 - dnorm(x, scalar, scalar):");
+catn("  Time: " + format("%.3f", elapsed) + "s for " + ITERS + " iterations");
+catn("  Throughput: " + format("%.1f", N * ITERS / elapsed / 1e6) + " M elements/sec");
+catn("");
+
+// Path 2a: variable sigma only
+sigmas = rep(1.0, N) + runif(N, -0.1, 0.1);
+start = clock();
+for (i in 1:ITERS)
+	result = dnorm(x, 0.0, sigmas);
+elapsed = clock() - start;
+catn("Path 2a - dnorm(x, scalar, vector):");
+catn("  Time: " + format("%.3f", elapsed) + "s for " + ITERS + " iterations");
+catn("  Throughput: " + format("%.1f", N * ITERS / elapsed / 1e6) + " M elements/sec");
+catn("");
+
+// Path 2b: variable mu only
+mus = runif(N, -0.1, 0.1);
+start = clock();
+for (i in 1:ITERS)
+	result = dnorm(x, mus, 1.0);
+elapsed = clock() - start;
+catn("Path 2b - dnorm(x, vector, scalar):");
+catn("  Time: " + format("%.3f", elapsed) + "s for " + ITERS + " iterations");
+catn("  Throughput: " + format("%.1f", N * ITERS / elapsed / 1e6) + " M elements/sec");
+catn("");
+
+// Path 2c: variable mu and sigma
+start = clock();
+for (i in 1:ITERS)
+	result = dnorm(x, mus, sigmas);
+elapsed = clock() - start;
+catn("Path 2c - dnorm(x, vector, vector):");
+catn("  Time: " + format("%.3f", elapsed) + "s for " + ITERS + " iterations");
+catn("  Throughput: " + format("%.1f", N * ITERS / elapsed / 1e6) + " M elements/sec");
