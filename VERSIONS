@@ -24,6 +24,7 @@ development head (in the master branch):
 	shift to macOS 14 as the oldest supported macOS version in GitHub Actions; we no longer test on macOS 13, or with Qt 5.x on macOS (but Qt 5.x still gets tested on other platforms, for now)
 	add SIMD optimization for sqrt(), abs(), floor(), ceil(), trunc(), round(), sum(), product() thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/578
 	add further SIMD optimizations for exp(), log(), log10(), log2() based on the SLEEF framework (https://github.com/shibatch/sleef), thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/587
+	SIMD optimization for dnorm() using the previous SLEEF work, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/588
 
 
 version 5.1 (Eidos version 4.1):
