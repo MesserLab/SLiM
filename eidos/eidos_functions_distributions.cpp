@@ -26,6 +26,7 @@
 #include "gsl_linalg.h"
 #include "gsl_errno.h"
 #include "gsl_cdf.h"
+#include "eidos_simd.h"
 
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
@@ -484,10 +485,26 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
+#ifdef _OPENMP
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_DNORM_1);
 #pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu0, sigma0) if(num_quantiles >= EIDOS_OMPMIN_DNORM_1) num_threads(thread_count)
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 			float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
+#else
+		// SIMD-optimized version: batch the exp() calls
+		double norm = 1.0 / (std::sqrt(2.0 * M_PI) * sigma0);
+		double inv_2var = -1.0 / (2.0 * sigma0 * sigma0);
+		double *result_data = float_result->data_mutable();
+
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double diff = float_data[value_index] - mu0;
+			result_data[value_index] = diff * diff * inv_2var;
+		}
+		Eidos_SIMD::exp_float64(result_data, result_data, num_quantiles);
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+			result_data[value_index] *= norm;
+#endif
 	}
 	else
 	{
@@ -497,13 +514,14 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		bool saw_error = false;
 		
+#ifdef _OPENMP
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_DNORM_2);
 #pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2) num_threads(thread_count)
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
 			double mu = (mu_singleton ? mu0 : arg_mu->NumericAtIndex_NOCAST(value_index, nullptr));
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->NumericAtIndex_NOCAST(value_index, nullptr));
-			
+
 			if (sigma <= 0.0)
 			{
 				saw_error = true;
@@ -512,6 +530,35 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 			
 			float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu, sigma), value_index);
 		}
+#else
+		// SIMD-optimized version: batch the exp() calls
+		double *result_data = float_result->data_mutable();
+		std::vector<double> norms(num_quantiles);
+
+		// Pass 1: compute exponents and norms, check for errors
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double mu = (mu_singleton ? mu0 : arg_mu->NumericAtIndex_NOCAST(value_index, nullptr));
+			double sigma = (sigma_singleton ? sigma0 : arg_sigma->NumericAtIndex_NOCAST(value_index, nullptr));
+
+			if (sigma <= 0.0)
+			{
+				saw_error = true;
+				continue;
+			}
+
+			double diff = float_data[value_index] - mu;
+			result_data[value_index] = -diff * diff / (2.0 * sigma * sigma);
+			norms[value_index] = 1.0 / (std::sqrt(2.0 * M_PI) * sigma);
+		}
+
+		// Pass 2: batch exp() - SIMD accelerated
+		Eidos_SIMD::exp_float64(result_data, result_data, num_quantiles);
+
+		// Pass 3: scale by per-element norms
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+			result_data[value_index] *= norms[value_index];
+#endif
 		
 		if (saw_error)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0." << EidosTerminate(nullptr);

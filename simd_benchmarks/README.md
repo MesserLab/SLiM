@@ -10,6 +10,8 @@ This directory contains benchmark scripts used during the development of SIMD op
 
 - **`slim_benchmark.slim`** - SLiM simulation benchmark (N=5000, 1Mb chromosome, 5000 generations with selection) for measuring overall simulation performance.
 
+- **`dnorm_benchmark.eidos`** - Eidos script that benchmarks the SIMD-optimized `dnorm()` function with singleton and vector mu/sigma parameters.
+
 - **`SIMD_BUILD_FLAGS.md`** - Documentation on how SIMD and SLEEF build flags are set and interact.
 
 For SLEEF header generation scripts and documentation, see `eidos/sleef/`.
@@ -89,3 +91,27 @@ Benchmark complete
 ============================================
 ```
 so the takeaway is that SIMD provided significant speedups for eidos math functions, while the overall SLiM simulation speedup was minimal in this specific benchmark scenario.
+
+## dnorm() Benchmark Results
+
+The `dnorm()` function was optimized to batch `exp()` calls using SLEEF SIMD vectorization. Results on x86_64 with AVX2 (N=1,000,000 elements, 10 iterations):
+
+| Case | SIMD (M elem/s) | Scalar (M elem/s) | Speedup |
+|------|-----------------|-------------------|---------|
+| `dnorm(x, scalar, scalar)` | 119.9 | 43.7 | **2.74x** |
+| `dnorm(x, scalar, vector)` | 52.5 | 33.5 | **1.57x** |
+| `dnorm(x, vector, scalar)` | 56.8 | 34.3 | **1.66x** |
+| `dnorm(x, vector, vector)` | 41.7 | 28.2 | **1.48x** |
+
+The single mu/sigma case shows the best speedup at 2.74x. Variable parameter cases have additional overhead from per-element lookups but still benefit from batched SIMD exp().
+
+To run this benchmark:
+```bash
+# Build with SIMD
+mkdir build && cd build && cmake .. && make eidos
+./eidos ../simd_benchmarks/dnorm_benchmark.eidos
+
+# Build without SIMD for comparison
+mkdir build_nosimd && cd build_nosimd && cmake .. -DUSE_SIMD=OFF && make eidos
+./eidos ../simd_benchmarks/dnorm_benchmark.eidos
+```
