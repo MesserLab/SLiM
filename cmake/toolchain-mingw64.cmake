@@ -1,5 +1,8 @@
 # CMake toolchain file for cross-compiling SLiM to Windows using MinGW-w64
 #
+# NOTE: This file is only needed for cross-compiling to Windows from Linux.
+# It is NOT used for normal builds on Linux, macOS, or native Windows (MSYS2).
+#
 # Usage:
 #   mkdir build_win64 && cd build_win64
 #   cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-mingw64.cmake
@@ -7,6 +10,9 @@
 #
 # Prerequisites:
 #   sudo apt-get install mingw-w64
+#
+# Added by Andrew Kern on 2025-12-14
+# 
 
 set(CMAKE_SYSTEM_NAME Windows)
 set(CMAKE_SYSTEM_PROCESSOR x86_64)
