@@ -10,6 +10,10 @@ This directory contains benchmark scripts used during the development of SIMD op
 
 - **`slim_benchmark.slim`** - SLiM simulation benchmark (N=5000, 1Mb chromosome, 5000 generations with selection) for measuring overall simulation performance.
 
+- **`SIMD_BUILD_FLAGS.md`** - Documentation on how SIMD and SLEEF build flags are set and interact.
+
+For SLEEF header generation scripts and documentation, see `eidos/sleef/`.
+
 ## Author
 
 These benchmarks were developed by Andrew Kern as part of SIMD optimization work for SLiM.

@@ -355,11 +355,15 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
+#ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_EXP_FLOAT);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_EXP_FLOAT) num_threads(thread_count)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result_data[value_index] = exp(float_data[value_index]);
+#else
+		Eidos_SIMD::exp_float64(float_data, float_result_data, x_count);
+#endif
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -678,11 +682,15 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
+#ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG_FLOAT);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_LOG_FLOAT) num_threads(thread_count)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result_data[value_index] = log(float_data[value_index]);
+#else
+		Eidos_SIMD::log_float64(float_data, float_result_data, x_count);
+#endif
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -714,11 +722,15 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
+#ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG10_FLOAT);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_LOG10_FLOAT) num_threads(thread_count)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result_data[value_index] = log10(float_data[value_index]);
+#else
+		Eidos_SIMD::log10_float64(float_data, float_result_data, x_count);
+#endif
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -750,11 +762,15 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
+#ifdef _OPENMP
 		// FIXME: refactor this parallel code to use the Eidos_SIMD code path, chunked; see github.com/MesserLab/SLiM/pull/578#issuecomment-3640288984
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG2_FLOAT);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_LOG2_FLOAT) num_threads(thread_count)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result_data[value_index] = log2(float_data[value_index]);
+#else
+		Eidos_SIMD::log2_float64(float_data, float_result_data, x_count);
+#endif
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);

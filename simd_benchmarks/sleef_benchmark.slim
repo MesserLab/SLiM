@@ -1,0 +1,70 @@
+// SLEEF Transcendental Functions Benchmark
+// Tests exp(), log(), log10(), log2() performance
+
+initialize() {
+    initializeSLiMModelType("nonWF");
+    defineConstant("N", 1000000);  // 1M elements
+    defineConstant("REPS", 10);    // repetitions for timing
+}
+
+1 early() {
+    // Create test data
+    x = runif(N, 0.1, 10.0);
+
+    catn("Benchmarking SLEEF transcendental functions on " + N + " elements, " + REPS + " reps each\n");
+
+    // Benchmark exp()
+    start = clock();
+    for (i in 1:REPS)
+        y = exp(x);
+    elapsed = clock() - start;
+    catn("exp():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark log()
+    start = clock();
+    for (i in 1:REPS)
+        y = log(x);
+    elapsed = clock() - start;
+    catn("log():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark log10()
+    start = clock();
+    for (i in 1:REPS)
+        y = log10(x);
+    elapsed = clock() - start;
+    catn("log10():  " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark log2()
+    start = clock();
+    for (i in 1:REPS)
+        y = log2(x);
+    elapsed = clock() - start;
+    catn("log2():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Also benchmark functions that already had SIMD (for comparison)
+    catn("\nComparison with existing SIMD functions:");
+
+    // Benchmark sqrt()
+    start = clock();
+    for (i in 1:REPS)
+        y = sqrt(x);
+    elapsed = clock() - start;
+    catn("sqrt():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark abs()
+    x2 = x - 5.0;  // make some negative
+    start = clock();
+    for (i in 1:REPS)
+        y = abs(x2);
+    elapsed = clock() - start;
+    catn("abs():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark sum()
+    start = clock();
+    for (i in 1:REPS)
+        s = sum(x);
+    elapsed = clock() - start;
+    catn("sum():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    sim.simulationFinished();
+}

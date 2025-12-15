@@ -54,6 +54,12 @@
     #define EIDOS_SIMD_FLOAT_WIDTH 1
 #endif
 
+// Include SLEEF for vectorized transcendental functions (exp, log, log10, log2)
+// SLEEF is only used when AVX2+FMA or NEON is available
+#if defined(EIDOS_HAS_AVX2) || defined(EIDOS_HAS_NEON)
+#include "sleef/sleef_config.h"
+#endif
+
 // ================================
 // SIMD Vector Math Operations
 // ================================
@@ -276,11 +282,21 @@ inline void round_float64(const double *input, double *output, int64_t count)
 // ---------------------
 // Exponential: exp(x)
 // ---------------------
-// Note: There's no hardware exp instruction, but we structure the loop
-// for cache-friendly access. For true SIMD exp, we'd need a vectorized math library.
 inline void exp_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_EXP_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::exp(input[i]);
 }
 
@@ -289,7 +305,19 @@ inline void exp_float64(const double *input, double *output, int64_t count)
 // ---------------------
 inline void log_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_LOG_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::log(input[i]);
 }
 
@@ -298,7 +326,19 @@ inline void log_float64(const double *input, double *output, int64_t count)
 // ---------------------
 inline void log10_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_LOG10_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::log10(input[i]);
 }
 
@@ -307,7 +347,19 @@ inline void log10_float64(const double *input, double *output, int64_t count)
 // ---------------------
 inline void log2_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_LOG2_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::log2(input[i]);
 }
 
