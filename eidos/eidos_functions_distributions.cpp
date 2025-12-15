@@ -521,7 +521,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		{
 			double mu = (mu_singleton ? mu0 : arg_mu->NumericAtIndex_NOCAST(value_index, nullptr));
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->NumericAtIndex_NOCAST(value_index, nullptr));
-
+			
 			if (sigma <= 0.0)
 			{
 				saw_error = true;
