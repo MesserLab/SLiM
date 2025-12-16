@@ -467,6 +467,140 @@ inline double product_float64(const double *input, int64_t count)
     return prod;
 }
 
+// ================================
+// Float (Single-Precision) SIMD Operations
+// ================================
+// These functions operate on arrays of floats, used by spatial interaction kernels.
+
+// ---------------------
+// Exponential: exp(x) for floats
+// ---------------------
+inline void exp_float32(const float *input, float *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v = EIDOS_SLEEF_LOAD_F(&input[i]);
+        EIDOS_SLEEF_TYPE_F r = EIDOS_SLEEF_EXP_F(v);
+        EIDOS_SLEEF_STORE_F(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::exp(input[i]);
+}
+
+// ---------------------
+// Exponential Kernel: strength = fmax * exp(-lambda * distance)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// This is optimized for the spatial interaction kernel calculation.
+inline void exp_kernel_float32(float *distances, int64_t count, float fmax, float lambda)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    // We need to compute: fmax * exp(-lambda * distance)
+    // First, compute -lambda * distance for all values, then exp, then multiply by fmax
+    EIDOS_SLEEF_TYPE_F v_fmax =
+#if defined(EIDOS_HAS_AVX2)
+        _mm256_set1_ps(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_lambda = _mm256_set1_ps(-lambda);
+#elif defined(EIDOS_HAS_NEON)
+        vdupq_n_f32(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_lambda = vdupq_n_f32(-lambda);
+#endif
+
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v_dist = EIDOS_SLEEF_LOAD_F(&distances[i]);
+
+        // Compute -lambda * distance
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_arg = _mm256_mul_ps(v_neg_lambda, v_dist);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_arg = vmulq_f32(v_neg_lambda, v_dist);
+#endif
+
+        // Compute exp(-lambda * distance)
+        EIDOS_SLEEF_TYPE_F v_exp = EIDOS_SLEEF_EXP_F(v_arg);
+
+        // Compute fmax * exp(...)
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_result = _mm256_mul_ps(v_fmax, v_exp);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_result = vmulq_f32(v_fmax, v_exp);
+#endif
+
+        EIDOS_SLEEF_STORE_F(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        distances[i] = fmax * std::exp(-lambda * distances[i]);
+}
+
+// ---------------------
+// Normal (Gaussian) Kernel: strength = fmax * exp(-distance^2 / 2sigma^2)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// The two_sigma_sq parameter is pre-computed as 2 * sigma^2 for efficiency.
+inline void normal_kernel_float32(float *distances, int64_t count, float fmax, float two_sigma_sq)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    // We need to compute: fmax * exp(-distance^2 / two_sigma_sq)
+    EIDOS_SLEEF_TYPE_F v_fmax =
+#if defined(EIDOS_HAS_AVX2)
+        _mm256_set1_ps(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_inv_2sigsq = _mm256_set1_ps(-1.0f / two_sigma_sq);
+#elif defined(EIDOS_HAS_NEON)
+        vdupq_n_f32(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_inv_2sigsq = vdupq_n_f32(-1.0f / two_sigma_sq);
+#endif
+
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v_dist = EIDOS_SLEEF_LOAD_F(&distances[i]);
+
+        // Compute distance^2
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_dist_sq = _mm256_mul_ps(v_dist, v_dist);
+        // Compute -distance^2 / 2sigma^2
+        EIDOS_SLEEF_TYPE_F v_arg = _mm256_mul_ps(v_dist_sq, v_neg_inv_2sigsq);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_dist_sq = vmulq_f32(v_dist, v_dist);
+        // Compute -distance^2 / 2sigma^2
+        EIDOS_SLEEF_TYPE_F v_arg = vmulq_f32(v_dist_sq, v_neg_inv_2sigsq);
+#endif
+
+        // Compute exp(-distance^2 / 2sigma^2)
+        EIDOS_SLEEF_TYPE_F v_exp = EIDOS_SLEEF_EXP_F(v_arg);
+
+        // Compute fmax * exp(...)
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_result = _mm256_mul_ps(v_fmax, v_exp);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_result = vmulq_f32(v_fmax, v_exp);
+#endif
+
+        EIDOS_SLEEF_STORE_F(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        float d = distances[i];
+        distances[i] = fmax * std::exp(-(d * d) / two_sigma_sq);
+    }
+}
+
 } // namespace Eidos_SIMD
 
 #endif /* eidos_simd_h */

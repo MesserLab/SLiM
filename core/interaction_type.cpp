@@ -27,6 +27,7 @@
 #include "species.h"
 #include "slim_globals.h"
 #include "sparse_vector.h"
+#include "eidos_simd.h"
 
 #include <utility>
 #include <algorithm>
@@ -2911,22 +2912,14 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			}
 			case SpatialKernelType::kExponential:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)(if_param1_ * exp(-if_param2_ * distance));
-				}
+				// SIMD-accelerated exponential kernel: strength = fmax * exp(-lambda * distance)
+				Eidos_SIMD::exp_kernel_float32(values, nnz, (float)if_param1_, (float)if_param2_);
 				break;
 			}
 			case SpatialKernelType::kNormal:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)(if_param1_ * exp(-(distance * distance) / n_2param2sq_));
-				}
+				// SIMD-accelerated Gaussian kernel: strength = fmax * exp(-d^2 / 2sigma^2)
+				Eidos_SIMD::normal_kernel_float32(values, nnz, (float)if_param1_, (float)n_2param2sq_);
 				break;
 			}
 			case SpatialKernelType::kCauchy:
