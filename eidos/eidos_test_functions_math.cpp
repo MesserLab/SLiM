@@ -1398,6 +1398,136 @@ void _RunSIMDMathTests(void)
 
 	_TestUnarySimdFunction("log2", [](double x) { return std::log2(x); },
 						   Eidos_SIMD::log2_float64, log_test_values, num_log_values);
+
+	// Test pow() function (binary operation: base^exp)
+	// Test values for base and exponent
+	const double pow_base_values[] = {
+		0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0,
+		0.1, 0.2, 0.9, 1.5, 2.5,
+		100.0, 0.01
+	};
+	const double pow_exp_values[] = {
+		0.0, 0.5, 1.0, 2.0, 3.0, -1.0, -2.0,
+		0.25, 0.333, 1.5, 2.5, -0.5,
+		0.1, 10.0
+	};
+	const int num_pow_values = sizeof(pow_base_values) / sizeof(double);
+
+	// Test pow_float64 (both arrays)
+	{
+		std::vector<double> scalar_output(num_pow_values);
+		std::vector<double> simd_output(num_pow_values);
+
+		for (int i = 0; i < num_pow_values; i++)
+			scalar_output[i] = std::pow(pow_base_values[i], pow_exp_values[i]);
+
+		Eidos_SIMD::pow_float64(pow_base_values, pow_exp_values, simd_output.data(), num_pow_values);
+
+		bool all_match = true;
+		for (int i = 0; i < num_pow_values; i++)
+		{
+			double diff = std::abs(simd_output[i] - scalar_output[i]);
+			if (std::isnan(scalar_output[i]) && std::isnan(simd_output[i]))
+				continue;
+			if (std::isinf(scalar_output[i]) && std::isinf(simd_output[i]) &&
+				(scalar_output[i] > 0) == (simd_output[i] > 0))
+				continue;
+			double max_val = std::max(std::abs(scalar_output[i]), std::abs(simd_output[i]));
+			if (max_val > 1.0)
+				diff /= max_val;
+			if (diff > 1e-14)
+			{
+				all_match = false;
+				std::cerr << "SIMD pow mismatch at index " << i << ": base=" << pow_base_values[i]
+						  << ", exp=" << pow_exp_values[i] << ", scalar=" << scalar_output[i]
+						  << ", simd=" << simd_output[i] << ", diff=" << diff << std::endl;
+			}
+		}
+
+		if (all_match)
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD pow() test failed" << std::endl;
+		}
+	}
+
+	// Test pow_float64_scalar_exp (base_array ^ scalar_exponent)
+	{
+		const double scalar_exp = 2.5;
+		std::vector<double> scalar_output(num_pow_values);
+		std::vector<double> simd_output(num_pow_values);
+
+		for (int i = 0; i < num_pow_values; i++)
+			scalar_output[i] = std::pow(pow_base_values[i], scalar_exp);
+
+		Eidos_SIMD::pow_float64_scalar_exp(pow_base_values, scalar_exp, simd_output.data(), num_pow_values);
+
+		bool all_match = true;
+		for (int i = 0; i < num_pow_values; i++)
+		{
+			double diff = std::abs(simd_output[i] - scalar_output[i]);
+			if (std::isnan(scalar_output[i]) && std::isnan(simd_output[i]))
+				continue;
+			double max_val = std::max(std::abs(scalar_output[i]), std::abs(simd_output[i]));
+			if (max_val > 1.0)
+				diff /= max_val;
+			if (diff > 1e-14)
+			{
+				all_match = false;
+				std::cerr << "SIMD pow_scalar_exp mismatch at index " << i << ": base=" << pow_base_values[i]
+						  << ", exp=" << scalar_exp << ", scalar=" << scalar_output[i]
+						  << ", simd=" << simd_output[i] << ", diff=" << diff << std::endl;
+			}
+		}
+
+		if (all_match)
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD pow_scalar_exp() test failed" << std::endl;
+		}
+	}
+
+	// Test pow_float64_scalar_base (scalar_base ^ exp_array)
+	{
+		const double scalar_base = 2.0;
+		std::vector<double> scalar_output(num_pow_values);
+		std::vector<double> simd_output(num_pow_values);
+
+		for (int i = 0; i < num_pow_values; i++)
+			scalar_output[i] = std::pow(scalar_base, pow_exp_values[i]);
+
+		Eidos_SIMD::pow_float64_scalar_base(scalar_base, pow_exp_values, simd_output.data(), num_pow_values);
+
+		bool all_match = true;
+		for (int i = 0; i < num_pow_values; i++)
+		{
+			double diff = std::abs(simd_output[i] - scalar_output[i]);
+			if (std::isnan(scalar_output[i]) && std::isnan(simd_output[i]))
+				continue;
+			double max_val = std::max(std::abs(scalar_output[i]), std::abs(simd_output[i]));
+			if (max_val > 1.0)
+				diff /= max_val;
+			if (diff > 1e-14)
+			{
+				all_match = false;
+				std::cerr << "SIMD pow_scalar_base mismatch at index " << i << ": base=" << scalar_base
+						  << ", exp=" << pow_exp_values[i] << ", scalar=" << scalar_output[i]
+						  << ", simd=" << simd_output[i] << ", diff=" << diff << std::endl;
+			}
+		}
+
+		if (all_match)
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD pow_scalar_base() test failed" << std::endl;
+		}
+	}
 }
 
 

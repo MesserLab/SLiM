@@ -1652,22 +1652,20 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
 	{
 		double power_scalar = x_value->NumericAtIndex_NOCAST(0, nullptr);
-		
+
 		// FIXME: TO BE PARALLELIZED
-		for (int64_t i = 0; i < values_size_; ++i)
-			values_[i] = pow(values_[i], power_scalar);
+		Eidos_SIMD::pow_float64_scalar_exp(values_, power_scalar, values_, values_size_);
 	}
 	else
 	{
 		SpatialMap *power_map = (SpatialMap *)x_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		double *power_map_values = power_map->values_;
-		
+
 		if (!IsCompatibleWithMap(power_map))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
-		
+
 		// FIXME: TO BE PARALLELIZED
-		for (int64_t i = 0; i < values_size_; ++i)
-			values_[i] = pow(values_[i], power_map_values[i]);
+		Eidos_SIMD::pow_float64(values_, power_map_values, values_, values_size_);
 	}
 	
 	_ValuesChanged();
