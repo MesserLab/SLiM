@@ -12,6 +12,8 @@ This directory contains benchmark scripts used during the development of SIMD op
 
 - **`dnorm_benchmark.eidos`** - Eidos script that benchmarks the SIMD-optimized `dnorm()` function with singleton and vector mu/sigma parameters.
 
+- **`benchmark_all_kernels.slim`** - SLiM script that benchmarks all 6 SIMD-optimized spatial interaction kernel types (Fixed, Linear, Exponential, Normal, Cauchy, Student's T).
+
 - **`SIMD_BUILD_FLAGS.md`** - Documentation on how SIMD and SLEEF build flags are set and interact.
 
 For SLEEF header generation scripts and documentation, see `eidos/sleef/`.
@@ -115,3 +117,38 @@ mkdir build && cd build && cmake .. && make eidos
 mkdir build_nosimd && cd build_nosimd && cmake .. -DUSE_SIMD=OFF && make eidos
 ./eidos ../simd_benchmarks/dnorm_benchmark.eidos
 ```
+
+## Spatial Interaction Kernel Benchmark Results
+
+The `benchmark_all_kernels.slim` script tests SIMD-optimized spatial interaction kernels. All kernel types except Fixed use a two-pass approach (build distances, then batch transform) enabling SIMD vectorization via SLEEF.
+
+Results on x86_64 with AVX2 (50,000 individuals, ~2,262 neighbors per individual, 30 generations):
+
+| Kernel | Original | SIMD | Speedup |
+|--------|----------|------|---------|
+| Fixed | 31.97s | 31.36s | 1.02x |
+| Linear | 37.26s | 32.95s | **1.13x** |
+| Exponential | 59.58s | 34.88s | **1.71x** |
+| Normal | 56.37s | 35.15s | **1.60x** |
+| Cauchy | 40.04s | 33.00s | **1.21x** |
+| Student's T | 130.10s | 49.76s | **2.61x** |
+| **Total** | **356.04s** | **217.80s** | **1.64x** |
+
+The biggest gains come from kernels using transcendental functions:
+- **Student's T** (2.61x): Uses `pow()` via SLEEF
+- **Exponential/Normal** (1.6-1.7x): Use `exp()` via SLEEF
+- **Linear/Cauchy** (~1.1-1.2x): Simple arithmetic, modest gains from explicit SIMD
+- **Fixed** (1.02x): Uses special-case single-pass path (no benefit from two-pass)
+
+To run this benchmark:
+```bash
+# Build with SIMD
+mkdir build && cd build && cmake .. && make slim
+./slim -s 42 ../simd_benchmarks/benchmark_all_kernels.slim
+
+# Build without SIMD for comparison
+mkdir build_nosimd && cd build_nosimd && cmake .. -DUSE_SIMD=OFF && make slim
+./slim -s 42 ../simd_benchmarks/benchmark_all_kernels.slim
+```
+
+Adjust `W` in the script to change neighbor density (W=25 for ~2200 neighbors, W=266 for ~20 neighbors).
