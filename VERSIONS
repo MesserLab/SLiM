@@ -27,6 +27,7 @@ development head (in the master branch):
 	SIMD optimization for dnorm() using the previous SLEEF work, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/588
 	SIMD optimizations for spatial interaction strength calculations, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/590
 	fix #593, Student's T distribution had a sign error in tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
+	add comprehensive tests for spatial interaction kernel calculations; includes SIMD vs scalar consistency tests, C++ level tests, and script-level tests, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/592
 
 
 version 5.1 (Eidos version 4.1):
