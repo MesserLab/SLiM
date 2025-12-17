@@ -1,0 +1,131 @@
+// Comprehensive benchmark for ALL spatial interaction kernel types
+// Tests: Fixed, Linear, Exponential, Normal, Cauchy, Student's T
+
+initialize() {
+    initializeSLiMModelType("WF");
+    initializeSLiMOptions(dimensionality="xy");
+
+    defineConstant("POP_SIZE", 50000);
+    defineConstant("W", 25.0);   // Medium density (~2262 neighbors with 50k)
+    defineConstant("SI", 1.0);
+    defineConstant("GENS", 30);
+
+    initializeMutationRate(0);
+    initializeRecombinationRate(0);
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 99);
+
+    // 1. Fixed kernel: strength = fmax (constant)
+    initializeInteractionType(1, "xy", reciprocal=T, maxDistance=SI * 3);
+    i1.setInteractionFunction("f", 1.0);
+
+    // 2. Linear kernel: strength = fmax * (1 - d/maxDist)
+    initializeInteractionType(2, "xy", reciprocal=T, maxDistance=SI * 3);
+    i2.setInteractionFunction("l", 1.0);
+
+    // 3. Exponential kernel: strength = fmax * exp(-lambda * d)
+    initializeInteractionType(3, "xy", reciprocal=T, maxDistance=SI * 3);
+    i3.setInteractionFunction("e", 1.0, 1.0/SI);
+
+    // 4. Normal/Gaussian kernel: strength = fmax * exp(-d^2 / 2*sigma^2)
+    initializeInteractionType(4, "xy", reciprocal=T, maxDistance=SI * 3);
+    i4.setInteractionFunction("n", 1.0, SI);
+
+    // 5. Cauchy kernel: strength = fmax / (1 + (d/scale)^2)
+    initializeInteractionType(5, "xy", reciprocal=T, maxDistance=SI * 3);
+    i5.setInteractionFunction("c", 1.0, SI);
+
+    // 6. Student's T kernel
+    initializeInteractionType(6, "xy", reciprocal=T, maxDistance=SI * 3);
+    i6.setInteractionFunction("t", 1.0, 5.0, SI);  // fmax, nu, scale
+}
+
+1 early() {
+    sim.addSubpop("p1", POP_SIZE);
+    p1.setSpatialBounds(c(0, 0, W, W));
+
+    for (ind in p1.individuals) {
+        ind.setSpatialPosition(p1.pointUniform());
+    }
+
+    catn("================================================");
+    catn("ALL KERNELS BENCHMARK (2D)");
+    catn("================================================");
+    catn("Population: " + POP_SIZE + " | World: " + W + "x" + W);
+    density = POP_SIZE / (W^2);
+    avg_neighbors = density * PI * (SI*3)^2;
+    catn("Est. neighbors/ind: ~" + format("%.0f", avg_neighbors));
+    catn("Generations: " + GENS);
+    catn("------------------------------------------------");
+
+    defineGlobal("start_time", clock());
+    defineGlobal("fixed_time", 0.0);
+    defineGlobal("linear_time", 0.0);
+    defineGlobal("exp_time", 0.0);
+    defineGlobal("normal_time", 0.0);
+    defineGlobal("cauchy_time", 0.0);
+    defineGlobal("studentst_time", 0.0);
+}
+
+early() {
+    // Fixed
+    t0 = clock();
+    i1.evaluate(p1);
+    i1.totalOfNeighborStrengths(p1.individuals);
+    defineGlobal("fixed_time", fixed_time + (clock() - t0));
+
+    // Linear
+    t0 = clock();
+    i2.evaluate(p1);
+    i2.totalOfNeighborStrengths(p1.individuals);
+    defineGlobal("linear_time", linear_time + (clock() - t0));
+
+    // Exponential
+    t0 = clock();
+    i3.evaluate(p1);
+    i3.totalOfNeighborStrengths(p1.individuals);
+    defineGlobal("exp_time", exp_time + (clock() - t0));
+
+    // Normal
+    t0 = clock();
+    i4.evaluate(p1);
+    i4.totalOfNeighborStrengths(p1.individuals);
+    defineGlobal("normal_time", normal_time + (clock() - t0));
+
+    // Cauchy
+    t0 = clock();
+    i5.evaluate(p1);
+    i5.totalOfNeighborStrengths(p1.individuals);
+    defineGlobal("cauchy_time", cauchy_time + (clock() - t0));
+
+    // Student's T
+    t0 = clock();
+    i6.evaluate(p1);
+    i6.totalOfNeighborStrengths(p1.individuals);
+    defineGlobal("studentst_time", studentst_time + (clock() - t0));
+}
+
+late() {
+    for (ind in p1.individuals) {
+        ind.setSpatialPosition(p1.pointUniform());
+    }
+}
+
+30 late() {
+    elapsed = clock() - start_time;
+
+    catn("\n================================================");
+    catn("RESULTS");
+    catn("================================================");
+    catn("Fixed:      " + format("%6.3f", fixed_time) + " s");
+    catn("Linear:     " + format("%6.3f", linear_time) + " s");
+    catn("Exponential:" + format("%6.3f", exp_time) + " s");
+    catn("Normal:     " + format("%6.3f", normal_time) + " s");
+    catn("Cauchy:     " + format("%6.3f", cauchy_time) + " s");
+    catn("Student's T:" + format("%6.3f", studentst_time) + " s");
+    catn("------------------------------------------------");
+    catn("TOTAL:      " + format("%6.3f", elapsed) + " s");
+    catn("================================================");
+    sim.simulationFinished();
+}

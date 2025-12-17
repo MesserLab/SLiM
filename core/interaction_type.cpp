@@ -27,6 +27,7 @@
 #include "species.h"
 #include "slim_globals.h"
 #include "sparse_vector.h"
+#include "eidos_simd.h"
 
 #include <utility>
 #include <algorithm>
@@ -2846,12 +2847,26 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 		// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
 		slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
 		
-		// We special-case some builds directly to strength values here, for efficiency,
-		// with no callbacks and spatiality "xy".
+		// We special-case Fixed kernel builds directly to strength values here, for efficiency,
+		// with no callbacks and spatiality "xy". Other kernels use the two-pass path below
+		// which enables SIMD optimizations for Exponential and Normal kernels.
+		// ADK 12/16/2025: changed to only use special-case path for Fixed kernel
+		if ((interaction_callbacks.size() == 0) && (spatiality_ == 2) && (if_type_ == SpatialKernelType::kFixed))
+		{
+			sv->SetDataType(SparseVectorDataType::kStrengths);
+			BuildSV_Strengths_f_2(kd_root, receiver_position, excluded_index, sv, 0);
+			sv->Finished();
+			return;
+		}
+
+		// ADK 12/16/2025: The original switch below handled all kernel types in the special-case
+		// single-pass path. Now only Fixed uses the special path above; other kernels fall
+		// through to the two-pass distance-then-transform path, enabling SIMD optimizations.
+#if 0
 		if ((interaction_callbacks.size() == 0) && (spatiality_ == 2))
 		{
 			sv->SetDataType(SparseVectorDataType::kStrengths);
-			
+
 			switch (if_type_)
 			{
 				case SpatialKernelType::kFixed:			BuildSV_Strengths_f_2(kd_root, receiver_position, excluded_index, sv, 0); break;
@@ -2863,11 +2878,12 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				default:
 					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized SpatialKernelType value." << EidosTerminate();
 			}
-			
+
 			sv->Finished();
 			return;
 		}
-		
+#endif
+
 		// Set up to build distances first; this is an internal implementation detail, so we require the sparse vector set up for strengths above
 		sv->SetDataType(SparseVectorDataType::kDistances);
 		
@@ -2901,53 +2917,32 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			}
 			case SpatialKernelType::kLinear:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)(if_param1_ * (1.0 - distance / max_distance_));
-				}
+				// Use SIMD-optimized kernel: fmax = if_param1_, max_distance = max_distance_
+				Eidos_SIMD::linear_kernel_float32(values, nnz, (float)if_param1_, (float)max_distance_);
 				break;
 			}
 			case SpatialKernelType::kExponential:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)(if_param1_ * exp(-if_param2_ * distance));
-				}
+				// SIMD-accelerated exponential kernel: strength = fmax * exp(-lambda * distance)
+				Eidos_SIMD::exp_kernel_float32(values, nnz, (float)if_param1_, (float)if_param2_);
 				break;
 			}
 			case SpatialKernelType::kNormal:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)(if_param1_ * exp(-(distance * distance) / n_2param2sq_));
-				}
+				// SIMD-accelerated Gaussian kernel: strength = fmax * exp(-d^2 / 2sigma^2)
+				Eidos_SIMD::normal_kernel_float32(values, nnz, (float)if_param1_, (float)n_2param2sq_);
 				break;
 			}
 			case SpatialKernelType::kCauchy:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					double temp = distance / if_param2_;
-					
-					values[col_iter] = (sv_value_t)(if_param1_ / (1.0 + temp * temp));
-				}
+				// Use SIMD-optimized kernel: fmax = if_param1_, lambda = if_param2_
+				Eidos_SIMD::cauchy_kernel_float32(values, nnz, (float)if_param1_, (float)if_param2_);
 				break;
 			}
 			case SpatialKernelType::kStudentsT:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)SpatialKernel::tdist(distance, if_param1_, if_param2_, if_param3_);
-				}
+				// Use SIMD-optimized kernel: fmax = if_param1_, nu = if_param2_, tau = if_param3_
+				Eidos_SIMD::tdist_kernel_float32(values, nnz, (float)if_param1_, (float)if_param2_, (float)if_param3_);
 				break;
 			}
 			default:

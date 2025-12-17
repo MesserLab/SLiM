@@ -62,6 +62,15 @@
     #define EIDOS_SLEEF_LOG10_D(v) Sleef_log10d4_u10avx2(v)
     #define EIDOS_SLEEF_LOG2_D(v) Sleef_log2d4_u10avx2(v)
 
+    // Float (single-precision) support - 8 floats per AVX2 register
+    #define EIDOS_SLEEF_FLOAT_AVAILABLE 1
+    #define EIDOS_SLEEF_VEC_SIZE_F 8
+    #define EIDOS_SLEEF_TYPE_F __m256
+    #define EIDOS_SLEEF_LOAD_F(ptr) _mm256_loadu_ps(ptr)
+    #define EIDOS_SLEEF_STORE_F(ptr, v) _mm256_storeu_ps(ptr, v)
+    #define EIDOS_SLEEF_EXP_F(v) Sleef_expf8_u10avx2(v)
+    #define EIDOS_SLEEF_POW_F(x, y) Sleef_powf8_u10avx2(x, y)
+
 // ================================
 // ARM NEON Configuration (ARM64)
 // ================================
@@ -85,12 +94,23 @@
     #define EIDOS_SLEEF_LOG10_D(v) Sleef_log10d2_u10advsimd(v)
     #define EIDOS_SLEEF_LOG2_D(v) Sleef_log2d2_u10advsimd(v)
 
+    // Float (single-precision) support - 4 floats per NEON register
+    #define EIDOS_SLEEF_FLOAT_AVAILABLE 1
+    #define EIDOS_SLEEF_VEC_SIZE_F 4
+    #define EIDOS_SLEEF_TYPE_F float32x4_t
+    #define EIDOS_SLEEF_LOAD_F(ptr) vld1q_f32(ptr)
+    #define EIDOS_SLEEF_STORE_F(ptr, v) vst1q_f32(ptr, v)
+    #define EIDOS_SLEEF_EXP_F(v) Sleef_expf4_u10advsimd(v)
+    #define EIDOS_SLEEF_POW_F(x, y) Sleef_powf4_u10advsimd(x, y)
+
 // ================================
 // Scalar Fallback (SSE4.2-only or no SIMD)
 // ================================
 #else
     #define EIDOS_SLEEF_AVAILABLE 0
     #define EIDOS_SLEEF_VEC_SIZE 1
+    #define EIDOS_SLEEF_FLOAT_AVAILABLE 0
+    #define EIDOS_SLEEF_VEC_SIZE_F 1
 #endif
 
 #else // EIDOS_SLEEF_AVAILABLE was defined externally
