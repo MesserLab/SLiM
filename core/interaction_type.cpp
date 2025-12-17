@@ -2847,12 +2847,26 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 		// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
 		slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
 		
-		// We special-case some builds directly to strength values here, for efficiency,
-		// with no callbacks and spatiality "xy".
+		// We special-case Fixed kernel builds directly to strength values here, for efficiency,
+		// with no callbacks and spatiality "xy". Other kernels use the two-pass path below
+		// which enables SIMD optimizations for Exponential and Normal kernels.
+		// ADK 12/16/2025: changed to only use special-case path for Fixed kernel
+		if ((interaction_callbacks.size() == 0) && (spatiality_ == 2) && (if_type_ == SpatialKernelType::kFixed))
+		{
+			sv->SetDataType(SparseVectorDataType::kStrengths);
+			BuildSV_Strengths_f_2(kd_root, receiver_position, excluded_index, sv, 0);
+			sv->Finished();
+			return;
+		}
+
+		// ADK 12/16/2025: The original switch below handled all kernel types in the special-case
+		// single-pass path. Now only Fixed uses the special path above; other kernels fall
+		// through to the two-pass distance-then-transform path, enabling SIMD optimizations.
+#if 0
 		if ((interaction_callbacks.size() == 0) && (spatiality_ == 2))
 		{
 			sv->SetDataType(SparseVectorDataType::kStrengths);
-			
+
 			switch (if_type_)
 			{
 				case SpatialKernelType::kFixed:			BuildSV_Strengths_f_2(kd_root, receiver_position, excluded_index, sv, 0); break;
@@ -2864,11 +2878,12 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				default:
 					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized SpatialKernelType value." << EidosTerminate();
 			}
-			
+
 			sv->Finished();
 			return;
 		}
-		
+#endif
+
 		// Set up to build distances first; this is an internal implementation detail, so we require the sparse vector set up for strengths above
 		sv->SetDataType(SparseVectorDataType::kDistances);
 		
