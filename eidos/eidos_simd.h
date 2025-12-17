@@ -674,6 +674,55 @@ inline void tdist_kernel_float32(float *distances, int64_t count, float fmax, fl
     }
 }
 
+// ---------------------
+// Cauchy Kernel: strength = fmax / (1 + (d/lambda)^2)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// Parameters: fmax = maximum strength, lambda = scale parameter
+inline void cauchy_kernel_float32(float *distances, int64_t count, float fmax, float lambda)
+{
+    int64_t i = 0;
+    float inv_lambda = 1.0f / lambda;
+
+#if defined(EIDOS_HAS_AVX2)
+    __m256 v_fmax = _mm256_set1_ps(fmax);
+    __m256 v_inv_lambda = _mm256_set1_ps(inv_lambda);
+    __m256 v_one = _mm256_set1_ps(1.0f);
+
+    for (; i + 8 <= count; i += 8)
+    {
+        __m256 v_dist = _mm256_loadu_ps(&distances[i]);
+        __m256 v_temp = _mm256_mul_ps(v_dist, v_inv_lambda);      // d/lambda
+        __m256 v_temp_sq = _mm256_mul_ps(v_temp, v_temp);         // (d/lambda)^2
+        __m256 v_denom = _mm256_add_ps(v_one, v_temp_sq);         // 1 + (d/lambda)^2
+        __m256 v_result = _mm256_div_ps(v_fmax, v_denom);         // fmax / denom
+        _mm256_storeu_ps(&distances[i], v_result);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float32x4_t v_fmax = vdupq_n_f32(fmax);
+    float32x4_t v_inv_lambda = vdupq_n_f32(inv_lambda);
+    float32x4_t v_one = vdupq_n_f32(1.0f);
+
+    for (; i + 4 <= count; i += 4)
+    {
+        float32x4_t v_dist = vld1q_f32(&distances[i]);
+        float32x4_t v_temp = vmulq_f32(v_dist, v_inv_lambda);
+        float32x4_t v_temp_sq = vmulq_f32(v_temp, v_temp);
+        float32x4_t v_denom = vaddq_f32(v_one, v_temp_sq);
+        float32x4_t v_result = vdivq_f32(v_fmax, v_denom);
+        vst1q_f32(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        float d = distances[i];
+        float temp = d * inv_lambda;
+        distances[i] = fmax / (1.0f + temp * temp);
+    }
+}
+
 } // namespace Eidos_SIMD
 
 #endif /* eidos_simd_h */

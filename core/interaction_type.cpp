@@ -2939,13 +2939,8 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			}
 			case SpatialKernelType::kCauchy:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					double temp = distance / if_param2_;
-					
-					values[col_iter] = (sv_value_t)(if_param1_ / (1.0 + temp * temp));
-				}
+				// Use SIMD-optimized kernel: fmax = if_param1_, lambda = if_param2_
+				Eidos_SIMD::cauchy_kernel_float32(values, nnz, (float)if_param1_, (float)if_param2_);
 				break;
 			}
 			case SpatialKernelType::kStudentsT:
