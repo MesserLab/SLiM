@@ -47,8 +47,8 @@
 
 
 // Keeping records of test success / failure
-static int gEidosTestSuccessCount = 0;
-static int gEidosTestFailureCount = 0;
+int gEidosTestSuccessCount = 0;
+int gEidosTestFailureCount = 0;
 
 
 // Instantiates and runs the script, and prints an error if the result does not match expectations
@@ -358,6 +358,7 @@ int RunEidosTests(void)
 	_RunFunctionMathTests_setUnionIntersection();
 	_RunFunctionMathTests_setDifferenceSymmetricDifference();
 	_RunFunctionMathTests_s_through_z();
+	_RunSIMDMathTests();
 	_RunFunctionMatrixArrayTests();
 	_RunFunctionStatisticsTests_a_through_p();
 	_RunFunctionStatisticsTests_q_through_z();

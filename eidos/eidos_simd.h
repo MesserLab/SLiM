@@ -363,6 +363,154 @@ inline void log2_float64(const double *input, double *output, int64_t count)
         output[i] = std::log2(input[i]);
 }
 
+// ---------------------
+// Sine: sin(x)
+// ---------------------
+inline void sin_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_SIN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::sin(input[i]);
+}
+
+// ---------------------
+// Cosine: cos(x)
+// ---------------------
+inline void cos_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_COS_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::cos(input[i]);
+}
+
+// ---------------------
+// Tangent: tan(x)
+// ---------------------
+inline void tan_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_TAN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::tan(input[i]);
+}
+
+// ---------------------
+// Arc Sine: asin(x)
+// ---------------------
+inline void asin_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ASIN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::asin(input[i]);
+}
+
+// ---------------------
+// Arc Cosine: acos(x)
+// ---------------------
+inline void acos_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ACOS_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::acos(input[i]);
+}
+
+// ---------------------
+// Arc Tangent: atan(x)
+// ---------------------
+inline void atan_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ATAN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::atan(input[i]);
+}
+
+// ---------------------
+// Arc Tangent 2: atan2(y, x)
+// ---------------------
+inline void atan2_float64(const double *y, const double *x, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D vy = EIDOS_SLEEF_LOAD_D(&y[i]);
+        EIDOS_SLEEF_TYPE_D vx = EIDOS_SLEEF_LOAD_D(&x[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ATAN2_D(vy, vx);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::atan2(y[i], x[i]);
+}
+
 // ================================
 // Reductions
 // ================================

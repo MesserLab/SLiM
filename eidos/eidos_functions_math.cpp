@@ -109,17 +109,31 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_argu
 EidosValue_SP Eidos_ExecuteFunction_acos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(acos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	if (x_type == EidosValueType::kValueInt)
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(acos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+
+		Eidos_SIMD::acos_float64(float_data, float_result_data, x_count);
+	}
+
 	result_SP->CopyDimensionsFromValue(x_value);
-	
+
 	return result_SP;
 }
 
@@ -127,17 +141,31 @@ EidosValue_SP Eidos_ExecuteFunction_acos(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_asin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(asin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	if (x_type == EidosValueType::kValueInt)
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(asin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+
+		Eidos_SIMD::asin_float64(float_data, float_result_data, x_count);
+	}
+
 	result_SP->CopyDimensionsFromValue(x_value);
-	
+
 	return result_SP;
 }
 
@@ -145,17 +173,31 @@ EidosValue_SP Eidos_ExecuteFunction_asin(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_atan(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(atan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	if (x_type == EidosValueType::kValueInt)
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(atan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+
+		Eidos_SIMD::atan_float64(float_data, float_result_data, x_count);
+	}
+
 	result_SP->CopyDimensionsFromValue(x_value);
-	
+
 	return result_SP;
 }
 
@@ -163,32 +205,46 @@ EidosValue_SP Eidos_ExecuteFunction_atan(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_atan2(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValueType x_type = x_value->Type();
 	EidosValue *y_value = p_arguments[1].get();
 	int y_count = y_value->Count();
-	
+	EidosValueType y_type = y_value->Type();
+
 	if (x_count != y_count)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_atan2): function atan2() requires arguments of equal length." << EidosTerminate(nullptr);
-	
+
 	// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 	int x_dimcount = x_value->DimensionCount();
 	int y_dimcount = y_value->DimensionCount();
 	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(x_value, y_value));
-	
+
 	if ((x_dimcount > 1) && (y_dimcount > 1) && !EidosValue::MatchingDimensions(x_value, y_value))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_atan2): non-conformable array operands in atan2()." << EidosTerminate(nullptr);
-	
+
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(atan2(x_value->NumericAtIndex_NOCAST(value_index, nullptr), y_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	// Use SIMD when both operands are float type
+	if ((x_type == EidosValueType::kValueFloat) && (y_type == EidosValueType::kValueFloat))
+	{
+		const double *x_data = x_value->FloatData();
+		const double *y_data = y_value->FloatData();
+		double *float_result_data = float_result->data_mutable();
+
+		Eidos_SIMD::atan2_float64(x_data, y_data, float_result_data, x_count);
+	}
+	else
+	{
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(atan2(x_value->NumericAtIndex_NOCAST(value_index, nullptr), y_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+
 	// Copy dimensions from whichever operand we chose at the beginning
 	result_SP->CopyDimensionsFromValue(result_dim_source.get());
-	
+
 	return result_SP;
 }
 
@@ -223,17 +279,31 @@ EidosValue_SP Eidos_ExecuteFunction_ceil(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_cos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(cos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	if (x_type == EidosValueType::kValueInt)
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(cos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+
+		Eidos_SIMD::cos_float64(float_data, float_result_data, x_count);
+	}
+
 	result_SP->CopyDimensionsFromValue(x_value);
-	
+
 	return result_SP;
 }
 
@@ -2427,17 +2497,31 @@ EidosValue_SP Eidos_ExecuteFunction_sign(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_sin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(sin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	if (x_type == EidosValueType::kValueInt)
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(sin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+
+		Eidos_SIMD::sin_float64(float_data, float_result_data, x_count);
+	}
+
 	result_SP->CopyDimensionsFromValue(x_value);
-	
+
 	return result_SP;
 }
 
@@ -2617,17 +2701,31 @@ EidosValue_SP Eidos_ExecuteFunction_sumExact(const std::vector<EidosValue_SP> &p
 EidosValue_SP Eidos_ExecuteFunction_tan(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
-	
+
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	result_SP = EidosValue_SP(float_result);
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		float_result->set_float_no_check(tan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	
+
+	if (x_type == EidosValueType::kValueInt)
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result->set_float_no_check(tan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+
+		Eidos_SIMD::tan_float64(float_data, float_result_data, x_count);
+	}
+
 	result_SP->CopyDimensionsFromValue(x_value);
-	
+
 	return result_SP;
 }
 

@@ -1194,6 +1194,211 @@ void _RunFunctionMathTests_s_through_z(void)
 }
 
 
+#pragma mark -
+#pragma mark SIMD math wrapper tests
+#pragma mark -
+
+// SIMD wrapper tests - verify that SLEEF-accelerated functions produce
+// results equivalent to scalar std:: functions
+
+#include "eidos_simd.h"
+#include "eidos_globals.h"
+
+// Test a unary SIMD function against its scalar equivalent
+// Template for functions like sin, cos, exp, etc.
+template<typename ScalarFunc, typename SimdFunc>
+static void _TestUnarySimdFunction(const char *name, ScalarFunc scalar_func, SimdFunc simd_func,
+								   const double *test_values, int num_values, double tolerance = 1e-14)
+{
+	// Allocate output arrays
+	std::vector<double> scalar_output(num_values);
+	std::vector<double> simd_output(num_values);
+
+	// Compute scalar results
+	for (int i = 0; i < num_values; i++)
+		scalar_output[i] = scalar_func(test_values[i]);
+
+	// Compute SIMD results
+	simd_func(test_values, simd_output.data(), num_values);
+
+	// Compare results
+	bool all_match = true;
+	for (int i = 0; i < num_values; i++)
+	{
+		double diff = std::abs(simd_output[i] - scalar_output[i]);
+		// Handle NaN comparisons
+		if (std::isnan(scalar_output[i]) && std::isnan(simd_output[i]))
+			continue;
+		// Handle Inf comparisons
+		if (std::isinf(scalar_output[i]) && std::isinf(simd_output[i]) &&
+			(scalar_output[i] > 0) == (simd_output[i] > 0))
+			continue;
+		// Compare with relative tolerance for large values
+		double max_val = std::max(std::abs(scalar_output[i]), std::abs(simd_output[i]));
+		if (max_val > 1.0)
+			diff /= max_val;
+		if (diff > tolerance)
+		{
+			all_match = false;
+			std::cerr << "SIMD " << name << " mismatch at index " << i << ": input=" << test_values[i]
+					  << ", scalar=" << scalar_output[i] << ", simd=" << simd_output[i]
+					  << ", diff=" << diff << std::endl;
+		}
+	}
+
+	if (all_match)
+	{
+		gEidosTestSuccessCount++;
+	}
+	else
+	{
+		gEidosTestFailureCount++;
+		std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD " << name << "() test failed" << std::endl;
+	}
+}
+
+// Test atan2 SIMD function (binary operation)
+static void _TestAtan2SimdFunction(const double *y_values, const double *x_values,
+								   int num_values, double tolerance = 1e-14)
+{
+	std::vector<double> scalar_output(num_values);
+	std::vector<double> simd_output(num_values);
+
+	// Compute scalar results
+	for (int i = 0; i < num_values; i++)
+		scalar_output[i] = std::atan2(y_values[i], x_values[i]);
+
+	// Compute SIMD results
+	Eidos_SIMD::atan2_float64(y_values, x_values, simd_output.data(), num_values);
+
+	// Compare results
+	bool all_match = true;
+	for (int i = 0; i < num_values; i++)
+	{
+		double diff = std::abs(simd_output[i] - scalar_output[i]);
+		if (std::isnan(scalar_output[i]) && std::isnan(simd_output[i]))
+			continue;
+		double max_val = std::max(std::abs(scalar_output[i]), std::abs(simd_output[i]));
+		if (max_val > 1.0)
+			diff /= max_val;
+		if (diff > tolerance)
+		{
+			all_match = false;
+			std::cerr << "SIMD atan2 mismatch at index " << i << ": y=" << y_values[i]
+					  << ", x=" << x_values[i] << ", scalar=" << scalar_output[i]
+					  << ", simd=" << simd_output[i] << ", diff=" << diff << std::endl;
+		}
+	}
+
+	if (all_match)
+	{
+		gEidosTestSuccessCount++;
+	}
+	else
+	{
+		gEidosTestFailureCount++;
+		std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD atan2() test failed" << std::endl;
+	}
+}
+
+void _RunSIMDMathTests(void)
+{
+#if !defined(EIDOS_SLEEF_AVAILABLE) || !EIDOS_SLEEF_AVAILABLE
+	std::cout << "NOTE: SLEEF is not available in this build; SIMD math tests will compare scalar fallback against std:: (trivially identical)." << std::endl;
+#endif
+
+	// Test values for trigonometric functions (in radians)
+	// Include various edge cases and values that span multiple SIMD vector widths
+	const double trig_test_values[] = {
+		// Basic values
+		0.0, 0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0,
+		// Negative values
+		-0.1, -0.5, -1.0, -1.5, -2.0, -2.5, -3.0,
+		// Special angles (multiples of pi/4, pi/2, pi)
+		M_PI/6, M_PI/4, M_PI/3, M_PI/2, 2*M_PI/3, 3*M_PI/4, M_PI,
+		-M_PI/6, -M_PI/4, -M_PI/3, -M_PI/2, -2*M_PI/3, -3*M_PI/4, -M_PI,
+		// Larger values to test range reduction
+		5.0, 10.0, 100.0, -5.0, -10.0, -100.0,
+		// Values near boundaries
+		1e-10, 1e-5, -1e-10, -1e-5,
+		// More values to ensure we test vector remainder handling (test odd counts)
+		0.123, 0.456, 0.789, 1.234, 1.567, 1.890, 2.345
+	};
+	const int num_trig_values = sizeof(trig_test_values) / sizeof(double);
+
+	// Test values for inverse trig functions (domain: [-1, 1] for asin/acos)
+	const double inv_trig_test_values[] = {
+		0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
+		-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1.0,
+		0.99, 0.999, -0.99, -0.999,
+		0.01, 0.001, -0.01, -0.001
+	};
+	const int num_inv_trig_values = sizeof(inv_trig_test_values) / sizeof(double);
+
+	// Test values for exp/log functions
+	const double exp_test_values[] = {
+		0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0,
+		-0.1, -0.5, -1.0, -2.0, -5.0, -10.0,
+		0.001, 0.01, -0.001, -0.01,
+		700.0, -700.0  // Near overflow/underflow for exp
+	};
+	const int num_exp_values = sizeof(exp_test_values) / sizeof(double);
+
+	const double log_test_values[] = {
+		0.001, 0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 100.0, 1000.0,
+		M_E, M_E * M_E, 1.0/M_E,
+		1e-10, 1e10
+	};
+	const int num_log_values = sizeof(log_test_values) / sizeof(double);
+
+	// Test y,x pairs for atan2
+	const double atan2_y_values[] = {
+		0.0, 1.0, 1.0, 0.0, -1.0, -1.0, -1.0, 0.0, 1.0,
+		0.5, 0.5, -0.5, -0.5, 3.0, -3.0, 4.0, -4.0
+	};
+	const double atan2_x_values[] = {
+		1.0, 0.0, 1.0, -1.0, 0.0, 1.0, -1.0, 1.0, -1.0,
+		0.5, -0.5, 0.5, -0.5, 4.0, 4.0, -3.0, -3.0
+	};
+	const int num_atan2_values = sizeof(atan2_y_values) / sizeof(double);
+
+	// Run tests for each SIMD function
+	// Trigonometric functions
+	_TestUnarySimdFunction("sin", [](double x) { return std::sin(x); },
+						   Eidos_SIMD::sin_float64, trig_test_values, num_trig_values);
+
+	_TestUnarySimdFunction("cos", [](double x) { return std::cos(x); },
+						   Eidos_SIMD::cos_float64, trig_test_values, num_trig_values);
+
+	_TestUnarySimdFunction("tan", [](double x) { return std::tan(x); },
+						   Eidos_SIMD::tan_float64, trig_test_values, num_trig_values, 1e-12);  // tan needs more tolerance near poles
+
+	// Inverse trigonometric functions
+	_TestUnarySimdFunction("asin", [](double x) { return std::asin(x); },
+						   Eidos_SIMD::asin_float64, inv_trig_test_values, num_inv_trig_values);
+
+	_TestUnarySimdFunction("acos", [](double x) { return std::acos(x); },
+						   Eidos_SIMD::acos_float64, inv_trig_test_values, num_inv_trig_values);
+
+	_TestUnarySimdFunction("atan", [](double x) { return std::atan(x); },
+						   Eidos_SIMD::atan_float64, trig_test_values, num_trig_values);  // atan accepts any real value
+
+	// atan2 (binary function)
+	_TestAtan2SimdFunction(atan2_y_values, atan2_x_values, num_atan2_values);
+
+	// Exponential and logarithmic functions (these were already implemented, test them too)
+	_TestUnarySimdFunction("exp", [](double x) { return std::exp(x); },
+						   Eidos_SIMD::exp_float64, exp_test_values, num_exp_values);
+
+	_TestUnarySimdFunction("log", [](double x) { return std::log(x); },
+						   Eidos_SIMD::log_float64, log_test_values, num_log_values);
+
+	_TestUnarySimdFunction("log10", [](double x) { return std::log10(x); },
+						   Eidos_SIMD::log10_float64, log_test_values, num_log_values);
+
+	_TestUnarySimdFunction("log2", [](double x) { return std::log2(x); },
+						   Eidos_SIMD::log2_float64, log_test_values, num_log_values);
+}
 
 
 
