@@ -69,6 +69,7 @@
     #define EIDOS_SLEEF_LOAD_F(ptr) _mm256_loadu_ps(ptr)
     #define EIDOS_SLEEF_STORE_F(ptr, v) _mm256_storeu_ps(ptr, v)
     #define EIDOS_SLEEF_EXP_F(v) Sleef_expf8_u10avx2(v)
+    #define EIDOS_SLEEF_POW_F(x, y) Sleef_powf8_u10avx2(x, y)
 
 // ================================
 // ARM NEON Configuration (ARM64)
@@ -100,6 +101,7 @@
     #define EIDOS_SLEEF_LOAD_F(ptr) vld1q_f32(ptr)
     #define EIDOS_SLEEF_STORE_F(ptr, v) vst1q_f32(ptr, v)
     #define EIDOS_SLEEF_EXP_F(v) Sleef_expf4_u10advsimd(v)
+    #define EIDOS_SLEEF_POW_F(x, y) Sleef_powf4_u10advsimd(x, y)
 
 // ================================
 // Scalar Fallback (SSE4.2-only or no SIMD)

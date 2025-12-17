@@ -2950,12 +2950,8 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			}
 			case SpatialKernelType::kStudentsT:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)SpatialKernel::tdist(distance, if_param1_, if_param2_, if_param3_);
-				}
+				// Use SIMD-optimized kernel: fmax = if_param1_, nu = if_param2_, tau = if_param3_
+				Eidos_SIMD::tdist_kernel_float32(values, nnz, (float)if_param1_, (float)if_param2_, (float)if_param3_);
 				break;
 			}
 			default:
