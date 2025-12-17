@@ -2917,12 +2917,8 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			}
 			case SpatialKernelType::kLinear:
 			{
-				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-				{
-					sv_value_t distance = values[col_iter];
-					
-					values[col_iter] = (sv_value_t)(if_param1_ * (1.0 - distance / max_distance_));
-				}
+				// Use SIMD-optimized kernel: fmax = if_param1_, max_distance = max_distance_
+				Eidos_SIMD::linear_kernel_float32(values, nnz, (float)if_param1_, (float)max_distance_);
 				break;
 			}
 			case SpatialKernelType::kExponential:

@@ -723,6 +723,48 @@ inline void cauchy_kernel_float32(float *distances, int64_t count, float fmax, f
     }
 }
 
+// ---------------------
+// Linear Kernel: strength = fmax * (1 - d / max_distance)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// Parameters: fmax = maximum strength, max_distance = interaction max distance
+inline void linear_kernel_float32(float *distances, int64_t count, float fmax, float max_distance)
+{
+    int64_t i = 0;
+    float fmax_over_maxdist = fmax / max_distance;
+
+#if defined(EIDOS_HAS_AVX2)
+    __m256 v_fmax = _mm256_set1_ps(fmax);
+    __m256 v_fmax_over_maxdist = _mm256_set1_ps(fmax_over_maxdist);
+
+    for (; i + 8 <= count; i += 8)
+    {
+        __m256 v_dist = _mm256_loadu_ps(&distances[i]);
+        // fmax - d * (fmax / max_distance) = fmax * (1 - d/max_distance)
+        __m256 v_term = _mm256_mul_ps(v_dist, v_fmax_over_maxdist);
+        __m256 v_result = _mm256_sub_ps(v_fmax, v_term);
+        _mm256_storeu_ps(&distances[i], v_result);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float32x4_t v_fmax = vdupq_n_f32(fmax);
+    float32x4_t v_fmax_over_maxdist = vdupq_n_f32(fmax_over_maxdist);
+
+    for (; i + 4 <= count; i += 4)
+    {
+        float32x4_t v_dist = vld1q_f32(&distances[i]);
+        float32x4_t v_term = vmulq_f32(v_dist, v_fmax_over_maxdist);
+        float32x4_t v_result = vsubq_f32(v_fmax, v_term);
+        vst1q_f32(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        distances[i] = fmax - distances[i] * fmax_over_maxdist;
+    }
+}
+
 } // namespace Eidos_SIMD
 
 #endif /* eidos_simd_h */
