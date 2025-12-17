@@ -26,6 +26,7 @@ development head (in the master branch):
 	add further SIMD optimizations for exp(), log(), log10(), log2() based on the SLEEF framework (https://github.com/shibatch/sleef), thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/587
 	SIMD optimization for dnorm() using the previous SLEEF work, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/588
 	SIMD optimizations for spatial interaction strength calculations, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/590
+	fix #593, Student's T distribution had a sign error in tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
 
 
 version 5.1 (Eidos version 4.1):
