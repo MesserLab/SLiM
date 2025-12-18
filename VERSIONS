@@ -29,6 +29,7 @@ development head (in the master branch):
 	fix #593, Student's T distribution had a sign error in tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
 	add comprehensive tests for spatial interaction kernel calculations; includes SIMD vs scalar consistency tests, C++ level tests, and script-level tests, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/592
 	replaced manual unrolling of loop in TallyMutationReferences_Fast with with compiler-directed unrolling, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/596
+	add SIMD acceleration for trig functions (sin(), cos(), tan(), asin(), acos(), atan(), atan2()), power functions (^ opperator, pow, SpatialMap.pow()), thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/595
 
 
 version 5.1 (Eidos version 4.1):

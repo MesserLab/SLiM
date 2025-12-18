@@ -1134,7 +1134,7 @@ EidosValue_SP Eidos_ExecuteFunction_all(const std::vector<EidosValue_SP> &p_argu
 	return result_SP;
 }
 
-//	(logical)allClose(float x, float y, [float$ rtol = 1e-5], [float$ atol = 1e-8], [logical$ equalNAN = F])
+//	(logical$)allClose(float x, float y, [float$ rtol = 1.0e-05], [float$ atol = 1.0e-08], [logical$ equalNAN = F])
 EidosValue_SP Eidos_ExecuteFunction_allClose(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -1753,7 +1753,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 	return result_SP;
 }
 
-//	(logical)isClose(float x, float y, [float$ rtol = 1e-5], [float$ atol = 1e-8], [logical$ equalNAN = F])
+//	(logical)isClose(float x, float y, [float$ rtol = 1.0e-05], [float$ atol = 1.0e-08], [logical$ equalNAN = F])
 EidosValue_SP Eidos_ExecuteFunction_isClose(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design

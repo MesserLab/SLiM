@@ -62,6 +62,18 @@
     #define EIDOS_SLEEF_LOG10_D(v) Sleef_log10d4_u10avx2(v)
     #define EIDOS_SLEEF_LOG2_D(v) Sleef_log2d4_u10avx2(v)
 
+    // Trigonometric functions (u10 = 1.0 ULP accuracy)
+    #define EIDOS_SLEEF_SIN_D(v)      Sleef_sind4_u10avx2(v)
+    #define EIDOS_SLEEF_COS_D(v)      Sleef_cosd4_u10avx2(v)
+    #define EIDOS_SLEEF_TAN_D(v)      Sleef_tand4_u10avx2(v)
+    #define EIDOS_SLEEF_ASIN_D(v)     Sleef_asind4_u10avx2(v)
+    #define EIDOS_SLEEF_ACOS_D(v)     Sleef_acosd4_u10avx2(v)
+    #define EIDOS_SLEEF_ATAN_D(v)     Sleef_atand4_u10avx2(v)
+    #define EIDOS_SLEEF_ATAN2_D(y,x)  Sleef_atan2d4_u10avx2(y,x)
+
+    // Power function (u10 = 1.0 ULP accuracy)
+    #define EIDOS_SLEEF_POW_D(x,y)    Sleef_powd4_u10avx2(x,y)
+
     // Float (single-precision) support - 8 floats per AVX2 register
     #define EIDOS_SLEEF_FLOAT_AVAILABLE 1
     #define EIDOS_SLEEF_VEC_SIZE_F 8
@@ -93,6 +105,18 @@
     #define EIDOS_SLEEF_LOG_D(v) Sleef_logd2_u10advsimd(v)
     #define EIDOS_SLEEF_LOG10_D(v) Sleef_log10d2_u10advsimd(v)
     #define EIDOS_SLEEF_LOG2_D(v) Sleef_log2d2_u10advsimd(v)
+
+    // Trigonometric functions (u10 = 1.0 ULP accuracy)
+    #define EIDOS_SLEEF_SIN_D(v)      Sleef_sind2_u10advsimd(v)
+    #define EIDOS_SLEEF_COS_D(v)      Sleef_cosd2_u10advsimd(v)
+    #define EIDOS_SLEEF_TAN_D(v)      Sleef_tand2_u10advsimd(v)
+    #define EIDOS_SLEEF_ASIN_D(v)     Sleef_asind2_u10advsimd(v)
+    #define EIDOS_SLEEF_ACOS_D(v)     Sleef_acosd2_u10advsimd(v)
+    #define EIDOS_SLEEF_ATAN_D(v)     Sleef_atand2_u10advsimd(v)
+    #define EIDOS_SLEEF_ATAN2_D(y,x)  Sleef_atan2d2_u10advsimd(y,x)
+
+    // Power function (u10 = 1.0 ULP accuracy)
+    #define EIDOS_SLEEF_POW_D(x,y)    Sleef_powd2_u10advsimd(x,y)
 
     // Float (single-precision) support - 4 floats per NEON register
     #define EIDOS_SLEEF_FLOAT_AVAILABLE 1

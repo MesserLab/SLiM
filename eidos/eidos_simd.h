@@ -363,6 +363,232 @@ inline void log2_float64(const double *input, double *output, int64_t count)
         output[i] = std::log2(input[i]);
 }
 
+// ---------------------
+// Sine: sin(x)
+// ---------------------
+inline void sin_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_SIN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::sin(input[i]);
+}
+
+// ---------------------
+// Cosine: cos(x)
+// ---------------------
+inline void cos_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_COS_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::cos(input[i]);
+}
+
+// ---------------------
+// Tangent: tan(x)
+// ---------------------
+inline void tan_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_TAN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::tan(input[i]);
+}
+
+// ---------------------
+// Arc Sine: asin(x)
+// ---------------------
+inline void asin_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ASIN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::asin(input[i]);
+}
+
+// ---------------------
+// Arc Cosine: acos(x)
+// ---------------------
+inline void acos_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ACOS_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::acos(input[i]);
+}
+
+// ---------------------
+// Arc Tangent: atan(x)
+// ---------------------
+inline void atan_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ATAN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::atan(input[i]);
+}
+
+// ---------------------
+// Arc Tangent 2: atan2(y, x)
+// ---------------------
+inline void atan2_float64(const double *y, const double *x, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D vy = EIDOS_SLEEF_LOAD_D(&y[i]);
+        EIDOS_SLEEF_TYPE_D vx = EIDOS_SLEEF_LOAD_D(&x[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ATAN2_D(vy, vx);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::atan2(y[i], x[i]);
+}
+
+// ---------------------
+// Power: pow(x, y) = x^y
+// ---------------------
+inline void pow_float64(const double *base, const double *exp, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D vb = EIDOS_SLEEF_LOAD_D(&base[i]);
+        EIDOS_SLEEF_TYPE_D ve = EIDOS_SLEEF_LOAD_D(&exp[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_POW_D(vb, ve);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::pow(base[i], exp[i]);
+}
+
+// Broadcast version: all elements raised to same power (base_array ^ scalar_exp)
+inline void pow_float64_scalar_exp(const double *base, double exp_scalar, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if defined(EIDOS_HAS_AVX2) && defined(EIDOS_HAS_FMA)
+    __m256d ve_broadcast = _mm256_set1_pd(exp_scalar);
+    for (; i + 4 <= count; i += 4)
+    {
+        __m256d vb = _mm256_loadu_pd(&base[i]);
+        __m256d r = Sleef_powd4_u10avx2(vb, ve_broadcast);
+        _mm256_storeu_pd(&output[i], r);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t ve_broadcast = vdupq_n_f64(exp_scalar);
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t vb = vld1q_f64(&base[i]);
+        float64x2_t r = Sleef_powd2_u10advsimd(vb, ve_broadcast);
+        vst1q_f64(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::pow(base[i], exp_scalar);
+}
+
+// Broadcast version: scalar base raised to array of powers (scalar_base ^ exp_array)
+inline void pow_float64_scalar_base(double base_scalar, const double *exp, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if defined(EIDOS_HAS_AVX2) && defined(EIDOS_HAS_FMA)
+    __m256d vb_broadcast = _mm256_set1_pd(base_scalar);
+    for (; i + 4 <= count; i += 4)
+    {
+        __m256d ve = _mm256_loadu_pd(&exp[i]);
+        __m256d r = Sleef_powd4_u10avx2(vb_broadcast, ve);
+        _mm256_storeu_pd(&output[i], r);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t vb_broadcast = vdupq_n_f64(base_scalar);
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t ve = vld1q_f64(&exp[i]);
+        float64x2_t r = Sleef_powd2_u10advsimd(vb_broadcast, ve);
+        vst1q_f64(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::pow(base_scalar, exp[i]);
+}
+
 // ================================
 // Reductions
 // ================================
