@@ -7192,19 +7192,21 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 				// to put the refcounts for different mutations into different memory blocks
 				// according to the thread that manages each mutation.
 				
-				// Loop unrolling is enabled via function attribute (GCC) or pragma (Clang).
-				// The __restrict__ qualifiers indicate no pointer aliasing, and the
-				// index-based loop with explicit count helps the compiler reason about
-				// loop bounds. This replaces previous manual 16x unrolling.
-				const MutationIndex * __restrict__ indices = mutrun->begin_pointer_const();
-				const int32_t mutrun_count = mutrun->size();
+				// Loop unrolling is enabled via the function attribute above (GCC) or
+				// pragma below (Clang). These are both scoped: the attribute applies only
+				// to this function, and the pragma applies only to the immediately
+				// following loop. The __restrict__ qualifiers indicate no pointer
+				// aliasing, helping the compiler optimize. This replaces previous manual
+				// 16x unrolling; the compiler now chooses the optimal unroll factor.
+				const MutationIndex * __restrict__ mutrun_iter = mutrun->begin_pointer_const();
+				const MutationIndex * __restrict__ mutrun_end_iter = mutrun->end_pointer_const();
 				slim_refcount_t * __restrict__ refcounts = refcount_block_ptr;
 
 #if defined(__clang__)
 #pragma clang loop unroll(enable)
 #endif
-				for (int32_t i = 0; i < mutrun_count; ++i)
-					refcounts[indices[i]] += use_count;
+				while (mutrun_iter != mutrun_end_iter)
+					*(refcounts + (*mutrun_iter++)) += use_count;
 			}
 		}
 		
