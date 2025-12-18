@@ -7189,36 +7189,17 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 				// to put the refcounts for different mutations into different memory blocks
 				// according to the thread that manages each mutation.
 				
-				const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-				const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
-				
-				// I've gone back and forth on unrolling this loop.  This ought to be done
-				// by the compiler, and the best unrolling strategy depends on the platform.
-				// But the compiler doesn't seem to do it, for my macOS system at least, or
-				// doesn't do it well; this increases speed by ~5% here.  I'm not sure if
-				// clang is being dumb, or what, but it seems worthwhile.
-				while (mutrun_iter + 16 < mutrun_end_iter)
-				{
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-				}
-				
-				while (mutrun_iter != mutrun_end_iter)
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+				// Loop unrolling is handled by the compiler via EIDOS_PRAGMA_UNROLL_16.
+				// The __restrict__ qualifiers indicate no pointer aliasing, and the
+				// index-based loop with explicit count helps the compiler reason about
+				// loop bounds. This replaces previous manual 16x unrolling.
+				const MutationIndex * __restrict__ indices = mutrun->begin_pointer_const();
+				const int32_t mutrun_count = mutrun->size();
+				slim_refcount_t * __restrict__ refcounts = refcount_block_ptr;
+
+				EIDOS_PRAGMA_UNROLL_16
+				for (int32_t i = 0; i < mutrun_count; ++i)
+					refcounts[indices[i]] += use_count;
 			}
 		}
 		

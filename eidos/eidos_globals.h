@@ -51,6 +51,14 @@
 #include "eidos_openmp.h"
 #include "eidos_intrusive_ptr.h"
 
+// Loop unrolling hints for compiler optimization
+// GCC 8+ and Clang both support #pragma GCC unroll
+#if defined(__GNUC__) && (__GNUC__ >= 8 || defined(__clang__))
+	#define EIDOS_PRAGMA_UNROLL_16 _Pragma("GCC unroll 16")
+#else
+	#define EIDOS_PRAGMA_UNROLL_16
+#endif
+
 class EidosScript;
 class EidosToken;
 
