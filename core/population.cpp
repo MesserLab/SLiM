@@ -7155,6 +7155,9 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 // the mutation run tallying itself, however; instead, the caller can tally mutation runs
 // across whatever set of subpops/haplosomes they wish, and then this method will provide
 // mutation tallies given that choice.
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((optimize("unroll-loops")))
+#endif
 void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments)
 {
 	// first zero out the refcounts in all registered Mutation objects
@@ -7189,7 +7192,7 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 				// to put the refcounts for different mutations into different memory blocks
 				// according to the thread that manages each mutation.
 				
-				// Loop unrolling is enabled globally via -funroll-loops in CMakeLists.txt.
+				// Loop unrolling is enabled via function attribute (GCC) or pragma (Clang).
 				// The __restrict__ qualifiers indicate no pointer aliasing, and the
 				// index-based loop with explicit count helps the compiler reason about
 				// loop bounds. This replaces previous manual 16x unrolling.
@@ -7197,6 +7200,9 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 				const int32_t mutrun_count = mutrun->size();
 				slim_refcount_t * __restrict__ refcounts = refcount_block_ptr;
 
+#if defined(__clang__)
+#pragma clang loop unroll(enable)
+#endif
 				for (int32_t i = 0; i < mutrun_count; ++i)
 					refcounts[indices[i]] += use_count;
 			}
