@@ -1668,9 +1668,9 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_1D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_1D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (allClose(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
@@ -1783,9 +1783,9 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_2D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_2D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (allClose(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
@@ -1899,9 +1899,9 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_3D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_3D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_3D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(0.25); if (allClose(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(mv2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(m2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptStop(prefix_3D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
