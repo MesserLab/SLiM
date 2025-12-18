@@ -2002,6 +2002,7 @@
 		987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosConsoleWindowController.mm; sourceTree = "<group>"; };
 		987D19A3209A53850030D28D /* kastore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kastore.h; path = treerec/tskit/kastore/kastore.h; sourceTree = "<group>"; };
 		987D19A4209A53850030D28D /* kastore.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kastore.c; path = treerec/tskit/kastore/kastore.c; sourceTree = "<group>"; };
+		987D30EA2EF482AA0096621B /* eidos_simd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_simd.h; sourceTree = "<group>"; };
 		98800DC21B7EDCB50046F5F9 /* slim_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_test.cpp; sourceTree = "<group>"; };
 		98800DC31B7EDCB50046F5F9 /* slim_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_test.h; sourceTree = "<group>"; };
 		98833AEA1C7A9E8D0072DBAC /* _README */ = {isa = PBXFileReference; lastKnownFileType = text; path = _README; sourceTree = "<group>"; };
@@ -2692,6 +2693,7 @@
 			children = (
 				9873B12328CE26CD00582D83 /* eidos_openmp.h */,
 				9860DCB22EEDAADD004B9CC0 /* eidos_simd.h */,
+				987D30EA2EF482AA0096621B /* eidos_simd.h */,
 				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
 				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
 				98321F931B406B67007337A3 /* eidos_globals.h */,

@@ -22,6 +22,7 @@
 #include "spatial_kernel.h"
 #include "subpopulation.h"
 #include "eidos_class_Image.h"
+#include "eidos_simd.h"
 
 #include "gsl_math.h"
 #include "gsl_spline.h"
@@ -1653,8 +1654,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 		double power_scalar = x_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// FIXME: TO BE PARALLELIZED
-		for (int64_t i = 0; i < values_size_; ++i)
-			values_[i] = pow(values_[i], power_scalar);
+		Eidos_SIMD::pow_float64_scalar_exp(values_, power_scalar, values_, values_size_);
 	}
 	else
 	{
@@ -1665,8 +1665,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
 		
 		// FIXME: TO BE PARALLELIZED
-		for (int64_t i = 0; i < values_size_; ++i)
-			values_[i] = pow(values_[i], power_map_values[i]);
+		Eidos_SIMD::pow_float64(values_, power_map_values, values_, values_size_);
 	}
 	
 	_ValuesChanged();
@@ -1680,8 +1679,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// FIXME: TO BE PARALLELIZED
-	for (int64_t i = 0; i < values_size_; ++i)
-		values_[i] = exp(values_[i]);
+	Eidos_SIMD::exp_float64(values_, values_, values_size_);
 	
 	_ValuesChanged();
 	

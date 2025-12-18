@@ -21,15 +21,21 @@
 #include "slim_test.h"
 
 #include "eidos_globals.h"
+#include "eidos_rng.h"
+#include "eidos_simd.h"
 
 #include <string>
 #include <vector>
+#include <cstring>
+#include <cmath>
 
 
 #pragma mark InteractionType tests
 static void _RunInteractionTypeTests_Nonspatial(bool p_sex_enabled, const std::string &p_sex_segregation);
 static void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_sex_enabled, const std::string &p_sex_segregation);
 static void _RunInteractionTypeTests_LocalPopDensity(void);
+static void _RunSpatialKernelValueTests(void);
+static void _RunSpatialKernelSIMDTests(void);
 
 void _RunInteractionTypeTests(void)
 {
@@ -77,7 +83,10 @@ void _RunInteractionTypeTests(void)
 	_RunInteractionTypeTests_Spatial("999.0", false, "**");
 	
 	_RunInteractionTypeTests_LocalPopDensity();		// different enough to get its own call
-	
+
+	_RunSpatialKernelValueTests();					// test numerical correctness of kernel calculations
+	_RunSpatialKernelSIMDTests();					// C++ level tests for SIMD kernel functions
+
 	for (int sex_seg_index = 0; sex_seg_index <= 8; ++sex_seg_index)
 	{
 		// For a full test, uncomment all cases below; that makes for a long test runtime, but it works.
@@ -1659,11 +1668,11 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_1D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_1D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (allClose(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
 		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
@@ -1774,11 +1783,11 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_2D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_2D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (allClose(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
 		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
@@ -1890,11 +1899,11 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptStop(prefix_3D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		SLiMAssertScriptStop(prefix_3D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_3D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(0.25); if (allClose(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(mv2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(m2); if (allClose(mv1 ^ mv2, m1.gridValues())) stop(); } ");
 		
-		SLiMAssertScriptStop(prefix_3D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.exp(); if (allClose(exp(mv1), m1.gridValues())) stop(); } ");
 		
 		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
 		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
@@ -3018,9 +3027,436 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, metric='count', fold=T); }", __LINE__);
 }
 
+#pragma mark Spatial kernel value tests
+void _RunSpatialKernelValueTests(void)
+{
+	// ************************************************************************************
+	//
+	//	Tests for numerical correctness of spatial interaction kernel calculations
+	//
+	//	These tests verify that each kernel type produces correct strength values
+	//	for known distances and parameters. This catches bugs in SIMD implementations
+	//	by comparing against expected values computed from the kernel formulas.
+	//
 
+	// Base setup: 1D spatial model with two individuals at known positions
+	// Individual 0 at x=0.0, Individual 1 at x=0.5, so distance = 0.5
+	// maxDistance = 1.0 for all tests
+	std::string kernel_test_setup =
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=1.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; "
+		"  p1.individuals[1].x = 0.5; ";  // distance = 0.5
 
+	// Test Linear kernel: strength = fmax * (1 - d / max_distance)
+	// fmax = 5.0, max_distance = 1.0, distance = 0.5
+	// Expected: 5.0 * (1 - 0.5 / 1.0) = 5.0 * 0.5 = 2.5
+	SLiMAssertScriptStop(kernel_test_setup +
+		"  i1.setInteractionFunction('l', 5.0); "
+		"  i1.evaluate(p1); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), 2.5)) stop(); "
+		"}", __LINE__);
 
+	// Test Linear kernel at distance = 0 (should return fmax)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=1.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; "
+		"  p1.individuals[1].x = 0.0; "  // distance = 0
+		"  i1.setInteractionFunction('l', 5.0); "
+		"  i1.evaluate(p1); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), 5.0)) stop(); "
+		"}", __LINE__);
+
+	// Test Exponential kernel: strength = fmax * exp(-lambda * d)
+	// fmax = 5.0, lambda = 2.0, distance = 0.5
+	// Expected: 5.0 * exp(-2.0 * 0.5) = 5.0 * exp(-1.0) ≈ 1.8394
+	SLiMAssertScriptStop(kernel_test_setup +
+		"  i1.setInteractionFunction('e', 5.0, 2.0); "
+		"  i1.evaluate(p1); "
+		"  expected = 5.0 * exp(-2.0 * 0.5); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), expected)) stop(); "
+		"}", __LINE__);
+
+	// Test Exponential kernel at distance = 0 (should return fmax)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=1.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; "
+		"  p1.individuals[1].x = 0.0; "
+		"  i1.setInteractionFunction('e', 5.0, 2.0); "
+		"  i1.evaluate(p1); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), 5.0)) stop(); "
+		"}", __LINE__);
+
+	// Test Normal (Gaussian) kernel: strength = fmax * exp(-d^2 / (2 * sigma^2))
+	// fmax = 5.0, sigma = 0.5, distance = 0.5
+	// Expected: 5.0 * exp(-0.25 / 0.5) = 5.0 * exp(-0.5) ≈ 3.0327
+	SLiMAssertScriptStop(kernel_test_setup +
+		"  i1.setInteractionFunction('n', 5.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  expected = 5.0 * exp(-0.5 * 0.5 / (2.0 * 0.5 * 0.5)); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), expected)) stop(); "
+		"}", __LINE__);
+
+	// Test Normal kernel at distance = 0 (should return fmax)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=1.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; "
+		"  p1.individuals[1].x = 0.0; "
+		"  i1.setInteractionFunction('n', 5.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), 5.0)) stop(); "
+		"}", __LINE__);
+
+	// Test Cauchy kernel: strength = fmax / (1 + (d / lambda)^2)
+	// fmax = 5.0, lambda = 0.5, distance = 0.5
+	// Expected: 5.0 / (1 + (0.5/0.5)^2) = 5.0 / 2 = 2.5
+	SLiMAssertScriptStop(kernel_test_setup +
+		"  i1.setInteractionFunction('c', 5.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  expected = 5.0 / (1.0 + (0.5/0.5)^2); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), expected)) stop(); "
+		"}", __LINE__);
+
+	// Test Cauchy kernel at distance = 0 (should return fmax)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=1.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; "
+		"  p1.individuals[1].x = 0.0; "
+		"  i1.setInteractionFunction('c', 5.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), 5.0)) stop(); "
+		"}", __LINE__);
+
+	// Test Student's T kernel: strength = fmax * pow(1 + (d/tau)^2 / nu, -(nu+1)/2)
+	// Correct formula: strength decreases with distance as base > 1 and exponent < 0
+	// fmax = 5.0, nu = 3.0, tau = 0.5, distance = 0.5
+	// base = 1 + (0.5/0.5)^2 / 3 = 4/3, exponent = -(3+1)/2 = -2
+	// Correct: 5.0 * (4/3)^(-2) = 5.0 * (9/16) = 2.8125
+	SLiMAssertScriptStop(kernel_test_setup +
+		"  i1.setInteractionFunction('t', 5.0, 3.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  d_over_tau = 0.5 / 0.5; "
+		"  base = 1.0 + d_over_tau^2 / 3.0; "
+		"  expected = 5.0 * base^(-(3.0 + 1.0) / 2.0); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), expected)) stop(); "
+		"}", __LINE__);
+
+	// Test Student's T kernel at distance = 0 (should return fmax)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=1.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; "
+		"  p1.individuals[1].x = 0.0; "
+		"  i1.setInteractionFunction('t', 5.0, 3.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), 5.0)) stop(); "
+		"}", __LINE__);
+
+	// =============================================================================
+	// SIMD vs Scalar consistency tests
+	// These tests compare the scalar path (i1.strength()) against the SIMD path
+	// (i1.totalOfNeighborStrengths()) to ensure both implementations agree.
+	// The scalar path uses CalculateStrengthNoCallbacks() in interaction_type.cpp
+	// The SIMD path uses the *_kernel_float32() functions in eidos_simd.h
+	// =============================================================================
+
+	// Shared setup for 2D SIMD consistency tests
+	std::string simd_consistency_setup =
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='xy'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'xy', maxDistance=2.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; p1.individuals[0].y = 0.0; "
+		"  p1.individuals[1].x = 0.5; p1.individuals[1].y = 0.0; ";
+
+	// Linear kernel: SIMD (linear_kernel_float32) vs scalar consistency
+	SLiMAssertScriptStop(simd_consistency_setup +
+		"  i1.setInteractionFunction('l', 5.0); "
+		"  i1.evaluate(p1); "
+		"  scalar_strength = i1.strength(p1.individuals[0], p1.individuals[1]); "
+		"  simd_strength = i1.totalOfNeighborStrengths(p1.individuals[0]); "
+		"  if (allClose(scalar_strength, simd_strength)) stop(); "
+		"}", __LINE__);
+
+	// Exponential kernel: SIMD (exp_kernel_float32) vs scalar consistency
+	SLiMAssertScriptStop(simd_consistency_setup +
+		"  i1.setInteractionFunction('e', 5.0, 2.0); "
+		"  i1.evaluate(p1); "
+		"  scalar_strength = i1.strength(p1.individuals[0], p1.individuals[1]); "
+		"  simd_strength = i1.totalOfNeighborStrengths(p1.individuals[0]); "
+		"  if (allClose(scalar_strength, simd_strength)) stop(); "
+		"}", __LINE__);
+
+	// Normal kernel: SIMD (normal_kernel_float32) vs scalar consistency
+	SLiMAssertScriptStop(simd_consistency_setup +
+		"  i1.setInteractionFunction('n', 5.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  scalar_strength = i1.strength(p1.individuals[0], p1.individuals[1]); "
+		"  simd_strength = i1.totalOfNeighborStrengths(p1.individuals[0]); "
+		"  if (allClose(scalar_strength, simd_strength)) stop(); "
+		"}", __LINE__);
+
+	// Cauchy kernel: SIMD (cauchy_kernel_float32) vs scalar consistency
+	SLiMAssertScriptStop(simd_consistency_setup +
+		"  i1.setInteractionFunction('c', 5.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  scalar_strength = i1.strength(p1.individuals[0], p1.individuals[1]); "
+		"  simd_strength = i1.totalOfNeighborStrengths(p1.individuals[0]); "
+		"  if (allClose(scalar_strength, simd_strength)) stop(); "
+		"}", __LINE__);
+
+	// Student's T kernel: SIMD (tdist_kernel_float32) vs scalar consistency
+	SLiMAssertScriptStop(simd_consistency_setup +
+		"  i1.setInteractionFunction('t', 5.0, 3.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  scalar_strength = i1.strength(p1.individuals[0], p1.individuals[1]); "
+		"  simd_strength = i1.totalOfNeighborStrengths(p1.individuals[0]); "
+		"  if (allClose(scalar_strength, simd_strength)) stop(); "
+		"}", __LINE__);
+
+	// Test with multiple individuals to exercise SIMD paths (need > 8 for AVX2)
+	// Using Normal kernel with 20 individuals at various positions
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='x'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'x', maxDistance=2.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 20); } "
+		"1 late() { "
+		"  p1.individuals.x = seq(0.0, 1.9, length=20); "  // positions 0.0, 0.1, 0.2, ..., 1.9
+		"  i1.setInteractionFunction('n', 1.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  ind0 = p1.individuals[0]; "  // at x = 0.0
+		"  ind10 = p1.individuals[10]; "  // at x = 1.0, distance = 1.0 from ind0
+		"  expected = exp(-1.0^2 / (2.0 * 0.5^2)); "  // exp(-2.0) ≈ 0.1353
+		"  if (allClose(i1.strength(ind0, ind10), expected)) stop();"
+		"}", __LINE__);
+
+	// Test 2D spatial case (exercises different code path)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='xy'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'xy', maxDistance=2.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 2); } "
+		"1 late() { "
+		"  p1.individuals[0].x = 0.0; p1.individuals[0].y = 0.0; "
+		"  p1.individuals[1].x = 0.3; p1.individuals[1].y = 0.4; "  // distance = 0.5
+		"  i1.setInteractionFunction('n', 1.0, 0.5); "
+		"  i1.evaluate(p1); "
+		"  expected = exp(-0.5^2 / (2.0 * 0.5^2)); "  // exp(-0.5) ≈ 0.6065
+		"  if (allClose(i1.strength(p1.individuals[0], p1.individuals[1]), expected)) stop();"
+		"}", __LINE__);
+
+	// Test 2D with many individuals (exercises 2D SIMD paths)
+	SLiMAssertScriptStop(
+		"initialize() { "
+		"  initializeSLiMOptions(dimensionality='xy'); "
+		"  initializeMutationRate(0); "
+		"  initializeMutationType('m1', 0.5, 'f', 0.0); "
+		"  initializeGenomicElementType('g1', m1, 1.0); "
+		"  initializeGenomicElement(g1, 0, 99999); "
+		"  initializeRecombinationRate(0); "
+		"  initializeInteractionType('i1', 'xy', maxDistance=5.0); "
+		"} "
+		"1 early() { sim.addSubpop('p1', 100); } "
+		"1 late() { "
+		"  p1.individuals.x = runif(100, 0, 4); "
+		"  p1.individuals.y = runif(100, 0, 4); "
+		"  i1.setInteractionFunction('e', 1.0, 1.0); "  // Exponential
+		"  i1.evaluate(p1); "
+		"  ind0 = p1.individuals[0]; "
+		"  ind1 = p1.individuals[1]; "
+		"  dist = sqrt((ind0.x - ind1.x)^2 + (ind0.y - ind1.y)^2); "
+		"  expected = exp(-dist); "
+		"  actual = i1.strength(ind0, ind1); "
+		"  if (dist > 5.0) { if (actual == 0.0) stop(); } "  // beyond maxDistance
+		"  else { if (allClose(actual, expected)) stop(); }"
+		"}", __LINE__);
+}
+
+#pragma mark Spatial kernel SIMD tests (C++ level)
+void _RunSpatialKernelSIMDTests(void)
+{
+	// ************************************************************************************
+	//
+	//	C++ level tests for spatial kernel SIMD functions
+	//
+	//	These tests directly call the SIMD kernel functions with random input data
+	//	and compare against scalar reference calculations. This provides thorough
+	//	testing of the SIMD implementations with ~1000 values per kernel.
+	//
+
+	const int test_count = 1000;
+	const float tolerance = 1e-5f;
+	float distances[test_count];
+	float simd_results[test_count];
+
+	// Generate random distances in range [0, 2)
+	gsl_rng *rng = gsl_rng_alloc(gsl_rng_taus2);
+	gsl_rng_set(rng, 12345);  // fixed seed for reproducibility
+
+	for (int i = 0; i < test_count; i++)
+		distances[i] = (float)(gsl_rng_uniform(rng) * 2.0);
+
+	// ***********************************************************************************************
+	// Test linear_kernel_float32: strength = fmax * (1 - d / max_distance)
+	{
+		float fmax = 5.0f, max_distance = 2.0f;
+		std::memcpy(simd_results, distances, test_count * sizeof(float));
+		Eidos_SIMD::linear_kernel_float32(simd_results, test_count, fmax, max_distance);
+
+		for (int i = 0; i < test_count; i++)
+		{
+			float expected = fmax * (1.0f - distances[i] / max_distance);
+			if (std::abs(simd_results[i] - expected) > tolerance)
+				EIDOS_TERMINATION << "ERROR (_RunSpatialKernelSIMDTests): linear_kernel_float32 mismatch at index " << i << ": expected " << expected << ", got " << simd_results[i] << EidosTerminate();
+		}
+	}
+
+	// ***********************************************************************************************
+	// Test exp_kernel_float32: strength = fmax * exp(-lambda * d)
+	{
+		float fmax = 5.0f, lambda = 2.0f;
+		std::memcpy(simd_results, distances, test_count * sizeof(float));
+		Eidos_SIMD::exp_kernel_float32(simd_results, test_count, fmax, lambda);
+
+		for (int i = 0; i < test_count; i++)
+		{
+			float expected = fmax * std::exp(-lambda * distances[i]);
+			if (std::abs(simd_results[i] - expected) > tolerance)
+				EIDOS_TERMINATION << "ERROR (_RunSpatialKernelSIMDTests): exp_kernel_float32 mismatch at index " << i << ": expected " << expected << ", got " << simd_results[i] << EidosTerminate();
+		}
+	}
+
+	// ***********************************************************************************************
+	// Test normal_kernel_float32: strength = fmax * exp(-d^2 / two_sigma_sq)
+	{
+		float fmax = 5.0f, sigma = 0.5f;
+		float two_sigma_sq = 2.0f * sigma * sigma;
+		std::memcpy(simd_results, distances, test_count * sizeof(float));
+		Eidos_SIMD::normal_kernel_float32(simd_results, test_count, fmax, two_sigma_sq);
+
+		for (int i = 0; i < test_count; i++)
+		{
+			float d = distances[i];
+			float expected = fmax * std::exp(-(d * d) / two_sigma_sq);
+			if (std::abs(simd_results[i] - expected) > tolerance)
+				EIDOS_TERMINATION << "ERROR (_RunSpatialKernelSIMDTests): normal_kernel_float32 mismatch at index " << i << ": expected " << expected << ", got " << simd_results[i] << EidosTerminate();
+		}
+	}
+
+	// ***********************************************************************************************
+	// Test cauchy_kernel_float32: strength = fmax / (1 + (d/lambda)^2)
+	{
+		float fmax = 5.0f, lambda = 0.5f;
+		std::memcpy(simd_results, distances, test_count * sizeof(float));
+		Eidos_SIMD::cauchy_kernel_float32(simd_results, test_count, fmax, lambda);
+
+		for (int i = 0; i < test_count; i++)
+		{
+			float d_over_lambda = distances[i] / lambda;
+			float expected = fmax / (1.0f + d_over_lambda * d_over_lambda);
+			if (std::abs(simd_results[i] - expected) > tolerance)
+				EIDOS_TERMINATION << "ERROR (_RunSpatialKernelSIMDTests): cauchy_kernel_float32 mismatch at index " << i << ": expected " << expected << ", got " << simd_results[i] << EidosTerminate();
+		}
+	}
+
+	// ***********************************************************************************************
+	// Test tdist_kernel_float32: strength = fmax * pow(1 + (d/tau)^2 / nu, -(nu+1)/2)
+	{
+		float fmax = 5.0f, nu = 3.0f, tau = 0.5f;
+		std::memcpy(simd_results, distances, test_count * sizeof(float));
+		Eidos_SIMD::tdist_kernel_float32(simd_results, test_count, fmax, nu, tau);
+
+		for (int i = 0; i < test_count; i++)
+		{
+			float d_over_tau = distances[i] / tau;
+			float base = 1.0f + d_over_tau * d_over_tau / nu;
+			float exponent = -(nu + 1.0f) / 2.0f;
+			float expected = fmax * std::pow(base, exponent);
+			if (std::abs(simd_results[i] - expected) > tolerance)
+				EIDOS_TERMINATION << "ERROR (_RunSpatialKernelSIMDTests): tdist_kernel_float32 mismatch at index " << i << ": expected " << expected << ", got " << simd_results[i] << EidosTerminate();
+		}
+	}
+
+	gsl_rng_free(rng);
+}
 
 
 

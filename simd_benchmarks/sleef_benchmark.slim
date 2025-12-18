@@ -1,0 +1,156 @@
+// SLEEF Transcendental Functions Benchmark
+// Tests exp(), log(), log10(), log2(), trig functions, and pow() performance
+
+initialize() {
+    initializeSLiMModelType("nonWF");
+    defineConstant("N", 1000000);  // 1M elements
+    defineConstant("REPS", 10);    // repetitions for timing
+}
+
+1 early() {
+    // Create test data
+    x = runif(N, 0.1, 10.0);
+
+    // Data for trig functions (angles in radians)
+    angles = runif(N, -PI, PI);
+
+    // Data for inverse trig (must be in [-1, 1])
+    trig_input = runif(N, -0.99, 0.99);
+
+    // Second array for atan2 and pow
+    x2 = runif(N, 0.1, 5.0);
+
+    catn("Benchmarking SLEEF functions on " + N + " elements, " + REPS + " reps each\n");
+
+    catn("=== Exponential/Logarithmic ===");
+
+    // Benchmark exp()
+    start = clock();
+    for (i in 1:REPS)
+        y = exp(x);
+    elapsed = clock() - start;
+    catn("exp():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark log()
+    start = clock();
+    for (i in 1:REPS)
+        y = log(x);
+    elapsed = clock() - start;
+    catn("log():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark log10()
+    start = clock();
+    for (i in 1:REPS)
+        y = log10(x);
+    elapsed = clock() - start;
+    catn("log10():  " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark log2()
+    start = clock();
+    for (i in 1:REPS)
+        y = log2(x);
+    elapsed = clock() - start;
+    catn("log2():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    catn("\n=== Trigonometric ===");
+
+    // Benchmark sin()
+    start = clock();
+    for (i in 1:REPS)
+        y = sin(angles);
+    elapsed = clock() - start;
+    catn("sin():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark cos()
+    start = clock();
+    for (i in 1:REPS)
+        y = cos(angles);
+    elapsed = clock() - start;
+    catn("cos():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark tan()
+    start = clock();
+    for (i in 1:REPS)
+        y = tan(angles);
+    elapsed = clock() - start;
+    catn("tan():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    catn("\n=== Inverse Trigonometric ===");
+
+    // Benchmark asin()
+    start = clock();
+    for (i in 1:REPS)
+        y = asin(trig_input);
+    elapsed = clock() - start;
+    catn("asin():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark acos()
+    start = clock();
+    for (i in 1:REPS)
+        y = acos(trig_input);
+    elapsed = clock() - start;
+    catn("acos():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark atan()
+    start = clock();
+    for (i in 1:REPS)
+        y = atan(x);
+    elapsed = clock() - start;
+    catn("atan():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark atan2()
+    start = clock();
+    for (i in 1:REPS)
+        y = atan2(angles, x2);
+    elapsed = clock() - start;
+    catn("atan2():  " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    catn("\n=== Power ===");
+
+    // Benchmark pow (x ^ y with two arrays)
+    start = clock();
+    for (i in 1:REPS)
+        y = x ^ x2;
+    elapsed = clock() - start;
+    catn("x^y:      " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark pow with scalar exponent (x ^ 2.5)
+    start = clock();
+    for (i in 1:REPS)
+        y = x ^ 2.5;
+    elapsed = clock() - start;
+    catn("x^2.5:    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark pow with scalar base (2.0 ^ x)
+    start = clock();
+    for (i in 1:REPS)
+        y = 2.0 ^ x;
+    elapsed = clock() - start;
+    catn("2.0^x:    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    catn("\n=== Native SIMD (comparison) ===");
+
+    // Benchmark sqrt()
+    start = clock();
+    for (i in 1:REPS)
+        y = sqrt(x);
+    elapsed = clock() - start;
+    catn("sqrt():   " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark abs()
+    x2 = x - 5.0;  // make some negative
+    start = clock();
+    for (i in 1:REPS)
+        y = abs(x2);
+    elapsed = clock() - start;
+    catn("abs():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    // Benchmark sum()
+    start = clock();
+    for (i in 1:REPS)
+        s = sum(x);
+    elapsed = clock() - start;
+    catn("sum():    " + format("%.3f", elapsed/REPS*1000) + " ms per call");
+
+    sim.simulationFinished();
+}

@@ -54,6 +54,12 @@
     #define EIDOS_SIMD_FLOAT_WIDTH 1
 #endif
 
+// Include SLEEF for vectorized transcendental functions (exp, log, log10, log2)
+// SLEEF is only used when AVX2+FMA or NEON is available
+#if defined(EIDOS_HAS_AVX2) || defined(EIDOS_HAS_NEON)
+#include "sleef/sleef_config.h"
+#endif
+
 // ================================
 // SIMD Vector Math Operations
 // ================================
@@ -276,11 +282,21 @@ inline void round_float64(const double *input, double *output, int64_t count)
 // ---------------------
 // Exponential: exp(x)
 // ---------------------
-// Note: There's no hardware exp instruction, but we structure the loop
-// for cache-friendly access. For true SIMD exp, we'd need a vectorized math library.
 inline void exp_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_EXP_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::exp(input[i]);
 }
 
@@ -289,7 +305,19 @@ inline void exp_float64(const double *input, double *output, int64_t count)
 // ---------------------
 inline void log_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_LOG_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::log(input[i]);
 }
 
@@ -298,7 +326,19 @@ inline void log_float64(const double *input, double *output, int64_t count)
 // ---------------------
 inline void log10_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_LOG10_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::log10(input[i]);
 }
 
@@ -307,8 +347,246 @@ inline void log10_float64(const double *input, double *output, int64_t count)
 // ---------------------
 inline void log2_float64(const double *input, double *output, int64_t count)
 {
-    for (int64_t i = 0; i < count; i++)
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_LOG2_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
         output[i] = std::log2(input[i]);
+}
+
+// ---------------------
+// Sine: sin(x)
+// ---------------------
+inline void sin_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_SIN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::sin(input[i]);
+}
+
+// ---------------------
+// Cosine: cos(x)
+// ---------------------
+inline void cos_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_COS_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::cos(input[i]);
+}
+
+// ---------------------
+// Tangent: tan(x)
+// ---------------------
+inline void tan_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_TAN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::tan(input[i]);
+}
+
+// ---------------------
+// Arc Sine: asin(x)
+// ---------------------
+inline void asin_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ASIN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::asin(input[i]);
+}
+
+// ---------------------
+// Arc Cosine: acos(x)
+// ---------------------
+inline void acos_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ACOS_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::acos(input[i]);
+}
+
+// ---------------------
+// Arc Tangent: atan(x)
+// ---------------------
+inline void atan_float64(const double *input, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D v = EIDOS_SLEEF_LOAD_D(&input[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ATAN_D(v);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::atan(input[i]);
+}
+
+// ---------------------
+// Arc Tangent 2: atan2(y, x)
+// ---------------------
+inline void atan2_float64(const double *y, const double *x, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D vy = EIDOS_SLEEF_LOAD_D(&y[i]);
+        EIDOS_SLEEF_TYPE_D vx = EIDOS_SLEEF_LOAD_D(&x[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_ATAN2_D(vy, vx);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::atan2(y[i], x[i]);
+}
+
+// ---------------------
+// Power: pow(x, y) = x^y
+// ---------------------
+inline void pow_float64(const double *base, const double *exp, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE <= count; i += EIDOS_SLEEF_VEC_SIZE)
+    {
+        EIDOS_SLEEF_TYPE_D vb = EIDOS_SLEEF_LOAD_D(&base[i]);
+        EIDOS_SLEEF_TYPE_D ve = EIDOS_SLEEF_LOAD_D(&exp[i]);
+        EIDOS_SLEEF_TYPE_D r = EIDOS_SLEEF_POW_D(vb, ve);
+        EIDOS_SLEEF_STORE_D(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::pow(base[i], exp[i]);
+}
+
+// Broadcast version: all elements raised to same power (base_array ^ scalar_exp)
+inline void pow_float64_scalar_exp(const double *base, double exp_scalar, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if defined(EIDOS_HAS_AVX2) && defined(EIDOS_HAS_FMA)
+    __m256d ve_broadcast = _mm256_set1_pd(exp_scalar);
+    for (; i + 4 <= count; i += 4)
+    {
+        __m256d vb = _mm256_loadu_pd(&base[i]);
+        __m256d r = Sleef_powd4_u10avx2(vb, ve_broadcast);
+        _mm256_storeu_pd(&output[i], r);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t ve_broadcast = vdupq_n_f64(exp_scalar);
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t vb = vld1q_f64(&base[i]);
+        float64x2_t r = Sleef_powd2_u10advsimd(vb, ve_broadcast);
+        vst1q_f64(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::pow(base[i], exp_scalar);
+}
+
+// Broadcast version: scalar base raised to array of powers (scalar_base ^ exp_array)
+inline void pow_float64_scalar_base(double base_scalar, const double *exp, double *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if defined(EIDOS_HAS_AVX2) && defined(EIDOS_HAS_FMA)
+    __m256d vb_broadcast = _mm256_set1_pd(base_scalar);
+    for (; i + 4 <= count; i += 4)
+    {
+        __m256d ve = _mm256_loadu_pd(&exp[i]);
+        __m256d r = Sleef_powd4_u10avx2(vb_broadcast, ve);
+        _mm256_storeu_pd(&output[i], r);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t vb_broadcast = vdupq_n_f64(base_scalar);
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t ve = vld1q_f64(&exp[i]);
+        float64x2_t r = Sleef_powd2_u10advsimd(vb_broadcast, ve);
+        vst1q_f64(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::pow(base_scalar, exp[i]);
 }
 
 // ================================
@@ -413,6 +691,304 @@ inline double product_float64(const double *input, int64_t count)
         prod *= input[i];
 
     return prod;
+}
+
+// ================================
+// Float (Single-Precision) SIMD Operations
+// ================================
+// These functions operate on arrays of floats, used by spatial interaction kernels.
+
+// ---------------------
+// Exponential: exp(x) for floats
+// ---------------------
+inline void exp_float32(const float *input, float *output, int64_t count)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v = EIDOS_SLEEF_LOAD_F(&input[i]);
+        EIDOS_SLEEF_TYPE_F r = EIDOS_SLEEF_EXP_F(v);
+        EIDOS_SLEEF_STORE_F(&output[i], r);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        output[i] = std::exp(input[i]);
+}
+
+// ---------------------
+// Exponential Kernel: strength = fmax * exp(-lambda * distance)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// This is optimized for the spatial interaction kernel calculation.
+inline void exp_kernel_float32(float *distances, int64_t count, float fmax, float lambda)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    // We need to compute: fmax * exp(-lambda * distance)
+    // First, compute -lambda * distance for all values, then exp, then multiply by fmax
+    EIDOS_SLEEF_TYPE_F v_fmax =
+#if defined(EIDOS_HAS_AVX2)
+        _mm256_set1_ps(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_lambda = _mm256_set1_ps(-lambda);
+#elif defined(EIDOS_HAS_NEON)
+        vdupq_n_f32(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_lambda = vdupq_n_f32(-lambda);
+#endif
+
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v_dist = EIDOS_SLEEF_LOAD_F(&distances[i]);
+
+        // Compute -lambda * distance
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_arg = _mm256_mul_ps(v_neg_lambda, v_dist);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_arg = vmulq_f32(v_neg_lambda, v_dist);
+#endif
+
+        // Compute exp(-lambda * distance)
+        EIDOS_SLEEF_TYPE_F v_exp = EIDOS_SLEEF_EXP_F(v_arg);
+
+        // Compute fmax * exp(...)
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_result = _mm256_mul_ps(v_fmax, v_exp);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_result = vmulq_f32(v_fmax, v_exp);
+#endif
+
+        EIDOS_SLEEF_STORE_F(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+        distances[i] = fmax * std::exp(-lambda * distances[i]);
+}
+
+// ---------------------
+// Normal (Gaussian) Kernel: strength = fmax * exp(-distance^2 / 2sigma^2)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// The two_sigma_sq parameter is pre-computed as 2 * sigma^2 for efficiency.
+inline void normal_kernel_float32(float *distances, int64_t count, float fmax, float two_sigma_sq)
+{
+    int64_t i = 0;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    // We need to compute: fmax * exp(-distance^2 / two_sigma_sq)
+    EIDOS_SLEEF_TYPE_F v_fmax =
+#if defined(EIDOS_HAS_AVX2)
+        _mm256_set1_ps(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_inv_2sigsq = _mm256_set1_ps(-1.0f / two_sigma_sq);
+#elif defined(EIDOS_HAS_NEON)
+        vdupq_n_f32(fmax);
+    EIDOS_SLEEF_TYPE_F v_neg_inv_2sigsq = vdupq_n_f32(-1.0f / two_sigma_sq);
+#endif
+
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v_dist = EIDOS_SLEEF_LOAD_F(&distances[i]);
+
+        // Compute distance^2
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_dist_sq = _mm256_mul_ps(v_dist, v_dist);
+        // Compute -distance^2 / 2sigma^2
+        EIDOS_SLEEF_TYPE_F v_arg = _mm256_mul_ps(v_dist_sq, v_neg_inv_2sigsq);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_dist_sq = vmulq_f32(v_dist, v_dist);
+        // Compute -distance^2 / 2sigma^2
+        EIDOS_SLEEF_TYPE_F v_arg = vmulq_f32(v_dist_sq, v_neg_inv_2sigsq);
+#endif
+
+        // Compute exp(-distance^2 / 2sigma^2)
+        EIDOS_SLEEF_TYPE_F v_exp = EIDOS_SLEEF_EXP_F(v_arg);
+
+        // Compute fmax * exp(...)
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_result = _mm256_mul_ps(v_fmax, v_exp);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_result = vmulq_f32(v_fmax, v_exp);
+#endif
+
+        EIDOS_SLEEF_STORE_F(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        float d = distances[i];
+        distances[i] = fmax * std::exp(-(d * d) / two_sigma_sq);
+    }
+}
+
+// ---------------------
+// Student's T Kernel: strength = fmax / pow(1 + (d/tau)^2 / nu, (nu+1)/2)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// Parameters: fmax = maximum strength, nu = degrees of freedom, tau = scale
+inline void tdist_kernel_float32(float *distances, int64_t count, float fmax, float nu, float tau)
+{
+    int64_t i = 0;
+
+    // Pre-compute constants
+    float inv_tau = 1.0f / tau;
+    float inv_nu = 1.0f / nu;
+    float exponent = (nu + 1.0f) / 2.0f;
+
+#if EIDOS_SLEEF_FLOAT_AVAILABLE
+    EIDOS_SLEEF_TYPE_F v_fmax, v_inv_tau, v_inv_nu, v_exponent, v_one;
+#if defined(EIDOS_HAS_AVX2)
+    v_fmax = _mm256_set1_ps(fmax);
+    v_inv_tau = _mm256_set1_ps(inv_tau);
+    v_inv_nu = _mm256_set1_ps(inv_nu);
+    v_exponent = _mm256_set1_ps(-exponent);
+    v_one = _mm256_set1_ps(1.0f);
+#elif defined(EIDOS_HAS_NEON)
+    v_fmax = vdupq_n_f32(fmax);
+    v_inv_tau = vdupq_n_f32(inv_tau);
+    v_inv_nu = vdupq_n_f32(inv_nu);
+    v_exponent = vdupq_n_f32(-exponent);
+    v_one = vdupq_n_f32(1.0f);
+#endif
+
+    for (; i + EIDOS_SLEEF_VEC_SIZE_F <= count; i += EIDOS_SLEEF_VEC_SIZE_F)
+    {
+        EIDOS_SLEEF_TYPE_F v_dist = EIDOS_SLEEF_LOAD_F(&distances[i]);
+
+        // Compute (d / tau)
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_d_over_tau = _mm256_mul_ps(v_dist, v_inv_tau);
+        // Compute (d/tau)^2
+        EIDOS_SLEEF_TYPE_F v_d_over_tau_sq = _mm256_mul_ps(v_d_over_tau, v_d_over_tau);
+        // Compute (d/tau)^2 / nu
+        EIDOS_SLEEF_TYPE_F v_term = _mm256_mul_ps(v_d_over_tau_sq, v_inv_nu);
+        // Compute 1 + (d/tau)^2 / nu
+        EIDOS_SLEEF_TYPE_F v_base = _mm256_add_ps(v_one, v_term);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_d_over_tau = vmulq_f32(v_dist, v_inv_tau);
+        EIDOS_SLEEF_TYPE_F v_d_over_tau_sq = vmulq_f32(v_d_over_tau, v_d_over_tau);
+        EIDOS_SLEEF_TYPE_F v_term = vmulq_f32(v_d_over_tau_sq, v_inv_nu);
+        EIDOS_SLEEF_TYPE_F v_base = vaddq_f32(v_one, v_term);
+#endif
+
+        // Compute pow(base, -exponent) = 1 / pow(base, exponent)
+        EIDOS_SLEEF_TYPE_F v_pow = EIDOS_SLEEF_POW_F(v_base, v_exponent);
+
+        // Compute fmax * pow(...)
+#if defined(EIDOS_HAS_AVX2)
+        EIDOS_SLEEF_TYPE_F v_result = _mm256_mul_ps(v_fmax, v_pow);
+#elif defined(EIDOS_HAS_NEON)
+        EIDOS_SLEEF_TYPE_F v_result = vmulq_f32(v_fmax, v_pow);
+#endif
+
+        EIDOS_SLEEF_STORE_F(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        float d = distances[i];
+        float d_over_tau = d * inv_tau;
+        distances[i] = fmax * std::pow(1.0f + d_over_tau * d_over_tau * inv_nu, -exponent);
+    }
+}
+
+// ---------------------
+// Cauchy Kernel: strength = fmax / (1 + (d/lambda)^2)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// Parameters: fmax = maximum strength, lambda = scale parameter
+inline void cauchy_kernel_float32(float *distances, int64_t count, float fmax, float lambda)
+{
+    int64_t i = 0;
+    float inv_lambda = 1.0f / lambda;
+
+#if defined(EIDOS_HAS_AVX2)
+    __m256 v_fmax = _mm256_set1_ps(fmax);
+    __m256 v_inv_lambda = _mm256_set1_ps(inv_lambda);
+    __m256 v_one = _mm256_set1_ps(1.0f);
+
+    for (; i + 8 <= count; i += 8)
+    {
+        __m256 v_dist = _mm256_loadu_ps(&distances[i]);
+        __m256 v_temp = _mm256_mul_ps(v_dist, v_inv_lambda);      // d/lambda
+        __m256 v_temp_sq = _mm256_mul_ps(v_temp, v_temp);         // (d/lambda)^2
+        __m256 v_denom = _mm256_add_ps(v_one, v_temp_sq);         // 1 + (d/lambda)^2
+        __m256 v_result = _mm256_div_ps(v_fmax, v_denom);         // fmax / denom
+        _mm256_storeu_ps(&distances[i], v_result);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float32x4_t v_fmax = vdupq_n_f32(fmax);
+    float32x4_t v_inv_lambda = vdupq_n_f32(inv_lambda);
+    float32x4_t v_one = vdupq_n_f32(1.0f);
+
+    for (; i + 4 <= count; i += 4)
+    {
+        float32x4_t v_dist = vld1q_f32(&distances[i]);
+        float32x4_t v_temp = vmulq_f32(v_dist, v_inv_lambda);
+        float32x4_t v_temp_sq = vmulq_f32(v_temp, v_temp);
+        float32x4_t v_denom = vaddq_f32(v_one, v_temp_sq);
+        float32x4_t v_result = vdivq_f32(v_fmax, v_denom);
+        vst1q_f32(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        float d = distances[i];
+        float temp = d * inv_lambda;
+        distances[i] = fmax / (1.0f + temp * temp);
+    }
+}
+
+// ---------------------
+// Linear Kernel: strength = fmax * (1 - d / max_distance)
+// ---------------------
+// Operates in-place on a distance array, transforming distances to strengths.
+// Parameters: fmax = maximum strength, max_distance = interaction max distance
+inline void linear_kernel_float32(float *distances, int64_t count, float fmax, float max_distance)
+{
+    int64_t i = 0;
+    float fmax_over_maxdist = fmax / max_distance;
+
+#if defined(EIDOS_HAS_AVX2)
+    __m256 v_fmax = _mm256_set1_ps(fmax);
+    __m256 v_fmax_over_maxdist = _mm256_set1_ps(fmax_over_maxdist);
+
+    for (; i + 8 <= count; i += 8)
+    {
+        __m256 v_dist = _mm256_loadu_ps(&distances[i]);
+        // fmax - d * (fmax / max_distance) = fmax * (1 - d/max_distance)
+        __m256 v_term = _mm256_mul_ps(v_dist, v_fmax_over_maxdist);
+        __m256 v_result = _mm256_sub_ps(v_fmax, v_term);
+        _mm256_storeu_ps(&distances[i], v_result);
+    }
+#elif defined(EIDOS_HAS_NEON)
+    float32x4_t v_fmax = vdupq_n_f32(fmax);
+    float32x4_t v_fmax_over_maxdist = vdupq_n_f32(fmax_over_maxdist);
+
+    for (; i + 4 <= count; i += 4)
+    {
+        float32x4_t v_dist = vld1q_f32(&distances[i]);
+        float32x4_t v_term = vmulq_f32(v_dist, v_fmax_over_maxdist);
+        float32x4_t v_result = vsubq_f32(v_fmax, v_term);
+        vst1q_f32(&distances[i], v_result);
+    }
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        distances[i] = fmax - distances[i] * fmax_over_maxdist;
+    }
 }
 
 } // namespace Eidos_SIMD
