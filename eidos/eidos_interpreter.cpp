@@ -23,6 +23,7 @@
 #include "eidos_ast_node.h"
 #include "eidos_rng.h"
 #include "eidos_call_signature.h"
+#include "eidos_simd.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -3211,9 +3212,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		{
 			const double *first_child_data = first_child_value->FloatData();
 			const double *second_child_data = second_child_value->FloatData();
+			double *float_result_data = float_result->data_mutable();
 			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
+			Eidos_SIMD::pow_float64(first_child_data, second_child_data, float_result_data, first_child_count);
 		}
 		else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 		{
@@ -3258,9 +3259,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		else	// (second_child_type == EidosValueType::kValueFloat)
 		{
 			const double *second_child_data = second_child_value->FloatData();
+			double *float_result_data = float_result->data_mutable();
 			
-			for (int value_index = 0; value_index < second_child_count; ++value_index)
-				float_result->set_float_no_check(pow(singleton_float, second_child_data[value_index]), value_index);
+			Eidos_SIMD::pow_float64_scalar_base(singleton_float, second_child_data, float_result_data, second_child_count);
 		}
 		
 		result_SP = float_result_SP;
@@ -3281,9 +3282,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		else	// (first_child_type == EidosValueType::kValueFloat)
 		{
 			const double *first_child_data = first_child_value->FloatData();
+			double *float_result_data = float_result->data_mutable();
 			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				float_result->set_float_no_check(pow(first_child_data[value_index], singleton_float), value_index);
+			Eidos_SIMD::pow_float64_scalar_exp(first_child_data, singleton_float, float_result_data, first_child_count);
 		}
 		
 		result_SP = float_result_SP;

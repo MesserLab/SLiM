@@ -34,6 +34,9 @@
 
 int RunEidosTests(void);
 
+// Test success/failure counters (used by C++-level tests)
+extern int gEidosTestSuccessCount;
+extern int gEidosTestFailureCount;
 
 // Can turn on escape sequences to color test output; at present we turn these on for the command-line
 // tools and off for the GUI tools, since Terminal supports these codes but Xcode does not.
@@ -110,6 +113,7 @@ extern void _RunFunctionMathTests_g_through_r(void);
 extern void _RunFunctionMathTests_setUnionIntersection(void);
 extern void _RunFunctionMathTests_setDifferenceSymmetricDifference(void);
 extern void _RunFunctionMathTests_s_through_z(void);
+extern void _RunSIMDMathTests(void);
 extern void _RunFunctionMatrixArrayTests(void);
 extern void _RunFunctionStatisticsTests_a_through_p(void);
 extern void _RunFunctionStatisticsTests_q_through_z(void);
