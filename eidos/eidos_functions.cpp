@@ -216,7 +216,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				Eidos_ExecuteFunction_all,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x")->AddEllipsis());
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("allClose",			Eidos_ExecuteFunction_allClose,		kEidosValueMaskLogical))->AddFloat("x")->AddFloat("y")->
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("allClose",			Eidos_ExecuteFunction_allClose,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat("y")->
 								 AddFloat_OS("rtol", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-5)))->
 								 AddFloat_OS("atol", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->
 								 AddLogical_OS("equalNAN", gStaticEidosValue_LogicalF));
