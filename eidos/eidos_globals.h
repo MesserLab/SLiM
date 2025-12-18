@@ -52,11 +52,14 @@
 #include "eidos_intrusive_ptr.h"
 
 // Loop unrolling hints for compiler optimization
-// GCC 8+ and Clang both support #pragma GCC unroll
-#if defined(__GNUC__) && (__GNUC__ >= 8 || defined(__clang__))
-	#define EIDOS_PRAGMA_UNROLL_16 _Pragma("GCC unroll 16")
+// Clang supports auto-choosing via #pragma clang loop unroll(enable)
+// GCC 8+ requires an explicit count via #pragma GCC unroll N
+#if defined(__clang__)
+	#define EIDOS_UNROLL_AUTO _Pragma("clang loop unroll(enable)")
+#elif defined(__GNUC__) && (__GNUC__ >= 8)
+	#define EIDOS_UNROLL_AUTO _Pragma("GCC unroll 16")
 #else
-	#define EIDOS_PRAGMA_UNROLL_16
+	#define EIDOS_UNROLL_AUTO
 #endif
 
 class EidosScript;
