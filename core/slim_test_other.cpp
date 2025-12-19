@@ -1741,6 +1741,9 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
 		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
 
+		// large kernel to test periodic boundary wrapping
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.5, 'n', 0.2); } ");
+
 		SLiMAssertScriptSuccess(prefix_1D + "defineConstant('M1', m1); defineGlobal('M2', m2); } 2 early() { sim.addSubpop('p2', 10); p2.addSpatialMap(M1); p2.addSpatialMap(M2); } 3 early() { p1.removeSpatialMap('map1'); p2.removeSpatialMap(M2); } 4 early() { if (!identical(p1.spatialMaps, M2)) stop(); if (!identical(p2.spatialMaps, M1)) stop(); p2.removeSpatialMap('map1'); p1.removeSpatialMap(M2); }");
 
 		//
@@ -1856,6 +1859,9 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
 		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
 		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
+
+		// large kernel to test periodic boundary wrapping
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.5, 'n', 0.2); } ");
 
 		SLiMAssertScriptSuccess(prefix_2D + "defineConstant('M1', m1); defineGlobal('M2', m2); } 2 early() { sim.addSubpop('p2', 10); p2.addSpatialMap(M1); p2.addSpatialMap(M2); } 3 early() { p1.removeSpatialMap('map1'); p2.removeSpatialMap(M2); } 4 early() { if (!identical(p1.spatialMaps, M2)) stop(); if (!identical(p2.spatialMaps, M1)) stop(); p2.removeSpatialMap('map1'); p1.removeSpatialMap(M2); }");
 
@@ -1973,6 +1979,9 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'n', 0.1); } ");
 		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'c', 0.1); } ");
 		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 't', 3, 0.1); } ");
+
+		// large kernel to test periodic boundary wrapping
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.5, 'n', 0.2); } ");
 
 		SLiMAssertScriptSuccess(prefix_3D + "defineConstant('M1', m1); defineGlobal('M2', m2); } 2 early() { sim.addSubpop('p2', 10); p2.addSpatialMap(M1); p2.addSpatialMap(M2); } 3 early() { p1.removeSpatialMap('map1'); p2.removeSpatialMap(M2); } 4 early() { if (!identical(p1.spatialMaps, M2)) stop(); if (!identical(p2.spatialMaps, M1)) stop(); p2.removeSpatialMap('map1'); p1.removeSpatialMap(M2); }");
 	}
