@@ -155,7 +155,8 @@ Adjust `W` in the script to change neighbor density (W=25 for ~2200 neighbors, W
 
 ## SpatialMap smooth() vs smooth_fast() Benchmark Results
 
-The `benchmark_smooth.slim` script compares the original `smooth()` method with the SIMD-optimized `smooth_fast()` method for SpatialMap convolution operations.
+I first wrote a benchmark to compare the original `smooth()` method with the new SIMD-optimized `smooth_fast()` method for SpatialMap convolution operations. Results on x86_64 with AVX2:
+
 
 ### SIMD Build (AVX2+FMA)
 
@@ -182,13 +183,4 @@ The `benchmark_smooth.slim` script compares the original `smooth()` method with 
 | 3D 30x30x30 | 14.161ms | 5.283ms | **2.68x** |
 
 
-To run this benchmark:
-```bash
-# Build with SIMD
-mkdir build && cd build && cmake .. && make slim
-./slim ../simd_benchmarks/benchmark_smooth.slim
-
-# Build without SIMD for comparison
-mkdir build_nosimd && cd build_nosimd && cmake .. -DUSE_SIMD=OFF && make slim
-./slim ../simd_benchmarks/benchmark_smooth.slim
-```
+As this speedup was significant, after conversations with Ben Haller, we decided to replace the original `smooth()` method with `smooth_fast()`. The benchmark script is now retired as the original method is no longer present in SLiM.
