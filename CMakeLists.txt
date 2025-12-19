@@ -98,6 +98,12 @@ if(CPPCHECK)
   endif()
 endif()
 
+# Support a COVERAGE flag for Codecov; see the GitHub Actions YAML file for the use of this
+option(COVERAGE "Enable code coverage" OFF)
+if(COVERAGE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+endif()
 
 project(SLiM)
 if(WIN32)
