@@ -1054,7 +1054,6 @@ extern const std::string &gStr_rescale;
 extern const std::string &gStr_sampleImprovedNearbyPoint;
 extern const std::string &gStr_sampleNearbyPoint;
 extern const std::string &gStr_smooth;
-extern const std::string &gStr_smooth_fast;
 extern const std::string &gStr_outputMSSample;
 extern const std::string &gStr_outputVCFSample;
 extern const std::string &gStr_outputSample;
@@ -1516,7 +1515,6 @@ enum _SLiMGlobalStringID : int {
 	gID_sampleImprovedNearbyPoint,
 	gID_sampleNearbyPoint,
 	gID_smooth,
-	gID_smooth_fast,
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,

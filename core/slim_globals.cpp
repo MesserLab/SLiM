@@ -1474,7 +1474,6 @@ const std::string &gStr_rescale = EidosRegisteredString("rescale", gID_rescale);
 const std::string &gStr_sampleImprovedNearbyPoint = EidosRegisteredString("sampleImprovedNearbyPoint", gID_sampleImprovedNearbyPoint);
 const std::string &gStr_sampleNearbyPoint = EidosRegisteredString("sampleNearbyPoint", gID_sampleNearbyPoint);
 const std::string &gStr_smooth = EidosRegisteredString("smooth", gID_smooth);
-const std::string &gStr_smooth_fast = EidosRegisteredString("smooth_fast", gID_smooth_fast);
 const std::string &gStr_outputMSSample = EidosRegisteredString("outputMSSample", gID_outputMSSample);
 const std::string &gStr_outputVCFSample = EidosRegisteredString("outputVCFSample", gID_outputVCFSample);
 const std::string &gStr_outputSample = EidosRegisteredString("outputSample", gID_outputSample);

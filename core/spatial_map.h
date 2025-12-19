@@ -154,10 +154,6 @@ public:
 	void Convolve_S2(SpatialKernel &kernel);
 	void Convolve_S3(SpatialKernel &kernel);
 
-	void Convolve_S1_SIMD(SpatialKernel &kernel);
-	void Convolve_S2_SIMD(SpatialKernel &kernel);
-	void Convolve_S3_SIMD(SpatialKernel &kernel);
-	
 	void FillRGBBuffer(uint8_t *buffer, int64_t width, int64_t height, bool flipped, bool no_interpolation);
 	
 	//
@@ -189,7 +185,6 @@ public:
 	EidosValue_SP ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_smooth(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_smooth_fast(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 class SpatialMap_Class : public EidosDictionaryRetained_Class
