@@ -1701,7 +1701,7 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 		if (!species.PedigreesEnabledByUser() && !species.RecordingTreeSequence())
 			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 		
-		for (size_t value_index = 0 ; value_index < p_values_size; ++value_index)
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *value = (Individual *)(p_values[value_index]);
 			
@@ -1711,7 +1711,7 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 	else
 	{
 		// we have a mix of species, so we need to check that pedigree IDs are available for each individual
-		for (size_t value_index = 0 ; value_index < p_values_size; ++value_index)
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *value = (Individual *)(p_values[value_index]);
 			Species &species = value->subpopulation_->species_;
