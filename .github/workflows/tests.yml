@@ -93,6 +93,22 @@ jobs:
           export PATH=$PATH:$PWD/Release && \
           echo $PATH && \
           cd treerec/tests && python -m pytest -xv
+          
+      - name: Build with coverage
+        run: |
+          mkdir Coverage && cd Coverage && \
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=ON .. && \
+          make -j 2 && \
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
+      - name: Generate coverage report
+        run: |
+          sudo apt-get install lcov && \
+          lcov --capture --directory Coverage --output-file coverage.info && \
+          lcov --remove coverage.info '/usr/*' '*/gsl/*' '*/eidos_zlib/*' --output-file coverage.info
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   tests-Windows-CLI:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
