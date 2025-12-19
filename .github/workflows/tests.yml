@@ -34,8 +34,8 @@ jobs:
         run: |
           sudo apt-get update && \
           sudo apt-get install -y lcov && \
-          lcov --gcov-tool gcov-12 --capture --directory Coverage --output-file coverage.info && \
-          lcov --gcov-tool gcov-12 --remove coverage.info '/usr/*' '*/gsl/*' '*/eidos_zlib/*' --output-file coverage.info
+          lcov --gcov-tool gcov-12 --ignore-errors gcov --capture --directory Coverage --output-file coverage.info && \
+          lcov --gcov-tool gcov-12 --ignore-errors gcov --remove coverage.info '/usr/*' '*/gsl/*' '*/eidos_zlib/*' --output-file coverage.info
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
