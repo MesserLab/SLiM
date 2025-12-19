@@ -1752,12 +1752,12 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth_fast(0.1, 'n', 0.1); } ");
 
 		// smooth_fast() vs smooth() - verify identical results for all kernel types
-		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'f'); m2.smooth_fast(0.1, 'f'); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'l'); m2.smooth_fast(0.1, 'l'); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'e', 10.0); m2.smooth_fast(0.1, 'e', 10.0); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'n', 0.1); m2.smooth_fast(0.1, 'n', 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'c', 0.1); m2.smooth_fast(0.1, 'c', 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 't', 2, 0.1); m2.smooth_fast(0.1, 't', 2, 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'f'); m2.smooth_fast(0.1, 'f'); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'l'); m2.smooth_fast(0.1, 'l'); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'e', 10.0); m2.smooth_fast(0.1, 'e', 10.0); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'n', 0.1); m2.smooth_fast(0.1, 'n', 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'c', 0.1); m2.smooth_fast(0.1, 'c', 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 't', 2, 0.1); m2.smooth_fast(0.1, 't', 2, 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
 
 		// smooth_fast() edge cases - small grid, large kernel
 		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth_fast(0.5, 'n', 0.2); } ");  // large kernel relative to grid
@@ -1890,12 +1890,12 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth_fast(0.1, 'n', 0.1); } ");
 
 		// smooth_fast() vs smooth() - verify identical results for all kernel types
-		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'f'); m2.smooth_fast(0.1, 'f'); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'l'); m2.smooth_fast(0.1, 'l'); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'e', 10.0); m2.smooth_fast(0.1, 'e', 10.0); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'n', 0.1); m2.smooth_fast(0.1, 'n', 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'c', 0.1); m2.smooth_fast(0.1, 'c', 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 't', 2, 0.1); m2.smooth_fast(0.1, 't', 2, 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'f'); m2.smooth_fast(0.1, 'f'); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'l'); m2.smooth_fast(0.1, 'l'); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'e', 10.0); m2.smooth_fast(0.1, 'e', 10.0); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'n', 0.1); m2.smooth_fast(0.1, 'n', 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'c', 0.1); m2.smooth_fast(0.1, 'c', 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 't', 2, 0.1); m2.smooth_fast(0.1, 't', 2, 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
 
 		// smooth_fast() edge cases - small grid, large kernel
 		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth_fast(0.5, 'n', 0.2); } ");  // large kernel relative to grid
@@ -2029,12 +2029,12 @@ void _RunSpatialMapTests(void)
 		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth_fast(0.1, 'n', 0.1); } ");
 
 		// smooth_fast() vs smooth() - verify identical results for all kernel types
-		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'f'); m2.smooth_fast(0.1, 'f'); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'l'); m2.smooth_fast(0.1, 'l'); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'e', 10.0); m2.smooth_fast(0.1, 'e', 10.0); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'n', 0.1); m2.smooth_fast(0.1, 'n', 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'c', 0.1); m2.smooth_fast(0.1, 'c', 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
-		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 't', 3, 0.1); m2.smooth_fast(0.1, 't', 3, 0.1); if (max(abs(m1.gridValues() - m2.gridValues())) < 1e-10) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'f'); m2.smooth_fast(0.1, 'f'); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'l'); m2.smooth_fast(0.1, 'l'); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'e', 10.0); m2.smooth_fast(0.1, 'e', 10.0); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'n', 0.1); m2.smooth_fast(0.1, 'n', 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 'c', 0.1); m2.smooth_fast(0.1, 'c', 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "v1 = m1.gridValues(); m2.changeValues(v1); m1.smooth(0.1, 't', 3, 0.1); m2.smooth_fast(0.1, 't', 3, 0.1); if (allClose(m1.gridValues(), m2.gridValues())) stop(); } ");
 
 		// smooth_fast() edge cases - small grid, large kernel
 		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth_fast(0.5, 'n', 0.2); } ");  // large kernel relative to grid
