@@ -181,12 +181,6 @@ The `benchmark_smooth.slim` script compares the original `smooth()` method with 
 | 3D 20x20x20 | 4.130ms | 1.458ms | **2.83x** |
 | 3D 30x30x30 | 14.161ms | 5.283ms | **2.68x** |
 
-### Key Findings
-
-- **SIMD build**: 2-6x speedup, with best gains on large 2D maps (5.89x on 200x200)
-- **Scalar build**: 1.2-2.8x speedup from loop reordering and cache-friendly memory access
-- **3D maps**: Benefit significantly even in scalar mode due to improved loop ordering
-- **All kernel types** (flat, linear, exp, normal, cauchy) show consistent ~4.7x speedup in SIMD builds
 
 To run this benchmark:
 ```bash
