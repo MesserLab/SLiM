@@ -153,7 +153,7 @@ public:
 	void Convolve_S1(SpatialKernel &kernel);
 	void Convolve_S2(SpatialKernel &kernel);
 	void Convolve_S3(SpatialKernel &kernel);
-
+	
 	void FillRGBBuffer(uint8_t *buffer, int64_t width, int64_t height, bool flipped, bool no_interpolation);
 	
 	//

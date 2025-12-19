@@ -32,7 +32,7 @@ development head (in the master branch):
 	add SIMD acceleration for trig functions (sin(), cos(), tan(), asin(), acos(), atan(), atan2()), power functions (^ opperator, pow, SpatialMap.pow()), thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/595
 	update citations listed by citation()
 	CI workflow for calculating code coverage with Codecov, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/601
-	fix #594, pedigreeID property should be accessible (without other predigree-tracking features) in tree-seq models
+	fix #594, the pedigreeID and haplosomePedigreeID properties should be accessible (without other predigree-tracking features) in tree-seq models, even without pedigree tracking being enabled
 	add SIMD acceleration to SpatialMap.smooth() for 2-6x speedup, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/599
 
 
