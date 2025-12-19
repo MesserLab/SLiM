@@ -830,13 +830,11 @@ void SpatialMap::Convolve_S1(SpatialKernel &kernel)
 			kernel_a_last = std::min(kernel_dim_a - 1, (dim_a - 1) - (a + kernel_a_offset));
 		}
 		
-		// Check if kernel range is fully within bounds (can use SIMD)
+		// Non-periodic: clamping above guarantees bounds, use SIMD
 		int64_t conv_a_first = a + kernel_a_first + kernel_a_offset;
-		int64_t conv_a_last = a + kernel_a_last + kernel_a_offset;
-		
-		if (!periodic_a_ && conv_a_first >= 0 && conv_a_last < dim_a)
+
+		if (!periodic_a_)
 		{
-			// All kernel positions are in bounds - use SIMD
 			int64_t count = kernel_a_last - kernel_a_first + 1;
 			Eidos_SIMD::convolve_dot_product_scaled_float64(
 				&kernel_values[kernel_a_first],
