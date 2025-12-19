@@ -33,6 +33,7 @@ development head (in the master branch):
 	update citations listed by citation()
 	CI workflow for calculating code coverage with Codecov, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/601
 	fix #594, pedigreeID property should be accessible (without other predigree-tracking features) in tree-seq models
+	add SIMD acceleration to SpatialMap.smooth() for 2-6x speedup, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/599
 
 
 version 5.1 (Eidos version 4.1):
