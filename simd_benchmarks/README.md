@@ -152,3 +152,35 @@ mkdir build_nosimd && cd build_nosimd && cmake .. -DUSE_SIMD=OFF && make slim
 ```
 
 Adjust `W` in the script to change neighbor density (W=25 for ~2200 neighbors, W=266 for ~20 neighbors).
+
+## SpatialMap smooth() vs smooth_fast() Benchmark Results
+
+I first wrote a benchmark to compare the original `smooth()` method with the new SIMD-optimized `smooth_fast()` method for SpatialMap convolution operations. Results on x86_64 with AVX2:
+
+
+### SIMD Build (AVX2+FMA)
+
+| Test | smooth() | smooth_fast() | Speedup |
+|------|----------|---------------|---------|
+| 1D 100 pts | 0.006ms | 0.002ms | **2.96x** |
+| 1D 1000 pts | 0.131ms | 0.031ms | **4.22x** |
+| 2D 50x50 | 0.349ms | 0.144ms | **2.43x** |
+| 2D 100x100 | 5.615ms | 1.202ms | **4.67x** |
+| 2D 200x200 | 88.485ms | 15.035ms | **5.89x** |
+| 3D 20x20x20 | 3.571ms | 1.589ms | **2.25x** |
+| 3D 30x30x30 | 12.394ms | 5.800ms | **2.14x** |
+
+### NO_SIMD Build (Scalar)
+
+| Test | smooth() | smooth_fast() | Speedup |
+|------|----------|---------------|---------|
+| 1D 100 pts | 0.006ms | 0.003ms | **2.24x** |
+| 1D 1000 pts | 0.097ms | 0.084ms | **1.16x** |
+| 2D 50x50 | 0.243ms | 0.167ms | **1.46x** |
+| 2D 100x100 | 3.595ms | 2.336ms | **1.54x** |
+| 2D 200x200 | 53.854ms | 39.838ms | **1.35x** |
+| 3D 20x20x20 | 4.130ms | 1.458ms | **2.83x** |
+| 3D 30x30x30 | 14.161ms | 5.283ms | **2.68x** |
+
+
+As this speedup was significant, after conversations with Ben Haller, we decided to replace the original `smooth()` method with `smooth_fast()`. The benchmark script is now retired as the original method is no longer present in SLiM.
