@@ -812,6 +812,14 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("rdunif(2, c(-10, 10, 1), 100);", 0, "requires min");
 	EidosAssertScriptRaise("rdunif(2, -10, c(1, 10, 1));", 0, "requires max");
 	
+	// rdunif64()
+	EidosAssertScriptSuccess("rdunif64(0);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess_L("rdunif64(1); T;", true);
+	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif64(1), 972365100324636832);", true);
+	EidosAssertScriptRaise("rdunif64(-1);", 0, "requires n to be");
+	EidosAssertScriptSuccess_L("x = mean(rdunif64(1000000) >= 0); abs(0.5 - x) < 0.005;", true);	// check for a roughly equal number of positive and negative
+	EidosAssertScriptSuccess_L("x = mean(rdunif64(1000000) / 1e16); abs(0.0 - x) < 2.0;", true);	// check the mean is roughly zero (but note the SD is huge)
+	
 	// dexp()
 	EidosAssertScriptSuccess("dexp(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("dexp(float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

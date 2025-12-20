@@ -2,7 +2,7 @@
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fswiss\fcharset0 Optima-Regular;\f4\fswiss\fcharset0 Optima-BoldItalic;\f5\fnil\fcharset0 Menlo-Italic;
 \f6\fnil\fcharset0 AppleSymbols;\f7\fswiss\fcharset0 Optima-Italic;\f8\froman\fcharset0 TimesNewRomanPS-ItalicMT;
-\f9\fswiss\fcharset0 Helvetica-Oblique;\f10\fswiss\fcharset0 Helvetica;\f11\fnil\fcharset0 Menlo-Bold;
+\f9\fnil\fcharset0 Menlo-Bold;\f10\fswiss\fcharset0 Helvetica-Oblique;\f11\fswiss\fcharset0 Helvetica;
 \f12\ftech\fcharset77 Symbol;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;\red213\green0\blue5;
 \red150\green150\blue150;}
@@ -1987,10 +1987,29 @@ Returns a vector of
 \f1\fs18 n
 \f3\fs20 , specifying a value for each draw.  See 
 \f1\fs18 runif()
-\f3\fs20  for draws from a continuous uniform distribution.\
+\f3\fs20  for draws from a continuous uniform distribution\kerning1\expnd0\expndtw0 , and 
+\f1\fs18 runif64()
+\f3\fs20  for uniform draws from the full 64-bit 
+\f1\fs18 integer
+\f3\fs20  range\expnd0\expndtw0\kerning0
+.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rexp(integer$
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (integer)rdunif64(integer$\'a0n)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f1\fs18 n
+\f3\fs20  
+\f0\b random draws from a discrete uniform distribution spanning the full 64-bit 
+\f9\fs18 integer
+\f0\fs20  range
+\f3\b0 .  See 
+\f1\fs18 rdunif()
+\f3\fs20  for draws from a discrete uniform distribution with a specified range.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float)rexp(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0mu\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -2057,28 +2076,28 @@ Returns a vector of
 \f2\i0 (
 \f8\i s
 \f2\i0 \'a0|\'a0
-\f9\i \uc0\u945 
+\f10\i \uc0\u945 
 \f2\i0 ,
-\f9\i \uc0\u946 
+\f10\i \uc0\u946 
 \f2\i0 )\'a0= [
-\f10 \uc0\u915 
+\f11 \uc0\u915 
 \f2 (
-\f9\i \uc0\u945 
+\f10\i \uc0\u945 
 \f2\i0 )
-\f9\i \uc0\u946 \u945 
+\f10\i \uc0\u946 \u945 
 \f2\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
 \f8\i s
 \f2\i0 /
-\f9\i \uc0\u946 
+\f10\i \uc0\u946 
 \f2\i0 )
 \f3 , where 
-\f9\i \uc0\u945 
+\f10\i \uc0\u945 
 \f3\i0  is the shape parameter 
 \f1\fs18 shape
 \f3\fs20 , and the mean of the distribution given by 
 \f1\fs18 mean
 \f3\fs20  is equal to 
-\f9\i \uc0\u945 \u946 
+\f10\i \uc0\u945 \u946 
 \f2\i0 .
 \f3   Values of 
 \f1\fs18 mean
@@ -2256,7 +2275,7 @@ Cholesky decomposition of the variance-covariance matrix
 \f3\fs20  (not to be confused with the language concept of a \'93lambda\'94; 
 \f1\fs18 lambda
 \f3\fs20  here is just the name of a parameter, because the symbol typically used for the parameter of a Poisson distribution is the Greek letter 
-\f10 \uc0\u955 
+\f11 \uc0\u955 
 \f3 ).  The 
 \f1\fs18 lambda
 \f3\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
@@ -2314,20 +2333,20 @@ Returns a vector of
 \f2\i0 (
 \f8\i s
 \f2\i0 \'a0|\'a0
-\f9\i \uc0\u955 
+\f10\i \uc0\u955 
 \f2\i0 ,
 \f8\i k
 \f2\i0 )\'a0=\'a0(
 \f8\i k
 \f2\i0  / 
-\f9\i \uc0\u955 
+\f10\i \uc0\u955 
 \f8 \super k
 \f2\i0 \nosupersub )\'a0
 \f8\i s\super k
 \f2\i0 \uc0\u8722 1\nosupersub \'a0exp(-(
 \f8\i s
 \f2\i0 /
-\f9\i \uc0\u955 
+\f10\i \uc0\u955 
 \f2\i0 )
 \f8\i \super k
 \f2\i0 \nosupersub ).\
@@ -2394,7 +2413,7 @@ The
 
 \f3\fs20 \cf0 Returns a 
 \f0\b new 
-\f11\fs18 float
+\f9\fs18 float
 \f0\fs20  vector
 \f3\b0  of the length specified by 
 \f1\fs18 length
@@ -2411,7 +2430,7 @@ The
 
 \f3\fs20 \cf0 Returns a 
 \f0\b new 
-\f11\fs18 integer
+\f9\fs18 integer
 \f0\fs20  vector
 \f3\b0  of the length specified by 
 \f1\fs18 length
@@ -2457,7 +2476,7 @@ If a value is supplied for
 
 \f3\fs20 \cf0 Returns a 
 \f0\b new 
-\f11\fs18 logical
+\f9\fs18 logical
 \f0\fs20  vector
 \f3\b0  of the length specified by 
 \f1\fs18 length
@@ -2472,7 +2491,7 @@ If a value is supplied for
 
 \f3\fs20 \cf0 Returns a 
 \f0\b new empty 
-\f11\fs18 object
+\f9\fs18 object
 \f0\fs20  vector
 \f3\b0 .  Unlike 
 \f1\fs18 float()
@@ -2562,7 +2581,7 @@ If a value is supplied for
 \f1\fs18 size
 \f3\fs20  containing a 
 \f0\b sample from the elements of 
-\f11\fs18 x
+\f9\fs18 x
 \f3\b0\fs20 .  If 
 \f1\fs18 replace
 \f3\fs20  is 
@@ -2655,7 +2674,7 @@ If a value is supplied for
 
 \f3\fs20 \cf2 Returns an 
 \f0\b index sequence along 
-\f11\fs18 x
+\f9\fs18 x
 \f3\b0\fs20 , from 
 \f1\fs18 0
 \f3\fs20  to 
@@ -2672,7 +2691,7 @@ If a value is supplied for
 
 \f3\fs20 \cf2 Returns an 
 \f0\b index sequence of 
-\f11\fs18 length
+\f9\fs18 length
 \f3\b0\fs20 , from 
 \f1\fs18 0
 \f3\fs20  to 
@@ -2709,7 +2728,7 @@ If a value is supplied for
 
 \f3\fs20 \cf0 Returns a 
 \f0\b new 
-\f11\fs18 string
+\f9\fs18 string
 \f0\fs20  vector
 \f3\b0  of the length specified by 
 \f1\fs18 length
@@ -2731,7 +2750,7 @@ If a value is supplied for
 \f1\fs18 T
 \f3\fs20  if 
 \f0\b all values are 
-\f11\fs18 T
+\f9\fs18 T
 \f3\b0\fs20  in 
 \f1\fs18 x
 \f3\fs20  and in any other arguments supplied; if any value is 
@@ -2754,7 +2773,7 @@ If a value is supplied for
 \f1\fs18 T
 \f3\fs20  if 
 \f0\b all pairs of values between 
-\f11\fs18 x
+\f9\fs18 x
 \f0\fs20  and y are \'93close\'94
 \f3\b0 ; if any pair of values is not close, returns 
 \f1\fs18 F
@@ -2784,7 +2803,7 @@ If a value is supplied for
 \f1\fs18 T
 \f3\fs20  if 
 \f0\b any value is 
-\f11\fs18 T
+\f9\fs18 T
 \f3\b0\fs20  in 
 \f1\fs18 x
 \f3\fs20  or in any other arguments supplied; if all values are 
@@ -3284,9 +3303,9 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f3\fs20 \cf2 Returns a logical vector indicating 
 \f0\b whether each pair of values in 
-\f11\fs18 x
+\f9\fs18 x
 \f0\fs20  and 
-\f11\fs18 y
+\f9\fs18 y
 \f0\fs20  are \'93close\'94
 \f3\b0 ; if any pair of values is not close, returns 
 \f1\fs18 F
@@ -3787,7 +3806,7 @@ Note that the semantics of this function differ slightly from the
 
 \f3\fs20 \cf0 Returns the 
 \f0\b indices of 
-\f11\fs18 T
+\f9\fs18 T
 \f0\fs20  values
 \f3\b0  in 
 \f1\fs18 x
@@ -3878,7 +3897,7 @@ Note that the semantics of this function differ slightly from the
 
 \f3\fs20 \cf0 Returns the 
 \f0\b conversion to 
-\f11\fs18 float
+\f9\fs18 float
 \f3\b0\fs20  of 
 \f1\fs18 x
 \f3\fs20 .  If 
@@ -3898,7 +3917,7 @@ Note that the semantics of this function differ slightly from the
 
 \f3\fs20 \cf0 Returns the 
 \f0\b conversion to 
-\f11\fs18 integer
+\f9\fs18 integer
 \f3\b0\fs20  of 
 \f1\fs18 x
 \f3\fs20 .  If 
@@ -3920,7 +3939,7 @@ Note that the semantics of this function differ slightly from the
 
 \f3\fs20 \cf0 Returns the 
 \f0\b conversion to 
-\f11\fs18 logical
+\f9\fs18 logical
 \f3\b0\fs20  of 
 \f1\fs18 x
 \f3\fs20 .  Recall that in Eidos the empty 
@@ -3957,7 +3976,7 @@ Note that the semantics of this function differ slightly from the
 
 \f3\fs20 \cf0 Returns the 
 \f0\b conversion to 
-\f11\fs18 string
+\f9\fs18 string
 \f3\b0\fs20  of 
 \f1\fs18 x
 \f2\fs20 .
@@ -4019,7 +4038,7 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 x
 \f3\fs20  
 \f0\b is 
-\f11\fs18 float
+\f9\fs18 float
 \f0\fs20  type
 \f3\b0 , 
 \f1\fs18 F
@@ -4038,7 +4057,7 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 x
 \f3\fs20  
 \f0\b is 
-\f11\fs18 integer
+\f9\fs18 integer
 \f0\fs20  type
 \f3\b0 , 
 \f1\fs18 F
@@ -4057,7 +4076,7 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 x
 \f3\fs20  
 \f0\b is 
-\f11\fs18 logical
+\f9\fs18 logical
 \f0\fs20  type
 \f3\b0 , 
 \f1\fs18 F
@@ -4076,7 +4095,7 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 x
 \f3\fs20  
 \f0\b is 
-\f11\fs18 NULL
+\f9\fs18 NULL
 \f0\fs20  type
 \f3\b0 , 
 \f1\fs18 F
@@ -4095,7 +4114,7 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 x
 \f3\fs20  
 \f0\b is 
-\f11\fs18 object
+\f9\fs18 object
 \f0\fs20  type
 \f3\b0 , 
 \f1\fs18 F
@@ -4114,7 +4133,7 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 x
 \f3\fs20  
 \f0\b is 
-\f11\fs18 string
+\f9\fs18 string
 \f0\fs20  type
 \f3\b0 , 
 \f1\fs18 F
@@ -5076,11 +5095,11 @@ Both
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the result of raising matrix 
-\f11\fs18 x
+\f9\fs18 x
 \f0\fs20  to an 
-\f11\fs18 integer
+\f9\fs18 integer
 \f0\fs20  
-\f11\fs18 power
+\f9\fs18 power
 \f0\fs20 .
 \f3\b0   The parameter x must be a square matrix (or an error will be raised).  This operation is performed by repeated matrix multiplication with 
 \f1\fs18 matrixMult()
@@ -7169,7 +7188,7 @@ Further keys can be added if there is information that would be useful, particul
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Runs a Un*x command in a 
-\f11\fs18 /bin/sh
+\f9\fs18 /bin/sh
 \f0\fs20  shell
 \f3\b0  with optional arguments and input, and returns the result as a vector of output lines.  The 
 \f1\fs18 args

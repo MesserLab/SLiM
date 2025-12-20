@@ -1006,10 +1006,10 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 	
 	if (min_singleton && max_singleton)
 	{
-		uint64_t count0 = (max_value0 - min_value0) + 1;
+		if ((max_value0 < min_value0) || (max_value0 - min_value0 >= INT64_MAX))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max and max - min < INT64_MAX." << EidosTerminate(nullptr);
 		
-		if (max_value0 < min_value0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
+		uint64_t count0 = (max_value0 - min_value0) + 1;
 		
 		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
 		result_SP = EidosValue_SP(int_result);
@@ -1056,23 +1056,46 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 			{
 				int64_t min_value = (min_singleton ? min_value0 : min_data[draw_index]);
 				int64_t max_value = (max_singleton ? max_value0 : max_data[draw_index]);
-				int64_t count = (max_value - min_value) + 1;
 				
-				if (max_value < min_value)
+				if ((max_value < min_value) || (max_value - min_value >= INT64_MAX))
 				{
 					saw_error = true;
 					continue;
 				}
+				
+				int64_t count = (max_value - min_value) + 1;
 				
 				int_result->set_int_no_check(Eidos_rng_interval_uint64(rng_64, count) + min_value, draw_index);
 			}
 		}
 		
 		if (saw_error)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max and max - min < INT64_MAX." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
+}
+
+//	(integer)rdunif64(integer$ n)
+EidosValue_SP Eidos_ExecuteFunction_rdunif64(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif64): function rdunif64() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
+	EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+	
+	for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+	{
+		int64_t draw = Eidos_rng_uniform_int64(rng_64);
+		
+		int_result->set_int_no_check(draw, draw_index);
+	}
+	
+	return EidosValue_SP(int_result);
 }
 
 //	(float)dexp(float x, [numeric mu = 1])
