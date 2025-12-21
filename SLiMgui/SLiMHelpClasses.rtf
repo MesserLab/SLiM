@@ -1596,10 +1596,12 @@ Note that new script blocks can also be created and scheduled using the
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 haplosomePedigreeID => (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20  or tree-sequence recording is turned on with 
+\f3\fs18 initializeTreeSeq()
 \f4\fs20 , 
 \f3\fs18 haplosomePedigreeID
 \f4\fs20  is a \'93semi-unique\'94 non-negative identifier for each haplosome in a simulation, never re-used throughout the duration of the simulation run.  The 
@@ -1622,7 +1624,7 @@ This value is \'93semi-unique\'94 in the sense that it is shared by
 \f4\i0  unique in the sense that it will be shared by other haplosomes within the same individual \'96 shared by all the first haplosomes, or shared by all the second haplosomes.  This \'93semi-uniqueness\'94 is intentional; it allows 
 \f3\fs18 haplosomePedigreeID
 \f4\fs20  to be used as a \'93key\'94 that associates the haplosomes of an individual across disparate datasets, such as across the different tree sequences for each chromosome that are produced by tree-sequence recording in a multi-chromosome model.  See sections 1.5.1 and 8.3 for further discussion of multi-chromosome models.\
-If pedigree tracking is not enabled, this property is unavailable.\
+If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -3157,13 +3159,14 @@ In nonWF models, this flag is
 
 \f4\fs20 \cf2 If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20  or tree-sequence recording is turned on with 
+\f3\fs18 initializeTreeSeq()
 \f4\fs20 , 
 \f3\fs18 pedigreeID
-\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  If pedigree tracking is not enabled, this property is unavailable.\expnd0\expndtw0\kerning0
-\
+\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeParentIDs => (integer)\
+\f3\fs18 \cf0 pedigreeParentIDs => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 If pedigree tracking is turned on with 

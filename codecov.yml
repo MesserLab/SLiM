@@ -1,0 +1,16 @@
+coverage:
+  status:
+    project:
+      default:
+        # Allow coverage to drop by up to 1% before failing
+        threshold: 1%
+    patch:
+      default:
+        # Don't require new code to have specific coverage
+        informational: true
+
+comment:
+  # Post coverage comment on PRs
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false

@@ -991,6 +991,204 @@ inline void linear_kernel_float32(float *distances, int64_t count, float fmax, f
     }
 }
 
+// ================================
+// Convolution Helpers for SpatialMap::smooth()
+// ================================
+// These functions compute vectorized dot products for convolution operations.
+// They accumulate both kernel_sum and conv_sum (weighted sum) in a single pass.
+
+// ---------------------
+// Convolution dot product: accumulates kernel_sum and kernel*values sum
+// ---------------------
+// Computes: kernel_sum += sum(kernel), conv_sum += sum(kernel * values)
+// Used by SpatialMap convolution when all values are valid (no edge handling needed)
+inline void convolve_dot_product_float64(
+    const double *kernel_ptr, const double *pixel_ptr,
+    int64_t count, double &kernel_sum, double &conv_sum)
+{
+    int64_t i = 0;
+    double local_ksum = 0.0;
+    double local_csum = 0.0;
+
+#if defined(EIDOS_HAS_AVX2) && defined(EIDOS_HAS_FMA)
+    __m256d v_ksum = _mm256_setzero_pd();
+    __m256d v_csum = _mm256_setzero_pd();
+
+    for (; i + 4 <= count; i += 4)
+    {
+        __m256d v_kernel = _mm256_loadu_pd(&kernel_ptr[i]);
+        __m256d v_pixel = _mm256_loadu_pd(&pixel_ptr[i]);
+
+        v_ksum = _mm256_add_pd(v_ksum, v_kernel);
+        v_csum = _mm256_fmadd_pd(v_kernel, v_pixel, v_csum);
+    }
+
+    // Horizontal sum
+    __m128d ksum_low = _mm256_castpd256_pd128(v_ksum);
+    __m128d ksum_high = _mm256_extractf128_pd(v_ksum, 1);
+    ksum_low = _mm_add_pd(ksum_low, ksum_high);
+    __m128d ksum_shuf = _mm_shuffle_pd(ksum_low, ksum_low, 1);
+    ksum_low = _mm_add_sd(ksum_low, ksum_shuf);
+    local_ksum = _mm_cvtsd_f64(ksum_low);
+
+    __m128d csum_low = _mm256_castpd256_pd128(v_csum);
+    __m128d csum_high = _mm256_extractf128_pd(v_csum, 1);
+    csum_low = _mm_add_pd(csum_low, csum_high);
+    __m128d csum_shuf = _mm_shuffle_pd(csum_low, csum_low, 1);
+    csum_low = _mm_add_sd(csum_low, csum_shuf);
+    local_csum = _mm_cvtsd_f64(csum_low);
+
+#elif defined(EIDOS_HAS_SSE42)
+    __m128d v_ksum = _mm_setzero_pd();
+    __m128d v_csum = _mm_setzero_pd();
+
+    for (; i + 2 <= count; i += 2)
+    {
+        __m128d v_kernel = _mm_loadu_pd(&kernel_ptr[i]);
+        __m128d v_pixel = _mm_loadu_pd(&pixel_ptr[i]);
+
+        v_ksum = _mm_add_pd(v_ksum, v_kernel);
+        __m128d v_prod = _mm_mul_pd(v_kernel, v_pixel);
+        v_csum = _mm_add_pd(v_csum, v_prod);
+    }
+
+    // Horizontal sum
+    __m128d ksum_shuf = _mm_shuffle_pd(v_ksum, v_ksum, 1);
+    v_ksum = _mm_add_sd(v_ksum, ksum_shuf);
+    local_ksum = _mm_cvtsd_f64(v_ksum);
+
+    __m128d csum_shuf = _mm_shuffle_pd(v_csum, v_csum, 1);
+    v_csum = _mm_add_sd(v_csum, csum_shuf);
+    local_csum = _mm_cvtsd_f64(v_csum);
+
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t v_ksum = vdupq_n_f64(0.0);
+    float64x2_t v_csum = vdupq_n_f64(0.0);
+
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v_kernel = vld1q_f64(&kernel_ptr[i]);
+        float64x2_t v_pixel = vld1q_f64(&pixel_ptr[i]);
+
+        v_ksum = vaddq_f64(v_ksum, v_kernel);
+        v_csum = vfmaq_f64(v_csum, v_kernel, v_pixel);
+    }
+
+    local_ksum = vaddvq_f64(v_ksum);
+    local_csum = vaddvq_f64(v_csum);
+#endif
+
+    // Scalar remainder
+    for (; i < count; i++)
+    {
+        local_ksum += kernel_ptr[i];
+        local_csum += kernel_ptr[i] * pixel_ptr[i];
+    }
+
+    kernel_sum += local_ksum;
+    conv_sum += local_csum;
+}
+
+// ---------------------
+// Scaled convolution dot product for edge handling
+// ---------------------
+// Like convolve_dot_product_float64 but scales kernel values by coverage factor.
+// Used when handling edges where some kernel positions are out of bounds.
+inline void convolve_dot_product_scaled_float64(
+    const double *kernel_ptr, const double *pixel_ptr,
+    int64_t count, double coverage,
+    double &kernel_sum, double &conv_sum)
+{
+    int64_t i = 0;
+    double local_ksum = 0.0;
+    double local_csum = 0.0;
+
+#if defined(EIDOS_HAS_AVX2) && defined(EIDOS_HAS_FMA)
+    __m256d v_coverage = _mm256_set1_pd(coverage);
+    __m256d v_ksum = _mm256_setzero_pd();
+    __m256d v_csum = _mm256_setzero_pd();
+
+    for (; i + 4 <= count; i += 4)
+    {
+        __m256d v_kernel = _mm256_loadu_pd(&kernel_ptr[i]);
+        __m256d v_pixel = _mm256_loadu_pd(&pixel_ptr[i]);
+        __m256d v_scaled_kernel = _mm256_mul_pd(v_kernel, v_coverage);
+
+        v_ksum = _mm256_add_pd(v_ksum, v_scaled_kernel);
+        v_csum = _mm256_fmadd_pd(v_scaled_kernel, v_pixel, v_csum);
+    }
+
+    // Horizontal sum
+    __m128d ksum_low = _mm256_castpd256_pd128(v_ksum);
+    __m128d ksum_high = _mm256_extractf128_pd(v_ksum, 1);
+    ksum_low = _mm_add_pd(ksum_low, ksum_high);
+    __m128d ksum_shuf = _mm_shuffle_pd(ksum_low, ksum_low, 1);
+    ksum_low = _mm_add_sd(ksum_low, ksum_shuf);
+    local_ksum = _mm_cvtsd_f64(ksum_low);
+
+    __m128d csum_low = _mm256_castpd256_pd128(v_csum);
+    __m128d csum_high = _mm256_extractf128_pd(v_csum, 1);
+    csum_low = _mm_add_pd(csum_low, csum_high);
+    __m128d csum_shuf = _mm_shuffle_pd(csum_low, csum_low, 1);
+    csum_low = _mm_add_sd(csum_low, csum_shuf);
+    local_csum = _mm_cvtsd_f64(csum_low);
+
+#elif defined(EIDOS_HAS_SSE42)
+    __m128d v_coverage = _mm_set1_pd(coverage);
+    __m128d v_ksum = _mm_setzero_pd();
+    __m128d v_csum = _mm_setzero_pd();
+
+    for (; i + 2 <= count; i += 2)
+    {
+        __m128d v_kernel = _mm_loadu_pd(&kernel_ptr[i]);
+        __m128d v_pixel = _mm_loadu_pd(&pixel_ptr[i]);
+        __m128d v_scaled_kernel = _mm_mul_pd(v_kernel, v_coverage);
+
+        v_ksum = _mm_add_pd(v_ksum, v_scaled_kernel);
+        __m128d v_prod = _mm_mul_pd(v_scaled_kernel, v_pixel);
+        v_csum = _mm_add_pd(v_csum, v_prod);
+    }
+
+    // Horizontal sum
+    __m128d ksum_shuf = _mm_shuffle_pd(v_ksum, v_ksum, 1);
+    v_ksum = _mm_add_sd(v_ksum, ksum_shuf);
+    local_ksum = _mm_cvtsd_f64(v_ksum);
+
+    __m128d csum_shuf = _mm_shuffle_pd(v_csum, v_csum, 1);
+    v_csum = _mm_add_sd(v_csum, csum_shuf);
+    local_csum = _mm_cvtsd_f64(v_csum);
+
+#elif defined(EIDOS_HAS_NEON)
+    float64x2_t v_coverage = vdupq_n_f64(coverage);
+    float64x2_t v_ksum = vdupq_n_f64(0.0);
+    float64x2_t v_csum = vdupq_n_f64(0.0);
+
+    for (; i + 2 <= count; i += 2)
+    {
+        float64x2_t v_kernel = vld1q_f64(&kernel_ptr[i]);
+        float64x2_t v_pixel = vld1q_f64(&pixel_ptr[i]);
+        float64x2_t v_scaled_kernel = vmulq_f64(v_kernel, v_coverage);
+
+        v_ksum = vaddq_f64(v_ksum, v_scaled_kernel);
+        v_csum = vfmaq_f64(v_csum, v_scaled_kernel, v_pixel);
+    }
+
+    local_ksum = vaddvq_f64(v_ksum);
+    local_csum = vaddvq_f64(v_csum);
+#endif
+
+    // Scalar remainder with scaling
+    for (; i < count; i++)
+    {
+        double scaled_k = kernel_ptr[i] * coverage;
+        local_ksum += scaled_k;
+        local_csum += scaled_k * pixel_ptr[i];
+    }
+
+    kernel_sum += local_ksum;
+    conv_sum += local_csum;
+}
+
 } // namespace Eidos_SIMD
 
 #endif /* eidos_simd_h */

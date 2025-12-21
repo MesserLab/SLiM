@@ -7178,6 +7178,9 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 // the mutation run tallying itself, however; instead, the caller can tally mutation runs
 // across whatever set of subpops/haplosomes they wish, and then this method will provide
 // mutation tallies given that choice.
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((optimize("unroll-loops")))
+#endif
 void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments)
 {
 	// first zero out the refcounts in all registered Mutation objects
@@ -7214,36 +7217,21 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 				// to put the refcounts for different mutations into different memory blocks
 				// according to the thread that manages each mutation.
 				
-				const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-				const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
-				
-				// I've gone back and forth on unrolling this loop.  This ought to be done
-				// by the compiler, and the best unrolling strategy depends on the platform.
-				// But the compiler doesn't seem to do it, for my macOS system at least, or
-				// doesn't do it well; this increases speed by ~5% here.  I'm not sure if
-				// clang is being dumb, or what, but it seems worthwhile.
-				while (mutrun_iter + 16 < mutrun_end_iter)
-				{
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
-				}
-				
+				// Loop unrolling is enabled via the function attribute above (GCC) or
+				// pragma below (Clang). These are both scoped: the attribute applies only
+				// to this function, and the pragma applies only to the immediately
+				// following loop. The __restrict__ qualifiers indicate no pointer
+				// aliasing, helping the compiler optimize. This replaces previous manual
+				// 16x unrolling; the compiler now chooses the optimal unroll factor.
+				const MutationIndex * __restrict__ mutrun_iter = mutrun->begin_pointer_const();
+				const MutationIndex * __restrict__ mutrun_end_iter = mutrun->end_pointer_const();
+				slim_refcount_t * __restrict__ refcounts = refcount_block_ptr;
+
+#if defined(__clang__)
+#pragma clang loop unroll(enable)
+#endif
 				while (mutrun_iter != mutrun_end_iter)
-					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcounts + (*mutrun_iter++)) += use_count;
 			}
 		}
 		

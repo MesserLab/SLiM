@@ -430,8 +430,10 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_haplosomePedigreeID:		// ACCELERATED
 		{
-			if (!individual_->subpopulation_->species_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			Species &species = individual_->subpopulation_->species_;
+			
+			if (!species.PedigreesEnabledByUser() && !species.RecordingTreeSequence())
+				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(haplosome_id_));
 		}
@@ -485,26 +487,40 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 EidosValue *Haplosome::GetProperty_Accelerated_haplosomePedigreeID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
 #pragma unused (p_property_id)
+	Species *consensus_species = Community::SpeciesForHaplosomesVector((Haplosome **)p_values, (int)p_values_size);
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
-	size_t value_index = 0;
 	
-	// check that pedigrees are enabled, once
-	if (value_index < p_values_size)
+	if (p_values_size == 0)
+		return int_result;
+	
+	if (consensus_species)
 	{
-		Haplosome *value = (Haplosome *)(p_values[value_index]);
+		// check that pedigrees are enabled, once
+		Species &species = ((Haplosome *)(p_values[0]))->individual_->subpopulation_->species_;
+			
+		if (!species.PedigreesEnabledByUser() && !species.RecordingTreeSequence())
+			EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 		
-		if (!value->individual_->subpopulation_->species_.PedigreesEnabledByUser())
-			EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
-		
-		int_result->set_int_no_check(value->haplosome_id_, value_index);
-		++value_index;
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Haplosome *value = (Haplosome *)(p_values[value_index]);
+			
+			int_result->set_int_no_check(value->haplosome_id_, value_index);
+		}
 	}
-	
-	for ( ; value_index < p_values_size; ++value_index)
+	else
 	{
-		Haplosome *value = (Haplosome *)(p_values[value_index]);
-		
-		int_result->set_int_no_check(value->haplosome_id_, value_index);
+		// we have a mix of species, so we need to check that pedigree IDs are available for each individual
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Haplosome *value = (Haplosome *)(p_values[value_index]);
+			Species &species = value->individual_->subpopulation_->species_;
+			
+			if (!species.PedigreesEnabledByUser() && !species.RecordingTreeSequence())
+				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
+			
+			int_result->set_int_no_check(value->haplosome_id_, value_index);
+		}
 	}
 	
 	return int_result;
