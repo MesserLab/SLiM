@@ -36,6 +36,7 @@ development head (in the master branch):
 	CI workflow for calculating code coverage with Codecov, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/601
 	fix #594, the pedigreeID and haplosomePedigreeID properties should be accessible (without other predigree-tracking features) in tree-seq models, even without pedigree tracking being enabled
 	fix #584, a way to generate a random 64-bit integer is needed; added new rdunif64(integer$ n) function for this purpose
+	shift over to Release 1 of the Total-Random fork of the PCG random number generator (better maintained), found at https://github.com/Total-Random/pcg-cpp/releases/tag/v1.0
 
 
 version 5.1 (Eidos version 4.1):

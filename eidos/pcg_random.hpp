@@ -90,14 +90,23 @@
 
 #ifdef _MSC_VER
     #pragma warning(disable:4146)
+    #pragma warning(disable:4127) // conditional expression is constant
 #endif
 
 #ifdef _MSC_VER
     #define PCG_ALWAYS_INLINE __forceinline
+    #if defined(_MSC_FULL_VER) && _MSC_FULL_VER >= 190024210
+        // available since VS 2015 Update 2/3
+        #define PCG_EBO __declspec(empty_bases)
+    #else
+        #define PCG_EBO
+    #endif
 #elif __GNUC__
     #define PCG_ALWAYS_INLINE __attribute__((always_inline))
+    #define PCG_EBO
 #else
     #define PCG_ALWAYS_INLINE inline
+    #define PCG_EBO
 #endif
 
 /*
@@ -333,7 +342,7 @@ public:
 
     void set_stream(itype specific_seq)
     {
-         inc_ = (specific_seq << 1) | 1;
+         inc_ = (specific_seq << 1) | itype(1U);
     }
 
     static constexpr bool can_specify_stream = true;
@@ -375,7 +384,7 @@ template <typename xtype, typename itype,
           bool output_previous = true,
           typename stream_mixin = oneseq_stream<itype>,
           typename multiplier_mixin = default_multiplier<itype> >
-class engine : protected output_mixin,
+class PCG_EBO engine : protected output_mixin,
                public stream_mixin,
                protected multiplier_mixin {
 protected:
@@ -618,7 +627,7 @@ operator>>(std::basic_istream<CharT,Traits>& in,
 
     if (!in.fail()) {
         bool good = true;
-        if (multiplier != rng.multiplier()) {
+        if (multiplier != itype(rng.multiplier())) {
            good = false;
         } else if (rng.can_specify_stream) {
            rng.set_stream(increment >> 1);
@@ -676,8 +685,8 @@ itype engine<xtype,itype,output_mixin,output_previous,stream_mixin,
     itype cur_state, itype newstate, itype cur_mult, itype cur_plus, itype mask)
 {
     constexpr itype ONE  = 1u;  // itype could be weird, so use constant
-    bool is_mcg = cur_plus == itype(0);
-    itype the_bit = is_mcg ? itype(4u) : itype(1u);
+    bool is_mcg_internal = cur_plus == itype(0);
+    itype the_bit = is_mcg_internal ? itype(4u) : itype(1u);
     itype distance = 0u;
     while ((cur_state & mask) != (newstate & mask)) {
        if ((cur_state & the_bit) != (newstate & the_bit)) {
@@ -689,7 +698,7 @@ itype engine<xtype,itype,output_mixin,output_previous,stream_mixin,
        cur_plus = (cur_mult+ONE)*cur_plus;
        cur_mult *= cur_mult;
     }
-    return is_mcg ? distance >> 2 : distance;
+    return is_mcg_internal ? distance >> 2 : distance;
 }
 
 template <typename xtype, typename itype,
@@ -1187,7 +1196,7 @@ struct xsl_mixin {
 
 
 template <typename baseclass>
-struct inside_out : private baseclass {
+struct PCG_EBO inside_out : private baseclass {
     inside_out() = delete;
 
     typedef typename baseclass::result_type result_type;
@@ -1229,7 +1238,7 @@ struct inside_out : private baseclass {
 
 
 template <bitcount_t table_pow2, bitcount_t advance_pow2, typename baseclass, typename extvalclass, bool kdd = true>
-class extended : public baseclass {
+class PCG_EBO extended : public baseclass {
 public:
     typedef typename baseclass::state_type  state_type;
     typedef typename baseclass::result_type result_type;

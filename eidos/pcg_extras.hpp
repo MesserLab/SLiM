@@ -55,6 +55,9 @@
 
 #ifdef __GNUC__
     #define PCG_NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+    #define PCG_NOINLINE __declspec(noinline)
+    #pragma warning(disable:4127) // conditional expression is constant
 #else
     #define PCG_NOINLINE
 #endif
@@ -263,21 +266,11 @@ inline std::istream& operator>>(std::istream& in, uint8_t& value)
 template <typename itype>
 inline itype unxorshift(itype x, bitcount_t bits, bitcount_t shift)
 {
-    if (2*shift >= bits) {
-        return x ^ (x >> shift);
-    }
-    itype lowmask1 = (itype(1U) << (bits - shift*2)) - 1;
-    itype highmask1 = ~lowmask1;
-    itype top1 = x;
-    itype bottom1 = x & lowmask1;
-    top1 ^= top1 >> shift;
-    top1 &= highmask1;
-    x = top1 | bottom1;
-    itype lowmask2 = (itype(1U) << (bits - shift)) - 1;
-    itype bottom2 = x & lowmask2;
-    bottom2 = unxorshift(bottom2, bits - shift, shift);
-    bottom2 &= lowmask1;
-    return top1 | bottom2;
+    do {
+        x ^= x >> shift;
+        shift *= 2u;
+    } while(shift < bits);
+    return x;
 }
 
 /*
@@ -411,10 +404,10 @@ SrcIter uneven_copy_impl(
     typedef typename std::iterator_traits<SrcIter>::value_type  src_t;
     typedef typename std::iterator_traits<DestIter>::value_type dest_t;
 
-    constexpr bitcount_t SRC_SIZE  = sizeof(src_t);
-    constexpr bitcount_t DEST_SIZE = sizeof(dest_t);
-    constexpr bitcount_t DEST_BITS = DEST_SIZE * 8;
-    constexpr bitcount_t SCALE     = SRC_SIZE / DEST_SIZE;
+    constexpr size_t SRC_SIZE  = sizeof(src_t);
+    constexpr size_t DEST_SIZE = sizeof(dest_t);
+    constexpr bitcount_t DEST_BITS = bitcount_t(DEST_SIZE * 8);
+    constexpr size_t SCALE     = SRC_SIZE / DEST_SIZE;
 
     size_t count = 0;
     src_t value = 0;
@@ -447,10 +440,10 @@ SrcIter uneven_copy_impl(
 
     while (dest_first != dest_last) {
         dest_t value(0UL);
-        unsigned int shift = 0;
+        size_t shift = 0;
 
         for (size_t i = 0; i < SCALE; ++i) {
-            value |= dest_t(*src_first++) << shift;
+            value |= dest_t(*src_first++) << bitcount_t(shift);
             shift += SRC_BITS;
         }
 
@@ -583,9 +576,9 @@ class seed_seq_from {
 private:
     RngType rng_;
 
+public:
     typedef uint_least32_t result_type;
 
-public:
     template<typename... Args>
     seed_seq_from(Args&&... args) :
         rng_(std::forward<Args>(args)...)
@@ -628,6 +621,9 @@ private:
 public:
     static constexpr IntType value = fnv(IntType(2166136261U ^ sizeof(IntType)),
                         __DATE__ __TIME__ __FILE__);
+
+    //Prevent creation, while keeping GCC from giving a warning
+    static_arbitrary_seed() = delete;
 };
 
 // Sometimes, when debugging or testing, it's handy to be able print the name
