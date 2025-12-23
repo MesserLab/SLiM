@@ -86,6 +86,7 @@ SOURCES += \
     randist/binomial_tpe.c \
     randist/cauchy.c \
     randist/chisq.c \
+    randist/dirichlet.c \
     randist/discrete.c \
     randist/exponential.c \
     randist/fdist.c \

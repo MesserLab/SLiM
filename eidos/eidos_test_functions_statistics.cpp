@@ -790,6 +790,16 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess("rcauchy(1, NAN, 100.0);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("rcauchy(1, 10.0, NAN);", gStaticEidosValue_FloatNAN);
 	
+	// rdirichlet()
+	EidosAssertScriptSuccess("rdirichlet(0, c(1,1,1));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptRaise("rdirichlet(1, 1);", 0, "alpha to have length >= 2");
+	EidosAssertScriptRaise("rdirichlet(1, c(-1, -1, -1));", 0, "alpha value to be positive and finite");
+	EidosAssertScriptRaise("rdirichlet(1, c(INF, INF, INF));", 0, "alpha value to be positive and finite");
+	EidosAssertScriptSuccess_L("isClose(sum(rdirichlet(1, c(1, 1, 1))), 1.0);", true);
+	EidosAssertScriptSuccess_L("isClose(sum(rdirichlet(1, c(2, 8, 5))), 1.0);", true);
+	EidosAssertScriptSuccess_L("allClose(rowSums(rdirichlet(20, c(1, 1, 1))), 1.0);", true);
+	EidosAssertScriptSuccess_L("allClose(rowSums(rdirichlet(20, c(2, 8, 5))), 1.0);", true);
+	
 	// rdunif()
 	EidosAssertScriptSuccess("rdunif(0);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("rdunif(0, integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);
