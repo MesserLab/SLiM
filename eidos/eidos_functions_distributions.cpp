@@ -975,6 +975,73 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const std::vector<EidosValue_SP> &p_
 	return result_SP;
 }
 
+//	(float)rdirichlet(integer$ n, numeric alpha)
+EidosValue_SP Eidos_ExecuteFunction_rdirichlet(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	EidosValue *alpha_value = p_arguments[1].get();
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
+	int alpha_count = alpha_value->Count();
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdirichlet): function rdirichlet() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	
+	// alpha
+	if (alpha_value->DimensionCount() > 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdirichlet): function rdirichlet() requires alpha to be a vector (not a matrix or array)." << EidosTerminate(nullptr);
+	
+	if ((alpha_count < 2) || (alpha_count > 1000000))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdirichlet): function rdirichlet() requires alpha to have length >= 2 (and <= 1e6)." << EidosTerminate(nullptr);
+	
+	// check for zero draws; we don't support zero-length dimensions in Eidos
+	if (num_draws == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// prepare input and output vector
+	double *alpha = (double *)malloc(alpha_count * sizeof(double));		// incoming alpha values
+	double *theta = (double *)malloc(alpha_count * sizeof(double));		// outgoing theta values
+	
+	for (int alpha_index = 0; alpha_index < alpha_count; ++alpha_index)
+	{
+		double one_alpha = alpha_value->FloatAtIndex_CAST(alpha_index, nullptr);
+		
+		if (!std::isfinite(one_alpha) || (one_alpha <= 0.0))
+		{
+			free(alpha);
+			free(theta);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdirichlet): function rdirichlet() requires every alpha value to be positive and finite." << EidosTerminate(nullptr);
+		}
+		
+		alpha[alpha_index] = one_alpha;
+	}
+	
+	// generate draws
+	gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws * alpha_count);
+	double *float_result_data = float_result->data_mutable();
+	
+	for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+	{
+		gsl_ran_dirichlet(rng_gsl, alpha_count, alpha, theta);
+		
+		// we need to transcribe the theta values into a row of float_result_data
+		for (int theta_index = 0; theta_index < alpha_count; ++theta_index)
+			float_result_data[draw_index + theta_index * num_draws] = theta[theta_index];
+	}
+	
+	// Set the dimensions of the result; we want one row per draw
+	int64_t dim[2] = {num_draws, alpha_count};
+	
+	float_result->SetDimensions(2, dim);
+	
+	free(alpha);
+	free(theta);
+	
+	return EidosValue_SP(float_result);
+}
+
 //	(integer)rdunif(integer$ n, [integer min = 0], [integer max = 1])
 EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {

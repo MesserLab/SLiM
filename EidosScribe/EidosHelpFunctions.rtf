@@ -1965,7 +1965,29 @@ The
 \f3\fs20 , specifying a value for each draw.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer)rdunif(integer$\'a0n, [integer\'a0min\'a0=\'a00], [integer\'a0max
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)rdirichlet(integer$\'a0n, numeric\'a0alpha)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a matrix of 
+\f1\fs18 n
+\f3\fs20  
+\f0\b random draws from a Dirichlet distribution
+\f3\b0  with vector of shape parameters 
+\f1\fs18 alpha
+\f3\fs20 .  The Dirichlet distribution is a multidimensional generalization of the beta distribution, sometimes called the multivariate beta distribution; see also 
+\f1\fs18 rbeta()
+\f3\fs20 .  All values in 
+\f1\fs18 alpha
+\f3\fs20  must be positive and finite, and 
+\f1\fs18 alpha
+\f3\fs20  must be of length >= 2.  The return value is a matrix with 
+\f1\fs18 n
+\f3\fs20  rows and 
+\f1\fs18 size(alpha)
+\f3\fs20  columns, each row containing a single Dirichlet random deviate.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (integer)rdunif(integer$\'a0n, [integer\'a0min\'a0=\'a00], [integer\'a0max
 \f2 \'a0
 \f1 =\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
