@@ -669,17 +669,26 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		}
 		else
 		{
-			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff << ", \"" << DES_type << "\"";
+			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff;
 			
-			if (DES_parameters.size() > 0)
+			if (defaultDistribution)
 			{
-				for (double DES_param : DES_parameters)
-					output_stream << ", " << DES_param;
+				output_stream << ", NULL";
 			}
 			else
 			{
-				for (const std::string &DES_param : DES_strings)
-					output_stream << ", \"" << DES_param << "\"";
+				output_stream << ", \"" << DES_type << "\"";
+				
+				if (DES_parameters.size() > 0)
+				{
+					for (double DES_param : DES_parameters)
+						output_stream << ", " << DES_param;
+				}
+				else
+				{
+					for (const std::string &DES_param : DES_strings)
+						output_stream << ", \"" << DES_param << "\"";
+				}
 			}
 			
 			output_stream << ");" << std::endl;
