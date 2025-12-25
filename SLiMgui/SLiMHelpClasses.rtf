@@ -4247,6 +4247,13 @@ The parameter
 \f4\fs20  to provide a different offset value for each trait in each individual, using consecutive values from 
 \f3\fs18 offset
 \f4\fs20  to set the offset for each of the specified traits in one individual before moving to the next individual.\
+Note that for multiplicative traits, all effects are clamped to a minimum of 
+\f3\fs18 0.0
+\f4\fs20  as documented in the 
+\f3\fs18 Trait
+\f4\fs20  class.  This policy applies to individual offsets, so an offset value passed in or generated here may not be the value actually used by SLiM or subsequently returned by 
+\f3\fs18 offsetForTrait()
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)setPhenotypeForTrait(Nio<Trait>\'a0trait, numeric\'a0phenotype)\
@@ -6344,6 +6351,12 @@ The parameter
 \f4\fs20  to provide a different effect value for each trait in each mutation, using consecutive values from 
 \f3\fs18 effect
 \f4\fs20  to set the effect for each of the specified traits in one mutation before moving to the next mutation.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
+\f3\fs18 0.0
+\f4\fs20  as documented in the 
+\f3\fs18 Trait
+\f4\fs20  class.  This policy applies to mutational effects, so the final effect of each mutation (perhaps influenced by a dominance coefficient) will be clamped prior to use in phenotype calculations.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)setHemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
@@ -14246,6 +14259,11 @@ nucleotide => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
+Note that for multiplicative traits, all effects are clamped to a minimum of 
+\f3\fs18 0.0
+\f4\fs20  as documented in the 
+\f3\fs18 Trait
+\f4\fs20  class.  A baseline offset value set through this property may therefore not be the value used by SLiM or subsequently returned by this property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 directFitnessEffect <\'96> (logical$)\

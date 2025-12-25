@@ -4340,13 +4340,30 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		for (int64_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
-			slim_effect_t offset = trait->DrawIndividualOffset();
 			
-			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			if (trait->Type() == TraitType::kMultiplicative)
 			{
-				Individual *ind = individuals_buffer[individual_index];
-				
-				ind->trait_info_[trait_index].offset_ = offset;
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					slim_effect_t offset = trait->DrawIndividualOffset();
+					
+					// effects for multiplicative traits are clamped to a minimum of 0.0
+					if (offset < 0.0)
+						offset = 0.0;
+					
+					ind->trait_info_[trait_index].offset_ = offset;
+				}
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					ind->trait_info_[trait_index].offset_ = trait->DrawIndividualOffset();
+				}
 			}
 		}
 	}
@@ -4355,23 +4372,17 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		// pattern 2: setting a single offset value across one or more traits in one or more individuals
 		slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
 		
-		if (trait_count == 1)
+		for (int64_t trait_index : trait_indices)
 		{
-			// optimized case for one trait
-			int64_t trait_index = trait_indices[0];
+			Trait *trait = species->Traits()[trait_index];
+			slim_effect_t offset_for_trait = offset;
+			
+			// effects for multiplicative traits are clamped to a minimum of 0.0
+			if ((trait->Type() == TraitType::kMultiplicative) && (offset < 0.0))
+				offset = 0.0;
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
-		}
-		else
-		{
-			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-			{
-				Individual *ind = individuals_buffer[individual_index];
-				
-				for (int64_t trait_index : trait_indices)
-					ind->trait_info_[trait_index].offset_ = offset;
-			}
+				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset_for_trait;
 		}
 	}
 	else if (offset_count == trait_count)
@@ -4381,7 +4392,12 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		
 		for (int64_t trait_index : trait_indices)
 		{
+			Trait *trait = species->Traits()[trait_index];
 			slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
+			
+			// effects for multiplicative traits are clamped to a minimum of 0.0
+			if ((trait->Type() == TraitType::kMultiplicative) && (offset < 0.0))
+				offset = 0.0;
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
@@ -4404,9 +4420,30 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			{
 				// optimized case for one trait
 				int64_t trait_index = trait_indices[0];
+				Trait *trait = species->Traits()[trait_index];
 				
-				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_int++));
+				if (trait->Type() == TraitType::kMultiplicative)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if (offset < 0.0)
+							offset = 0.0;
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+					}
+				}
+				else
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+					}
+				}
 			}
 			else
 			{
@@ -4415,7 +4452,16 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					Individual *ind = individuals_buffer[individual_index];
 					
 					for (int64_t trait_index : trait_indices)
-						ind->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_int++));
+					{
+						Trait *trait = species->Traits()[trait_index];
+						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if ((trait->Type() == TraitType::kMultiplicative) && (offset < 0.0))
+							offset = 0.0;
+						
+						ind->trait_info_[trait_index].offset_ = offset;
+					}
 				}
 			}
 		}
@@ -4428,9 +4474,30 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			{
 				// optimized case for one trait
 				int64_t trait_index = trait_indices[0];
+				Trait *trait = species->Traits()[trait_index];
 				
-				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_float++));
+				if (trait->Type() == TraitType::kMultiplicative)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if (offset < 0.0)
+							offset = 0.0;
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+					}
+				}
+				else
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+					}
+				}
 			}
 			else
 			{
@@ -4439,7 +4506,16 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					Individual *ind = individuals_buffer[individual_index];
 					
 					for (int64_t trait_index : trait_indices)
-						ind->trait_info_[trait_index].offset_ = static_cast<slim_effect_t>(*(offsets_float++));
+					{
+						Trait *trait = species->Traits()[trait_index];
+						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if ((trait->Type() == TraitType::kMultiplicative) && (offset < 0.0))
+							offset = 0.0;
+						
+						ind->trait_info_[trait_index].offset_ = offset;
+					}
 				}
 			}
 		}
@@ -6386,7 +6462,7 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 				{
 					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, effect, p_mutationEffect_callbacks, haplosome->individual_);
 					
-					if (effect <= 0.0) {	// not clipped to zero, so we check here
+					if (effect <= 0.0) {	// not clamped to zero, so we check here
 						trait_info_[trait_index].phenotype_ = 0.0;
 						return;
 					}
@@ -6495,7 +6571,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 						{
 							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 							
-							if (heterozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+							if (heterozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 								trait_info_[trait_index].phenotype_ = 0.0;
 								return;
 							}
@@ -6530,7 +6606,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 						{
 							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 							
-							if (heterozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+							if (heterozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 								trait_info_[trait_index].phenotype_ = 0.0;
 								return;
 							}
@@ -6579,7 +6655,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 									{
 										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 										
-										if (homozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+										if (homozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 											trait_info_[trait_index].phenotype_ = 0.0;
 											return;
 										}
@@ -6611,7 +6687,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 								{
 									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 									
-									if (heterozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+									if (heterozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 										trait_info_[trait_index].phenotype_ = 0.0;
 										return;
 									}
@@ -6666,7 +6742,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 								{
 									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 									
-									if (heterozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+									if (heterozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 										trait_info_[trait_index].phenotype_ = 0.0;
 										return;
 									}
@@ -6718,7 +6794,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 				{
 					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 					
-					if (heterozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+					if (heterozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 						trait_info_[trait_index].phenotype_ = 0.0;
 						return;
 					}
@@ -6748,7 +6824,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 				{
 					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
 					
-					if (heterozygous_effect <= 0.0) {	// not clipped to zero, so we check here
+					if (heterozygous_effect <= 0.0) {	// not clamped to zero, so we check here
 						trait_info_[trait_index].phenotype_ = 0.0;
 						return;
 					}

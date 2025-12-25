@@ -1549,7 +1549,9 @@ The
 \f1\fs18 1.0
 \f2\fs20  for multiplicative traits, 
 \f1\fs18 0.0
-\f2\fs20  for additive traits, such that the baseline offset has no effect upon the trait value.\
+\f2\fs20  for additive traits, such that the baseline offset has no effect upon the trait value.  Note that for multiplicative traits all effects, including the baseline offset, will be clamped to a minimum of 
+\f1\fs18 0.0
+\f2\fs20 .\
 The 
 \f1\fs18 individualOffsetMean
 \f2\fs20  and 
@@ -1566,7 +1568,9 @@ The
 \f1\fs18 0.0
 \f2\fs20 .  If 
 \f1\fs18 NULL
-\f2\fs20  is passed for one of these parameters, it must be passed for both; either the default distribution is used, or it is not.\
+\f2\fs20  is passed for one of these parameters, it must be passed for both; either the default distribution is used, or it is not.  Note that for multiplicative traits all effects, including individual offsets, will be clamped to a minimum of 
+\f1\fs18 0.0
+\f2\fs20 .\
 Finally, the 
 \f1\fs18 directFitnessEffect
 \f2\fs20  parameter specifies whether the final calculated trait value for an individual should be used directly as a fitness effect for that individual.  This will typically be 

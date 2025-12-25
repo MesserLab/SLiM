@@ -110,6 +110,7 @@ multitrait branch:
 	fix #567, plot windows can have their aspect ratio distorted due to screen size and other constraints
 	add Individual class method +(void)demandPhenotype([Nio<Trait> trait = NULL], [l$ forceRecalc = F])
 	extend initializeMutationType() and initializeMutationTypeNuc() to make the effect distribution optional with [Ns$ distributionType = NULL], where NULL is equivalent to `"f", 0.0`
+	make setOffsetForTrait() clamp values to 0.0 for multiplicative traits; fix doc to discuss clamping of effects
 
 
 version 5.1 (Eidos version 4.1):
