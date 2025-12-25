@@ -169,8 +169,20 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 
 EidosCallSignature *EidosCallSignature::AddEllipsis(void)
 {
-	if (has_optional_args_)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << EidosTerminate(nullptr);
+	// BCH 12/25/2025: I'm removing this check now, and relaxing this requirement.  This is to allow the new
+	// signature of initializeMutationType(), for which I want `[Ns$ distributionType = NULL], ...`.  The
+	// new rule will be: an ellipsis is allowed after an optional argument, but in that case, any argument
+	// in that position will be applied to the optional argument first.  If you want to supply ellipsis
+	// arguments, the optional arguments before it effectively become non-optional.  The alternative would
+	// be to subsume the distributionType argument into the ellipsis section of the signature and let the
+	// implementation of initializeMutationType() figure out the situation itself, which would not require
+	// this rule change in Eidos; but that would make the function signature much more opaque.  This change
+	// is a little weird, but I doubt anybody will think about argument processing hard enough to realize
+	// what has been done.  No change was needed to the argument processing code to implement this; the code
+	// already behaves this way since it processes optional arguments with a greedy algorithm.
+	//
+	//if (has_optional_args_)
+	//	EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << EidosTerminate(nullptr);
 	
 	if (has_ellipsis_)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add more than one ellipsis." << EidosTerminate(nullptr);

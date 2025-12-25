@@ -109,6 +109,7 @@ multitrait branch:
 			allow the destination subpop to be given as a source, iff all rates supplied are 0.0, to stop all migration: allSubpops.setMigrationRates(allSubpops, 0.0)
 	fix #567, plot windows can have their aspect ratio distorted due to screen size and other constraints
 	add Individual class method +(void)demandPhenotype([Nio<Trait> trait = NULL], [l$ forceRecalc = F])
+	extend initializeMutationType() and initializeMutationTypeNuc() to make the effect distribution optional with [Ns$ distributionType = NULL], where NULL is equivalent to `"f", 0.0`
 
 
 version 5.1 (Eidos version 4.1):

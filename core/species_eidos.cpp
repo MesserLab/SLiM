@@ -584,8 +584,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	return symbol_entry.second;
 }
 
-//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
-//	*********************	(object<MutationType>$)initializeMutationTypeNuc(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
+//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, [Ns$ distributionType = NULL], ...)
+//	*********************	(object<MutationType>$)initializeMutationTypeNuc(is$ id, numeric$ dominanceCoeff, [Ns$ distributionType = NULL], ...)
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -606,9 +606,15 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	EidosValue *distributionType_value = p_arguments[2].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// BCH 12/25/2025: We now allow NULL for distributionType, which is shorthand for `"f", 0.0` (neutral)
+	bool defaultDistribution = false;
+	
+	if (distributionType_value->Type() == EidosValueType::kValueNULL)
+		defaultDistribution = true;
+	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
 	double dominance_coeff = dominanceCoeff_value->NumericAtIndex_NOCAST(0, nullptr);
-	std::string DES_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
+	std::string DES_type_string = (defaultDistribution ? "f" : distributionType_value->StringAtIndex_NOCAST(0, nullptr));
 	
 	if (community_.MutationTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() mutation type m" << map_identifier << " already defined." << EidosTerminate();
@@ -618,7 +624,19 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	std::vector<double> DES_parameters;
 	std::vector<std::string> DES_strings;
 	
-	MutationType::ParseDESParameters(DES_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &DES_type, &DES_parameters, &DES_strings);
+	if (defaultDistribution)
+	{
+		// The default distribution is a fixed effect of 0.0, and ellipsis arguments may not be supplied
+		if (p_arguments.size() != 3)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): with distributionType of NULL, ellipsis arguments may not be supplied to " << p_function_name << "(); the distribution of effect sizes is already completely specified." << EidosTerminate();
+		
+		DES_type = DESType::kFixed;
+		DES_parameters.push_back(0.0);
+	}
+	else
+	{
+		MutationType::ParseDESParameters(DES_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &DES_type, &DES_parameters, &DES_strings);
+	}
 	
 #ifdef SLIMGUI
 	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations

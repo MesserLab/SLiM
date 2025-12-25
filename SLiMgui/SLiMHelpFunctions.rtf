@@ -870,7 +870,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
+\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, \cf2 [Ns$\'a0distributionType\'a0=\'a0NULL]\cf0 , ...)
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -899,9 +899,9 @@ The
 \f1\fs18 setDefaultDominanceForTrait()
 \f2\fs20  method if desired.  Note that the mutation type\'92s default hemizygous dominance coefficient is not supplied to this function; it always defaults to 
 \f1\fs18 1.0
-\f2\fs20 , but can subsequently be configured with the 
+\f2\fs20 , but the 
 \f1\fs18 setDefaultHemizygousDominanceForTrait()
-\f2\fs20  method if desired.\
+\f2\fs20  method can configure it subsequently if desired.\
 The 
 \f1\fs18 distributionType
 \f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
@@ -948,11 +948,20 @@ The
 \f1\fs18 "s"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
-\f2\fs20  Eidos script parameter.  See the 
+\f2\fs20  Eidos script parameter.  If 
+\f1\fs18 distributionType
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), a fixed effect of 
+\f1\fs18 0.0
+\f2\fs20  is used, representing a neutral DES; this is equivalent to type 
+\f1\fs18 "f"
+\f2\fs20  except that the value 
+\f1\fs18 0.0
+\f2\fs20  is assumed and must not be supplied.  See the 
 \f1\fs18 MutationType
 \f2\fs20  class documentation for discussion of the various DESs and their uses.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -974,7 +983,8 @@ Note that by default in WF models, all mutations of a given mutation type will b
 \f2\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)\
+\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0dominanceCoeff, \kerning1\expnd0\expndtw0 [Ns$\'a0distributionType\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+, ...)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Add a nucleotide-based mutation type at initialization time.  This function is identical to 
@@ -1332,7 +1342,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1412,7 +1421,6 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
