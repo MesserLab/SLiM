@@ -1493,10 +1493,14 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			
 		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 		{
-			// mutationEffect(<mutTypeId> [, <subpopId>])
+			// mutationEffect(<mutTypeId> [, <subpopId> [, <traitIndex>]])
 			p_out << "mutationEffect(m" << mutation_type_id_;
 			if (subpopulation_id_ != -1)
 				p_out << ", p" << subpopulation_id_;
+			else if (trait_index_ != -1)
+				p_out << ", NULL";
+			if (trait_index_ != -1)
+				p_out << ", " << trait_index_ << "";
 			p_out << ")";
 			break;
 		}
@@ -1540,7 +1544,7 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			else if (chromosome_id_ != -1)
 				p_out << "NULL";
 			if (chromosome_id_ != -1)
-				p_out << ", \"" << chromosome_id_ << "\"";
+				p_out << ", " << chromosome_id_ << "";
 			p_out << ")";
 			break;
 		}

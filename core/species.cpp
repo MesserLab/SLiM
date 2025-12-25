@@ -2522,8 +2522,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1);
-			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1);
+			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1, -1);
+			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1, -1);
 			
 			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks);
 		}
@@ -2579,11 +2579,11 @@ Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) 
 #pragma mark Running cycles
 #pragma mark -
 
-std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id)
+std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_objectid_t p_trait_index, int64_t p_chromosome_id)
 {
 	// Callbacks are species-specific; this method calls up to the community, which manages script blocks,
 	// but does a species-specific search.
-	return community_.ScriptBlocksMatching(p_tick, p_event_type, p_mutation_type_id, p_interaction_type_id, p_subpopulation_id, p_chromosome_id, this);
+	return community_.ScriptBlocksMatching(p_tick, p_event_type, p_mutation_type_id, p_interaction_type_id, p_subpopulation_id, p_trait_index, p_chromosome_id, this);
 }
 
 void Species::RunInitializeCallbacks(void)
@@ -2610,7 +2610,7 @@ void Species::RunInitializeCallbacks(void)
 	has_implicit_chromosome_ = false;
 	
 	// execute initialize() callbacks, which should always have a tick of 0 set
-	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1);
 	
 	for (auto script_block : init_blocks)
 		community_.ExecuteEidosEvent(script_block);
@@ -3009,10 +3009,10 @@ void Species::EmptyGraveyard(void)
 void Species::WF_GenerateOffspring(void)
 {
 	slim_tick_t tick = community_.Tick();
-	std::vector<SLiMEidosBlock*> mate_choice_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mate_choice_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1, -1);
 	bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 	bool modify_child_callbacks_present = modify_child_callbacks.size();
 	bool recombination_callbacks_present = recombination_callbacks.size();
@@ -3151,10 +3151,10 @@ void Species::WF_SwapGenerations(void)
 void Species::nonWF_GenerateOffspring(void)
 {
 	slim_tick_t tick = community_.Tick();
-	std::vector<SLiMEidosBlock*> reproduction_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosReproductionCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> reproduction_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosReproductionCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1, -1);
 	
 	// choose templated variants for GenerateIndividualsX() methods of Subpopulation, called during reproduction() callbacks
 	// this is an optimization technique that lets us optimize away unused cruft at compile time
@@ -3592,7 +3592,7 @@ void Species::nonWF_MergeOffspring(void)
 void Species::nonWF_ViabilitySurvival(void)
 {
 	slim_tick_t tick = community_.Tick();
-	std::vector<SLiMEidosBlock*> survival_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosSurvivalCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> survival_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosSurvivalCallback, -1, -1, -1, -1, -1);
 	bool survival_callbacks_present = survival_callbacks.size();
 	bool no_active_callbacks = true;
 	

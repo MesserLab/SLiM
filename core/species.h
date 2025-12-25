@@ -469,7 +469,7 @@ public:
 	void DeleteAllMutationRuns(void);												// for cleanup
 	
 	// Running cycles
-	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id);
+	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_objectid_t p_trait_index, int64_t p_chromosome_id);
 	void RunInitializeCallbacks(void);
 	void CreateAndPromulgateMutationBlock(void);
 	void EndCurrentChromosome(bool starting_new_chromosome);

@@ -1362,6 +1362,7 @@ const std::string &gStr_containsMarkerMutation = EidosRegisteredString("contains
 const std::string &gStr_haplosomesForChromosomes = EidosRegisteredString("haplosomesForChromosomes", gID_haplosomesForChromosomes);
 const std::string &gStr_offsetForTrait = EidosRegisteredString("offsetForTrait", gID_offsetForTrait);
 const std::string &gStr_phenotypeForTrait = EidosRegisteredString("phenotypeForTrait", gID_phenotypeForTrait);
+const std::string &gStr_demandPhenotype = EidosRegisteredString("demandPhenotype", gID_demandPhenotype);
 const std::string &gStr_setOffsetForTrait = EidosRegisteredString("setOffsetForTrait", gID_setOffsetForTrait);
 const std::string &gStr_setPhenotypeForTrait = EidosRegisteredString("setPhenotypeForTrait", gID_setPhenotypeForTrait);
 const std::string &gStr_relatedness = EidosRegisteredString("relatedness", gID_relatedness);

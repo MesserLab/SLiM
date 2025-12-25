@@ -404,6 +404,15 @@ public:
 	static bool s_any_haplosome_tag_set_;
 	static bool s_any_individual_fitness_scaling_set_;
 	
+	// phenotype demand for a single trait in a single individual, across a single chromosome; the result is
+	// accumulated into the trait value of the focal individual, which must be set up with an initial value
+	// see also the method DemandPhenotype() in class Individual_Class, which calls these methods
+	template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+	void _IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
+	template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
 	// for Subpopulation::ExecuteMethod_takeMigrants()
 	friend Subpopulation;
 };
@@ -428,6 +437,14 @@ public:
 	EidosValue_SP ExecuteMethod_outputIndividualsToVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_readIndividualsFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+	EidosValue_SP ExecuteMethod_demandPhenotype(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+	// phenotype demand for all traits for a vector of target individuals, across all chromosomes
+	// if f_force_recalc is true all values are recalculated; if false, only NAN trait values are recalculated
+	// see also the methods class _IncorporateEffects_X() methods in class Individual, called by this method
+	template <const bool f_force_recalc>
+	void DemandPhenotype(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<int64_t> &trait_indices) const;
 };
 
 

@@ -87,7 +87,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
 			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
@@ -207,7 +207,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				is_neutral_ = false;
 				
 				species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-				species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
+				species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 				
 				if (traitType == TraitType::kMultiplicative)
 				{
@@ -292,7 +292,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
 			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
@@ -357,7 +357,7 @@ void Mutation::SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, s
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
 			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
 		}
 		
 		// cache values used by the fitness calculation code for speed; see header
@@ -390,7 +390,7 @@ void Mutation::SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, s
 			// effect has changed to neutral; other trait effects might be non-neutral, which we don't check
 			Species &species = mutation_type_ptr_->species_;
 			
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
 			
 			// cache values used by the fitness calculation code for speed; see header
 			// for a neutral trait, we can set up this info very quickly

@@ -1131,6 +1131,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
+	// resize our internal per-trait state up to the number of traits we're modeling
+	per_trait_subpop_caches_.resize(species_.TraitCount());
+	
 	// if the species knows that its chromosomes involve null haplosomes, then we inherit that knowledge
 	has_null_haplosomes_ = species_.ChromosomesUseNullHaplosomes();
 	
@@ -1179,6 +1182,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
+	// resize our internal per-trait state up to the number of traits we're modeling
+	per_trait_subpop_caches_.resize(species_.TraitCount());
+	
 	// if the species knows that its chromosomes involve null haplosomes, then we inherit that knowledge
 	has_null_haplosomes_ = species_.ChromosomesUseNullHaplosomes();
 	
@@ -2438,6 +2444,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	}
 }
 
+// FIXME MULTITRAIT: should return slim_effect_t so the caller doesn't have to cast
 double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
@@ -2570,6 +2577,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 						
 						// p_homozygous == -1 means the mutation faces a null haplosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
+						// FIXME MULTITRAIT: should the semantics here be changed?  haploid mutations should maybe be 1, and -1 should be hemizygous specifically?
 						if (mutationEffect_callback->contains_homozygous_)
 						{
 							if (p_homozygous == -1)

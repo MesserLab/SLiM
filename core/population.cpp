@@ -5201,8 +5201,8 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1);
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
@@ -5393,7 +5393,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;	// FIXME MULTITRAIT won't need this any more
 			std::vector<SLiMEidosBlock*> subpop_fitnessEffect_callbacks;
 			
 			// Get mutationEffect() and fitnessEffect() callbacks that apply to this subpopulation

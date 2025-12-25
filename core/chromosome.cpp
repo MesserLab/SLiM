@@ -1773,7 +1773,7 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 	{
 		parent_sex = p_parent->sex_;
 		parent_subpop = p_parent->subpopulation_;
-		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_, id_);
+		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_, -1, id_);
 		
 		// SPECIES CONSISTENCY CHECK
 		if (&p_parent->subpopulation_->species_ != &species_)

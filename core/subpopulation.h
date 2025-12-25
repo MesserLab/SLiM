@@ -160,6 +160,18 @@ public:
 	std::vector<SLiMEidosBlock*> registered_mutation_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_reproduction_callbacks_;	// nonWF only; NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	
+	// These per-subpopulation caches are used by IndividualClass::DemandPhenotype() and are valid only within
+	// that method.  There is a std::vector of PerTraitSubpopCache structs with one entry per trait in the
+	// species.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
+	typedef struct _PerTraitSubpopCaches {
+		std::vector<SLiMEidosBlock*> mutationEffect_callbacks_per_trait;	// NOT OWNED: mutationEffect() callbacks per subpopulation per trait
+		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+	} PerTraitSubpopCaches;
+	
+	std::vector<PerTraitSubpopCaches> per_trait_subpop_caches_;	// one entry per trait, indexed by trait index
+	
 	// WF only:
 	// Fitness caching.  Every individual now caches its fitness internally, and that is what is used by SLiMgui and by the cachedFitness() method of Subpopulation.
 	// These fitness cache buffers are additional to that, used only in WF models.  They are used for two things.  First, as the data source for setting up our lookup

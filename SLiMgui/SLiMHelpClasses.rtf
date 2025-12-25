@@ -3648,6 +3648,30 @@ See the description of the
 \f4\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 +\'a0(void)demandPhenotype([Nio<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Expresses \'93demand\'94 for the phenotypes (trait values) of the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , for the target vector of individuals.  This triggers the recalculation of those trait values in those individuals, as needed.  More specifically, if 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the specified trait values will only be recalculated if their current value is 
+\f3\fs18 NAN
+\f4\fs20 ; if they have any other value, they are considered to already be calculated, and will not be recalculated.  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
+\f3\fs18 demandPhenotype()
+\f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.\
+This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.\
+Note that the fitness recalculation tick cycle stage intrinsically expresses demand for all traits that have a direct effect on fitness, so 
+\f3\fs18 demandPhenotype()
+\f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.  See sections 24.6 and 25.3 for details on fitness recalculation.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

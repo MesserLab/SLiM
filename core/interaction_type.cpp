@@ -514,7 +514,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 	// Note that interaction() callbacks are non-species-specific, so we fetch from the Community with species nullptr.
 	// Callbacks used depend upon the exerter subpopulation, so this is snapping the callbacks for subpop as exerters;
 	// the subpopulation of receivers does not influence the choice of which callbacks are used.
-	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, nullptr);
+	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, -1, nullptr);
 	
 	// Note that we do not create the k-d tree here.  Non-spatial models will never have a k-d tree; spatial models may or
 	// may not need one, depending upon what methods are called by the client, which may vary cycle by cycle.

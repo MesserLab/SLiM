@@ -1644,15 +1644,27 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'mul'), or 'additive' ('add')." << EidosTerminate();
 	
 	// baselineOffset
-	double baselineOffset;
+	slim_effect_t baselineOffset;
 	
 	if (baselineOffset_value->Type() == EidosValueType::kValueNULL)
-		baselineOffset = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
+	{
+		baselineOffset = (slim_effect_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+	}
 	else
-		baselineOffset = baselineOffset_value->FloatAtIndex_NOCAST(0, nullptr);
+	{
+		double baselineOffset_double = baselineOffset_value->FloatAtIndex_NOCAST(0, nullptr);
+		
+		if (!std::isfinite(baselineOffset_double))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be a finite value (not NAN or INF)." << EidosTerminate();
+		
+		baselineOffset = (slim_effect_t)baselineOffset_double;	// this can round to infinity
+		
+		if (!std::isfinite(baselineOffset))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be representable as a finite single-precision floating-point number; the value given rounded to infinity." << EidosTerminate();
+	}
 	
-	if (!std::isfinite(baselineOffset))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be a finite value (not NAN or INF)." << EidosTerminate();
+	if ((type == TraitType::kMultiplicative) && (baselineOffset < 0.0))
+		baselineOffset = 0.0;
 	
 	// check that the default distribution is used or not used, in its entirety
 	if (individualOffsetMean_value->Type() != individualOffsetSD_value->Type())
@@ -4158,6 +4170,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
+	new_script_block->trait_index_ = -1;				// FIXME MULTITRAIT: should provide the ability to set a trait index
 	
 	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us

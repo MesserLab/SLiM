@@ -11,11 +11,25 @@
 #include "species.h"
 
 
-Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, double p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
-	index_(-1), name_(p_name), type_(p_type), baselineOffset_(p_baselineOffset),
+Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
+	index_(-1), name_(p_name), type_(p_type),
 	individualOffsetMean_(p_individualOffsetMean), individualOffsetSD_(p_individualOffsetSD),
 	directFitnessEffect_(p_directFitnessEffect), community_(p_species.community_), species_(p_species)
 {
+	// offsets must always be finite
+	if (!std::isfinite(p_baselineOffset))
+		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property baselineOffset requires a finite value (not NAN or INF)." << EidosTerminate();
+	if (!std::isfinite(individualOffsetMean_))
+		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetMean requires a finite value (not NAN or INF)." << EidosTerminate();
+	if (!std::isfinite(individualOffsetSD_))
+		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetSD requires a finite value (not NAN or INF)." << EidosTerminate();
+	
+	// effects for multiplicative traits clip at 0.0
+	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < 0.0))
+		baselineOffset_ = 0.0;
+	else
+		baselineOffset_ = p_baselineOffset;
+	
 	_RecacheIndividualOffsetDistribution();
 }
 
@@ -25,7 +39,14 @@ void Trait::_RecacheIndividualOffsetDistribution(void)
 	if (individualOffsetSD_ == 0.0)
 	{
 		individualOffsetFixed_ = true;
-		individualOffsetFixedValue_ = static_cast<slim_effect_t>(individualOffsetMean_);
+		
+		// effects for multiplicative traits clip at 0.0
+		slim_effect_t offset = static_cast<slim_effect_t>(individualOffsetMean_);
+		
+		if ((type_ == TraitType::kMultiplicative) && (offset < 0.0))
+			individualOffsetFixedValue_ = 0.0;
+		else
+			individualOffsetFixedValue_ = offset;
 	}
 	else
 	{
@@ -54,7 +75,13 @@ slim_effect_t Trait::_DrawIndividualOffset(void) const
 	// note the individualOffsetSD_ == 0 case was already handled by DrawIndividualOffset()
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
-	return static_cast<slim_effect_t>(gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_);
+	slim_effect_t offset = static_cast<slim_effect_t>(gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_);
+	
+	// effects for multiplicative traits clip at 0.0
+	if ((type_ == TraitType::kMultiplicative) && (offset < 0.0))
+		offset = 0.0;
+	
+	return offset;
 }
 
 EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
@@ -80,6 +107,8 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_type_string_multiplicative;
 			static EidosValue_SP static_type_string_additive;
 			
+			// FIXME PARALLEL static string allocation like this should be done at startup, before we go multithreaded; this should not need a critical section
+			// search for "static EidosValue_SP" and fix all of them
 #pragma omp critical (GetProperty_trait_type)
 			{
 				if (!static_type_string_multiplicative)
@@ -142,7 +171,12 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			if (!std::isfinite(value))
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property baselineOffset requires a finite value (not NAN or INF)." << EidosTerminate();
 			
-			baselineOffset_ = value;
+			// effects for multiplicative traits clip at 0.0
+			if ((type_ == TraitType::kMultiplicative) && (value < 0.0))
+				baselineOffset_ = 0.0;
+			else
+				baselineOffset_ = (slim_effect_t)value;
+			
 			return;
 		}
 		case gID_directFitnessEffect:

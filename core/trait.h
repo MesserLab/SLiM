@@ -58,7 +58,7 @@ private:
 	TraitType type_;										// multiplicative or additive
 	
 	// offsets
-	double baselineOffset_;
+	slim_effect_t baselineOffset_;
 	
 	bool individualOffsetFixed_;							// true if individualOffsetSD_ == 0.0
 	slim_effect_t individualOffsetFixedValue_;				// equal to individualOffsetMean_ if individualOffsetFixed_ == true; pre-cast for speed
@@ -81,13 +81,15 @@ public:
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor
 	
-	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, double p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
+	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
 	~Trait(void);
 	
 	inline __attribute__((always_inline)) int64_t Index(void) const				{ return index_; }
 	inline __attribute__((always_inline)) void SetIndex(int64_t p_index)		{ index_ = p_index; }	// only from AddTrait()
 	inline __attribute__((always_inline)) TraitType Type(void) const			{ return type_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const	{ return name_; }
+	
+	slim_effect_t BaselineOffset(void) const { return baselineOffset_; };
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_
 	slim_effect_t _DrawIndividualOffset(void) const;		// draws from a normal distribution defined by individualOffsetMean_ and individualOffsetSD_
