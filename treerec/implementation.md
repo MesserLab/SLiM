@@ -1,13 +1,28 @@
 # Notes on implementation
 
+## Overall design
+
+To get into how tree-sequence recording in SLiM works, start out looking at SLiM 4.3 (https://github.com/MesserLab/SLiM/releases/tag/v4.3), since that is the last release before SLiM extended to multiple chromosomes (with one tree sequence per chromosome).  The architecture was considerably simpler back then.  You can move up to the SLiM 5.1 sources when you want to see how we handle multiple chromosomes; that topic is also discussed in its own section below.
+
+The relevant variables are mostly in `species.h` (because there is one tree sequence per species, in SLiM 4.3), under the comment `// TREE SEQUENCE RECORDING`.  The most important variable is the table collection,  `tsk_table_collection_t tables_`.  If you search on `tsk_table_collection_` (ignoring hits inside SLiM’s private copy of tskit), you’ll find various interesting spots, such as `Species::AllocateTreeSequenceTables()` where we call `tsk_table_collection_init()` to allocate the table collection, `Species::SimplifyTreeSequence()` where we do a sequence of steps culminating in a call to `tsk_table_collection_simplify()` to simplify the tree sequence, and `Species::FreeTreeSequence()` where we free the table collection with `tsk_table_collection_free()`.  `Species::CheckTreeSeqIntegrity()` calls `tsk_table_collection_check_integrity()` to check that the tree-sequence tables pass all of tskit’s requirements, and is called in various places. `Species::CrosscheckTreeSeqIntegrity()` checks the information in the table collection against the information in SLiM’s own data structures and tries to make sure that they correspond to each other exactly; that’s quite slow and so is mostly done when compiled for debugging, but there is a user-level switch with `initializeTreeSeq(runCrosschecks=T)` that turns it on even in release builds.
+
+A search using the regex `tsk_.*add_row` will turn up places where we record things into various tables.  We build the individual table only at save time, so `tsk_individual_table_add_row()` is called only at that time, notably in `Species::AddIndividualsToTable()` but also in `Species::ReorderIndividualTable()`.  We call `tsk_node_table_add_row()` to record nodes in the node table whenever a new individual is created, in `Species::RecordNewGenome()` (called `RecordNewHaplosome()` in SLiM 5 as a result of the "genome" -> "haplosome" terminology shift that occurred with SLiM 5's multi-chromosome support).  That method also records the edge table entries that describe how that node inherits from ancestral nodes, with `tsk_edge_table_add_row()`.  Notice, by the way, that we check for errors using tskit’s return values after every call we make, and typically call `Species::handle_error()` if there was an error, which uses `tsk_strerror()` to print a user-readable error message; that’s important for catching errors at the point the arise.  `Species::RecordNewDerivedState()` is called whenever a new mutation arises, recording an entry in the site table with `tsk_site_table_add_row()` and an entry in the mutation table with `tsk_mutation_table_add_row()`.  There is considerable strangeness (necessary strangeness) to how SLiM records mutations; you can read about it in chapter 29 of the SLiM manual (again I’d recommend that you start with the 4.3 manual, which you can get from the GitHub release, and only graduate to 5.1 when you’re well-rested :->).  What else?  The population table and an entry for the provenance table are also generated only at save; you can find those place by searching for the appropriate `add_row()` function calls.  There is additional complexity for “remembering” individuals (guaranteeing that they don’t get simplified away); the variable `remembered_genomes_` is the crux of that.  And for “retracting” offspring that get vetoed by a `modifyChild()` callback in the user’s script, the variable `table_position_` records a bookmark that we can roll back to if a proposed child is rejected, in `RetractNewIndividual()`; so it’s the crux of that.
+
+Reading in a `.trees` tree sequence file and creating the corresponding SLiM objects is a complex process that is managed by `Species::_InitializePopulationFromTskitBinaryFile()`, which calls down to a sequence of methods implementing a sequence of sub-steps.  One weirdness to be aware of is that the "derived states" column of the mutation table is required by tskit to be ASCII, but SLiM keeps binary data in it at runtime.  To keep tskit happy, the `Species::DerivedStatesToAscii()` method converts SLiM's binary derived states to ASCII at save time, and the `Species::DerivedStatesFromAscii()` method converts them back to binary at load time.  Speaking of saving, that is done by `Species::WriteTreeSequence()`.
+
+SLiM keeps lots of metadata on the side, in various tables.  That is detailed in chapter 29 of the SLiM manual, "SLiM additions to the .trees file format".  Encoding of metadata is done by the methods `Species::MetadataForMutation()`, `Species::MetadataForSubstitution()`, `Species::MetadataForGenome()`, and `Species::MetadataForIndividual()`.  In SLiM 5 the metadata for genomes (now called haplosomes) got much more complex; you can search on `HaplosomeMetadataRec` in SLiM 5 to find the new code, which has to track which haplosomes are "vacant" and which are not in a multi-chromosome simulation, and this is discussed below in more detail.  SLiM's top-level metadata, including an optional user-supplied metadata dictionary that can be passed to `treeSeqOutput()`, is written by `Species::WriteTreeSequenceMetadata()` and read back in with `ReadTreeSequenceMetadata()`.  SLiM provides schemas for its metadata; they are given in `slim_globals.cpp` beginning with `gSLiM_tsk_metadata_schema`.  In SLiM 4.3 this was complicated by backward compatibility for reading old metadata in SLiM.  In SLiM 5 we abandoned that backward compatibility; the user now needs to use `pyslim` to bring old `.trees` files forward to the current format for reading, which considerably simplified SLiM's code.
+
+That’s most of it.  The remainder of this document will cover more specific implementation details and decisions.
+
+
 ## Individual tracking
 
-Both individuals and nodes (= genomes) have flags. We use individual flags for
+Both individuals and nodes (= haplosomes) have flags. We use individual flags for
 internal bookkeeping in SLiM; while msprime uses the SAMPLE flag of nodes.
 
-1. When an individual is created in the simulation, its genomes (nodes) are automatically
+1. When an individual is created in the simulation, its haplosomes (nodes) are automatically
     added to the node table with the `NODE_IS_SAMPLE` flag, because the SAMPLE flag means
-    that we have whole-genome information about the node, which at this point we do.
+    that we have whole-haplosome information about the node, which at this point we do.
     Node times are recorded as the number of generations before the start of the
     simulation (i.e., -1 * sim.generation). However, the individuals themselves are *not*
     automatically added to the individuals table, in part because much of the information
@@ -21,20 +36,20 @@ internal bookkeeping in SLiM; while msprime uses the SAMPLE flag of nodes.
     If `permanent=T` (default) we remember them permanently, whereas if `permanent=F` we
     simply flag them to be *retained* while their nodes exist in the simulation. When we
     ask an individual to be permanently remembered it has the `INDIVIDUAL_REMEMBERED`
-    flag set in the individuals table, and its genomes' node IDs are added to the
-    `remembered_genomes_` vector. In constrast, an individual which is retained has the
+    flag set in the individuals table, and its haplosomes' node IDs are added to the
+    `remembered_nodes_` vector. In contrast, an individual which is retained has the
     `INDIVIDUAL_RETAINED` flag set (which allows round-tripping on input/output).
     However, unless it has also been permanently remembered, a retained individual is
     subject to removal via simplification.
 
 3. Simplify, if it occurs, first constructs the list of nodes to maintain as samples
-    by starting with `remembered_genomes_`, and then adding the genomes of the current
+    by starting with `remembered_nodes_`, and then adding the nodes of the current
     generation.  All permanently remembered individuals in the individual table should be
     maintained, because they are all pointed to by nodes in this list; other individuals
     which have been retained, but not permanently remembered, may get removed by the
     normal simplification algorithm.  We also update the `msp_node_id_` property of the
-    currently alive SLiM genomes. After simplify, we reset the `NODE_IS_SAMPLE` flag in
-    the node table, leaving it set only on those nodes listed in `remembered_genomes_`.
+    currently alive SLiM haplosomes. After simplify, we reset the `NODE_IS_SAMPLE` flag in
+    the node table, leaving it set only on those nodes listed in `remembered_nodes_`.
     Note that we call `simplify` with the `keep_input_roots` option to retain
     lineages back to the first generation, and the `filter_individuals` option to remove
     individuals that no longer need to be retained.
@@ -52,7 +67,7 @@ internal bookkeeping in SLiM; while msprime uses the SAMPLE flag of nodes.
 
 5. On input from tables, we use the `INDIVIDUAL_ALIVE` flag to decide who is currently
     alive and therefore must be instantiated into a SLiM individual, and use the
-    `INDIVIDUAL_REMEMBERED` flag to decide which genomes to add to `remembered_genomes_`.
+    `INDIVIDUAL_REMEMBERED` flag to decide which haplosomes to add to `remembered_nodes_`.
     From the individual table, we remove all individuals apart from those that are marked
     as either `INDIVIDUAL_REMEMBERED` or `INDIVIDUAL_RETAINED` (thus we remove from the
     table individuals that were only exported in the first place because they were ALIVE
@@ -79,13 +94,13 @@ Internal state:
 
     * time: (-1) * birth generation.
 
-- `remembered_genomes_`: the node IDs of genomes whose individuals are REMEMBERED
+- `remembered_nodes_`: the node IDs of nodes whose individuals are REMEMBERED
 
     * initialized at the start of each new, not-from-anywhere-else subpopulation
     * added to by RememberIndividuals
     * updated by Simplify
 
-- `msp_node_id_` properties of currently alive SLiM individual `genome1_` and `genome2_`:
+- `msp_node_id_` properties of currently alive SLiM individual `haplosome1_` and `haplosome2_`:
     always contains an ID of the node table.
 
     * created when a new individual is created, by `node_table_add_row()`
@@ -144,7 +159,7 @@ And, these operations have the following properties:
 
 1. Mutations appear in the mutation table ordered by time of appearance,
     so that a mutation will always appear after the one that it replaced (i.e., it's parent).
-2. Furthermore, if mutation B appears after mutation A, but at the same site, 
+2. Furthermore, if mutation B appears after mutation A, but at the same site,
     then mutation B's site will appear after mutatation A's site in the site table.
 3. `sort_tables` sorts sites by position, and then by ID, so that the relative ordering of sites
     at the same position is maintained, thus preserving property (2).
@@ -266,3 +281,5 @@ keys `this_chromosome` and `chromosomes` that should be provided in every .trees
 `chromosomes` key provides a table of all of the chromosomes involved in the trees archive.
 The `this_chromosome` key provides information about the particular chromosome represented
 by one particular .trees file in the trees archive.
+
+The haplosome metadata also needs to track which nodes are "vacant" in which chromosomes.  Each individual has two nodes associated with it, and those two nodes are used, in the shared node table, to represent all of the haplosomes for all of the chromosomes for a given individual.  A male individual with a diploid autosome would have two haplosomes for that autosome, and would thus use both node table entries, so the two nodes would not be "vacant" for that autosome.  But an X chromosome in the same male individual would have only one X haplosome, and so it would use only the first of the two nodes for that individual; the second node would be "vacant" for that chromosome in that individual.  The state for the vacant vs. non-vacant state for each node, per chromosome, is kept in the node metadata in SLiM 5.  Section 29.3 of the SLiM manual provides further details and discussion; see also the `remove_vacant()` and `restore_vacant()` methods of `pyslim`.
