@@ -3648,12 +3648,20 @@ See the description of the
 \f4\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)demandPhenotype([Nio<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
+\f3\fs18 \cf2 +\'a0(void)demandPhenotype([Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Expresses \'93demand\'94 for the phenotypes (trait values) of the trait(s) specified by 
 \f3\fs18 trait
-\f4\fs20 , for the target vector of individuals.  This triggers the recalculation of those trait values in those individuals, as needed.  More specifically, if 
+\f4\fs20 , for the target vector of individuals.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  This triggers the recalculation of those trait values in those individuals, as needed.  More specifically, if 
 \f3\fs18 forceRecalc
 \f4\fs20  is 
 \f3\fs18 F
@@ -3666,7 +3674,8 @@ See the description of the
 \f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
 \f3\fs18 demandPhenotype()
 \f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.\
-This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.\
 Note that the fitness recalculation tick cycle stage intrinsically expresses demand for all traits that have a direct effect on fitness, so 
 \f3\fs18 demandPhenotype()
 \f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.  See sections 24.6 and 25.3 for details on fitness recalculation.\
@@ -3824,14 +3833,16 @@ This method replaces the deprecated method
 \f4\fs20 , while providing additional useful options.  It is particularly useful for efficient, vectorized assessment of the homozygous versus heterozygous state of the mutations contained by an individual, which is otherwise difficult to assess efficiently.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)offsetForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)offsetForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the individual offset(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -3840,14 +3851,16 @@ This method replaces the deprecated method
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)phenotypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)phenotypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the individual phenotype(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -4214,14 +4227,16 @@ See also
 \f4\fs20  for a different metric of relatedness.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)setOffsetForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0offset\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(void)setOffsetForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0offset\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the individual offset(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -4256,14 +4271,16 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)setPhenotypeForTrait(Nio<Trait>\'a0trait, numeric\'a0phenotype)\
+\f3\fs18 \cf2 +\'a0(void)setPhenotypeForTrait(Niso<Trait>\'a0trait, numeric\'a0phenotype)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the individual phenotype(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6234,7 +6251,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the mutation\'92s dominance coefficient for the trait(s) specified by 
@@ -6243,7 +6260,9 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f1\i h
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6252,7 +6271,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the mutation\'92s effect size for the trait(s) specified by 
@@ -6263,7 +6282,9 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f1\i a
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6272,7 +6293,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the mutation\'92s hemizygous dominance coefficient for the trait(s) specified by 
@@ -6282,7 +6303,9 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\i0\fs13\fsmilli6667 \sub hemi
 \fs20 \nosupersub .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6291,14 +6314,16 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the mutation\'92s dominance coefficient(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6322,14 +6347,16 @@ The parameter
 \f4\fs20  to set the dominance for each of the specified traits in one mutation before moving to the next mutation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)setEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effect\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(void)setEffectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effect\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the mutation\'92s effect(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6351,22 +6378,23 @@ The parameter
 \f4\fs20  to provide a different effect value for each trait in each mutation, using consecutive values from 
 \f3\fs18 effect
 \f4\fs20  to set the effect for each of the specified traits in one mutation before moving to the next mutation.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
+Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
 \f3\fs18 Trait
 \f4\fs20  class.  This policy applies to mutational effects, so the final effect of each mutation (perhaps influenced by a dominance coefficient) will be clamped prior to use in phenotype calculations.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)setHemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(void)setHemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the mutation\'92s hemizygous dominance coefficient(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6614,12 +6642,14 @@ The species to which the target object belongs.\
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(float)defaultDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(float)defaultDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the default dominance coefficient used for the specified trait or traits, for mutations of this type when heterozygous.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6640,12 +6670,14 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)defaultHemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)defaultHemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the default hemizygous dominance coefficient used for the specified trait or traits, for mutations of this type when hemizygous (i.e., when present in only one copy because they are facing a null haplosome, such as for an X chromosome in a male).  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6666,14 +6698,16 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
+\f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Draws and returns a vector of 
 \f3\fs18 n
 \f4\fs20  mutation effects using the distribution of effects for the specified trait or traits, for the target mutation type.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6684,12 +6718,14 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(fs)effectDistributionParamsForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(fs)effectDistributionParamsForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the parameters that configure the distribution of effects for the specified trait or traits.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6702,12 +6738,14 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  for all other DES types.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string)effectDistributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(string)effectDistributionTypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the type of distribution of effects for the specified trait or traits.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6730,12 +6768,14 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  class documentation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setDefaultDominanceForTrait(Nio<Trait>\'a0trait, float\'a0dominance)\
+\f3\fs18 \cf2 \'96\'a0(void)setDefaultDominanceForTrait(Niso<Trait>\'a0trait, float\'a0dominance)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the default dominance coefficient for a specified trait or traits, for the target mutation type.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6746,12 +6786,14 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  is used for each corresponding trait).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setDefaultHemizygousDominanceForTrait(Nio<Trait>\'a0trait, float\'a0dominance)\
+\f3\fs18 \cf2 \'96\'a0(void)setDefaultHemizygousDominanceForTrait(Niso<Trait>\'a0trait, float\'a0dominance)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the default hemizygous dominance coefficient for a specified trait or traits, for the target mutation type.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -6762,12 +6804,14 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  is used for each corresponding trait).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setEffectDistributionForTrait(Nio<Trait>\'a0trait, string$\'a0distributionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(void)setEffectDistributionForTrait(Niso<Trait>\'a0trait, string$\'a0distributionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Set the distribution of effects for a specified trait or traits, for the target mutation type.  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -14189,7 +14233,7 @@ nucleotide => (string$)\
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the substitution\'92s dominance coefficient for the trait(s) specified by 
@@ -14198,7 +14242,9 @@ nucleotide => (string$)\
 \f1\i h
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -14208,7 +14254,7 @@ nucleotide => (string$)\
 \f5\fs22 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the substitution\'92s effect size for the trait(s) specified by 
@@ -14219,7 +14265,9 @@ nucleotide => (string$)\
 \f1\i a
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
@@ -14228,7 +14276,7 @@ nucleotide => (string$)\
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the substitution\'92s hemizygous dominance coefficient for the trait(s) specified by 
@@ -14238,7 +14286,9 @@ nucleotide => (string$)\
 \f4\i0\fs13\fsmilli6667 \sub hemi
 \fs20 \nosupersub .  The traits can be specified as 
 \f3\fs18 integer
-\f4\fs20  indices of traits in the species, or directly as 
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL

@@ -549,7 +549,7 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	}
 }
 
-//	*********************	- (float)effectForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (float)effectForTrait([Niso<Trait> trait = NULL])
 //
 EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -583,7 +583,7 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 	}
 }
 
-//	*********************	- (float)dominanceForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (float)dominanceForTrait([Niso<Trait> trait = NULL])
 //
 EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -617,7 +617,7 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 	}
 }
 
-//	*********************	- (float)hemizygousDominanceForTrait([Nio<Trait> trait = NULL])
+//	*********************	- (float)hemizygousDominanceForTrait([Niso<Trait> trait = NULL])
 //
 EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -702,9 +702,9 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

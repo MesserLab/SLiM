@@ -604,7 +604,7 @@ int64_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std:
 	return trait_index;
 }
 
-// This returns trait indices, represented by an EidosValue with integer indices or Trait objects, or NULL for all traits
+// This returns trait indices, represented by an EidosValue with integer indices, string names, or Trait objects, or NULL for all traits
 void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name)
 {
 	EidosValueType traits_value_type = traits_value->Type();
@@ -632,6 +632,22 @@ void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices,
 					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
 				
 				trait_indices.push_back(trait_index);
+			}
+			break;
+		}
+		case EidosValueType::kValueString:
+		{
+			const std::string *indices_data = traits_value->StringData();
+			
+			for (int names_index = 0; names_index < traits_value_count; names_index++)
+			{
+				const std::string &trait_name = indices_data[names_index];
+				Trait *trait = TraitFromName(trait_name);
+				
+				if (trait == nullptr)
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): unrecognized trait name in " << p_method_name << "(); trait name " << trait_name << " is not defined for the species." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait->Index());
 			}
 			break;
 		}

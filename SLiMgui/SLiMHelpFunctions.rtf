@@ -961,7 +961,8 @@ The
 \f2\fs20  is assumed and must not be supplied.  See the 
 \f1\fs18 MutationType
 \f2\fs20  class documentation for discussion of the various DESs and their uses.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1342,6 +1343,7 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1421,6 +1423,7 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1493,42 +1496,46 @@ The
 \f2\fs20  object is returned.  For more details on the way that traits work in SLiM, beyond what is given below, see the 
 \f1\fs18 Trait
 \f2\fs20  class documentation.\
-The 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 name
 \f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not have the same name as another trait in the species, it must be syntactically valid as an Eidos symbol (not containing a space, for example), and it must not conflict with the name of any existing property on the 
 \f1\fs18 Individual
-\f2\fs20  or 
+\f2\fs20 , 
 \f1\fs18 Species
-\f2\fs20  classes.  These requirements are necessary because, after the new trait is created, new properties added to the 
-\f1\fs18 Individual
-\f2\fs20  and 
-\f1\fs18 Species
-\f2\fs20  classes, with the same name as the new trait, for convenience.  The new 
+\f2\fs20 , 
+\f1\fs18 Mutation
+\f2\fs20 , or 
+\f1\fs18 Substitution
+\f2\fs20  classes.  These requirements are necessary because, after the new trait is created, new properties are added to those classes, with the same name as the new trait, for convenience.  The new 
 \f1\fs18 Individual
 \f2\fs20  property allows trait values to be accessed directly through a property; for example, if the new trait is named 
-\f1\fs18 heightT
+\f1\fs18 height
 \f2\fs20 , getting and setting an individual\'92s trait value would be possible through the property 
-\f1\fs18 individual.heightT
+\f1\fs18 individual.height
 \f2\fs20 .  The new 
 \f1\fs18 Species
 \f2\fs20  property allows traits themselves to be accessed directly through a property; continuing the previous example, 
-\f1\fs18 sim.heightT
+\f1\fs18 sim.height
 \f2\fs20  would provide the 
 \f1\fs18 Trait
 \f2\fs20  object named 
-\f1\fs18 heightT
-\f2\fs20 .  If desired, 
+\f1\fs18 height
+\f2\fs20 .  See the 
+\f1\fs18 Mutation
+\f2\fs20  and 
+\f1\fs18 Substitution
+\f2\fs20  classes for details on the trait-related properties defined for them.  If desired, 
 \f1\fs18 defineConstant()
 \f2\fs20  may also be used to set up a global constant for a trait; for example, 
-\f1\fs18 defineConstant("heightT", heightT)
+\f1\fs18 defineConstant("height", height)
 \f2\fs20  would allow the 
 \f1\fs18 Trait
 \f2\fs20  object to be referenced simply as 
-\f1\fs18 heightT
-\f2\fs20 .  For clarity, it is suggested that trait names end in a 
-\f1\fs18 "T"
-\f2\fs20  to differentiate them from other variables and properties, but this is not required.\
-The 
+\f1\fs18 height
+\f2\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 type
 \f2\fs20  parameter gives the type of trait to be created, as a 
 \f1\fs18 string
