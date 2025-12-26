@@ -4,6 +4,14 @@
 
 To get into how tree-sequence recording in SLiM works, start out looking at SLiM 4.3 (https://github.com/MesserLab/SLiM/releases/tag/v4.3), since that is the last release before SLiM extended to multiple chromosomes (with one tree sequence per chromosome).  The architecture was considerably simpler back then.  You can move up to the SLiM 5.1 sources when you want to see how we handle multiple chromosomes; that topic is also discussed in its own section below.
 
+There are two goals of tree sequence recording in SLiM:
+
+1. Record the genotypes and genealogical history of the final generation and any Remembered individuals.
+2. Be able to reload the exact state of the simulation from the tree sequence.
+
+Here "the state of the simulation" means all the individuals, populations, etcetera, but does not include global variables or random seed.
+Some of the complexity of the tree sequence recording design is to accommodate the second point: for instance, the ordering of individuals to match SLiM's internal ordering mentioned below.
+
 The relevant variables are mostly in `species.h` (because there is one tree sequence per species, in SLiM 4.3), under the comment `// TREE SEQUENCE RECORDING`.  The most important variable is the table collection,  `tsk_table_collection_t tables_`.  If you search on `tsk_table_collection_` (ignoring hits inside SLiM’s private copy of tskit), you’ll find various interesting spots, such as `Species::AllocateTreeSequenceTables()` where we call `tsk_table_collection_init()` to allocate the table collection, `Species::SimplifyTreeSequence()` where we do a sequence of steps culminating in a call to `tsk_table_collection_simplify()` to simplify the tree sequence, and `Species::FreeTreeSequence()` where we free the table collection with `tsk_table_collection_free()`.  `Species::CheckTreeSeqIntegrity()` calls `tsk_table_collection_check_integrity()` to check that the tree-sequence tables pass all of tskit’s requirements, and is called in various places. `Species::CrosscheckTreeSeqIntegrity()` checks the information in the table collection against the information in SLiM’s own data structures and tries to make sure that they correspond to each other exactly; that’s quite slow and so is mostly done when compiled for debugging, but there is a user-level switch with `initializeTreeSeq(runCrosschecks=T)` that turns it on even in release builds.
 
 A search using the regex `tsk_.*add_row` will turn up places where we record things into various tables.  We build the individual table only at save time, so `tsk_individual_table_add_row()` is called only at that time, notably in `Species::AddIndividualsToTable()` but also in `Species::ReorderIndividualTable()`.  We call `tsk_node_table_add_row()` to record nodes in the node table whenever a new individual is created, in `Species::RecordNewGenome()` (called `RecordNewHaplosome()` in SLiM 5 as a result of the "genome" -> "haplosome" terminology shift that occurred with SLiM 5's multi-chromosome support).  That method also records the edge table entries that describe how that node inherits from ancestral nodes, with `tsk_edge_table_add_row()`.  Notice, by the way, that we check for errors using tskit’s return values after every call we make, and typically call `Species::handle_error()` if there was an error, which uses `tsk_strerror()` to print a user-readable error message; that’s important for catching errors at the point the arise.  `Species::RecordNewDerivedState()` is called whenever a new mutation arises, recording an entry in the site table with `tsk_site_table_add_row()` and an entry in the mutation table with `tsk_mutation_table_add_row()`.  There is considerable strangeness (necessary strangeness) to how SLiM records mutations; you can read about it in chapter 29 of the SLiM manual (again I’d recommend that you start with the 4.3 manual, which you can get from the GitHub release, and only graduate to 5.1 when you’re well-rested :->).  What else?  The population table and an entry for the provenance table are also generated only at save; you can find those place by searching for the appropriate `add_row()` function calls.  There is additional complexity for “remembering” individuals (guaranteeing that they don’t get simplified away); the variable `remembered_genomes_` is the crux of that.  And for “retracting” offspring that get vetoed by a `modifyChild()` callback in the user’s script, the variable `table_position_` records a bookmark that we can roll back to if a proposed child is rejected, in `RetractNewIndividual()`; so it’s the crux of that.
@@ -28,7 +36,7 @@ internal bookkeeping in SLiM; while msprime uses the SAMPLE flag of nodes.
     automatically added to the individuals table, in part because much of the information
     in that table (e.g., location, age) may change, so the user should have control over
     when it is recorded. Individuals are only added to the table during output (when all
-    the currently alive individuals are added) or if we explictly choose to call the
+    the currently alive individuals are added) or if we explicitly choose to call the
     RememberIndividuals() function.
 
 2. RememberIndividuals is called with a list of Individual instances. We add each of
@@ -56,7 +64,7 @@ internal bookkeeping in SLiM; while msprime uses the SAMPLE flag of nodes.
 
 4. On output, we (optionally) simplify, copy the tables, and with these tables:
     add the current generation to the individual table, marked with the `INDIVIDUAL_ALIVE` flag;
-    and reorder the individual tables so that the the currently alive ones come first,
+    and reorder the individual tables so that the currently alive ones come first,
     and in the order they currently exist in the population.
     Also, node times have the current generation added to them, so they are in units
     of number of generations before the end of the simulation.
@@ -160,7 +168,7 @@ And, these operations have the following properties:
 1. Mutations appear in the mutation table ordered by time of appearance,
     so that a mutation will always appear after the one that it replaced (i.e., it's parent).
 2. Furthermore, if mutation B appears after mutation A, but at the same site,
-    then mutation B's site will appear after mutatation A's site in the site table.
+    then mutation B's site will appear after mutation A's site in the site table.
 3. `sort_tables` sorts sites by position, and then by ID, so that the relative ordering of sites
     at the same position is maintained, thus preserving property (2).
 4. `sort_tables` sorts mutations by site, and then by ID, thus preserving property (1);
