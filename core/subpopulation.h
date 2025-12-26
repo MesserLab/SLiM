@@ -160,6 +160,18 @@ public:
 	std::vector<SLiMEidosBlock*> registered_mutation_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_reproduction_callbacks_;	// nonWF only; NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	
+	// These per-subpopulation caches are used by IndividualClass::DemandPhenotype() and are valid only within
+	// that method.  There is a std::vector of PerTraitSubpopCache structs with one entry per trait in the
+	// species.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
+	typedef struct _PerTraitSubpopCaches {
+		std::vector<SLiMEidosBlock*> mutationEffect_callbacks_per_trait;	// NOT OWNED: mutationEffect() callbacks per subpopulation per trait
+		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+	} PerTraitSubpopCaches;
+	
+	std::vector<PerTraitSubpopCaches> per_trait_subpop_caches_;	// one entry per trait, indexed by trait index
+	
 	// WF only:
 	// Fitness caching.  Every individual now caches its fitness internally, and that is what is used by SLiMgui and by the cachedFitness() method of Subpopulation.
 	// These fitness cache buffers are additional to that, used only in WF models.  They are used for two things.  First, as the data source for setting up our lookup
@@ -292,6 +304,11 @@ public:
 			back->age_ = p_age;
 			back->index_ = p_individual_index;
 			back->subpopulation_ = this;
+			
+			// Draw new individual trait offsets from each trait's individual-offset distribution
+			// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+			back->_InitializePerTraitInformation();
+			
 			return back;
 		}
 		
@@ -491,14 +508,14 @@ public:
 	EidosValue_SP ExecuteMethod_configureDisplay(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_firstMaleIndex(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_individualCount(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	
-	static void SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 

@@ -514,7 +514,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 	// Note that interaction() callbacks are non-species-specific, so we fetch from the Community with species nullptr.
 	// Callbacks used depend upon the exerter subpopulation, so this is snapping the callbacks for subpop as exerters;
 	// the subpopulation of receivers does not influence the choice of which callbacks are used.
-	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, nullptr);
+	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, -1, nullptr);
 	
 	// Note that we do not create the k-d tree here.  Non-spatial models will never have a k-d tree; spatial models may or
 	// may not need one, depending upon what methods are called by the client, which may vary cycle by cycle.
@@ -3523,8 +3523,9 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *InteractionType::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -3537,8 +3538,9 @@ EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, 
 	return int_result;
 }
 
-EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)

@@ -156,6 +156,7 @@ public:
 	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
+	slim_objectid_t trait_index_ = -1;							// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
 	int64_t chromosome_id_ = -1;								// -1 if not limited by this
@@ -255,6 +256,8 @@ public:
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 };
 
+#ifdef EIDOS_GUI
+// SLiMTypeTable and SLiMTypeInterpreter are only used in SLiMgui and QtSLiM
 
 #pragma mark -
 #pragma mark SLiMTypeTable
@@ -311,6 +314,7 @@ public:
 	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments) override;
 };
 
+#endif	// EIDOS_GUI
 
 #endif /* defined(__SLiM__slim_script_block__) */
 

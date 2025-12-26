@@ -71,7 +71,7 @@ QColor QtSLiMColorWithRGB(double p_red, double p_green, double p_blue, double p_
 QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, double p_alpha);
 
 void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForEffectSize(double effect, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 
 // A color scale widget that shows the color scales for fitness and selection coefficients
 class QtSLiMColorScaleWidget : public QWidget

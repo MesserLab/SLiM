@@ -93,7 +93,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
 
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		
 		// Internal SLiM functions
@@ -665,6 +665,9 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
+// FIXME MULTITRAIT: changed selectionCoeff to effect in gSLiMSourceCode_calcInbreedingLoad, but really this
+// needs to somehow be adapted for multitrait models; sum across all multiplicative effects; what about
+// additive effects?  exclude them, or raise an error?  allow the user to pass a vector of traits here?
 #pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
@@ -702,7 +705,7 @@ R"V0G0N({
 	else
 		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
-	muts = muts[muts.selectionCoeff < 0.0];
+	muts = muts[muts.effect < 0.0];
 	
 	// get frequencies and focus on those that are in the haplosomes
 	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
@@ -713,7 +716,7 @@ R"V0G0N({
 	
 	// fetch selection coefficients; note that we use the negation of
 	// SLiM's selection coefficient, following Morton et al. 1956's usage
-	s = -muts.selectionCoeff;
+	s = -muts.effect;
 	
 	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
 	// than lethal (this can happen when drawing from a gamma distribution)
@@ -721,7 +724,7 @@ R"V0G0N({
 	
 	// get h for each mutation; note that this will not work if changing
 	// h using mutationEffect() callbacks or other scripted approaches
-	h = muts.mutationType.dominanceCoeff;
+	h = muts.dominance;
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
@@ -1015,7 +1018,7 @@ R"V0G0N({
 #pragma mark Other built-in functions
 #pragma mark -
 
-#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."])
+#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
 const char *gSLiMSourceCode_initializeMutationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeMutationRateFromFile): ";
@@ -1052,7 +1055,7 @@ R"V0G0N({
 	else
 		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
 	
-	initializeMutationRate(rates * scale, ends);
+	initializeMutationRate(rates * scale, ends, sex);
 })V0G0N";
 
 #pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])

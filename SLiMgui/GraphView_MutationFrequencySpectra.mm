@@ -21,6 +21,8 @@
 #import "GraphView_MutationFrequencySpectra.h"
 #import "SLiMWindowController.h"
 
+#import "mutation_block.h"
+
 
 @implementation GraphView_MutationFrequencySpectra
 
@@ -79,8 +81,9 @@
 	
 	pop.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	
@@ -89,7 +92,7 @@
 		const Mutation *mutation = mut_block_ptr + registry[registry_index];
 		
 		Chromosome *mut_chromosome = displaySpecies->Chromosomes()[mutation->chromosome_index_];
-		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
+		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation_block->IndexInBlock(mutation));
 		double mutationFrequency = mutationRefCount / mut_chromosome->total_haplosome_count_;
 		int mutationBin = (int)floor(mutationFrequency * binCount);
 		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;

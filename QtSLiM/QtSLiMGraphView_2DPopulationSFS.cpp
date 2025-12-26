@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "mutation_type.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_2DPopulationSFS::QtSLiMGraphView_2DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -232,7 +233,7 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 		return nullptr;
     
     // Get frequencies in subpop1 and subpop2
-    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     std::vector<slim_refcount_t> refcounts1, refcounts2;
     size_t subpop1_total_haplosome_count, subpop2_total_haplosome_count;
     

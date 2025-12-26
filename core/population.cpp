@@ -37,6 +37,7 @@
 #include "polymorphism.h"
 #include "subpopulation.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -114,15 +115,19 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 	// The malloced storage of the mutation registry will be freed when it is destroyed, but it
 	// does not know that the Mutation pointers inside it are owned, so we need to release them.
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int registry_size;
 	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
 	const MutationIndex *registry_iter_end = registry_iter + registry_size;
 	
-	for (; registry_iter != registry_iter_end; ++registry_iter)
-		(mut_block_ptr + *registry_iter)->Release();
-	
-	mutation_registry_.clear();
+	if (registry_size)
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		
+		for (; registry_iter != registry_iter_end; ++registry_iter)
+			(mut_block_ptr + *registry_iter)->Release();
+		
+		mutation_registry_.clear();
+	}
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// If we're keeping any separate registries inside mutation types, clear those now as well
@@ -1197,7 +1202,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 
 // WF only:
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_dfe_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_DES_present)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
 	
@@ -1724,7 +1729,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
 		species_.Chromosomes()[0]->StartMutationRunExperimentClock();
 	
-	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_dfe_present)
+	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_DES_present)
 	{
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
@@ -2998,7 +3003,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			// no mutations, but we do have crossovers, so we just need to interleave the two parental haplosomes
 			//
 			
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 			Haplosome *parent_haplosome = parent_haplosome_1;
 			slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
 			int mutrun_count = p_child_haplosome.mutrun_count_;
@@ -3161,14 +3166,14 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
 #ifdef _OPENMP
 				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
 #else
@@ -3185,7 +3190,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 		}
 #endif
 		
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		const MutationIndex *mutation_iter		= mutations_to_add.data();
 		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
 		
@@ -3255,7 +3260,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 					Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 					MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 					
-					if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+					if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3273,7 +3278,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						{
 #pragma omp critical (TreeSeqNewDerivedState)
 							{
-								species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 							}
 						}
 					}
@@ -3405,7 +3410,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 									Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 									MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 									
-									if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+									if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 									{
 										// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3423,7 +3428,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 										{
 #pragma omp critical (TreeSeqNewDerivedState)
 											{
-												species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+												species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 											}
 										}
 									}
@@ -3459,7 +3464,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 								Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 								MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 								
-								if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+								if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3477,7 +3482,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 									{
 #pragma omp critical (TreeSeqNewDerivedState)
 										{
-											species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 										}
 									}
 								}
@@ -3614,7 +3619,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 						MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 						
-						if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+						if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3632,7 +3637,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 							{
 #pragma omp critical (TreeSeqNewDerivedState)
 								{
-									species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 								}
 							}
 						}
@@ -3803,14 +3808,14 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
 #ifdef _OPENMP
 				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
 #else
@@ -3836,7 +3841,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 		}
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		
 		int mutrun_count = p_child_haplosome.mutrun_count_;
 		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
@@ -3885,7 +3890,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 						MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 						
-						if (child_run->enforce_stack_policy_for_addition(mutation_iter_pos, new_mut_type))
+						if (child_run->enforce_stack_policy_for_addition(mut_block_ptr, mutation_iter_pos, new_mut_type))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 							child_run->emplace_back(mutation_iter_mutation_index);
@@ -3903,7 +3908,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 							{
 #pragma omp critical (TreeSeqNewDerivedState)
 								{
-									species_.RecordNewDerivedState(&p_child_haplosome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+									species_.RecordNewDerivedState(&p_child_haplosome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mut_block_ptr, mutation_iter_pos));
 								}
 							}
 						}
@@ -4047,7 +4052,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 		// no mutations, but we do have crossovers, so we just need to interleave the two parental haplosomes
 		//
 		
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		Haplosome *parent_haplosome = parent_haplosome_1;
 		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
 		int mutrun_count = p_child_haplosome.mutrun_count_;
@@ -4205,14 +4210,14 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
 #ifdef _OPENMP
 				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
 #else
@@ -4229,7 +4234,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 		}
 #endif
 		
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		const MutationIndex *mutation_iter		= mutations_to_add.data();
 		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
 		
@@ -4344,7 +4349,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 								Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 								MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 								
-								if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+								if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -4362,7 +4367,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 									{
 #pragma omp critical (TreeSeqNewDerivedState)
 										{
-											species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 										}
 									}
 								}
@@ -4398,7 +4403,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 							Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 							MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 							
-							if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+							if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 							{
 								// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -4416,7 +4421,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 								{
 #pragma omp critical (TreeSeqNewDerivedState)
 									{
-										species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 									}
 								}
 							}
@@ -4553,7 +4558,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
 					MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 					
-					if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+					if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -4571,7 +4576,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 						{
 #pragma omp critical (TreeSeqNewDerivedState)
 							{
-								species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(mut_block_ptr, new_mut->position_));
 							}
 						}
 					}
@@ -4900,12 +4905,13 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// might have been newly added at a position, and then removed again by mismatch repair;
 	// we will need to make sure that the recorded state is correct when that occurs.
 	
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+	
 	if ((repair_removals.size() > 0) || (repair_additions.size() > 0))
 	{
 		// We loop through the mutation runs in p_child_haplosome, and for each one, if there are
 		// mutations to be added or removed we make a new mutation run and effect the changes
 		// as we copy mutations over.  Mutruns without changes are left untouched.
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		slim_position_t mutrun_length = p_child_haplosome->mutrun_length_;
 		slim_position_t mutrun_count = p_child_haplosome->mutrun_count_;
 		std::size_t removal_index = 0, addition_index = 0;
@@ -5006,7 +5012,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		{
 #pragma omp critical (TreeSeqNewDerivedState)
 			{
-				species_.RecordNewDerivedState(p_child_haplosome, changed_pos, *p_child_haplosome->derived_mutation_ids_at_position(changed_pos));
+				species_.RecordNewDerivedState(p_child_haplosome, changed_pos, *p_child_haplosome->derived_mutation_ids_at_position(mut_block_ptr, changed_pos));
 			}
 		}
 	}
@@ -5190,34 +5196,13 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 }
 #endif
 
-void Population::ValidateMutationFitnessCaches(void)
-{
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	int registry_size;
-	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
-	const MutationIndex *registry_iter_end = registry_iter + registry_size;
-	
-	while (registry_iter != registry_iter_end)
-	{
-		MutationIndex mut_index = (*registry_iter++);
-		Mutation *mut = mut_block_ptr + mut_index;
-		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
-		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
-		slim_selcoeff_t hemizygous_dom_coeff = mut->mutation_type_ptr_->hemizygous_dominance_coeff_;
-		
-		mut->cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
-		mut->cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
-		mut->cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + hemizygous_dom_coeff * sel_coeff);
-	}
-}
-
 void Population::RecalculateFitness(slim_tick_t p_tick)
 {
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1);
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
@@ -5408,7 +5393,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;	// FIXME MULTITRAIT won't need this any more
 			std::vector<SLiMEidosBlock*> subpop_fitnessEffect_callbacks;
 			
 			// Get mutationEffect() and fitnessEffect() callbacks that apply to this subpopulation
@@ -5757,6 +5742,8 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 	if (!mutruns_buf)
 		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+	
 	try {
 		// for every subpop
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5792,7 +5779,7 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 								// checking use_count() this way is only safe because we run directly after tallying!
 								MutationRun *first_half, *second_half;
 								
-								mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1), mutrun_context);
+								mutrun->split_run(mut_block_ptr, &first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1), mutrun_context);
 								
 								mutruns_buf[mutruns_buf_index++] = first_half;
 								mutruns_buf[mutruns_buf_index++] = second_half;
@@ -5817,7 +5804,7 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 									// it was not in the map, so make the new runs, and insert them into the map
 									MutationRun *first_half, *second_half;
 									
-									mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1), mutrun_context);
+									mutrun->split_run(mut_block_ptr, &first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1), mutrun_context);
 									
 									mutruns_buf[mutruns_buf_index++] = first_half;
 									mutruns_buf[mutruns_buf_index++] = second_half;
@@ -6067,6 +6054,39 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 }
 #endif
 
+void Population::MutationRegistryAdd(Mutation *p_mutation)
+{
+#if DEBUG
+	if ((p_mutation->state_ == MutationState::kInRegistry) ||
+		(p_mutation->state_ == MutationState::kRemovedWithSubstitution) ||
+		(p_mutation->state_ == MutationState::kFixedAndSubstituted))
+		EIDOS_TERMINATION << "ERROR (Population::MutationRegistryAdd): " << "(internal error) cannot add a mutation to the registry that is already in the registry, or has been fixed/substituted." << EidosTerminate();
+#endif
+	
+	// We could be adding a lost mutation back into the registry (from a mutation() callback), in which case it gets a retain
+	// New mutations already have a retain count of 1, which we use (i.e., we take ownership of the mutation passed in to us)
+	if (p_mutation->state_ != MutationState::kNewMutation)
+		p_mutation->Retain();
+	
+	MutationIndex new_mut_index = mutation_block_->IndexInBlock(p_mutation);
+	mutation_registry_.emplace_back(new_mut_index);
+	
+	p_mutation->state_ = MutationState::kInRegistry;
+	
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+	if (keeping_muttype_registries_)
+	{
+		MutationType *mutation_type_ptr = p_mutation->mutation_type_ptr_;
+		
+		if (mutation_type_ptr->keeping_muttype_registry_)
+		{
+			// This mutation type is also keeping its own private registry, so we need to add to that as well
+			mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
+		}
+	}
+#endif
+}
+
 // Tally mutations and remove fixed/lost mutations
 void Population::MaintainMutationRegistry(void)
 {
@@ -6135,7 +6155,7 @@ void Population::AssessMutationRuns(void)
 		{
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
 			int registry_size = 0, registry_count_in_chromosome = 0;
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 			const MutationIndex *registry = MutationRegistry(&registry_size);
 			
 			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
@@ -6947,8 +6967,9 @@ void Population::TallyMutationReferencesAcrossPopulation_SLiMgui(void)
 	}
 	
 	// Then copy the tallied refcounts into our private refcounts
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	int registry_size;
 	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
 	const MutationIndex *registry_iter_end = registry_iter + registry_size;
@@ -6982,7 +7003,8 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 	// which applies only to population-wide tallies; but we do set tallied_haplosome_count_
 	
 	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	MutationBlock *mutation_block = mutation_block_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
 	// We have two ways of tallying; here we decide which way to use.  We only loop through haplosomes
 	// if we are tallying for a single subpopulation and it is small; otherwise, looping through
@@ -7019,7 +7041,7 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 	else
 	{
 		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all haplosomes
-		SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
+		mutation_block->ZeroRefcountBlock(mutation_registry_);
 		
 		for (Chromosome *chromosome : species_.Chromosomes())
 			chromosome->tallied_haplosome_count_ = 0;
@@ -7088,7 +7110,8 @@ doDebugCheck:
 
 void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count)
 {
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	MutationBlock *mutation_block = mutation_block_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
 	// We have two ways of tallying; here we decide which way to use.  We tally directly by
 	// looping through haplosomes below a certain problem threshold, because there is some
@@ -7114,7 +7137,7 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 	else
 	{
 		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all haplosomes
-		SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
+		mutation_block->ZeroRefcountBlock(mutation_registry_);
 		
 		for (Chromosome *chromosome : species_.Chromosomes())
 			chromosome->tallied_haplosome_count_ = 0;
@@ -7158,7 +7181,10 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments)
 {
 	// first zero out the refcounts in all registered Mutation objects
-	SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
+	MutationBlock *mutation_block = mutation_block_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
+	
+	mutation_block->ZeroRefcountBlock(mutation_registry_);
 	
 	for (Chromosome *chromosome : species_.Chromosomes())
 	{
@@ -7175,7 +7201,6 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());
 			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
 			size_t inuse_pool_count = inuse_pool.size();
-			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 			
 			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
 			{
@@ -7241,7 +7266,9 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 	// It should be called immediately after tallying, and passed a vector of the haplosomes tallied across.
 	int registry_count;
 	const MutationIndex *registry_iter = MutationRegistry(&registry_count);
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
 	// zero out all check refcounts
 	for (int registry_index = 0; registry_index < registry_count; ++registry_index)
@@ -7268,8 +7295,6 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 	}
 	
 	// then loop through the registry and check that all check refcounts match tallied refcounts
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	
 	for (int registry_index = 0; registry_index < registry_count; ++registry_index)
 	{
 		MutationIndex mut_blockindex = registry_iter[registry_index];
@@ -7289,7 +7314,9 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 
 EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value)
 {
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	EidosValue_SP result_SP;
 	
 	// Fetch tallied haplosome counts for all chromosomes up front; these will be set up beforehand
@@ -7323,7 +7350,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 			int8_t mut_state = mut->state_;
 			double freq;
 			
-			if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) / tallied_haplosome_counts[mut->chromosome_index_];
+			if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mutation_block->IndexInBlock(mut)) / tallied_haplosome_counts[mut->chromosome_index_];
 			else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
 			else													freq = 1.0;
 			
@@ -7336,7 +7363,6 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		// this is the same as the case below, except MutationState::kRemovedWithSubstitution is possible
 		int registry_size;
 		const MutationIndex *registry = MutationRegistry(&registry_size);
-		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 		
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(registry_size);
 		result_SP = EidosValue_SP(float_result);
@@ -7344,7 +7370,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
 		{
 			MutationIndex mut_index = registry[registry_index];
-			const Mutation *mut = mutation_block_ptr + mut_index;
+			const Mutation *mut = mut_block_ptr + mut_index;
 			double freq;
 			
 			if (mut->state_ == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut_index) / tallied_haplosome_counts[mut->chromosome_index_];
@@ -7358,7 +7384,6 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		// no mutation vector was given, so return all frequencies from the registry
 		int registry_size;
 		const MutationIndex *registry = MutationRegistry(&registry_size);
-		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 		
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(registry_size);
 		result_SP = EidosValue_SP(float_result);
@@ -7366,7 +7391,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
 		{
 			MutationIndex mut_index = registry[registry_index];
-			const Mutation *mut = mutation_block_ptr + mut_index;
+			const Mutation *mut = mut_block_ptr + mut_index;
 			float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / tallied_haplosome_counts[mut->chromosome_index_], registry_index);
 		}
 	}
@@ -7376,7 +7401,9 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 
 EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_value)
 {
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	EidosValue_SP result_SP;
 	
 	// Fetch total haplosome counts for all chromosomes up front; these will be set up beforehand
@@ -7410,7 +7437,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 			int8_t mut_state = mut->state_;
 			slim_refcount_t count;
 			
-			if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
+			if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mutation_block->IndexInBlock(mut));
 			else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
 			else													count = tallied_haplosome_counts[mut->chromosome_index_];
 			
@@ -7423,7 +7450,6 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		// this is the same as the case below, except MutationState::kRemovedWithSubstitution is possible
 		int registry_size;
 		const MutationIndex *registry = MutationRegistry(&registry_size);
-		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 		
 		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(registry_size);
 		result_SP = EidosValue_SP(int_result);
@@ -7431,7 +7457,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
 		{
 			MutationIndex mut_index = registry[registry_index];
-			const Mutation *mut = mutation_block_ptr + mut_index;
+			const Mutation *mut = mut_block_ptr + mut_index;
 			slim_refcount_t count;
 			
 			if (mut->state_ == MutationState::kInRegistry)		count = *(refcount_block_ptr + mut_index);
@@ -7483,8 +7509,9 @@ void Population::RemoveAllFixedMutations(void)
 		total_haplosome_counts.push_back(chromosome->total_haplosome_count_);
 	
 	// remove Mutation objects that are no longer referenced, freeing them; avoid using an iterator since it would be invalidated
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
 	{
 		int registry_size;
@@ -7681,7 +7708,7 @@ void Population::RemoveAllFixedMutations(void)
 							slim_position_t mut_position = mutation->position_;
 							slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
 								
-							haplosome->RemoveFixedMutations(operation_id, mutrun_index);
+							haplosome->RemoveFixedMutations(mut_block_ptr, operation_id, mutrun_index);
 						}
 					}
 				}
@@ -7760,7 +7787,7 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the parent generation in WF models." << EidosTerminate();
 	
-	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 #if DEBUG_MUTATION_ZOMBIES
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 #endif
@@ -7780,7 +7807,7 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 			EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) zombie mutation found in registry with address " << (*registry_iter) << EidosTerminate();
 #endif
 		
-		int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
+		int8_t mut_state = (mut_block_ptr + mut_index)->state_;
 		
 		if (mut_state != MutationState::kInRegistry)
 			EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): A mutation was found in the mutation registry with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all haplosomes." << EidosTerminate();
@@ -7826,7 +7853,7 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 								EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) zombie mutation found in haplosome with address " << (*haplosome_iter) << EidosTerminate();
 #endif
 							
-							int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
+							int8_t mut_state = (mut_block_ptr + mut_index)->state_;
 							
 							if (mut_state != MutationState::kInRegistry)
 								EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): A mutation was found in a haplosome with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all haplosomes." << EidosTerminate();
@@ -7909,7 +7936,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_objectid_t_size = sizeof(slim_objectid_t);
 		int32_t slim_popsize_t_size = sizeof(slim_popsize_t);
 		int32_t slim_refcount_t_size = sizeof(slim_refcount_t);
-		int32_t slim_selcoeff_t_size = sizeof(slim_selcoeff_t);
+		int32_t slim_effect_t_size = sizeof(slim_effect_t);
 		int32_t slim_mutationid_t_size = sizeof(slim_mutationid_t);													// Added in version 2
 		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
 		int32_t slim_age_t_size = sizeof(slim_age_t);																// Added in version 6
@@ -7922,7 +7949,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_objectid_t_size), sizeof slim_objectid_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_popsize_t_size), sizeof slim_popsize_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_refcount_t_size), sizeof slim_refcount_t_size);
-		p_out.write(reinterpret_cast<char *>(&slim_selcoeff_t_size), sizeof slim_selcoeff_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_effect_t_size), sizeof slim_effect_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_mutationid_t_size), sizeof slim_mutationid_t_size);				// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_age_t_size), sizeof slim_age_t_size);							// Added in version 6
@@ -8098,7 +8125,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
 		PolymorphismMap polymorphisms;
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 		{
@@ -8138,14 +8165,19 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			const Polymorphism &polymorphism = polymorphism_pair.second;
 			const Mutation *mutation_ptr = polymorphism.mutation_ptr_;
 			const MutationType *mutation_type_ptr = mutation_ptr->mutation_type_ptr_;
+			const MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(mutation_ptr);
 			
 			slim_polymorphismid_t polymorphism_id = polymorphism.polymorphism_id_;
 			int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = mutation_ptr->position_;
-			slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
-			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+			
+			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
+			slim_effect_t selection_coeff = mut_trait_info->effect_size_;
+			slim_effect_t dominance_coeff = mut_trait_info->dominance_coeff_;
+			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
 			slim_refcount_t prevalence = polymorphism.prevalence_;
@@ -8300,8 +8332,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			int64_t mutation_id = substitution_ptr->mutation_id_;
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = substitution_ptr->position_;
-			slim_selcoeff_t selection_coeff = substitution_ptr->selection_coeff_;
-			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+			
+			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
+			slim_effect_t selection_coeff = substitution_ptr->trait_info_[0].effect_size_;
+			slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_;
+			
 			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
 			slim_tick_t origin_tick = substitution_ptr->origin_tick_;
 			slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;
@@ -8388,7 +8423,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_SLiM(p_out, sample, /* p_output_object_tags */ false);
+	Haplosome::PrintHaplosomes_SLiM(p_out, species_, sample, /* p_output_object_tags */ false);
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format
@@ -8442,7 +8477,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_MS(p_out, sample, p_chromosome, p_filter_monomorphic);
+	Haplosome::PrintHaplosomes_MS(p_out, species_, sample, p_chromosome, p_filter_monomorphic);
 }
 
 // print sample of p_sample_size *individuals* (NOT haplosomes or genomes) from subpopulation p_subpop_id

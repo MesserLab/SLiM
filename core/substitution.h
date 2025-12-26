@@ -37,6 +37,19 @@
 
 extern EidosClass *gSLiM_Substitution_Class;
 
+// This structure contains all of the information about how a substitution influenced a particular trait: in particular, its
+// effect size and dominance coefficient.  Each substitution keeps this information for each trait in its species, and since
+// the number of traits is determined at runtime, the size of this data -- the number of SubstitutionTraitInfo records kept
+// by each substitution -- is also determined at runtime.  This is parallel to the MutationTraitInfo struct for mutations,
+// but keeps less information since it is not used during fitness evaluation.  Also unlike Mutation, which keeps all this
+// in a block maintained by MutationBlock, we simply make a malloced block for each substitution; substitution is relatively
+// rare and substitutions don't go away once created, so there is no need to overcomplicate this design.
+typedef struct _SubstitutionTraitInfo
+{
+	slim_effect_t effect_size_;					// selection coefficient (s) or additive effect (a)
+	slim_effect_t dominance_coeff_;				// dominance coefficient (h), inherited from MutationType by default
+	slim_effect_t hemizygous_dominance_coeff_;	// hemizygous dominance coefficient (h_hemi), inherited from MutationType by default
+} SubstitutionTraitInfo;
 
 class Substitution : public EidosDictionaryRetained
 {
@@ -49,7 +62,6 @@ public:
 	
 	MutationType *mutation_type_ptr_;			// mutation type identifier
 	slim_position_t position_;					// position
-	slim_selcoeff_t selection_coeff_;			// selection coefficient
 	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
 	slim_tick_t origin_tick_;					// tick in which mutation arose
 	slim_tick_t fixation_tick_;					// tick in which mutation fixed
@@ -58,14 +70,17 @@ public:
 	const slim_mutationid_t mutation_id_;		// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;					// a user-defined tag value
 	
+	// Per-trait information
+	SubstitutionTraitInfo *trait_info_;			// OWNED: a malloced block of per-trait information
+	
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
 	Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick);	// construct from the mutation that has fixed, and the tick in which it fixed
-	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
+	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
 	
-	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
-	inline virtual ~Substitution(void) override { }
+	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though
+	inline virtual ~Substitution(void) override { free(trait_info_); trait_info_ = nullptr; }
 	
 	void PrintForSLiMOutput(std::ostream &p_out) const;
 	void PrintForSLiMOutput_Tag(std::ostream &p_out) const;
@@ -79,18 +94,20 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
+	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_fixationTick(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_originTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fixationTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_position(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 };
 
 class Substitution_Class : public EidosDictionaryRetained_Class

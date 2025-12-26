@@ -33,6 +33,7 @@
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 #include "mutation_type.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_1DSampleSFS::QtSLiMGraphView_1DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -300,7 +301,7 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         
         // Tally into our bins
         sfs1dbuf_ = static_cast<uint64_t *>(calloc(histogramBinCount_, sizeof(uint64_t)));
-        Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+        Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
         int registry_size;
         const MutationIndex *registry = population.MutationRegistry(&registry_size);
         
