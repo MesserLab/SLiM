@@ -437,6 +437,7 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 				SLIM_OUTSTREAM << "The -maxThreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
 				exit(EXIT_FAILURE);
 			}
+			continue;
 #endif
 		}
 		
