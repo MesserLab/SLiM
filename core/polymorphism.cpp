@@ -69,8 +69,15 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 		if (trait_index > 0)
 			p_out << ",";
 		
-		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].dominance_coeff_);		// necessary precision for non-lossiness
-		p_out << double_buf;
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+		
+		if (std::isnan(dominance))
+			p_out << "NAN";
+		else
+		{
+			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, dominance);		// necessary precision for non-lossiness
+			p_out << double_buf;
+		}
 	}
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
@@ -123,8 +130,15 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 		if (trait_index > 0)
 			p_out << ",";
 		
-		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].dominance_coeff_);		// necessary precision for non-lossiness
-		p_out << double_buf;
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+		
+		if (std::isnan(dominance))
+			p_out << "NAN";
+		else
+		{
+			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, dominance);		// necessary precision for non-lossiness
+			p_out << double_buf;
+		}
 	}
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
@@ -177,7 +191,12 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 		if (trait_index > 0)
 			p_out << ",";
 		
-		p_out << mut_trait_info[trait_index].dominance_coeff_;
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+		
+		if (std::isnan(dominance))
+			p_out << "NAN";
+		else
+			p_out << dominance;
 	}
 	
 	// and then the remainder of the output line
@@ -239,7 +258,12 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 		if (trait_index > 0)
 			p_out << ",";
 		
-		p_out << mut_trait_info[trait_index].dominance_coeff_;
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+		
+		if (std::isnan(dominance))
+			p_out << "NAN";
+		else
+			p_out << dominance;
 	}
 	
 	// and then the remainder of the output line

@@ -5284,6 +5284,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					dominance_coeff = info_domcoeffs[alt_allele_index];
 				else
 					dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT; also think about hemizygous dominance
+					// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
 				
 				// get the selection coefficient from S, or draw one from the mutation type
 				slim_effect_t selection_coeff;

@@ -34,6 +34,7 @@
 #include "eidos_value.h"
 
 class MutationType;
+class Trait;
 
 
 extern EidosClass *gSLiM_Mutation_Class;
@@ -57,10 +58,12 @@ typedef int32_t MutationIndex;
 // by each mutation -- is also determined at runtime.  We don't want to make a separate malloced block for each mutation;
 // that would be far too expensive.  Instead, MutationBlock keeps a block of MutationTraitInfo records for the species,
 // with a number of records per mutation that is determined when it is constructed.
+// BCH 12/27/2025: Note that dominance_coeff_UNSAFE_ is marked "UNSAFE" because it can be NAN, representing independent
+// dominance.  For this reason, it should not be used directly; instead, use RealizedDominanceForTrait().
 typedef struct _MutationTraitInfo
 {
 	slim_effect_t effect_size_;					// selection coefficient (s) or additive effect (a)
-	slim_effect_t dominance_coeff_;				// dominance coefficient (h), inherited from MutationType by default
+	slim_effect_t dominance_coeff_UNSAFE_;		// dominance coefficient (h), inherited from MutationType by default; CAN BE NAN
 	slim_effect_t hemizygous_dominance_coeff_;	// hemizygous dominance coefficient (h_hemi), inherited from MutationType by default
 	
 	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
@@ -96,11 +99,20 @@ public:
 	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
 	int state_ : 4;										// see MutationState above; 4 bits so we can represent -1
 	
-	// is_neutral_ is true if all mutation effects are 0.0 (note this might be overridden by a callback);
-	// the 0 state is sticky, so if the mutation is ever marked non-neutral then it stays marked non-neutral,
-	// just because re-evaluating that requires scanning across the effects for all traits -- not worth it
-	// this is used to make constructing non-neutral caches for fitness evaluation fast with multiple traits
+	// is_neutral_ is true if all mutation effects are 0.0 (note this might be overridden by a callback).
+	// The state of is_neutral_ is updated to reflect the current state of the mutation whenever it changes.
+	// This is used to make constructing non-neutral caches for trait evaluation fast with multiple traits.
 	unsigned int is_neutral_ : 1;
+	
+	// is_independent_dominance_ is true if the mutation has been configured to exhibit "independent dominance",
+	// meaning that two heterozygous effects equal one homozygous effect, allowing the effects from haplosomes
+	// to be calculated separately with no regard for zygosity; this is configured by using NAN as the default
+	// dominance coefficient for MutationType.  It is updated if the state of the mutation's dominance changes,
+	// but only based upon the special NAN dominance value in setDominanceForTrait(); setting dominance values
+	// that happen to produce independent dominance does not cause this flag to be set, only the special NAN
+	// value.  This is used to construct independent-dominance caches for fast trait evaluation.  Note that this
+	// flag can be true when is_neutral_ is also true, recording that independent dominance was configured.
+	unsigned int is_independent_dominance_ : 1;
 	
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
@@ -131,11 +143,6 @@ public:
 	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
-	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
-	void SetEffect(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
-	void SetDominance(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
-	void SetHemizygousDominance(TraitType traitType, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
-	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
 	inline virtual ~Mutation(void) override
@@ -147,6 +154,17 @@ public:
 #endif
 	
 	virtual void SelfDelete(void) override;
+	
+	// Check that our internal state all makes sense
+	void SelfConsistencyCheck(const std::string &p_message_end);
+	
+	// This handles the possibility that a dominance coefficient is NAN, representing independent dominance, and returns the correct value
+	slim_effect_t RealizedDominanceForTrait(Trait *p_trait);
+	
+	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
+	void SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
+	void SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
+	void SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
 	
 	//
 	// Eidos support
@@ -165,6 +183,8 @@ public:
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isFixed(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isNeutral(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isSegregating(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);

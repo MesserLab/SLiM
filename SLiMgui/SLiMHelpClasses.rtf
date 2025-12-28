@@ -1623,7 +1623,7 @@ This value is \'93semi-unique\'94 in the sense that it is shared by
 \f1\i not
 \f4\i0  unique in the sense that it will be shared by other haplosomes within the same individual \'96 shared by all the first haplosomes, or shared by all the second haplosomes.  This \'93semi-uniqueness\'94 is intentional; it allows 
 \f3\fs18 haplosomePedigreeID
-\f4\fs20  to be used as a \'93key\'94 that associates the haplosomes of an individual across disparate datasets, such as across the different tree sequences for each chromosome that are produced by tree-sequence recording in a multi-chromosome model.  See sections 1.5.1 and 8.3 for further discussion of multi-chromosome models.\
+\f4\fs20  to be used as a \'93key\'94 that associates the haplosomes of an individual across disparate datasets, such as across the different tree sequences for each chromosome that are produced by tree-sequence recording in a multi-chromosome model.\
 If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3674,11 +3674,10 @@ See the description of the
 \f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
 \f3\fs18 demandPhenotype()
 \f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.\
+This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.\
 Note that the fitness recalculation tick cycle stage intrinsically expresses demand for all traits that have a direct effect on fitness, so 
 \f3\fs18 demandPhenotype()
-\f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.  See sections 24.6 and 25.3 for details on fitness recalculation.\
+\f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
@@ -6058,7 +6057,20 @@ You can get the
 \f4\fs20  to access the dominance for that trait.  The dominance coefficient(s) of a mutation can be changed with the 
 \f3\fs18 setDominanceForTrait()
 \f4\fs20  method.\
-Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
+\f3\fs18 NAN
+\f4\fs20 , as discussed in 
+\f3\fs18 initializeMutationType()
+\f4\fs20  and 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 , this property does not provide that value of 
+\f3\fs18 NAN
+\f4\fs20 ; instead, it provides the dominance values that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance values.  These realized dominance values depend upon the mutation\'92s corresponding effects, and may change if those effects change.  The class 
+\f3\fs18 Trait
+\f4\fs20  documentation provides further discussion of independent dominance.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s dominance coefficient to some number 
 \f3\fs18 x
@@ -6140,6 +6152,42 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f4\fs20  otherwise.  Since fixed/substituted mutations are removed from the simulation, you will only see this flag be 
 \f3\fs18 T
 \f4\fs20  if you have held onto a mutation beyond its usual lifetime.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 isIndependentDominance => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 T
+\f4\fs20  if the mutation is considered to exhibit independent dominance, 
+\f3\fs18 F
+\f4\fs20  otherwise.  For a mutation to be considered to exhibit independent dominance, it must have received its dominance from a 
+\f3\fs18 MutationType
+\f4\fs20  configured for independent dominance (with a default dominance of 
+\f3\fs18 NAN
+\f4\fs20 ), or had its dominance configured as 
+\f3\fs18 NAN
+\f4\fs20  for all traits with 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 ; simply having the appropriate dominance value is not sufficient for this determination.  Its mutation type and effect are irrelevant to this determination.  A mutation can be 
+\f3\fs18 T
+\f4\fs20  for both 
+\f3\fs18 isIndependentDominance
+\f4\fs20  and 
+\f3\fs18 isNeutral
+\f4\fs20 ; in this case, the mutation is configured to exhibit independent dominance, but happens to currently have effects of 
+\f3\fs18 0.0
+\f4\fs20  for all traits.  See the class 
+\f3\fs18 Trait
+\f4\fs20  documentation in for further discussion of independent dominance.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 isNeutral => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 T
+\f4\fs20  if the mutation is neutral, 
+\f3\fs18 F
+\f4\fs20  otherwise.  For a mutation to be considered neutral, it must have an effect of exactly 
+\f3\fs18 0.0
+\f4\fs20  for all traits; its mutation type and dominance are irrelevant to this determination.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 isSegregating => (logical$)\
@@ -6269,6 +6317,18 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
+\f3\fs18 NAN
+\f4\fs20 , as discussed in 
+\f3\fs18 initializeMutationType()
+\f4\fs20  and 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 , this method does not return that value of 
+\f3\fs18 NAN
+\f4\fs20 ; instead, it returns the dominance values that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance values.  These realized dominance values depend upon the mutation\'92s corresponding effects, and may change if those effects change.  The class 
+\f3\fs18 Trait
+\f4\fs20  documentation provides further discussion of independent dominance.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6317,7 +6377,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Sets the mutation\'92s dominance coefficient(s) for the trait(s) specified by 
+\f4\fs20 \cf2 Sets the target mutation\'92s dominance coefficient(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
@@ -6345,6 +6405,17 @@ The parameter
 \f4\fs20  to provide a different dominance coefficient for each trait in each mutation, using consecutive values from 
 \f3\fs18 dominance
 \f4\fs20  to set the dominance for each of the specified traits in one mutation before moving to the next mutation.\
+A dominance value of 
+\f3\fs18 NAN
+\f4\fs20  configures the mutation to use independent dominance; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation for discussion of this feature, which can also be set at the 
+\f3\fs18 MutationType
+\f4\fs20  level with 
+\f3\fs18 initializeMutationType()
+\f4\fs20  or 
+\f3\fs18 setDefaultDominanceForTrait()
+\f4\fs20 .  A given mutation must be configured to exhibit independent dominance for all traits or for none; a mixed configuration is not allowed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)setEffectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effect\'a0=\'a0NULL])\
@@ -6784,6 +6855,17 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  must either be singleton (in which case it is set as the default dominance for all specified traits), or must match the number of specified traits (in which case one element of 
 \f3\fs18 defaultDominance
 \f4\fs20  is used for each corresponding trait).\
+As for 
+\f3\fs18 initializeMutationType()
+\f4\fs20 , a 
+\f3\fs18 dominance
+\f4\fs20  value of 
+\f3\fs18 NAN
+\f4\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation for discussion of independent dominance.  If the mutation type is configured to use independent dominance for one trait, it must use it for 
+\f1\i all
+\f4\i0  traits; this is because the same restriction applies to mutations themselves.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setDefaultHemizygousDominanceForTrait(Niso<Trait>\'a0trait, float\'a0dominance)\
@@ -13755,7 +13837,7 @@ This method is similar to getting the
 \f3\fs18 rates
 \f4\fs20  gives the expected fractions of the children in this subpopulation that will subsequently be generated from parents in the subpopulations 
 \f3\fs18 sourceSubpops
-\f4\fs20  (see section 24.2.1).  The 
+\f4\fs20 .  The 
 \f3\fs18 rates
 \f4\fs20  parameter may be a singleton value, in which case that rate is used for all subpopulations in 
 \f3\fs18 sourceSubpops
@@ -14081,13 +14163,13 @@ Note that this method is only for use in nonWF models, in which migration is man
 
 \f4\fs20 \cf2 The 
 \f3\fs18 Chromosome
-\f4\fs20  object with which the mutation is associated.\
+\f4\fs20  object with which the substitution is associated.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 dominance => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The dominance coefficient(s) of the mutation, carried over from the original mutation object.  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f4\fs20 \cf2 The dominance coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 dominanceForTrait()
 \f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
 \f3\fs18 height
@@ -14101,7 +14183,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 \cf2 effect => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The selection coefficient(s) of the mutation, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f4\fs20 \cf2 The selection coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 effectForTrait()
 \f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
 \f3\fs18 height
@@ -14115,7 +14197,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 \cf2 hemizygousDominance => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the mutation, carried over from the original mutation object.  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 hemizygousDominanceForTrait()
 \f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
 \f3\fs18 height
@@ -14126,38 +14208,54 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  to access the dominance for that trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 id => (integer$)\
+\f3\fs18 \cf2 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The identifier for this mutation.  Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run, and that identifier is carried over to the 
+\f4\fs20 \cf2 The identifier for this substitution.  Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run, and that identifier is carried over to the 
 \f3\fs18 Substitution
-\f4\fs20  object when the mutation fixes.
-\f5 \
+\f4\fs20  object when the mutation fixes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 fixationTick => (integer$)\
+\f3\fs18 \cf2 isIndependentDominance => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The tick in which this mutation fixed.
-\f5 \
+\cf2 T
+\f4\fs20  if the substitution is considered to exhibit independent dominance, 
+\f3\fs18 F
+\f4\fs20  otherwise.  The value of this property is carried over from the original mutation; see the same property on 
+\f3\fs18 Mutation
+\f4\fs20  for further details.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 mutationType => (object<MutationType>$)\
+\f3\fs18 \cf2 isNeutral => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 T
+\f4\fs20  if the substitution is neutral, 
+\f3\fs18 F
+\f4\fs20  otherwise.  The value of this property is carried over from the original mutation; see the same property on 
+\f3\fs18 Mutation
+\f4\fs20  for further details.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 fixationTick => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The 
+\f4\fs20 \cf2 The tick in which this substitution fixed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 mutationType => (object<MutationType>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
 \f3\fs18 MutationType
-\f4\fs20  from which this mutation was drawn.
-\f5 \
+\f4\fs20  to which this substitution belongs.  The value of this property is carried over from the original mutation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-nucleotide => (string$)\
+\f3\fs18 \cf2 nucleotide => (string$)
+\f4\fs20 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 A 
+\cf2 A 
 \f3\fs18 string
-\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f4\fs20  representing the nucleotide associated with this substitution; this will be 
 \f3\fs18 "A"
 \f4\fs20 , 
 \f3\fs18 "C"
@@ -14165,15 +14263,15 @@ nucleotide => (string$)\
 \f3\fs18 "G"
 \f4\fs20 , or 
 \f3\fs18 "T"
-\f4\fs20 .  If the mutation is not nucleotide-based, this property is unavailable.\
+\f4\fs20 .  If the substitution is not nucleotide-based, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 nucleotideValue => (integer$)\
+\f3\fs18 \cf2 nucleotideValue => (integer$)
+\f4\fs20 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 An 
+\cf2 An 
 \f3\fs18 integer
-\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f4\fs20  representing the nucleotide associated with this substitution; this will be 
 \f3\fs18 0
 \f4\fs20  (A), 
 \f3\fs18 1
@@ -14181,27 +14279,25 @@ nucleotide => (string$)\
 \f3\fs18 2
 \f4\fs20  (G), or 
 \f3\fs18 3
-\f4\fs20  (T).  If the mutation is not nucleotide-based, this property is unavailable.\
+\f4\fs20  (T).  If the substitution is not nucleotide-based, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 originTick => (integer$)\
+\f3\fs18 \cf2 originTick => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The tick in which this mutation arose.
-\f5 \
+\f4\fs20 \cf2 The tick in which the original mutation for this substitution arose.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 position => (integer$)\
+\f3\fs18 \cf2 position => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The position in the chromosome of this mutation.
-\f5 \
+\f4\fs20 \cf2 The position in the chromosome of this substitution.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 subpopID <\'96> (integer$)\
+\f3\fs18 \cf2 subpopID <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The identifier of the subpopulation in which this mutation arose.  This value is carried over from the 
+\f4\fs20 \cf2 The identifier of the subpopulation in which the original mutation for this substitution arose.  This value is carried over from the 
 \f3\fs18 Mutation
 \f4\fs20  object directly; if a \'93tag\'94 value was used in the 
 \f3\fs18 Mutation
@@ -14211,7 +14307,7 @@ nucleotide => (string$)\
 \f3\fs18 subpopID
 \f4\fs20  in 
 \f3\fs18 Substitution
-\f4\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\
+\f4\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 tag <\'96> (integer$)\

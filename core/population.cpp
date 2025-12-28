@@ -8174,7 +8174,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			
 			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
 			slim_effect_t selection_coeff = mut_trait_info->effect_size_;
-			slim_effect_t dominance_coeff = mut_trait_info->dominance_coeff_;
+			slim_effect_t dominance_coeff = mut_trait_info->dominance_coeff_UNSAFE_;	// can be NAN
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
 			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
@@ -8335,7 +8335,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			
 			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
 			slim_effect_t selection_coeff = substitution_ptr->trait_info_[0].effect_size_;
-			slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_;
+			slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_UNSAFE_;	// can be NAN
 			
 			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
 			slim_tick_t origin_tick = substitution_ptr->origin_tick_;

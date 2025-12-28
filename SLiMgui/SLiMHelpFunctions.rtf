@@ -901,7 +901,13 @@ The
 \f1\fs18 1.0
 \f2\fs20 , but the 
 \f1\fs18 setDefaultHemizygousDominanceForTrait()
-\f2\fs20  method can configure it subsequently if desired.\
+\f2\fs20  method can configure it subsequently if desired.  A 
+\f1\fs18 dominanceCoeff
+\f2\fs20  value of 
+\f1\fs18 NAN
+\f2\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type; see the class 
+\f1\fs18 Trait
+\f2\fs20  documentation for discussion of independent dominance.\
 The 
 \f1\fs18 distributionType
 \f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
@@ -1496,8 +1502,7 @@ The
 \f2\fs20  object is returned.  For more details on the way that traits work in SLiM, beyond what is given below, see the 
 \f1\fs18 Trait
 \f2\fs20  class documentation.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 name
 \f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not have the same name as another trait in the species, it must be syntactically valid as an Eidos symbol (not containing a space, for example), and it must not conflict with the name of any existing property on the 
 \f1\fs18 Individual
@@ -1534,8 +1539,7 @@ The
 \f2\fs20  object to be referenced simply as 
 \f1\fs18 height
 \f2\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 type
 \f2\fs20  parameter gives the type of trait to be created, as a 
 \f1\fs18 string

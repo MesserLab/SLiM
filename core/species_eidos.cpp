@@ -614,6 +614,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
 	double dominance_coeff = dominanceCoeff_value->NumericAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(dominance_coeff) && !std::isnan(dominance_coeff))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() requires dominanceCoeff to be finite, or NAN to represent independent dominance." << EidosTerminate();
+	
 	std::string DES_type_string = (defaultDistribution ? "f" : distributionType_value->StringAtIndex_NOCAST(0, nullptr));
 	
 	if (community_.MutationTypeWithID(map_identifier))

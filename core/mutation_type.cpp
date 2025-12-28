@@ -90,7 +90,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	// set up DE entries for all traits; every trait is initialized identically, from the parameters given
 	EffectDistributionInfo DES_info;
 	
-	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);
+	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);	// note this can be NAN now, representing independent dominance
 	DES_info.default_hemizygous_dominance_coeff_ = 1.0;
 	DES_info.DES_type_ = p_DES_type;
 	DES_info.DES_parameters_ = p_DES_parameters;
@@ -231,6 +231,33 @@ void MutationType::ParseDESParameters(std::string &p_DES_type_string, const Eido
 		case DESType::kScript:
 			// no limits on script here; the script is checked when it gets tokenized/parsed/executed
 			break;
+	}
+}
+
+void MutationType::SelfConsistencyCheck(const std::string &p_message_end)
+{
+	// note that we don't check for mutation_block_ being nullptr here because we get called before that happens,
+	// unlike SelfConsistencyCheck() for Mutation and Substitution, where the mutation block necessarily exists
+	const std::vector<Trait *> &traits = species_.Traits();
+	
+	if (effect_distributions_.size() != traits.size())
+		EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): (internal error) effect_distributions_ size does not match traits.size()" << p_message_end << "." << EidosTerminate();
+	
+	if (effect_distributions_.size() > 0)
+	{
+		bool is_independent_dominance = std::isnan(effect_distributions_[0].default_dominance_coeff_);
+		
+		for (EffectDistributionInfo &des_info : effect_distributions_)
+		{
+			if (std::isnan(des_info.default_dominance_coeff_) != is_independent_dominance)
+				EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): mutation type independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
+			
+			if (std::isinf(des_info.default_dominance_coeff_))	// NAN allowed
+				EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): mutation type default dominance is infinite" << p_message_end << "." << EidosTerminate();
+			
+			if (!std::isfinite(des_info.default_hemizygous_dominance_coeff_))
+				EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): mutation type default hemizygous dominance is non-finite" << p_message_end << "." << EidosTerminate();
+		}
 	}
 }
 
@@ -910,6 +937,8 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	// still want to let the community know that a mutation type has changed, though.
 	species_.community_.mutation_types_changed_ = true;
 	
+	SelfConsistencyCheck(" in setDefaultDominanceForTrait()");
+	
 	return gStaticEidosValueVOID;
 }
 
@@ -957,6 +986,8 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 	// and changing it does not change the state of mutations that have already derived from it.  We do
 	// still want to let the community know that a mutation type has changed, though.
 	species_.community_.mutation_types_changed_ = true;
+	
+	SelfConsistencyCheck(" in setDefaultDominanceForTrait()");
 	
 	return gStaticEidosValueVOID;
 }

@@ -834,6 +834,8 @@ extern const std::string &gStr_mutationTypes;
 extern const std::string &gStr_mutationFractions;
 extern const std::string &gStr_mutationMatrix;
 extern const std::string &gStr_isFixed;
+extern const std::string &gStr_isIndependentDominance;
+extern const std::string &gStr_isNeutral;
 extern const std::string &gStr_isSegregating;
 extern const std::string &gStr_mutationType;
 extern const std::string &gStr_nucleotide;
@@ -1319,6 +1321,8 @@ enum _SLiMGlobalStringID : int {
 	gID_mutationFractions,
 	gID_mutationMatrix,
 	gID_isFixed,
+	gID_isIndependentDominance,
+	gID_isNeutral,
 	gID_isSegregating,
 	gID_mutationType,
 	gID_nucleotide,

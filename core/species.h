@@ -528,7 +528,7 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
-	inline __attribute__((always_inline)) MutationBlock *SpeciesMutationBlock(void)											{ return mutation_block_; }		// FIXME MULTICHROM: We could cache a ref to this in some key spots like Chromosome, MutationType, and Subpopulation
+	inline __attribute__((always_inline)) MutationBlock *SpeciesMutationBlock(void)											{ return mutation_block_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }

@@ -24,6 +24,7 @@
 #include "eidos_property_signature.h"
 #include "species.h"
 #include "mutation_block.h"
+#include "trait.h"
 
 #include <iostream>
 #include <algorithm>
@@ -36,7 +37,7 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
-	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), is_neutral_(p_mutation.is_neutral_), is_independent_dominance_(p_mutation.is_independent_dominance_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 	AddKeysAndValuesFrom(&p_mutation);
@@ -53,9 +54,13 @@ Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
 	for (int trait_index = 0; trait_index < trait_count; trait_index++)
 	{
 		trait_info_[trait_index].effect_size_ = mut_trait_info[trait_index].effect_size_;
-		trait_info_[trait_index].dominance_coeff_ = mut_trait_info[trait_index].dominance_coeff_;
+		trait_info_[trait_index].dominance_coeff_UNSAFE_ = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
 		trait_info_[trait_index].hemizygous_dominance_coeff_ = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 	}
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Substitution::Substitution()");
+#endif
 }
 
 Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
@@ -68,16 +73,95 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
 	
+	// We need to infer the values of the is_neutral_ and is_independent_dominance_ flags
+	// FIXME MULTITRAIT: needs to be fixed when the below issues are fixed
+	is_neutral_ = (p_selection_coeff == 0.0);
+	is_independent_dominance_ = std::isnan(p_dominance_coeff);
+	
 	trait_info_[0].effect_size_ = p_selection_coeff;
-	trait_info_[0].dominance_coeff_ = p_dominance_coeff;
+	trait_info_[0].dominance_coeff_UNSAFE_ = p_dominance_coeff;		// can be NAN
 	trait_info_[0].hemizygous_dominance_coeff_ = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(0);		// FIXME MULTITRAIT: needs to be passed in
 	
 	for (int trait_index = 1; trait_index < trait_count; trait_index++)
 	{
-		trait_info_[trait_index].effect_size_ = 0.0;
-		trait_info_[trait_index].dominance_coeff_ = 0.0;
+		trait_info_[trait_index].effect_size_ = 0.0;					// FIXME MULTITRAIT: needs to be passed in
+		trait_info_[trait_index].dominance_coeff_UNSAFE_ = 0.0;			// FIXME MULTITRAIT: needs to be passed in
 		trait_info_[trait_index].hemizygous_dominance_coeff_ = 1.0;		// FIXME MULTITRAIT: needs to be passed in
 	}
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Substitution::Substitution()");
+#endif
+}
+
+void Substitution::SelfConsistencyCheck(const std::string &p_message_end)
+{
+	if (!mutation_type_ptr_)
+		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): (internal error) mutation_type_ptr_ is nullptr" << p_message_end << "." << EidosTerminate();
+	if (!trait_info_)
+		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): (internal error) trait_info_ is nullptr" << p_message_end << "." << EidosTerminate();
+	
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	int trait_count = (int)traits.size();
+	bool all_neutral_effects = true;
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		SubstitutionTraitInfo &traitInfoRec = trait_info_[trait_index];
+		
+		if (!std::isfinite(traitInfoRec.effect_size_))
+			EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution effect size is non-finite" << p_message_end << "." << EidosTerminate();
+		if (std::isinf(traitInfoRec.dominance_coeff_UNSAFE_))	// NAN is legal sometimes, checked below
+			EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution dominance is infinite" << p_message_end << "." << EidosTerminate();
+		if (!std::isfinite(traitInfoRec.hemizygous_dominance_coeff_))
+			EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution hemizygous dominance is non-finite" << p_message_end << "." << EidosTerminate();
+		
+		if ((is_independent_dominance_ && !std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)) ||
+			(!is_independent_dominance_ && std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)))
+			EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
+		
+		if (traitInfoRec.effect_size_ != 0.0)
+			all_neutral_effects = false;
+	}
+	
+	if ((is_neutral_ && !all_neutral_effects) || (!is_neutral_ && all_neutral_effects))
+		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution neutrality state is inconsistent" << p_message_end << "." << EidosTerminate();
+}
+
+slim_effect_t Substitution::RealizedDominanceForTrait(Trait *p_trait)
+{
+	int64_t trait_index = p_trait->Index();
+	SubstitutionTraitInfo &traitInfoRec = trait_info_[trait_index];
+	
+	if (std::isnan(traitInfoRec.dominance_coeff_UNSAFE_))
+	{
+		// NAN indicates independent dominance and needs to be handled specially here
+		if (p_trait->Type() == TraitType::kAdditive)
+		{
+			// for additive traits independent dominance is always 0.5
+			return 0.5;
+		}
+		else
+		{
+			// for multiplicative traits the dominance is calculated as (sqrt(1+s)-1)/s, except that the effect
+			// is clamped to a minimum of -1.0 to avoid a negative square root; this is correct, since it means
+			// that 1+s (1 + -1 == 0) equals 2(1+hs): (2 x (1 + 1 x -1)) == (2 x 0) == 0.  If the resulting
+			// dominance of 1.0 is used in 1+hs with the unclipped effect size, a negative mutational effect will
+			// result, which is OK since multiplicative mutational effects are clipped at a minimum of 0.0.
+			slim_effect_t effect_size = traitInfoRec.effect_size_;
+			
+			if (effect_size == (slim_effect_t)0.0)
+				return (slim_effect_t)0.5;
+			if (effect_size <= -1.0)
+				return (slim_effect_t)1.0;
+			
+			// do the math in double-precision float to avoid numerical error
+			return (slim_effect_t)((std::sqrt(1.0 + (double)effect_size) - 1.0) / (double)effect_size);
+		}
+	}
+	
+	return traitInfoRec.dominance_coeff_UNSAFE_;
 }
 
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
@@ -101,7 +185,19 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	int trait_count = species.TraitCount();
 	
 	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;	// FIXME MULTITRAIT: hemizygous dominance coeff?
+	{
+		p_out << " " << trait_info_[trait_index].effect_size_ << " ";
+		
+		// output the dominance; if it is NAN for independent dominance we output NAN to preserve a record of that fact
+		slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_UNSAFE_;
+		
+		if (std::isnan(dominance))
+			p_out << "NAN";
+		else
+			p_out << dominance;
+		
+		// FIXME MULTITRAIT: hemizygous dominance coeff?
+	}
 	
 	// and then the remainder of the output line
 	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
@@ -136,7 +232,19 @@ void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
 	int trait_count = species.TraitCount();
 	
 	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
-		p_out << " " << trait_info_[trait_index].effect_size_ << " " << trait_info_[trait_index].dominance_coeff_;	// FIXME MULTITRAIT: hemizygous dominance coeff?
+	{
+		p_out << " " << trait_info_[trait_index].effect_size_ << " ";
+		
+		// output the dominance; if it is NAN for independent dominance we output NAN to preserve a record of that fact
+		slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_UNSAFE_;
+		
+		if (std::isnan(dominance))
+			p_out << "NAN";
+		else
+			p_out << dominance;
+		
+		// FIXME MULTITRAIT: hemizygous dominance coeff?
+	}
 	
 	// and then the remainder of the output line
 	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
@@ -189,6 +297,10 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_id:					// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_id_));
+		case gID_isIndependentDominance: // ACCELERATED
+			return (is_independent_dominance_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		case gID_isNeutral:				// ACCELERATED
+			return (is_neutral_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutationType:			// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:				// ACCELERATED
@@ -223,23 +335,30 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
 			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
 			Species &species = mutation_type_ptr_->species_;
 			const std::vector<Trait *> &traits = species.Traits();
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[0].dominance_coeff_));
+			{
+				slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[0]);
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+			}
 			else if (trait_count == 0)
+			{
 				return gStaticEidosValue_Float_ZeroVec;
+			}
 			else
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
 				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
-					slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_;
+					slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[trait_index]);
 					
-					float_result->push_float_no_check(dominance);
+					float_result->push_float_no_check(realized_dominance);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -350,7 +469,12 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				Trait *trait = species.TraitFromName(trait_name);
 				
 				if (trait)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].dominance_coeff_));
+				{
+					// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
+					slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+				}
 			}
 			
 			return super::GetProperty(p_property_id);
@@ -370,6 +494,36 @@ EidosValue *Substitution::GetProperty_Accelerated_id(EidosGlobalStringID p_prope
 	}
 	
 	return int_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check(value->is_independent_dominance_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_isNeutral(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check(value->is_neutral_, value_index);
+	}
+	
+	return logical_result;
 }
 
 EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
@@ -592,15 +746,17 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 	
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
 	std::vector<int64_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "dominanceForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
 		int64_t trait_index = trait_indices[0];
-		slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_;
+		Trait *trait = traits[trait_index];
+		slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
 	}
 	else
 	{
@@ -608,9 +764,10 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 		
 		for (int64_t trait_index : trait_indices)
 		{
-			slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_;
+			Trait *trait = traits[trait_index];
+			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 			
-			float_result->push_float_no_check(dominance);
+			float_result->push_float_no_check(realized_dominance);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -672,19 +829,21 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,				true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,			true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			true,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originTick));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTick,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationTick));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isIndependentDominance,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isIndependentDominance));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNeutral,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isNeutral));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,	true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,				true,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originTick));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTick,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationTick));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}

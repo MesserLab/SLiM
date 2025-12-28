@@ -192,7 +192,7 @@ Species::~Species(void)
 		delete trait;
 	traits_.clear();
 	
-	// Free our MutationBlock, and make those with copies of it forget it; see CreateAndPromulgateMutationBlock
+	// Free our MutationBlock, and make those with pointers to it forget; see CreateAndPromulgateMutationBlock()
 	{
 		delete mutation_block_;
 		mutation_block_ = nullptr;
@@ -2840,6 +2840,9 @@ void Species::RunInitializeCallbacks(void)
 
 void Species::CreateAndPromulgateMutationBlock(void)
 {
+	// This creates a new MutationBlock and gives pointers to it to various sub-components of the species.  This
+	// is called toward the end of initialize() callbacks; note that pointers will be nullptr until then.  That
+	// is because we can't allocate the MutationBlock until we know how many traits there are.
 	if (mutation_block_)
 		EIDOS_TERMINATION << "ERROR (Species::CreateAndPromulgateMutationBlock): (internal error) a mutation block has already been allocated." << EidosTerminate();
 	
@@ -9915,6 +9918,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
 			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
+			// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
@@ -9929,6 +9933,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			
 			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
+			// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry

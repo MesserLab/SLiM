@@ -181,6 +181,9 @@ public:
 	static void ParseDESParameters(std::string &p_DES_type_string, const EidosValue_SP *const p_arguments, int p_argument_count,
 								   DESType *p_DES_type, std::vector<double> *p_DES_parameters, std::vector<std::string> *p_DES_strings);
 	
+	// Check that our internal state all makes sense
+	void SelfConsistencyCheck(const std::string &p_message_end);
+	
 	slim_effect_t DefaultDominanceForTrait(int64_t p_trait_index) const
 	{
 		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
