@@ -6123,11 +6123,6 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 	// "independent dominance".
 #warning recache non-neutral caches first
 	
-	// FIXME MULTITRAIT BCH 12/25/2025: For now we disable the non-neutral caches.  To enable them we'd need to
-	// deal with the "regime" stuff that Population::RecalculateFitness() does, and I think that probably all
-	// needs to get redesigned, so I'm not going to try to get it working here for now.
-#define SLIM_USE_NONNEUTRAL_CACHES 0
-	
 	// For a given individual, for a given trait, we have to make a decision as to whether we will recalculate or not.  That decision gets made
 	// once and then holds across all chromosomes for the individual.  But we're looping over chromosomes at the topmost level, so we have a
 	// little problem: how will we remember whether we decided to recalculate a given individual/trait when we get to doing the work for
@@ -6406,10 +6401,10 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	
 	// we just need to scan through the haplosome and account for its mutations, using the homozygous mutation
 	// effect (no dominance effects with haploidy), or the hemizygous mutation effect for f_hemizygous == true
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species->nonneutral_change_counter_;
-	int32_t nonneutral_regime = species->last_nonneutral_regime_;
-#endif
+//#if SLIM_USE_NONNEUTRAL_CACHES
+//	int32_t nonneutral_change_counter = species->nonneutral_change_counter_;
+//	int32_t nonneutral_regime = species->last_nonneutral_regime_;
+//#endif
 	
 	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
 	MutationType *single_callback_mut_type;
@@ -6431,16 +6426,16 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	{
 		const MutationRun *mutrun = haplosome->mutruns_[run_index];
 		
-#if SLIM_USE_NONNEUTRAL_CACHES
-		// Cache non-neutral mutations and read from the non-neutral buffers
-		const MutationIndex *haplosome_iter, *haplosome_max;
-		
-		mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
-#else
+//#if SLIM_USE_NONNEUTRAL_CACHES
+//		// Cache non-neutral mutations and read from the non-neutral buffers
+//		const MutationIndex *haplosome_iter, *haplosome_max;
+//		
+//		mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
+//#else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
-#endif
+//#endif
 		
 		// scan the mutation run and apply mutation effects
 		while (haplosome_iter != haplosome_max)
@@ -6504,10 +6499,10 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	
 	// both haplosomes are non-null, so we need to scan through and figure out which mutations are
 	// heterozygous and which are homozygous, and assign effects accordingly
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species->nonneutral_change_counter_;
-	int32_t nonneutral_regime = species->last_nonneutral_regime_;
-#endif
+//#if SLIM_USE_NONNEUTRAL_CACHES
+//	int32_t nonneutral_change_counter = species->nonneutral_change_counter_;
+//	int32_t nonneutral_regime = species->last_nonneutral_regime_;
+//#endif
 	
 	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
 	MutationType *single_callback_mut_type;
@@ -6530,20 +6525,20 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 		const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
 		const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
 		
-#if SLIM_USE_NONNEUTRAL_CACHES
-		// Cache non-neutral mutations and read from the non-neutral buffers
-		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
-		
-		mutrun1->beginend_nonneutral_pointers(mut_block_ptr, &haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-		mutrun2->beginend_nonneutral_pointers(mut_block_ptr, &haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
-#else
+//#if SLIM_USE_NONNEUTRAL_CACHES
+//		// Cache non-neutral mutations and read from the non-neutral buffers
+//		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
+//		
+//		mutrun1->beginend_nonneutral_pointers(mut_block_ptr, &haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
+//		mutrun2->beginend_nonneutral_pointers(mut_block_ptr, &haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
+//#else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
 		const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
 		
 		const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
 		const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
-#endif
+//#endif
 		
 		// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
 		if ((haplosome1_iter != haplosome1_max) && (haplosome2_iter != haplosome2_max))
