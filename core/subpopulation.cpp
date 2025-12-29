@@ -1470,9 +1470,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	// by mutationEffect() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
 	if (skip_chromosomal_fitness)
 	{
-		// first set a flag on all mut types indicating whether they are pure neutral according to their DES
+		// first set a flag on all mut types indicating whether they are neutral according to their mutations
+		// this is the one place where all_neutral_mutations_ is actually used in the current design, because
+		// mutationEffect() callbacks target mutation types -- we want to know if all of the non-neutral
+		// mutation types have been made neutral by a mutationEffect() callback.
 		for (auto &mut_type_iter : mut_types)
-			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DES_;
+			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_neutral_mutations_;
 		
 		// then go through the mutationEffect() callback list and set the pure neutral flag for mut types neutralized by an active callback
 		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)

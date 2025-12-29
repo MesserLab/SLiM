@@ -5387,7 +5387,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (selection_coeff != 0.0)
 				{
 					species->pure_neutral_ = false;
-					mutation_type_ptr->all_pure_neutral_DES_ = false;
+					mutation_type_ptr->all_neutral_mutations_ = false;
 				}
 				
 				// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry

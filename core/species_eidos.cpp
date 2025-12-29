@@ -529,7 +529,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 		mutation_fractions.emplace_back(proportion);
 		
 		// check whether we are using a mutation type that is non-neutral; check and set pure_neutral_
-		if (!mutation_type_ptr->IsPureNeutralDES())
+		if (!mutation_type_ptr->all_neutral_DES_)
 			pure_neutral_ = false;
 	}
 	

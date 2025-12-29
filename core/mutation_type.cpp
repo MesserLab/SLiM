@@ -82,10 +82,13 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	// intentionally no bounds checks for DES parameters; the count of DES parameters is checked prior to construction
 	// intentionally no bounds check for dominance_coeff_
 	
-	// determine whether this mutation type is initially pure neutral; note that this flag will be
-	// cleared if any mutation of this type has its effect changed
-	// note also that we do not set Species.pure_neutral_ here; we wait until this muttype is used
-	all_pure_neutral_DES_ = ((p_DES_type == DESType::kFixed) && (p_DES_parameters[0] == 0.0));
+	// determine whether this mutation type has a neutral DES
+	// note that we do not set Species.pure_neutral_ here; we wait until this muttype is used
+	all_neutral_DES_ = ((p_DES_type == DESType::kFixed) && (p_DES_parameters[0] == 0.0));
+	
+	// initially, whether a mutation type has any neutral mutations is inherited from whether it has a neutral DES
+	// note that this flag will be cleared if any mutation of this type has its effect changed to non-neutral
+	all_neutral_mutations_ = all_neutral_DES_;
 	
 	// set up DE entries for all traits; every trait is initialized identically, from the parameters given
 	EffectDistributionInfo DES_info;
@@ -1029,11 +1032,23 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 	// mark that mutation types changed, so they get redisplayed in SLiMgui
 	species_.community_.mutation_types_changed_ = true;
 	
-	// check whether we are now using a DES type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DES_
-	if ((DES_type != DESType::kFixed) || (DES_parameters[0] != 0.0))
+	// check whether our DES for all traits is now neutral; we can change from non-neutral back to neutral
+	all_neutral_DES_ = true;
+	
+	for (int64_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
+	{
+		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+		
+		if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+			all_neutral_DES_ = false;
+	}
+	
+	// if our DES is non-neutral, set pure_neutral_ and all_neutral_mutations_ to false;
+	// these flags are sticky, so we don't try to set them back to true again
+	if (!all_neutral_DES_)
 	{
 		species_.pure_neutral_ = false;
-		all_pure_neutral_DES_ = false;
+		all_neutral_mutations_ = false;
 	}
 	
 	return gStaticEidosValueVOID;

@@ -1418,11 +1418,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DES_
+			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
 			if (selection_coeff != 0.0)
 			{
 				pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DES_ = false;
+				mutation_type_ptr->all_neutral_mutations_ = false;
 			}
 		}
 		
@@ -2184,11 +2184,11 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DES_
+			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
 			if (selection_coeff != 0.0)
 			{
 				pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DES_ = false;
+				mutation_type_ptr->all_neutral_mutations_ = false;
 			}
 		}
 		
@@ -2808,7 +2808,7 @@ void Species::RunInitializeCallbacks(void)
 				
 				for (auto muttype : getype->mutation_type_ptrs_)
 				{
-					if (muttype->IsPureNeutralDES())
+					if (muttype->all_neutral_DES_)
 						using_neutral_muttype = true;
 				}
 			}
@@ -9946,11 +9946,11 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 #endif
 		}
 		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DES_
+		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
 		if (metadata.selection_coeff_ != 0.0)
 		{
 			pure_neutral_ = false;
-			mutation_type_ptr->all_pure_neutral_DES_ = false;
+			mutation_type_ptr->all_neutral_mutations_ = false;
 		}
 	}
 }

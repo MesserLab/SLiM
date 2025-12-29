@@ -3166,7 +3166,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_neutral_mutations_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
@@ -3808,7 +3808,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_neutral_mutations_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}
@@ -4210,7 +4210,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// no need to worry about pure_neutral_ or all_pure_neutral_DES_ here; the mutation is drawn from a registered genomic element type
+						// no need to worry about pure_neutral_ or all_neutral_mutations_ here; the mutation is drawn from a registered genomic element type
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 					}

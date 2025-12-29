@@ -129,18 +129,26 @@ public:
 	MutationRun muttype_registry_;
 #endif
 	
-	// For optimizing the fitness calculation code, the exact situation for each mutation type is of great interest: does it have
-	// a neutral DES, and if so has any mutation of that type had its selection coefficient changed to be non-zero, are mutations
-	// of this type made neutral by a constant callback like "return 1.0;", and so forth.  Different parts of the code need to
-	// know slightly different things, so we have several different flags of this sort.
+	// For optimizing phenotype calculations, the exact situation for each mutation type is of great interest:
+	// does it have a neutral DES, and if so has any mutation of that type had its selection coefficient changed
+	// to be non-zero, are mutations of this type made neutral by a constant callback like "return 1.0;", and so
+	// forth.  Different parts of the code need to know slightly different things, so we have several different
+	// flags of this sort.  The subtle differences between these flags can be crucially important!
 	
-	// all_pure_neutral_DES_ is true if the DES is "f" 0.0.  It is cleared if any mutation of this type has its selection coefficient
-	// changed, so it can be used as a reliable indicator that mutations of a given mutation type are actually neutral – except for
-	// the effects of mutationEffect() callbacks, which might make them non-neutral in a given tick / subpopulation.
-	mutable bool all_pure_neutral_DES_;
+	// all_neutral_DES_ is true if and only if the DES for all traits is "f" 0.0.  Mutations of this type
+	// could still be non-neutral (because they were changed, or created at a time when the DES was not neutral),
+	// and callbacks could still change mutation effects.  What this flag does tell you is that if a new mutation
+	// of this type is being created now, it will be configured to be neutral. This flag is not "sticky"; it will
+	// change back from false to true if the DES changes from non-neutral back to neutral.
+	mutable bool all_neutral_DES_;
+	
+	// all_pure_neutral_mutations_ is true if any mutation of this type could be non-neutral.  That is the case
+	// if (a) the mutation type has ever had a non-neutral DES, or (b) if any mutation of this type has ever been
+	// configured to be non-neutral.  This flag is "sticky"; once set to true it will remain true forever.
+	mutable bool all_neutral_mutations_;
 	
 	// is_pure_neutral_now_ is set up by Subpopulation::UpdateFitness(), and is valid only inside a given UpdateFitness() call.
-	// If set, it indicates that the mutation type is currently pure neutral – either because all_pure_neutral_DES_ is set and the
+	// If set, it indicates that the mutation type is currently pure neutral – either because all_neutral_DES_ is set and the
 	// mutation type cannot be influenced by any callbacks in the current subpopulation / tick, or because an active callback
 	// actually sets the mutation type to be a constant value of 1.0 in this subpopulation / tick.  Mutations for which this
 	// flag is set can be safely elided from fitness calculations altogether; the flag will not be set if other active callbacks
@@ -200,7 +208,6 @@ public:
 	
 	slim_effect_t DrawEffectForTrait(int64_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
 	
-	bool IsPureNeutralDES(void) const { return all_pure_neutral_DES_; }
 	
 	//
 	// Eidos support

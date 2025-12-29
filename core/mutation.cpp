@@ -91,7 +91,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			is_neutral_ = false;
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer neutral
 			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 			
 			// get the realized dominance to handle the possibility of independent dominance
@@ -170,7 +170,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
 	is_independent_dominance_ = std::isnan(mutation_type_ptr_->DefaultDominanceForTrait(0));
 	
-	if (mutation_type_ptr_->all_pure_neutral_DES_)
+	if (mutation_type_ptr_->all_neutral_DES_)
 	{
 		// The DES of the mutation type is pure neutral, so we don't need to do any draws; we can short-circuit
 		// most of the work here and just set up neutral effects for all of the traits.
@@ -318,7 +318,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			is_neutral_ = false;
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 			
 			// get the realized dominance to handle the possibility of independent dominance
@@ -494,7 +494,7 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 			Species &species = mutation_type_ptr_->species_;
 			
 			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_pure_neutral_DES_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
 		}
 		
@@ -541,7 +541,7 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 			}
 		}
 		
-		// Note that we cannot set species.pure_neutral_ and mutation_type_ptr_->all_pure_neutral_DES_ to
+		// Note that we cannot set species.pure_neutral_ and mutation_type_ptr_->all_neutral_mutations_ to
 		// false here, because only this mutation has changed to neutral; other mutations might be non-neutral
 		
 		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
@@ -1365,13 +1365,8 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	mutation_type_ptr_ = mutation_type_ptr;
 	
 	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral
-	// FIXME MULTITRAIT: I think it might be useful for MutationType to keep a flag separately for each trait, whether *that* trait is all_pure_neutral_DES_ or not
-	//int trait_count = species.TraitCount();
-	//MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	//MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
-	
 	if (!is_neutral_)
-		mutation_type_ptr_->all_pure_neutral_DES_ = false;
+		mutation_type_ptr_->all_neutral_mutations_ = false;
 	
 	// Changing the mutation type no longer changes the dominance coefficient or the hemizygous dominance
 	// coefficient, so there are no longer any side effects on trait effects / fitness to be managed here.

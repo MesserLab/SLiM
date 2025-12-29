@@ -1028,7 +1028,7 @@ static const int spaceBetweenChromosomes = 5;
 			MutationType *muttype = muttype_iter.second;
 			slim_objectid_t muttype_id = muttype->mutation_type_id_;
 			
-			if (!muttype->IsPureNeutralDES())
+			if (!muttype->all_neutral_DES_)	// judges based on DES, not based on the actual neutrality of the mutations of this type!
 				display_muttypes_.emplace_back(muttype_id);
 		}
 		

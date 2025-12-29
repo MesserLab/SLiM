@@ -2572,7 +2572,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 						target_run->insert_sorted_mutation_if_unique(mut_block_ptr, mutation_block->IndexInBlock(mut_to_add));
 						
 						// No need to add the mutation to the registry; how would the user ever get a Mutation that was not already in it?
-						// Similarly, no need to check and set pure_neutral_ and all_pure_neutral_DES_; the mutation is already in the system
+						// Similarly, no need to check and set pure_neutral_ and all_neutral_mutations_; the mutation is already in the system
 					}
 				}
 			}
@@ -2953,7 +2953,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, origin_subpop_id, origin_tick, (int8_t)nucleotide);
 					
 					// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-					if (!mutation_type_ptr->all_pure_neutral_DES_)
+					if (!mutation_type_ptr->all_neutral_DES_)
 						species->pure_neutral_ = false;
 				}
 				else	// (p_method_id == gID_addNewMutation)
@@ -2973,11 +2973,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);
 					
 					// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-					// The selection coefficient was supplied by the user (i.e., not be from the mutation type's DES), so we set all_pure_neutral_DES_ also
+					// The selection coefficient was supplied by the user (i.e., not be from the mutation type's DES), so we set all_neutral_mutations_ also
 					if (selection_coeff != 0.0)
 					{
 						species->pure_neutral_ = false;
-						mutation_type_ptr->all_pure_neutral_DES_ = false;
+						mutation_type_ptr->all_neutral_mutations_ = false;
 					}
 				}
 				
@@ -3480,8 +3480,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		{
 			species.pure_neutral_ = false;
 			
-			// the selection coefficient was drawn from the mutation type's DES, so there is no need to set all_pure_neutral_DES_
-			//mutation_type_ptr->all_pure_neutral_DES_ = false;
+			// the selection coefficient was drawn from the mutation type's DES, so there is no need to set all_neutral_mutations_
+			//mutation_type_ptr->all_neutral_mutations_ = false;
 		}
 		
 		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
@@ -4133,11 +4133,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			}
 			
 			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-			// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DES), so we set all_pure_neutral_DES_ also
+			// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DES), so we set all_neutral_mutations_ also
 			if (selection_coeff != 0.0)
 			{
 				species->pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DES_ = false;
+				mutation_type_ptr->all_neutral_mutations_ = false;
 			}
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
