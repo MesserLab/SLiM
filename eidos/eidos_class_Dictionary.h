@@ -42,11 +42,16 @@ typedef std::unordered_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_Inte
 #endif
 
 
+class EidosDictionaryUnretained_Class;
+extern EidosDictionaryUnretained_Class *gEidosDictionaryUnretained_Class;
+
+class EidosDictionaryRetained_Class;
+extern EidosDictionaryRetained_Class *gEidosDictionaryRetained_Class;
+
+
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
-
-extern EidosClass *gEidosDictionaryUnretained_Class;
 
 // These are helpers for EidosDictionaryUnretained.  The purpose is to put all of its ivars into an allocated block,
 // so that the overhead of inheriting from the class itself is only one pointer, unless the Dictionary functionality is
@@ -251,8 +256,6 @@ public:
 #pragma mark -
 #pragma mark EidosDictionaryRetained
 #pragma mark -
-
-extern EidosClass *gEidosDictionaryRetained_Class;
 
 // A base class for EidosObject subclasses that are under retain/release.
 

@@ -450,7 +450,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 #pragma mark GenomicElementType_Class
 #pragma mark -
 
-EidosClass *gSLiM_GenomicElementType_Class = nullptr;
+GenomicElementType_Class *gSLiM_GenomicElementType_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Properties(void) const

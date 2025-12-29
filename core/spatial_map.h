@@ -30,6 +30,7 @@
 #ifndef __SLiM__spatial_map__
 #define __SLiM__spatial_map__
 
+
 #include "slim_globals.h"
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
@@ -39,11 +40,13 @@ class Subpopulation;
 class SpatialKernel;
 
 
+class SpatialMap_Class;
+extern SpatialMap_Class *gSLiM_SpatialMap_Class;
+
+
 #pragma mark -
 #pragma mark SpatialMap
 #pragma mark -
-
-extern EidosClass *gSLiM_SpatialMap_Class;
 
 class SpatialMap : public EidosDictionaryRetained
 {

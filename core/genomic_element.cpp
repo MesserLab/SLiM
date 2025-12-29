@@ -215,7 +215,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 #pragma mark GenomicElement_Class
 #pragma mark -
 
-EidosClass *gSLiM_GenomicElement_Class = nullptr;
+GenomicElement_Class *gSLiM_GenomicElement_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties(void) const

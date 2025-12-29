@@ -56,7 +56,6 @@ typedef std::unordered_map<const MutationRun*, const MutationRun*> SLiMBulkOpera
 typedef std::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
 #endif
 
-
 class Species;
 class Population;
 class Subpopulation;
@@ -65,7 +64,8 @@ class HaplosomeWalker;
 class MutationBlock;
 
 
-extern EidosClass *gSLiM_Haplosome_Class;
+class Haplosome_Class;
+extern Haplosome_Class *gSLiM_Haplosome_Class;
 
 
 // Haplosome now keeps an array of MutationRun objects, and those objects actually hold the mutations of the haplosome.  This design

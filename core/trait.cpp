@@ -238,7 +238,7 @@ EidosValue_SP Trait::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, cons
 #pragma mark Trait_Class
 #pragma mark -
 
-EidosClass *gSLiM_Trait_Class = nullptr;
+Trait_Class *gSLiM_Trait_Class = nullptr;
 
 const std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties(void) const
 {

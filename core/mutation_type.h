@@ -44,7 +44,8 @@ class Species;
 class MutationBlock;
 
 
-extern EidosClass *gSLiM_MutationType_Class;
+class MutationType_Class;
+extern MutationType_Class *gSLiM_MutationType_Class;
 
 
 // This enumeration represents a type of distribution of effect sizes (DES) that a mutation type can draw from

@@ -1062,7 +1062,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 #pragma mark MutationType_Class
 #pragma mark -
 
-EidosClass *gSLiM_MutationType_Class = nullptr;
+MutationType_Class *gSLiM_MutationType_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(void) const

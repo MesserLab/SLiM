@@ -27,7 +27,15 @@
 #ifndef __Eidos__eidos_class_test_element__
 #define __Eidos__eidos_class_test_element__
 
+
 #include "eidos_value.h"
+
+
+class EidosTestElement_Class;
+extern EidosTestElement_Class *gEidosTestElement_Class;
+
+class EidosTestElementNRR_Class;
+extern EidosTestElementNRR_Class *gEidosTestElementNRR_Class;
 
 
 //
@@ -36,9 +44,6 @@
 //
 //		(object<_TestElement>$)_Test(integer$ value)
 //
-
-extern EidosClass *gEidosTestElement_Class;
-
 
 class EidosTestElement : public EidosDictionaryRetained
 {
@@ -95,9 +100,6 @@ public:
 //
 //		(object<_TestElementNRR>$)_TestNRR(integer$ value)
 //
-
-extern EidosClass *gEidosTestElementNRR_Class;
-
 
 class EidosTestElementNRR : public EidosObject
 {

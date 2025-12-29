@@ -12737,7 +12737,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 #pragma mark Subpopulation_Class
 #pragma mark -
 
-EidosClass *gSLiM_Subpopulation_Class = nullptr;
+Subpopulation_Class *gSLiM_Subpopulation_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(void) const

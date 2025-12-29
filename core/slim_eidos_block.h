@@ -28,6 +28,7 @@
 #ifndef __SLiM__slim_script_block__
 #define __SLiM__slim_script_block__
 
+
 #include "slim_globals.h"
 #include "eidos_script.h"
 #include "eidos_value.h"
@@ -38,6 +39,10 @@
 #include <unordered_set>
 
 class Community;
+
+
+class SLiMEidosBlock_Class;
+extern SLiMEidosBlock_Class *gSLiM_SLiMEidosBlock_Class;
 
 
 enum class SLiMEidosBlockType {
@@ -111,9 +116,6 @@ public:
 #pragma mark -
 #pragma mark SLiMEidosBlock
 #pragma mark -
-
-extern EidosClass *gSLiM_SLiMEidosBlock_Class;
-
 
 class SLiMEidosBlock : public EidosDictionaryUnretained
 {

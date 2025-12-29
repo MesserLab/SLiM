@@ -38,7 +38,6 @@
 #include "eidos_functions.h"
 #include "slim_eidos_block.h"
 
-
 class EidosInterpreter;
 class Individual;
 class LogFile;
@@ -49,7 +48,9 @@ struct EidosInterpreterDebugPointsSet_struct;
 typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
 #endif
 
-extern EidosClass *gSLiM_Community_Class;
+
+class Community_Class;
+extern Community_Class *gSLiM_Community_Class;
 
 
 #pragma mark -

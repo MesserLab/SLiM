@@ -38,7 +38,8 @@
 @class SLiMWindowController;
 
 
-extern EidosClass *gSLiM_SLiMgui_Class;
+class SLiMgui_Class;
+extern SLiMgui_Class *gSLiM_SLiMgui_Class;
 
 
 class SLiMgui : public EidosDictionaryUnretained

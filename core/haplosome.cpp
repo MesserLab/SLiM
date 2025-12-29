@@ -2227,7 +2227,7 @@ size_t Haplosome::MemoryUsageForMutrunBuffers(void)
 #pragma mark Haplosome_Class
 #pragma mark -
 
-EidosClass *gSLiM_Haplosome_Class = nullptr;
+Haplosome_Class *gSLiM_Haplosome_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties(void) const

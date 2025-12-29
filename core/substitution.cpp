@@ -816,7 +816,7 @@ EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGloba
 #pragma mark Substitution_Class
 #pragma mark -
 
-EidosClass *gSLiM_Substitution_Class = nullptr;
+Substitution_Class *gSLiM_Substitution_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(void) const

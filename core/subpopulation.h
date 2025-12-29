@@ -66,11 +66,12 @@
 #include <map>
 #include <limits.h>
 
-
 class Population;
 
 
-extern EidosClass *gSLiM_Subpopulation_Class;
+class Subpopulation_Class;
+extern Subpopulation_Class *gSLiM_Subpopulation_Class;
+
 
 typedef std::pair<std::string, SpatialMap *> SpatialMapPair;
 typedef std::map<std::string, SpatialMap *> SpatialMapMap;

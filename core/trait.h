@@ -37,7 +37,8 @@ class Species;
 #include "eidos_class_Dictionary.h"
 
 
-extern EidosClass *gSLiM_Trait_Class;
+class Trait_Class;
+extern Trait_Class *gSLiM_Trait_Class;
 
 
 class Trait : public EidosDictionaryRetained

@@ -3173,7 +3173,7 @@ static EidosValue_SP SLiM_Instantiate_SpatialMap(const std::vector<EidosValue_SP
 #pragma mark SpatialMap_Class
 #pragma mark -
 
-EidosClass *gSLiM_SpatialMap_Class = nullptr;
+SpatialMap_Class *gSLiM_SpatialMap_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *SpatialMap_Class::Properties(void) const

@@ -4195,7 +4195,7 @@ EidosValue_SP Individual::ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStrin
 #pragma mark Individual_Class
 #pragma mark -
 
-EidosClass *gSLiM_Individual_Class = nullptr;
+Individual_Class *gSLiM_Individual_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void) const

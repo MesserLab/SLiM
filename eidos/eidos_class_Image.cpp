@@ -359,7 +359,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 #pragma mark EidosImage_Class
 #pragma mark -
 
-EidosClass *gEidosImage_Class = nullptr;
+EidosImage_Class *gEidosImage_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void) const

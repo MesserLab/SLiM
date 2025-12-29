@@ -45,7 +45,8 @@ class Species;
 class Individual;
 
 
-extern EidosClass *gSLiM_Chromosome_Class;
+class Chromosome_Class;
+extern Chromosome_Class *gSLiM_Chromosome_Class;
 
 
 class Chromosome : public EidosDictionaryRetained

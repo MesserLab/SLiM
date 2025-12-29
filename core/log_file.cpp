@@ -1132,7 +1132,7 @@ EidosValue_SP LogFile::ExecuteMethod_setValue(EidosGlobalStringID p_method_id, c
 #pragma mark LogFile_Class
 #pragma mark -
 
-EidosClass *gSLiM_LogFile_Class = nullptr;
+LogFile_Class *gSLiM_LogFile_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) const

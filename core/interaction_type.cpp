@@ -6508,7 +6508,7 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 #pragma mark InteractionType_Class
 #pragma mark -
 
-EidosClass *gSLiM_InteractionType_Class = nullptr;
+InteractionType_Class *gSLiM_InteractionType_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties(void) const

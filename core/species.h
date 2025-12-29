@@ -51,7 +51,6 @@ extern "C" {
 }
 #endif
 
-
 class Community;
 class EidosInterpreter;
 class Individual;
@@ -62,7 +61,10 @@ class InteractionType;
 struct ts_subpop_info;
 struct ts_mut_info;
 
-extern EidosClass *gSLiM_Species_Class;
+
+class Species_Class;
+extern Species_Class *gSLiM_Species_Class;
+
 
 enum class SLiMFileFormat
 {

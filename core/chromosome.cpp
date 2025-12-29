@@ -3753,7 +3753,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 #pragma mark Chromosome_Class
 #pragma mark -
 
-EidosClass *gSLiM_Chromosome_Class = nullptr;
+Chromosome_Class *gSLiM_Chromosome_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void) const

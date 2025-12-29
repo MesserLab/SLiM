@@ -194,7 +194,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 #pragma mark EidosTestElement_Class
 #pragma mark -
 
-EidosClass *gEidosTestElement_Class = nullptr;
+EidosTestElement_Class *gEidosTestElement_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties(void) const
@@ -338,7 +338,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElementNRR(const std::vector<Eid
 #pragma mark EidosTestElementNRR_Class
 #pragma mark -
 
-EidosClass *gEidosTestElementNRR_Class = nullptr;
+EidosTestElementNRR_Class *gEidosTestElementNRR_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Properties(void) const

@@ -34,7 +34,8 @@
 #include "eidos_value.h"
 
 
-extern EidosClass *gSLiM_GenomicElement_Class;
+class GenomicElement_Class;
+extern GenomicElement_Class *gSLiM_GenomicElement_Class;
 
 
 class GenomicElement : public EidosObject

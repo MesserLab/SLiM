@@ -276,7 +276,7 @@ EidosValue_SP Plot::ExecuteMethod_write(EidosGlobalStringID p_method_id, const s
 #pragma mark Plot_Class
 #pragma mark -
 
-EidosClass *gSLiM_Plot_Class = nullptr;
+Plot_Class *gSLiM_Plot_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) const

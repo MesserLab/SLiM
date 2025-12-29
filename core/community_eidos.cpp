@@ -1346,7 +1346,7 @@ EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, co
 #pragma mark Community_Class
 #pragma mark -
 
-EidosClass *gSLiM_Community_Class = nullptr;
+Community_Class *gSLiM_Community_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void) const

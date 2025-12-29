@@ -26,10 +26,12 @@
 #ifndef __Eidos__eidos_class_image__
 #define __Eidos__eidos_class_image__
 
+
 #include "eidos_value.h"
 
 
-extern EidosClass *gEidosImage_Class;
+class EidosImage_Class;
+extern EidosImage_Class *gEidosImage_Class;
 
 
 class EidosImage : public EidosDictionaryRetained

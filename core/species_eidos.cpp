@@ -4694,7 +4694,7 @@ EidosValue_SP Species::ExecuteMethod__debug(EidosGlobalStringID p_method_id, con
 #pragma mark Species_Class
 #pragma mark -
 
-EidosClass *gSLiM_Species_Class = nullptr;
+Species_Class *gSLiM_Species_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) const

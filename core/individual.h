@@ -39,10 +39,12 @@
 
 #include "haplosome.h"
 
-
 class Subpopulation;
 
-extern EidosClass *gSLiM_Individual_Class;
+
+class Individual_Class;
+extern Individual_Class *gSLiM_Individual_Class;
+
 
 // A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID() instead, for THREAD_SAFETY_IN_ACTIVE_PARALLEL()

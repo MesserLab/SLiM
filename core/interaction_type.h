@@ -42,14 +42,13 @@
 #include "subpopulation.h"
 #include "spatial_kernel.h"
 
-
 class Species;
 class Subpopulation;
 class Individual;
+
+
 class InteractionType_Class;
-
-
-extern EidosClass *gSLiM_InteractionType_Class;
+extern InteractionType_Class *gSLiM_InteractionType_Class;
 
 
 // This class uses an internal implementation of kd-trees for fast nearest-neighbor finding.  We use the same data structure to

@@ -37,7 +37,9 @@
 class Trait;
 
 
-extern EidosClass *gSLiM_Substitution_Class;
+class Substitution_Class;
+extern Substitution_Class *gSLiM_Substitution_Class;
+
 
 // This structure contains all of the information about how a substitution influenced a particular trait: in particular, its
 // effect size and dominance coefficient.  Each substitution keeps this information for each trait in its species, and since

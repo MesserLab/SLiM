@@ -1781,7 +1781,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 #pragma mark SLiMEidosBlock_Class
 #pragma mark -
 
-EidosClass *gSLiM_SLiMEidosBlock_Class = nullptr;
+SLiMEidosBlock_Class *gSLiM_SLiMEidosBlock_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(void) const

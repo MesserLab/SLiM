@@ -1382,7 +1382,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 #pragma mark Mutation_Class
 #pragma mark -
 
-EidosClass *gSLiM_Mutation_Class = nullptr;
+Mutation_Class *gSLiM_Mutation_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) const

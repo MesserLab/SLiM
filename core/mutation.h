@@ -37,7 +37,9 @@ class MutationType;
 class Trait;
 
 
-extern EidosClass *gSLiM_Mutation_Class;
+class Mutation_Class;
+extern Mutation_Class *gSLiM_Mutation_Class;
+
 
 // A global counter used to assign all Mutation objects a unique ID
 extern slim_mutationid_t gSLiM_next_mutation_id;

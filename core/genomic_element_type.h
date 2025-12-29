@@ -41,7 +41,8 @@
 class Species;
 
 
-extern EidosClass *gSLiM_GenomicElementType_Class;
+class GenomicElementType_Class;
+extern GenomicElementType_Class *gSLiM_GenomicElementType_Class;
 
 
 class GenomicElementType : public EidosDictionaryUnretained
