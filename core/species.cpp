@@ -2550,7 +2550,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1, -1);
 			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1, -1);
 			
-			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks, p_direct_effect_trait_indices);
+			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks, p_direct_effect_trait_indices, /* p_force_trait_recalculation */ true);
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;
@@ -2990,9 +2990,9 @@ void Species::MaintainMutationRegistry(void)
 	}
 }
 
-void Species::RecalculateFitness(void)
+void Species::RecalculateFitness(bool p_force_trait_recalculation)
 {
-	population_.RecalculateFitness(cycle_);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
+	population_.RecalculateFitness(cycle_, p_force_trait_recalculation);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
 }
 
 void Species::MaintainTreeSequence(void)

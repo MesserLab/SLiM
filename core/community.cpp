@@ -2894,7 +2894,7 @@ bool Community::_RunOneTickWF(void)
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
 #endif
-				species->RecalculateFitness();
+				species->RecalculateFitness(/* p_force_trait_recalculation */ false);
 				
 				executing_species_ = nullptr;
 			}
@@ -3197,7 +3197,7 @@ bool Community::_RunOneTickNonWF(void)
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
 #endif
-				species->RecalculateFitness();
+				species->RecalculateFitness(/* p_force_trait_recalculation */ false);
 				
 				executing_species_ = nullptr;
 			}

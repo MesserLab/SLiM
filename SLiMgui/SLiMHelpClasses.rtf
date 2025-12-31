@@ -10487,7 +10487,7 @@ When loading a tree sequence, a crosscheck of the loaded data will be performed 
 \f4\fs20  is called to load a tree sequence; subsequent calls will not perform this crosscheck, for greater speed when running models that load saved population state many times (such as models that are conditional on fixation).  If you suspect that a tree sequence file might be corrupted, or might be read incorrectly, running a Debug build of SLiM enables crosschecks after every load.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL])\
+\f3\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL]\cf2 , [logical$\'a0forceRecalc\'a0=\'a0T]\cf0 )\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Force an immediate recalculation of fitness values for all individuals in all subpopulations.  Normally fitness values are calculated at a fixed point in each tick, and those values are cached and used until the next recalculation.  If simulation parameters are changed in script in a way that affects fitness calculations, and if you wish those changes to take effect immediately rather than taking effect at the next automatic recalculation, you may call 
@@ -10526,7 +10526,30 @@ The optional parameter
 \f4\fs20  in a 
 \f3\fs18 late()
 \f4\fs20  event, which is also not advisable in general.)\
-After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), this method will force the recalculation of all trait values upon which fitness depends.  (If a trait does not have a direct effect on fitness, it will not be recalculated even when 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 ; use 
+\f3\fs18 demandPhenotype()
+\f4\fs20  to force recalculation of such traits.)  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , trait values will only be recalculated if they are marked as invalid \'96 in other words, if their value is 
+\f3\fs18 NAN
+\f4\fs20 .  This option can improve performance by skipping redundant calculations, but can produce out-of-date fitness values if something in the model state has changed such that trait values actually do need to be recalculated even though they are not 
+\f3\fs18 NAN
+\f4\fs20 .  This could occur if, for example, if a 
+\f3\fs18 mutationEffect()
+\f4\fs20  callback\'92s activation state has been changed.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
 \f3\fs18 mutationEffect()
 \f4\fs20  and 
 \f3\fs18 fitnessEffect()

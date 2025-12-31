@@ -2858,7 +2858,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	// for the singleton case for each of the parameters, get all the info
 	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 	
-	slim_effect_t singleton_selection_coeff = (arg_effect ? (slim_effect_t)arg_effect->NumericAtIndex_NOCAST(0, nullptr) : 0.0);
+	slim_effect_t singleton_selection_coeff = (arg_effect ? (slim_effect_t)arg_effect->NumericAtIndex_NOCAST(0, nullptr) : (slim_effect_t)0.0);
 	
 	slim_position_t singleton_position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex_NOCAST(0, nullptr));
 	

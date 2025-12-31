@@ -5241,7 +5241,7 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 }
 #endif
 
-void Population::RecalculateFitness(slim_tick_t p_tick)
+void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recalculation)
 {
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
@@ -5438,7 +5438,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		std::vector<SLiMEidosBlock*> no_callbacks;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			subpop_pair.second->UpdateFitness(no_callbacks, no_callbacks, p_direct_effect_trait_indices);
+			subpop_pair.second->UpdateFitness(no_callbacks, no_callbacks, p_direct_effect_trait_indices, p_force_trait_recalculation);
 	}
 	else
 	{
@@ -5466,7 +5466,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			}
 			
 			// Update fitness values, using the callbacks
-			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks, p_direct_effect_trait_indices);
+			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks, p_direct_effect_trait_indices, p_force_trait_recalculation);
 		}
 	}
 	

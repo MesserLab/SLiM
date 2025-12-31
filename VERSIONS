@@ -123,6 +123,7 @@ multitrait branch:
 		note that there is no concept of independent dominance for the hemizygous dominance coefficient, since hemizygous mutations are present in only one copy by definition
 	switch fitness calculation over to being based upon the calculated values of traits, rather than directly upon mutations
 	eliminate overhead for setting up fitness buffers in neutral WF models; this should provide a significant speedup for such models, if they don't use a mateChoice() callback
+	extend recalculateFitness() with [logical$ forceRecalc = T] option for backward compatibility, but allowing trait value recalculation not to be forced
 
 
 version 5.1 (Eidos version 4.1):

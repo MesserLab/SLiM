@@ -1356,7 +1356,7 @@ void Subpopulation::FixNonNeutralCaches_OMP(void)
 // calls UpdateFitness() on each subpopulation.  This method expresses demand for the traits in question, and
 // then produces fitness values by factoring in fitnessEffect() callbacks and fitnessScaling values.  It stores
 // the fitness values in the appropriate places to prepare for their later use.
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices)
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation)
 {
 	// Determine whether we are in a "pure neutral" case where we don't need to calculate individual fitness
 	// because all individuals have neutral fitness.  The simplest case where this is true is if there are no
@@ -1424,9 +1424,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		
 		// demand phenotypes for all the relevant traits
 		if (p_direct_effect_trait_indices.size())
+		{
 #warning make a new DemandPhenotype() function for whole subpops
 #warning need to think about shuffling the order for DemandPhenotype as well!
-			gSLiM_Individual_Class->DemandPhenotype<false>(&species_, parent_individuals_.data(), (int)parent_individuals_.size(), p_direct_effect_trait_indices);	// FIXME MULTITRAIT: pass in p_mutationEffect_callbacks to a per-subpop version of this
+			if (p_force_trait_recalculation)
+				gSLiM_Individual_Class->DemandPhenotype<true>(&species_, parent_individuals_.data(), (int)parent_individuals_.size(), p_direct_effect_trait_indices);	// FIXME MULTITRAIT: pass in p_mutationEffect_callbacks to a per-subpop version of this
+			else
+				gSLiM_Individual_Class->DemandPhenotype<false>(&species_, parent_individuals_.data(), (int)parent_individuals_.size(), p_direct_effect_trait_indices);	// FIXME MULTITRAIT: pass in p_mutationEffect_callbacks to a per-subpop version of this
+		}
 		
 		// then loop over individuals and pull together the relevant phenotype values, fitnessEffect() callbacks,
 		// subpopulation fitnessScaling, and individual fitnessScaling to produce final individual fitness values;

@@ -478,7 +478,7 @@ public:
 	bool HasDoneAnyInitialization(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
-	void RecalculateFitness(void);
+	void RecalculateFitness(bool p_force_trait_recalculation);
 	void MaintainTreeSequence(void);
 	void EmptyGraveyard(void);
 	void FinishMutationRunExperimentTimings(void);

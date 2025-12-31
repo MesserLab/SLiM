@@ -221,7 +221,7 @@ public:
 	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(Individual *p_parent) = nullptr;
 
 	// Recalculate all fitness values for the parental generation, including the use of mutationEffect() callbacks
-	void RecalculateFitness(slim_tick_t p_tick);
+	void RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recalculation);
 	
 	// Scan through all mutation runs in the simulation and unique them
 	void UniqueMutationRuns(void);

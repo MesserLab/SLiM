@@ -56,8 +56,17 @@
 
 // Include SLEEF for vectorized transcendental functions (exp, log, log10, log2)
 // SLEEF is only used when AVX2+FMA or NEON is available
+// BCH 12/31/2025: SLEEF generates tons of shadowed variable warnings for some reason; disable them
 #if defined(EIDOS_HAS_AVX2) || defined(EIDOS_HAS_NEON)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
 #include "sleef/sleef_config.h"
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 
 // ================================

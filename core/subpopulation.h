@@ -381,7 +381,7 @@ public:
 	void FixNonNeutralCaches_OMP(void);
 #endif
 	
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
 	
 	template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
 	void _UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);

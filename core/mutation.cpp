@@ -78,8 +78,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		
 		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
 		// for now we use the values passed in for trait 0, and make other traits neutral
-		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : 0.0;
-		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : 0.5;		// can be NAN
+		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
+		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
 		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
 		
 		traitInfoRec->effect_size_ = effect;
@@ -305,8 +305,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		
 		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
 		// for now we use the values passed in for trait 0, and make other traits neutral
-		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : 0.0;
-		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : 0.5;		// can be NAN
+		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
+		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
 		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
 		
 		traitInfoRec->effect_size_ = effect;
