@@ -75,7 +75,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	// We need to infer the values of the is_neutral_ and is_independent_dominance_ flags
 	// FIXME MULTITRAIT: needs to be fixed when the below issues are fixed
-	is_neutral_ = (p_selection_coeff == 0.0);
+	is_neutral_ = (p_selection_coeff == (slim_effect_t)0.0);
 	is_independent_dominance_ = std::isnan(p_dominance_coeff);
 	
 	trait_info_[0].effect_size_ = p_selection_coeff;
@@ -121,7 +121,7 @@ void Substitution::SelfConsistencyCheck(const std::string &p_message_end)
 			(!is_independent_dominance_ && std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)))
 			EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
 		
-		if (traitInfoRec.effect_size_ != 0.0)
+		if (traitInfoRec.effect_size_ != (slim_effect_t)0.0)
 			all_neutral_effects = false;
 	}
 	
@@ -153,7 +153,7 @@ slim_effect_t Substitution::RealizedDominanceForTrait(Trait *p_trait)
 			
 			if (effect_size == (slim_effect_t)0.0)
 				return (slim_effect_t)0.5;
-			if (effect_size <= -1.0)
+			if (effect_size <= (slim_effect_t)-1.0)
 				return (slim_effect_t)1.0;
 			
 			// do the math in double-precision float to avoid numerical error
@@ -314,7 +314,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[0].effect_size_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[0].effect_size_));
 			else if (trait_count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
 			else
@@ -325,7 +325,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					slim_effect_t effect = trait_info_[trait_index].effect_size_;
 					
-					float_result->push_float_no_check(effect);
+					float_result->push_float_no_check((double)effect);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -344,7 +344,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[0]);
 				
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
 			}
 			else if (trait_count == 0)
 			{
@@ -358,7 +358,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[trait_index]);
 					
-					float_result->push_float_no_check(realized_dominance);
+					float_result->push_float_no_check((double)realized_dominance);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -373,7 +373,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[0].hemizygous_dominance_coeff_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[0].hemizygous_dominance_coeff_));
 			else if (trait_count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
 			else
@@ -384,7 +384,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
 					
-					float_result->push_float_no_check(dominance);
+					float_result->push_float_no_check((double)dominance);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -453,7 +453,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				Trait *trait = species.TraitFromName(trait_name);
 				
 				if (trait)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].effect_size_));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[trait->Index()].effect_size_));
 			}
 			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
 			{
@@ -461,7 +461,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				Trait *trait = species.TraitFromName(trait_name);
 				
 				if (trait)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_info_[trait->Index()].hemizygous_dominance_coeff_));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[trait->Index()].hemizygous_dominance_coeff_));
 			}
 			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
 			{
@@ -473,7 +473,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 					// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
 					slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 					
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
 				}
 			}
 			
@@ -720,7 +720,7 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 		int64_t trait_index = trait_indices[0];
 		slim_effect_t effect = trait_info_[trait_index].effect_size_;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(effect));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
 	}
 	else
 	{
@@ -730,7 +730,7 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 		{
 			slim_effect_t effect = trait_info_[trait_index].effect_size_;
 			
-			float_result->push_float_no_check(effect);
+			float_result->push_float_no_check((double)effect);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -756,7 +756,7 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 		Trait *trait = traits[trait_index];
 		slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
 	}
 	else
 	{
@@ -767,7 +767,7 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 			Trait *trait = traits[trait_index];
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 			
-			float_result->push_float_no_check(realized_dominance);
+			float_result->push_float_no_check((double)realized_dominance);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -791,7 +791,7 @@ EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGloba
 		int64_t trait_index = trait_indices[0];
 		slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)dominance));
 	}
 	else
 	{
@@ -801,7 +801,7 @@ EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGloba
 		{
 			slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
 			
-			float_result->push_float_no_check(dominance);
+			float_result->push_float_no_check((double)dominance);
 		}
 		
 		return EidosValue_SP(float_result);

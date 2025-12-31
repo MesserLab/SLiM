@@ -25,7 +25,7 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, sl
 		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetSD requires a finite value (not NAN or INF)." << EidosTerminate();
 	
 	// effects for multiplicative traits clip at 0.0
-	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < 0.0))
+	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < (slim_effect_t)0.0))
 		baselineOffset_ = 0.0;
 	else
 		baselineOffset_ = p_baselineOffset;
@@ -43,7 +43,7 @@ void Trait::_RecacheIndividualOffsetDistribution(void)
 		// effects for multiplicative traits clip at 0.0
 		slim_effect_t offset = static_cast<slim_effect_t>(individualOffsetMean_);
 		
-		if ((type_ == TraitType::kMultiplicative) && (offset < 0.0))
+		if ((type_ == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
 			individualOffsetFixedValue_ = 0.0;
 		else
 			individualOffsetFixedValue_ = offset;
@@ -78,7 +78,7 @@ slim_effect_t Trait::_DrawIndividualOffset(void) const
 	slim_effect_t offset = static_cast<slim_effect_t>(gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_);
 	
 	// effects for multiplicative traits clip at 0.0
-	if ((type_ == TraitType::kMultiplicative) && (offset < 0.0))
+	if ((type_ == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
 		offset = 0.0;
 	
 	return offset;
@@ -129,7 +129,7 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gID_baselineOffset:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(baselineOffset_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)baselineOffset_));
 		}
 		case gID_directFitnessEffect:
 		{
@@ -251,7 +251,7 @@ const std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties(void) con
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineOffset,							false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_directFitnessEffect,					false,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_directFitnessEffect,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,									true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualOffsetMean,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualOffsetSD,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));

@@ -1694,8 +1694,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be representable as a finite single-precision floating-point number; the value given rounded to infinity." << EidosTerminate();
 	}
 	
-	if ((type == TraitType::kMultiplicative) && (baselineOffset < 0.0))
-		baselineOffset = 0.0;
+	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_effect_t)0.0))
+		baselineOffset = (slim_effect_t)0.0;
 	
 	// check that the default distribution is used or not used, in its entirety
 	if (individualOffsetMean_value->Type() != individualOffsetSD_value->Type())
@@ -1925,7 +1925,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "initializeTrait(name='" << name << "', type='" << type_string << "'";
-		if (baselineOffset != 0.0)
+		if (baselineOffset != (slim_effect_t)0.0)
 			output_stream << ", baselineOffset=" << baselineOffset << "";
 		if (individualOffsetMean != 0.0)
 			output_stream << ", individualOffsetMean=" << individualOffsetMean << "";

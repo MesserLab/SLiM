@@ -1025,8 +1025,6 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.directFitnessEffect, F)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.directFitnessEffect, F)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.directFitnessEffect = T; if (!identical(T_height.directFitnessEffect, T)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.directFitnessEffect = T; if (!identical(T_weight.directFitnessEffect, T)) stop(); }");
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.index, 0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.index, 1)) stop(); }");

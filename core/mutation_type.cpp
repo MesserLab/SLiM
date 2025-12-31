@@ -724,14 +724,14 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 	{
 		int64_t trait_index = trait_indices[0];
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DefaultDominanceForTrait(trait_index)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DefaultDominanceForTrait(trait_index)));
 	}
 	else
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
 		for (int64_t trait_index : trait_indices)
-			float_result->push_float_no_check(DefaultDominanceForTrait(trait_index));
+			float_result->push_float_no_check((double)DefaultDominanceForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
 	}
@@ -752,14 +752,14 @@ EidosValue_SP MutationType::ExecuteMethod_defaultHemizygousDominanceForTrait(Eid
 	{
 		int64_t trait_index = trait_indices[0];
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DefaultHemizygousDominanceForTrait(trait_index)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DefaultHemizygousDominanceForTrait(trait_index)));
 	}
 	else
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
 		for (int64_t trait_index : trait_indices)
-			float_result->push_float_no_check(DefaultHemizygousDominanceForTrait(trait_index));
+			float_result->push_float_no_check((double)DefaultHemizygousDominanceForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
 	}
@@ -880,7 +880,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	{
 		int64_t trait_index = trait_indices[0];
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DrawEffectForTrait(trait_index)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DrawEffectForTrait(trait_index)));
 	}
 	else
 	{
@@ -889,7 +889,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 		// draw_index is the outer loop, so that we get num_draws sets of (one draw per trait)
 		for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			for (int64_t trait_index : trait_indices)
-				float_result->push_float_no_check(DrawEffectForTrait(trait_index));
+				float_result->push_float_no_check((double)DrawEffectForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
 	}

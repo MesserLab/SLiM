@@ -48,6 +48,13 @@
 #define CHRONO_PROFILING
 #endif
 
+//
+//	Turn on warnings that we want on in Eidos and SLiM code, but not in other code such as the GSL
+//
+#if (!defined(EIDOS_GUI) && !defined(SLIMGUI))
+#pragma GCC diagnostic warning "-Wdouble-promotion"
+#endif
+
 #include "eidos_openmp.h"
 #include "eidos_intrusive_ptr.h"
 

@@ -734,7 +734,7 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 					expr_node = expr_node->children_[0];
 					
 					// parse an optional constant at the beginning, like 1.0 + ...
-					double added_constant = NAN;
+					double added_constant = std::numeric_limits<double>::quiet_NaN();
 					
 					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenPlus) && (expr_node->children_.size() == 2))
 					{
@@ -755,7 +755,7 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 					}
 					
 					// parse an optional divisor at the end, ... / div
-					double denominator = NAN;
+					double denominator = std::numeric_limits<double>::quiet_NaN();
 					
 					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
 					{

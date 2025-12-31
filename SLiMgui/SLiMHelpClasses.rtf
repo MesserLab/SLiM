@@ -6057,8 +6057,7 @@ You can get the
 \f4\fs20  to access the dominance for that trait.  The dominance coefficient(s) of a mutation can be changed with the 
 \f3\fs18 setDominanceForTrait()
 \f4\fs20  method.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
+If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
 \f3\fs18 initializeMutationType()
@@ -6069,8 +6068,7 @@ You can get the
 \f4\fs20 ; instead, it provides the dominance values that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance values.  These realized dominance values depend upon the mutation\'92s corresponding effects, and may change if those effects change.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s dominance coefficient to some number 
 \f3\fs18 x
@@ -6317,8 +6315,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
+If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
 \f3\fs18 initializeMutationType()
@@ -14412,7 +14409,7 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f4\fs20  class.  A baseline offset value set through this property may therefore not be the value used by SLiM or subsequently returned by this property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 directFitnessEffect <\'96> (logical$)\
+\f3\fs18 \cf2 directFitnessEffect => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 A 

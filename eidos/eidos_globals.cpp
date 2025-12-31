@@ -3088,7 +3088,7 @@ double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const doub
 	if ((p_count1 <= 1) || (p_count2 <= 1))
 	{
 		std::cout << "Eidos_TTest_TwoSampleWelch requires enough elements to compute variance" << std::endl;
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	}
 	
 	// Compute measurements
@@ -3123,7 +3123,7 @@ double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const doub
 	
 	// To avoid divisions by 0:
 	if (var1 + var2 == 0)
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	
 	// two-sample test
 	double t = (mean1 - mean2) / sqrt(var1 / p_count1 + var2 / p_count2);
@@ -3146,7 +3146,7 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 	if (p_count1 <= 1)
 	{
 		std::cout << "Eidos_TTest_OneSample requires enough elements to compute variance" << std::endl;
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	}
 	
 	// Compute measurements
@@ -3169,7 +3169,7 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 	
 	// To avoid divisions by 0:
 	if (var1 == 0)
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	
 	// one-sample test
 	double t = (mean1 - p_mu) / (sqrt(var1) / sqrt(p_count1));

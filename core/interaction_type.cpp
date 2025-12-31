@@ -2952,7 +2952,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				{
 					sv_value_t distance = values[col_iter];
 					
-					values[col_iter] = (sv_value_t)CalculateStrengthNoCallbacks(distance);
+					values[col_iter] = (sv_value_t)CalculateStrengthNoCallbacks((double)distance);
 				}
 				
 				EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unimplemented SpatialKernelType case." << EidosTerminate();
@@ -2971,7 +2971,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			uint32_t col = columns[col_iter];
 			sv_value_t distance = values[col_iter];
 			
-			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks(distance, receiver, subpop_individuals[col], interaction_callbacks);
+			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks((double)distance, receiver, subpop_individuals[col], interaction_callbacks);
 		}
 	}
 	
@@ -4306,7 +4306,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				double strength = 0;
 				
 				if ((exerter_index_in_subpop != receiver_index) && CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
-					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, std::numeric_limits<double>::quiet_NaN(), callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				total_interaction_strength += strength;
 				cached_strength.emplace_back(strength);
@@ -4402,7 +4402,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					{
 						sv_value_t strength = strengths[col_index];
 						
-						total_interaction_strength += strength;
+						total_interaction_strength += (double)strength;
 						double_strengths.emplace_back((double)strength);
 					}
 					
@@ -4570,7 +4570,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					{
 						sv_value_t strength = strengths[col_index];
 						
-						total_interaction_strength += strength;
+						total_interaction_strength += (double)strength;
 						double_strengths.emplace_back((double)strength);
 					}
 					
@@ -4920,7 +4920,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				total_strength = 0.0;
 				
 				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-					total_strength += strengths[col_index];
+					total_strength += (double)strengths[col_index];
 			} catch (...) {
 				InteractionType::FreeSparseVector(sv);
 				throw;
@@ -5016,7 +5016,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 					total_strength = 0.0;
 					
 					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-						total_strength += strengths[col_index];
+						total_strength += (double)strengths[col_index];
 				} catch (...) {
 					InteractionType::FreeSparseVector(sv);
 					saw_error_4 = true;
@@ -5122,10 +5122,10 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			double *result_ptr = result_vec->data_mutable();
 			
 			for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
-				*(result_ptr + exerter_index) = INFINITY;
+				*(result_ptr + exerter_index) = std::numeric_limits<double>::infinity();
 			
 			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				*(result_ptr + columns[col_index]) = distances[col_index];
+				*(result_ptr + columns[col_index]) = (double)distances[col_index];
 			
 			InteractionType::FreeSparseVector(sv);
 			return result_SP;
@@ -5163,7 +5163,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			if ((exerter == receiver) || !CheckIndividualConstraints(exerter, exerter_constraints_))
 			{
 				// self-interactions and constraints result in an interaction distance of INF
-				result_vec->set_float_no_check(INFINITY, exerter_index);
+				result_vec->set_float_no_check(std::numeric_limits<double>::infinity(), exerter_index);
 			}
 			else
 			{
@@ -5177,7 +5177,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 				if (distance > max_distance_)
 				{
 					// interactions beyond the maximum interaction distance also produce INF
-					result_vec->set_float_no_check(INFINITY, exerter_index);
+					result_vec->set_float_no_check(std::numeric_limits<double>::infinity(), exerter_index);
 				}
 				else
 				{
@@ -5196,7 +5196,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 		double *result_ptr = result_vec->data_mutable();
 		
 		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
-			*(result_ptr + exerter_index) = INFINITY;
+			*(result_ptr + exerter_index) = std::numeric_limits<double>::infinity();
 		
 		return result_SP;
 	}
@@ -6097,7 +6097,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
 				
 				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-					*(result_ptr + columns[col_index]) = strengths[col_index];
+					*(result_ptr + columns[col_index]) = (double)strengths[col_index];
 				
 				InteractionType::FreeSparseVector(sv);
 				return result_SP;
@@ -6190,7 +6190,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 					Individual *exerter = exerter_subpop->parent_individuals_[exerter_index];
 					
 					if (CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, std::numeric_limits<double>::quiet_NaN(), callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				}
 				
 				result_vec->set_float_no_check(strength, exerter_index);
@@ -6219,7 +6219,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				double strength = 0;
 				
 				if ((exerter_index_in_subpop != receiver_index) && CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
-					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, std::numeric_limits<double>::quiet_NaN(), callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				result_vec->set_float_no_check(strength, exerter_index);
 			}
@@ -6399,7 +6399,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		double total_strength = 0.0;
 		
 		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			total_strength += strengths[col_index];
+			total_strength += (double)strengths[col_index];
 		
 		InteractionType::FreeSparseVector(sv);
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(total_strength));
@@ -6469,7 +6469,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			double total_strength = 0.0;
 			
 			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				total_strength += strengths[col_index];
+				total_strength += (double)strengths[col_index];
 			
 			result_vec->set_float_no_check(total_strength, receiver_index);
 			InteractionType::FreeSparseVector(sv);

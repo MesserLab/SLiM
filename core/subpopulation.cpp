@@ -1152,20 +1152,11 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		// Set up to draw random individuals, based initially on equal fitnesses
-		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
-		if (!cached_parental_fitness_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		cached_fitness_capacity_ = parent_subpop_size_;
-		cached_fitness_size_ = parent_subpop_size_;
-		
-		double *fitness_buffer_ptr = cached_parental_fitness_;
-		
-		for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-			*(fitness_buffer_ptr++) = 1.0;
-		
-		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+		// Set up to draw random individuals, based initially on equal fitnesses.  This flag overrides all
+		// individual fitness values, instead considering them all to be 1.0.  It also avoids the overhead
+		// of setting for GSL discrete preproc drawing of parents; instead we will draw with equal probability.
+		individual_cached_fitness_OVERRIDE_ = true;
+		individual_cached_fitness_OVERRIDE_value_ = 1.0;
 	}
 }
 
@@ -1203,35 +1194,11 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		// Set up to draw random females, based initially on equal fitnesses
-		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
-		cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
-		if (!cached_parental_fitness_ || !cached_male_fitness_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		cached_fitness_capacity_ = parent_subpop_size_;
-		cached_fitness_size_ = parent_subpop_size_;
-		
-		double *fitness_buffer_ptr = cached_parental_fitness_;
-		double *male_buffer_ptr = cached_male_fitness_;
-		
-		for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
-		{
-			*(fitness_buffer_ptr++) = 1.0;
-			*(male_buffer_ptr++) = 0.0;				// this vector has 0 for all females, for mateChoice() callbacks
-		}
-		
-		// Set up to draw random males, based initially on equal fitnesses
-		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
-		
-		for (slim_popsize_t i = 0; i < num_males; i++)
-		{
-			*(fitness_buffer_ptr++) = 1.0;
-			*(male_buffer_ptr++) = 1.0;
-		}
-		
-		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
-		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
+		// Set up to draw random individuals, based initially on equal fitnesses.  This flag overrides all
+		// individual fitness values, instead considering them all to be 1.0.  It also avoids the overhead
+		// of setting for GSL discrete preproc drawing of parents; instead we will draw with equal probability.
+		individual_cached_fitness_OVERRIDE_ = true;
+		individual_cached_fitness_OVERRIDE_value_ = 1.0;
 	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
@@ -1267,6 +1234,9 @@ Subpopulation::~Subpopulation(void)
 	
 	if (cached_male_fitness_)
 		free(cached_male_fitness_);
+	
+	cached_fitness_size_ = 0;
+	cached_fitness_capacity_ = 0;
 	
 	{
 		// dispose of haplosomes and individuals with our object pools
@@ -1381,1031 +1351,380 @@ void Subpopulation::FixNonNeutralCaches_OMP(void)
 }
 #endif
 
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks)
+// Population::RecalculateFitness() figures out which callbacks are relevant for each subpopulation, and which
+// traits need to be evaluated in order to calculate fitness (only with a direct fitness effect).  It then
+// calls UpdateFitness() on each subpopulation.  This method expresses demand for the traits in question, and
+// then produces fitness values by factoring in fitnessEffect() callbacks and fitnessScaling values.  It stores
+// the fitness values in the appropriate places to prepare for their later use.
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices)
 {
-	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
+	// Determine whether we are in a "pure neutral" case where we don't need to calculate individual fitness
+	// because all individuals have neutral fitness.  The simplest case where this is true is if there are no
+	// traits with a direct fitness effect, no non-neutral subpopulation or individual fitnessScaling effects,
+	// and no active mutationEffect() or fitnessEffect() callbacks.  There are more subtle ways it can be true
+	// also: active callbacks are OK as long as they return a constant, neutral value; and traits with a direct
+	// fitness effect are OK as long as either (a) all mutations have a neutral effect upon that particular trait,
+	// or (b) the trait value doesn't matter because it is overridden by an active mutationEffect() callback
+	// with a constant, neutral value.  We evaluate this for each subpopulation because different subpopulations
+	// can have different active callbacks, and because the callbacks in other subpopulations might active or
+	// deactivate the callbacks in this subpopulation; we therefore need to figure it out right here at this
+	// moment.  Even if we decide that we are not "pure neutral", we might deduce that a particular trait with a
+	// direct fitness effect is not relevant to fitness in this subpopulation, for the above reasons; in that
+	// case, we still want to remove it from the set of traits that we demand and evaluate, for efficiency.  And
+	// we might decide that a given trait is relevant to fitness, but has a constant effect for all individuals;
+	// we then want to remove that trait, but factor that constant effect in.
+	slim_fitness_t subpop_fitness_scaling = (slim_fitness_t)subpop_fitness_scaling_;	// guaranteed >= 0.0
+	bool has_constant_fitness = true;
+#ifdef SLIMGUI
+	double constant_unscaled_fitness_value = 1.0;						// without subpopulation fitnessScaling
+#endif
+	double constant_fitness_value = (double)subpop_fitness_scaling;		// with all fitness effects incorporated
 	
-	// This function calculates the population mean fitness as a side effect
-	double totalFitness = 0.0;
+	if (true)
+		has_constant_fitness = false;	// for now, assume this is false since we don't know
 	
-	// Figure out our callback scenario: zero, one, or many?  See the comment below, above FitnessOfParentWithHaplosomeIndices_NoCallbacks(),
-	// for more info on this complication.  Here we just figure out which version to call and set up for it.
-	int mutationEffect_callback_count = (int)p_mutationEffect_callbacks.size();
-	bool mutationEffect_callbacks_exist = (mutationEffect_callback_count > 0);
-	bool single_mutationEffect_callback = false;
-	
-	if (mutationEffect_callback_count == 1)
+	if (has_constant_fitness)
 	{
-		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
-        MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
-		
-		if (found_muttype)
-		{
-			if (mut_types.size() > 1)
-			{
-				// We have a single callback that applies to a known mutation type among more than one defined type; we can optimize that
-				single_mutationEffect_callback = true;
-			}
-			// else there is only one mutation type, so the callback applies to all mutations in the simulation
-		}
-		else
-		{
-			// The only callback refers to a mutation type that doesn't exist, so we effectively have no callbacks; we probably never hit this
-			mutationEffect_callback_count = 0;
-			(void)mutationEffect_callback_count;		// tell the static analyzer that we know we just did a dead store
-			mutationEffect_callbacks_exist = false;
-		}
-	}
-	
-	// Can we skip chromosome-based fitness calculations altogether, and just call fitnessEffect() callbacks if any?
-	// We can do this if (a) all mutation types either use a neutral DES, or have been made neutral with a "return 1.0;"
-	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DES, no mutation has had its
-	// selection coefficient changed, and (c) no mutationEffect() callbacks are active apart from "return 1.0;" type callbacks.
-	// This is often the case for QTL-based models (such as Misha's coral model), and should produce a big speed gain,
-	// so we do a pre-check here for this case.  Note that we can ignore fitnessEffect() callbacks in this situation,
-	// because they are explicitly documented as potentially being executed after mutationEffect() callbacks, so
-	// they are not allowed, as a matter of policy, to alter the operation of mutationEffect() callbacks.
-	bool skip_chromosomal_fitness = true;
-	
-	// Looping through all of the mutation types and setting flags can be very expensive, so as a first pass we check
-	// whether it is even conceivable that we will be able to have skip_chromosomal_fitness == true.  If the simulation
-	// is not pure neutral and we have no mutationEffect() callback that could change that, it is a no-go without checking the
-	// mutation types at all.
-	if (!species_.pure_neutral_)
-	{
-		skip_chromosomal_fitness = false;	// we're not pure neutral, so we have to prove that it is possible
-		
-		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
-		{
-			if (mutationEffect_callback->block_active_)
-			{
-				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
-				
-				if (compound_statement_node->cached_return_value_)
-				{
-					// The script is a constant expression such as "{ return 1.1; }"
-					EidosValue *result = compound_statement_node->cached_return_value_.get();
-					
-					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
-					{
-						if (result->FloatData()[0] == 1.0)
-						{
-							// we have a mutationEffect() callback that is neutral-making, so it could conceivably work;
-							// change our minds but keep checking
-							skip_chromosomal_fitness = true;
-							continue;
-						}
-					}
-				}
-				
-				// if we reach this point, we have an active callback that is not neutral-making, so we fail and we're done
-				skip_chromosomal_fitness = false;
-				break;
-			}
-		}
-	}
-	
-	// At this point it appears conceivable that we could skip, but we don't yet know.  We need to do a more thorough
-	// check, actually tracking precisely which mutation types are neutral and non-neutral, and which are made neutral
-	// by mutationEffect() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
-	if (skip_chromosomal_fitness)
-	{
-		// first set a flag on all mut types indicating whether they are neutral according to their mutations
-		// this is the one place where all_neutral_mutations_ is actually used in the current design, because
-		// mutationEffect() callbacks target mutation types -- we want to know if all of the non-neutral
-		// mutation types have been made neutral by a mutationEffect() callback.
-		for (auto &mut_type_iter : mut_types)
-			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_neutral_mutations_;
-		
-		// then go through the mutationEffect() callback list and set the pure neutral flag for mut types neutralized by an active callback
-		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
-		{
-			if (mutationEffect_callback->block_active_)
-			{
-				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
-				
-				if (compound_statement_node->cached_return_value_)
-				{
-					// The script is a constant expression such as "{ return 1.1; }"
-					EidosValue *result = compound_statement_node->cached_return_value_.get();
-					
-					if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
-					{
-						if (result->FloatData()[0] == 1.0)
-						{
-							// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-							slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
-							
-							if (mutation_type_id == -1)
-							{
-								for (auto &mut_type_iter : mut_types)
-									mut_type_iter.second->is_pure_neutral_now_ = true;
-							}
-							else
-							{
-                                MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
-                                
-								if (found_muttype)
-									found_muttype->is_pure_neutral_now_ = true;
-							}
-							
-							continue;
-						}
-					}
-				}
-				
-				// if we reach this point, we have an active callback that is not neutral-making, so we fail and we're done
-				skip_chromosomal_fitness = false;
-				break;
-			}
-		}
-		
-		// finally, tabulate the pure-neutral flags of all the mut types into an overall flag for whether we can skip
-		if (skip_chromosomal_fitness)
-		{
-			for (auto &mut_type_iter : mut_types)
-			{
-				if (!mut_type_iter.second->is_pure_neutral_now_)
-				{
-					skip_chromosomal_fitness = false;
-					break;
-				}
-			}
-		}
-		else
-		{
-			// At this point, there is an active callback that is not neutral-making, so we really can't reliably depend
-			// upon is_pure_neutral_now_; that rogue callback could make other callbacks active/inactive, etc.  So in
-			// principle we should now go through and clear the is_pure_neutral_now_ flags to avoid any confusion.  But
-			// we are the only ones to use is_pure_neutral_now_, and we're done using it, so we can skip that work.
-			
-			//for (auto &mut_type_iter : mut_types)
-			//	mut_type_iter.second->is_pure_neutral_now_ = false;
-		}
-	}
-	
-	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called
-	// exactly once per individual, for every individual regardless of genetics, to provide an entry point for alternate fitness definitions
-	int fitnessEffect_callback_count = (int)p_fitnessEffect_callbacks.size();
-	bool fitnessEffect_callbacks_exist = (fitnessEffect_callback_count > 0);
-	
-	// We optimize the pure neutral case, as long as no mutationEffect() or fitnessEffect() callbacks are defined; fitness values are then simply 1.0, for everybody.
-	// BCH 12 Jan 2018: now fitness_scaling_ modifies even pure_neutral_ models, but the framework here remains valid
-	bool pure_neutral = (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist && species_.pure_neutral_);
-	double subpop_fitness_scaling = subpop_fitness_scaling_;
-	
-	// Reset our override of individual cached fitness values; we make this decision afresh with each UpdateFitness() call.  See
-	// the header for further comments on this mechanism.
-	individual_cached_fitness_OVERRIDE_ = false;
-	
-	// Decide whether we need to shuffle the order of operations.  This occurs only if (a) we have mutationEffect() or fitnessEffect() callbacks
-	// that are enabled, and (b) at least one of them has no cached optimization set.  Otherwise, the order of operations doesn't matter.
-	bool needs_shuffle = false;
-	
-	if (species_.RandomizingCallbackOrder())
-	{
-		if (!needs_shuffle)
-			for (SLiMEidosBlock *callback : p_fitnessEffect_callbacks)
-				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
-				{
-					needs_shuffle = true;
-					break;
-				}
-		
-		if (!needs_shuffle)
-			for (SLiMEidosBlock *callback : p_mutationEffect_callbacks)
-				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
-				{
-					needs_shuffle = true;
-					break;
-				}
-	}
-	
-	// determine the templated version of FitnessOfParent() that we will call out to for fitness evaluation
-	// see Population::EvolveSubpopulation() for further comments on this optimization technique
-	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
-	double (Subpopulation::*FitnessOfParent_TEMPLATED)(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	
-	if (mutrun_exp_timing_per_individual)
-	{
-		// If *any* chromosome is doing mutrun experiments, we can't template them out
-		if (!mutationEffect_callbacks_exist)
-			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, false, false>;
-		else if (single_mutationEffect_callback)
-			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, true, true>;
-		else
-			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, true, false>;
-	}
-	else
-	{
-		if (!mutationEffect_callbacks_exist)
-			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, false, false>;
-		else if (single_mutationEffect_callback)
-			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, true, true>;
-		else
-			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, true, false>;
-	}
-	
-	// refine the above choice with a custom version of optimizations for simple cases
-	if (!mutrun_exp_timing_per_individual && !mutationEffect_callbacks_exist && (species_.Chromosomes().size() == 1))
-	{
-		Chromosome *chromosome = species_.Chromosomes()[0];
-		
-		switch (chromosome->Type())
-		{
-				// diploid, possibly with one or both being null haplosomes
-			case ChromosomeType::kA_DiploidAutosome:
-			case ChromosomeType::kX_XSexChromosome:
-			case ChromosomeType::kZ_ZSexChromosome:
-				FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent_1CH_Diploid;
-				break;
-				
-				// haploid, possibly null
-			case ChromosomeType::kH_HaploidAutosome:
-			case ChromosomeType::kY_YSexChromosome:
-			case ChromosomeType::kW_WSexChromosome:
-			case ChromosomeType::kHF_HaploidFemaleInherited:
-			case ChromosomeType::kFL_HaploidFemaleLine:
-			case ChromosomeType::kHM_HaploidMaleInherited:
-			case ChromosomeType::kML_HaploidMaleLine:
-				FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent_1CH_Haploid;
-				break;
-				
-			default:
-				break;
-		}
-	}
-	
-	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
-	// To avoid that overhead, in single-chromosome models we just time across the whole round of fitness evals
-	// instead.  Note that in this case we chose a template above for FitnessOfParent() that does not time.
-	// FIXME 4/14/2025: It remains true that in multi-chrom models the timing overhead will be very high.  There
-	// are various ways that could potentially be cut down.  (a) not measure in every tick, (b) stop measuring
-	// once you've settled down into stasis, (c) measure a subset of all fitness evals.  This should be done in
-	// future, but we're out of time for now.
-	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
-		species_.Chromosomes()[0]->StartMutationRunExperimentClock();
-	
-	// calculate fitnesses in parent population and cache the values
-	if (sex_enabled_)
-	{
-		// SEX ONLY
-		double totalMaleFitness = 0.0, totalFemaleFitness = 0.0;
-		
-		// Set up to draw random females
-		if (pure_neutral)
-		{
-			if (Individual::s_any_individual_fitness_scaling_set_)
-			{
-				EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_1);
-				EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_1);
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_1) num_threads(thread_count)
-				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-				{
-					double fitness = parent_individuals_[female_index]->fitness_scaling_;
-					
-#ifdef SLIMGUI
-					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFemaleFitness += fitness;
-				}
-				EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_1);
-			}
-			else
-			{
-#ifdef SLIMGUI
-				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-					parent_individuals_[female_index]->cached_unscaled_fitness_ = 1.0;
-#endif
-				
-				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-				
-				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
-				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
-				if (model_type_ == SLiMModelType::kModelTypeWF)
-				{
-					individual_cached_fitness_OVERRIDE_ = true;
-					individual_cached_fitness_OVERRIDE_value_ = fitness;
-				}
-				else
-				{
-					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_2);
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_2);
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_2) num_threads(thread_count)
-					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-					{
-						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-					}
-					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_2);
-				}
-				
-				totalFemaleFitness = fitness * parent_first_male_index_;
-			}
-		}
-		else if (skip_chromosomal_fitness)
-		{
-			if (!needs_shuffle)
-			{
-				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-				{
-					double fitness = parent_individuals_[female_index]->fitness_scaling_;
-					
-					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
-					
-#ifdef SLIMGUI
-					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFemaleFitness += fitness;
-				}
-			}
-			else
-			{
-				// general case for females without chromosomal fitness; shuffle buffer needed
-				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
-				
-				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
-				{
-					slim_popsize_t female_index = shuffle_buf[shuffle_index];
-					double fitness = parent_individuals_[female_index]->fitness_scaling_;
-					
-					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
-					
-#ifdef SLIMGUI
-					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFemaleFitness += fitness;
-				}
-				
-				species_.ReturnShuffleBuffer();
-			}
-		}
-		else
-		{
-			if (!needs_shuffle)
-			{
-				// FIXME should have some additional criterion for whether to go parallel with this, like the number of mutations
-				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
-				{
-					// a separate loop for parallelization of the no-callback case
-					
-#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
-					// we need to fix the nonneutral caches in a separate pass first
-					// because all the correct caches need to get flushed to everyone
-					// before beginning fitness evaluation, for efficiency
-					// beginend_nonneutral_pointers() handles the non-parallel case
-					FixNonNeutralCaches_OMP();
-#endif
-					
-					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_3);
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_3);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_3) num_threads(thread_count)
-					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-					{
-						double fitness = parent_individuals_[female_index]->fitness_scaling_;
-						
-						if (fitness > 0.0)
-						{
-							fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
-							
-#ifdef SLIMGUI
-							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-							
-							fitness *= subpop_fitness_scaling;
-						}
-						else
-						{
-#ifdef SLIMGUI
-							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						}
-						
-						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-						totalFemaleFitness += fitness;
-					}
-					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_3);
-				}
-				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
-				{
-					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-					{
-						double fitness = parent_individuals_[female_index]->fitness_scaling_;
-						
-						if (fitness > 0.0)
-						{
-							fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
-							
-							// multiply in the effects of any fitnessEffect() callbacks
-							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-								fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
-							
-#ifdef SLIMGUI
-							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-							
-							fitness *= subpop_fitness_scaling;
-						}
-						else
-						{
-#ifdef SLIMGUI
-							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						}
-						
-						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-						totalFemaleFitness += fitness;
-					}
-				}
-			}
-			else
-			{
-				// general case for females; we use the shuffle buffer to randomize processing order
-				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
-				
-				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
-				{
-					slim_popsize_t female_index = shuffle_buf[shuffle_index];
-					double fitness = parent_individuals_[female_index]->fitness_scaling_;
-					
-					if (fitness > 0.0)
-					{
-						fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
-						
-						// multiply in the effects of any fitnessEffect() callbacks
-						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
-						
-#ifdef SLIMGUI
-						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						
-						fitness *= subpop_fitness_scaling;
-					}
-					else
-					{
-#ifdef SLIMGUI
-						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					}
-					
-					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFemaleFitness += fitness;
-				}
-				
-				species_.ReturnShuffleBuffer();
-			}
-		}
-		
-		totalFitness += totalFemaleFitness;
-		if ((model_type_ == SLiMModelType::kModelTypeWF) && (totalFemaleFitness <= 0.0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
-		
-		// Set up to draw random males
-		if (pure_neutral)
-		{
-			if (Individual::s_any_individual_fitness_scaling_set_)
-			{
-				EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_1);
-				EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_1);
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_1) num_threads(thread_count)
-				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-				{
-					double fitness = parent_individuals_[male_index]->fitness_scaling_;
-					
-#ifdef SLIMGUI
-					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-					totalMaleFitness += fitness;
-				}
-				EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_1);
-			}
-			else
-			{
-#ifdef SLIMGUI
-				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-					parent_individuals_[male_index]->cached_unscaled_fitness_ = 1.0;
-#endif
-				
-				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-				
-				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
-				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
-				if (model_type_ == SLiMModelType::kModelTypeWF)
-				{
-					individual_cached_fitness_OVERRIDE_ = true;
-					individual_cached_fitness_OVERRIDE_value_ = fitness;
-				}
-				else
-				{
-					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_2);
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_2);
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_2) num_threads(thread_count)
-					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-					{
-						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-					}
-					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_2);
-				}
-				
-				if (parent_subpop_size_ > parent_first_male_index_)
-					totalMaleFitness = fitness * (parent_subpop_size_ - parent_first_male_index_);
-			}
-		}
-		else if (skip_chromosomal_fitness)
-		{
-			if (!needs_shuffle)
-			{
-				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-				{
-					double fitness = parent_individuals_[male_index]->fitness_scaling_;
-					
-					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
-					
-#ifdef SLIMGUI
-					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-					totalMaleFitness += fitness;
-				}
-			}
-			else
-			{
-				// general case for females without chromosomal fitness; shuffle buffer needed
-				slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
-				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
-				
-				for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
-				{
-					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
-					double fitness = parent_individuals_[male_index]->fitness_scaling_;
-					
-					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
-					
-#ifdef SLIMGUI
-					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-					totalMaleFitness += fitness;
-				}
-				
-				species_.ReturnShuffleBuffer();
-			}
-		}
-		else
-		{
-			if (!needs_shuffle)
-			{
-				// FIXME should have some additional criterion for whether to go parallel with this, like the number of mutations
-				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
-				{
-					// a separate loop for parallelization of the no-callback case
-					// note that we rely on the fixup of non-neutral caches done above
-					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_3);
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_3);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_3) num_threads(thread_count)
-					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-					{
-						double fitness = parent_individuals_[male_index]->fitness_scaling_;
-						
-						if (fitness > 0.0)
-						{
-							fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
-							
-#ifdef SLIMGUI
-							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-							
-							fitness *= subpop_fitness_scaling;
-						}
-						else
-						{
-#ifdef SLIMGUI
-							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						}
-						
-						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-						totalMaleFitness += fitness;
-					}
-					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_3);
-				}
-				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
-				{
-					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-					{
-						double fitness = parent_individuals_[male_index]->fitness_scaling_;
-						
-						if (fitness > 0.0)
-						{
-							fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
-							
-							// multiply in the effects of any fitnessEffect() callbacks
-							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-								fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
-							
-#ifdef SLIMGUI
-							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-							
-							fitness *= subpop_fitness_scaling;
-						}
-						else
-						{
-#ifdef SLIMGUI
-							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						}
-						
-						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-						totalMaleFitness += fitness;
-					}
-				}
-			}
-			else
-			{
-				// general case for males; we use the shuffle buffer to randomize processing order
-				slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
-				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
-				
-				for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
-				{
-					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
-					double fitness = parent_individuals_[male_index]->fitness_scaling_;
-					
-					if (fitness > 0.0)
-					{
-						fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
-						
-						// multiply in the effects of any fitnessEffect() callbacks
-						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
-						
-#ifdef SLIMGUI
-						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						
-						fitness *= subpop_fitness_scaling;
-					}
-					else
-					{
-#ifdef SLIMGUI
-						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					}
-					
-					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-					totalMaleFitness += fitness;
-				}
-				
-				species_.ReturnShuffleBuffer();
-			}
-		}
-		
-		totalFitness += totalMaleFitness;
+		// we know this subpopulation has effectively constant fitness; we therefore don't express demand for
+		// any traits, which means trait may keep NAN values even if the traits have a direct fitness effect
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
+			// in WF models we can take advantage of constant fitness to completely remove individual-level
+			// fitness bookkeeping with the individual_cached_fitness_OVERRIDE_ mechanism
+			individual_cached_fitness_OVERRIDE_ = true;
+			individual_cached_fitness_OVERRIDE_value_ = constant_fitness_value;
+			
+#ifdef SLIMGUI
+			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				parent_individuals_[individual_index]->cached_unscaled_fitness_ = (slim_effect_t)constant_unscaled_fitness_value;
+#endif
+		}
+		else	// (model_type_ == SLiMModelType::kModelTypeNonWF)
+		{
+			// in nonWF models we are required to fill in the per-individual fitness values, but do little else
+			individual_cached_fitness_OVERRIDE_ = false;
+			
+			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			{
+				Individual *ind = parent_individuals_[individual_index];
+				
+#ifdef SLIMGUI
+				ind->cached_unscaled_fitness_ = (slim_effect_t)constant_unscaled_fitness_value;
+#endif
+					
+				ind->cached_fitness_UNSAFE_ = (slim_effect_t)constant_fitness_value;
+			}
+		}
+	}
+	else
+	{
+		// we cannot override individual cached fitness values; individuals are not all neutral fitness
+		individual_cached_fitness_OVERRIDE_ = false;
+		
+		// demand phenotypes for all the relevant traits
+		if (p_direct_effect_trait_indices.size())
+#warning make a new DemandPhenotype() function for whole subpops
+#warning need to think about shuffling the order for DemandPhenotype as well!
+			gSLiM_Individual_Class->DemandPhenotype<false>(&species_, parent_individuals_.data(), (int)parent_individuals_.size(), p_direct_effect_trait_indices);	// FIXME MULTITRAIT: pass in p_mutationEffect_callbacks to a per-subpop version of this
+		
+		// then loop over individuals and pull together the relevant phenotype values, fitnessEffect() callbacks,
+		// subpopulation fitnessScaling, and individual fitnessScaling to produce final individual fitness values;
+		// we choose our _UpdateFitness() template based upon flags and execute it to calculate fitness values
+		bool f_has_subpop_fitnessScaling = (subpop_fitness_scaling != 1.0f);
+		bool f_has_ind_fitnessScaling = Individual::s_any_individual_fitness_scaling_set_;
+		bool f_has_fitnessEffect_callbacks = (p_fitnessEffect_callbacks.size() > 0);
+		bool f_has_trait_direct_effects = (p_direct_effect_trait_indices.size() > 0);
+		bool f_single_trait = (p_direct_effect_trait_indices.size() == 1);
+		void (Subpopulation::*_UpdateFitness_TEMPLATED)(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices) = nullptr;
+		
+		if (f_has_subpop_fitnessScaling)
+		{
+			if (f_has_ind_fitnessScaling) {
+				if (f_has_fitnessEffect_callbacks) {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, true, true, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, true, true, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, true, true, false, false>;
+				} else {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, true, false, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, true, false, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, true, false, false, false>;
+				}
+			} else {
+				if (f_has_fitnessEffect_callbacks) {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, false, true, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, false, true, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, false, true, false, false>;
+				} else {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, false, false, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, false, false, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<true, false, false, false, false>;
+				}
+			}
+		} else {
+			if (f_has_ind_fitnessScaling) {
+				if (f_has_fitnessEffect_callbacks) {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, true, true, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, true, true, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, true, true, false, false>;
+				} else {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, true, false, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, true, false, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, true, false, false, false>;
+				}
+			} else {
+				if (f_has_fitnessEffect_callbacks) {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, false, true, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, false, true, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, false, true, false, false>;
+				} else {
+					if (f_has_trait_direct_effects) {
+						if (f_single_trait)				_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, false, false, true, true>;
+						else							_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, false, false, true, false>;
+					} else								_UpdateFitness_TEMPLATED = &Subpopulation::_UpdateFitness<false, false, false, false, false>;
+				}
+			}
+		}
+		
+		(this->*(_UpdateFitness_TEMPLATED))(p_fitnessEffect_callbacks, p_direct_effect_trait_indices);
+	}
+	
+	if (model_type_ == SLiMModelType::kModelTypeWF)
+		UpdateWFFitnessBuffers();
+}
+
+template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
+void Subpopulation::_UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices)
+{
+	// manage the shuffle buffer; this is not quite as fast as templatizing this flag, but it's simpler, and it
+	// only adds overhead when fitnessEffect() callbacks are present, otherwise it get optimized out completely
+	const bool f_has_shuffle_buffer = (f_has_fitnessEffect_callbacks && species_.RandomizingCallbackOrder());
+	slim_popsize_t *shuffle_buf = (f_has_shuffle_buffer ? species_.BorrowShuffleBuffer(parent_subpop_size_) : nullptr);
+	
+	slim_fitness_t subpop_fitness_scaling = (f_has_subpop_fitnessScaling ? (slim_fitness_t)subpop_fitness_scaling_ : (slim_fitness_t)0.0);	// guaranteed >= 0.0
+	int64_t single_trait_index = (f_has_trait_effects && f_single_trait ? p_direct_effect_trait_indices[0] : 0);
+	
+	for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+	{
+		slim_popsize_t individual_index = (f_has_shuffle_buffer ? shuffle_buf[shuffle_index] : shuffle_index);
+		Individual *ind = parent_individuals_[individual_index];
+		slim_fitness_t fitness = f_has_ind_fitnessScaling ? (slim_fitness_t)ind->fitness_scaling_ : (slim_fitness_t)1.0;	// guaranteed >= 0.0
+		
+		if (!f_has_ind_fitnessScaling || (fitness > (slim_fitness_t)0.0))
+		{
+			// fitness is > 0.0, so continue calculating
+			
+			if (f_has_trait_effects)
+			{
+				IndividualTraitInfo *trait_info = ind->trait_info_;
+				
+				if (f_single_trait)
+				{
+					fitness *= trait_info[single_trait_index].phenotype_;
+				}
+				else
+				{
+					for (int64_t trait_index : p_direct_effect_trait_indices)
+						fitness *= trait_info[trait_index].phenotype_;		// >= 0.0 for multiplicative traits
+				}
+			}
+			
+			if (!f_has_trait_effects || (fitness > (slim_fitness_t)0.0))
+			{
+				// fitness is > 0.0, so continue calculating
+				
+				if (f_has_fitnessEffect_callbacks)
+					fitness *= (slim_fitness_t)ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, ind);			// guaranteed >= 0.0
+				
+#ifdef SLIMGUI
+				ind->cached_unscaled_fitness_ = fitness;
+#endif
+				
+				if (f_has_subpop_fitnessScaling)
+					fitness *= subpop_fitness_scaling;
+				
+				ind->cached_fitness_UNSAFE_ = fitness;
+			}
+			else
+			{
+				// with additive traits, fitness could be < 0.0 (and gets clipped to 0.0); otherwise it is 0.0
+				// we're already fitness 0.0, so we can skip multiplying in subpop_fitness_scaling
+#ifdef SLIMGUI
+				ind->cached_unscaled_fitness_ = 0.0;
+#endif
+				ind->cached_fitness_UNSAFE_ = 0.0;
+			}
+		}
+		else
+		{
+			// fitness is 0.0; we refer to it (in-register, presumably) rather than use 0.0
+#ifdef SLIMGUI
+			ind->cached_unscaled_fitness_ = fitness;
+#endif
+			ind->cached_fitness_UNSAFE_ = fitness;
+		}
+	}
+	
+	if (f_has_shuffle_buffer)
+		species_.ReturnShuffleBuffer();
+}
+
+template void Subpopulation::_UpdateFitness<false, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+
+// WF only:
+void Subpopulation::UpdateWFFitnessBuffers(void)
+{
+	// This is called only by UpdateFitness(), after the fitness of all individuals has been updated, and only in
+	// WF models.  It updates cached fitness buffers, and then generates GSL-based lookup tables for mate choice.
+	
+	if (individual_cached_fitness_OVERRIDE_)
+	{
+		// This is the optimized case, where all individuals have the same fitness and it is cached at the subpop
+		// level.  When that is the case, we don't use the GSL discrete preproc stuff to choose mates proportional
+		// to fitness; we choose mates randomly with equal probability instead.  Given that, we don't need to set
+		// up the buffers (cached_parental_fitness_, etc.) either; they are only used to set up the GSL's discrete
+		// preproc machinery.  So we can actually free those buffers to decrease memory footprint, in this path.
+		if (cached_parental_fitness_)
+			free(cached_parental_fitness_);
+		
+		if (cached_male_fitness_)
+			free(cached_male_fitness_);
+		
+		cached_fitness_size_ = 0;
+		cached_fitness_capacity_ = 0;
+		
+		// Then we just do a trivial check for numerical problems.
+		double universal_cached_fitness = individual_cached_fitness_OVERRIDE_value_;
+		
+		if (sex_enabled_)
+		{
+			double totalMaleFitness = universal_cached_fitness * (parent_subpop_size_ - parent_first_male_index_);
+			double totalFemaleFitness = universal_cached_fitness * parent_first_male_index_;
+			
 			if (totalMaleFitness <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
-			if (!std::isfinite(totalFitness))
+			if (totalFemaleFitness <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
+			
+			if (!std::isfinite(totalMaleFitness + totalFemaleFitness))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of subpopulation is not finite; numerical error will prevent accurate simulation." << EidosTerminate(nullptr);
-		}
-	}
-	else
-	{
-		if (pure_neutral)
-		{
-			if (Individual::s_any_individual_fitness_scaling_set_)
-			{
-				EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_ASEX_1);
-				EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_1);
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_1) num_threads(thread_count)
-				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-				{
-					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-					
-#ifdef SLIMGUI
-					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFitness += fitness;
-				}
-				EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_ASEX_1);
-			}
-			else
-			{
-#ifdef SLIMGUI
-				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-					parent_individuals_[individual_index]->cached_unscaled_fitness_ = 1.0;
-#endif
-				
-				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-				
-				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
-				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
-				if (model_type_ == SLiMModelType::kModelTypeWF)
-				{
-					individual_cached_fitness_OVERRIDE_ = true;
-					individual_cached_fitness_OVERRIDE_value_ = fitness;
-				}
-				else
-				{
-					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_ASEX_2);
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_2);
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_2) num_threads(thread_count)
-					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-					{
-						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-					}
-					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_ASEX_2);
-				}
-				
-				totalFitness = fitness * parent_subpop_size_;
-			}
-		}
-		else if (skip_chromosomal_fitness)
-		{
-			if (!needs_shuffle)
-			{
-				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-				{
-					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-					
-					// multiply in the effects of any fitnessEffect() callbacks
-					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
-					
-#ifdef SLIMGUI
-					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFitness += fitness;
-				}
-			}
-			else
-			{
-				// general case for hermaphrodites without chromosomal fitness; shuffle buffer needed
-				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
-				
-				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
-				{
-					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
-					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-					
-					// multiply in the effects of any fitnessEffect() callbacks
-					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
-					
-#ifdef SLIMGUI
-					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					
-					fitness *= subpop_fitness_scaling;
-					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFitness += fitness;
-				}
-				
-				species_.ReturnShuffleBuffer();
-			}
 		}
 		else
 		{
-			if (!needs_shuffle)
-			{
-				// FIXME should have some additional criterion for whether to go parallel with this, like the number of mutations
-				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
-				{
-					// a separate loop for parallelization of the no-callback case
-					
-#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
-					// we need to fix the nonneutral caches in a separate pass first
-					// because all the correct caches need to get flushed to everyone
-					// before beginning fitness evaluation, for efficiency
-					// beginend_nonneutral_pointers() handles the non-parallel case
-					FixNonNeutralCaches_OMP();
-#endif
-					
-					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_ASEX_3);
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_3);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_3) num_threads(thread_count)
-					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-					{
-						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-						
-						if (fitness > 0.0)
-						{
-							fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
-							
-#ifdef SLIMGUI
-							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-							
-							fitness *= subpop_fitness_scaling;
-						}
-						else
-						{
-#ifdef SLIMGUI
-							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						}
-						
-						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-						totalFitness += fitness;
-					}
-					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_ASEX_3);
-				}
-				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
-				{
-					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-					{
-						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-						
-						if (fitness > 0.0)
-						{
-							fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
-							
-							// multiply in the effects of any fitnessEffect() callbacks
-							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-								fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
-							
-#ifdef SLIMGUI
-							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-							
-							fitness *= subpop_fitness_scaling;
-						}
-						else
-						{
-#ifdef SLIMGUI
-							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						}
-						
-						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-						totalFitness += fitness;
-					}
-				}
-			}
-			else
-			{
-				// general case for hermaphrodites; we use the shuffle buffer to randomize processing order
-				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
-				
-				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
-				{
-					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
-					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-					
-					if (fitness > 0.0)
-					{
-						fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
-						
-						// multiply in the effects of any fitnessEffect() callbacks
-						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
-						
-#ifdef SLIMGUI
-						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-						
-						fitness *= subpop_fitness_scaling;
-					}
-					else
-					{
-#ifdef SLIMGUI
-						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-					}
-					
-					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFitness += fitness;
-				}
-				
-				species_.ReturnShuffleBuffer();
-			}
-		}
-		
-		if (model_type_ == SLiMModelType::kModelTypeWF)
-		{
+			double totalFitness = universal_cached_fitness * parent_subpop_size_;
+			
 			if (totalFitness <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
 			if (!std::isfinite(totalFitness))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of subpopulation is not finite; numerical error will prevent accurate simulation." << EidosTerminate(nullptr);
 		}
 	}
-	
-	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
-	// To avoid that overhead, in single-chromosome models we just time across the whole round of fitness evals
-	// instead.  Note that in this case we chose a template above for FitnessOfParent() that does not time.
-	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
-		species_.Chromosomes()[0]->StopMutationRunExperimentClock("UpdateFitness()");
-	
-	if (model_type_ == SLiMModelType::kModelTypeWF)
-		UpdateWFFitnessBuffers(pure_neutral && !Individual::s_any_individual_fitness_scaling_set_);
-}
-
-// WF only:
-void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
-{
-	// This is called only by UpdateFitness(), after the fitness of all individuals has been updated, and only in WF models.
-	// It updates the cached_parental_fitness_ and cached_male_fitness_ buffers, and then generates new lookup tables for mate choice.
-	
-	// Reallocate the fitness buffers to be large enough
-	if (cached_fitness_capacity_ < parent_subpop_size_)
-	{
-		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
-		if (!cached_parental_fitness_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		if (sex_enabled_)
-		{
-			cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
-			if (!cached_male_fitness_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		}
-		
-		cached_fitness_capacity_ = parent_subpop_size_;
-	}
-	
-	// Set up the fitness buffers with the new information
-	if (individual_cached_fitness_OVERRIDE_)
-	{
-		// This is the optimized case, where all individuals have the same fitness and it is cached at the subpop level
-		double universal_cached_fitness = individual_cached_fitness_OVERRIDE_value_;
-		
-		if (sex_enabled_)
-		{
-			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-			{
-				cached_parental_fitness_[female_index] = universal_cached_fitness;
-				cached_male_fitness_[female_index] = 0;
-			}
-			
-			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
-			{
-				cached_parental_fitness_[male_index] = universal_cached_fitness;
-				cached_male_fitness_[male_index] = universal_cached_fitness;
-			}
-		}
-		else
-		{
-			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-				cached_parental_fitness_[i] = universal_cached_fitness;
-		}
-	}
 	else
 	{
-		// This is the normal case, where cached_fitness_UNSAFE_ has the cached fitness values for each individual
+		// This is the normal case, where cached_fitness_UNSAFE_ has cached fitness values for each individual.
+		// In this case we need to set up buffers to create the GSL discrete preproc structs for drawing parents.
+		// In this code path we also need to total up individual fitness values to check for numerical problems.
+		
+		// Reallocate the fitness buffers to be large enough; note that we up-cast to double here for the GSL.
+		// Due to the shenanigans we pull in ApplyMateChoiceCallbacks(), we might have a non-zero capacity set
+		// and yet have an unallocated buffer (especially in the sex case, at least for now); so we check that.
+		if (!cached_parental_fitness_ || (sex_enabled_ && !cached_male_fitness_) || (cached_fitness_capacity_ < parent_subpop_size_))
+		{
+			// there might be an existing capacity but a missing buffer; use the existing value if it's bigger
+			cached_fitness_capacity_ = std::max(cached_fitness_capacity_, parent_subpop_size_);
+			
+			cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+			if (!cached_parental_fitness_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			if (sex_enabled_)
+			{
+				cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+				if (!cached_male_fitness_)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			}
+		}
+		
 		if (sex_enabled_)
 		{
+			double totalMaleFitness = 0.0, totalFemaleFitness = 0.0;
+			
 			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 			{
-				double fitness = parent_individuals_[female_index]->cached_fitness_UNSAFE_;
+				double fitness = (double)parent_individuals_[female_index]->cached_fitness_UNSAFE_;
 				
 				cached_parental_fitness_[female_index] = fitness;
 				cached_male_fitness_[female_index] = 0;
+				totalFemaleFitness += fitness;
 			}
 			
 			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 			{
-				double fitness = parent_individuals_[male_index]->cached_fitness_UNSAFE_;
+				double fitness = (double)parent_individuals_[male_index]->cached_fitness_UNSAFE_;
 				
 				cached_parental_fitness_[male_index] = fitness;
 				cached_male_fitness_[male_index] = fitness;
+				totalMaleFitness += fitness;
 			}
+			
+			if (totalMaleFitness <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
+			if (totalFemaleFitness <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
+			
+			if (!std::isfinite(totalMaleFitness + totalFemaleFitness))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of subpopulation is not finite; numerical error will prevent accurate simulation." << EidosTerminate(nullptr);
 		}
 		else
 		{
+			double totalFitness = 0.0;
+			
 			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-				cached_parental_fitness_[i] = parent_individuals_[i]->cached_fitness_UNSAFE_;
+			{
+				double fitness = (double)parent_individuals_[i]->cached_fitness_UNSAFE_;
+				
+				cached_parental_fitness_[i] = fitness;
+				totalFitness += fitness;
+			}
+			
+			if (totalFitness <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
+			if (!std::isfinite(totalFitness))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of subpopulation is not finite; numerical error will prevent accurate simulation." << EidosTerminate(nullptr);
 		}
+		
+		cached_fitness_size_ = parent_subpop_size_;
 	}
-	
-	cached_fitness_size_ = parent_subpop_size_;
 	
 	// Remake our mate-choice lookup tables
 	if (sex_enabled_)
@@ -2423,8 +1742,8 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 			lookup_male_parent_ = nullptr;
 		}
 		
-		// in pure neutral models we don't set up the discrete preproc
-		if (!p_pure_neutral)
+		// we don't set up the discrete preproc if all individuals have equal fitness
+		if (!individual_cached_fitness_OVERRIDE_)
 		{
 			lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 			lookup_male_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_ - parent_first_male_index_, cached_parental_fitness_ + parent_first_male_index_);
@@ -2439,8 +1758,8 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 			lookup_parent_ = nullptr;
 		}
 		
-		// in pure neutral models we don't set up the discrete preproc
-		if (!p_pure_neutral)
+		// we don't set up the discrete preproc if all individuals have equal fitness
+		if (!individual_cached_fitness_OVERRIDE_)
 		{
 			lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 		}
@@ -2448,7 +1767,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 }
 
 // FIXME MULTITRAIT: should return slim_effect_t so the caller doesn't have to cast
-double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
+slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
 	
@@ -2511,10 +1830,10 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 					
 #if DEBUG
 					// this checks the value type at runtime
-					p_computed_fitness = result->FloatData()[0];
+					p_effect = (slim_effect_t)result->FloatData()[0];
 #else
 					// unsafe cast for speed
-					p_computed_fitness = ((EidosValue_Float *)result)->data()[0];
+					p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
 #endif
 					
 					// the cached value is owned by the tree, so we do not dispose of it
@@ -2531,7 +1850,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 					{
 						double A = mutationEffect_callback->cached_opt_A_;
 						
-						p_computed_fitness = (A / p_computed_fitness);	// p_computed_fitness is effect
+						p_effect = (slim_effect_t)(A / (double)p_effect);
 					}
 					else
 					{
@@ -2542,7 +1861,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 					EidosValue_Object local_mut(mut_block_ptr + p_mutation, gSLiM_Mutation_Class);
-					EidosValue_Float local_effect(p_computed_fitness);
+					EidosValue_Float local_effect((double)p_effect);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
@@ -2600,10 +1919,10 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 							
 #if DEBUG
 							// this checks the value type at runtime
-							p_computed_fitness = result->FloatData()[0];
+							p_effect = (slim_effect_t)result->FloatData()[0];
 #else
 							// unsafe cast for speed
-							p_computed_fitness = ((EidosValue_Float *)result)->data()[0];
+							p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
 #endif
 						}
 						catch (...)
@@ -2622,10 +1941,10 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)]);
 #endif
 	
-	return p_computed_fitness;
+	return p_effect;
 }
 
-double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index)
+slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyFitnessEffectCallbacks(): running Eidos callback");
 	
@@ -2634,8 +1953,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	double computed_fitness = 1.0;
-	Individual *individual = parent_individuals_[p_individual_index];
+	slim_fitness_t computed_fitness = 1.0;
 	
 	for (SLiMEidosBlock *fitnessEffect_callback : p_fitnessEffect_callbacks)
 	{
@@ -2681,10 +1999,10 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 				
 #if DEBUG
 				// this checks the value type at runtime
-				computed_fitness *= result->FloatData()[0];
+				computed_fitness *= (slim_fitness_t)result->FloatData()[0];
 #else
 				// unsafe cast for speed
-				computed_fitness *= ((EidosValue_Float *)result)->data()[0];
+				computed_fitness *= (slim_fitness_t)((EidosValue_Float *)result)->data()[0];
 #endif
 				
 				// the cached value is owned by the tree, so we do not dispose of it
@@ -2704,7 +2022,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 					double C = fitnessEffect_callback->cached_opt_C_;
 					double D = fitnessEffect_callback->cached_opt_D_;
 					
-					computed_fitness *= (D + (gsl_ran_gaussian_pdf(individual->tagF_value_ - A, B) / C));
+					computed_fitness *= (slim_fitness_t)(D + (gsl_ran_gaussian_pdf(p_individual->tagF_value_ - A, B) / C));
 				}
 				else
 				{
@@ -2733,7 +2051,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 					// referred to by the values may change, but the values themselves will not change).
 					// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
 					if (fitnessEffect_callback->contains_individual_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
+						callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
 					if (fitnessEffect_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 					
@@ -2748,10 +2066,10 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 						
 #if DEBUG
 						// this checks the value type at runtime
-						computed_fitness *= result->FloatData()[0];
+						computed_fitness *= (slim_fitness_t)result->FloatData()[0];
 #else
 						// unsafe cast for speed
-						computed_fitness *= ((EidosValue_Float *)result)->data()[0];
+						computed_fitness *= (slim_fitness_t)((EidosValue_Float *)result)->data()[0];
 #endif
 					}
 					catch (...)
@@ -2777,7 +2095,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 			}
 			
 			// If any callback puts us at or below zero, we can short-circuit the rest
-			if (computed_fitness <= 0.0)
+			if (computed_fitness <= (slim_fitness_t)0.0)
 			{
 				computed_fitness = 0.0;
 				break;
@@ -2792,570 +2110,6 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 	
 	return computed_fitness;
 }
-
-// FitnessOfParent() has three templated versions, for no callbacks, a single callback, and multiple callbacks.  That
-// pattern extends downward to _Fitness_DiploidChromosome() and _Fitness_HaploidChromosome(), which is the level where
-// it actually matters; in FitnessOfParent() the template flags just get passed through.  The goal of this design is
-// twofold.  First, it allows the case without mutationEffect() callbacks to run at full speed.  Second, it allows the
-// single-callback case to be optimized in a special way.  When there is just a single callback, it usually refers to
-// a mutation type that is relatively uncommon.  The model might have neutral mutations in most cases, plus a rare
-// (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common
-// case substantially by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type
-// that the callback modifies.  This pays off mostly when there are many common mutations with no callback, plus one
-// rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a high mutation
-// rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would
-// hit this case hard and see a speedup of as much as 25%, so the additional complexity seems worth it (since that's
-// quite a realistic and common case).  The only unfortunate thing about this design is that p_mutationEffect_callbacks
-// has to get passed all the way down, even when we know we won't use it.  LTO might optimize that away, with luck.
-template <const bool f_mutrunexps, const bool f_callbacks, const bool f_singlecallback>
-double Subpopulation::FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
-{
-	// calculate the fitness of the individual at index p_individual_index in the parent population
-	// this loops through all chromosomes, handling ploidy and callbacks as needed
-	double w = 1.0;
-	Individual *individual = parent_individuals_[p_individual_index];
-	int haplosome_index = 0;
-	
-	for (Chromosome *chromosome : species_.Chromosomes())
-	{
-		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
-		
-		switch (chromosome->Type())
-		{
-				// diploid, possibly with one or both being null haplosomes
-			case ChromosomeType::kA_DiploidAutosome:
-			case ChromosomeType::kX_XSexChromosome:
-			case ChromosomeType::kZ_ZSexChromosome:
-			{
-				Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
-				Haplosome *haplosome2 = individual->haplosomes_[haplosome_index+1];
-				
-				w *= _Fitness_DiploidChromosome<f_callbacks, f_singlecallback>(haplosome1, haplosome2, p_mutationEffect_callbacks);
-				if (w <= 0.0) {
-					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
-					return 0.0;
-				}
-				
-				haplosome_index += 2;
-				break;
-			}
-				
-				// haploid, possibly null
-			case ChromosomeType::kH_HaploidAutosome:
-			case ChromosomeType::kY_YSexChromosome:
-			case ChromosomeType::kW_WSexChromosome:
-			case ChromosomeType::kHF_HaploidFemaleInherited:
-			case ChromosomeType::kFL_HaploidFemaleLine:
-			case ChromosomeType::kHM_HaploidMaleInherited:
-			case ChromosomeType::kML_HaploidMaleLine:
-			{
-				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
-				
-				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
-				if (w <= 0.0) {
-					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
-					return 0.0;
-				}
-				
-				haplosome_index += 1;
-				break;
-			}
-				
-				// special cases: haploid but with an accompanying null
-			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-			{
-				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
-				
-				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
-				if (w <= 0.0) {
-					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
-					return 0.0;
-				}
-				
-				haplosome_index += 2;
-				break;
-			}
-			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			{
-				Haplosome *haplosome = individual->haplosomes_[haplosome_index+1];
-				
-				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
-				if (w <= 0.0) {
-					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
-					return 0.0;
-				}
-				
-				haplosome_index += 2;
-				break;
-			}
-		}
-		
-		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
-	}
-	
-	return w;
-}
-
-template double Subpopulation::FitnessOfParent<false, false, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::FitnessOfParent<false, true, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::FitnessOfParent<false, true, true>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::FitnessOfParent<true, false, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::FitnessOfParent<true, true, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::FitnessOfParent<true, true, true>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-
-double Subpopulation::FitnessOfParent_1CH_Diploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
-{
-	// calculate the fitness of the individual at index p_individual_index in the parent population
-	// this loops through all chromosomes, handling ploidy and callbacks as needed
-	double w = 1.0;
-	Individual *individual = parent_individuals_[p_individual_index];
-	const int haplosome_index = 0;
-	
-	// diploid, possibly with one or both being null haplosomes
-	Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
-	Haplosome *haplosome2 = individual->haplosomes_[haplosome_index+1];
-	
-	w *= _Fitness_DiploidChromosome<false, false>(haplosome1, haplosome2, p_mutationEffect_callbacks);
-	if (w <= 0.0)
-		return 0.0;
-	
-	return w;
-}
-
-double Subpopulation::FitnessOfParent_1CH_Haploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
-{
-	// calculate the fitness of the individual at index p_individual_index in the parent population
-	// this loops through all chromosomes, handling ploidy and callbacks as needed
-	double w = 1.0;
-	Individual *individual = parent_individuals_[p_individual_index];
-	const int haplosome_index = 0;
-	
-	// haploid, possibly null
-	Haplosome *haplosome = individual->haplosomes_[haplosome_index];
-	
-	w *= _Fitness_HaploidChromosome<false, false>(haplosome, p_mutationEffect_callbacks);
-	if (w <= 0.0)
-		return 0.0;
-	
-	return w;
-}
-
-template <const bool f_callbacks, const bool f_singlecallback>
-double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
-{
-	double w = 1.0;
-	bool haplosome1_null = haplosome1->IsNull();
-	bool haplosome2_null = haplosome2->IsNull();
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#endif
-	
-	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
-	MutationType *single_callback_mut_type;
-	
-	if (f_singlecallback)
-	{
-		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
-		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
-		
-		single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
-	}
-	
-	MutationBlock *mutation_block = species_.SpeciesMutationBlock();
-	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
-	
-	if (haplosome1_null && haplosome2_null)
-	{
-		// both haplosomes are null placeholders; no mutations, no fitness effects
-		return w;
-	}
-	else if (haplosome1_null || haplosome2_null)
-	{
-		// one haplosome is null, so we just need to scan through the non-null haplosome and account
-		// for its mutations, including the hemizygous dominance coefficient
-		const Haplosome *haplosome = haplosome1_null ? haplosome2 : haplosome1;
-		const int32_t mutrun_count = haplosome->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun = haplosome->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *haplosome_iter, *haplosome_max;
-			
-			mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
-#endif
-			
-			// with an unpaired chromosome, we multiply each selection coefficient by the hemizygous dominance coefficient
-			// this is for a single X chromosome in a male, for example; dosage compensation, as opposed to heterozygosity
-			while (haplosome_iter != haplosome_max)
-			{
-				MutationIndex haplosome_mutindex = *haplosome_iter++;
-				Mutation *mutation = mut_block_ptr + haplosome_mutindex;
-				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-				slim_effect_t cached_one_plus_hemizygousdom_sel = mutation_block->TraitInfoForIndex(haplosome_mutindex)[0].hemizygous_effect_;
-				
-				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, cached_one_plus_hemizygousdom_sel, p_mutationEffect_callbacks, haplosome->individual_);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= cached_one_plus_hemizygousdom_sel;
-				}
-			}
-		}
-		
-		return w;
-	}
-	else
-	{
-		// both haplosomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const int32_t mutrun_count = haplosome1->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
-			const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
-			
-			mutrun1->beginend_nonneutral_pointers(mut_block_ptr, &haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(mut_block_ptr, &haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
-			const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
-			
-			const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
-			const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
-#endif
-			
-			// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
-			if (haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max)
-			{
-				MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
-				slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
-				
-				do
-				{
-					if (haplosome1_iter_position < haplosome2_iter_position)
-					{
-						// Process a mutation in haplosome1 since it is leading
-						Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
-						// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-						slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
-						
-						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-						{
-							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-						else
-						{
-							w *= cached_one_plus_dom_sel;
-						}
-						
-						if (++haplosome1_iter == haplosome1_max)
-							break;
-						else {
-							haplosome1_mutindex = *haplosome1_iter;
-							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
-						}
-					}
-					else if (haplosome1_iter_position > haplosome2_iter_position)
-					{
-						// Process a mutation in haplosome2 since it is leading
-						Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
-						// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-						slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
-						
-						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-						{
-							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-						else
-						{
-							w *= cached_one_plus_dom_sel;
-						}
-						
-						if (++haplosome2_iter == haplosome2_max)
-							break;
-						else {
-							haplosome2_mutindex = *haplosome2_iter;
-							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
-						}
-					}
-					else
-					{
-						// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
-						slim_position_t position = haplosome1_iter_position;
-						const MutationIndex *haplosome1_start = haplosome1_iter;
-						
-						// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
-							
-							// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
-							while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
-							{
-								if (haplosome1_mutindex == *haplosome2_matchscan)
-								{
-									// a match was found, so we multiply our fitness by the full selection coefficient
-									Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
-									// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-									slim_effect_t cached_one_plus_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].homozygous_effect_;
-									
-									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-									{
-										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, cached_one_plus_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-										
-										if (w <= 0.0)
-											return 0.0;
-									}
-									else
-									{
-										w *= cached_one_plus_sel;
-									}
-									goto homozygousExit1;
-								}
-								
-								haplosome2_matchscan++;
-							}
-							
-							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							{
-								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
-								// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-								slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
-								
-								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-								{
-									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-									
-									if (w <= 0.0)
-										return 0.0;
-								}
-								else
-								{
-									w *= cached_one_plus_dom_sel;
-								}
-							}
-							
-						homozygousExit1:
-							
-							if (++haplosome1_iter == haplosome1_max)
-								break;
-							else {
-								haplosome1_mutindex = *haplosome1_iter;
-								haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
-							}
-						} while (haplosome1_iter_position == position);
-						
-						// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							const MutationIndex *haplosome1_matchscan = haplosome1_start; 
-							
-							// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
-							while (haplosome1_matchscan != haplosome1_max && (mut_block_ptr + *haplosome1_matchscan)->position_ == position)
-							{
-								if (haplosome2_mutindex == *haplosome1_matchscan)
-								{
-									// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
-									goto homozygousExit2;
-								}
-								
-								haplosome1_matchscan++;
-							}
-							
-							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							{
-								Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
-								// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-								slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
-								
-								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-								{
-									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-									
-									if (w <= 0.0)
-										return 0.0;
-								}
-								else
-								{
-									w *= cached_one_plus_dom_sel;
-								}
-							}
-							
-						homozygousExit2:
-							
-							if (++haplosome2_iter == haplosome2_max)
-								break;
-							else {
-								haplosome2_mutindex = *haplosome2_iter;
-								haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
-							}
-						} while (haplosome2_iter_position == position);
-						
-						// break out if either haplosome has reached its end
-						if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
-							break;
-					}
-				} while (true);
-			}
-			
-			// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
-#if DEBUG
-			assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
-#endif
-			
-			// if haplosome1 is unfinished, finish it
-			while (haplosome1_iter != haplosome1_max)
-			{
-				MutationIndex haplosome1_mutindex = *haplosome1_iter++;
-				Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
-				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-				slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[0].heterozygous_effect_;
-				
-				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= cached_one_plus_dom_sel;
-				}
-			}
-			
-			// if haplosome2 is unfinished, finish it
-			while (haplosome2_iter != haplosome2_max)
-			{
-				MutationIndex haplosome2_mutindex = *haplosome2_iter++;
-				Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
-				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-				slim_effect_t cached_one_plus_dom_sel = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[0].heterozygous_effect_;
-				
-				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, cached_one_plus_dom_sel, p_mutationEffect_callbacks, haplosome1->individual_);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= cached_one_plus_dom_sel;
-				}
-			}
-		}
-		
-		return w;
-	}
-}
-
-template double Subpopulation::_Fitness_DiploidChromosome<false, false>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::_Fitness_DiploidChromosome<true, false>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::_Fitness_DiploidChromosome<true, true>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-
-template <const bool f_callbacks, const bool f_singlecallback>
-double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
-{
-	if (haplosome->IsNull())
-	{
-		// the haplosome is a null placeholder; no mutations, no fitness effects
-		return 1.0;
-	}
-	else
-	{
-		// we just need to scan through the haplosome and account for its mutations,
-		// using the homozygous fitness effect (no dominance effects with haploidy)
-#if SLIM_USE_NONNEUTRAL_CACHES
-		int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-		int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#endif
-		
-		// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
-		MutationType *single_callback_mut_type;
-		
-		if (f_singlecallback)
-		{
-			// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
-			slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
-			
-			single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
-		}
-		
-		MutationBlock *mutation_block = species_.SpeciesMutationBlock();
-		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
-		const int32_t mutrun_count = haplosome->mutrun_count_;
-		double w = 1.0;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun = haplosome->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *haplosome_iter, *haplosome_max;
-			
-			mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
-#endif
-			
-			// with a haploid chromosome, we use the homozygous fitness effect
-			while (haplosome_iter != haplosome_max)
-			{
-				MutationIndex haplosome_mutation = *haplosome_iter++;
-				Mutation *mutation = (mut_block_ptr + haplosome_mutation);
-				// FIXME MULTICHROM: This method needs to be extended to support trait indices other than zero; and additive traits also!
-				slim_effect_t cached_one_plus_sel = mutation_block->TraitInfoForIndex(haplosome_mutation)[0].homozygous_effect_;
-				
-				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, cached_one_plus_sel, p_mutationEffect_callbacks, haplosome->individual_);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= cached_one_plus_sel;
-				}
-			}
-		}
-		
-		return w;
-	}
-}
-
-template double Subpopulation::_Fitness_HaploidChromosome<false, false>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::_Fitness_HaploidChromosome<true, false>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template double Subpopulation::_Fitness_HaploidChromosome<true, true>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 
 // WF only:
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
@@ -4235,7 +2989,7 @@ template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, f
 template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, false>(Individual *p_parent);
 template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, true>(Individual *p_parent);
 
-Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
+Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
 {
 	// Create the offspring and record it
 	Individual *individual = NewSubpopIndividual(p_individual_index, p_child_sex, p_age, p_fitness, p_mean_parent_age);
@@ -5912,7 +4666,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 }
 
 // nonWF only:
-bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
+bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, slim_fitness_t p_fitness, double p_draw, bool p_surviving)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplySurvivalCallbacks(): running Eidos callback");
 	
@@ -5959,7 +4713,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 			{
 				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-				EidosValue_Float local_fitness(p_fitness);
+				EidosValue_Float local_fitness((double)p_fitness);
 				EidosValue_Float local_draw(p_draw);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
@@ -6117,12 +4871,12 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 			for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 			{
 				Individual *individual = individual_data[individual_index];
-				double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+				slim_fitness_t fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
 				uint8_t survived;
 				
-				if (fitness <= 0.0)			survived = false;
-				else if (fitness >= 1.0)	survived = true;
-				else						survived = (Eidos_rng_uniform_doubleCO(rng_64) < fitness);
+				if (fitness <= (slim_fitness_t)0.0)			survived = false;
+				else if (fitness >= (slim_fitness_t)1.0)	survived = true;
+				else										survived = (Eidos_rng_uniform_doubleCO(rng_64) < (double)fitness);
 				
 				survival_buf_perthread[individual_index] = survived;
 			}
@@ -6139,9 +4893,9 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 		{
 			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
 			Individual *individual = individual_data[individual_index];
-			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+			slim_fitness_t fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
 			double draw = Eidos_rng_uniform_doubleCO(rng_64);		// always need a draw to pass to the callback
-			uint8_t survived = (draw < fitness);
+			uint8_t survived = (draw < (double)fitness);
 			
 			// run the survival() callbacks to allow the above decision to be modified
 			survived = ApplySurvivalCallbacks(p_survival_callbacks, individual, fitness, draw, survived);
@@ -6495,7 +5249,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 		case gID_fitnessScaling:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(subpop_fitness_scaling_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)subpop_fitness_scaling_));
 			
 			// all others, including gID_none
 		default:
@@ -6576,7 +5330,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosGlobalStr
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
 		
-		float_result->set_float_no_check(value->subpop_fitness_scaling_, value_index);
+		float_result->set_float_no_check((double)value->subpop_fitness_scaling_, value_index);
 	}
 	
 	return float_result;
@@ -6595,9 +5349,9 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 		}
 		case gID_fitnessScaling:	// ACCELERATED
 		{
-			subpop_fitness_scaling_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
+			subpop_fitness_scaling_ = (slim_fitness_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
-			if ((subpop_fitness_scaling_ < 0.0) || std::isnan(subpop_fitness_scaling_))
+			if ((subpop_fitness_scaling_ < (slim_fitness_t)0.0) || std::isnan(subpop_fitness_scaling_))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
 			return;
@@ -6649,9 +5403,9 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p
 #pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
+		slim_fitness_t source_value = (slim_fitness_t)p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
-		if ((source_value < 0.0) || std::isnan(source_value))
+		if ((source_value < 0.0f) || std::isnan(source_value))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -6663,9 +5417,9 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
-			double source_value = source_data[value_index];
+			slim_fitness_t source_value = (slim_fitness_t)source_data[value_index];
 			
-			if ((source_value < 0.0) || std::isnan(source_value))
+			if ((source_value < 0.0f) || std::isnan(source_value))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
 			((Subpopulation *)(p_values[value_index]))->subpop_fitness_scaling_ = source_value;
@@ -11532,7 +10286,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 		}
 		
-		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
+		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : (double)parent_individuals_[index]->cached_fitness_UNSAFE_);
 		
 		float_return->set_float_no_check(fitness, value_index);
 	}

@@ -711,16 +711,19 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 	
-	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
-	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
 	bool sex_enabled = p_subpop->sex_enabled_;
 	double *standard_weights = (sex_enabled ? p_source_subpop->cached_male_fitness_ : p_source_subpop->cached_parental_fitness_);
-	double *current_weights = standard_weights;
-	slim_popsize_t weights_length = p_source_subpop->cached_fitness_size_;
-	bool weights_modified = false;
 	Individual *chosen_mate = nullptr;			// callbacks can return an Individual instead of a weights vector, held here
 	bool weights_reflect_chosen_mate = false;	// if T, a weights vector has been created with a 1 for the chosen mate, to pass to the next callback
 	SLiMEidosBlock *last_interventionist_mate_choice_callback = nullptr;
+	
+	// We start out using standard weights taken from the source subpopulation.  NOTE THAT THOSE COULD BE NULLPTR, in the case where
+	// the fitness of all individuals is equal; if we need to, we will allocate the buffer in the source subpopulation ourselves.
+	// If, when we are done handling callbacks, we are still using the standard weights, then we can do a draw using our fast lookup
+	// tables (or equally weighted, if the weights are still nullptr).  Otherwise, we will do a draw the hard way.
+	double *current_weights = standard_weights;
+	slim_popsize_t weights_length = p_source_subpop->cached_fitness_size_;
+	bool weights_modified = false;
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
 	{
@@ -806,6 +809,46 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				
 				if (mate_choice_callback->contains_weights_)
 				{
+					// current_weights could be nullptr at this point, if standard_weights was nullptr on entry.
+					// In that case, we need to set up standard_weights and then point to it with current_weights.
+					if (!current_weights)
+					{
+						standard_weights = (double *)malloc(sizeof(double) * p_source_subpop->parent_subpop_size_);	// allocate a new weights vector
+						if (!standard_weights)
+							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+						
+						// Then fill the buffer with the appropriate values, knowing that the model is neutral.
+						// This code used to be in UpdateWFFitnessBuffers(); now we do it ourselves on demand.
+						// Note that we only generate the buffer we need -- weights for choosing a second parent.
+						if (sex_enabled)
+						{
+							for (slim_popsize_t female_index = 0; female_index < p_source_subpop->parent_first_male_index_; female_index++)
+								standard_weights[female_index] = 0;
+							for (slim_popsize_t male_index = p_source_subpop->parent_first_male_index_; male_index < p_source_subpop->parent_subpop_size_; male_index++)
+								standard_weights[male_index] = 1.0;
+						}
+						else
+						{
+							for (slim_popsize_t i = 0; i < p_source_subpop->parent_subpop_size_; i++)
+								standard_weights[i] = 1.0;
+						}
+						
+						// We then give the allocated weights buffer to the subpopulation.  We do not want this
+						// to be a private copy; we want to allocate this buffer just once per tick if possible.
+						if (sex_enabled)
+							p_source_subpop->cached_male_fitness_ = standard_weights;
+						else
+							p_source_subpop->cached_parental_fitness_ = standard_weights;
+						
+						p_source_subpop->cached_fitness_size_ = p_source_subpop->parent_subpop_size_;
+						p_source_subpop->cached_fitness_capacity_ = p_source_subpop->parent_subpop_size_;
+						
+						// Then we reference that buffer with current_weights just as if it had existed on entry.
+						current_weights = standard_weights;
+						weights_length = p_source_subpop->cached_fitness_size_;
+						weights_modified = false;
+					}
+					
 					local_weights_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(current_weights, weights_length));
 					callback_symbols.InitializeConstantSymbolEntry(gEidosID_weights, local_weights_ptr);
 				}
@@ -860,7 +903,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 							chosen_mate = nullptr;
 							weights_reflect_chosen_mate = false;
 							
-							// a non-zero float vector must match the size of the source subpop, and provides a new set of weights for us to use
+							// a non-zero float vector must match the size of the source subpop, and provides a
+							// new set of weights for us to use; note current_weights could be nullptr here!
 							if (!weights_modified)
 							{
 								current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
@@ -1062,7 +1106,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 	
-	// The standard behavior, with no active callbacks, is to draw a male parent using the standard fitness values
+	// The standard behavior, with no active callbacks, is to draw a male parent using existing fitness values.
+	// This will fall back on equal probabilities if the GSL discrete preproc machinery has not been set up.
 	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 	
 	return (sex_enabled ? p_source_subpop->DrawMaleParentUsingFitness(rng_state) : p_source_subpop->DrawParentUsingFitness(rng_state));
@@ -5046,7 +5091,7 @@ void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_su
 	// Assuming we now have a record, resize it as needed and insert the new value
 	if (history_rec_ptr)
 	{
-		double *history = history_rec_ptr->history_;
+		double *history = history_rec_ptr->history_;	// FIXME MULTITRAIT: this should be changed to slim_fitness_t, and in QtSLiM also
 		slim_tick_t history_length = history_rec_ptr->history_length_;
 		
 		if (p_history_index >= history_length)
@@ -5057,7 +5102,7 @@ void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_su
 			history = (double *)realloc(history, history_length * sizeof(double));
 			
 			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
-				history[i] = NAN;
+				history[i] = std::numeric_limits<double>::quiet_NaN();
 			
 			// Copy the new values back into the history record
 			history_rec_ptr->history_ = history;
@@ -5140,7 +5185,7 @@ void Population::SurveyPopulation(void)
 		double subpop_unscaled_total = 0;
 		
 		for (Individual *individual : subpop->parent_individuals_)
-			subpop_unscaled_total += individual->cached_unscaled_fitness_;
+			subpop_unscaled_total += (double)individual->cached_unscaled_fitness_;
 		
 		totalUnscaledFitness += subpop_unscaled_total;
 		totalPopSize += subpop_size;
@@ -5373,19 +5418,27 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		}
 	}
 	
+	// we need to recalculate phenotypes for traits that have a direct effect on fitness
+	std::vector<int64_t> p_direct_effect_trait_indices;
+	const std::vector<Trait *> &traits = species_.Traits();
+	
+	for (int trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
+		if (traits[trait_index]->HasDirectFitnessEffect())
+			p_direct_effect_trait_indices.push_back(trait_index);
+	
 	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
 	species_.last_nonneutral_regime_ = current_regime;
 	
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
-																							// FIXME this will get cleaned up when multiple phenotypes is done
-	
+																							// FIXME MULTITRAIT: this will get cleaned up when multiple phenotypes is done
+	// call UpdateFitness() for each subpopulation
 	if (no_active_callbacks)
 	{
 		std::vector<SLiMEidosBlock*> no_callbacks;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			subpop_pair.second->UpdateFitness(no_callbacks, no_callbacks);
+			subpop_pair.second->UpdateFitness(no_callbacks, no_callbacks, p_direct_effect_trait_indices);
 	}
 	else
 	{
@@ -5393,7 +5446,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;	// FIXME MULTITRAIT won't need this any more
+			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
 			std::vector<SLiMEidosBlock*> subpop_fitnessEffect_callbacks;
 			
 			// Get mutationEffect() and fitnessEffect() callbacks that apply to this subpopulation
@@ -5413,7 +5466,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			}
 			
 			// Update fitness values, using the callbacks
-			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks);
+			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks, p_direct_effect_trait_indices);
 		}
 	}
 	
@@ -5435,6 +5488,11 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 				individual->fitness_scaling_ = 1.0;
 		}
 	}
+	
+	// FIXME MULTITRAIT: at present we can't clear this flag here because it is shared by all species.  That
+	// means that if any species uses individual fitnessScaling, all of them take a performance hit.  I think
+	// we could move this flag to Subpopulation or Species, but that might add overhead in tracking it...
+	//Individual::s_any_individual_fitness_scaling_set_ = false;
 }
 
 #if SLIM_CLEAR_HAPLOSOMES

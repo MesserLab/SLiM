@@ -699,117 +699,117 @@ public:
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.
 	
-	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void) const
-	{
-		if (!nonneutral_mutations_)
-		{
-			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer
-			nonneutral_mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
-			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
-			if (!nonneutral_mutations_)
-				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		}
-		
-		// empty out the current buffer contents
-		nonneutral_mutations_count_ = 0;
-	}
-	
-	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index) const
-	{
-		// This is basically the emplace_back() code, but for the nonneutral buffer
-		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
-		{
-#ifdef __clang_analyzer__
-			assert(nonneutral_mutation_capacity_ > 0);
-#endif
-			
-			if (nonneutral_mutation_capacity_ < 32)
-				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-			else
-				nonneutral_mutation_capacity_ += 16;
-			
-			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
-			if (!nonneutral_mutations_)
-				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		}
-		
-		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
-		++nonneutral_mutations_count_;
-	}
-	
-	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const;
-	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const;
-	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const;
-	
-	void check_nonneutral_mutation_cache() const;
-	
-	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(Mutation *p_mut_block_ptr, const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
-	{
-		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
-		{
-			// When running parallel, all nonneutral caches must be validated
-			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
-			THREAD_SAFETY_IN_ACTIVE_PARALLEL("beginend_nonneutral_pointers()");
-			
-			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
-			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
-			nonneutral_change_validation_ = p_nonneutral_change_counter;
-			
-			switch (p_nonneutral_regime)
-			{
-				case 1: cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
-				case 2: cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
-				case 3: cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
-			}
-			
-#if (SLIMPROFILING == 1)
-			// PROFILING
-			recached_run_ = true;
-#endif
-		}
-		
-#if DEBUG
-		check_nonneutral_mutation_cache();
-#endif
-		
-		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
-		*p_mutptr_iter = nonneutral_mutations_;
-		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
-	}
-	
-#ifdef _OPENMP
-	// This is used by Subpopulation::FixNonNeutralCaches_OMP() to validate
-	// these caches; it starts a new task if the nonneutral cache is invalid
-	// This method is called from within a "single" construct.
-	inline __attribute__((always_inline)) void validate_nonneutral_cache(int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
-	{
-		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
-		{
-			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
-			// reasons (most notably being a new mutation run that has not yet cached), validate it with an OpenMP task
-			// We set up these variables to prevent ourselves from seeing the cache as invalid again
-			nonneutral_change_validation_ = p_nonneutral_change_counter;
-			nonneutral_mutations_count_ = 0;
-			
-#if (SLIMPROFILING == 1)
-			// PROFILING
-			recached_run_ = true;
-#endif
-			
-			// I tried splitting the below code out into its own non-inline method,
-			// but that seemed to trigger a compiler bug, so here we are.
-#pragma omp task
-			{
-				switch (p_nonneutral_regime)
-				{
-					case 1: cache_nonneutral_mutations_REGIME_1(); break;
-					case 2: cache_nonneutral_mutations_REGIME_2(); break;
-					case 3: cache_nonneutral_mutations_REGIME_3(); break;
-				}
-			}
-		}
-	}
-#endif
+//	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void) const
+//	{
+//		if (!nonneutral_mutations_)
+//		{
+//			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer
+//			nonneutral_mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+//			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+//			if (!nonneutral_mutations_)
+//				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+//		}
+//		
+//		// empty out the current buffer contents
+//		nonneutral_mutations_count_ = 0;
+//	}
+//	
+//	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index) const
+//	{
+//		// This is basically the emplace_back() code, but for the nonneutral buffer
+//		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
+//		{
+//#ifdef __clang_analyzer__
+//			assert(nonneutral_mutation_capacity_ > 0);
+//#endif
+//			
+//			if (nonneutral_mutation_capacity_ < 32)
+//				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+//			else
+//				nonneutral_mutation_capacity_ += 16;
+//			
+//			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+//			if (!nonneutral_mutations_)
+//				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+//		}
+//		
+//		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
+//		++nonneutral_mutations_count_;
+//	}
+//	
+//	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const;
+//	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const;
+//	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const;
+//	
+//	void check_nonneutral_mutation_cache() const;
+//	
+//	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(Mutation *p_mut_block_ptr, const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
+//	{
+//		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
+//		{
+//			// When running parallel, all nonneutral caches must be validated
+//			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
+//			THREAD_SAFETY_IN_ACTIVE_PARALLEL("beginend_nonneutral_pointers()");
+//			
+//			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
+//			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
+//			nonneutral_change_validation_ = p_nonneutral_change_counter;
+//			
+//			switch (p_nonneutral_regime)
+//			{
+//				case 1: cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
+//				case 2: cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
+//				case 3: cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
+//			}
+//			
+//#if (SLIMPROFILING == 1)
+//			// PROFILING
+//			recached_run_ = true;
+//#endif
+//		}
+//		
+//#if DEBUG
+//		check_nonneutral_mutation_cache();
+//#endif
+//		
+//		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
+//		*p_mutptr_iter = nonneutral_mutations_;
+//		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
+//	}
+//
+//#ifdef _OPENMP
+//	// This is used by Subpopulation::FixNonNeutralCaches_OMP() to validate
+//	// these caches; it starts a new task if the nonneutral cache is invalid
+//	// This method is called from within a "single" construct.
+//	inline __attribute__((always_inline)) void validate_nonneutral_cache(int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
+//	{
+//		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
+//		{
+//			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
+//			// reasons (most notably being a new mutation run that has not yet cached), validate it with an OpenMP task
+//			// We set up these variables to prevent ourselves from seeing the cache as invalid again
+//			nonneutral_change_validation_ = p_nonneutral_change_counter;
+//			nonneutral_mutations_count_ = 0;
+//			
+//#if (SLIMPROFILING == 1)
+//			// PROFILING
+//			recached_run_ = true;
+//#endif
+//			
+//			// I tried splitting the below code out into its own non-inline method,
+//			// but that seemed to trigger a compiler bug, so here we are.
+//#pragma omp task
+//			{
+//				switch (p_nonneutral_regime)
+//				{
+//					case 1: cache_nonneutral_mutations_REGIME_1(); break;
+//					case 2: cache_nonneutral_mutations_REGIME_2(); break;
+//					case 3: cache_nonneutral_mutations_REGIME_3(); break;
+//				}
+//			}
+//		}
+//	}
+//#endif
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING

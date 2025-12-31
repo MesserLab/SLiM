@@ -105,6 +105,15 @@ public:
 	// The state of is_neutral_ is updated to reflect the current state of the mutation whenever it changes.
 	// This is used to make constructing non-neutral caches for trait evaluation fast with multiple traits.
 	unsigned int is_neutral_ : 1;
+	// FIXME MULTITRAIT: it occurs to me that the present is_neutral_ flag on mutations is ambiguous.  One meaning
+	// is "this mutation has neutral effects for all traits"; such mutations can be disregarded in all phenotype
+	// calculations.  The other is "this mutation has neutral effects for all traits *that have a direct fitness
+	// effect*"; such mutations can be disregarded for all calculations leading to a fitness value.  The former
+	// is the meaning that needs to determine whether a given mutation is placed into a non-neutral cache, since
+	// the non-neutral caches will be used for all phenotype calculations (I THINK?).  The latter is the meaning
+	// that should be used to determine whether a given trait with a direct fitness effect is considered to be
+	// neutral or not; if any mutation has a non-neutral effect on that given trait, then that trait needs to be
+	// demanded and factored in to fitness calculations.
 	
 	// is_independent_dominance_ is true if the mutation has been configured to exhibit "independent dominance",
 	// meaning that two heterozygous effects equal one homozygous effect, allowing the effects from haplosomes

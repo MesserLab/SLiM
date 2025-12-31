@@ -143,14 +143,15 @@ public:
 	slim_usertag_t tag_value_;			// a user-defined tag value of integer type
 	double tagF_value_;					// a user-defined tag value of float type
 	
-	double fitness_scaling_ = 1.0;		// the fitnessScaling property value
-	double cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
-										// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
-										// this value in neutral models; that flag must be checked before using this cached value
+	// FIXME MULTITRAIT: We should also have a typedef for trait indices, and it should be int32_t, again for speed/size; get rid of int64_t for this
+	slim_fitness_t fitness_scaling_ = 1.0f;		// the fitnessScaling property value
+	slim_fitness_t cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
+												// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
+												// this value in constant-fitness models; that flag must be checked before using this cached value
 #ifdef SLIMGUI
-	double cached_unscaled_fitness_;	// the last calculated fitness value for this individual, WITHOUT subpop fitnessScaling; used only in
-										// in SLiMgui, which wants to exclude that scaling because it usually represents density-dependence
-										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
+	slim_fitness_t cached_unscaled_fitness_;	// the last calculated fitness value for this individual, WITHOUT subpop fitnessScaling; used only in
+												// in SLiMgui, which wants to exclude that scaling because it usually represents density-dependence
+												// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
 	Haplosome *hapbuffer_[2];			// *(hapbuffer_[2]), an internal buffer used to avoid allocation and increase memory locality
@@ -177,7 +178,7 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age);
 	virtual ~Individual(void) override;
 	
 	void _InitializePerTraitInformation(void);

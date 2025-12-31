@@ -1419,7 +1419,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #endif
 			
 			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
-			if (selection_coeff != 0.0)
+			if (selection_coeff != (slim_effect_t)0.0)
 			{
 				pure_neutral_ = false;
 				mutation_type_ptr->all_neutral_mutations_ = false;
@@ -1676,6 +1676,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		int32_t double_size;
 		double double_test;
 		int64_t flags = 0;
+		// FIXME MULTITRAIT: add new sizes here like slim_fitness_t
 		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_effect_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size, slim_usertag_t_size;
 		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(flags) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_effect_t_size) + sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size) + sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t_size) + sizeof(slim_usertag_t_size) + sizeof(file_tick) + sizeof(file_cycle) + sizeof(section_end_tag);
 		
@@ -2185,7 +2186,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 #endif
 			
 			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
-			if (selection_coeff != 0.0)
+			if (selection_coeff != (slim_effect_t)0.0)
 			{
 				pure_neutral_ = false;
 				mutation_type_ptr->all_neutral_mutations_ = false;
@@ -2534,6 +2535,14 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
 		community_.executing_species_ = this;
 		
+		// we need to recalculate phenotypes for traits that have a direct effect on fitness
+		std::vector<int64_t> p_direct_effect_trait_indices;
+		const std::vector<Trait *> &traits = Traits();
+		
+		for (int trait_index = 0; trait_index < TraitCount(); ++trait_index)
+			if (traits[trait_index]->HasDirectFitnessEffect())
+				p_direct_effect_trait_indices.push_back(trait_index);
+		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
@@ -2541,7 +2550,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1, -1);
 			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1, -1);
 			
-			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks);
+			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks, p_direct_effect_trait_indices);
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;
@@ -4479,9 +4488,9 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	/*
 	 Subpopulation:
 	 
-	gsl_ran_discrete_t *lookup_parent_ = nullptr;			// OWNED POINTER: lookup table for drawing a parent based upon fitness
-	gsl_ran_discrete_t *lookup_female_parent_ = nullptr;	// OWNED POINTER: lookup table for drawing a female parent based upon fitness, SEX ONLY
-	gsl_ran_discrete_t *lookup_male_parent_ = nullptr;		// OWNED POINTER: lookup table for drawing a male parent based upon fitness, SEX ONLY
+	gsl_ran_discrete_t *lookup_parent_ = nullptr;
+	gsl_ran_discrete_t *lookup_female_parent_ = nullptr;
+	gsl_ran_discrete_t *lookup_male_parent_ = nullptr;
 
 	 */
 	
@@ -7848,7 +7857,7 @@ void Species::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_m
 	
 	p_metadata->mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
 	
-	// FIXME MULTITRAIT: We need to figure out where we're going to multitrait information in .trees
+	// FIXME MULTITRAIT: We need to figure out where we're going to put multitrait information in .trees
 	// For now we just write out the effect for trait 0, but we need the dominance coeff too, and we need
 	// it for all traits in the model not just trait 0; this design is not going to work. See
 	// https://github.com/MesserLab/SLiM/issues/569
@@ -7871,7 +7880,7 @@ void Species::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 	
 	p_metadata->mutation_type_id_ = p_substitution->mutation_type_ptr_->mutation_type_id_;
 	
-	// FIXME MULTITRAIT: We need to figure out where we're going to multitrait information in .trees
+	// FIXME MULTITRAIT: We need to figure out where we're going to put multitrait information in .trees
 	// For now we just write out the effect for trait 0, but we need the dominance coeff too, and we need
 	// it for all traits in the model not just trait 0; this design is not going to work.  See
 	// https://github.com/MesserLab/SLiM/issues/569
@@ -9947,7 +9956,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		}
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
-		if (metadata.selection_coeff_ != 0.0)
+		if (metadata.selection_coeff_ != (slim_effect_t)0.0)
 		{
 			pure_neutral_ = false;
 			mutation_type_ptr->all_neutral_mutations_ = false;

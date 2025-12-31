@@ -94,7 +94,9 @@ public:
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_
 	slim_effect_t _DrawIndividualOffset(void) const;		// draws from a normal distribution defined by individualOffsetMean_ and individualOffsetSD_
-	inline slim_effect_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
+	inline __attribute__((always_inline)) slim_effect_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
+	
+	inline __attribute__((always_inline)) bool HasDirectFitnessEffect(void) const { return directFitnessEffect_; }
 	
 	
 	//

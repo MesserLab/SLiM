@@ -732,14 +732,14 @@ void SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 		if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
 		
 		double color_2_weight = color_index - color_index_1;
-		double color_1_weight = 1.0F - color_2_weight;
+		double color_1_weight = 1.0 - color_2_weight;
 		
-		double red1 = red_components_[color_index_1];
-		double green1 = green_components_[color_index_1];
-		double blue1 = blue_components_[color_index_1];
-		double red2 = red_components_[color_index_2];
-		double green2 = green_components_[color_index_2];
-		double blue2 = blue_components_[color_index_2];
+		double red1 = (double)red_components_[color_index_1];
+		double green1 = (double)green_components_[color_index_1];
+		double blue1 = (double)blue_components_[color_index_1];
+		double red2 = (double)red_components_[color_index_2];
+		double green2 = (double)green_components_[color_index_2];
+		double blue2 = (double)blue_components_[color_index_2];
 		
 		p_rgb_ptr[0] = (red1 * color_1_weight + red2 * color_2_weight);
 		p_rgb_ptr[1] = (green1 * color_1_weight + green2 * color_2_weight);
@@ -773,14 +773,14 @@ void SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 		if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
 		
 		double color_2_weight = color_index - color_index_1;
-		double color_1_weight = 1.0F - color_2_weight;
+		double color_1_weight = 1.0 - color_2_weight;
 		
-		double red1 = red_components_[color_index_1];
-		double green1 = green_components_[color_index_1];
-		double blue1 = blue_components_[color_index_1];
-		double red2 = red_components_[color_index_2];
-		double green2 = green_components_[color_index_2];
-		double blue2 = blue_components_[color_index_2];
+		double red1 = (double)red_components_[color_index_1];
+		double green1 = (double)green_components_[color_index_1];
+		double blue1 = (double)blue_components_[color_index_1];
+		double red2 = (double)red_components_[color_index_2];
+		double green2 = (double)green_components_[color_index_2];
+		double blue2 = (double)blue_components_[color_index_2];
 		
 		p_rgb_ptr[0] = (float)(red1 * color_1_weight + red2 * color_2_weight);
 		p_rgb_ptr[1] = (float)(green1 * color_1_weight + green2 * color_2_weight);

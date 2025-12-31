@@ -58,7 +58,7 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 		if (trait_index > 0)
 			p_out << ",";
 		
-		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
 		p_out << double_buf;
 	}
 	
@@ -75,7 +75,7 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 			p_out << "NAN";
 		else
 		{
-			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, dominance);		// necessary precision for non-lossiness
+			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)dominance);		// necessary precision for non-lossiness
 			p_out << double_buf;
 		}
 	}
@@ -119,7 +119,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 		if (trait_index > 0)
 			p_out << ",";
 		
-		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
 		p_out << double_buf;
 	}
 	
@@ -136,7 +136,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 			p_out << "NAN";
 		else
 		{
-			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, dominance);		// necessary precision for non-lossiness
+			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)dominance);		// necessary precision for non-lossiness
 			p_out << double_buf;
 		}
 	}

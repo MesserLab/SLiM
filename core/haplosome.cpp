@@ -1337,7 +1337,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 			if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
 			{
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mut_index);
-				effect_sum += mut_trait_info[0].effect_size_;
+				effect_sum += (double)mut_trait_info[0].effect_size_;
 			}
 		}
 	}
@@ -2974,7 +2974,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 					
 					// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 					// The selection coefficient was supplied by the user (i.e., not be from the mutation type's DES), so we set all_neutral_mutations_ also
-					if (selection_coeff != 0.0)
+					if (selection_coeff != (slim_effect_t)0.0)
 					{
 						species->pure_neutral_ = false;
 						mutation_type_ptr->all_neutral_mutations_ = false;
@@ -3476,7 +3476,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-		if (selection_coeff != 0.0)
+		if (selection_coeff != (slim_effect_t)0.0)
 		{
 			species.pure_neutral_ = false;
 			
@@ -4134,7 +4134,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			
 			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 			// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DES), so we set all_neutral_mutations_ also
-			if (selection_coeff != 0.0)
+			if (selection_coeff != (slim_effect_t)0.0)
 			{
 				species->pure_neutral_ = false;
 				mutation_type_ptr->all_neutral_mutations_ = false;
@@ -4412,7 +4412,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				
 				for (int trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
-					if (mut_trait_info[trait_index].effect_size_ != 0.0)
+					if (mut_trait_info[trait_index].effect_size_ != (slim_effect_t)0.0)
 					{
 						any_nonneutral_removed = true;
 						break;

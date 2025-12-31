@@ -86,7 +86,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
 		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 		
-		if (effect != 0.0)
+		if (effect != (slim_effect_t)0.0)
 		{
 			is_neutral_ = false;
 			
@@ -217,7 +217,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			traitInfoRec->dominance_coeff_UNSAFE_ = dominance;	// can be NAN
 			traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 			
-			if (effect != 0.0)
+			if (effect != (slim_effect_t)0.0)
 			{
 				is_neutral_ = false;
 				
@@ -313,7 +313,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
 		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 		
-		if (effect != 0.0)
+		if (effect != (slim_effect_t)0.0)
 		{
 			is_neutral_ = false;
 			
@@ -428,7 +428,7 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
 		if (correct_hemizygous_effect != traitInfoRec.hemizygous_effect_)
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) hemizygous_effect_ does not match expectations" << p_message_end << "." << EidosTerminate();
 		
-		if (traitInfoRec.effect_size_ != 0.0)
+		if (traitInfoRec.effect_size_ != (slim_effect_t)0.0)
 			all_neutral_effects = false;
 	}
 	
@@ -463,7 +463,7 @@ slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait)
 			
 			if (effect_size == (slim_effect_t)0.0)
 				return (slim_effect_t)0.5;
-			if (effect_size <= -1.0)
+			if (effect_size <= (slim_effect_t)-1.0)
 				return (slim_effect_t)1.0;
 			
 			// do the math in double-precision float to avoid numerical error
@@ -484,9 +484,9 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 	
 	traitInfoRec->effect_size_ = p_new_effect;
 	
-	if (p_new_effect != 0.0)
+	if (p_new_effect != (slim_effect_t)0.0)
 	{
-		if (old_effect == 0.0)
+		if (old_effect == (slim_effect_t)0.0)
 		{
 			// This mutation is no longer neutral; various observers care about that change
 			is_neutral_ = false;
@@ -534,7 +534,7 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 		
 		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
-			if ((mut_trait_info + trait_index)->effect_size_ != 0.0)
+			if ((mut_trait_info + trait_index)->effect_size_ != (slim_effect_t)0.0)
 			{
 				is_neutral_ = false;
 				break;
@@ -694,7 +694,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[0].effect_size_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[0].effect_size_));
 			else if (trait_count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
 			else
@@ -705,7 +705,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 					
-					float_result->push_float_no_check(effect);
+					float_result->push_float_no_check((double)effect);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -724,7 +724,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[0]);
 				
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
 			}
 			else if (trait_count == 0)
 			{
@@ -738,7 +738,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[trait_index]);
 					
-					float_result->push_float_no_check(realized_dominance);
+					float_result->push_float_no_check((double)realized_dominance);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -755,7 +755,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			size_t trait_count = traits.size();
 			
 			if (trait_count == 1)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[0].hemizygous_dominance_coeff_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[0].hemizygous_dominance_coeff_));
 			else if (trait_count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
 			else
@@ -766,7 +766,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 					
-					float_result->push_float_no_check(dominance);
+					float_result->push_float_no_check((double)dominance);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -835,7 +835,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 					MutationBlock *mutation_block = species.SpeciesMutationBlock();
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
 					
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[trait->Index()].effect_size_));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[trait->Index()].effect_size_));
 				}
 			}
 			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
@@ -848,7 +848,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 					MutationBlock *mutation_block = species.SpeciesMutationBlock();
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
 					
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mut_trait_info[trait->Index()].hemizygous_dominance_coeff_));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[trait->Index()].hemizygous_dominance_coeff_));
 				}
 			}
 			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
@@ -861,7 +861,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 					// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
 					slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 					
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
 				}
 			}
 			
@@ -1255,7 +1255,7 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 		int64_t trait_index = trait_indices[0];
 		slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(effect));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
 	}
 	else
 	{
@@ -1265,7 +1265,7 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 		{
 			slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 			
-			float_result->push_float_no_check(effect);
+			float_result->push_float_no_check((double)effect);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -1292,7 +1292,7 @@ EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_me
 		Trait *trait = traits[trait_index];
 		slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(realized_dominance));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
 	}
 	else
 	{
@@ -1303,7 +1303,7 @@ EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_me
 			Trait *trait = traits[trait_index];
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 			
-			float_result->push_float_no_check(realized_dominance);
+			float_result->push_float_no_check((double)realized_dominance);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -1331,7 +1331,7 @@ EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStr
 		int64_t trait_index = trait_indices[0];
 		slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)dominance));
 	}
 	else
 	{
@@ -1341,7 +1341,7 @@ EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStr
 		{
 			slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 			
-			float_result->push_float_no_check(dominance);
+			float_result->push_float_no_check((double)dominance);
 		}
 		
 		return EidosValue_SP(float_result);

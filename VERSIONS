@@ -49,7 +49,7 @@ multitrait branch:
 		add Species methods – (object<Trait>)traitsWithIndices(integer indices) and – (object<Trait>)traitsWithNames(string names)
 		add Trait properties:
 			baselineOffset <-> (float$)
-			directFitnessEffect <-> (logical$)
+			directFitnessEffect => (logical$)
 			index => (integer$)
 			individualOffsetMean <-> (float$)
 			individualOffsetSD <-> (float$)
@@ -121,6 +121,8 @@ multitrait branch:
 		a new RealizedDominance() internal (C++) method calculates the correct dominance value to use when independent dominance is configured for a mutation
 		Mutation and Substitution's dominanceForTrait() methods now use RealizedDominance(), and thus never report NAN as a dominance value (use isIndependentDominance to check for that)
 		note that there is no concept of independent dominance for the hemizygous dominance coefficient, since hemizygous mutations are present in only one copy by definition
+	switch fitness calculation over to being based upon the calculated values of traits, rather than directly upon mutations
+	eliminate overhead for setting up fitness buffers in neutral WF models; this should provide a significant speedup for such models, if they don't use a mateChoice() callback
 
 
 version 5.1 (Eidos version 4.1):
