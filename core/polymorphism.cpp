@@ -51,9 +51,9 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -64,7 +64,7 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 	
 	p_out << " ";
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -112,9 +112,9 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -125,7 +125,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	
 	p_out << " ";
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -174,9 +174,9 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -186,7 +186,7 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 	
 	p_out << " ";
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -241,9 +241,9 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";
@@ -253,7 +253,7 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 	
 	p_out << " ";
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		if (trait_index > 0)
 			p_out << ",";

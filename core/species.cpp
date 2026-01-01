@@ -571,7 +571,7 @@ void Species::AddTrait(Trait *p_trait)
 	EidosGlobalStringID name_string_id = EidosStringRegistry::GlobalStringIDForString(name);
 	
 	// this is the main registry, and owns the retain count on every trait; it takes the caller's retain here
-	p_trait->SetIndex(traits_.size());
+	p_trait->SetIndex((slim_trait_index_t)(traits_.size()));
 	traits_.push_back(p_trait);
 	
 	// these are secondary indices that do not keep a retain on the traits
@@ -580,7 +580,7 @@ void Species::AddTrait(Trait *p_trait)
 }
 
 // This returns the trait index for a single trait, represented by an EidosValue with an integer index or a Trait object
-int64_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name)
+slim_trait_index_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name)
 {
 	int64_t trait_index;
 	
@@ -601,22 +601,22 @@ int64_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std:
 	if ((trait_index < 0) || (trait_index >= TraitCount()))
 		EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
 	
-	return trait_index;
+	return (slim_trait_index_t)trait_index;
 }
 
 // This returns trait indices, represented by an EidosValue with integer indices, string names, or Trait objects, or NULL for all traits
-void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name)
+void Species::GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name)
 {
 	EidosValueType traits_value_type = traits_value->Type();
 	int traits_value_count = traits_value->Count();
-	int trait_count = TraitCount();
+	slim_trait_index_t trait_count = TraitCount();
 	
 	switch (traits_value_type)
 	{
 			// NULL means "all traits", unlike for GetTraitIndexFromEidosValue()
 		case EidosValueType::kValueNULL:
 		{
-			for (int64_t trait_index = 0; trait_index < trait_count; ++trait_index)
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				trait_indices.push_back(trait_index);
 			break;
 		}
@@ -631,7 +631,7 @@ void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices,
 				if ((trait_index < 0) || (trait_index >= TraitCount()))
 					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
 				
-				trait_indices.push_back(trait_index);
+				trait_indices.push_back((slim_trait_index_t)trait_index);
 			}
 			break;
 		}
@@ -2536,10 +2536,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		community_.executing_species_ = this;
 		
 		// we need to recalculate phenotypes for traits that have a direct effect on fitness
-		std::vector<int64_t> p_direct_effect_trait_indices;
+		std::vector<slim_trait_index_t> p_direct_effect_trait_indices;
 		const std::vector<Trait *> &traits = Traits();
 		
-		for (int trait_index = 0; trait_index < TraitCount(); ++trait_index)
+		for (slim_trait_index_t trait_index = 0; trait_index < TraitCount(); ++trait_index)
 			if (traits[trait_index]->HasDirectFitnessEffect())
 				p_direct_effect_trait_indices.push_back(trait_index);
 		
@@ -2604,7 +2604,7 @@ Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) 
 #pragma mark Running cycles
 #pragma mark -
 
-std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_objectid_t p_trait_index, int64_t p_chromosome_id)
+std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id)
 {
 	// Callbacks are species-specific; this method calls up to the community, which manages script blocks,
 	// but does a species-specific search.

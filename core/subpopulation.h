@@ -165,9 +165,9 @@ public:
 	// species.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
 	typedef struct _PerTraitSubpopCaches {
 		std::vector<SLiMEidosBlock*> mutationEffect_callbacks_per_trait;	// NOT OWNED: mutationEffect() callbacks per subpopulation per trait
-		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
-		void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
-		void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 	} PerTraitSubpopCaches;
 	
 	std::vector<PerTraitSubpopCaches> per_trait_subpop_caches_;	// one entry per trait, indexed by trait index
@@ -383,10 +383,10 @@ public:
 	void FixNonNeutralCaches_OMP(void);
 #endif
 	
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
+	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
 	
 	template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
-	void _UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+	void _UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
 	
 	slim_effect_t ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	slim_fitness_t ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual);

@@ -158,7 +158,7 @@ public:
 	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
-	slim_objectid_t trait_index_ = -1;							// -1 if not limited by this
+	slim_trait_index_t trait_index_ = -1;							// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
 	int64_t chromosome_id_ = -1;								// -1 if not limited by this

@@ -1356,7 +1356,7 @@ void Subpopulation::FixNonNeutralCaches_OMP(void)
 // calls UpdateFitness() on each subpopulation.  This method expresses demand for the traits in question, and
 // then produces fitness values by factoring in fitnessEffect() callbacks and fitnessScaling values.  It stores
 // the fitness values in the appropriate places to prepare for their later use.
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation)
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation)
 {
 	// Determine whether we are in a "pure neutral" case where we don't need to calculate individual fitness
 	// because all individuals have neutral fitness.  The simplest case where this is true is if there are no
@@ -1441,7 +1441,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		bool f_has_fitnessEffect_callbacks = (p_fitnessEffect_callbacks.size() > 0);
 		bool f_has_trait_direct_effects = (p_direct_effect_trait_indices.size() > 0);
 		bool f_single_trait = (p_direct_effect_trait_indices.size() == 1);
-		void (Subpopulation::*_UpdateFitness_TEMPLATED)(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices) = nullptr;
+		void (Subpopulation::*_UpdateFitness_TEMPLATED)(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices) = nullptr;
 		
 		if (f_has_subpop_fitnessScaling)
 		{
@@ -1506,7 +1506,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 }
 
 template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
-void Subpopulation::_UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices)
+void Subpopulation::_UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices)
 {
 	// manage the shuffle buffer; this is not quite as fast as templatizing this flag, but it's simpler, and it
 	// only adds overhead when fitnessEffect() callbacks are present, otherwise it get optimized out completely
@@ -1514,7 +1514,7 @@ void Subpopulation::_UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect
 	slim_popsize_t *shuffle_buf = (f_has_shuffle_buffer ? species_.BorrowShuffleBuffer(parent_subpop_size_) : nullptr);
 	
 	slim_fitness_t subpop_fitness_scaling = (f_has_subpop_fitnessScaling ? (slim_fitness_t)subpop_fitness_scaling_ : (slim_fitness_t)0.0);	// guaranteed >= 0.0
-	int64_t single_trait_index = (f_has_trait_effects && f_single_trait ? p_direct_effect_trait_indices[0] : 0);
+	slim_trait_index_t single_trait_index = (f_has_trait_effects && f_single_trait ? p_direct_effect_trait_indices[0] : 0);
 	
 	for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
 	{
@@ -1536,7 +1536,7 @@ void Subpopulation::_UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect
 				}
 				else
 				{
-					for (int64_t trait_index : p_direct_effect_trait_indices)
+					for (slim_trait_index_t trait_index : p_direct_effect_trait_indices)
 						fitness *= trait_info[trait_index].phenotype_;		// >= 0.0 for multiplicative traits
 				}
 			}
@@ -1581,30 +1581,30 @@ void Subpopulation::_UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect
 		species_.ReturnShuffleBuffer();
 }
 
-template void Subpopulation::_UpdateFitness<false, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<false, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_UpdateFitness<true, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<int64_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<false, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_UpdateFitness<true, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
 
 // WF only:
 void Subpopulation::UpdateWFFitnessBuffers(void)

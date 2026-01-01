@@ -47,11 +47,11 @@ EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), po
 	Species &species = mutation_type_ptr_->species_;
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(&p_mutation);
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
 	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
 	
-	for (int trait_index = 0; trait_index < trait_count; trait_index++)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
 	{
 		trait_info_[trait_index].effect_size_ = mut_trait_info[trait_index].effect_size_;
 		trait_info_[trait_index].dominance_coeff_UNSAFE_ = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
@@ -69,7 +69,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	// FIXME MULTITRAIT: This code path is hit when loading substitutions from an output file, also needs to initialize the multitrait info; this is just a
 	// placeholder.  The file being read in ought to specify per-trait values, which hasn't happened yet, so there are lots of details to be worked out...
 	Species &species = mutation_type_ptr_->species_;
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
 	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
 	
@@ -82,7 +82,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	trait_info_[0].dominance_coeff_UNSAFE_ = p_dominance_coeff;		// can be NAN
 	trait_info_[0].hemizygous_dominance_coeff_ = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(0);		// FIXME MULTITRAIT: needs to be passed in
 	
-	for (int trait_index = 1; trait_index < trait_count; trait_index++)
+	for (slim_trait_index_t trait_index = 1; trait_index < trait_count; trait_index++)
 	{
 		trait_info_[trait_index].effect_size_ = 0.0;					// FIXME MULTITRAIT: needs to be passed in
 		trait_info_[trait_index].dominance_coeff_UNSAFE_ = 0.0;			// FIXME MULTITRAIT: needs to be passed in
@@ -102,11 +102,10 @@ void Substitution::SelfConsistencyCheck(const std::string &p_message_end)
 		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): (internal error) trait_info_ is nullptr" << p_message_end << "." << EidosTerminate();
 	
 	Species &species = mutation_type_ptr_->species_;
-	const std::vector<Trait *> &traits = species.Traits();
-	int trait_count = (int)traits.size();
+	slim_trait_index_t trait_count = species.TraitCount();
 	bool all_neutral_effects = true;
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		SubstitutionTraitInfo &traitInfoRec = trait_info_[trait_index];
 		
@@ -131,7 +130,7 @@ void Substitution::SelfConsistencyCheck(const std::string &p_message_end)
 
 slim_effect_t Substitution::RealizedDominanceForTrait(Trait *p_trait)
 {
-	int64_t trait_index = p_trait->Index();
+	slim_trait_index_t trait_index = p_trait->Index();
 	SubstitutionTraitInfo &traitInfoRec = trait_info_[trait_index];
 	
 	if (std::isnan(traitInfoRec.dominance_coeff_UNSAFE_))
@@ -182,9 +181,9 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	
 	// write out per-trait information
 	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		p_out << " " << trait_info_[trait_index].effect_size_ << " ";
 		
@@ -229,9 +228,9 @@ void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
 	
 	// write out per-trait information
 	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
-	int trait_count = species.TraitCount();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		p_out << " " << trait_info_[trait_index].effect_size_ << " ";
 		
@@ -310,8 +309,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
 			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
 			Species &species = mutation_type_ptr_->species_;
-			const std::vector<Trait *> &traits = species.Traits();
-			size_t trait_count = traits.size();
+			slim_trait_index_t trait_count = species.TraitCount();
 			
 			if (trait_count == 1)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[0].effect_size_));
@@ -321,7 +319,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
-				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					slim_effect_t effect = trait_info_[trait_index].effect_size_;
 					
@@ -338,7 +336,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
 			Species &species = mutation_type_ptr_->species_;
 			const std::vector<Trait *> &traits = species.Traits();
-			size_t trait_count = traits.size();
+			slim_trait_index_t trait_count = species.TraitCount();
 			
 			if (trait_count == 1)
 			{
@@ -354,7 +352,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
-				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[trait_index]);
 					
@@ -369,8 +367,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
 			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
 			Species &species = mutation_type_ptr_->species_;
-			const std::vector<Trait *> &traits = species.Traits();
-			size_t trait_count = traits.size();
+			slim_trait_index_t trait_count = species.TraitCount();
 			
 			if (trait_count == 1)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[0].hemizygous_dominance_coeff_));
@@ -380,7 +377,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
-				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
 					
@@ -712,12 +709,12 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 	
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		slim_effect_t effect = trait_info_[trait_index].effect_size_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
@@ -726,7 +723,7 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t effect = trait_info_[trait_index].effect_size_;
 			
@@ -747,12 +744,12 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
 	const std::vector<Trait *> &traits = species.Traits();
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "dominanceForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		Trait *trait = traits[trait_index];
 		slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 		
@@ -762,7 +759,7 @@ EidosValue_SP Substitution::ExecuteMethod_dominanceForTrait(EidosGlobalStringID 
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = traits[trait_index];
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
@@ -783,12 +780,12 @@ EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGloba
 	
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "hemizygousDominanceForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)dominance));
@@ -797,7 +794,7 @@ EidosValue_SP Substitution::ExecuteMethod_hemizygousDominanceForTrait(EidosGloba
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t dominance = trait_info_[trait_index].hemizygous_dominance_coeff_;
 			

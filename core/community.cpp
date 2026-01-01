@@ -556,7 +556,7 @@ void Community::ValidateScriptBlockCaches(void)
 	}
 }
 
-std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_objectid_t p_trait_index, int64_t p_chromosome_id, Species *p_species)
+std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, Species *p_species)
 {
 	if (!script_block_types_cached_)
 		ValidateScriptBlockCaches();
@@ -641,7 +641,7 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 		// check that the trait index matches, if requested
 		if (p_trait_index != -1)
 		{
-			slim_objectid_t trait_index = script_block->trait_index_;
+			slim_trait_index_t trait_index = script_block->trait_index_;
 			
 			if ((trait_index != -1) && (p_trait_index != trait_index))
 				continue;

@@ -131,7 +131,7 @@ void Individual::_InitializePerTraitInformation(void)
 	
 	Species &species = subpopulation_->species_;
 	const std::vector<Trait *> &traits = species.Traits();
-	int trait_count = (int)traits.size();
+	slim_trait_index_t trait_count = species.TraitCount();
 	
 	if (trait_count == 1)
 	{
@@ -176,7 +176,7 @@ void Individual::_InitializePerTraitInformation(void)
 		if (!trait_info_)
 			trait_info_ = static_cast<IndividualTraitInfo *>(malloc(trait_count * sizeof(IndividualTraitInfo)));
 		
-		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
 			trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_effect_t>::quiet_NaN();	// "uncalculated"
 			trait_info_[trait_index].offset_ = traits[trait_index]->DrawIndividualOffset();
@@ -2527,7 +2527,7 @@ EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID 
 	if (species)
 	{
 		Trait *trait = species->TraitFromStringID(p_property_id);
-		int64_t trait_index = trait->Index();
+		slim_trait_index_t trait_index = trait->Index();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -2543,7 +2543,7 @@ EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID 
 		{
 			const Individual *value = individuals_buffer[value_index];
 			Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
-			int64_t trait_index = trait->Index();
+			slim_trait_index_t trait_index = trait->Index();
 			
 			float_result->set_float_no_check((double)value->trait_info_[trait_index].phenotype_, value_index);
 		}
@@ -3097,7 +3097,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 	if (species)
 	{	
 		Trait *trait = species->TraitFromStringID(p_property_id);
-		int64_t trait_index = trait->Index();
+		slim_trait_index_t trait_index = trait->Index();
 		
 		if (p_source_size == 1)
 		{
@@ -3131,7 +3131,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			{
 				const Individual *value = individuals_buffer[value_index];
 				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
-				int64_t trait_index = trait->Index();
+				slim_trait_index_t trait_index = trait->Index();
 				
 				value->trait_info_[trait_index].phenotype_ = source_value;
 			}
@@ -3142,7 +3142,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			{
 				const Individual *value = individuals_buffer[value_index];
 				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
-				int64_t trait_index = trait->Index();
+				slim_trait_index_t trait_index = trait->Index();
 				
 				value->trait_info_[trait_index].phenotype_ = (slim_effect_t)source_data[value_index];
 			}
@@ -3349,12 +3349,12 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 	
 	// get the trait indices, with bounds-checking
 	Species &species = subpopulation_->species_;
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "offsetForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		slim_effect_t offset = trait_info_[trait_index].offset_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)offset));
@@ -3363,7 +3363,7 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t offset = trait_info_[trait_index].offset_;
 			
@@ -3384,12 +3384,12 @@ EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_
 	
 	// get the trait indices, with bounds-checking
 	Species &species = subpopulation_->species_;
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "phenotypeForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		slim_effect_t phenotype = trait_info_[trait_index].phenotype_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)phenotype));
@@ -3398,7 +3398,7 @@ EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t phenotype = trait_info_[trait_index].phenotype_;
 			
@@ -4331,14 +4331,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires that all individuals belong to the same species." << EidosTerminate();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setOffsetForTrait");
-	int trait_count = (int)trait_indices.size();
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	if (offset_value->Type() == EidosValueType::kValueNULL)
 	{
 		// pattern 1: drawing a default offset value for each trait in one or more individuals
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
 			
@@ -4373,7 +4373,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		// pattern 2: setting a single offset value across one or more traits in one or more individuals
 		slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
 			slim_effect_t offset_for_trait = offset;
@@ -4391,7 +4391,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		// pattern 3: setting one offset value per trait, in one or more individuals
 		int offset_index = 0;
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
 			slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
@@ -4420,7 +4420,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				Trait *trait = species->Traits()[trait_index];
 				
 				if (trait->Type() == TraitType::kMultiplicative)
@@ -4452,7 +4452,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					Individual *ind = individuals_buffer[individual_index];
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						Trait *trait = species->Traits()[trait_index];
 						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
@@ -4474,7 +4474,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				Trait *trait = species->Traits()[trait_index];
 				
 				if (trait->Type() == TraitType::kMultiplicative)
@@ -4506,7 +4506,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					Individual *ind = individuals_buffer[individual_index];
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						Trait *trait = species->Traits()[trait_index];
 						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
@@ -4550,9 +4550,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires that all individuals belong to the same species." << EidosTerminate();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setPhenotypeForTrait");
-	int trait_count = (int)trait_indices.size();
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	if (phenotype_count == 1)
 	{
@@ -4562,7 +4562,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 		if (trait_count == 1)
 		{
 			// optimized case for one trait
-			int64_t trait_index = trait_indices[0];
+			slim_trait_index_t trait_index = trait_indices[0];
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = phenotype;
@@ -4573,7 +4573,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 			{
 				Individual *ind = individuals_buffer[individual_index];
 				
-				for (int64_t trait_index : trait_indices)
+				for (slim_trait_index_t trait_index : trait_indices)
 					ind->trait_info_[trait_index].phenotype_ = phenotype;
 			}
 		}
@@ -4583,7 +4583,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 		// pattern 2: setting one phenotype value per trait, in one or more individuals
 		int phenotype_index = 0;
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(phenotype_index++, nullptr));
 			
@@ -4607,7 +4607,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_int++));
@@ -4618,7 +4618,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 				{
 					Individual *ind = individuals_buffer[individual_index];
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_int++));
 				}
 			}
@@ -4631,7 +4631,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_float++));
@@ -4642,7 +4642,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 				{
 					Individual *ind = individuals_buffer[individual_index];
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_float++));
 				}
 			}
@@ -5905,9 +5905,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotype(EidosGlobalStringI
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_demandPhenotype): demandPhenotype() requires that all individuals belong to the same species." << EidosTerminate();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "demandPhenotype");
-	int trait_count = (int)trait_indices.size();
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	if (trait_count == 0)
 		return gStaticEidosValue_Float_ZeroVec;
@@ -5929,7 +5929,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotype(EidosGlobalStringI
 }
 
 template <const bool f_force_recalc>
-void Individual_Class::DemandPhenotype(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<int64_t> &trait_indices) const
+void Individual_Class::DemandPhenotype(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices) const
 {
 	// Given a vector of individuals that are all guaranteed to belong to the provided species, and a vector of
 	// trait indices guaranteed to be of length 1 or longer, this method loops over the chromosomes of the
@@ -5946,7 +5946,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species->CallbackBlocksMatching(species->community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1);
 	Population &population = species->population_;
 	bool has_active_callbacks = false;
-	int trait_indices_count = (int)trait_indices.size();
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();
 	
 	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
 	{
@@ -5966,7 +5966,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 		if ((int)subpop->per_trait_subpop_caches_.size() != species->TraitCount())
 			EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype): (internal error) per_trait_subpop_caches_ is not correctly sized." << EidosTerminate();
 		
-		for (int trait_index = 0; trait_index < species->TraitCount(); trait_index++)
+		for (slim_trait_index_t trait_index = 0; trait_index < species->TraitCount(); trait_index++)
 		{
 			Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
 			
@@ -6001,7 +6001,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 		// For each trait we keep a separate vector of callbacks that apply to that trait.
 		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 		{
-			int64_t trait_index = trait_indices[trait_indices_index];
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 			Trait *trait = species->Traits()[trait_index];
 			TraitType traitType = trait->Type();
 			
@@ -6023,7 +6023,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop->subpopulation_id_))
 					{
 						// check if this callback applies to this trait
-						int64_t callback_trait_index = callback->trait_index_;
+						slim_trait_index_t callback_trait_index = callback->trait_index_;
 						
 						if ((callback_trait_index == -1) || (callback_trait_index == trait_index))
 							subpop_per_trait_mutationEffect_callbacks.emplace_back(callback);
@@ -6089,7 +6089,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 		// if we have no active callbacks at all, we know that that will remain true across the operation
 		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 		{
-			int64_t trait_index = trait_indices[trait_indices_index];
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 			Trait *trait = species->Traits()[trait_index];
 			TraitType traitType = trait->Type();
 			
@@ -6141,7 +6141,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 	
 	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 	{
-		int64_t trait_index = trait_indices[trait_indices_index];
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 		Trait *trait = species->Traits()[trait_index];
 		TraitType traitType = trait->Type();
 		slim_effect_t trait_baseline_offset = trait->BaselineOffset();
@@ -6204,7 +6204,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 			{
 				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 				{
-					int64_t trait_index = trait_indices[trait_indices_index];
+					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
@@ -6305,7 +6305,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 			{
 				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 				{
-					int64_t trait_index = trait_indices[trait_indices_index];
+					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
@@ -6336,7 +6336,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 			{
 				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 				{
-					int64_t trait_index = trait_indices[trait_indices_index];
+					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
@@ -6369,7 +6369,7 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 	// clear out each subpopulation's per-trait caches that we set up above; these are only for our private use
 	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 	{
-		int64_t trait_index = trait_indices[trait_indices_index];
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
 		{
@@ -6384,15 +6384,15 @@ void Individual_Class::DemandPhenotype(Species *species, Individual **individual
 	}
 }
 
-template void Individual_Class::DemandPhenotype<false>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<int64_t> &trait_indices) const;
-template void Individual_Class::DemandPhenotype<true>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<int64_t> &trait_indices) const;
+template void Individual_Class::DemandPhenotype<false>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices) const;
+template void Individual_Class::DemandPhenotype<true>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices) const;
 
 
 // Low-level method to calculate a phenotype for one individual, for one haploid (or hemizygous) chromosome,
 // for one trait.  This will put the result of the calculation into the individual's phenotype information.
 // This is called by Individual_Class::DemandPhenotype(), which loops over chromosomes, traits, and individuals.
 template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
 	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
@@ -6473,24 +6473,24 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Haploid<false, false, false, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, true>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, true, false, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, true>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, false, false, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, true>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, true, false, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, false>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, true>(Species *species, Haplosome *haplosome, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, false, false, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, true>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, true, false, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, true>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<true, false, false, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, true>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<true, true, false, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, false>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, true>(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 
 // Low-level method to calculate a phenotype for one individual, for one diploid chromosome, for one trait.
 // This will put the result of the calculation into the individual's phenotype information.  This is called
 // by Individual_Class::DemandPhenotype(), which loops over chromosomes, traits, and individuals.
 template <const bool f_additive_trait, const bool f_callbacks, const bool f_singlecallback>
-void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
 	// This method assumes that haplosome1 and haplosome2 are not null; the caller needs to guarantee this
@@ -6835,12 +6835,12 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Diploid<false, false, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<false, true, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<false, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<true, false, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<true, true, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, int64_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<false, false, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<false, true, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<false, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<true, false, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<true, true, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 
 
 

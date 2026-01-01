@@ -54,7 +54,7 @@ public:
 private:
 #endif
 	
-	int64_t index_;											// the index of this trait within its species
+	slim_trait_index_t index_;								// the index of this trait within its species
 	std::string name_;										// the user-visible name of this trait
 	TraitType type_;										// multiplicative or additive
 	
@@ -85,8 +85,8 @@ public:
 	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
 	~Trait(void);
 	
-	inline __attribute__((always_inline)) int64_t Index(void) const				{ return index_; }
-	inline __attribute__((always_inline)) void SetIndex(int64_t p_index)		{ index_ = p_index; }	// only from AddTrait()
+	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const	{ return index_; }
+	inline __attribute__((always_inline)) void SetIndex(slim_trait_index_t p_index)	{ index_ = p_index; }	// only from AddTrait()
 	inline __attribute__((always_inline)) TraitType Type(void) const			{ return type_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const	{ return name_; }
 	

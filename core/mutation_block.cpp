@@ -25,7 +25,7 @@
 #define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable		// NOLINT(*-macro-to-enum) : this is fine
 
 
-MutationBlock::MutationBlock(Species &p_species, int p_trait_count) : species_(p_species), trait_count_(p_trait_count)
+MutationBlock::MutationBlock(Species &p_species, slim_trait_index_t p_trait_count) : species_(p_species), trait_count_(p_trait_count)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_CreateMutationBlock(): mutation_buffer_ address change");
 	

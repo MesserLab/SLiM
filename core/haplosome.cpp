@@ -4391,7 +4391,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 		// Construct a vector of mutations to remove that is sorted by position
 		std::vector<Mutation *> mutations_to_remove;
 		Mutation * const *mutations_data = (Mutation * const *)mutations_value->ObjectData();
-		int trait_count = species->TraitCount();
+		slim_trait_index_t trait_count = species->TraitCount();
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
@@ -4410,7 +4410,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			{
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				
-				for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					if (mut_trait_info[trait_index].effect_size_ != (slim_effect_t)0.0)
 					{

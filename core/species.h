@@ -447,7 +447,7 @@ public:
 	
 	// Trait configuration and access
 	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
-	inline __attribute__((always_inline)) int TraitCount(void)	{ return (int)traits_.size(); }
+	inline __attribute__((always_inline)) slim_trait_index_t TraitCount(void)	{ return (slim_trait_index_t)traits_.size(); }
 	Trait *TraitFromName(const std::string &p_name) const;
 	inline __attribute__((always_inline)) Trait *TraitFromStringID(EidosGlobalStringID p_string_id) const
 	{
@@ -463,15 +463,15 @@ public:
 	void MakeImplicitTrait(void);
 	void AddTrait(Trait *p_trait);													// takes over a retain count from the caller
 	
-	int64_t GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name);											// with a singleton EidosValue
-	void GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name);
+	slim_trait_index_t GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name);											// with a singleton EidosValue
+	void GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name);
 	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	void DeleteAllMutationRuns(void);												// for cleanup
 	
 	// Running cycles
-	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_objectid_t p_trait_index, int64_t p_chromosome_id);
+	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id);
 	void RunInitializeCallbacks(void);
 	void CreateAndPromulgateMutationBlock(void);
 	void EndCurrentChromosome(bool starting_new_chromosome);

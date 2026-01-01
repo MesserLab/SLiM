@@ -59,7 +59,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
 	mutation_block->refcount_buffer_[mutation_index] = 0;
 	
-	int trait_count = mutation_block->trait_count_;
+	slim_trait_index_t trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
 	
 	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
@@ -70,7 +70,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
 	is_independent_dominance_ = std::isnan(p_dominance_coeff);
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 		Trait *trait = traits[trait_index];
@@ -159,7 +159,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
 	mutation_block->refcount_buffer_[mutation_index] = 0;
 	
-	int trait_count = mutation_block->trait_count_;
+	slim_trait_index_t trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
 	
 	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
@@ -174,7 +174,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	{
 		// The DES of the mutation type is pure neutral, so we don't need to do any draws; we can short-circuit
 		// most of the work here and just set up neutral effects for all of the traits.
-		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
 			MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 			Trait *trait = traits[trait_index];
@@ -203,7 +203,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		// The DES of the mutation type is not pure neutral.  Note that species.pure_neutral_ might still be true
 		// at this point; the mutation type for this mutation might not be used by any genomic element type,
 		// because we might be getting called by addNewDrawnMutation() for a type that is otherwise unused.
-		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
 			MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 			Trait *trait = traits[trait_index];
@@ -286,7 +286,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
 	mutation_block->refcount_buffer_[mutation_index] = 0;
 	
-	int trait_count = mutation_block->trait_count_;
+	slim_trait_index_t trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
 	
 	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
@@ -297,7 +297,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
 	is_independent_dominance_ = std::isnan(p_dominance_coeff);
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 		Trait *trait = traits[trait_index];
@@ -384,10 +384,10 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
 		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) mut_trait_info is nullptr" << p_message_end << "." << EidosTerminate();
 	
 	const std::vector<Trait *> &traits = species.Traits();
-	int trait_count = (int)traits.size();
+	slim_trait_index_t trait_count = species.TraitCount();
 	bool all_neutral_effects = true;
 	
-	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		Trait *trait = traits[trait_index];
 		MutationTraitInfo &traitInfoRec = mut_trait_info[trait_index];
@@ -438,7 +438,7 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
 
 slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait)
 {
-	int64_t trait_index = p_trait->Index();
+	slim_trait_index_t trait_index = p_trait->Index();
 	Species &species = mutation_type_ptr_->species_;
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
@@ -528,11 +528,11 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 		Species &species = mutation_type_ptr_->species_;
 		MutationBlock *mutation_block = species.SpeciesMutationBlock();
 		MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
-		int trait_count = species.TraitCount();
+		slim_trait_index_t trait_count = species.TraitCount();
 		
 		is_neutral_ = true;
 		
-		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
 			if ((mut_trait_info + trait_index)->effect_size_ != (slim_effect_t)0.0)
 			{
@@ -690,8 +690,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			Species &species = mutation_type_ptr_->species_;
 			MutationBlock *mutation_block = species.SpeciesMutationBlock();
 			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
-			const std::vector<Trait *> &traits = species.Traits();
-			size_t trait_count = traits.size();
+			slim_trait_index_t trait_count = species.TraitCount();
 			
 			if (trait_count == 1)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[0].effect_size_));
@@ -701,7 +700,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
-				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 					
@@ -718,7 +717,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
 			Species &species = mutation_type_ptr_->species_;
 			const std::vector<Trait *> &traits = species.Traits();
-			size_t trait_count = traits.size();
+			slim_trait_index_t trait_count = species.TraitCount();
 			
 			if (trait_count == 1)
 			{
@@ -734,7 +733,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
-				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[trait_index]);
 					
@@ -751,8 +750,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			Species &species = mutation_type_ptr_->species_;
 			MutationBlock *mutation_block = species.SpeciesMutationBlock();
 			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
-			const std::vector<Trait *> &traits = species.Traits();
-			size_t trait_count = traits.size();
+			slim_trait_index_t trait_count = species.TraitCount();
 			
 			if (trait_count == 1)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[0].hemizygous_dominance_coeff_));
@@ -762,7 +760,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
 				
-				for (size_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
 					slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 					
@@ -1243,7 +1241,7 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 	
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectForTrait");
 	
 	// get the trait info for this mutation
@@ -1252,7 +1250,7 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
@@ -1261,7 +1259,7 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 			
@@ -1282,13 +1280,13 @@ EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_me
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
 	const std::vector<Trait *> &traits = species.Traits();
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "dominanceForTrait");
 	
 	// get the trait info for this mutation
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		Trait *trait = traits[trait_index];
 		slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 		
@@ -1298,7 +1296,7 @@ EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_me
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = traits[trait_index];
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
@@ -1319,7 +1317,7 @@ EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStr
 	
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "hemizygousDominanceForTrait");
 	
 	// get the trait info for this mutation
@@ -1328,7 +1326,7 @@ EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStr
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)dominance));
@@ -1337,7 +1335,7 @@ EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStr
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 			
@@ -1480,14 +1478,14 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 	const std::vector<Trait *> &traits = species->Traits();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectForTrait");
-	int trait_count = (int)trait_indices.size();
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	if (effect_value->Type() == EidosValueType::kValueNULL)
 	{
 		// pattern 1: drawing a default effect value for each trait in one or more mutations
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 			{
@@ -1509,7 +1507,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 		if (trait_count == 1)
 		{
 			// optimized case for one trait
-			int64_t trait_index = trait_indices[0];
+			slim_trait_index_t trait_index = trait_indices[0];
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 			{
@@ -1527,7 +1525,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 				Mutation *mut = mutations_buffer[mutation_index];
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				
-				for (int64_t trait_index : trait_indices)
+				for (slim_trait_index_t trait_index : trait_indices)
 				{
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 					
@@ -1541,7 +1539,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 		// pattern 3: setting one effect value per trait, in one or more mutations
 		int effect_index = 0;
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t effect = static_cast<slim_effect_t>(effect_value->NumericAtIndex_NOCAST(effect_index++, nullptr));
 			
@@ -1567,7 +1565,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 				{
@@ -1586,7 +1584,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 					Mutation *mut = mutations_buffer[mutation_index];
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 						slim_effect_t effect = static_cast<slim_effect_t>(*(effects_int++));
@@ -1604,7 +1602,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 				{
@@ -1623,7 +1621,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 					Mutation *mut = mutations_buffer[mutation_index];
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 						slim_effect_t effect = static_cast<slim_effect_t>(*(effects_float++));
@@ -1672,15 +1670,15 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 	const std::vector<Trait *> &traits = species->Traits();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, method_name);
-	int trait_count = (int)trait_indices.size();
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	// note there is intentionally no bounds check of dominance coefficients
 	if (dominance_value->Type() == EidosValueType::kValueNULL)
 	{
 		// pattern 1: drawing a default dominance value for each trait in one or more mutations
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 			{
@@ -1705,7 +1703,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 		if (trait_count == 1)
 		{
 			// optimized case for one trait
-			int64_t trait_index = trait_indices[0];
+			slim_trait_index_t trait_index = trait_indices[0];
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 			{
@@ -1726,7 +1724,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 				Mutation *mut = mutations_buffer[mutation_index];
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				
-				for (int64_t trait_index : trait_indices)
+				for (slim_trait_index_t trait_index : trait_indices)
 				{
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 					
@@ -1743,7 +1741,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 		// pattern 3: setting one dominance value per trait, in one or more mutations
 		int dominance_index = 0;
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t dominance = static_cast<slim_effect_t>(dominance_value->NumericAtIndex_NOCAST(dominance_index++, nullptr));
 			
@@ -1772,7 +1770,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 				{
@@ -1794,7 +1792,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 					Mutation *mut = mutations_buffer[mutation_index];
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 						slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_int++));
@@ -1815,7 +1813,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 			if (trait_count == 1)
 			{
 				// optimized case for one trait
-				int64_t trait_index = trait_indices[0];
+				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 				{
@@ -1837,7 +1835,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 					Mutation *mut = mutations_buffer[mutation_index];
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 					
-					for (int64_t trait_index : trait_indices)
+					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 						slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_float++));

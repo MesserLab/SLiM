@@ -99,7 +99,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	DES_info.DES_parameters_ = p_DES_parameters;
 	DES_info.DES_strings_ = p_DES_strings;
 	
-	for (int trait_index = 0; trait_index < species_.TraitCount(); trait_index++)
+	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); trait_index++)
 		effect_distributions_.push_back(DES_info);
 	
 	// Nucleotide-based mutations use a special stacking group, -1, and always use stacking policy "l"
@@ -264,7 +264,7 @@ void MutationType::SelfConsistencyCheck(const std::string &p_message_end)
 	}
 }
 
-slim_effect_t MutationType::DrawEffectForTrait(int64_t p_trait_index) const
+slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index) const
 {
 	const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
 	
@@ -717,12 +717,12 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "defaultDominanceForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DefaultDominanceForTrait(trait_index)));
 	}
@@ -730,7 +730,7 @@ EidosValue_SP MutationType::ExecuteMethod_defaultDominanceForTrait(EidosGlobalSt
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 			float_result->push_float_no_check((double)DefaultDominanceForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
@@ -745,12 +745,12 @@ EidosValue_SP MutationType::ExecuteMethod_defaultHemizygousDominanceForTrait(Eid
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "defaultHemizygousDominanceForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DefaultHemizygousDominanceForTrait(trait_index)));
 	}
@@ -758,7 +758,7 @@ EidosValue_SP MutationType::ExecuteMethod_defaultHemizygousDominanceForTrait(Eid
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 			float_result->push_float_no_check((double)DefaultHemizygousDominanceForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
@@ -773,14 +773,14 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectDistributionParamsForTrait");
 	
 	// decide whether doing floats or strings; must be the same for all
 	bool is_float = false;
 	bool is_string = false;
 	
-	for (int64_t trait_index : trait_indices)
+	for (slim_trait_index_t trait_index : trait_indices)
 	{
 		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		
@@ -797,7 +797,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	{
 		EidosValue_Float *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float();
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
@@ -811,7 +811,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	{
 		EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
@@ -831,13 +831,13 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGl
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectDistributionTypeForTrait");
 	
 	// assemble the result
 	EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 	
-	for (int64_t trait_index : trait_indices)
+	for (slim_trait_index_t trait_index : trait_indices)
 	{
 		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		
@@ -867,7 +867,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	EidosValue *n_value = p_arguments[1].get();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "drawEffectForTrait");
 	
 	// get the number of effects to draw
@@ -878,7 +878,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	
 	if ((trait_indices.size() == 1) && (num_draws == 1))
 	{
-		int64_t trait_index = trait_indices[0];
+		slim_trait_index_t trait_index = trait_indices[0];
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DrawEffectForTrait(trait_index)));
 	}
@@ -888,7 +888,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 		
 		// draw_index is the outer loop, so that we get num_draws sets of (one draw per trait)
 		for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-			for (int64_t trait_index : trait_indices)
+			for (slim_trait_index_t trait_index : trait_indices)
 				float_result->push_float_no_check((double)DrawEffectForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
@@ -905,7 +905,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	int dominance_count = dominance_value->Count();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setDefaultDominanceForTrait");
 	
 	if (dominance_count == 1)
@@ -913,7 +913,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 		// get the dominance coefficient
 		double dominance = dominance_value->FloatAtIndex_NOCAST(0, nullptr);
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
@@ -924,7 +924,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	{
 		for (int dominance_index = 0; dominance_index < dominance_count; dominance_index++)
 		{
-			int64_t trait_index = trait_indices[dominance_index];
+			slim_trait_index_t trait_index = trait_indices[dominance_index];
 			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
 			
@@ -955,7 +955,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 	int dominance_count = dominance_value->Count();
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setDefaultHemizygousDominanceForTrait");
 	
 	if (dominance_count == 1)
@@ -963,7 +963,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 		// get the dominance coefficient
 		double dominance = dominance_value->FloatAtIndex_NOCAST(0, nullptr);
 		
-		for (int64_t trait_index : trait_indices)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			
@@ -974,7 +974,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 	{
 		for (int dominance_index = 0; dominance_index < dominance_count; dominance_index++)
 		{
-			int64_t trait_index = trait_indices[dominance_index];
+			slim_trait_index_t trait_index = trait_indices[dominance_index];
 			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
 			
@@ -1005,7 +1005,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 	std::string DES_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	// get the trait indices, with bounds-checking
-	std::vector<int64_t> trait_indices;
+	std::vector<slim_trait_index_t> trait_indices;
 	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectDistributionForTrait");
 	
 	// Parse the DES type and parameters, and do various sanity checks
@@ -1020,7 +1020,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 		species_.type_s_DESs_present_ = true;
 	
 	// Everything seems to be in order, so replace our distribution info (in each specified trait) with the new info
-	for (int64_t trait_index : trait_indices)
+	for (slim_trait_index_t trait_index : trait_indices)
 	{
 		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		
@@ -1035,7 +1035,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 	// check whether our DES for all traits is now neutral; we can change from non-neutral back to neutral
 	all_neutral_DES_ = true;
 	
-	for (int64_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
 	{
 		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
 		

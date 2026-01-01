@@ -193,21 +193,21 @@ public:
 	// Check that our internal state all makes sense
 	void SelfConsistencyCheck(const std::string &p_message_end);
 	
-	slim_effect_t DefaultDominanceForTrait(int64_t p_trait_index) const
+	slim_effect_t DefaultDominanceForTrait(slim_trait_index_t p_trait_index) const
 	{
 		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
 		
 		return DES_info.default_dominance_coeff_;
 	}
 	
-	slim_effect_t DefaultHemizygousDominanceForTrait(int64_t p_trait_index) const
+	slim_effect_t DefaultHemizygousDominanceForTrait(slim_trait_index_t p_trait_index) const
 	{
 		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
 		
 		return DES_info.default_hemizygous_dominance_coeff_;
 	}
 	
-	slim_effect_t DrawEffectForTrait(int64_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
+	slim_effect_t DrawEffectForTrait(slim_trait_index_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
 	
 	
 	//

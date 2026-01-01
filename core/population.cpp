@@ -5452,10 +5452,10 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 	}
 	
 	// we need to recalculate phenotypes for traits that have a direct effect on fitness
-	std::vector<int64_t> p_direct_effect_trait_indices;
+	std::vector<slim_trait_index_t> p_direct_effect_trait_indices;
 	const std::vector<Trait *> &traits = species_.Traits();
 	
-	for (int trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
+	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
 		if (traits[trait_index]->HasDirectFitnessEffect())
 			p_direct_effect_trait_indices.push_back(trait_index);
 	

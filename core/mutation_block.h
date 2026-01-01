@@ -52,7 +52,7 @@ public:
 	MutationIndex free_index_ = -1;
 	MutationIndex last_used_index_ = -1;
 	
-	int trait_count_;	// the number of MutationTraitInfo records kept in trait_info_buffer_ for each mutation
+	slim_trait_index_t trait_count_;	// the number of MutationTraitInfo records kept in trait_info_buffer_ for each mutation
 	
 #ifdef DEBUG_LOCKS_ENABLED
 	// We do not arbitrate access to the mutation block with a lock; instead, we expect that clients
@@ -61,7 +61,7 @@ public:
 	EidosDebugLock mutation_block_LOCK("mutation_block_LOCK");
 #endif
 	
-	explicit MutationBlock(Species &p_species, int p_trait_count);
+	explicit MutationBlock(Species &p_species, slim_trait_index_t p_trait_count);
 	~MutationBlock(void);
 	
 	void IncreaseMutationBlockCapacity(void);
