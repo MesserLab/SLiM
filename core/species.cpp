@@ -4455,8 +4455,8 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			
 			if (subpop.cached_parental_fitness_)
 				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
-			if (subpop.cached_male_fitness_)
-				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
+			if (subpop.mate_choice_weights_)
+				p_usage->subpopulationFitnessCaches += subpop.mate_choice_weights_->Count() * sizeof(double);
 			
 			p_usage->subpopulationParentTables += subpop.MemoryUsageForParentTables();
 			

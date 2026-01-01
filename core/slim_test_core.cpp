@@ -2664,6 +2664,275 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(tickexpr9, "unrecognized function name tuck", __LINE__);
 }
 
+#pragma mark mateChoice() callback tests
+void _RunMateChoiceTests(void)
+{
+	// With the multitrait work, I completely redesigned how mateChoice() callbacks work under the hood.  They
+	// should be much faster, but their logic is a bit tricky, so I'm adding a raft of new tests.
+	
+	// This script tags everybody, and marks one individual as the preferred mate.  It then confirms that that
+	// mate was chosen after mating has completed.  This is the basis of all the mateChoice() tests here.
+	std::string verifiableMating1(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating1);
+	
+	// add a no-op mateChoice() callback before the main one
+	std::string verifiableMating2(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return NULL;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating2);
+	
+	// choose a random mate, and then change our minds
+	std::string verifiableMating3(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.sampleIndividuals(1);
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating3);
+	
+	// return a random weights vector, and then change our minds
+	std::string verifiableMating4(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return runif(subpop.individualCount);
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating4);
+	
+	// do some random action, and then change our minds
+	std::string verifiableMating5(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			if (runif(1) < 0.3)
+				return float(0);
+			if (runif(1) < 0.3)
+				return p1.sampleIndividuals(1);
+			if (runif(1) < 0.3)
+				return runif(subpop.individualCount);
+			if (runif(1) < 0.3)
+				return weights;
+			return NULL;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating5);
+	
+	// choose the right individual, then return a weights vector representing that individual
+	std::string verifiableMating6(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			return weights;
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating6);
+	
+	// choose the right individual, then return a weights vector representing that individual
+	std::string verifiableMating7(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			return weights * runif(subpop.individualCount);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating7);
+	
+	// add a bit of stochasticity to the previous, so that the fly individual isn't always chosen
+	std::string verifiableMating8(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			return weights + runif(subpop.individualCount, max=0.0001);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (mean(p1.individuals.tag != 1) > 0.1) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating8);
+	
+	// test using a global weights vector
+	std::string verifiableMating9(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+			
+			defineGlobal("WEIGHTS", rep(0.0, p1.individualCount));
+			WEIGHTS[whichMax(p1.individuals.tag)] = 1.0;
+		}
+		mateChoice() {
+			return runif(subpop.individualCount);
+		}
+		mateChoice() {
+			return WEIGHTS;
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (mean(p1.individuals.tag != 1) > 0.1) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating9);
+	
+	// finally, try to trigger an illegal modification of the global weights vector
+	std::string verifiableMating10(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+			
+			defineGlobal("WEIGHTS", rep(0.0, p1.individualCount));
+			WEIGHTS[whichMax(p1.individuals.tag)] = 1.0;
+			defineGlobal("CHECK", WEIGHTS * 2.0);
+		}
+		mateChoice() {
+			// first return the global, which should get shared into returned_weights
+			return WEIGHTS;
+		}
+		mateChoice() {
+			// then return a chosen individual, which should set chosen_mate
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			// then use weights, forcing a new build into returned_weights
+			return weights * 10.0;
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() {
+			if (!identical(WEIGHTS * 2.0, CHECK)) stop();
+			if (mean(p1.individuals.tag != 1) > 0.1) stop();
+		}
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating10);
+}
+
 
 
 

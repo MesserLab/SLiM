@@ -177,11 +177,13 @@ public:
 	// These fitness cache buffers are additional to that, used only in WF models.  They are now used for only one thing: as the data source for setting up our lookup
 	// objects for drawing mates by fitness; the GSL wants that data to be in the form of a single buffer.  In nonWF models these buffers are not used, and not even set
 	// up.  BCH 12/30/2025: up through SLiM 5.1 these buffers were also maintained for the use of mateChoice() callbacks in ApplyMateChoiceCallbacks(), as the data
-	// source for the `weights` pseudo-parameter; after SLiM 5.1 that method allocates these buffers itself, lazily, if they are not already present.
+	// source for the `weights` pseudo-parameter; after SLiM 5.1 that method allocates mate_choice_weights_ itself, lazily, if it is not already present.
 	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateWFFitnessBuffers()
-	double *cached_male_fitness_ = nullptr;			// OWNED POINTER: SEX ONLY: same as cached_parental_fitness_ but with 0 for all females
-	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_ and cached_male_fitness_
-	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffers cached_parental_fitness_ and cached_male_fitness_
+	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_
+	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffer cached_parental_fitness_
+	
+	EidosValue_Float_SP mate_choice_weights_;		// WF ONLY: a cache used only by ApplyMateChoiceCallbacks(), as the canonical fitness-based `weights` vector
+	bool mate_choice_weights_valid_ = false;		// if true, mate_choice_weights_ corresponds to cached_parental_fitness_ (with females set to 0 in sexual models)
 	
 	// WF only:
 	// Optimized fitness caching at the Individual level.  Individual has an ivar named cached_fitness_UNSAFE_ that keeps a cached fitness value for each individual.

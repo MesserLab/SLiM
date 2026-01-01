@@ -435,6 +435,7 @@ int RunSLiMTests(void)
 	_RunIndividualTests();
 	_RunSubstitutionTests();
 	_RunSLiMEidosBlockTests();
+	_RunMateChoiceTests();
 	_RunContinuousSpaceTests();
 	_RunSpatialMapTests();
 	_RunNonWFTests();

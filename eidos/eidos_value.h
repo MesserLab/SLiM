@@ -251,6 +251,7 @@ public:
 	inline __attribute__((always_inline)) bool IsIteratorVariable(void) const { return iterator_var_; }
 	
 	virtual int Count(void) const = 0;			// the only real casualty of removing the singleton/vector distinction: this is now a virtual function
+	virtual int Capacity(void) const = 0;
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	void Print(std::ostream &p_ostream, const std::string &p_indent = std::string()) const;				// standard printing; same as operator<<
 	void PrintStructure(std::ostream &p_ostream, int max_values) const;	// print structure; no newline
@@ -427,6 +428,7 @@ public:
 	inline virtual ~EidosValue_VOID(void) override { }
 	
 	virtual int Count(void) const override { return 0; }
+	virtual int Capacity(void) const override { return 0; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -463,6 +465,7 @@ public:
 	inline virtual ~EidosValue_NULL(void) override { }
 	
 	virtual int Count(void) const override { return 0; }
+	virtual int Capacity(void) const override { return 0; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -513,6 +516,7 @@ public:
 	inline virtual ~EidosValue_Logical(void) override { free(values_); }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -648,6 +652,7 @@ public:
 	std::vector<std::string> &StringVectorData(void) { WILL_MODIFY(this); UncacheScript(); return values_; }	// to get the std::vector for direct modification
 	
 	virtual int Count(void) const override { return (int)values_.size(); }
+	virtual int Capacity(void) const override { return (int)values_.capacity(); }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -713,6 +718,7 @@ public:
 	virtual int64_t *IntData_Mutable(void) override { WILL_MODIFY(this); return values_; }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -839,6 +845,7 @@ public:
 	virtual double *FloatData_Mutable(void) override { WILL_MODIFY(this); return values_; }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -1006,6 +1013,7 @@ public:
 	inline __attribute__((always_inline)) bool UsesRetainRelease(void) const { return class_uses_retain_release_; }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;

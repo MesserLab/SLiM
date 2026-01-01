@@ -124,6 +124,7 @@ multitrait branch:
 	switch fitness calculation over to being based upon the calculated values of traits, rather than directly upon mutations
 	eliminate overhead for setting up fitness buffers in neutral WF models; this should provide a significant speedup for such models, if they don't use a mateChoice() callback
 	extend recalculateFitness() with [logical$ forceRecalc = T] option for backward compatibility, but allowing trait value recalculation not to be forced
+	redesigned the internals of mateChoice() callbacks; there should be no user-visible consequence apart from better performance (even without mateChoice() callbacks!)
 
 
 version 5.1 (Eidos version 4.1):

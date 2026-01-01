@@ -57,6 +57,7 @@ extern void _RunRelatednessTests(void);
 extern void _RunInteractionTypeTests(void);
 extern void _RunSubstitutionTests(void);
 extern void _RunSLiMEidosBlockTests(void);
+extern void _RunMateChoiceTests(void);
 extern void _RunContinuousSpaceTests(void);
 extern void _RunSpatialMapTests(void);
 extern void _RunNonWFTests(void);

@@ -1232,8 +1232,8 @@ Subpopulation::~Subpopulation(void)
 	if (cached_parental_fitness_)
 		free(cached_parental_fitness_);
 	
-	if (cached_male_fitness_)
-		free(cached_male_fitness_);
+	if (mate_choice_weights_)
+		mate_choice_weights_.reset();
 	
 	cached_fitness_size_ = 0;
 	cached_fitness_capacity_ = 0;
@@ -1612,18 +1612,26 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 	// This is called only by UpdateFitness(), after the fitness of all individuals has been updated, and only in
 	// WF models.  It updates cached fitness buffers, and then generates GSL-based lookup tables for mate choice.
 	
+	// Since fitness buffers are being updated, this is a logical place to mark mate_choice_weights_ as invalid.
+	// This will cause ApplyMateChoiceCallbacks() to recache the next time it needs a weights vector.  We also
+	// resize the vector for good form (maybe triggers an error on misuse), but that doesn't change its capacity.
+	// We do not release or deallocate it; we want to stick with the same allocated buffer through the whole run.
+	// This is the reason for the existence of mate_choice_weights_valid_: to let us reuse mate_choice_weights_.
+	if (mate_choice_weights_)
+	{
+		mate_choice_weights_->resize_no_initialize(0);
+		mate_choice_weights_valid_ = false;
+	}
+	
 	if (individual_cached_fitness_OVERRIDE_)
 	{
 		// This is the optimized case, where all individuals have the same fitness and it is cached at the subpop
 		// level.  When that is the case, we don't use the GSL discrete preproc stuff to choose mates proportional
 		// to fitness; we choose mates randomly with equal probability instead.  Given that, we don't need to set
-		// up the buffers (cached_parental_fitness_, etc.) either; they are only used to set up the GSL's discrete
-		// preproc machinery.  So we can actually free those buffers to decrease memory footprint, in this path.
+		// up the cached_parental_fitness_ buffer either; it is only used to set up the GSL's discrete preproc
+		// machinery.  So we can actually free that buffer to decrease memory footprint, in this code path.
 		if (cached_parental_fitness_)
 			free(cached_parental_fitness_);
-		
-		if (cached_male_fitness_)
-			free(cached_male_fitness_);
 		
 		cached_fitness_size_ = 0;
 		cached_fitness_capacity_ = 0;
@@ -1657,27 +1665,18 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 	else
 	{
 		// This is the normal case, where cached_fitness_UNSAFE_ has cached fitness values for each individual.
-		// In this case we need to set up buffers to create the GSL discrete preproc structs for drawing parents.
-		// In this code path we also need to total up individual fitness values to check for numerical problems.
+		// In this case we need to set up a buffer to create the GSL discrete preproc structs for drawing parents.
+		// In this code path we also need to total up individual fitness values to check for numerical problems;
+		// it's a convenient and efficient place to do that since we're making a pass through the values anyway.
 		
-		// Reallocate the fitness buffers to be large enough; note that we up-cast to double here for the GSL.
-		// Due to the shenanigans we pull in ApplyMateChoiceCallbacks(), we might have a non-zero capacity set
-		// and yet have an unallocated buffer (especially in the sex case, at least for now); so we check that.
-		if (!cached_parental_fitness_ || (sex_enabled_ && !cached_male_fitness_) || (cached_fitness_capacity_ < parent_subpop_size_))
+		// Reallocate cached_parental_fitness_ to be large enough; note that we up-cast to double for the GSL.
+		if (!cached_parental_fitness_ || (cached_fitness_capacity_ < parent_subpop_size_))
 		{
-			// there might be an existing capacity but a missing buffer; use the existing value if it's bigger
-			cached_fitness_capacity_ = std::max(cached_fitness_capacity_, parent_subpop_size_);
+			cached_fitness_capacity_ = parent_subpop_size_;
 			
 			cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
 			if (!cached_parental_fitness_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			if (sex_enabled_)
-			{
-				cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
-				if (!cached_male_fitness_)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			}
 		}
 		
 		if (sex_enabled_)
@@ -1689,7 +1688,6 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 				double fitness = (double)parent_individuals_[female_index]->cached_fitness_UNSAFE_;
 				
 				cached_parental_fitness_[female_index] = fitness;
-				cached_male_fitness_[female_index] = 0;
 				totalFemaleFitness += fitness;
 			}
 			
@@ -1698,7 +1696,6 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 				double fitness = (double)parent_individuals_[male_index]->cached_fitness_UNSAFE_;
 				
 				cached_parental_fitness_[male_index] = fitness;
-				cached_male_fitness_[male_index] = fitness;
 				totalMaleFitness += fitness;
 			}
 			

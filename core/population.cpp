@@ -712,18 +712,21 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 	
 	bool sex_enabled = p_subpop->sex_enabled_;
-	double *standard_weights = (sex_enabled ? p_source_subpop->cached_male_fitness_ : p_source_subpop->cached_parental_fitness_);
-	Individual *chosen_mate = nullptr;			// callbacks can return an Individual instead of a weights vector, held here
-	bool weights_reflect_chosen_mate = false;	// if T, a weights vector has been created with a 1 for the chosen mate, to pass to the next callback
 	SLiMEidosBlock *last_interventionist_mate_choice_callback = nullptr;
 	
-	// We start out using standard weights taken from the source subpopulation.  NOTE THAT THOSE COULD BE NULLPTR, in the case where
-	// the fitness of all individuals is equal; if we need to, we will allocate the buffer in the source subpopulation ourselves.
-	// If, when we are done handling callbacks, we are still using the standard weights, then we can do a draw using our fast lookup
-	// tables (or equally weighted, if the weights are still nullptr).  Otherwise, we will do a draw the hard way.
-	double *current_weights = standard_weights;
-	slim_popsize_t weights_length = p_source_subpop->cached_fitness_size_;
-	bool weights_modified = false;
+	// The way we handle mating weights shifted substantially after SLiM 5.1.  The Subpopulation variable mate_choice_weights_
+	// is our private scratch space for a vector of mating weights based upon the current subpopulation fitness values.
+	// We create it lazily only if we need it, which happens if a callback's code references the pseudo-parameter `weights`;
+	// otherwise we don't use it.  If a callback returns a chosen mate, we track that with chosen_mate; if a callback returns
+	// a weights vector, we keep that in returned_weights.  We do not modify mate_choice_weights_ once we set it up, and we
+	// designate it as a constant inside the callback so that the callback code can't mess with it.  (That might cause a break
+	// in backward compatibility for models that used to modify and return it, but it's a significant performance win to be
+	// able to reuse it.)  If, when we are done handling callbacks, we do not have a chosen mate or returned weights, we can
+	// do a draw using the standard WF mechanism.  If we got returned weights, we will do a draw the hard way.
+	EidosValue_Float_SP returned_weights;		// a vector of weights returned or created, owned by us
+	Individual *chosen_mate = nullptr;			// callbacks can return an Individual instead of a weights vector, held here
+	bool weights_reflect_chosen_mate = false;	// if T, returned_weights represents chosen_mate, to pass to the next callback
+	slim_popsize_t weights_length = p_source_subpop->parent_subpop_size_;
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
 	{
@@ -754,29 +757,33 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			}
 #endif
 			
-			// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-			EidosValue_SP local_weights_ptr;
-			bool redraw_mating = false;
-			
+			// If a previous callback said it wanted a specific individual to be the mate, and this callbacks wants to see
+			// a `weights` value, then we now need to make a weights vector to represent that to the callback's code
 			if (chosen_mate && !weights_reflect_chosen_mate && mate_choice_callback->contains_weights_)
 			{
-				// A previous callback said it wanted a specific individual to be the mate.  We now need to make a weights vector
-				// to represent that, since we have another callback that wants an incoming weights vector.
-				if (!weights_modified)
+				// We would like to modify and use an existing returned_weights buffer if possible, to save an
+				// allocation.  However, returned_weights can end up pointing to an EidosValue that is owned by
+				// the simulation; we can only modify it if that is not the case, otherwise we need a new one.
+				if (!returned_weights || (returned_weights->UseCount() > 1))
 				{
-					current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
-					if (!current_weights)
+					returned_weights = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+					if (!returned_weights)
 						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-					weights_modified = true;
 				}
 				
-				EIDOS_BZERO(current_weights, sizeof(double) * weights_length);
-				current_weights[chosen_mate->index_] = 1.0;
+				returned_weights->resize_no_initialize(weights_length);
 				
+				double *weights = returned_weights->data_mutable();
+				
+				EIDOS_BZERO(weights, sizeof(double) * weights_length);
+				weights[chosen_mate->index_] = 1.0;
 				weights_reflect_chosen_mate = true;
 			}
 			
 			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
+			EidosValue_Float_SP local_weights;
+			bool redraw_mating = false;
+			
 			{
 				EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
@@ -809,48 +816,85 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				
 				if (mate_choice_callback->contains_weights_)
 				{
-					// current_weights could be nullptr at this point, if standard_weights was nullptr on entry.
-					// In that case, we need to set up standard_weights and then point to it with current_weights.
-					if (!current_weights)
+					// we need an EidosValue for the `weights` pseudo-parameter; these are several ways to get it
+					if (returned_weights)
 					{
-						standard_weights = (double *)malloc(sizeof(double) * p_source_subpop->parent_subpop_size_);	// allocate a new weights vector
-						if (!standard_weights)
-							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+						// if we have weights returned from a previous callback, including weights constructed
+						// above to represent a single chosen mate with `weights_reflect_chosen_mate`, use those
+						local_weights = returned_weights;
+					}
+					else if (p_source_subpop->mate_choice_weights_ && p_source_subpop->mate_choice_weights_valid_)
+					{
+						// if we have already constructed a vector of fitness-based weights, use those
+						local_weights = p_source_subpop->mate_choice_weights_;
 						
-						// Then fill the buffer with the appropriate values, knowing that the model is neutral.
-						// This code used to be in UpdateWFFitnessBuffers(); now we do it ourselves on demand.
-						// Note that we only generate the buffer we need -- weights for choosing a second parent.
-						if (sex_enabled)
+						weights_reflect_chosen_mate = false;
+					}
+					else
+					{
+						// otherwise, we need to construct a new vector of fitness-based weights; but if there
+						// is an existing allocated vector for this purpose, we want to reuse that allocation
+						if (p_source_subpop->mate_choice_weights_)
 						{
-							for (slim_popsize_t female_index = 0; female_index < p_source_subpop->parent_first_male_index_; female_index++)
-								standard_weights[female_index] = 0;
-							for (slim_popsize_t male_index = p_source_subpop->parent_first_male_index_; male_index < p_source_subpop->parent_subpop_size_; male_index++)
-								standard_weights[male_index] = 1.0;
+							local_weights = p_source_subpop->mate_choice_weights_;
 						}
 						else
 						{
-							for (slim_popsize_t i = 0; i < p_source_subpop->parent_subpop_size_; i++)
-								standard_weights[i] = 1.0;
+							local_weights.reset(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+							if (!local_weights)
+								EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+						}
+						
+						local_weights->resize_no_initialize(weights_length);
+						
+						double *local_weights_data = local_weights->data_mutable();
+						
+						if (p_source_subpop->individual_cached_fitness_OVERRIDE_)
+						{
+							// The whole subpop has the same fitness, so initialize from that, but with 0.0 for females
+							double fitness = p_source_subpop->individual_cached_fitness_OVERRIDE_value_;
+							
+							if (sex_enabled)
+							{
+								for (slim_popsize_t female_index = 0; female_index < p_source_subpop->parent_first_male_index_; female_index++)
+									local_weights_data[female_index] = 0;
+								for (slim_popsize_t male_index = p_source_subpop->parent_first_male_index_; male_index < weights_length; male_index++)
+									local_weights_data[male_index] = fitness;
+							}
+							else
+							{
+								for (slim_popsize_t individual_index = 0; individual_index < weights_length; individual_index++)
+									local_weights_data[individual_index] = fitness;
+							}
+						}
+						else
+						{
+							// No fitness override is in place, so use fitness values from the individuals
+							Individual **individuals_data = p_source_subpop->parent_individuals_.data();
+							
+							if (sex_enabled)
+							{
+								for (slim_popsize_t female_index = 0; female_index < p_source_subpop->parent_first_male_index_; female_index++)
+									local_weights_data[female_index] = 0;
+								for (slim_popsize_t male_index = p_source_subpop->parent_first_male_index_; male_index < weights_length; male_index++)
+									local_weights_data[male_index] = individuals_data[male_index]->cached_fitness_UNSAFE_;
+							}
+							else
+							{
+								for (slim_popsize_t individual_index = 0; individual_index < weights_length; individual_index++)
+									local_weights_data[individual_index] = individuals_data[individual_index]->cached_fitness_UNSAFE_;
+							}
 						}
 						
 						// We then give the allocated weights buffer to the subpopulation.  We do not want this
-						// to be a private copy; we want to allocate this buffer just once per tick if possible.
-						if (sex_enabled)
-							p_source_subpop->cached_male_fitness_ = standard_weights;
-						else
-							p_source_subpop->cached_parental_fitness_ = standard_weights;
+						// to be a private copy; we want to allocate this buffer just once per run if possible.
+						p_source_subpop->mate_choice_weights_ = local_weights;
+						p_source_subpop->mate_choice_weights_valid_ = true;
 						
-						p_source_subpop->cached_fitness_size_ = p_source_subpop->parent_subpop_size_;
-						p_source_subpop->cached_fitness_capacity_ = p_source_subpop->parent_subpop_size_;
-						
-						// Then we reference that buffer with current_weights just as if it had existed on entry.
-						current_weights = standard_weights;
-						weights_length = p_source_subpop->cached_fitness_size_;
-						weights_modified = false;
+						weights_reflect_chosen_mate = false;
 					}
 					
-					local_weights_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(current_weights, weights_length));
-					callback_symbols.InitializeConstantSymbolEntry(gEidosID_weights, local_weights_ptr);
+					callback_symbols.InitializeConstantSymbolEntry(gEidosID_weights, local_weights);
 				}
 				
 				try
@@ -861,14 +905,20 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					EidosValueType result_type = result->Type();
 					
 					if (result_type == EidosValueType::kValueVOID)
+					{
 						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): mateChoice() callbacks must explicitly return a value." << EidosTerminate(mate_choice_callback->identifier_token_);
+					}
 					else if (result_type == EidosValueType::kValueNULL)
 					{
-						// NULL indicates that the mateChoice() callback did not wish to alter the weights, so we do nothing
+						// NULL indicates that the mateChoice() callback did not wish to alter the weights, so we
+						// do nothing.  We don't want to set returned_weights to anything, if it is presently
+						// nullptr, because returned_weights of nullptr means "use the default mating weights",
+						// and that's a case we can optimize below to use the default WF mate choice mechanism.
 					}
 					else if (result_type == EidosValueType::kValueObject)
 					{
-						// A singleton vector of type Individual may be returned to choose a specific mate
+						// A singleton vector of type Individual may be returned to choose a specific mate.  We
+						// want to remember that individual, not the equivalent vector of mating weights.
 						if ((result->Count() == 1) && (((EidosValue_Object *)result)->Class() == gSLiM_Individual_Class))
 						{
 #if DEBUG
@@ -878,6 +928,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 							// unsafe cast for speed
 							chosen_mate = (Individual *)((EidosValue_Object *)result)->data()[0];
 #endif
+							// we can construct an equivalent vector of mating weights, but we do that lazily
 							weights_reflect_chosen_mate = false;
 							
 							// remember this callback for error attribution below
@@ -899,22 +950,16 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						}
 						else if (result_count == weights_length)
 						{
+							// a non-zero float vector must match in size, and provides a new set of weights
 							// if we used to have a specific chosen mate, we don't any more
 							chosen_mate = nullptr;
 							weights_reflect_chosen_mate = false;
 							
-							// a non-zero float vector must match the size of the source subpop, and provides a
-							// new set of weights for us to use; note current_weights could be nullptr here!
-							if (!weights_modified)
-							{
-								current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
-								if (!current_weights)
-									EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-								weights_modified = true;
-							}
-							
-							// use FloatData() to get the values, copy them with memcpy()
-							memcpy(current_weights, result->FloatData(), sizeof(double) * weights_length);
+							// we simply take over the returned EidosValue, avoiding any copying of data
+							// this is a bit tricky, though; it could be a value that remains owned by the
+							// simulation, such as a global constant or variable, so we can only modify it
+							// downstream if it turns out that we are its only owner
+							returned_weights.reset((EidosValue_Float *)result_SP.get());
 							
 							// remember this callback for error attribution below
 							last_interventionist_mate_choice_callback = mate_choice_callback;
@@ -938,9 +983,6 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
 			if (redraw_mating)
 			{
-				if (weights_modified)
-					free(current_weights);
-				
 				community_.executing_block_type_ = old_executing_block_type;
 				
 #if (SLIMPROFILING == 1)
@@ -957,9 +999,6 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	if (chosen_mate)
 	{
 		slim_popsize_t drawn_parent = chosen_mate->index_;
-		
-		if (weights_modified)
-			free(current_weights);
 		
 		if (sex_enabled)
 		{
@@ -978,16 +1017,18 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	}
 	
 	// If a callback supplied a different set of weights, we need to use those weights to draw a male parent
-	if (weights_modified)
+	if (returned_weights)
 	{
 		slim_popsize_t drawn_parent = -1;
 		double weights_sum = 0;
 		int positive_count = 0;
 		
 		// first we assess the weights vector: get its sum, bounds-check it, etc.
+		const double *returned_weights_data = returned_weights->data();
+		
 		for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
 		{
-			double x = current_weights[weight_index];
+			double x = returned_weights_data[weight_index];
 			
 			if (!std::isfinite(x))
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
@@ -1010,9 +1051,6 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// chain, whereas returning a vector of 0 values can be modified by a downstream mateChoice() callback.  Usually that is
 			// not an important distinction.  Returning float(0) is faster in principle, but if one is already constructing a vector
 			// of weights that can simply end up being all zero, then this path is much easier.  BCH 5 March 2017
-			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
-			free(current_weights);
-			
 			community_.executing_block_type_ = old_executing_block_type;
 			
 #if (SLIMPROFILING == 1)
@@ -1029,7 +1067,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// there is only a single positive value, so the callback has chosen a parent for us; we just need to locate it
 			// we could have noted it above, but I don't want to slow down that loop, since many positive weights is the likely case
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
-				if (current_weights[weight_index] > 0.0)
+				if (returned_weights_data[weight_index] > 0.0)
 				{
 					drawn_parent = weight_index;
 					break;
@@ -1044,7 +1082,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
 			{
-				double weight = current_weights[weight_index];
+				double weight = returned_weights_data[weight_index];
 				
 				if (weight > 0.0)
 				{
@@ -1067,7 +1105,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
 			{
-				bachelor_sum += current_weights[weight_index];
+				bachelor_sum += returned_weights_data[weight_index];
 				
 				if (the_rose_in_the_teeth <= bachelor_sum)
 				{
@@ -1079,15 +1117,10 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		// we should always have a chosen parent at this point
 		if (drawn_parent == -1)
-			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): failed to choose a mate." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
+			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): (internal error) failed to choose a mate." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		
-		free(current_weights);
-		
-		if (sex_enabled)
-		{
-			if (drawn_parent < p_source_subpop->parent_first_male_index_)
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
-		}
+		if ((sex_enabled) && (drawn_parent < p_source_subpop->parent_first_male_index_))
+			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		
 		community_.executing_block_type_ = old_executing_block_type;
 		
