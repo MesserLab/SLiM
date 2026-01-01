@@ -1132,7 +1132,8 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
 					slim_effect_t new_effect = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
-					// FIXME MULTITRAIT: finite values only!
+					if (!std::isfinite(new_effect))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
 					
 					SetEffect(trait, traitInfoRec, new_effect);
 					SelfConsistencyCheck(" after setting " + property_string);
@@ -1149,7 +1150,8 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
 					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
-					// FIXME MULTITRAIT: finite values only!
+					if (!std::isfinite(new_dominance))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
 					
 					SetHemizygousDominance(trait, traitInfoRec, new_dominance);
 					SelfConsistencyCheck(" after setting " + property_string);
@@ -1166,9 +1168,8 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
 					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
-					// FIXME MULTITRAIT: NAN should be allowed, but only if (1) there is only one trait,
-					// or (2) the mutation is already set to independent dominance; can't change one
-					// dominance coefficient among many to be independent
+					if (std::isinf(new_dominance))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
 					
 					SetDominance(trait, traitInfoRec, new_dominance);
 					SelfConsistencyCheck(" after setting " + property_string);
