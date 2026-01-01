@@ -62,7 +62,7 @@ MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_i
 MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_DES_script_(nullptr)
+	species_(p_species), mutation_type_id_(p_mutation_type_id), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
 #endif
@@ -115,8 +115,11 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 
 MutationType::~MutationType(void)
 {
-	delete cached_DES_script_;
-	cached_DES_script_ = nullptr;
+	for (EffectDistributionInfo &des_info : effect_distributions_)
+	{
+		delete des_info.cached_DES_script_;
+		des_info.cached_DES_script_ = nullptr;
+	}
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	if (keeping_muttype_registry_)
@@ -329,17 +332,17 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 			EidosErrorContext error_context_save = gEidosErrorContext;
 			
 			// We try to do tokenization and parsing once per script, by caching the script
-			if (!cached_DES_script_)
+			if (!DES_info.cached_DES_script_)
 			{
 				std::string script_string = DES_info.DES_strings_[0];
-				cached_DES_script_ = new EidosScript(script_string);
+				DES_info.cached_DES_script_ = new EidosScript(script_string);
 				
-				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_DES_script_};
+				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, DES_info.cached_DES_script_};
 				
 				try
 				{
-					cached_DES_script_->Tokenize();
-					cached_DES_script_->ParseInterpreterBlockToAST(false);
+					DES_info.cached_DES_script_->Tokenize();
+					DES_info.cached_DES_script_->ParseInterpreterBlockToAST(false);
 				}
 				catch (...)
 				{
@@ -349,8 +352,8 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 						TranslateErrorContextToUserScript("DrawEffectForTrait()");
 					}
 					
-					delete cached_DES_script_;
-					cached_DES_script_ = nullptr;
+					delete DES_info.cached_DES_script_;
+					DES_info.cached_DES_script_ = nullptr;
 					
 #ifdef DEBUG_LOCKS_ENABLED
 					DrawEffectForTrait_InterpreterLock.end_critical();
@@ -361,14 +364,14 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 			}
 			
 			// Execute inside try/catch so we can handle errors well
-			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_DES_script_};
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, DES_info.cached_DES_script_};
 			
 			try
 			{
 				Community &community = species_.community_;
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &community.SymbolTable());
 				EidosFunctionMap &function_map = community.FunctionMap();
-				EidosInterpreter interpreter(*cached_DES_script_, client_symbols, function_map, &community, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+				EidosInterpreter interpreter(*DES_info.cached_DES_script_, client_symbols, function_map, &community, SLIM_OUTSTREAM, SLIM_ERRSTREAM
 #ifdef SLIMGUI
 					, community.check_infinite_loops_
 #endif

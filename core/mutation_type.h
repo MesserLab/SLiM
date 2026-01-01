@@ -68,9 +68,10 @@ typedef struct _EffectDistributionInfo {
 	slim_effect_t default_dominance_coeff_;				// the default dominance coefficient (h) inherited by mutations of this type
 	slim_effect_t default_hemizygous_dominance_coeff_;	// the default dominance coefficient (h) used when one haplosome is null
 	
-	DESType DES_type_;							// distribution of effect size (DES) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
-	std::vector<double> DES_parameters_;		// DES parameters, of type double (originally float or integer type)
-	std::vector<std::string> DES_strings_;		// DES parameters, of type std::string (originally string type)
+	DESType DES_type_;									// distribution of effect size (DES) type
+	std::vector<double> DES_parameters_;				// DES parameters, of type double (originally float or integer type)
+	std::vector<std::string> DES_strings_;				// DES parameters, of type std::string (originally string type)
+	mutable EidosScript *cached_DES_script_ = nullptr;	// used by DES type 's' to hold a cached script for the DES
 } EffectDistributionInfo;
 
 
@@ -115,8 +116,6 @@ public:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
 
-	mutable EidosScript *cached_DES_script_;	// used by DES type 's' to hold a cached script for the DES		// FIXME MULTITRAIT move into EffectDistributionInfo
-	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// MutationType now has the ability to (optionally) keep a registry of all extant mutations of its type in the simulation,
 	// separate from the main registry kept by Population.  This allows much faster response to Species::mutationsOfType()
