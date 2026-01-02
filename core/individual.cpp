@@ -1406,6 +1406,34 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(age_));
 		}
+		case gID_cachedFitness:		// ACCELERATED
+		{
+			// see Subpopulation::ExecuteMethod_cachedFitness() for comments on the implementation
+			Species &species = subpopulation_->species_;
+			Community &community = species.community_;
+			
+			// TIMING RESTRICTION
+			if (community.ModelType() == SLiMModelType::kModelTypeWF)
+			{
+				if (community.executing_species_ == &species)
+					if (community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
+						EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+				
+				if ((community.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts) && !species.has_recalculated_fitness_)
+					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness generally cannot be accessed during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed).  If you really need to get fitness values in a late() event, you can call recalculateFitness() first to force fitness value recalculation to occur, but that is not something to do lightly; proceed with caution.  Usually it is better to access fitness values after SLiM has calculated them, in a first() or early() event." << EidosTerminate();
+			}
+			else
+			{
+				if (community.executing_species_ == &species)
+					if (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)
+						EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+			}
+			
+			Subpopulation *subpop = subpopulation_;
+			double fitness = subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : cached_fitness_UNSAFE_;
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness));
+		}
 		case gID_meanParentAge:
 		{
 			if (mean_parent_age_ == -1)
@@ -1865,6 +1893,85 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosGlobalStringID p_proper
 	}
 	
 	return int_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_cachedFitness(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	// see Subpopulation::ExecuteMethod_cachedFitness() for comments on the implementation
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	
+	if (p_values_size == 0)
+		return float_result;
+	
+	// SPECIES CONSISTENCY CHECK
+	Individual **individuals = (Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_values_size);
+	
+	if (!species)
+		return nullptr;			// defer to GetProperty(); this case is not optimized
+	
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	if (community.ModelType() == SLiMModelType::kModelTypeWF)
+	{
+		if (community.executing_species_ == species)
+			if (community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+		
+		if ((community.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts) && !species->has_recalculated_fitness_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness generally cannot be accessed during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed).  If you really need to get fitness values in a late() event, you can call recalculateFitness() first to force fitness value recalculation to occur, but that is not something to do lightly; proceed with caution.  Usually it is better to access fitness values after SLiM has calculated them, in a first() or early() event." << EidosTerminate();
+	}
+	else
+	{
+		if (community.executing_species_ == species)
+			if (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+	}
+	
+	// determine whether all individuals belong to the same subpopulation
+	Subpopulation *consensus_subpop = individuals[0]->subpopulation_;
+	
+	for (size_t value_index = 1; value_index < p_values_size; ++value_index)
+		if (individuals[value_index]->subpopulation_ != consensus_subpop)
+		{
+			consensus_subpop = nullptr;
+			break;
+		}
+	
+	if (consensus_subpop)
+	{
+		if (consensus_subpop->individual_cached_fitness_OVERRIDE_)
+		{
+			double fitness = consensus_subpop->individual_cached_fitness_OVERRIDE_value_;
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+				float_result->set_float_no_check(fitness, value_index);
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				Individual *ind = (Individual *)(p_values[value_index]);
+				
+				float_result->set_float_no_check(ind->cached_fitness_UNSAFE_, value_index);
+			}
+		}
+	}
+	else
+	{
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *ind = (Individual *)(p_values[value_index]);
+			Subpopulation *subpop = ind->subpopulation_;
+			double fitness = (subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : ind->cached_fitness_UNSAFE_);
+			
+			float_result->set_float_no_check(fitness, value_index);
+		}
+	}
+	
+	return float_result;
 }
 
 EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
@@ -4245,6 +4352,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_yz,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_xyz,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_age));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cachedFitness,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_cachedFitness));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_meanParentAge,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));

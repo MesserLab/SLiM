@@ -2937,6 +2937,40 @@ The species to which the target object belongs.\
 \f4\i0  its species was active in that tick.  The age of individuals may be changed; usually this only makes sense when setting up the initial state of a model, however.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 cachedFitness => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The fitness value calculated for the individual.  The fitness value returned is a cached value; 
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
+\f4\fs20  callbacks are therefore not called as a side effect of this method.\
+It is always an error to access 
+\f3\fs18 cachedFitness
+\f4\fs20  from inside a 
+\f3\fs18 mutationEffect()
+\f4\fs20  or 
+\f3\fs18 fitnessEffect()
+\f4\fs20  callback, since fitness values are in the middle of being set up.  In WF models, it is also an error to access 
+\f3\fs18 cachedFitness
+\f4\fs20  from a 
+\f3\fs18 late()
+\f4\fs20  event, because fitness values for the new offspring generation have not yet been calculated and are undefined.  In nonWF models, the population may be a mixture of new and old individuals, so instead, 
+\f3\fs18 NAN
+\f4\fs20  will be returned as the fitness of any new offspring whose fitness has not yet been calculated.  When new subpopulations are first created with 
+\f3\fs18 addSubpop()
+\f4\fs20  or 
+\f3\fs18 addSubpopSplit()
+\f4\fs20 , the fitness of all of the newly created individuals is considered to be 
+\f3\fs18 1.0
+\f4\fs20  until fitness values are recalculated.\
+See the 
+\f3\fs18 cachedFitness()
+\f4\fs20  method of class 
+\f3\fs18 Subpopulation
+\f4\fs20  for another way to access the cached fitness values for individuals.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 color <\'96> (string$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -12734,7 +12768,7 @@ The fitness values returned are cached values;
 \f3\fs18 1.0
 \f4\fs20  until fitness values are recalculated.\
 See the 
-\f3\fs18 fitness
+\f3\fs18 cachedFitness
 \f4\fs20  property of class 
 \f3\fs18 Individual
 \f4\fs20  for another way to access the cached fitness values for individuals.\

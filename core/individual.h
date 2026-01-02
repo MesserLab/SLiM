@@ -360,6 +360,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_cachedFitness(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_reproductiveOutput(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_migrant(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);

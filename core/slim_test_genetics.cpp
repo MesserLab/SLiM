@@ -1259,6 +1259,83 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.dominance, 0.4999875)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.heightDominance, 0.4999875)) stop(); }");
 	
+	// Test the new Individual cachedFitness property and crosscheck it against the Subpopulation cachedFitness() method
+	std::string cachedFitness1 =	// neutral but with fitnessScaling
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "f", 0.0);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		1:10 early() {
+			// will affect the next generation, not this one
+			p1.fitnessScaling = runif(1, 0.1, 1.0);
+			p1.individuals.fitnessScaling = runif(50, 0.1, 1.0);
+			
+			f1 = p1.cachedFitness(NULL);
+			f2 = p1.cachedFitness(0:49);
+			f3 = p1.cachedFitness(p1.individuals);
+			f4 = p1.individuals.cachedFitness;
+			
+			if (!identical(f1, f2, f3, f4))
+				stop();
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(cachedFitness1);
+	
+	std::string cachedFitness2 =	// non-neutral
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		1:10 early() {
+			f1 = p1.cachedFitness(NULL);
+			f2 = p1.cachedFitness(0:49);
+			f3 = p1.cachedFitness(p1.individuals);
+			f4 = p1.individuals.cachedFitness;
+			
+			if (!identical(f1, f2, f3, f4))
+				stop();
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(cachedFitness2);
+	
+	std::string cachedFitness3 =	// non-neutral with independent dominance
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", NAN, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		1:10 early() {
+			f1 = p1.individuals.cachedFitness;
+			f2 = sapply(p1.individuals, "muts = applyValue.haplosomes.mutations; product(1.0 + muts.effect * muts.dominance);");
+			if (!allClose(f1, f2))
+				stop();
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(cachedFitness3);
+	
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
 
