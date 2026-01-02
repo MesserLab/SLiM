@@ -2137,7 +2137,7 @@ See the
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -positionsOfMutationsOfType()
-\f4\fs20 ; and if you are aiming for a sum of the selection coefficients of matching 
+\f4\fs20 ; and if you are aiming for a sum of the effects of matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -sumOfMutationsOfType()
@@ -2715,18 +2715,28 @@ The optional parameter
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
 \f5 \'a0
-\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType\cf2 , [Niso<Trait>$\'a0trait\'a0=\'a0NULL]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
+\f4\fs20 \cf2 Returns the sum of the effects of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the haplosome.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f4\fs20 , out of all of the mutations in the haplosome, for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  can be used to represent the one defined trait in a single-trait species.\
+Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
-\f4\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has largely been superseded, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Individual
-\f4\fs20 , for cases in which the sum across both haplosomes of an individual is desired.
-\f5 \
+\f4\fs20 , for cases in which the sum across both haplosomes of an individual is desired.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.5  Class GenomicElement\
@@ -4459,18 +4469,28 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 
 \f3\fs18 \cf0 \'96
 \f5 \'a0
-\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType\cf2 , [Niso<Trait>$\'a0trait\'a0=\'a0NULL]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
+\f4\fs20 \cf2 Returns the sum of the effects of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the haplosomes of the individual.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f4\fs20 , out of all of the mutations in the haplosomes of the individual, for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  can be used to represent the one defined trait in a single-trait species.\
+Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
-\f4\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has largely been superseded, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Haplosome
-\f4\fs20 , for cases in which the sum for just one haplosome is desired.
-\f5 \
+\f4\fs20 , for cases in which the sum for just one haplosome is desired.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96

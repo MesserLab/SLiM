@@ -1300,14 +1300,15 @@ EidosValue_SP Haplosome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStr
 	return EidosValue_SP(int_result);
 }
 
-//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (float$)sumOfMutationsOfType(io<MutationType>$ mutType, [Niso<Trait>$ trait = NULL])
 //
 EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
+	EidosValue *trait_value = p_arguments[1].get();
 	
-	// FIXME MULTITRAIT: This should perhaps take a trait as its second parameter, so that it can be used with any trait; and its doc needs to be rewritten; and it should be deprecated
+	// might deprecate this method in future?
 	
 	if (IsDeferred())
 		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_sumOfMutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
@@ -1316,6 +1317,15 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 	
 	Species &species = individual_->subpopulation_->species_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "sumOfMutationsOfType");
+	
+	if (trait_indices.size() != 1)
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() requires exactly one trait to be specified." << EidosTerminate();
+	
+	const slim_trait_index_t trait_index = trait_indices[0];
 	
 	// Sum the selection coefficients of mutations of the given type
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
@@ -1337,7 +1347,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 			if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
 			{
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mut_index);
-				effect_sum += (double)mut_trait_info[0].effect_size_;
+				effect_sum += (double)mut_trait_info[trait_index].effect_size_;
 			}
 		}
 	}
@@ -2281,7 +2291,7 @@ const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) cons
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputHaplosomesToMS, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputHaplosomesToVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputHaplosomes, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

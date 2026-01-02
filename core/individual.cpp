@@ -3518,7 +3518,7 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	return EidosValue_SP(int_result);
 }
 
-//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (float$)sumOfMutationsOfType(io<MutationType>$ mutType, [Niso<Trait>$ trait = NULL])
 //
 EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3526,7 +3526,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	if (p_elements_size == 0)
 		return gStaticEidosValue_Float_ZeroVec;
 	
-	// FIXME MULTITRAIT: This should perhaps take a trait as its second parameter, so that it can be used with any trait; and its doc needs to be rewritten; and it should be deprecated
+	// might deprecate this method in future?
 	
 	// SPECIES CONSISTENCY CHECK
 	Species *species = Community::SpeciesForIndividualsVector((Individual **)p_elements, (int)p_elements_size);
@@ -3537,7 +3537,17 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	species->population_.CheckForDeferralInIndividualsVector((Individual **)p_elements, p_elements_size, "Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType");
 	
 	EidosValue *mutType_value = p_arguments[0].get();
+	EidosValue *trait_value = p_arguments[1].get();
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "sumOfMutationsOfType");
+	
+	if (trait_indices.size() != 1)
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() requires exactly one trait to be specified." << EidosTerminate();
+	
+	const slim_trait_index_t trait_index = trait_indices[0];
 	
 	// Sum the selection coefficients of mutations of the given type
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
@@ -3574,7 +3584,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 						if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
 						{
 							MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mut_index);
-							effect_sum += (double)mut_trait_info[0].effect_size_;
+							effect_sum += (double)mut_trait_info[trait_index].effect_size_;
 						}
 					}
 				}
@@ -4270,7 +4280,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setOffsetForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("offset", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setPhenotypeForTrait, kEidosValueMaskVOID))->AddIntStringObject_N("trait", gSLiM_Trait_Class)->AddNumeric("phenotype"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->MarkDeprecated());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsFromHaplosomes, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("category")->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		
