@@ -128,6 +128,7 @@ multitrait branch:
 	add new slim_trait_index_t typedef to refer to trait indices, cleaning up a bunch of code (no user-visible impact)
 	extend sumOfMutationsOfType() with a [Niso<Trait>$ trait = NULL] parameter to allow it to be applied to any trait (but it is mostly obsolete now)
 	extend cachedFitness() to accept a vector of class Individual, as well as its old style of taking a vector of indices into the target subpopulation
+	extend the Eidos identical() function to allow comparison of more than two parameters; e.g., (logical$)identical(* x, * y, ...)
 
 
 version 5.1 (Eidos version 4.1):

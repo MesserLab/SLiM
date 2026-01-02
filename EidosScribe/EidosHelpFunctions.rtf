@@ -3196,23 +3196,33 @@ For example,
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)identical(*\'a0x, *\'a0y)\
+\f1\fs18 \cf0 (logical$)identical(*\'a0x, *\'a0y, ...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns a 
+\f3\fs20 \cf2 Returns a 
 \f1\fs18 logical
 \f3\fs20  value indicating 
-\f0\b whether two values are identical
-\f3\b0 .  If 
+\f0\b whether two or more values are identical
+\f3\b0 .  For two values 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
-\f3\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, \cf2 \expnd0\expndtw0\kerning0
-and (for matrices and arrays) their dimensions are identical, \cf0 \kerning1\expnd0\expndtw0 this will return 
+\f3\fs20 , this will return 
 \f1\fs18 T
-\f3\fs20 , otherwise it will return 
+\f3\fs20  if 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, and (for matrices and arrays) their dimensions are identical; otherwise it will return 
 \f1\fs18 F
-\f3\fs20 .  The test here is for 
+\f3\fs20 .  Additional parameters beyond 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are compared to x in the same manner, and 
+\f1\fs18 T
+\f3\fs20  is returned only if all of the parameters are identical.\
+The test here is for 
 \f7\i exact
 \f3\i0  equality; an 
 \f1\fs18 integer
@@ -3230,9 +3240,11 @@ and (for matrices and arrays) their dimensions are identical, \cf0 \kerning1\exp
 \f1\fs18 !=
 \f3\fs20 .  Note that 
 \f1\fs18 identical(NULL,NULL)
-\f3\fs20  is 
+\f3\fs20  and 
+\f1\fs18 identical(NAN, NAN)
+\f3\fs20  are both 
 \f1\fs18 T
-\f2\fs20 .\
+\f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)ifelse(logical\'a0test, *\'a0trueValues, *\'a0falseValues)\

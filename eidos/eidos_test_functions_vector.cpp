@@ -714,6 +714,23 @@ void _RunFunctionValueInspectionManipulationTests_g_through_l(void)
 	EidosAssertScriptSuccess_L("identical(matrix(c(6,8,6,6), nrow=1), matrix(c(6,8,6,6), ncol=1));", false);
 	EidosAssertScriptSuccess_L("identical(matrix(c(6,8,6,6), ncol=1), matrix(c(6,8,6,6), nrow=1));", false);
 	
+	EidosAssertScriptSuccess_L("identical(NULL, NULL, NULL);", true);
+	EidosAssertScriptSuccess_L("identical(F, F, F);", true);
+	EidosAssertScriptSuccess_L("identical(T, T, T);", true);
+	EidosAssertScriptSuccess_L("identical(5, 5, 5);", true);
+	EidosAssertScriptSuccess_L("identical(5.7, 5.7, 5.7);", true);
+	EidosAssertScriptSuccess_L("identical(NAN, NAN, NAN);", true);
+	EidosAssertScriptSuccess_L("identical('foo', 'foo', 'foo');", true);
+	EidosAssertScriptSuccess_L("x = _Test(3); y = _Test(7); identical(x, x, x);", true);
+	EidosAssertScriptSuccess_L("identical(NULL, NULL, integer(0));", false);
+	EidosAssertScriptSuccess_L("identical(F, F, T);", false);
+	EidosAssertScriptSuccess_L("identical(T, T, F);", false);
+	EidosAssertScriptSuccess_L("identical(5, 5, 6);", false);
+	EidosAssertScriptSuccess_L("identical(5.7, 5.7, 6.8);", false);
+	EidosAssertScriptSuccess_L("identical(NAN, NAN, INF);", false);
+	EidosAssertScriptSuccess_L("identical('foo', 'foo', 'bar');", false);
+	EidosAssertScriptSuccess_L("x = _Test(3); y = _Test(7); identical(x, x, y);", false);
+	
 	// ifelse()
 	EidosAssertScriptRaise("ifelse(NULL, integer(0), integer(0));", 0, "cannot be type");
 	EidosAssertScriptRaise("ifelse(logical(0), NULL, integer(0));", 0, "to be the same type");
