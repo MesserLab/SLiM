@@ -10241,13 +10241,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (float)cachedFitness(Ni indices)
+//	*********************	- (float)cachedFitness([Nio<Individual> individuals = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *indices_value = p_arguments[0].get();
-	
 	// TIMING RESTRICTION
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
@@ -10270,30 +10268,95 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		// in nonWF models uncalculated fitness values for new individuals are guaranteed to be NaN, so there is no need for a check here
 	}
 	
-	bool do_all_indices = (indices_value->Type() == EidosValueType::kValueNULL);
-	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(indices_value->Count()));
-	EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
-	EidosValue_SP result_SP = EidosValue_SP(float_return);
-	const int64_t *indices = (do_all_indices ? nullptr : indices_value->IntData());
+	EidosValue *individuals_value = p_arguments[0].get();
+	EidosValueType individuals_type = individuals_value->Type();
 	
-	for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
+	if (individuals_type == EidosValueType::kValueNULL)
 	{
-		slim_popsize_t index = value_index;
+		EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(parent_subpop_size_);
+		EidosValue_SP result_SP = EidosValue_SP(float_return);
 		
-		if (!do_all_indices)
+		if (individual_cached_fitness_OVERRIDE_)
 		{
-			index = SLiMCastToPopsizeTypeOrRaise(indices[value_index]);
-			
-			if (index >= parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
+			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				float_return->set_float_no_check(individual_cached_fitness_OVERRIDE_value_, individual_index);
+		}
+		else
+		{
+			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				float_return->set_float_no_check((double)parent_individuals_[individual_index]->cached_fitness_UNSAFE_, individual_index);
 		}
 		
-		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : (double)parent_individuals_[index]->cached_fitness_UNSAFE_);
-		
-		float_return->set_float_no_check(fitness, value_index);
+		return result_SP;
 	}
-	
-	return result_SP;
+	else if (individuals_type == EidosValueType::kValueInt)
+	{
+		slim_popsize_t index_count = SLiMCastToPopsizeTypeOrRaise(individuals_value->Count());
+		EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
+		EidosValue_SP result_SP = EidosValue_SP(float_return);
+		const int64_t *indices = individuals_value->IntData();
+		
+		if (individual_cached_fitness_OVERRIDE_)
+		{
+			for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
+			{
+				slim_popsize_t individual_index = SLiMCastToPopsizeTypeOrRaise(indices[value_index]);
+				
+				if (individual_index >= parent_subpop_size_)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() individual index " << individual_index << " out of range." << EidosTerminate();
+				
+				float_return->set_float_no_check(individual_cached_fitness_OVERRIDE_value_, value_index);
+			}
+		}
+		else
+		{
+			for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
+			{
+				slim_popsize_t individual_index = SLiMCastToPopsizeTypeOrRaise(indices[value_index]);
+				
+				if (individual_index >= parent_subpop_size_)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() individual index " << individual_index << " out of range." << EidosTerminate();
+				
+				float_return->set_float_no_check((double)parent_individuals_[individual_index]->cached_fitness_UNSAFE_, value_index);
+			}
+		}
+		
+		return result_SP;
+	}
+	else	// (individuals_type == EidosValueType::kValueObject)
+	{
+		slim_popsize_t individuals_count = SLiMCastToPopsizeTypeOrRaise(individuals_value->Count());
+		EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(individuals_count);
+		EidosValue_SP result_SP = EidosValue_SP(float_return);
+		Individual **individuals_data = (Individual **)individuals_value->ObjectData();
+		
+		if (individual_cached_fitness_OVERRIDE_)
+		{
+			for (slim_popsize_t value_index = 0; value_index < individuals_count; value_index++)
+			{
+				Individual *ind = individuals_data[value_index];
+				
+				if (ind->subpopulation_ != this)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() individual does not belong to the target subpopulation." << EidosTerminate();
+				
+				float_return->set_float_no_check(individual_cached_fitness_OVERRIDE_value_, value_index);
+			}
+		}
+		else
+		{
+			for (slim_popsize_t value_index = 0; value_index < individuals_count; value_index++)
+			{
+				Individual *ind = individuals_data[value_index];
+				
+				if (ind->subpopulation_ != this)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() individual does not belong to the target subpopulation." << EidosTerminate();
+				
+				float_return->set_float_no_check((double)ind->cached_fitness_UNSAFE_, value_index);
+			}
+		}
+		
+		return result_SP;
+	}
 }
 
 //  *********************	– (No<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL], [Nl$ tagL0 = NULL], [Nl$ tagL1 = NULL], [Nl$ tagL2 = NULL], [Nl$ tagL3 = NULL], [Nl$ tagL4 = NULL])
@@ -11568,7 +11631,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddIntObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL)->AddLogical_OSN("tagL0", gStaticEidosValueNULL)->AddLogical_OSN("tagL1", gStaticEidosValueNULL)->AddLogical_OSN("tagL2", gStaticEidosValueNULL)->AddLogical_OSN("tagL3", gStaticEidosValueNULL)->AddLogical_OSN("tagL4", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL)->AddLogical_OSN("tagL0", gStaticEidosValueNULL)->AddLogical_OSN("tagL1", gStaticEidosValueNULL)->AddLogical_OSN("tagL2", gStaticEidosValueNULL)->AddLogical_OSN("tagL3", gStaticEidosValueNULL)->AddLogical_OSN("tagL4", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));

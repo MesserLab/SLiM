@@ -10546,8 +10546,7 @@ The optional parameter
 \f4\fs20  in a 
 \f3\fs18 late()
 \f4\fs20  event, which is also not advisable in general.)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 If 
+If 
 \f3\fs18 forceRecalc
 \f4\fs20  is 
 \f3\fs18 T
@@ -10568,8 +10567,7 @@ The optional parameter
 \f4\fs20 .  This could occur if, for example, if a 
 \f3\fs18 mutationEffect()
 \f4\fs20  callback\'92s activation state has been changed.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
+After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
 \f3\fs18 mutationEffect()
 \f4\fs20  and 
 \f3\fs18 fitnessEffect()
@@ -12696,12 +12694,23 @@ Adding a map to a subpopulation is not strictly necessary, at present; one may q
 \f4\fs20 , both for its compatibility check that prevents unnoticed scripting errors, and because it ensures correct display of the model in SLiMgui.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
+\f3\fs18 \cf0 \'96\'a0(float)cachedFitness(\cf2 [Nio<Individual>\'a0individuals\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The fitness values calculated for the individuals at the indices given are returned.  If 
+\f4\fs20 \cf2 The fitness values calculated for the individuals specified by 
+\f3\fs18 individuals
+\f4\fs20  are returned.  The 
+\f3\fs18 individuals
+\f4\fs20  parameter may be an 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20  (all elements of which must belong to the target subpopulation), an 
+\f3\fs18 integer
+\f4\fs20  vector of indices of individuals within the target subpopulation, or 
 \f3\fs18 NULL
-\f4\fs20  is passed, fitness values for all individuals in the subpopulation are returned.  The fitness values returned are cached values; 
+\f4\fs20  (the default) to specify all individuals in the target subpopulation.\
+The fitness values returned are cached values; 
 \f3\fs18 mutationEffect()
 \f4\fs20  and 
 \f3\fs18 fitnessEffect()
@@ -12717,13 +12726,18 @@ Adding a map to a subpopulation is not strictly necessary, at present; one may q
 \f3\fs18 late()
 \f4\fs20  event, because fitness values for the new offspring generation have not yet been calculated and are undefined.  In nonWF models, the population may be a mixture of new and old individuals, so instead, 
 \f3\fs18 NAN
-\f4\fs20  will be returned as the fitness of any new individuals whose fitness has not yet been calculated.  When new subpopulations are first created with 
+\f4\fs20  will be returned as the fitness of any new offspring whose fitness has not yet been calculated.  When new subpopulations are first created with 
 \f3\fs18 addSubpop()
 \f4\fs20  or 
 \f3\fs18 addSubpopSplit()
 \f4\fs20 , the fitness of all of the newly created individuals is considered to be 
 \f3\fs18 1.0
 \f4\fs20  until fitness values are recalculated.\
+See the 
+\f3\fs18 fitness
+\f4\fs20  property of class 
+\f3\fs18 Individual
+\f4\fs20  for another way to access the cached fitness values for individuals.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0

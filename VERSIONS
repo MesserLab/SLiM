@@ -127,6 +127,7 @@ multitrait branch:
 	redesigned the internals of mateChoice() callbacks; there should be no user-visible consequence apart from better performance (even without mateChoice() callbacks!)
 	add new slim_trait_index_t typedef to refer to trait indices, cleaning up a bunch of code (no user-visible impact)
 	extend sumOfMutationsOfType() with a [Niso<Trait>$ trait = NULL] parameter to allow it to be applied to any trait (but it is mostly obsolete now)
+	extend cachedFitness() to accept a vector of class Individual, as well as its old style of taking a vector of indices into the target subpopulation
 
 
 version 5.1 (Eidos version 4.1):
