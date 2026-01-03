@@ -130,6 +130,7 @@ multitrait branch:
 	extend cachedFitness() to accept a vector of class Individual, as well as its old style of taking a vector of indices into the target subpopulation
 	extend the Eidos identical() function to allow comparison of more than two parameters; e.g., (logical$)identical(* x, * y, ...)
 	add a cachedFitness property to class Individual to provide another way of accessing fitness values for individuals, besides the cachedFitness() method of Subpopulation
+	extend the Eidos deleteFile() and fileExists() functions to support passing in a vector of file paths
 
 
 version 5.1 (Eidos version 4.1):

@@ -61,7 +61,7 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const std::vector<EidosValue
 	return (success ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
-//	(logical$)deleteFile(string$ filePath)
+//	(logical)deleteFile(string filePath)
 EidosValue_SP Eidos_ExecuteFunction_deleteFile(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -69,15 +69,24 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const std::vector<EidosValue_SP> 
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
-	std::string file_path = Eidos_ResolvedPath(base_path);
+	int filePath_count = filePath_value->Count();
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(filePath_count);
+	result_SP = EidosValue_SP(logical_result);
 	
-	result_SP = ((remove(file_path.c_str()) == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	for (int value_index = 0; value_index < filePath_count; ++value_index)
+	{
+		std::string base_path = filePath_value->StringAtIndex_NOCAST(value_index, nullptr);
+		std::string file_path = Eidos_ResolvedPath(base_path);
+		
+		bool success = (remove(file_path.c_str()) == 0);
+		
+		logical_result->set_logical_no_check(success, value_index);
+	}
 	
 	return result_SP;
 }
 
-//	(logical$)fileExists(string$ filePath)
+//	(logical)fileExists(string filePath)
 EidosValue_SP Eidos_ExecuteFunction_fileExists(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -85,13 +94,20 @@ EidosValue_SP Eidos_ExecuteFunction_fileExists(const std::vector<EidosValue_SP> 
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
-	std::string file_path = Eidos_ResolvedPath(base_path);
+	int filePath_count = filePath_value->Count();
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(filePath_count);
+	result_SP = EidosValue_SP(logical_result);
 	
-	struct stat file_info;
-	bool path_exists = (stat(file_path.c_str(), &file_info) == 0);
-	
-	result_SP = (path_exists ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	for (int value_index = 0; value_index < filePath_count; ++value_index)
+	{
+		std::string base_path = filePath_value->StringAtIndex_NOCAST(value_index, nullptr);
+		std::string file_path = Eidos_ResolvedPath(base_path);
+		
+		struct stat file_info;
+		bool path_exists = (stat(file_path.c_str(), &file_info) == 0);
+		
+		logical_result->set_logical_no_check(path_exists, value_index);
+	}
 	
 	return result_SP;
 }
