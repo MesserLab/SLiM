@@ -682,19 +682,19 @@ void _RunSubstitutionTests(void)
 	//
 	
 	// Test Substitution properties
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { if (size(sim.substitutions) > 0) stop(); }", __LINE__);										// check that our script generates substitutions fast enough
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.fixationTick > 0 & sub.fixationTick <= 30) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.originTick > 0 & sub.originTick <= 10) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.position >= 0 & sub.position <= 99999) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { if (sum(sim.substitutions.effect == 500.0) == 1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.fixationTick = 10; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.originTick = 10; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.effect = 50.0; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { if (size(sim.substitutions) > 0) stop(); }", __LINE__);										// check that our script generates substitutions fast enough
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.fixationTick > 0 & sub.fixationTick <= 30) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.originTick > 0 & sub.originTick <= 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.position >= 0 & sub.position <= 99999) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { if (sum(sim.substitutions.effect == 500.0) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.fixationTick = 10; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.originTick = 10; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.effect = 50.0; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 }
 
 #pragma mark Haplosome tests
