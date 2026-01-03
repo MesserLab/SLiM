@@ -5374,11 +5374,11 @@ Returns the transpose
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)deleteFile(string$\'a0filePath)
+\f1\fs18 \cf0 (logical)deleteFile(string\'a0filePath)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Deletes the file
+\f0\b\fs20 \cf2 Deletes the file
 \f3\b0  specified by 
 \f1\fs18 filePath
 \f3\fs20  and returns a 
@@ -5387,9 +5387,10 @@ Returns the transpose
 \f1\fs18 T
 \f3\fs20 ) or failed (
 \f1\fs18 F
-\f3\fs20 ).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 This function might also be able to delete a directory at 
+\f3\fs20 ).  If 
+\f1\fs18 filePath
+\f3\fs20  contains more than one file path, deletion is attempted for each path, and a vector of corresponding flags indicating the success or failure of each operation is returned.\
+This function might also be able to delete a directory at 
 \f1\fs18 filePath
 \f3\fs20 , but only if it is empty (apart from the 
 \f1\fs18 .
@@ -5402,10 +5403,10 @@ Returns the transpose
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
-(logical$)fileExists(string$\'a0filePath)\
+(logical)fileExists(string\'a0filePath)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf2 Checks the existence of the file
+\f0\b\fs20 \cf2 \kerning1\expnd0\expndtw0 Checks the existence of the file
 \f3\b0  specified by 
 \f1\fs18 filePath
 \f3\fs20  and returns a 
@@ -5414,10 +5415,12 @@ Returns the transpose
 \f1\fs18 T
 \f3\fs20 ) or does not exist (
 \f1\fs18 F
-\f3\fs20 ).  This also works for directories.\
+\f3\fs20 ).  This also works for directories.  If 
+\f1\fs18 filePath
+\f3\fs20  contains more than one file path, each path is checked for existence, and a vector of corresponding flags indicating the existence of each path is returned.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths\'a0=\'a0F])
+\f1\fs18 \cf0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths\'a0=\'a0F])
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
