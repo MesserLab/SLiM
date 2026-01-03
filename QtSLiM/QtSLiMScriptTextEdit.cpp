@@ -1573,7 +1573,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 		else
 		{
 			// We have a property; look up its signature and get the class
-			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
+			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty_TYPE_INTERPRETER(identifier_id);
 			
 			if (!property_signature)
 				return QStringList();			// no signature, so the class does not support the property given
@@ -1591,7 +1591,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	const EidosClass *terminus = key_path_class;
 	
 	// First, a sorted list of globals
-	for (const auto &symbol_sig : *terminus->Properties())
+	for (const auto &symbol_sig : terminus->Properties_TYPE_INTERPRETER())
     {
         if (!symbol_sig->deprecated_)
             candidates << QString::fromStdString(symbol_sig->property_name_);
@@ -2349,6 +2349,9 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 			
 			script.Tokenize(true, false);					// make bad tokens as needed, do not keep nonsignificant tokens
 			script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+			
+			// Clear out dynamic property signatures kept by EidosClass, since we're starting a new type-interpretation pass.
+			EidosClass::ClearDynamicSignatures();
 			
 			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr, *callTypeTablePtr);
 			

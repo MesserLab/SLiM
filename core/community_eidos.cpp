@@ -20,6 +20,7 @@
 
 #include "community.h"
 
+#include "trait.h"
 #include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
@@ -88,6 +89,7 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);			// NOLINT(*-branch-clone) : intentional consecutive branches
 	else if (p_function_name.compare(gStr_initializeMutationTypeNuc) == 0)		return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)	return active_species_->ExecuteContextFunction_initializeRecombinationRate(p_function_name, p_arguments, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeTrait) == 0)				return active_species_->ExecuteContextFunction_initializeTrait(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeChromosome) == 0)			return active_species_->ExecuteContextFunction_initializeChromosome(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)		return active_species_->ExecuteContextFunction_initializeGeneConversion(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return active_species_->ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_interpreter);
@@ -118,11 +120,12 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, "SLiM"))
 										->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocal, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_OSN("distributionType", gStaticEidosValueNULL)->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationTypeNuc, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_OSN("distributionType", gStaticEidosValueNULL)->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTrait, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class, "SLiM"))->AddString_S("name")->AddString_S("type")->AddFloat_OSN("baselineOffset", gStaticEidosValueNULL)->AddFloat_OSN("individualOffsetMean", gStaticEidosValueNULL)->AddFloat_OSN("individualOffsetSD", gStaticEidosValueNULL)->AddLogical_OS("directFitnessEffect", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeChromosome, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class, "SLiM"))->AddInt_S("id")->AddInt_OSN("length", gStaticEidosValueNULL)->AddString_OS("type", gStaticEidosValue_StringA)->AddString_OSN("symbol", gStaticEidosValueNULL)->AddString_OSN("name", gStaticEidosValueNULL)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric_S("nonCrossoverFraction")->AddNumeric_S("meanLength")->AddNumeric_S("simpleConversionFraction")->AddNumeric_OS("bias", gStaticEidosValue_Integer0)->AddLogical_OS("redrawLengthsOnFailure", gStaticEidosValue_LogicalF));
@@ -382,6 +385,17 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			for (auto species : all_species_)
 				for (auto pop : species->population_.subpops_)
 					vec->push_object_element_NORR(pop.second);
+			
+			return result_SP;
+		}
+		case gID_allTraits:
+		{
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto species : all_species_)
+				for (auto trait : species->Traits())
+					vec->push_object_element_RR(trait);
 			
 			return result_SP;
 		}
@@ -970,6 +984,7 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	// Mutation
 	out << "   Mutation objects (" << usage_all_species.mutationObjects_count << "): " << PrintBytes(usage_all_species.mutationObjects) << std::endl;
 	out << "      Refcount buffer: " << PrintBytes(usage_community.mutationRefcountBuffer) << std::endl;
+	out << "      Per-trait buffer: " << PrintBytes(usage_community.mutationPerTraitBuffer) << std::endl;
 	out << "      Unused pool space: " << PrintBytes(usage_community.mutationUnusedPoolSpace) << std::endl;
 	
 	// MutationRun
@@ -1331,7 +1346,7 @@ EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, co
 #pragma mark Community_Class
 #pragma mark -
 
-EidosClass *gSLiM_Community_Class = nullptr;
+Community_Class *gSLiM_Community_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void) const
@@ -1350,6 +1365,7 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allScriptBlocks,		true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allSpecies,				true,	kEidosValueMaskObject, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allSubpopulations,		true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allTraits,				true,	kEidosValueMaskObject, gSLiM_Trait_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logFiles,				true,	kEidosValueMaskObject, gSLiM_LogFile_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tick,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

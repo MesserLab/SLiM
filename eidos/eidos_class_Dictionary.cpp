@@ -1621,7 +1621,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryUnretained_Class = nullptr;
+EidosDictionaryUnretained_Class *gEidosDictionaryUnretained_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
@@ -1922,7 +1922,7 @@ const EidosClass *EidosDictionaryRetained::Class(void) const
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryRetained_Class = nullptr;
+EidosDictionaryRetained_Class *gEidosDictionaryRetained_Class = nullptr;
 
 
 const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Functions(void) const

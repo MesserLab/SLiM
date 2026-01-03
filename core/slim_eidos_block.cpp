@@ -1493,10 +1493,14 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			
 		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 		{
-			// mutationEffect(<mutTypeId> [, <subpopId>])
+			// mutationEffect(<mutTypeId> [, <subpopId> [, <traitIndex>]])
 			p_out << "mutationEffect(m" << mutation_type_id_;
 			if (subpopulation_id_ != -1)
 				p_out << ", p" << subpopulation_id_;
+			else if (trait_index_ != -1)
+				p_out << ", NULL";
+			if (trait_index_ != -1)
+				p_out << ", " << trait_index_ << "";
 			p_out << ")";
 			break;
 		}
@@ -1540,7 +1544,7 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			else if (chromosome_id_ != -1)
 				p_out << "NULL";
 			if (chromosome_id_ != -1)
-				p_out << ", \"" << chromosome_id_ << "\"";
+				p_out << ", " << chromosome_id_ << "";
 			p_out << ")";
 			break;
 		}
@@ -1777,7 +1781,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 #pragma mark SLiMEidosBlock_Class
 #pragma mark -
 
-EidosClass *gSLiM_SLiMEidosBlock_Class = nullptr;
+SLiMEidosBlock_Class *gSLiM_SLiMEidosBlock_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(void) const
@@ -1806,6 +1810,9 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	return properties;
 }
 
+
+#ifdef EIDOS_GUI
+// SLiMTypeTable and SLiMTypeInterpreter are only used in SLiMgui and QtSLiM
 
 //
 //	SLiMTypeTable
@@ -1996,6 +2003,41 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'i', gSLiM_InteractionType_Class);
 	}
+	else if ((p_function_name == "initializeTrait") && (argument_count >= 1))
+	{
+		EidosASTNode *trait_name_node = p_arguments[0];
+		const EidosToken *trait_name_token = trait_name_node->token_;
+		
+		if (trait_name_token->token_type_ == EidosTokenType::kTokenString)
+		{
+			// initializeTrait() has the side effect of defining dynamic properties on various classes;
+			// we need to set up the information needed to make that work with code completion.  We do that
+			// with AddSignatureForProperty_TYPE_INTERPRETER(), a version of AddSignatureForProperty() that
+			// uses scratch space belonging only to us, so we don't interfere with anything in SLiM itself.
+			const std::string &trait_name = trait_name_token->token_string_;
+			const std::string &traitEffect_name = trait_name + "Effect";
+			const std::string &traitDominance_name = trait_name + "Dominance";
+			const std::string &traitHemizygousDominance_name = trait_name + "HemizygousDominance";
+			
+			EidosPropertySignature_CSP species_trait_signature((new EidosPropertySignature(trait_name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP individual_trait_signature((new EidosPropertySignature(trait_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitEffect_signature((new EidosPropertySignature(traitEffect_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitDominance_signature((new EidosPropertySignature(traitDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitHemizygousDominance_signature((new EidosPropertySignature(traitHemizygousDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitEffect_signature((new EidosPropertySignature(traitEffect_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitDominance_signature((new EidosPropertySignature(traitDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitHemizygousDominance_signature((new EidosPropertySignature(traitHemizygousDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Species_Class->AddSignatureForProperty_TYPE_INTERPRETER(species_trait_signature);
+			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_trait_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitEffect_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitDominance_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitHemizygousDominance_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitEffect_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitDominance_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitHemizygousDominance_signature);
+		}
+	}
 	
 	return ret;
 }
@@ -2053,6 +2095,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 	return ret;
 }
 
+#endif // EIDOS_GUI
 
 
 

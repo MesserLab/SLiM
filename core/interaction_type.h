@@ -42,14 +42,13 @@
 #include "subpopulation.h"
 #include "spatial_kernel.h"
 
-
 class Species;
 class Subpopulation;
 class Individual;
+
+
 class InteractionType_Class;
-
-
-extern EidosClass *gSLiM_InteractionType_Class;
+extern InteractionType_Class *gSLiM_InteractionType_Class;
 
 
 // This class uses an internal implementation of kd-trees for fast nearest-neighbor finding.  We use the same data structure to
@@ -469,8 +468,8 @@ public:
 	EidosValue_SP ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 };
 
 class InteractionType_Class : public EidosDictionaryUnretained_Class

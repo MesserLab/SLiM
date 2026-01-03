@@ -35,6 +35,7 @@
 #include "slim_globals.h"
 #include "population.h"
 #include "chromosome.h"
+#include "trait.h"
 #include "eidos_value.h"
 #include "mutation_run.h"
 
@@ -50,17 +51,20 @@ extern "C" {
 }
 #endif
 
-
 class Community;
 class EidosInterpreter;
 class Individual;
+class MutationBlock;
 class MutationType;
 class GenomicElementType;
 class InteractionType;
 struct ts_subpop_info;
 struct ts_mut_info;
 
-extern EidosClass *gSLiM_Species_Class;
+
+class Species_Class;
+extern Species_Class *gSLiM_Species_Class;
+
 
 enum class SLiMFileFormat
 {
@@ -78,6 +82,9 @@ enum class SLiMFileFormat
 // There would be an upper limit of 256 anyway because Mutation uses uint8_t to keep the index of its chromosome
 #define SLIM_MAX_CHROMOSOMES	256
 
+// We have a defined maximum number of traits; it is not clear that this is necessary, however.  FIXME MULTITRAIT
+#define SLIM_MAX_TRAITS	256
+
 
 // TREE SEQUENCE RECORDING
 #pragma mark -
@@ -92,7 +99,8 @@ enum class SLiMFileFormat
 
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
-	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
+	slim_effect_t selection_coeff_;			// 4 bytes (float): the mutation effect (e.g., selection coefficient)
+	// FIXME MULTITRAIT need to add a dominance_coeff_ property here! and hemizygous_dominance_coeff_!
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
 	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
 	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
@@ -176,6 +184,11 @@ private:
 	
 	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
+	// We keep a MutationBlock object that stores all of the Mutation objects that belong to this species.
+	// Our mutations get allocated and freed using this block, and we use MutationIndex to reference them.
+	// This remains nullptr in no-genetics species, and is allocated only after initialize() is done.
+	MutationBlock *mutation_block_ = nullptr;			// OWNED; contains all of our mutations
+	
 	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
 	// as well as hash tables for quick lookup by id and symbol
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -202,6 +215,21 @@ private:
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	
+	// for multiple traits, we now have a vector of pointers to Trait objects, as well as hash tables for quick
+	// lookup by name and by string ID; the latter is to make using trait names as properties on Individual fast
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<std::string, Trait *> TRAIT_NAME_HASH;
+	typedef robin_hood::unordered_flat_map<EidosGlobalStringID, Trait *> TRAIT_STRID_HASH;
+#elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<std::string, Trait *> TRAIT_NAME_HASH;
+	typedef std::unordered_map<EidosGlobalStringID, Trait *> TRAIT_STRID_HASH;
+#endif
+	
+	// Trait state
+	std::vector<Trait *> traits_;						// OWNED (retained); all our traits, in the order in which they were defined
+	TRAIT_NAME_HASH trait_from_name;					// NOT OWNED; get a trait from a trait name quickly
+	TRAIT_STRID_HASH trait_from_string_id;				// NOT OWNED; get a trait from a string ID quickly
+	
 	bool mutation_stack_policy_changed_ = true;										// when set, the stacking policy settings need to be checked for consistency
 	
 	// SEX ONLY: sex-related instance variables
@@ -210,9 +238,9 @@ private:
 	// private initialization methods
 #if EIDOS_ROBIN_HOOD_HASHING
 	typedef robin_hood::unordered_flat_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
- #elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING
 	typedef std::unordered_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
- #endif
+#endif
 	
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
 	void _CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter);				// clean up in anticipation of loading new species state
@@ -272,6 +300,8 @@ private:
 	int num_ge_type_inits_;				// number of calls to initializeGenomicElementType()
 	int num_sex_inits_;					// SEX ONLY: number of calls to initializeSex()
 	int num_treeseq_inits_;				// number of calls to initializeTreeSeq()
+	int num_trait_inits_;				// number of calls to initializeTrait()
+	bool has_implicit_trait_;			// true if the model implicitly defines a trait, with no initializeTrait() call
 	int num_chromosome_inits_;			// number of calls to initializeChromosome()
 	bool has_implicit_chromosome_;		// true if the model implicitly defines a chromosome, with no initializeChromosome() call
 	bool has_currently_initializing_chromosome_ = false;
@@ -300,17 +330,17 @@ private:
 	
 	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
 	
-    std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
+	std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
 												// actually be shared by multiple haplosomes in different chromosomes
 	//Individual *current_new_individual_;
 	
 #if EIDOS_ROBIN_HOOD_HASHING
 	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
- #elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING
 	typedef std::unordered_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
- #endif
+#endif
 	INDIVIDUALS_HASH tabled_individuals_hash_;	// look up individuals table row numbers from pedigree IDs
-
+	
 	bool running_coalescence_checks_ = false;	// true if we check for coalescence after each simplification
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
 	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ cycles
@@ -359,24 +389,21 @@ public:
 	bool has_recalculated_fitness_ = false;		// set to true when recalculateFitness() is called, so we know fitness values are valid
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
-	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
+	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DES, or (d) a mutation's selection coefficient is
 	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
 	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.  BCH 12 January 2018: Also, note that this flag
 	// is unaffected by the fitness_scaling_ properties on Subpopulation and Individual, which are taken into account even when this flag is set.
 	bool pure_neutral_ = true;														// optimization flag
 	
 	// this flag tracks whether a type 's' mutation type has ever been seen; we just set it to true if we see one, we never set it back to false again, for simplicity
-	// this switches to a less optimized case when evolving in WF models, if a type 's' DFE could be present, since that can open up various cans of worms
-	bool type_s_dfes_present_ = false;												// optimization flag
+	// this switches to a less optimized case when evolving in WF models, if a type 's' DES could be present, since that can open up various cans of worms
+	bool type_s_DESs_present_ = false;												// optimization flag
 	
 	// this counter is incremented when a selection coefficient is changed on any mutation object in the simulation.  This is used as a signal to mutation runs that their
 	// cache of non-neutral mutations is invalid (because their counter is not equal to this counter).  The caches will be re-validated the next time they are used.  Other
 	// code can also increment this counter in order to trigger a re-validation of all non-neutral mutation caches; it is a general-purpose mechanism.
 	int32_t nonneutral_change_counter_ = 0;
 	int32_t last_nonneutral_regime_ = 0;		// see mutation_run.h; 1 = no mutationEffect() callbacks, 2 = only constant-effect neutral callbacks, 3 = arbitrary callbacks
-	
-	// this flag is set if the dominance coeff (regular or haploid) changes on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
-	bool any_dominance_coeff_changed_ = false;
 	
 	// state about what symbols/names/identifiers have been used or are being used
 	// used_subpop_ids_ has every subpop id ever used, even if no longer in use, with the *last* name used for that subpop
@@ -418,18 +445,40 @@ public:
 	Chromosome *GetChromosomeFromEidosValue(EidosValue *chromosome_value);																// with a singleton EidosValue
 	void GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value);	// with a vector EidosValue
 	
+	// Trait configuration and access
+	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
+	inline __attribute__((always_inline)) slim_trait_index_t TraitCount(void)	{ return (slim_trait_index_t)traits_.size(); }
+	Trait *TraitFromName(const std::string &p_name) const;
+	inline __attribute__((always_inline)) Trait *TraitFromStringID(EidosGlobalStringID p_string_id) const
+	{
+		// This is used for (hopefully) very fast lookup of a trait based on a string id in Eidos,
+		// so that the user can do "individual.trait" and get a trait value like a property access
+		auto iter = trait_from_string_id.find(p_string_id);
+		
+		if (iter == trait_from_string_id.end())
+			return nullptr;
+		
+		return (*iter).second;
+	}
+	void MakeImplicitTrait(void);
+	void AddTrait(Trait *p_trait);													// takes over a retain count from the caller
+	
+	slim_trait_index_t GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name);											// with a singleton EidosValue
+	void GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name);
+	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	void DeleteAllMutationRuns(void);												// for cleanup
 	
 	// Running cycles
-	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id);
+	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id);
 	void RunInitializeCallbacks(void);
+	void CreateAndPromulgateMutationBlock(void);
 	void EndCurrentChromosome(bool starting_new_chromosome);
 	bool HasDoneAnyInitialization(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
-	void RecalculateFitness(void);
+	void RecalculateFitness(bool p_force_trait_recalculation);
 	void MaintainTreeSequence(void);
 	void EmptyGraveyard(void);
 	void FinishMutationRunExperimentTimings(void);
@@ -481,6 +530,7 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
+	inline __attribute__((always_inline)) MutationBlock *SpeciesMutationBlock(void)											{ return mutation_block_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }
@@ -607,11 +657,12 @@ public:
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
 	EidosValue_SP ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeRecombinationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeHotspotMap(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -637,6 +688,8 @@ public:
 	EidosValue_SP ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_traitsWithIndices(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_traitsWithNames(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_killIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

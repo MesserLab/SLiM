@@ -278,7 +278,7 @@ void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colo
 	}
 }
 
-void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
 	// apply a scaling factor; this could be user-adjustible since different models have different relevant fitness ranges
 	value *= scalingFactor;
@@ -394,7 +394,7 @@ void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
         double sliverFraction = (x - (stripe2.left() + 1)) / (stripe2.width() - 3.0);
         double fitness = sliverFraction * 2.0 - 1;     // cover mutation effect values of -1.0 to 1.0
         float r, g, b;
-        RGBForSelectionCoeff(fitness, &r, &g, &b, scalingFactor);
+		RGBForEffectSize(fitness, &r, &g, &b, scalingFactor);
         painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
         
         //qDebug() << "x =" << x << " << sliverFraction =" << sliverFraction << " fitness =" << fitness;

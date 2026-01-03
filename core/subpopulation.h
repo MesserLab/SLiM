@@ -66,11 +66,12 @@
 #include <map>
 #include <limits.h>
 
-
 class Population;
 
 
-extern EidosClass *gSLiM_Subpopulation_Class;
+class Subpopulation_Class;
+extern Subpopulation_Class *gSLiM_Subpopulation_Class;
+
 
 typedef std::pair<std::string, SpatialMap *> SpatialMapPair;
 typedef std::map<std::string, SpatialMap *> SpatialMapMap;
@@ -89,10 +90,9 @@ private:
 
 private:
 	
-	// WF only:
-	gsl_ran_discrete_t *lookup_parent_ = nullptr;			// OWNED POINTER: lookup table for drawing a parent based upon fitness
-	gsl_ran_discrete_t *lookup_female_parent_ = nullptr;	// OWNED POINTER: lookup table for drawing a female parent based upon fitness, SEX ONLY
-	gsl_ran_discrete_t *lookup_male_parent_ = nullptr;		// OWNED POINTER: lookup table for drawing a male parent based upon fitness, SEX ONLY
+	gsl_ran_discrete_t *lookup_parent_ = nullptr;			// OWNED POINTER: WF ONLY; lookup table for drawing a parent based upon fitness
+	gsl_ran_discrete_t *lookup_female_parent_ = nullptr;	// OWNED POINTER: WF ONLY; lookup table for drawing a female parent based upon fitness, SEX ONLY
+	gsl_ran_discrete_t *lookup_male_parent_ = nullptr;		// OWNED POINTER: WF ONLY; lookup table for drawing a male parent based upon fitness, SEX ONLY
 	
 	EidosSymbolTableEntry self_symbol_;						// for fast setup of the symbol table
 	
@@ -160,26 +160,39 @@ public:
 	std::vector<SLiMEidosBlock*> registered_mutation_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_reproduction_callbacks_;	// nonWF only; NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	
+	// These per-subpopulation caches are used by IndividualClass::DemandPhenotype() and are valid only within
+	// that method.  There is a std::vector of PerTraitSubpopCache structs with one entry per trait in the
+	// species.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
+	typedef struct _PerTraitSubpopCaches {
+		std::vector<SLiMEidosBlock*> mutationEffect_callbacks_per_trait;	// NOT OWNED: mutationEffect() callbacks per subpopulation per trait
+		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+		void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+	} PerTraitSubpopCaches;
+	
+	std::vector<PerTraitSubpopCaches> per_trait_subpop_caches_;	// one entry per trait, indexed by trait index
+	
 	// WF only:
-	// Fitness caching.  Every individual now caches its fitness internally, and that is what is used by SLiMgui and by the cachedFitness() method of Subpopulation.
-	// These fitness cache buffers are additional to that, used only in WF models.  They are used for two things.  First, as the data source for setting up our lookup
-	// objects for drawing mates by fitness; the GSL wants that data to be in the form of a single buffer.  And second, by mateChoice() callbacks, which throw around
-	// vectors of weights, and want to have default weight vectors for the non-sex and sex cases.  In nonWF models these buffers are not used, and not even set up.
-	// In WF models we could continue to use these buffers for all uses (i.e., SLiMgui and cachedFitness()), but to keep the code simple it seems better to use the
-	// caches in Individual for both WF and nonWF models where possible.
-	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateFitness()
-	double *cached_male_fitness_ = nullptr;			// OWNED POINTER: SEX ONLY: same as cached_parental_fitness_ but with 0 for all females
-	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_ and cached_male_fitness_
-	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffers cached_parental_fitness_ and cached_male_fitness_
+	// Fitness caching.  Every individual now caches its fitness internally, and that is what is used by SLiMgui, the cachedFitness() method of Subpopulation, etc.
+	// These fitness cache buffers are additional to that, used only in WF models.  They are now used for only one thing: as the data source for setting up our lookup
+	// objects for drawing mates by fitness; the GSL wants that data to be in the form of a single buffer.  In nonWF models these buffers are not used, and not even set
+	// up.  BCH 12/30/2025: up through SLiM 5.1 these buffers were also maintained for the use of mateChoice() callbacks in ApplyMateChoiceCallbacks(), as the data
+	// source for the `weights` pseudo-parameter; after SLiM 5.1 that method allocates mate_choice_weights_ itself, lazily, if it is not already present.
+	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateWFFitnessBuffers()
+	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_
+	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffer cached_parental_fitness_
+	
+	EidosValue_Float_SP mate_choice_weights_;		// WF ONLY: a cache used only by ApplyMateChoiceCallbacks(), as the canonical fitness-based `weights` vector
+	bool mate_choice_weights_valid_ = false;		// if true, mate_choice_weights_ corresponds to cached_parental_fitness_ (with females set to 0 in sexual models)
 	
 	// WF only:
 	// Optimized fitness caching at the Individual level.  Individual has an ivar named cached_fitness_UNSAFE_ that keeps a cached fitness value for each individual.
 	// When a model is neutral or nearly neutral, every individual may have the same fitness value, and we may know that.  In such cases, we want to avoid setting
 	// up the cached fitness value in each individual; instead, we set a flag here that overrides cached_fitness_UNSAFE_ and says it has the same value for all.
 	// This happens only for the parental generation's cached fitness values (cached fitness values for the child generation should never be accessed by anyone
-	// since they are not valid).  And it happens only in WF models, since in nonWF models the generational overlap makes this scheme impossible.  A somewhat special
-	// case, then, but it seems worthwhile since the penalty for seting every cached fitness value, and then gathering them back up again in UpdateWFFitnessBuffers(),
-	// is large – almost 20% of total runtime for the full Gravel model, for example.  Neutral WF models are common and worth special-casing.
+	// since they are not valid).  This is used only in WF models because it doesn't seem very useful in nonWF models; ViabilitySurvival() therefore assumes it.
+	// A somewhat special case, then, but it seems worthwhile since the penalty for setting every cached fitness value, and then gathering them back up again in
+	// UpdateWFFitnessBuffers(), is large – ~20% of total runtime for the full Gravel model, for example.  Neutral WF models are common and worth special-casing.
 	bool individual_cached_fitness_OVERRIDE_ = false;
 	double individual_cached_fitness_OVERRIDE_value_;
 	
@@ -194,7 +207,7 @@ public:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
-	double subpop_fitness_scaling_ = 1.0;				// the fitnessScaling property value
+	slim_fitness_t subpop_fitness_scaling_ = 1.0;		// the fitnessScaling property value
 	
 #ifdef SLIMGUI
 	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations
@@ -254,7 +267,7 @@ public:
 	slim_popsize_t DrawFemaleParentEqualProbability(EidosRNG_32_bit &rng_32) const;			// draw a female from the subpopulation  with equal probabilities; SEX ONLY
 	slim_popsize_t DrawMaleParentEqualProbability(EidosRNG_32_bit &rng_32) const;			// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
-	inline __attribute__((always_inline)) Individual *NewSubpopIndividual(slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age)
+	inline __attribute__((always_inline)) Individual *NewSubpopIndividual(slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age)
 	{
 		if (individuals_junkyard_.size())
 		{
@@ -292,6 +305,11 @@ public:
 			back->age_ = p_age;
 			back->index_ = p_individual_index;
 			back->subpopulation_ = this;
+			
+			// Draw new individual trait offsets from each trait's individual-offset distribution
+			// Note that we reuse the existing trait_info_ buffer, with the same number of traits
+			back->_InitializePerTraitInformation();
+			
 			return back;
 		}
 		
@@ -364,21 +382,14 @@ public:
 #if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
 	void FixNonNeutralCaches_OMP(void);
 #endif
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks);	// update fitness values based upon current mutations
-
-	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
-	template <const bool f_mutrunexps, const bool f_callbacks, const bool f_singlecallback>
-	double FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	double FitnessOfParent_1CH_Diploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	double FitnessOfParent_1CH_Haploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
-	template <const bool f_callbacks, const bool f_singlecallback>
-	double _Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	template <const bool f_callbacks, const bool f_singlecallback>
-	double _Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
 	
-	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
-	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
+	template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
+	void _UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+	
+	slim_effect_t ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
+	slim_fitness_t ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual);
 	
 	// generate newly allocated offspring individuals from parent individuals; these methods loop over
 	// chromosomes/haplosomes, and are templated for speed, providing a set of optimized variants
@@ -391,7 +402,7 @@ public:
 	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	Individual *GenerateIndividualCloned(Individual *p_parent);
 	
-	Individual *GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
+	Individual *GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
 	
 	// these WF-only "munge" variants munge an existing individual into the new child, reusing the individual
 	// and its haplosome objects; they are all templated for speed, providing variants for different milieux
@@ -419,7 +430,7 @@ public:
 	// WF only:
 	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
 	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation haplosomes and individuals to fit
-	void UpdateWFFitnessBuffers(bool p_pure_neutral);																					// update the WF model fitness buffers after UpdateFitness()
+	void UpdateWFFitnessBuffers(void);																					// update the WF model fitness buffers after UpdateFitness()
 	void TallyLifetimeReproductiveOutput(void);
 	void SwapChildAndParentHaplosomes(void);															// switch to the next generation by swapping; the children become the parents
 
@@ -427,7 +438,7 @@ public:
 	void ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index);
 	void ReproduceSubpopulation(void);
 	void MergeReproductionOffspring(void);
-	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving);
+	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, slim_fitness_t p_fitness, double p_draw, bool p_surviving);
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
 	
@@ -491,14 +502,14 @@ public:
 	EidosValue_SP ExecuteMethod_configureDisplay(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_firstMaleIndex(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_individualCount(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	
-	static void SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 

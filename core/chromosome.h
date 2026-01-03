@@ -45,7 +45,8 @@ class Species;
 class Individual;
 
 
-extern EidosClass *gSLiM_Chromosome_Class;
+class Chromosome_Class;
+extern Chromosome_Class *gSLiM_Chromosome_Class;
 
 
 class Chromosome : public EidosDictionaryRetained
@@ -198,6 +199,7 @@ public:
 	
 	Community &community_;
 	Species &species_;
+	MutationBlock *mutation_block_ = nullptr;				// NOT OWNED; a pointer to the MutationBlock from the species
 	
 	// the total haplosome count depends on the chromosome; it will be different for an autosome versus a sex chromosome, for example
 	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count
@@ -273,6 +275,8 @@ public:
 	
 	// private scratch space for the use of Population::RemoveAllFixedMutations()
 	std::vector<MutationIndex> fixed_mutation_accumulator_;
+	
+	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
 	
 	// a user-defined tag value
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;

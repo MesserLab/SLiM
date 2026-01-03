@@ -34,14 +34,17 @@
 #include "eidos_value.h"
 
 class MutationType;
+class Trait;
 
 
-extern EidosClass *gSLiM_Mutation_Class;
+class Mutation_Class;
+extern Mutation_Class *gSLiM_Mutation_Class;
+
 
 // A global counter used to assign all Mutation objects a unique ID
 extern slim_mutationid_t gSLiM_next_mutation_id;
 
-// A MutationIndex is an index into gSLiM_Mutation_Block (see below); it is used as, in effect, a Mutation *, but is 32-bit.
+// A MutationIndex is an index into a MutationBlock (see mutation_block.h); it is used as, in effect, a Mutation *, but is 32-bit.
 // Note that type int32_t is used instead of uint32_t so that -1 can be used as a "null pointer"; perhaps UINT32_MAX would be
 // better, but on the other hand using int32_t has the virtue that if we run out of room we will probably crash hard rather
 // than perhaps just silently overrunning gSLiM_Mutation_Block with mysterious memory corruption bugs that are hard to catch.
@@ -51,11 +54,28 @@ extern slim_mutationid_t gSLiM_next_mutation_id;
 // difficult to code since MutationRun's internal buffer of MutationIndex is accessible and used directly by many clients.
 typedef int32_t MutationIndex;
 
-// forward declaration of Mutation block allocation; see bottom of header
-class Mutation;
-extern Mutation *gSLiM_Mutation_Block;
-extern MutationIndex gSLiM_Mutation_Block_Capacity;
-
+// This structure contains all of the information about how a mutation influences a particular trait: in particular, its
+// effect size and dominance coefficient.  Each mutation keeps this information for each trait in its species, and since
+// the number of traits is determined at runtime, the size of this data -- the number of MutationTraitInfo records kept
+// by each mutation -- is also determined at runtime.  We don't want to make a separate malloced block for each mutation;
+// that would be far too expensive.  Instead, MutationBlock keeps a block of MutationTraitInfo records for the species,
+// with a number of records per mutation that is determined when it is constructed.
+// BCH 12/27/2025: Note that dominance_coeff_UNSAFE_ is marked "UNSAFE" because it can be NAN, representing independent
+// dominance.  For this reason, it should not be used directly; instead, use RealizedDominanceForTrait().
+typedef struct _MutationTraitInfo
+{
+	slim_effect_t effect_size_;					// selection coefficient (s) or additive effect (a)
+	slim_effect_t dominance_coeff_UNSAFE_;		// dominance coefficient (h), inherited from MutationType by default; CAN BE NAN
+	slim_effect_t hemizygous_dominance_coeff_;	// hemizygous dominance coefficient (h_hemi), inherited from MutationType by default
+	
+	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
+	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
+	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
+	// values use slim_effect_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
+	slim_effect_t homozygous_effect_;		// a cached value for 1 + s, clamped to 0.0 minimum;  OR for 2a
+	slim_effect_t heterozygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha
+	slim_effect_t hemizygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha (h = h_hemi)
+} MutationTraitInfo;
 
 typedef enum {
 	kNewMutation = 0,			// the state after new Mutation()
@@ -76,11 +96,35 @@ public:
 	
 	MutationType *mutation_type_ptr_;					// mutation type identifier
 	const slim_position_t position_;					// position on the chromosome
-	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_tick_t origin_tick_;						// tick in which the mutation arose
 	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
-	int8_t state_;										// see MutationState above
+	int state_ : 4;										// see MutationState above; 4 bits so we can represent -1
+	
+	// is_neutral_ is true if all mutation effects are 0.0 (note this might be overridden by a callback).
+	// The state of is_neutral_ is updated to reflect the current state of the mutation whenever it changes.
+	// This is used to make constructing non-neutral caches for trait evaluation fast with multiple traits.
+	unsigned int is_neutral_ : 1;
+	// FIXME MULTITRAIT: it occurs to me that the present is_neutral_ flag on mutations is ambiguous.  One meaning
+	// is "this mutation has neutral effects for all traits"; such mutations can be disregarded in all phenotype
+	// calculations.  The other is "this mutation has neutral effects for all traits *that have a direct fitness
+	// effect*"; such mutations can be disregarded for all calculations leading to a fitness value.  The former
+	// is the meaning that needs to determine whether a given mutation is placed into a non-neutral cache, since
+	// the non-neutral caches will be used for all phenotype calculations (I THINK?).  The latter is the meaning
+	// that should be used to determine whether a given trait with a direct fitness effect is considered to be
+	// neutral or not; if any mutation has a non-neutral effect on that given trait, then that trait needs to be
+	// demanded and factored in to fitness calculations.
+	
+	// is_independent_dominance_ is true if the mutation has been configured to exhibit "independent dominance",
+	// meaning that two heterozygous effects equal one homozygous effect, allowing the effects from haplosomes
+	// to be calculated separately with no regard for zygosity; this is configured by using NAN as the default
+	// dominance coefficient for MutationType.  It is updated if the state of the mutation's dominance changes,
+	// but only based upon the special NAN dominance value in setDominanceForTrait(); setting dominance values
+	// that happen to produce independent dominance does not cause this flag to be set, only the special NAN
+	// value.  This is used to construct independent-dominance caches for fast trait evaluation.  Note that this
+	// flag can be true when is_neutral_ is also true, recording that independent dominance was configured.
+	unsigned int is_independent_dominance_ : 1;
+	
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
@@ -91,15 +135,6 @@ public:
 	mutable slim_refcount_t gui_scratch_reference_count_;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	
-	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
-	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
-	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
-	// values use slim_selcoeff_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
-	slim_selcoeff_t cached_one_plus_sel_;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
-	slim_selcoeff_t cached_one_plus_dom_sel_;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
-	slim_selcoeff_t cached_one_plus_hemizygousdom_sel_;	// a cached value for (1 + hemizygous_dominance_coeff_ * selection_coeff_), clamped to 0.0 minimum
-	// NOTE THERE ARE 4 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
-	
 #if DEBUG
 	mutable slim_refcount_t refcount_CHECK_;					// scratch space for checking of parallel refcounting
 #endif
@@ -107,8 +142,17 @@ public:
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
-	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
-	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used when making a new mutation with effects DRAWN from each trait's DES, and dominance taken from each trait's default dominance coefficient, both from the given mutation type
+	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller
+	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
+	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller, AND a mutation id provided by the caller
+	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
+	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
@@ -122,7 +166,16 @@ public:
 	
 	virtual void SelfDelete(void) override;
 	
-	inline __attribute__((always_inline)) MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
+	// Check that our internal state all makes sense
+	void SelfConsistencyCheck(const std::string &p_message_end);
+	
+	// This handles the possibility that a dominance coefficient is NAN, representing independent dominance, and returns the correct value
+	slim_effect_t RealizedDominanceForTrait(Trait *p_trait);
+	
+	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
+	void SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
+	void SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
+	void SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
 	
 	//
 	// Eidos support
@@ -133,25 +186,28 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	EidosValue_SP ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_isFixed(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_isSegregating(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isFixed(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isNeutral(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isSegregating(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_originTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_position(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
-	static void SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 // true if M1 has an earlier (smaller) position than M2
@@ -182,74 +238,12 @@ public:
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+	
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_setEffectForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_setHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
-
-
-//
-//		Mutation block allocation
-//
-
-// All Mutation objects get allocated out of a single shared pool, for speed.  We do not use EidosObjectPool for this
-// any more, because we need the allocation to be out of a single contiguous block of memory that we realloc as needed,
-// allowing Mutation objects to be referred to using 32-bit indexes into this contiguous block.  So we have a custom
-// pool, declared here and implemented in mutation.cpp.  Note that this is a global, to make it easy for users of
-// MutationIndex to look up mutations without needing to track down a pointer to the mutation block from the sim.  This
-// means that in SLiMgui a single block will be used for all mutations in all simulations; that should be harmless.
-class MutationRun;
-
-extern Mutation *gSLiM_Mutation_Block;
-extern MutationIndex gSLiM_Mutation_FreeIndex;
-extern MutationIndex gSLiM_Mutation_Block_LastUsedIndex;
-
-#ifdef DEBUG_LOCKS_ENABLED
-// We do not arbitrate access to the mutation block with a lock; instead, we expect that clients
-// will manage their own multithreading issues.  In DEBUG mode we check for incorrect uses (races).
-// We use this lock to check.  Any failure to acquire the lock indicates a race.
-extern EidosDebugLock gSLiM_Mutation_LOCK;
-#endif
-
-extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parallel to gSLiM_Mutation_Block, to increase memory cache efficiency
-													// note that I tried keeping the fitness cache values and positions in separate buffers too, not a win
-void SLiM_CreateMutationBlock(void);
-void SLiM_IncreaseMutationBlockCapacity(void);
-void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry, bool p_registry_only);
-size_t SLiMMemoryUsageForMutationBlock(void);
-size_t SLiMMemoryUsageForFreeMutations(void);
-size_t SLiMMemoryUsageForMutationRefcounts(void);
-
-inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
-{
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.start_critical(0);
-#endif
-	
-	if (gSLiM_Mutation_FreeIndex == -1)
-		SLiM_IncreaseMutationBlockCapacity();
-	
-	MutationIndex result = gSLiM_Mutation_FreeIndex;
-	
-	gSLiM_Mutation_FreeIndex = *(MutationIndex *)(gSLiM_Mutation_Block + result);
-	
-	if (gSLiM_Mutation_Block_LastUsedIndex < result)
-		gSLiM_Mutation_Block_LastUsedIndex = result;
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.end_critical();
-#endif
-	
-	return result;	// no need to zero out the memory, we are just an allocater, not a constructor
-}
-
-inline __attribute__((always_inline)) void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
-{
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_DisposeMutationToBlock(): gSLiM_Mutation_Block change");
-	
-	void *mut_ptr = gSLiM_Mutation_Block + p_mutation_index;
-	
-	*(MutationIndex *)mut_ptr = gSLiM_Mutation_FreeIndex;
-	gSLiM_Mutation_FreeIndex = p_mutation_index;
-}
-
 
 #endif /* defined(__SLiM__mutation__) */
 

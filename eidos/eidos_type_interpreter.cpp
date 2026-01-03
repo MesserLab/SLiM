@@ -18,6 +18,9 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifdef EIDOS_GUI
+// EidosTypeTable and EidosTypeInterpreter are only used in EidosScribe, SLiMguiLegacy, and QtSLiM
+
 #include "eidos_type_interpreter.h"
 #include "eidos_functions.h"
 #include "eidos_ast_node.h"
@@ -556,7 +559,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_MemberRef(const EidosASTNo
 			if (second_child_token->token_type_ == EidosTokenType::kTokenIdentifier)
 			{
 				EidosGlobalStringID property_string_ID = second_child_node->cached_stringID_;
-				const EidosPropertySignature *property_signature = first_child_type.object_class->SignatureForProperty(property_string_ID);
+				const EidosPropertySignature *property_signature = first_child_type.object_class->SignatureForProperty_TYPE_INTERPRETER(property_string_ID);
 				
 				if (property_signature)
 				{
@@ -1205,6 +1208,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 	return result_type;
 }
 
+#endif // EIDOS_GUI
 
 
 

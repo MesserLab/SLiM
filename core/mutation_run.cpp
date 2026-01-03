@@ -19,6 +19,8 @@
 
 
 #include "mutation_run.h"
+#include "species.h"
+#include "mutation_block.h"
 
 #include <vector>
 
@@ -67,11 +69,12 @@ bool MutationRun::contains_mutation(const Mutation *p_mut) const
 // binary search
 bool MutationRun::contains_mutation(const Mutation *p_mut) const
 {
-	MutationIndex mutation_index = p_mut->BlockIndex();
+	MutationBlock *mutation_block = p_mut->mutation_type_ptr_->mutation_block_;
+	MutationIndex mutation_index = mutation_block->IndexInBlock(p_mut);
 	slim_position_t position = p_mut->position_;
 	int mut_count = size();
 	const MutationIndex *mut_ptr = begin_pointer_const();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	int mut_index;
 	
 	{
@@ -147,7 +150,7 @@ bool MutationRun::contains_mutation(const Mutation *p_mut) const
 
 Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position) const
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = p_mut_type->mutation_block_->mutation_buffer_;
 	int mut_count = size();
 	const MutationIndex *mut_ptr = begin_pointer_const();
 	int mut_index;
@@ -255,7 +258,7 @@ Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type,
 	return nullptr;
 }
 
-const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(slim_position_t p_position) const
+const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(Mutation *p_mut_block_ptr, slim_position_t p_position) const
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("MutationRun::derived_mutation_ids_at_position(): usage of statics");
 	
@@ -269,11 +272,10 @@ const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(sli
 	// but fast for the other cases, such as new SLiM-generated mutations, which are much more common.
 	const MutationIndex *begin_ptr = begin_pointer_const();
 	const MutationIndex *end_ptr = end_pointer_const();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	for (const MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 	{
-		Mutation *mut = mut_block_ptr + *mut_ptr;
+		Mutation *mut = p_mut_block_ptr + *mut_ptr;
 		slim_position_t mut_position = mut->position_;
 		
 		if (mut_position == p_position)
@@ -285,7 +287,7 @@ const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(sli
 	return &return_vec;
 }
 
-void MutationRun::_RemoveFixedMutations(void)
+void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 {
 	// Mutations that have fixed, and are thus targeted for removal, have had their state_ set to kFixedAndSubstituted.
 	// That is done only when convertToSubstitution == T, so we don't need to check that flag here.
@@ -295,14 +297,13 @@ void MutationRun::_RemoveFixedMutations(void)
 	MutationIndex *haplosome_iter = mutations_;
 	MutationIndex *haplosome_backfill_iter = nullptr;
 	MutationIndex *haplosome_max = mutations_ + mutation_count_;
-	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 	
 	// haplosome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
 	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
 	// yet been skipped, whereas the second knows that at least one mutation has been.
 	while (haplosome_iter != haplosome_max)
 	{
-		if ((mutation_block_ptr + (*haplosome_iter++))->state_ != MutationState::kFixedAndSubstituted)
+		if ((p_mut_block_ptr + (*haplosome_iter++))->state_ != MutationState::kFixedAndSubstituted)
 			continue;
 		
 		// Fixed mutation; we want to omit it, so we skip it in haplosome_backfill_iter and transition to the second loop
@@ -320,7 +321,7 @@ void MutationRun::_RemoveFixedMutations(void)
 	{
 		MutationIndex mutation_index = *haplosome_iter;
 		
-		if ((mutation_block_ptr + mutation_index)->state_ != MutationState::kFixedAndSubstituted)
+		if ((p_mut_block_ptr + mutation_index)->state_ != MutationState::kFixedAndSubstituted)
 		{
 			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as haplosome_iter
 			*haplosome_backfill_iter = mutation_index;
@@ -347,11 +348,10 @@ void MutationRun::_RemoveFixedMutations(void)
 	}
 }
 
-bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group)
+bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group)
 {
 	MutationIndex *begin_ptr = begin_pointer();
 	MutationIndex *end_ptr = end_pointer();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	if (p_policy == MutationStackPolicy::kKeepFirst)
 	{
@@ -359,7 +359,7 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
 		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
-			Mutation *mut = mut_block_ptr + *mut_ptr;
+			Mutation *mut = p_mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
 			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
@@ -378,7 +378,7 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 		
 		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
-			Mutation *mut = mut_block_ptr + *mut_ptr;
+			Mutation *mut = p_mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
 			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
@@ -396,7 +396,7 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 			for ( ; mut_ptr < end_ptr; ++mut_ptr)
 			{
 				MutationIndex mut_index = *mut_ptr;
-				Mutation *mut = mut_block_ptr + mut_index;
+				Mutation *mut = p_mut_block_ptr + mut_index;
 				slim_position_t mut_position = mut->position_;
 				
 				if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
@@ -421,14 +421,14 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 		EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) invalid policy." << EidosTerminate();
 }
 
-void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const
+void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const
 {
 	MutationRun *first_half = NewMutationRun(p_mutrun_context);
 	MutationRun *second_half = NewMutationRun(p_mutrun_context);
 	int32_t second_half_start;
 	
 	for (second_half_start = 0; second_half_start < mutation_count_; ++second_half_start)
-		if ((gSLiM_Mutation_Block + mutations_[second_half_start])->position_ >= p_split_first_position)
+		if ((p_mut_block_ptr + mutations_[second_half_start])->position_ >= p_split_first_position)
 			break;
 	
 	if (second_half_start > 0)
@@ -444,107 +444,112 @@ void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_h
 
 #if SLIM_USE_NONNEUTRAL_CACHES
 
-void MutationRun::cache_nonneutral_mutations_REGIME_1() const
-{
-	//
-	//	Regime 1 means there are no mutationEffect() callbacks at all, so neutrality can be assessed
-	//	simply by looking at selection_coeff_ != 0.0.  The mutation type is irrelevant.
-	//
-	zero_out_nonneutral_buffer();
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	
-	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
-	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-	{
-		MutationIndex mutindex = mutations_[bufindex];
-		
-		if ((mut_block_ptr + mutindex)->selection_coeff_ != 0.0)
-			add_to_nonneutral_buffer(mutindex);
-	}
-}
-
-void MutationRun::cache_nonneutral_mutations_REGIME_2() const
-{
-	//
-	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
-	//	make their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
-	//	Here neutrality is assessed by first consulting the set_neutral_by_global_active_callback
-	//	flag of MutationType, which is set up by RecalculateFitness() for us.  If that is true,
-	//	the mutation is neutral; if false, selection_coeff_ is reliable.  Note the code below uses
-	//	the exact way that the C operator && works to implement this order of checks.
-	//
-	zero_out_nonneutral_buffer();
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	
-	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
-	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-	{
-		MutationIndex mutindex = mutations_[bufindex];
-		Mutation *mutptr = mut_block_ptr + mutindex;
-		
-		// The result of && is not order-dependent, but the first condition is checked first.
-		// I expect many mutations would fail the first test (thus short-circuiting), whereas
-		// few would fail the second test (i.e. actually be 0.0) in a QTL model.
-		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && (mutptr->selection_coeff_ != 0.0))
-			add_to_nonneutral_buffer(mutindex);
-	}
-}
-
-void MutationRun::cache_nonneutral_mutations_REGIME_3() const
-{
-	//
-	//	Regime 3 means that there are mutationEffect() callbacks beyond the constant neutral global
-	//	callbacks of regime 2, so if a mutation's muttype is subject to any mutationEffect() callbacks
-	//	at all, whether active or not, that mutation must be considered to be non-neutral (because
-	//	a rogue callback could enable/disable other callbacks).  This is determined by consulting
-	//	the subject_to_mutationEffect_callback flag of MutationType, set up by RecalculateFitness()
-	//	for us.  If that flag is not set, then the selection_coeff_ is reliable as usual.
-	//
-	zero_out_nonneutral_buffer();
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	
-	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
-	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-	{
-		MutationIndex mutindex = mutations_[bufindex];
-		Mutation *mutptr = mut_block_ptr + mutindex;
-		
-		// The result of || is not order-dependent, but the first condition is checked first.
-		// I have reordered this to put the fast test first; or I'm guessing it's the fast test.
-		if ((mutptr->selection_coeff_ != 0.0) || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
-			add_to_nonneutral_buffer(mutindex);
-	}
-}
-
-void MutationRun::check_nonneutral_mutation_cache() const
-{
-	if (!nonneutral_mutations_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
-	if (nonneutral_mutations_count_ == -1)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
-	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
-	
-	// Check for correctness in regime 1.  Now that we have three regimes, this isn't really worth maintaining;
-	// it really just replicates the above logic exactly, so it is not a very effective cross-check.
-	
-	/*
-	int32_t cache_index = 0;
-	
-	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-	{
-		MutationIndex mutindex = mutations_[bufindex];
-		Mutation *mutptr = gSLiM_Mutation_Block + mutindex;
-		
-		if (mutptr->selection_coeff_ != 0.0)
-			if (*(nonneutral_mutations_ + cache_index++) != mutindex)
-				EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unsynchronized cache." << EidosTerminate();
-	}
-	 */
-}
+//void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const
+//{
+//	//
+//	//	Regime 1 means there are no mutationEffect() callbacks at all, so neutrality can be assessed
+//	//	simply by looking at selection_coeff_ != 0.0.  The mutation type is irrelevant.
+//	//
+//	zero_out_nonneutral_buffer();
+//	
+//	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+//	{
+//		MutationIndex mutindex = mutations_[bufindex];
+//		Mutation *mutptr = p_mut_block_ptr + mutindex;
+//		
+//		if (!mutptr->is_neutral_)
+//			add_to_nonneutral_buffer(mutindex);
+//	}
+//}
+//
+//void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const
+//{
+//	// FIXME MULTICHROM: I think regime 2 needs to be rethought with multitrait.  We won't have
+//	// constant mutationEffect() callbacks any more; all of those optimizations, including regime 2,
+//	// can be ripped out.  Instead, QTL mutations will contribute an additive effect to a quantitative
+//	// trait, and their effect on whatever multiplicative trait might be in the model will be zero
+//	// (absent pleiotropy).  That is the case that we will now want to detect and optimize somehow.
+//	// I'm not sure what the right strategy would be.  What exactly will the role of non-neutral
+//	// caches be?  Should mutations that are non-neutral for *any* trait be put into them, which would
+//	// be best for universal pleiotropy?  Or maybe we have separate non-neutral caches for each trait,
+//	// which would be best for zero pleiotropy?  Or some kind of adaptive approach?
+//	
+//	//
+//	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
+//	//	make their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
+//	//	Here neutrality is assessed by first consulting the set_neutral_by_global_active_callback
+//	//	flag of MutationType, which is set up by RecalculateFitness() for us.  If that is true,
+//	//	the mutation is neutral; if false, selection_coeff_ is reliable.  Note the code below uses
+//	//	the exact way that the C operator && works to implement this order of checks.
+//	//
+//	zero_out_nonneutral_buffer();
+//	
+//	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+//	{
+//		MutationIndex mutindex = mutations_[bufindex];
+//		Mutation *mutptr = p_mut_block_ptr + mutindex;
+//		
+//		// The result of && is not order-dependent, but the first condition is checked first.
+//		// I expect many mutations would fail the first test (thus short-circuiting), whereas
+//		// few would fail the second test (i.e. actually be 0.0) in a QTL model.
+//		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && !mutptr->is_neutral_)
+//			add_to_nonneutral_buffer(mutindex);
+//	}
+//}
+//
+//void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const
+//{
+//	//
+//	//	Regime 3 means that there are mutationEffect() callbacks beyond the constant neutral global
+//	//	callbacks of regime 2, so if a mutation's muttype is subject to any mutationEffect() callbacks
+//	//	at all, whether active or not, that mutation must be considered to be non-neutral (because
+//	//	a rogue callback could enable/disable other callbacks).  This is determined by consulting
+//	//	the subject_to_mutationEffect_callback flag of MutationType, set up by RecalculateFitness()
+//	//	for us.  If that flag is not set, then the selection_coeff_ is reliable as usual.
+//	//
+//	zero_out_nonneutral_buffer();
+//	
+//	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+//	{
+//		MutationIndex mutindex = mutations_[bufindex];
+//		Mutation *mutptr = p_mut_block_ptr + mutindex;
+//		
+//		// The result of || is not order-dependent, but the first condition is checked first.
+//		// I have reordered this to put the fast test first; or I'm guessing it's the fast test.
+//		if (!mutptr->is_neutral_ || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
+//			add_to_nonneutral_buffer(mutindex);
+//	}
+//}
+//
+//void MutationRun::check_nonneutral_mutation_cache() const
+//{
+//	if (!nonneutral_mutations_)
+//		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
+//	if (nonneutral_mutations_count_ == -1)
+//		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
+//	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
+//		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+//	
+//	// Check for correctness in regime 1.  Now that we have three regimes, this isn't really worth maintaining;
+//	// it really just replicates the above logic exactly, so it is not a very effective cross-check.
+//	
+//	/*
+//	int32_t cache_index = 0;
+//	
+//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+//	{
+//		MutationIndex mutindex = mutations_[bufindex];
+//		Mutation *mutptr = gSLiM_Mutation_Block + mutindex;
+//		
+//		if (mutptr->selection_coeff_ != 0.0)
+//			if (*(nonneutral_mutations_ + cache_index++) != mutindex)
+//				EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unsynchronized cache." << EidosTerminate();
+//	}
+//	 */
+//}
 
 #endif
 
@@ -552,7 +557,7 @@ void MutationRun::check_nonneutral_mutation_cache() const
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
 // this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 // bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position.
-void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
+void MutationRun::clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
 {
 	// first, clear all mutations out of the receiver
 	clear();
@@ -592,16 +597,15 @@ void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std
 	}
 	
 	// then interleave mutations together, effectively setting p_mutations_to_set and then adding in p_mutations_to_add
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	const MutationIndex *mutation_iter		= p_mutations_to_add.data();
 	const MutationIndex *mutation_iter_max	= mutation_iter + p_mutations_to_add.size();
 	MutationIndex mutation_iter_mutation_index = *mutation_iter;
-	slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+	slim_position_t mutation_iter_pos = (p_mut_block_ptr + mutation_iter_mutation_index)->position_;
 	
 	const MutationIndex *parent_iter		= p_mutations_to_set.begin_pointer_const();
 	const MutationIndex *parent_iter_max	= p_mutations_to_set.end_pointer_const();
 	MutationIndex parent_iter_mutation_index = *parent_iter;
-	slim_position_t parent_iter_pos = (mut_block_ptr + parent_iter_mutation_index)->position_;
+	slim_position_t parent_iter_pos = (p_mut_block_ptr + parent_iter_mutation_index)->position_;
 	
 	// this loop runs while we are still interleaving mutations from both sources
 	do
@@ -616,12 +620,12 @@ void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std
 				break;
 			
 			parent_iter_mutation_index = *parent_iter;
-			parent_iter_pos = (mut_block_ptr + parent_iter_mutation_index)->position_;
+			parent_iter_pos = (p_mut_block_ptr + parent_iter_mutation_index)->position_;
 		}
 		else
 		{
 			// we have a new mutation to add, which we know is not already present; check the stacking policy
-			if (enforce_stack_policy_for_addition(mutation_iter_pos, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
+			if (enforce_stack_policy_for_addition(p_mut_block_ptr, mutation_iter_pos, (p_mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 				emplace_back(mutation_iter_mutation_index);
 			
 			mutation_iter++;
@@ -629,7 +633,7 @@ void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std
 				break;
 			
 			mutation_iter_mutation_index = *mutation_iter;
-			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+			mutation_iter_pos = (p_mut_block_ptr + mutation_iter_mutation_index)->position_;
 		}
 	}
 	while (true);
@@ -644,9 +648,9 @@ void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std
 	while (mutation_iter != mutation_iter_max)
 	{
 		mutation_iter_mutation_index = *mutation_iter;
-		mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+		mutation_iter_pos = (p_mut_block_ptr + mutation_iter_mutation_index)->position_;
 		
-		if (enforce_stack_policy_for_addition(mutation_iter_pos, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
+		if (enforce_stack_policy_for_addition(p_mut_block_ptr, mutation_iter_pos, (p_mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 			emplace_back(mutation_iter_mutation_index);
 		
 		mutation_iter++;

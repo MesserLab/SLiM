@@ -20,6 +20,7 @@
 #ifndef log_file_h
 #define log_file_h
 
+
 #include "eidos_value.h"
 #include "slim_globals.h"
 
@@ -29,7 +30,8 @@
 class Community;
 
 
-extern EidosClass *gSLiM_LogFile_Class;
+class LogFile_Class;
+extern LogFile_Class *gSLiM_LogFile_Class;
 
 
 // Built-in and custom generator types that are presently supported

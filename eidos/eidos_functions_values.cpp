@@ -1529,13 +1529,22 @@ EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_a
 	return result_SP;
 }
 
-//	(logical$)identical(* x, * y)
+//	(logical$)identical(* x, * y, ...)
 EidosValue_SP Eidos_ExecuteFunction_identical(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
-	EidosValue *y_value = p_arguments[1].get();
 	
-	return IdenticalEidosValues(x_value, y_value) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+	// BCH 1/2/2026: extending this function to now accept additional arguments beyond y, but the logic is the
+	// same.  All arguments must be identical to x for T to be returned, otherwise F is returned.
+	for (size_t value_index = 1; value_index < p_arguments.size(); ++value_index)
+	{
+		EidosValue *y_value = p_arguments[value_index].get();
+		
+		if (!IdenticalEidosValues(x_value, y_value))
+			return gStaticEidosValue_LogicalF;
+	}
+	
+	return gStaticEidosValue_LogicalT;
 }
 
 //	(*)ifelse(logical test, * trueValues, * falseValues)

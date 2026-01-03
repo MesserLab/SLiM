@@ -1966,7 +1966,7 @@ The
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)rdirichlet(integer$\'a0n, numeric\'a0alpha)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 Returns a matrix of 
 \f1\fs18 n
@@ -1990,10 +1990,9 @@ The
 \f1\fs18 \cf0 (integer)rdunif(integer$\'a0n, [integer\'a0min\'a0=\'a00], [integer\'a0max
 \f2 \'a0
 \f1 =\'a01])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 \expnd0\expndtw0\kerning0
-Returns a vector of 
+\f3\fs20 \cf2 Returns a vector of 
 \f1\fs18 n
 \f3\fs20  
 \f0\b random draws from a discrete uniform distribution
@@ -2009,16 +2008,15 @@ Returns a vector of
 \f1\fs18 n
 \f3\fs20 , specifying a value for each draw.  See 
 \f1\fs18 runif()
-\f3\fs20  for draws from a continuous uniform distribution\kerning1\expnd0\expndtw0 , and 
+\f3\fs20  for draws from a continuous uniform distribution, and 
 \f1\fs18 runif64()
 \f3\fs20  for uniform draws from the full 64-bit 
 \f1\fs18 integer
-\f3\fs20  range\expnd0\expndtw0\kerning0
-.\
+\f3\fs20  range.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (integer)rdunif64(integer$\'a0n)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf2 (integer)rdunif64(integer$\'a0n)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 Returns a vector of 
 \f1\fs18 n
@@ -3198,23 +3196,33 @@ For example,
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)identical(*\'a0x, *\'a0y)\
+\f1\fs18 \cf0 (logical$)identical(*\'a0x, *\'a0y, ...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns a 
+\f3\fs20 \cf2 Returns a 
 \f1\fs18 logical
 \f3\fs20  value indicating 
-\f0\b whether two values are identical
-\f3\b0 .  If 
+\f0\b whether two or more values are identical
+\f3\b0 .  For two values 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
-\f3\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, \cf2 \expnd0\expndtw0\kerning0
-and (for matrices and arrays) their dimensions are identical, \cf0 \kerning1\expnd0\expndtw0 this will return 
+\f3\fs20 , this will return 
 \f1\fs18 T
-\f3\fs20 , otherwise it will return 
+\f3\fs20  if 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, and (for matrices and arrays) their dimensions are identical; otherwise it will return 
 \f1\fs18 F
-\f3\fs20 .  The test here is for 
+\f3\fs20 .  Additional parameters beyond 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  are compared to x in the same manner, and 
+\f1\fs18 T
+\f3\fs20  is returned only if all of the parameters are identical.\
+The test here is for 
 \f7\i exact
 \f3\i0  equality; an 
 \f1\fs18 integer
@@ -3232,9 +3240,11 @@ and (for matrices and arrays) their dimensions are identical, \cf0 \kerning1\exp
 \f1\fs18 !=
 \f3\fs20 .  Note that 
 \f1\fs18 identical(NULL,NULL)
-\f3\fs20  is 
+\f3\fs20  and 
+\f1\fs18 identical(NAN, NAN)
+\f3\fs20  are both 
 \f1\fs18 T
-\f2\fs20 .\
+\f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)ifelse(logical\'a0test, *\'a0trueValues, *\'a0falseValues)\
@@ -3691,8 +3701,8 @@ Regarding how values in
 \f1\fs18 x
 \f3\fs20  according to which sorting should be done.  This must be a simple property name; it cannot be a property path.  For example, to sort a 
 \f1\fs18 Mutation
-\f3\fs20  vector by the selection coefficients of the mutations, you would simply pass 
-\f1\fs18 "selectionCoeff"
+\f3\fs20  vector by the dominance coefficients of the mutations, you would simply pass 
+\f1\fs18 "dominance"
 \f3\fs20 , including the quotes, for 
 \f1\fs18 property
 \f2\fs20 .
@@ -5364,11 +5374,11 @@ Returns the transpose
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)deleteFile(string$\'a0filePath)
+\f1\fs18 \cf0 (logical)deleteFile(string\'a0filePath)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Deletes the file
+\f0\b\fs20 \cf2 Deletes the file
 \f3\b0  specified by 
 \f1\fs18 filePath
 \f3\fs20  and returns a 
@@ -5377,9 +5387,10 @@ Returns the transpose
 \f1\fs18 T
 \f3\fs20 ) or failed (
 \f1\fs18 F
-\f3\fs20 ).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 This function might also be able to delete a directory at 
+\f3\fs20 ).  If 
+\f1\fs18 filePath
+\f3\fs20  contains more than one file path, deletion is attempted for each path, and a vector of corresponding flags indicating the success or failure of each operation is returned.\
+This function might also be able to delete a directory at 
 \f1\fs18 filePath
 \f3\fs20 , but only if it is empty (apart from the 
 \f1\fs18 .
@@ -5392,10 +5403,10 @@ Returns the transpose
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
-(logical$)fileExists(string$\'a0filePath)\
+(logical)fileExists(string\'a0filePath)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf2 Checks the existence of the file
+\f0\b\fs20 \cf2 \kerning1\expnd0\expndtw0 Checks the existence of the file
 \f3\b0  specified by 
 \f1\fs18 filePath
 \f3\fs20  and returns a 
@@ -5404,10 +5415,12 @@ Returns the transpose
 \f1\fs18 T
 \f3\fs20 ) or does not exist (
 \f1\fs18 F
-\f3\fs20 ).  This also works for directories.\
+\f3\fs20 ).  This also works for directories.  If 
+\f1\fs18 filePath
+\f3\fs20  contains more than one file path, each path is checked for existence, and a vector of corresponding flags indicating the existence of each path is returned.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths\'a0=\'a0F])
+\f1\fs18 \cf0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths\'a0=\'a0F])
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

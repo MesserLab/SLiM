@@ -251,6 +251,7 @@ public:
 	inline __attribute__((always_inline)) bool IsIteratorVariable(void) const { return iterator_var_; }
 	
 	virtual int Count(void) const = 0;			// the only real casualty of removing the singleton/vector distinction: this is now a virtual function
+	virtual int Capacity(void) const = 0;
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	void Print(std::ostream &p_ostream, const std::string &p_indent = std::string()) const;				// standard printing; same as operator<<
 	void PrintStructure(std::ostream &p_ostream, int max_values) const;	// print structure; no newline
@@ -427,6 +428,7 @@ public:
 	inline virtual ~EidosValue_VOID(void) override { }
 	
 	virtual int Count(void) const override { return 0; }
+	virtual int Capacity(void) const override { return 0; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -463,6 +465,7 @@ public:
 	inline virtual ~EidosValue_NULL(void) override { }
 	
 	virtual int Count(void) const override { return 0; }
+	virtual int Capacity(void) const override { return 0; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -513,6 +516,7 @@ public:
 	inline virtual ~EidosValue_Logical(void) override { free(values_); }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -648,6 +652,7 @@ public:
 	std::vector<std::string> &StringVectorData(void) { WILL_MODIFY(this); UncacheScript(); return values_; }	// to get the std::vector for direct modification
 	
 	virtual int Count(void) const override { return (int)values_.size(); }
+	virtual int Capacity(void) const override { return (int)values_.capacity(); }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -713,6 +718,7 @@ public:
 	virtual int64_t *IntData_Mutable(void) override { WILL_MODIFY(this); return values_; }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -839,6 +845,7 @@ public:
 	virtual double *FloatData_Mutable(void) override { WILL_MODIFY(this); return values_; }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -951,7 +958,7 @@ class EidosValue_Object final : public EidosValue
 {
 private:
 	typedef EidosValue super;
-
+	
 protected:
 	// singleton/vector design: values_ will either point to singleton_value_, or to a malloced buffer; it will never be nullptr
 	// in the case of a zero-length vector, note that values_ will point to singleton_value_ with count_ == 0 but capacity_ == 1
@@ -987,10 +994,6 @@ protected:
 	}
 	void RaiseForClassMismatch(void) const;
 	
-	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-	void PatchPointersByAdding(std::uintptr_t p_pointer_difference);
-	void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference);
-	
 public:
 	EidosValue_Object(void) = delete;												// no default constructor
 	EidosValue_Object& operator=(const EidosValue_Object&) = delete;				// no copying
@@ -1010,6 +1013,7 @@ public:
 	inline __attribute__((always_inline)) bool UsesRetainRelease(void) const { return class_uses_retain_release_; }
 	
 	virtual int Count(void) const override { return (int)count_; }
+	virtual int Capacity(void) const override { return (int)capacity_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -1083,7 +1087,7 @@ public:
 		else
 			reserve(capacity_ << 1);
 	}
-
+	
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
 	inline __attribute__((always_inline)) EidosObject **data_mutable(void) { WILL_MODIFY(this); return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
@@ -1108,7 +1112,12 @@ public:
 	void set_object_element_no_check_no_previous_RR(EidosObject *p_object, size_t p_index);		// specifies retain/release, previous value assumed invalid from resize_no_initialize_RR
 	void set_object_element_no_check_NORR(EidosObject *p_object, size_t p_index);	// specifies no retain/release
 	
-	friend void SLiM_IncreaseMutationBlockCapacity(void);	// for PatchPointersByAdding() / PatchPointersBySubtracting()
+private:
+	// See comments on EidosValue_Object::EidosValue_Object().  Note this is shared by all species, and in
+	// SLiMgui it is shared by all running simulations, so we need to be careful not to step on any toes.
+	static std::vector<EidosValue_Object *> static_EidosValue_Object_Mutation_Registry;
+	
+	friend class MutationBlock;		// so it can access the above registry; see IncreaseMutationBlockCapacity()
 };
 
 inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_CRR(EidosObject *p_object)

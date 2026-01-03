@@ -101,8 +101,9 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObject **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -115,8 +116,9 @@ EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObject **
 	return int_result;
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObject **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -129,8 +131,9 @@ EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObject **p_
 	return int_result;
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -147,8 +150,9 @@ EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObject **p_values, 
 	return int_result;
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosObject **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElementType_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -211,7 +215,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 #pragma mark GenomicElement_Class
 #pragma mark -
 
-EidosClass *gSLiM_GenomicElement_Class = nullptr;
+GenomicElement_Class *gSLiM_GenomicElement_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties(void) const

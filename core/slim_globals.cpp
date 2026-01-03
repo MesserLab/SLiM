@@ -20,6 +20,7 @@
 
 #include "slim_globals.h"
 
+#include "trait.h"
 #include "chromosome.h"
 #include "individual.h"
 #include "interaction_type.h"
@@ -76,6 +77,7 @@ void SLiM_WarmUp(void)
 		// Create the global class objects for all SLiM Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
 		// and so that the global string names for the classes have already been set up by C++'s static initialization
+		gSLiM_Trait_Class =					new Trait_Class(				gStr_Trait,					gEidosDictionaryRetained_Class);
 		gSLiM_Chromosome_Class =			new Chromosome_Class(			gStr_Chromosome,			gEidosDictionaryRetained_Class);
 		gSLiM_Individual_Class =			new Individual_Class(			gEidosStr_Individual,		gEidosDictionaryUnretained_Class);
 		gSLiM_InteractionType_Class =		new InteractionType_Class(		gStr_InteractionType,		gEidosDictionaryUnretained_Class);
@@ -96,9 +98,6 @@ void SLiM_WarmUp(void)
 		// Note that this can't be done in the EidosClass constructor because the vtable is not set up for the subclass yet
 		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 			eidos_class->CacheDispatchTables();
-		
-		// Set up our shared pool for Mutation objects
-		SLiM_CreateMutationBlock();
 		
 		// Make sure the Eidos context information has already been configured; this has to be done first thing,
 		// so that any customizations to Eidos that SLiM introduces take effect before anything else happens
@@ -519,6 +518,7 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 	p_usage.totalMemoryUsage =
 		p_usage.communityObjects +
 		p_usage.mutationRefcountBuffer +
+		p_usage.mutationPerTraitBuffer +
 		p_usage.mutationUnusedPoolSpace +
 		p_usage.interactionTypeObjects +
 		p_usage.interactionTypeKDTrees +
@@ -596,6 +596,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	p_total.communityObjects += p_usage.communityObjects;
 	
 	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
+	p_total.mutationPerTraitBuffer += p_usage.mutationPerTraitBuffer;
 	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
 	
 	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
@@ -1180,6 +1181,7 @@ const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initia
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
 const std::string &gStr_initializeMutationType = EidosRegisteredString("initializeMutationType", gID_initializeMutationType);
 const std::string &gStr_initializeMutationTypeNuc = EidosRegisteredString("initializeMutationTypeNuc", gID_initializeMutationTypeNuc);
+const std::string &gStr_initializeTrait = EidosRegisteredString("initializeTrait", gID_initializeTrait);
 const std::string &gStr_initializeChromosome = EidosRegisteredString("initializeChromosome", gID_initializeChromosome);
 const std::string &gStr_initializeGeneConversion = EidosRegisteredString("initializeGeneConversion", gID_initializeGeneConversion);
 const std::string &gStr_initializeMutationRate = EidosRegisteredString("initializeMutationRate", gID_initializeMutationRate);
@@ -1193,6 +1195,10 @@ const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initial
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);
 
 // mostly property names
+const std::string &gStr_baselineOffset = EidosRegisteredString("baselineOffset", gID_baselineOffset);
+const std::string &gStr_individualOffsetMean = EidosRegisteredString("individualOffsetMean", gID_individualOffsetMean);
+const std::string &gStr_individualOffsetSD = EidosRegisteredString("individualOffsetSD", gID_individualOffsetSD);
+const std::string &gStr_directFitnessEffect = EidosRegisteredString("directFitnessEffect", gID_directFitnessEffect);
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
 const std::string &gStr_lastPosition = EidosRegisteredString("lastPosition", gID_lastPosition);
 const std::string &gStr_hotspotEndPositions = EidosRegisteredString("hotspotEndPositions", gID_hotspotEndPositions);
@@ -1239,19 +1245,22 @@ const std::string &gStr_mutationTypes = EidosRegisteredString("mutationTypes", g
 const std::string &gStr_mutationFractions = EidosRegisteredString("mutationFractions", gID_mutationFractions);
 const std::string &gStr_mutationMatrix = EidosRegisteredString("mutationMatrix", gID_mutationMatrix);
 const std::string &gStr_isFixed = EidosRegisteredString("isFixed", gID_isFixed);
+const std::string &gStr_isIndependentDominance = EidosRegisteredString("isIndependentDominance", gID_isIndependentDominance);
+const std::string &gStr_isNeutral = EidosRegisteredString("isNeutral", gID_isNeutral);
 const std::string &gStr_isSegregating = EidosRegisteredString("isSegregating", gID_isSegregating);
 const std::string &gStr_mutationType = EidosRegisteredString("mutationType", gID_mutationType);
 const std::string &gStr_nucleotide = EidosRegisteredString("nucleotide", gID_nucleotide);
 const std::string &gStr_nucleotideValue = EidosRegisteredString("nucleotideValue", gID_nucleotideValue);
 const std::string &gStr_originTick = EidosRegisteredString("originTick", gID_originTick);
 const std::string &gStr_position = EidosRegisteredString("position", gID_position);
-const std::string &gStr_selectionCoeff = EidosRegisteredString("selectionCoeff", gID_selectionCoeff);
 const std::string &gStr_subpopID = EidosRegisteredString("subpopID", gID_subpopID);
 const std::string &gStr_convertToSubstitution = EidosRegisteredString("convertToSubstitution", gID_convertToSubstitution);
-const std::string &gStr_distributionType = EidosRegisteredString("distributionType", gID_distributionType);
-const std::string &gStr_distributionParams = EidosRegisteredString("distributionParams", gID_distributionParams);
-const std::string &gStr_dominanceCoeff = EidosRegisteredString("dominanceCoeff", gID_dominanceCoeff);
-const std::string &gStr_hemizygousDominanceCoeff = EidosRegisteredString("hemizygousDominanceCoeff", gID_hemizygousDominanceCoeff);
+const std::string &gStr_defaultDominanceForTrait = EidosRegisteredString("defaultDominanceForTrait", gID_defaultDominanceForTrait);
+const std::string &gStr_defaultHemizygousDominanceForTrait = EidosRegisteredString("defaultHemizygousDominanceForTrait", gID_defaultHemizygousDominanceForTrait);
+const std::string &gStr_effectDistributionTypeForTrait = EidosRegisteredString("effectDistributionTypeForTrait", gID_effectDistributionTypeForTrait);
+const std::string &gStr_effectDistributionParamsForTrait = EidosRegisteredString("effectDistributionParamsForTrait", gID_effectDistributionParamsForTrait);
+const std::string &gStr_dominance = EidosRegisteredString("dominance", gID_dominance);
+const std::string &gStr_hemizygousDominance = EidosRegisteredString("hemizygousDominance", gID_hemizygousDominance);
 const std::string &gStr_mutationStackGroup = EidosRegisteredString("mutationStackGroup", gID_mutationStackGroup);
 const std::string &gStr_mutationStackPolicy = EidosRegisteredString("mutationStackPolicy", gID_mutationStackPolicy);
 //const std::string &gStr_start = EidosRegisteredString("start", gID_start);
@@ -1265,8 +1274,10 @@ const std::string &gStr_allMutationTypes = EidosRegisteredString("allMutationTyp
 const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks", gID_allScriptBlocks);
 const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
 const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulations", gID_allSubpopulations);
+const std::string &gStr_allTraits = EidosRegisteredString("allTraits", gID_allTraits);
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomes = EidosRegisteredString("chromosomes", gID_chromosomes);
+const std::string &gStr_traits = EidosRegisteredString("traits", gID_traits);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
@@ -1351,6 +1362,11 @@ const std::string &gStr_countOfMutationsOfType = EidosRegisteredString("countOfM
 const std::string &gStr_positionsOfMutationsOfType = EidosRegisteredString("positionsOfMutationsOfType", gID_positionsOfMutationsOfType);
 const std::string &gStr_containsMarkerMutation = EidosRegisteredString("containsMarkerMutation", gID_containsMarkerMutation);
 const std::string &gStr_haplosomesForChromosomes = EidosRegisteredString("haplosomesForChromosomes", gID_haplosomesForChromosomes);
+const std::string &gStr_offsetForTrait = EidosRegisteredString("offsetForTrait", gID_offsetForTrait);
+const std::string &gStr_phenotypeForTrait = EidosRegisteredString("phenotypeForTrait", gID_phenotypeForTrait);
+const std::string &gStr_demandPhenotype = EidosRegisteredString("demandPhenotype", gID_demandPhenotype);
+const std::string &gStr_setOffsetForTrait = EidosRegisteredString("setOffsetForTrait", gID_setOffsetForTrait);
+const std::string &gStr_setPhenotypeForTrait = EidosRegisteredString("setPhenotypeForTrait", gID_setPhenotypeForTrait);
 const std::string &gStr_relatedness = EidosRegisteredString("relatedness", gID_relatedness);
 const std::string &gStr_sharedParentCount = EidosRegisteredString("sharedParentCount", gID_sharedParentCount);
 const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);
@@ -1361,6 +1377,7 @@ const std::string &gStr_setSpatialPosition = EidosRegisteredString("setSpatialPo
 const std::string &gStr_substitutionsOfType = EidosRegisteredString("substitutionsOfType", gID_substitutionsOfType);
 const std::string &gStr_sumOfMutationsOfType = EidosRegisteredString("sumOfMutationsOfType", gID_sumOfMutationsOfType);
 const std::string &gStr_uniqueMutationsOfType = EidosRegisteredString("uniqueMutationsOfType", gID_uniqueMutationsOfType);
+const std::string &gStr_zygosityOfMutations = EidosRegisteredString("zygosityOfMutations", gID_zygosityOfMutations);
 const std::string &gStr_mutationsFromHaplosomes = EidosRegisteredString("mutationsFromHaplosomes", gID_mutationsFromHaplosomes);
 const std::string &gStr_readHaplosomesFromMS = EidosRegisteredString("readHaplosomesFromMS", gID_readHaplosomesFromMS);
 const std::string &gStr_readHaplosomesFromVCF = EidosRegisteredString("readHaplosomesFromVCF", gID_readHaplosomesFromVCF);
@@ -1368,10 +1385,17 @@ const std::string &gStr_removeMutations = EidosRegisteredString("removeMutations
 const std::string &gStr_setGenomicElementType = EidosRegisteredString("setGenomicElementType", gID_setGenomicElementType);
 const std::string &gStr_setMutationFractions = EidosRegisteredString("setMutationFractions", gID_setMutationFractions);
 const std::string &gStr_setMutationMatrix = EidosRegisteredString("setMutationMatrix", gID_setMutationMatrix);
-const std::string &gStr_setSelectionCoeff = EidosRegisteredString("setSelectionCoeff", gID_setSelectionCoeff);
+const std::string &gStr_effectForTrait = EidosRegisteredString("effectForTrait", gID_effectForTrait);
+const std::string &gStr_dominanceForTrait = EidosRegisteredString("dominanceForTrait", gID_dominanceForTrait);
+const std::string &gStr_hemizygousDominanceForTrait = EidosRegisteredString("hemizygousDominanceForTrait", gID_hemizygousDominanceForTrait);
+const std::string &gStr_setEffectForTrait = EidosRegisteredString("setEffectForTrait", gID_setEffectForTrait);
+const std::string &gStr_setDominanceForTrait = EidosRegisteredString("setDominanceForTrait", gID_setDominanceForTrait);
+const std::string &gStr_setHemizygousDominanceForTrait = EidosRegisteredString("setHemizygousDominanceForTrait", gID_setHemizygousDominanceForTrait);
 const std::string &gStr_setMutationType = EidosRegisteredString("setMutationType", gID_setMutationType);
-const std::string &gStr_drawSelectionCoefficient = EidosRegisteredString("drawSelectionCoefficient", gID_drawSelectionCoefficient);
-const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution", gID_setDistribution);
+const std::string &gStr_drawEffectForTrait = EidosRegisteredString("drawEffectForTrait", gID_drawEffectForTrait);
+const std::string &gStr_setDefaultDominanceForTrait = EidosRegisteredString("setDefaultDominanceForTrait", gID_setDefaultDominanceForTrait);
+const std::string &gStr_setDefaultHemizygousDominanceForTrait = EidosRegisteredString("setDefaultHemizygousDominanceForTrait", gID_setDefaultHemizygousDominanceForTrait);
+const std::string &gStr_setEffectDistributionForTrait = EidosRegisteredString("setEffectDistributionForTrait", gID_setEffectDistributionForTrait);
 const std::string &gStr_addPatternForClone = EidosRegisteredString("addPatternForClone", gID_addPatternForClone);
 const std::string &gStr_addPatternForCross = EidosRegisteredString("addPatternForCross", gID_addPatternForCross);
 const std::string &gStr_addPatternForNull = EidosRegisteredString("addPatternForNull", gID_addPatternForNull);
@@ -1381,6 +1405,8 @@ const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit",
 const std::string &gStr_chromosomesOfType = EidosRegisteredString("chromosomesOfType", gID_chromosomesOfType);
 const std::string &gStr_chromosomesWithIDs = EidosRegisteredString("chromosomesWithIDs", gID_chromosomesWithIDs);
 const std::string &gStr_chromosomesWithSymbols = EidosRegisteredString("chromosomesWithSymbols", gID_chromosomesWithSymbols);
+const std::string &gStr_traitsWithIndices = EidosRegisteredString("traitsWithIndices", gID_traitsWithIndices);
+const std::string &gStr_traitsWithNames = EidosRegisteredString("traitsWithNames", gID_traitsWithNames);
 const std::string &gStr_estimatedLastTick = EidosRegisteredString("estimatedLastTick", gID_estimatedLastTick);
 const std::string &gStr_deregisterScriptBlock = EidosRegisteredString("deregisterScriptBlock", gID_deregisterScriptBlock);
 const std::string &gStr_genomicElementTypesWithIDs = EidosRegisteredString("genomicElementTypesWithIDs", gID_genomicElementTypesWithIDs);
@@ -1559,6 +1585,7 @@ const std::string &gStr_text = EidosRegisteredString("text", gID_text);
 const std::string &gStr_title = EidosRegisteredString("title", gID_title);
 
 // mostly SLiM element types
+const std::string &gStr_Trait = EidosRegisteredString("Trait", gID_Trait);
 const std::string &gStr_Chromosome = EidosRegisteredString("Chromosome", gID_Chromosome);
 //const std::string &gStr_Haplosome = EidosRegisteredString("Haplosome", gID_Haplosome);				// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_GenomicElement = EidosRegisteredString("GenomicElement", gID_GenomicElement);
@@ -2605,6 +2632,7 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		snprintf(buf, 256, "%0.2f", mem_tot_S.mutationObjects_count / ddiv);
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.mutationObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationObjects, final_total) << "</tt> : Mutation objects (" << buf << " / " << mem_last_S.mutationObjects_count << ")<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationRefcountBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationRefcountBuffer, final_total) << "</tt> : refcount buffer<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationPerTraitBuffer, final_total) << "</tt> : per-trait buffer<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total) << "</tt> : unused pool space</p>\n\n";
 		
 		// MutationRun

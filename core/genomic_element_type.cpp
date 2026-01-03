@@ -301,8 +301,9 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -315,8 +316,9 @@ EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_value
 	return int_result;
 }
 
-EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -405,7 +407,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		mutation_fractions.emplace_back(proportion);
 		
 		// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
-		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
+		if (!mutation_type_ptr->all_neutral_DES_)
 			species_.pure_neutral_ = false;
 	}
 	
@@ -448,7 +450,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 #pragma mark GenomicElementType_Class
 #pragma mark -
 
-EidosClass *gSLiM_GenomicElementType_Class = nullptr;
+GenomicElementType_Class *gSLiM_GenomicElementType_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Properties(void) const

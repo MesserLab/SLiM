@@ -30,7 +30,8 @@
 #include "eidos_value.h"
 
 
-extern EidosClass *gEidosDataFrame_Class;
+class EidosDataFrame_Class;
+extern EidosDataFrame_Class *gEidosDataFrame_Class;
 
 
 class EidosDataFrame : public EidosDictionaryRetained

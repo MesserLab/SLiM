@@ -1262,7 +1262,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 #pragma mark EidosDataFrame_Class
 #pragma mark -
 
-EidosClass *gEidosDataFrame_Class = nullptr;
+EidosDataFrame_Class *gEidosDataFrame_Class = nullptr;
 
 const std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties(void) const
 {

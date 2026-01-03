@@ -90,7 +90,7 @@ nlohmann::json EidosObject::JSONRepresentation(void) const
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ClassNameForDisplay() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 }
 
 void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -470,7 +470,7 @@ bool EidosClass::IsSubclassOfClass(const EidosClass *p_class_object) const
 
 void EidosClass::CacheDispatchTables(void)
 {
-	// This can be called more than once during startup, because Eidos warms up and the SLiM warms up
+	// This can be called more than once during startup, because Eidos warms up and then SLiM warms up
 	if (dispatches_cached_)
 		return;
 	
@@ -525,6 +525,42 @@ void EidosClass::CacheDispatchTables(void)
 void EidosClass::RaiseForDispatchUninitialized(void) const
 {
 	EIDOS_TERMINATION << "ERROR (EidosClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ClassName() << "." << EidosTerminate(nullptr);
+}
+
+void EidosClass::AddSignatureForProperty(EidosPropertySignature_CSP p_property_signature)
+{
+#if DEBUG
+		if (!dispatches_cached_)
+			RaiseForDispatchUninitialized();
+#endif
+	
+	EidosGlobalStringID property_id = p_property_signature->property_id_;
+	
+	if (property_id < (EidosGlobalStringID)property_signatures_dispatch_capacity_)
+	{
+		// The property id fits into our existing dispatch table, so we can just fill it in.
+		// However, it is an error if this slot in the dispatch table is already in use.
+		if (property_signatures_dispatch_[property_id])
+			EIDOS_TERMINATION << "ERROR (EidosClass::AddSignatureForProperty): (internal error) dispatch table slot is already in use for property name '" << p_property_signature->property_name_ << "'." << EidosTerminate(nullptr);
+		
+		property_signatures_dispatch_[property_id] = p_property_signature;
+	}
+	else
+	{
+		// The property id does not fit into the existing dispatch table, so we need to realloc, zero
+		// out all the new entries in the expanded dispatch table, and set the requested entry.  Note
+		// that for dynamically generated property ids, the dispatch table might get a lot bigger!
+		int32_t new_capacity = std::max(property_signatures_dispatch_capacity_, (int32_t)property_id) + 1;
+		
+		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)realloc(property_signatures_dispatch_, new_capacity * sizeof(EidosPropertySignature_CSP));
+		if (!property_signatures_dispatch_)
+			EIDOS_TERMINATION << "ERROR (EidosClass::AddSignatureForProperty): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		EIDOS_BZERO(property_signatures_dispatch_ + property_signatures_dispatch_capacity_, (new_capacity - property_signatures_dispatch_capacity_) * sizeof(EidosPropertySignature_CSP));
+		property_signatures_dispatch_capacity_ = new_capacity;
+		
+		property_signatures_dispatch_[property_id] = p_property_signature;
+	}
 }
 
 const std::vector<EidosPropertySignature_CSP> *EidosClass::Properties(void) const
@@ -708,6 +744,59 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
+
+
+#ifdef EIDOS_GUI
+// We provide some support here for EidosTypeInterpreter to make code completion work with dynamic properties
+
+void EidosClass::ClearDynamicSignatures(void)
+{
+	std::vector<EidosClass *> classes = EidosClass::RegisteredClasses(/* p_builtin */ true, /* p_context */ true);
+	
+	for (EidosClass *one_class : classes)
+		one_class->dynamic_property_signatures_.clear();
+}
+
+void EidosClass::AddSignatureForProperty_TYPE_INTERPRETER(EidosPropertySignature_CSP p_property_signature)
+{
+	// if a dynamic property already exists with the given name, we assume it is the same, and just return
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		if (dynamic_property->property_id_ == p_property_signature->property_id_)
+			return;
+	
+	dynamic_property_signatures_.push_back(p_property_signature);
+}
+
+// This calls Properties() to get the built-in properties, and then adds the dynamic ones
+std::vector<EidosPropertySignature_CSP> EidosClass::Properties_TYPE_INTERPRETER(void) const
+{
+	std::vector<EidosPropertySignature_CSP> properties = *Properties();		// make a local copy for ourselves to modify
+	
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		properties.push_back(dynamic_property);
+	
+	std::sort(properties.begin(), properties.end(), CompareEidosPropertySignatures);
+	
+	return properties;
+}
+
+// This calls SignatureForProperty(), and then checks the dynamic ones if that failed
+const EidosPropertySignature *EidosClass::SignatureForProperty_TYPE_INTERPRETER(EidosGlobalStringID p_property_id) const
+{
+	const EidosPropertySignature *signature = SignatureForProperty(p_property_id);
+	
+	if (signature)
+		return signature;
+	
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		if (dynamic_property->property_id_ == p_property_id)
+			return dynamic_property.get();
+	
+	return nullptr;
+}
+
+#endif	// EIDOS_GUI
+
 
 
 

@@ -21,11 +21,13 @@
 #include "species.h"
 
 #include "community.h"
+#include "trait.h"
 #include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -527,11 +529,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 		mutation_fractions.emplace_back(proportion);
 		
 		// check whether we are using a mutation type that is non-neutral; check and set pure_neutral_
-		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
-		{
+		if (!mutation_type_ptr->all_neutral_DES_)
 			pure_neutral_ = false;
-			// the mutation type's all_pure_neutral_DFE_ flag is presumably already set
-		}
 	}
 	
 	EidosValueType mm_type = mutationMatrix_value->Type();
@@ -585,12 +584,17 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	return symbol_entry.second;
 }
 
-//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
-//	*********************	(object<MutationType>$)initializeMutationTypeNuc(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
+//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, [Ns$ distributionType = NULL], ...)
+//	*********************	(object<MutationType>$)initializeMutationTypeNuc(is$ id, numeric$ dominanceCoeff, [Ns$ distributionType = NULL], ...)
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_interpreter)
+	// We allocate space that depends on the number of traits; so either traits must be explicitly defined
+	// already, or we implicitly define a single trait (the default behavior mirroring older SLiM versions)
+	if ((num_trait_inits_ == 0) && !has_implicit_trait_)
+		MakeImplicitTrait();
+	
 	// Figure out whether the mutation type is nucleotide-based
 	bool nucleotide_based = (p_function_name == "initializeMutationTypeNuc");
 	
@@ -602,33 +606,55 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	EidosValue *distributionType_value = p_arguments[2].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// BCH 12/25/2025: We now allow NULL for distributionType, which is shorthand for `"f", 0.0` (neutral)
+	bool defaultDistribution = false;
+	
+	if (distributionType_value->Type() == EidosValueType::kValueNULL)
+		defaultDistribution = true;
+	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
 	double dominance_coeff = dominanceCoeff_value->NumericAtIndex_NOCAST(0, nullptr);
-	std::string dfe_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(dominance_coeff) && !std::isnan(dominance_coeff))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() requires dominanceCoeff to be finite, or NAN to represent independent dominance." << EidosTerminate();
+	
+	std::string DES_type_string = (defaultDistribution ? "f" : distributionType_value->StringAtIndex_NOCAST(0, nullptr));
 	
 	if (community_.MutationTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() mutation type m" << map_identifier << " already defined." << EidosTerminate();
 	
-	// Parse the DFE type and parameters, and do various sanity checks
-	DFEType dfe_type;
-	std::vector<double> dfe_parameters;
-	std::vector<std::string> dfe_strings;
+	// Parse the DES type and parameters, and do various sanity checks
+	DESType DES_type;
+	std::vector<double> DES_parameters;
+	std::vector<std::string> DES_strings;
 	
-	MutationType::ParseDFEParameters(dfe_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &dfe_type, &dfe_parameters, &dfe_strings);
+	if (defaultDistribution)
+	{
+		// The default distribution is a fixed effect of 0.0, and ellipsis arguments may not be supplied
+		if (p_arguments.size() != 3)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): with distributionType of NULL, ellipsis arguments may not be supplied to " << p_function_name << "(); the distribution of effect sizes is already completely specified." << EidosTerminate();
+		
+		DES_type = DESType::kFixed;
+		DES_parameters.push_back(0.0);
+	}
+	else
+	{
+		MutationType::ParseDESParameters(DES_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &DES_type, &DES_parameters, &DES_strings);
+	}
 	
 #ifdef SLIMGUI
 	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings, num_mutation_type_inits_);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, DES_type, DES_parameters, DES_strings, num_mutation_type_inits_);
 #else
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, DES_type, DES_parameters, DES_strings);
 #endif
 	
 	mutation_types_.emplace(map_identifier, new_mutation_type);
 	community_.mutation_types_changed_ = true;
 	
-	// keep track of whether we have ever seen a type 's' (scripted) DFE; if so, we switch to a slower case when evolving
-	if (dfe_type == DFEType::kScript)
-		type_s_dfes_present_ = true;
+	// keep track of whether we have ever seen a type 's' (scripted) DES; if so, we switch to a slower case when evolving
+	if (DES_type == DESType::kScript)
+		type_s_DESs_present_ = true;
 	
 	// define a new Eidos variable to refer to the new mutation type
 	EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
@@ -647,17 +673,26 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		}
 		else
 		{
-			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
+			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff;
 			
-			if (dfe_parameters.size() > 0)
+			if (defaultDistribution)
 			{
-				for (double dfe_param : dfe_parameters)
-					output_stream << ", " << dfe_param;
+				output_stream << ", NULL";
 			}
 			else
 			{
-				for (const std::string &dfe_param : dfe_strings)
-					output_stream << ", \"" << dfe_param << "\"";
+				output_stream << ", \"" << DES_type << "\"";
+				
+				if (DES_parameters.size() > 0)
+				{
+					for (double DES_param : DES_parameters)
+						output_stream << ", " << DES_param;
+				}
+				else
+				{
+					for (const std::string &DES_param : DES_strings)
+						output_stream << ", \"" << DES_param << "\"";
+				}
 			}
 			
 			output_stream << ");" << std::endl;
@@ -1582,6 +1617,327 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+//
+EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_arguments, p_interpreter)
+	// An implicit trait is not allowed to have already been defined.
+	if (has_implicit_trait_)
+	{
+		if (num_mutation_type_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot be called to explicitly create a trait, because a trait has already been implicitly defined.  This occurred because initializeMutationType() was called.  To fix this error, call initializeTrait() first and then call initializeMutationType(), or don't call initializeTrait() at all if you do not need an explicitly defined trait." << EidosTerminate();
+		
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): (internal error) initializeTrait() was called with an implicitly defined trait.  However, the cause of this cannot be diagnosed, indicating an internal logic error." << EidosTerminate();
+	}
+	else
+	{
+		if (num_mutation_type_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot be called after initializeMutationType() has been called; all traits in the species must be defined before a mutation type is created." << EidosTerminate();
+	}
+	
+	if (traits_.size() >= SLIM_MAX_TRAITS)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot make a new trait because the maximum number of traits allowed per species (" << SLIM_MAX_TRAITS << ") has already been reached." << EidosTerminate();
+	
+	// Get arguments
+	EidosValue *name_value = p_arguments[0].get();
+	EidosValue *type_value = p_arguments[1].get();
+	EidosValue *baselineOffset_value = p_arguments[2].get();
+	EidosValue *individualOffsetMean_value = p_arguments[3].get();
+	EidosValue *individualOffsetSD_value = p_arguments[4].get();
+	EidosValue *directFitnessEffect_value = p_arguments[5].get();
+	
+	// name
+	std::string name = name_value->StringAtIndex_NOCAST(0, nullptr);
+	
+	if (name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name be a non-empty string." << EidosTerminate();
+	
+	if (!EidosScript::Eidos_IsIdentifier(name))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is a valid Eidos identifier." << EidosTerminate(nullptr);
+	
+	for (Trait *trait : traits_)
+		if (trait->Name() == name)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
+	
+	if (Eidos_string_hasSuffix(name, "Effect") || Eidos_string_hasSuffix(name, "Dominance") || Eidos_string_hasSuffix(name, "Hemizygous"))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not end in 'Effect', 'Dominance', or 'Hemizygous' to avoid naming conflicts and general confusion." << EidosTerminate();
+	
+	// type
+	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
+	TraitType type;
+	
+	if ((type_string == "multiplicative") || (type_string == "mul"))
+		type = TraitType::kMultiplicative;
+	else if ((type_string == "additive") || (type_string == "add"))
+		type = TraitType::kAdditive;
+	else
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'mul'), or 'additive' ('add')." << EidosTerminate();
+	
+	// baselineOffset
+	slim_effect_t baselineOffset;
+	
+	if (baselineOffset_value->Type() == EidosValueType::kValueNULL)
+	{
+		baselineOffset = (slim_effect_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+	}
+	else
+	{
+		double baselineOffset_double = baselineOffset_value->FloatAtIndex_NOCAST(0, nullptr);
+		
+		if (!std::isfinite(baselineOffset_double))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be a finite value (not NAN or INF)." << EidosTerminate();
+		
+		baselineOffset = (slim_effect_t)baselineOffset_double;	// this can round to infinity
+		
+		if (!std::isfinite(baselineOffset))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be representable as a finite single-precision floating-point number; the value given rounded to infinity." << EidosTerminate();
+	}
+	
+	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_effect_t)0.0))
+		baselineOffset = (slim_effect_t)0.0;
+	
+	// check that the default distribution is used or not used, in its entirety
+	if (individualOffsetMean_value->Type() != individualOffsetSD_value->Type())
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that both individual offset parameters be NULL (to use the default distribution) or be non-NULL (to specify a distribution)." << EidosTerminate();
+	
+	// individualOffsetMean
+	double individualOffsetMean;
+	
+	if (individualOffsetMean_value->Type() == EidosValueType::kValueNULL)
+		individualOffsetMean = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
+	else
+		individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(individualOffsetMean))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetMean to be a finite value (not NAN or INF)." << EidosTerminate();
+	
+	// individualOffsetSD
+	double individualOffsetSD;
+	
+	if (individualOffsetSD_value->Type() == EidosValueType::kValueNULL)
+		individualOffsetSD = 0.0;
+	else
+		individualOffsetSD = individualOffsetSD_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(individualOffsetSD))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetSD to be a finite value (not NAN or INF)." << EidosTerminate();
+	
+	// directFitnessEffect
+	bool directFitnessEffect = directFitnessEffect_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// Set up the new trait object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	Trait *trait = new Trait(*this, name, type, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect);
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
+	
+	// Add it to our registry; AddTrait() takes its retain count
+	AddTrait(trait);
+	num_trait_inits_++;
+	
+	// Register new property signatures based upon the trait.  Note that these signatures are added at the
+	// class level, so they will be visible on objects regardless of which species they belong to; if
+	// accessed on an object of the wrong species, however, they will raise a "property not found" error.
+	// More than one species can have a trait with the same name; in that case, the signature will be
+	// registered only once, but the objects in more than one species will respond to it.  More oddly, in
+	// SLiMgui the traits from one model will show up in a different model running at the same time, and
+	// registered trait properties will not go away when you recycle.  I'm ok with that.
+	EidosGlobalStringID trait_stringID = EidosStringRegistry::GlobalStringIDForString(name);
+	EidosGlobalStringID traitEffect_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Effect");
+	EidosGlobalStringID traitDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Dominance");
+	EidosGlobalStringID traitHemizygousDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "HemizygousDominance");
+	
+	{
+		// add a Species <trait-name> property that returns the trait object
+		const EidosPropertySignature *existing_signature = gSLiM_Species_Class->SignatureForProperty(trait_stringID);
+		
+		if (existing_signature)
+		{
+			// an existing signature must return a singleton Trait object etc., otherwise we have a conflict
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskObject | kEidosValueMaskSingleton)) ||
+				(existing_signature->value_class_ != gSLiM_Trait_Class) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Species class, but the name '" << name << "' conflicts with an existing property on Species.  A different name must be used for this trait." << EidosTerminate();
+			
+			// no conflict, so we don't need to do anything; a different species has already registered the property
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))
+												 ->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Species_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add an Individual <trait-name> property that returns the phenotype for the trait in an individual
+		const EidosPropertySignature *existing_signature = gSLiM_Individual_Class->SignatureForProperty(trait_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Individual class, but the name '" << name << "' conflicts with an existing property on Individual.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait")->
+												 DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_VALUE)->
+												 DeclareAcceleratedSet(Individual::SetProperty_Accelerated_TRAIT_VALUE));
+			
+			gSLiM_Individual_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Mutation <trait-name>Effect property that returns the effect size for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitEffect_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Mutation class, but the name '" << name << "' conflicts with an existing property on Mutation.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Effect", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Mutation <trait-name>Dominance property that returns the dominance for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Mutation class, but the name '" << name << "' conflicts with an existing property on Mutation.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Dominance", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Mutation <trait-name>HemizygousDominance property that returns the hemizygous dominance for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitHemizygousDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Mutation class, but the name '" << name << "' conflicts with an existing property on Mutation.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "HemizygousDominance", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution <trait-name>Effect property that returns the effect size for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitEffect_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Substitution class, but the name '" << name << "' conflicts with an existing property on Substitution.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Effect", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution <trait-name>Dominance property that returns the dominance for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Substitution class, but the name '" << name << "' conflicts with an existing property on Substitution.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Dominance", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add a Substitution <trait-name>HemizygousDominance property that returns the hemizygous dominance for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitHemizygousDominance_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == false))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Substitution class, but the name '" << name << "' conflicts with an existing property on Substitution.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "HemizygousDominance", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Substitution_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	if (SLiM_verbosity_level >= 1)
+	{
+		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		output_stream << "initializeTrait(name='" << name << "', type='" << type_string << "'";
+		if (baselineOffset != (slim_effect_t)0.0)
+			output_stream << ", baselineOffset=" << baselineOffset << "";
+		if (individualOffsetMean != 0.0)
+			output_stream << ", individualOffsetMean=" << individualOffsetMean << "";
+		if (individualOffsetSD != 0.0)
+			output_stream << ", individualOffsetSD=" << individualOffsetSD << "";
+		output_stream << ", directFitnessEffect=" << (directFitnessEffect ? "T" : "F") << "";
+		output_stream << ");" << std::endl;
+	}
+	
+	return result_SP;
+}
+
 // TREE SEQUENCE RECORDING
 //	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F], [logical$ retainCoalescentOnly = T], [Ns$ timeUnit = NULL])
 //
@@ -1785,6 +2141,16 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_traits:
+		{
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (Trait *trait : traits_)
+				vec->push_object_element_RR(trait);
+			
+			return result_SP;
+		}
 		case gEidosID_color:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_));
@@ -1863,7 +2229,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutations:
 		{
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 			int registry_size;
 			const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(registry_size);
@@ -1964,7 +2330,17 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
+		{
+			// Here we implement a special behavior: you can do species.<trait-name> to access a trait object directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
+			Trait *trait = TraitFromStringID(p_property_id);
+			
+			if (trait)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
+			
 			return super::GetProperty(p_property_id);
+		}
 	}
 }
 
@@ -2022,6 +2398,8 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_chromosomesOfType:					return ExecuteMethod_chromosomesOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithIDs:				return ExecuteMethod_chromosomesWithIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithSymbols:			return ExecuteMethod_chromosomesWithSymbols(p_method_id, p_arguments, p_interpreter);
+		case gID_traitsWithIndices:					return ExecuteMethod_traitsWithIndices(p_method_id, p_arguments, p_interpreter);
+		case gID_traitsWithNames:					return ExecuteMethod_traitsWithNames(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:		return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_killIndividuals:					return ExecuteMethod_killIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
@@ -2625,7 +3003,7 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_me
 	return EidosValue_SP(result);
 }
 
-//  *********************	– chromosomesWithSymbols(string symbols)
+//  *********************	– (object<Chromosome>)chromosomesWithSymbols(string symbols)
 EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
@@ -2647,6 +3025,61 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID 
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_chromosomesWithSymbols): chromosomesWithSymbols() could not find a chromosome with the given symbol (" << symbol << ")." << EidosTerminate();
 		
 		result->push_object_element_no_check_RR(chromosome);
+	}
+	
+	return EidosValue_SP(result);
+}
+
+//  *********************	– (object<Trait>)traitsWithIndices(integer indices)
+EidosValue_SP Species::ExecuteMethod_traitsWithIndices(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *indices_value = p_arguments[0].get();
+	int indices_count = indices_value->Count();
+	
+	if (indices_value == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class));
+	
+	const int64_t *indices_data = indices_value->IntData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class))->reserve(indices_count);	// reserve enough space for all results
+	
+	for (int indices_index = 0; indices_index < indices_count; indices_index++)
+	{
+		int64_t index = indices_data[indices_index];
+		
+		if ((index < 0) || ((size_t)index >= traits_.size()))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_traitsWithIndices): out-of-range index (" << index << ") in traitsWithIndices()." << EidosTerminate();
+		
+		Trait *trait = traits_[index];
+		
+		result->push_object_element_no_check_RR(trait);
+	}
+	
+	return EidosValue_SP(result);
+}
+
+//  *********************	– (object<Trait>)traitsWithNames(string names)
+EidosValue_SP Species::ExecuteMethod_traitsWithNames(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *names_value = p_arguments[0].get();
+	int names_count = names_value->Count();
+	
+	if (names_count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class));
+	
+	const std::string *names_data = names_value->StringData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class))->reserve(names_count);	// reserve enough space for all results
+	
+	for (int names_index = 0; names_index < names_count; names_index++)
+	{
+		const std::string &name = names_data[names_index];
+		Trait *trait = TraitFromName(name);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_traitsWithNames): traitsWithNames() could not find a trait with the given name (" << name << ")." << EidosTerminate();
+		
+		result->push_object_element_no_check_RR(trait);
 	}
 	
 	return EidosValue_SP(result);
@@ -2995,7 +3428,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "mutationsOfType()");		// SPECIES CONSISTENCY CHECK
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// track calls per cycle to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
@@ -3091,7 +3524,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// track calls per cycle to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
@@ -3380,7 +3813,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 	
 	int mutations_count = mutations_value->Count();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	
 	if (mutations_count > 0)
 	{
@@ -3548,7 +3981,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(file_tick));
 }
 			
-//	*********************	– (void)recalculateFitness([Ni$ tick = NULL])
+//	*********************	– (void)recalculateFitness([Ni$ tick = NULL], [l$ forceRecalc = T])
 //
 EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3567,13 +4000,19 @@ EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may not be called from inside a callback." << EidosTerminate();
 	
 	EidosValue *tick_value = p_arguments[0].get();
+	slim_tick_t tick = (tick_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(tick_value->IntAtIndex_NOCAST(0, nullptr)) : community_.Tick();
+	
+	// BCH 12/31/2025: Before multitrait this method would recalculate all fitness values directly from the mutations in haplosomes.
+	// We want to preserve that behavior for backward compatibility, so we need to tell RecalculateFitness() to recalculate with
+	// f_force_recalc turned on when demanding phenotypes.  However, that is of course slow/wasteful if the trait values are already
+	// correct; maybe all the user has changed is, say, disabling a mutationEffect() callback.  I am therefore adding a new option.
+	EidosValue *forceRecalc_value = p_arguments[1].get();
+	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Trigger a fitness recalculation.  This is suggested after making a change that would modify fitness values, such as altering
 	// a selection coefficient or dominance coefficient, changing the mutation type for a mutation, etc.  It will have the side
 	// effect of calling mutationEffect() callbacks, so this is quite a heavyweight operation.
-	slim_tick_t tick = (tick_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(tick_value->IntAtIndex_NOCAST(0, nullptr)) : community_.Tick();
-	
-	population_.RecalculateFitness(tick);
+	population_.RecalculateFitness(tick, forceRecalc);
 	
 	// Remember that we have recalculated fitness values; this unlocks the ability to call cachedFitness(), temporarily
 	has_recalculated_fitness_ = true;
@@ -3768,6 +4207,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
+	new_script_block->trait_index_ = -1;				// FIXME MULTITRAIT: should provide the ability to set a trait index
 	
 	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
@@ -3940,7 +4380,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	
 	// We will scan forward looking for a match, and will keep track of the first match we find.  If we only find one, we return
 	// a singleton; if we find a second, we will start accumulating a vector result.
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 	int registry_size;
 	const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 	int match_count = 0, registry_index;
@@ -4260,7 +4700,7 @@ EidosValue_SP Species::ExecuteMethod__debug(EidosGlobalStringID p_method_id, con
 #pragma mark Species_Class
 #pragma mark -
 
-EidosClass *gSLiM_Species_Class = nullptr;
+Species_Class *gSLiM_Species_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) const
@@ -4293,6 +4733,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cycle,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_traits,					true,	kEidosValueMaskObject, gSLiM_Trait_Class)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -4329,7 +4770,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF)->AddLogical_OS("substitutions", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddObject_OSN("subpopMap", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("tick", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("tick", gStaticEidosValueNULL)->AddLogical_OS("forceRecalc", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessEffectCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -4342,6 +4783,8 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_skipTick, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_substitutionsOfType, kEidosValueMaskObject, gSLiM_Substitution_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_traitsWithIndices, kEidosValueMaskObject, gSLiM_Trait_Class))->AddInt("indices"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_traitsWithNames, kEidosValueMaskObject, gSLiM_Trait_Class))->AddString("names"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));

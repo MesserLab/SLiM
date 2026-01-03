@@ -296,7 +296,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_plotWithTitle(EidosGlobalStringID p_method_
 #pragma mark SLiMgui_Class
 #pragma mark -
 
-EidosClass *gSLiM_SLiMgui_Class = nullptr;
+SLiMgui_Class *gSLiM_SLiMgui_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) const

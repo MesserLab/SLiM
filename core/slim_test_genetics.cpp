@@ -39,9 +39,10 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.convertToSubstitution == T) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.mutationStackGroup == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.mutationStackPolicy == 's') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.distributionParams == 0.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.distributionType == 'f') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.dominanceCoeff == 0.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectDistributionParamsForTrait() == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectDistributionTypeForTrait() == 'f') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.defaultDominanceForTrait() == 0.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.defaultHemizygousDominanceForTrait() == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.color = ''; } 2 early() { if (m1.color == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.color = 'red'; } 2 early() { if (m1.color == 'red') stop(); }", __LINE__);
@@ -58,9 +59,6 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.mutationStackPolicy = 'f'; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.mutationStackPolicy = 'l'; }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.mutationStackPolicy = 'z'; }", "property mutationStackPolicy must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.distributionParams = 0.1; }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.distributionType = 'g'; }", "read-only property", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.dominanceCoeff = 0.3; }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.id = 2; }", "read-only property", __LINE__);
 
 	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; c(m1,m2).mutationStackPolicy = 'f'; } 1 early() { stop(); }", __LINE__);
@@ -70,78 +68,84 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 early() { c(m1,m2).mutationStackGroup = 3; }", "inconsistent mutationStackPolicy", __LINE__, false);
 	
 	// Test MutationType - (void)setDistribution(string$ distributionType, ...)
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('f', 2.2); if (m1.distributionType == 'f' & m1.distributionParams == 2.2) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 7.5); if (m1.distributionType == 'g' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('e', -3); if (m1.distributionType == 'e' & m1.distributionParams == -3) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 7.5); if (m1.distributionType == 'n' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 7.5); if (m1.distributionType == 'p' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); if (m1.distributionType == 'w' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('s', 'return 1;'); if (m1.distributionType == 's' & identical(m1.distributionParams, 'return 1;')) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('x', 1.5); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('e', 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('s', 3); stop(); }", "must be of type string", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('f', '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('e', '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('s', 3.1); stop(); }", "must be of type string", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('f', T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('e', T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('s', T); stop(); }", "must be of type string", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(NULL, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(0, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(sim.traits, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(NULL, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(0, 0.3); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(sim.traits, 0.3); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (m1.effectDistributionTypeForTrait() == 'f' & m1.effectDistributionParamsForTrait() == 2.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'g' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3); if (m1.effectDistributionTypeForTrait() == 'e' & m1.effectDistributionParamsForTrait() == -3) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'n' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'p' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'w' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'return 1;'); if (m1.effectDistributionTypeForTrait() == 's' & identical(m1.effectDistributionParamsForTrait(), 'return 1;')) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'x', 1.5); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 3); stop(); }", "must be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 3.1); stop(); }", "must be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', T); stop(); }", "must be of type string", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, -1.0); }", "must have a shape parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, -1.0); }", "must have a standard deviation parameter >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 0.0); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, -1.0); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 0.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', -1.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, -7.5); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, -1.0); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, -1.0); }", "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 0.0); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, -1.0); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 0.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', -1.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, -7.5); }", "must have a shape parameter > 0", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setDistribution('s', 'return foo;'); } 100 early() { stop(); }", "undefined identifier foo", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setDistribution('s', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DFE callback script", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setDistribution('s', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DFE callback script", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'return foo;'); } 100 early() { stop(); }", "undefined identifier foo", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
 	
-	// Test MutationType - (float)drawSelectionCoefficient([integer$ n = 1])
+	// Test MutationType - (float)drawEffectForTrait([integer$ n = 1])
 	// the parameters here are chosen so that these tests should fail extremely rarely
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('f', 2.2); if (m1.drawSelectionCoefficient() == 2.2) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('f', 2.2); if (identical(m1.drawSelectionCoefficient(10), rep(2.2, 10))) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 7.5); m1.drawSelectionCoefficient(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 7.5); if (abs(mean(m1.drawSelectionCoefficient(5000)) - 3.1) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('e', -3.0); m1.drawSelectionCoefficient(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('e', -3.0); if (abs(mean(m1.drawSelectionCoefficient(30000)) + 3.0) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 0.5); m1.drawSelectionCoefficient(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 0.5); if (abs(mean(m1.drawSelectionCoefficient(2000)) - 3.1) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 7.5); m1.drawSelectionCoefficient(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 0.01); if (abs(mean(m1.drawSelectionCoefficient(2000)) - 3.1) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); m1.drawSelectionCoefficient(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); if (abs(mean(m1.drawSelectionCoefficient(2000)) - 2.910106) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('s', 'rbinom(1, 4, 0.5);'); m1.drawSelectionCoefficient(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('s', 'rbinom(1, 4, 0.5);'); if (abs(mean(m1.drawSelectionCoefficient(5000)) - 2.0) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (abs(m1.drawEffectForTrait() - 2.2) < 1e-6) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (all(abs(m1.drawEffectForTrait(NULL, 10) - rep(2.2, 10)) < 1e-6)) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3.0); m1.drawEffectForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3.0); if (abs(mean(m1.drawEffectForTrait(NULL, 30000)) + 3.0) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 0.5); m1.drawEffectForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 0.5); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 0.01); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 2.910106) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); m1.drawEffectForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 2.0) < 0.1) stop(); }", __LINE__);
 }
 
 #pragma mark GenomicElementType tests
@@ -652,12 +656,12 @@ void _RunMutationTests(void)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.mutationType == m1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if ((mut.originTick >= 1) & (mut.originTick < 10)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if ((mut.position >= 0) & (mut.position < 100000)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.selectionCoeff == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.effect == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.subpopID == 1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.mutationType = m1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.originTick = 1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.position = 0; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.selectionCoeff = 0.1; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.effect = 0.1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.subpopID = 237; if (mut.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; c(mut,mut).tag; }", "before being set", __LINE__);
@@ -667,12 +671,6 @@ void _RunMutationTests(void)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setMutationType(m1); if (mut.mutationType == m1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setMutationType(m1); if (mut.mutationType == m1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setMutationType(2); if (mut.mutationType == m1) stop(); }", "mutation type m2 not defined", __LINE__);
-	
-	// Test Mutation - (void)setSelectionCoeff(float$ selectionCoeff)
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setSelectionCoeff(0.5); if (mut.selectionCoeff == 0.5) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setSelectionCoeff(1); if (mut.selectionCoeff == 1) stop(); }", "cannot be type integer", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setSelectionCoeff(-500.0); if (mut.selectionCoeff == -500.0) stop(); }", __LINE__);	// legal; no lower bound
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.setSelectionCoeff(500.0); if (mut.selectionCoeff == 500.0) stop(); }", __LINE__);		// legal; no upper bound
 }
 
 #pragma mark Substitution tests
@@ -684,19 +682,19 @@ void _RunSubstitutionTests(void)
 	//
 	
 	// Test Substitution properties
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { if (size(sim.substitutions) > 0) stop(); }", __LINE__);										// check that our script generates substitutions fast enough
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.fixationTick > 0 & sub.fixationTick <= 30) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.originTick > 0 & sub.originTick <= 10) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.position >= 0 & sub.position <= 99999) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { if (sum(sim.substitutions.selectionCoeff == 500.0) == 1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.fixationTick = 10; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.originTick = 10; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.selectionCoeff = 50.0; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { if (size(sim.substitutions) > 0) stop(); }", __LINE__);										// check that our script generates substitutions fast enough
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.fixationTick > 0 & sub.fixationTick <= 30) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.originTick > 0 & sub.originTick <= 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.position >= 0 & sub.position <= 99999) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { if (sum(sim.substitutions.effect == 500.0) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.fixationTick = 10; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.originTick = 10; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.effect = 50.0; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 }
 
 #pragma mark Haplosome tests
@@ -744,7 +742,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(1, 5000, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(1, 5000, -1); stop(); }", "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Nio<Subpopulation> originSubpop])
+	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [Nio<Subpopulation> originSubpop])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, p1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, 1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
@@ -784,7 +782,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewDrawnMutation(1, 5000, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewDrawnMutation(1, 5000, -1); stop(); }", "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
+	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000, p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000); stop(); }", __LINE__);
@@ -939,6 +937,661 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	{
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF('" + temp_path + "/slimOutputVCFTest8.txt', F); stop(); }", __LINE__);
 	}
+}
+
+#pragma mark Multitrait tests
+void _RunMultitraitTests(void)
+{
+	// two-trait base model implemented in WF and nonWF -- one trait multiplicative, one trait additive
+	const std::string mt_base_p1_WF = 
+R"V0G0N(
+initialize() {
+	defineConstant("T_height", initializeTrait("height", "multiplicative", 2.0));
+	defineConstant("T_weight", initializeTrait("weight", "additive", 186.0));
+	initializeMutationRate(1e-5);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 late() { sim.addSubpop("p1", 5); }
+5 late() { }
+)V0G0N";
+	
+	const std::string mt_base_p1_nonWF = 
+R"V0G0N(
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("T_height", initializeTrait("height", "multiplicative", 2.0));
+	defineConstant("T_weight", initializeTrait("weight", "additive", 186.0));
+	initializeMutationRate(1e-5);
+	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { p1.addCrossed(individual, p1.sampleIndividuals(1)); }
+1 late() { sim.addSubpop("p1", 5); }
+late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
+5 late() { }
+)V0G0N";
+	
+	for (int model = 0; model <= 1; ++model)
+	{
+		std::string mt_base_p1 = ((model == 0) ? mt_base_p1_WF : mt_base_p1_nonWF);
+		
+		SLiMAssertScriptSuccess(mt_base_p1);
+		
+		// initializeTrait() requirements
+		SLiMAssertScriptRaise("initialize() { initializeTrait('', 'multiplicative', 2.0); }", "non-empty string", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('human height', 'multiplicative', 2.0); }", "valid Eidos identifier", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('migrant', 'multiplicative', 2.0); }", "existing property on Individual", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('avatar', 'multiplicative', 2.0); }", "existing property on Species", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', 2.0); initializeTrait('height', 'multiplicative', 2.0); }", "already a trait in this species", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multi', 2.0); }", "requires type to be either", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=INF); }", "baselineOffset to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=NAN); }", "baselineOffset to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=INF, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NAN, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=INF); }", "individualOffsetSD to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=NAN); }", "individualOffsetSD to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=2.0, individualOffsetSD=NULL); }", "individual offset parameters be", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NULL, individualOffsetSD=2.0); }", "individual offset parameters be", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeTrait('height', 'multiplicative'); }", "already been implicitly defined", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative'); initializeMutationType('m1', 0.5, 'f', 0.0); initializeTrait('weight', 'multiplicative'); }", "before a mutation type is created", __LINE__);
+		SLiMAssertScriptRaise("initialize() { for (i in 1:257) initializeTrait('height' + i, 'multiplicative'); }", "maximum number of traits", __LINE__);
+		
+		// trait defines, trait lookup
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traits)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), community.allTraits)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height, sim.traitsWithIndices(0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight, sim.traitsWithIndices(1))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traitsWithIndices(0:1))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithIndices(1:0))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithIndices(2); }", "out-of-range index (2)", __LINE__);
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height, sim.traitsWithNames('height'))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight, sim.traitsWithNames('weight'))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_height, T_weight), sim.traitsWithNames(c('height', 'weight')))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithNames(c('weight', 'height')))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithNames('typo'); }", "trait with the given name (typo)", __LINE__);
+		
+		// basic trait properties: baselineOffset, directFitnessEffect, index, individualOffsetMean, individualOffsetSD, name, species, tag, type
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.baselineOffset, 2.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.baselineOffset, 186.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.baselineOffset = 12.5; if (!identical(T_height.baselineOffset, 12.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.baselineOffset = 17.25; if (!identical(T_weight.baselineOffset, 17.25)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.directFitnessEffect, F)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.directFitnessEffect, F)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.index, 0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.index, 1)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetMean, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetMean, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; if (!identical(T_height.individualOffsetMean, 3.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; if (!identical(T_weight.individualOffsetMean, 2.5)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetSD, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetSD, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetSD = 3.5; if (!identical(T_height.individualOffsetSD, 3.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetSD = 2.5; if (!identical(T_weight.individualOffsetSD, 2.5)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.name, 'height')) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.name, 'weight')) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.species, sim)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.species, sim)) stop(); }");
+		
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { if (!identical(T_height.tag, 12)) stop(); }", "before being set", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { if (!identical(T_weight.tag, 3)) stop(); }", "before being set", __LINE__);
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.tag = 12; if (!identical(T_height.tag, 12)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.tag = 3; if (!identical(T_weight.tag, 3)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.type, 'multiplicative')) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.type, 'additive')) stop(); }");
+		
+		// individual offset
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(1.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(0.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.offsetForTrait(NULL), rep(c(1.0, 0.0), 5))) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, 3); p1.individuals.setOffsetForTrait(1, 4.5); if (!identical(p1.individuals.offsetForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, 1:5 * 2 - 1); p1.individuals.setOffsetForTrait(1, 1:5 * 2); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(NULL, 1:10); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(NULL, 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10); if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(3.5, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(2.5, 5))) stop(); }");
+		
+		// individual phenotype
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.phenotypeForTrait(T_height), p1.individuals.height)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.phenotypeForTrait(T_weight), p1.individuals.weight)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.phenotypeForTrait(NULL), asVector(cbind(p1.individuals.height, p1.individuals.weight)))) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(0, 3); p1.individuals.setPhenotypeForTrait(1, 4.5); if (!identical(p1.individuals.phenotypeForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(0, 1:5 * 2 - 1); p1.individuals.setPhenotypeForTrait(1, 1:5 * 2); if (!identical(p1.individuals.phenotypeForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(NULL, 1:10); if (!identical(p1.individuals.phenotypeForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(NULL, 1:10 + 0.5); if (!identical(p1.individuals.phenotypeForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(0,1), 1:10); if (!identical(p1.individuals.phenotypeForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(0,1), 1:10 + 0.5); if (!identical(p1.individuals.phenotypeForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(1,0), 1:10); if (!identical(p1.individuals.phenotypeForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(1,0), 1:10 + 0.5); if (!identical(p1.individuals.phenotypeForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// species trait property access
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.height, sim.traitsWithNames('height'))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.weight, sim.traitsWithNames('weight'))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.height = sim.traitsWithNames('height'); }", "new value for read-only property", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.weight = sim.traitsWithNames('weight'); }", "new value for read-only property", __LINE__);
+		
+		// individual trait property access
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.height, rep(NAN, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.weight, rep(NAN, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = 10.0; if (!identical(p1.individuals.height, rep(10.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 10.0; if (!identical(p1.individuals.weight, rep(10.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = 10.0:14; if (!identical(p1.individuals.height, 10.0:14)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 11.0:15; if (!identical(p1.individuals.weight, 11.0:15)) stop(); }");
+		
+		// Mutation effectForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(0), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(1), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(NULL), c(0.0, 0.0))) stop(); }");
+		
+		// Mutation setEffectForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, 3); mut.setEffectForTrait(1, 4.5); if (!identical(mut.effectForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, 1:5 * 2 - 1); mut.setEffectForTrait(1, 1:5 * 2); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(NULL, 1:10); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(NULL, 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10); if (!identical(mut.effectForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.effectForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// Mutation dominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(0), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(1), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.5, 0.5))) stop(); }");
+		
+		// Mutation setDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(0, 3); mut.setDominanceForTrait(1, 4.5); if (!identical(mut.dominanceForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(0, 1:5 * 2 - 1); mut.setDominanceForTrait(1, 1:5 * 2); if (!identical(mut.dominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(NULL, 1:10); if (!identical(mut.dominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(NULL, 1:10 + 0.5); if (!identical(mut.dominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(0,1), 1:10); if (!identical(mut.dominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10); if (!identical(mut.dominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// MutationType defaultDominanceForTrait() and setDefaultDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(0), 0.5)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(1), 0.5)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(c(0,1)), c(0.5, 0.5))) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(0, 0.25); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(1, 0.25); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.5, 0.25))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(NULL, c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(NULL), c(0.25, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(0,1), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(0,1)), c(0.25, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(1,0), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(1,0)), c(0.25, 1.0))) stop(); }");
+		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(1,0), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(0,1)), c(0.25, 1.0))) stop(); }");
+		
+		// Mutation hemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(0), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(1), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(1.0, 1.0))) stop(); }");
+		
+		// Mutation setHemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, 3); mut.setHemizygousDominanceForTrait(1, 4.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, 1:5 * 2 - 1); mut.setHemizygousDominanceForTrait(1, 1:5 * 2); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(NULL, 1:10); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(NULL, 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(0,1), 1:10); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(1,0), 1:10); if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		
+		// MutationType defaultHemizygousDominanceForTrait() and setDefaultHemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(0), 1.0)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(1), 1.0)) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(c(0,1)), c(1.0, 1.0))) stop(); } 5 late() { }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.5, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(1, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(1.0, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(0,1), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		
+		// Substitution effectForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(0), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(1), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(NULL), c(0.0, 0.0))) stop(); }");
+		
+		// Substitution dominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(0), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(1), 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(NULL), c(0.5, 0.5))) stop(); }");
+		
+		// Substitution hemizygousDominanceForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(0), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(1), 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(NULL), c(1.0, 1.0))) stop(); }");
+		
+		// Mutation <trait-name>Effect property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightEffect, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightEffect, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = 0.25; if (!identical(mut.heightEffect, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightEffect = 0.25; if (!identical(mut.weightEffect, 0.25)) stop(); }");
+		
+		// Mutation <trait-name>Dominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightDominance, 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightDominance, 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightDominance = 0.25; if (!identical(mut.heightDominance, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightDominance = 0.25; if (!identical(mut.weightDominance, 0.25)) stop(); }");
+		
+		// Mutation <trait-name>HemizygousDominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightHemizygousDominance, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightHemizygousDominance, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = 0.25; if (!identical(mut.heightHemizygousDominance, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightHemizygousDominance = 0.25; if (!identical(mut.weightHemizygousDominance, 0.25)) stop(); }");
+		
+		// Substitution <trait-name>Effect property
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightEffect, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightEffect, 0.0)) stop(); }");
+		
+		// Substitution <trait-name>Dominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightDominance, 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightDominance, 0.5)) stop(); }");
+		
+		// Substitution <trait-name>HemizygousDominance property
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightHemizygousDominance, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightHemizygousDominance, 1.0)) stop(); }");
+	}
+	
+	// Test independent dominance and new Mutation and MutationType APIs
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5); if (m1.defaultDominanceForTrait(0) == 0.5) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN); if (isNAN(m1.defaultDominanceForTrait(0))) stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', INF); }", "requires dominanceCoeff to be finite", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(0, NAN); if (isNAN(m1.defaultDominanceForTrait(0))) stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(0, INF); }", "default dominance is infinite", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultHemizygousDominanceForTrait(0, NAN); }", "hemizygous dominance is non-finite", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultHemizygousDominanceForTrait(0, INF); }", "hemizygous dominance is non-finite", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); if (m1.defaultDominanceForTrait('A') == 0.5) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); if (isNAN(m1.defaultDominanceForTrait('A'))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); if (identical(m1.defaultDominanceForTrait(), c(0.5,0.5))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); if (identical(m1.defaultDominanceForTrait(), c(NAN,NAN))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(), c(0.25, 0.75))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('B','A'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(), c(0.75, 0.25))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('B','A'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(c('B','A')), c(0.25, 0.75))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(NAN, NAN)); if (identical(m1.defaultDominanceForTrait(), c(NAN, NAN))) stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A'), NAN); }", "independent dominance state is inconsistent", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, NAN)); }", "independent dominance state is inconsistent", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, 0.5)); if (identical(m1.defaultDominanceForTrait(), c(0.5, 0.5))) stop(); }");
+	SLiMAssertScriptRaise("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A'), 0.5); }", "independent dominance state is inconsistent", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, NAN)); }", "independent dominance state is inconsistent", __LINE__);
+	
+	std::string middle = " initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeMutationRate(1e-4); } 1 late() { sim.addSubpop('p1', 10); } 2 late() { muts = sim.mutations; ";
+	
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.isNeutral == T)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.isIndependentDominance == F)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.dominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.effect == 0.0)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (all(muts.isNeutral == F)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (all(muts.isIndependentDominance == F)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (all(muts.dominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (allClose(muts.effect, 0.0001)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.isNeutral == T)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.isIndependentDominance == T)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.dominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.effect == 0.0)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (all(muts.isNeutral == F)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (all(muts.isIndependentDominance == T)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (allClose(muts.dominance, 0.4999875)) stop(); }");		// h = (sqrt(1+s)-1)/s
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (allClose(muts.effect, 0.0001)) stop(); }");
+	
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.setDominanceForTrait(0, 0.5); if (all(muts.dominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.dominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.heightDominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.setDominanceForTrait(0, NAN); if (allClose(muts.dominance, 0.4999875)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.dominance, 0.4999875)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.heightDominance, 0.4999875)) stop(); }");
+	
+	// Test the new Individual cachedFitness property and crosscheck it against the Subpopulation cachedFitness() method
+	std::string cachedFitness1 =	// neutral but with fitnessScaling
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "f", 0.0);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		1:10 early() {
+			// will affect the next generation, not this one
+			p1.fitnessScaling = runif(1, 0.1, 1.0);
+			p1.individuals.fitnessScaling = runif(50, 0.1, 1.0);
+			
+			f1 = p1.cachedFitness(NULL);
+			f2 = p1.cachedFitness(0:49);
+			f3 = p1.cachedFitness(p1.individuals);
+			f4 = p1.individuals.cachedFitness;
+			
+			if (!identical(f1, f2, f3, f4))
+				stop();
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(cachedFitness1);
+	
+	std::string cachedFitness2 =	// non-neutral
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		1:10 early() {
+			f1 = p1.cachedFitness(NULL);
+			f2 = p1.cachedFitness(0:49);
+			f3 = p1.cachedFitness(p1.individuals);
+			f4 = p1.individuals.cachedFitness;
+			
+			if (!identical(f1, f2, f3, f4))
+				stop();
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(cachedFitness2);
+	
+	std::string cachedFitness3 =	// non-neutral with independent dominance
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", NAN, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		1:10 early() {
+			f1 = p1.individuals.cachedFitness;
+			f2 = sapply(p1.individuals, "muts = applyValue.haplosomes.mutations; product(1.0 + muts.effect * muts.dominance);");
+			if (!allClose(f1, f2))
+				stop();
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(cachedFitness3);
+	
+	// test the new zygosityOfMutations() method
+	std::string test_zygosity1 =	// simple one-chromosome diploid test
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sim.mutations;
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(NULL);
+			
+			// cross-check row sums: occurrence counts of each mutation
+			mutCounts1 = rowSums(z);
+			mutCounts2 = sim.mutationCounts(p1, NULL);
+			if (!identical(mutCounts1, mutCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check column sums: the number of mutations per individual
+			indCounts1 = colSums(z);
+			indCounts2 = sapply(inds, "applyValue.haplosomes.mutations.size();");
+			if (!identical(indCounts1, indCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check against a zygosity matrix from containsMutations()
+			m = NULL;
+			for (ind in inds)
+			{
+				counts_h0 = ind.haplosomes[0].containsMutations(muts);
+				counts_h1 = ind.haplosomes[1].containsMutations(muts);
+				zygosity = counts_h0 + counts_h1;
+				m = cbind(m, zygosity);
+			}
+			if (!identical(z, m))
+				stop("zygosity matrices do not match");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity1);
+
+	std::string test_zygosity2 =	// multiple chromosomes of different types
+	R"V0G0N(
+		initialize() {
+			initializeSex();
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			
+			ids = 1:6;
+			symbols = c(1:3, "X", "Y", "MT");
+			lengths = rdunif(6, 2e7, 4e7);
+			types = c(rep("A", 3), "X", "Y", "H");
+			
+			for (id in ids, symbol in symbols, length in lengths, type in types)
+			{
+				initializeChromosome(id, length, type, symbol);
+				initializeMutationRate(1e-7);
+				initializeRecombinationRate(1e-8);   // not used for the Y
+				initializeGenomicElement(g1);
+			}
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sim.mutations;
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(NULL);
+			
+			// cross-check row sums: occurrence counts of each mutation
+			mutCounts1 = rowSums(z);
+			mutCounts2 = sim.mutationCounts(p1, NULL);
+			if (!identical(mutCounts1, mutCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check column sums: the number of mutations per individual
+			indCounts1 = colSums(z);
+			indCounts2 = sapply(inds, "applyValue.haplosomesNonNull.mutations.size();");
+			if (!identical(indCounts1, indCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check against a zygosity matrix from containsMutations()
+			m = NULL;
+			for (ind in inds)
+			{
+				zygosity = 0;
+				
+				for (chromosome in sim.chromosomes)
+				{
+					chr_haplosomes = ind.haplosomesForChromosomes(chromosome, includeNulls=F);
+					
+					if (length(chr_haplosomes) == 0)
+						next;
+					
+					chr_muts_indices = which(muts.chromosome == chromosome);
+					chr_muts = muts[chr_muts_indices];
+					
+					for (hap in chr_haplosomes)
+					{
+						chr_muts_counts = hap.containsMutations(chr_muts);
+						all_muts_counts = rep(0, length(muts));
+						all_muts_counts[chr_muts_indices] = chr_muts_counts;
+						zygosity = zygosity + all_muts_counts;
+					}
+				}
+				
+				m = cbind(m, zygosity);
+			}
+			if (!identical(z, m))
+				stop("zygosity matrices do not match");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity2);
+
+	std::string test_zygosity3 =	// same but passing mutations=mut explicitly, different code path
+	R"V0G0N(
+		initialize() {
+			initializeSex();
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			
+			ids = 1:6;
+			symbols = c(1:3, "X", "Y", "MT");
+			lengths = rdunif(6, 2e7, 4e7);
+			types = c(rep("A", 3), "X", "Y", "H");
+			
+			for (id in ids, symbol in symbols, length in lengths, type in types)
+			{
+				initializeChromosome(id, length, type, symbol);
+				initializeMutationRate(1e-7);
+				initializeRecombinationRate(1e-8);   // not used for the Y
+				initializeGenomicElement(g1);
+			}
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sim.mutations;
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(NULL);
+			
+			// cross-check row sums: occurrence counts of each mutation
+			mutCounts1 = rowSums(z);
+			mutCounts2 = sim.mutationCounts(p1, NULL);
+			if (!identical(mutCounts1, mutCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check column sums: the number of mutations per individual
+			indCounts1 = colSums(z);
+			indCounts2 = sapply(inds, "applyValue.haplosomesNonNull.mutations.size();");
+			if (!identical(indCounts1, indCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check against a zygosity matrix from containsMutations()
+			m = NULL;
+			for (ind in inds)
+			{
+				zygosity = 0;
+				
+				for (chromosome in sim.chromosomes)
+				{
+					chr_haplosomes = ind.haplosomesForChromosomes(chromosome, includeNulls=F);
+					
+					if (length(chr_haplosomes) == 0)
+						next;
+					
+					chr_muts_indices = which(muts.chromosome == chromosome);
+					chr_muts = muts[chr_muts_indices];
+					
+					for (hap in chr_haplosomes)
+					{
+						chr_muts_counts = hap.containsMutations(chr_muts);
+						all_muts_counts = rep(0, length(muts));
+						all_muts_counts[chr_muts_indices] = chr_muts_counts;
+						zygosity = zygosity + all_muts_counts;
+					}
+				}
+				
+				m = cbind(m, zygosity);
+			}
+			if (!identical(z, m))
+				stop("zygosity matrices do not match");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity3);
+	
+	std::string test_zygosity4 =	// test specified values for hemizygosity and haploidy
+	R"V0G0N(
+		initialize() {
+			initializeSex();
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			
+			ids = 1:6;
+			symbols = c(1:3, "X", "Y", "MT");
+			lengths = rdunif(6, 2e7, 4e7);
+			types = c(rep("A", 3), "X", "Y", "H");
+			
+			for (id in ids, symbol in symbols, length in lengths, type in types)
+			{
+				initializeChromosome(id, length, type, symbol);
+				initializeMutationRate(1e-7);
+				initializeRecombinationRate(1e-8);   // not used for the Y
+				initializeGenomicElement(g1);
+			}
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sample(sim.mutations, 1000, replace=T);
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(muts, hemizygousValue=3, haploidValue=4);
+			
+			// check that the correct values were used for each mutation
+			for (mut in muts, index in seqAlong(muts))
+			{
+				chr = mut.chromosome;
+				col = z[index,];
+				u = sort(unique(col, preserveOrder=F));
+				if (chr.type == "A")
+					expected = c(0, 1, 2);
+				else if (chr.type == "X")
+					expected = c(0, 1, 2, 3);
+				else if (chr.type == "Y")
+					expected = c(0, 4);
+				else if (chr.type == "H")
+					expected = c(0, 4);
+				
+				if (any(match(u, expected) == -1))
+					stop("for chromosome type " + chr.type + " expected (" +
+						paste(expected, sep=", ") + ") but saw (" +
+						paste(u, sep=", ") + ")");
+			}
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity4);
+	
+	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
 
 

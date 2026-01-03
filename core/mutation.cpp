@@ -21,205 +21,16 @@
 #include "mutation.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "community.h"
 #include "species.h"
+#include "mutation_block.h"
+#include "trait.h"
 
 #include <algorithm>
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <csignal>
-
-
-// All Mutation objects get allocated out of a single shared block, for speed; see SLiM_WarmUp()
-// Note this is shared by all species; the mutations for every species come out of the same shared block.
-Mutation *gSLiM_Mutation_Block = nullptr;
-MutationIndex gSLiM_Mutation_Block_Capacity = 0;
-MutationIndex gSLiM_Mutation_FreeIndex = -1;
-MutationIndex gSLiM_Mutation_Block_LastUsedIndex = -1;
-
-#ifdef DEBUG_LOCKS_ENABLED
-EidosDebugLock gSLiM_Mutation_LOCK("gSLiM_Mutation_LOCK");
-#endif
-
-slim_refcount_t *gSLiM_Mutation_Refcounts = nullptr;
-
-#define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable		// NOLINT(*-macro-to-enum) : this is fine
-
-extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	// this is in Eidos; see SLiM_IncreaseMutationBlockCapacity()
-
-void SLiM_CreateMutationBlock(void)
-{
-	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block address change");
-	
-	// first allocate the block; no need to zero the memory
-	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
-	gSLiM_Mutation_Block = (Mutation *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
-	gSLiM_Mutation_Refcounts = (slim_refcount_t *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
-	
-	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
-		EIDOS_TERMINATION << "ERROR (SLiM_CreateMutationBlock): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-	//std::cout << "Allocating initial mutation block, " << SLIM_MUTATION_BLOCK_INITIAL_SIZE * sizeof(Mutation) << " bytes (sizeof(Mutation) == " << sizeof(Mutation) << ")" << std::endl;
-	
-	// now we need to set up our free list inside the block; initially all blocks are free
-	for (MutationIndex i = 0; i < gSLiM_Mutation_Block_Capacity - 1; ++i)
-		*(MutationIndex *)(gSLiM_Mutation_Block + i) = i + 1;
-	
-	*(MutationIndex *)(gSLiM_Mutation_Block + gSLiM_Mutation_Block_Capacity - 1) = -1;
-	
-	// now that the block is set up, we can start the free list
-	gSLiM_Mutation_FreeIndex = 0;
-}
-
-void SLiM_IncreaseMutationBlockCapacity(void)
-{
-	// We do not use a THREAD_SAFETY macro here because this needs to be checked in release builds also;
-	// we are not able to completely protect against this occurring at runtime, and it corrupts the run.
-	// It's OK for this to be called when we're inside an inactive parallel region; there is then no
-	// race condition.  When a parallel region is active, even inside a critical region, reallocating
-	// the mutation block has the potential for a race with other threads.
-	if (omp_in_parallel())
-	{
-		std::cerr << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) SLiM_IncreaseMutationBlockCapacity() was called to reallocate gSLiM_Mutation_Block inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
-		raise(SIGTRAP);
-	}
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.start_critical(1);
-#endif
-	
-	if (!gSLiM_Mutation_Block)
-		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
-	
-	// We need to expand the size of our Mutation block.  This has the consequence of invalidating
-	// every Mutation * in the program.  In general that is fine; we are careful to only keep
-	// pointers to Mutation temporarily, and for long-term reference we use MutationIndex.  The
-	// exception to this is EidosValue_Object; the user can put references to mutations into
-	// variables that need to remain valid across reallocs like this.  We therefore have to hunt
-	// down every EidosValue_Object that contains Mutations, and fix the pointer inside each of
-	// them.  Because in SLiMgui all of the running simulations share a single Mutation block at
-	// the moment, in SLiMgui this patching has to occur across all of the simulations, not just
-	// the one that made this call.  Yes, this is very gross.  This is why pointers are evil.  :->
-	
-	// First let's do our realloc.  We just need to note the change in value for the pointer.
-	// For now we will just double in size; we don't want to waste too much memory, but we
-	// don't want to have to realloc too often, either.
-	// BCH 11 May 2020: the realloc of gSLiM_Mutation_Block is technically problematic, because
-	// Mutation is non-trivially copyable according to C++.  But it is safe, so I cast to void*
-	// in the hopes that that will make the warning go away.
-	std::uintptr_t old_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
-	MutationIndex old_block_capacity = gSLiM_Mutation_Block_Capacity;
-	
-	//std::cout << "old capacity: " << old_block_capacity << std::endl;
-	
-	// BCH 25 July 2023: check for increasing our block beyond the maximum size of 2^31 mutations.
-	// See https://github.com/MesserLab/SLiM/issues/361.  Note that the initial size should be
-	// a power of 2, so that we actually reach the maximum; see SLIM_MUTATION_BLOCK_INITIAL_SIZE.
-	// In other words, we expect to be at exactly 0x0000000040000000UL here, and thus to double
-	// to 0x0000000080000000UL, which is a capacity of 2^31, which is the limit of int32_t.
-	if ((size_t)old_block_capacity > 0x0000000040000000UL)	// >2^30 means >2^31 when doubled
-		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): too many mutations; there is a limit of 2^31 (2147483648) segregating mutations in SLiM." << EidosTerminate(nullptr);
-	
-	gSLiM_Mutation_Block_Capacity *= 2;
-	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));						// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
-	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
-	
-	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
-		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-	//std::cout << "new capacity: " << gSLiM_Mutation_Block_Capacity << std::endl;
-	
-	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
-	
-	// Set up the free list to extend into the new portion of the buffer.  If we are called when
-	// gSLiM_Mutation_FreeIndex != -1, the free list will start with the new region.
-	for (MutationIndex i = old_block_capacity; i < gSLiM_Mutation_Block_Capacity - 1; ++i)
-		*(MutationIndex *)(gSLiM_Mutation_Block + i) = i + 1;
-	
-	*(MutationIndex *)(gSLiM_Mutation_Block + gSLiM_Mutation_Block_Capacity - 1) = gSLiM_Mutation_FreeIndex;
-	
-	gSLiM_Mutation_FreeIndex = old_block_capacity;
-	
-	// Now we go out and fix Mutation * references in EidosValue_Object in all symbol tables
-	if (new_mutation_block != old_mutation_block)
-	{
-		// This may be excessively cautious, but I want to avoid subtracting these uintptr_t values
-		// to produce a negative number; that seems unwise and possibly platform-dependent.
-		if (old_mutation_block > new_mutation_block)
-		{
-			std::uintptr_t ptr_diff = old_mutation_block - new_mutation_block;
-			
-			for (EidosValue_Object *mutation_value : gEidosValue_Object_Mutation_Registry)
-				mutation_value->PatchPointersBySubtracting(ptr_diff);
-		}
-		else
-		{
-			std::uintptr_t ptr_diff = new_mutation_block - old_mutation_block;
-			
-			for (EidosValue_Object *mutation_value : gEidosValue_Object_Mutation_Registry)
-				mutation_value->PatchPointersByAdding(ptr_diff);
-		}
-	}
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.end_critical();
-#endif
-}
-
-void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry, bool p_registry_only)
-{
-	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ZeroRefcountBlock(): gSLiM_Mutation_Block change");
-	
-#ifdef SLIMGUI
-	// BCH 11/25/2017: This code path needs to be used in SLiMgui to avoid modifying the refcounts
-	// for mutations in other simulations sharing the mutation block.
-	p_registry_only = true;
-#endif
-	
-	if (p_registry_only)
-	{
-		// This code path zeros out refcounts just for the mutations currently in use in the registry.
-		// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
-		// BCH 6/8/2023: This is necessary in SLiMgui, as noted above, but also in multispecies sims
-		// so that one species does not step on the toes of another species.
-		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-		const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
-		const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
-		
-		while (registry_iter != registry_iter_end)
-			*(refcount_block_ptr + (*registry_iter++)) = 0;
-	}
-	else
-	{
-		// Zero out the whole thing with EIDOS_BZERO(), without worrying about which bits are in use.
-		// This hits more memory, but avoids having to read the registry, and should write whole cache lines.
-		EIDOS_BZERO(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
-	}
-}
-
-size_t SLiMMemoryUsageForMutationBlock(void)
-{
-	return gSLiM_Mutation_Block_Capacity * sizeof(Mutation);
-}
-
-size_t SLiMMemoryUsageForFreeMutations(void)
-{
-	size_t mut_count = 0;
-	MutationIndex nextFreeBlock = gSLiM_Mutation_FreeIndex;
-	
-	while (nextFreeBlock != -1)
-	{
-		mut_count++;
-		nextFreeBlock = *(MutationIndex *)(gSLiM_Mutation_Block + nextFreeBlock);
-	}
-	
-	return mut_count * sizeof(Mutation);
-}
-
-size_t SLiMMemoryUsageForMutationRefcounts(void)
-{
-	return gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t);
-}
 
 
 #pragma mark -
@@ -229,97 +40,330 @@ size_t SLiMMemoryUsageForMutationRefcounts(void)
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
+// This constructor is used when making a new mutation with effects and dominances provided by the caller; FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 #ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.start_critical(2);
+	mutation_block_LOCK.start_critical(2);
 #endif
+	
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
-	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	// zero out our refcount and per-trait information, which is now kept in a separate buffer
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
+	mutation_block->refcount_buffer_[mutation_index] = 0;
 	
-	// zero out our refcount, which is now kept in a separate buffer
-	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
+	slim_trait_index_t trait_count = mutation_block->trait_count_;
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
+	
+	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
+	// this is critical path.  See those methods for more comments on what is happening here.
+	
+	is_neutral_ = true;					// will be set to false below as needed
+	
+	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
+	is_independent_dominance_ = std::isnan(p_dominance_coeff);
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+		Trait *trait = traits[trait_index];
+		TraitType traitType = trait->Type();
+		
+		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
+		// for now we use the values passed in for trait 0, and make other traits neutral
+		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
+		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
+		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
+		
+		traitInfoRec->effect_size_ = effect;
+		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
+		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
+		
+		if (effect != (slim_effect_t)0.0)
+		{
+			is_neutral_ = false;
+			
+			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
+			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer neutral
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
+			
+			// get the realized dominance to handle the possibility of independent dominance
+			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+			
+			if (traitType == TraitType::kMultiplicative)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect);
+			}
+			else	// (traitType == TraitType::kAdditive)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect);
+			}
+		}
+		else	// (effect == 0.0)
+		{
+			if (traitType == TraitType::kMultiplicative)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)1.0;
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)1.0;
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)1.0;
+			}
+			else	// (traitType == TraitType::kAdditive)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)0.0;
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)0.0;
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
+			}
+		}
+	}
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Mutation::Mutation()");
+#endif
 	
 #if DEBUG_MUTATIONS
 	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
 #ifdef DEBUG_LOCKS_ENABLED
-	gSLiM_Mutation_LOCK.end_critical();
-#endif
-	
-#if 0
-	// Dump the memory layout of a Mutation object.  Note this code needs to be synced tightly with the header, since C++ has no real introspection.
-	static bool been_here = false;
-	
-#pragma omp critical (Mutation_layout_dump)
-	{
-		if (!been_here)
-		{
-			char *ptr_base = (char *)this;
-			char *ptr_mutation_type_ptr_ = (char *)&(this->mutation_type_ptr_);
-			char *ptr_position_ = (char *)&(this->position_);
-			char *ptr_selection_coeff_ = (char *)&(this->selection_coeff_);
-			char *ptr_subpop_index_ = (char *)&(this->subpop_index_);
-			char *ptr_origin_tick_ = (char *)&(this->origin_tick_);
-			char *ptr_state_ = (char *)&(this->state_);
-			char *ptr_nucleotide_ = (char *)&(this->nucleotide_);
-			char *ptr_scratch_ = (char *)&(this->scratch_);
-			char *ptr_mutation_id_ = (char *)&(this->mutation_id_);
-			char *ptr_tag_value_ = (char *)&(this->tag_value_);
-			char *ptr_cached_one_plus_sel_ = (char *)&(this->cached_one_plus_sel_);
-			char *ptr_cached_one_plus_dom_sel_ = (char *)&(this->cached_one_plus_dom_sel_);
-			char *ptr_cached_one_plus_haploiddom_sel_ = (char *)&(this->cached_one_plus_haploiddom_sel_);
-			
-			std::cout << "Class Mutation memory layout (sizeof(Mutation) == " << sizeof(Mutation) << ") :" << std::endl << std::endl;
-			std::cout << "   " << (ptr_mutation_type_ptr_ - ptr_base) << " (" << sizeof(MutationType *) << " bytes): MutationType *mutation_type_ptr_" << std::endl;
-			std::cout << "   " << (ptr_position_ - ptr_base) << " (" << sizeof(slim_position_t) << " bytes): const slim_position_t position_" << std::endl;
-			std::cout << "   " << (ptr_selection_coeff_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t selection_coeff_" << std::endl;
-			std::cout << "   " << (ptr_subpop_index_ - ptr_base) << " (" << sizeof(slim_objectid_t) << " bytes): slim_objectid_t subpop_index_" << std::endl;
-			std::cout << "   " << (ptr_origin_tick_ - ptr_base) << " (" << sizeof(slim_tick_t) << " bytes): const slim_tick_t origin_tick_" << std::endl;
-			std::cout << "   " << (ptr_state_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t state_" << std::endl;
-			std::cout << "   " << (ptr_nucleotide_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t nucleotide_" << std::endl;
-			std::cout << "   " << (ptr_scratch_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t scratch_" << std::endl;
-			std::cout << "   " << (ptr_mutation_id_ - ptr_base) << " (" << sizeof(slim_mutationid_t) << " bytes): const slim_mutationid_t mutation_id_" << std::endl;
-			std::cout << "   " << (ptr_tag_value_ - ptr_base) << " (" << sizeof(slim_usertag_t) << " bytes): slim_usertag_t tag_value_" << std::endl;
-			std::cout << "   " << (ptr_cached_one_plus_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_sel_" << std::endl;
-			std::cout << "   " << (ptr_cached_one_plus_dom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_dom_sel_" << std::endl;
-			std::cout << "   " << (ptr_cached_one_plus_haploiddom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_haploiddom_sel_" << std::endl;
-			std::cout << std::endl;
-			
-			been_here = true;
-		}
-	}
+	mutation_block_LOCK.end_critical();
 #endif
 }
 
-Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
+// This constructor is used when making a new mutation with effects drawn from each trait's DES, and dominance taken from each trait's default dominance coefficient, both from the given mutation type
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
+#ifdef DEBUG_LOCKS_ENABLED
+	mutation_block_LOCK.start_critical(2);
+#endif
+	
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
-	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	// zero out our refcount and per-trait information, which is now kept in a separate buffer
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
+	mutation_block->refcount_buffer_[mutation_index] = 0;
 	
-	// zero out our refcount, which is now kept in a separate buffer
-	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
+	slim_trait_index_t trait_count = mutation_block->trait_count_;
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
+	
+	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
+	// this is critical path.  See those methods for more comments on what is happening here.
+	
+	is_neutral_ = true;					// will be set to false below as needed
+	
+	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
+	is_independent_dominance_ = std::isnan(mutation_type_ptr_->DefaultDominanceForTrait(0));
+	
+	if (mutation_type_ptr_->all_neutral_DES_)
+	{
+		// The DES of the mutation type is pure neutral, so we don't need to do any draws; we can short-circuit
+		// most of the work here and just set up neutral effects for all of the traits.
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+			Trait *trait = traits[trait_index];
+			TraitType traitType = trait->Type();
+			
+			traitInfoRec->effect_size_ = 0.0;
+			traitInfoRec->dominance_coeff_UNSAFE_ = mutation_type_ptr_->DefaultDominanceForTrait(trait_index);		// can be NAN
+			traitInfoRec->hemizygous_dominance_coeff_ = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
+			
+			if (traitType == TraitType::kMultiplicative)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)1.0;
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)1.0;
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)1.0;
+			}
+			else	// (traitType == TraitType::kAdditive)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)0.0;
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)0.0;
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
+			}
+		}
+	}
+	else
+	{
+		// The DES of the mutation type is not pure neutral.  Note that species.pure_neutral_ might still be true
+		// at this point; the mutation type for this mutation might not be used by any genomic element type,
+		// because we might be getting called by addNewDrawnMutation() for a type that is otherwise unused.
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+			Trait *trait = traits[trait_index];
+			TraitType traitType = trait->Type();
+			
+			slim_effect_t effect = mutation_type_ptr_->DrawEffectForTrait(trait_index);
+			slim_effect_t dominance = mutation_type_ptr_->DefaultDominanceForTrait(trait_index);	// can be NAN
+			slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
+			
+			traitInfoRec->effect_size_ = effect;
+			traitInfoRec->dominance_coeff_UNSAFE_ = dominance;	// can be NAN
+			traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
+			
+			if (effect != (slim_effect_t)0.0)
+			{
+				is_neutral_ = false;
+				
+				species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
+				species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
+				
+				// get the realized dominance to handle the possibility of independent dominance
+				slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+				
+				if (traitType == TraitType::kMultiplicative)
+				{
+					traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect);
+					traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect);
+					traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect);
+				}
+				else	// (traitType == TraitType::kAdditive)
+				{
+					traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect);
+					traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect);
+					traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect);
+				}
+			}
+			else	// (effect == 0.0)
+			{
+				if (traitType == TraitType::kMultiplicative)
+				{
+					traitInfoRec->homozygous_effect_ = (slim_effect_t)1.0;
+					traitInfoRec->heterozygous_effect_ = (slim_effect_t)1.0;
+					traitInfoRec->hemizygous_effect_ = (slim_effect_t)1.0;
+				}
+				else	// (traitType == TraitType::kAdditive)
+				{
+					traitInfoRec->homozygous_effect_ = (slim_effect_t)0.0;
+					traitInfoRec->heterozygous_effect_ = (slim_effect_t)0.0;
+					traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
+				}
+			}
+		}
+	}
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Mutation::Mutation()");
+#endif
+	
+#if DEBUG_MUTATIONS
+	std::cout << "Mutation constructed: " << this << std::endl;
+#endif
+	
+#ifdef DEBUG_LOCKS_ENABLED
+	mutation_block_LOCK.end_critical();
+#endif
+}
+
+// This constructor is used when making a new mutation with effects and dominances provided by the caller, *and* a mutation id provided by the caller
+Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
+{
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	
+	// initialize the tag to the "unset" value
+	tag_value_ = SLIM_TAG_UNSET_VALUE;
+	
+	// zero out our refcount and per-trait information, which is now kept in a separate buffer
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
+	mutation_block->refcount_buffer_[mutation_index] = 0;
+	
+	slim_trait_index_t trait_count = mutation_block->trait_count_;
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
+	
+	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
+	// this is critical path.  See those methods for more comments on what is happening here.
+	
+	is_neutral_ = true;		// will be set to false below as needed
+	
+	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
+	is_independent_dominance_ = std::isnan(p_dominance_coeff);
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+		Trait *trait = traits[trait_index];
+		TraitType traitType = trait->Type();
+		
+		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
+		// for now we use the values passed in for trait 0, and make other traits neutral
+		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
+		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
+		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
+		
+		traitInfoRec->effect_size_ = effect;
+		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
+		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
+		
+		if (effect != (slim_effect_t)0.0)
+		{
+			is_neutral_ = false;
+			
+			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
+			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
+			
+			// get the realized dominance to handle the possibility of independent dominance
+			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+			
+			if (traitType == TraitType::kMultiplicative)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect);
+			}
+			else	// (traitType == TraitType::kAdditive)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect);
+			}
+		}
+		else	// (effect == 0.0)
+		{
+			if (traitType == TraitType::kMultiplicative)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)1.0;
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)1.0;
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)1.0;
+			}
+			else	// (traitType == TraitType::kAdditive)
+			{
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)0.0;
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)0.0;
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
+			}
+		}
+	}
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Mutation::Mutation()");
+#endif
 	
 #if DEBUG_MUTATIONS
 	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
-	// This constructor (unline the other Mutation() constructor above) is presently never called multithreaded,
+	// This constructor (unlike the other Mutation() constructor above) is presently never called multithreaded,
 	// so we just enforce that here.  If that changes, it should start using the debug lock to detect races, as above.
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Mutation::Mutation(): gSLiM_next_mutation_id change");
 	
@@ -327,20 +371,265 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		gSLiM_next_mutation_id = mutation_id_ + 1;
 }
 
+void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
+{
+	if (!mutation_type_ptr_)
+		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) mutation_type_ptr_ is nullptr" << p_message_end << "." << EidosTerminate();
+	
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	
+	if (!mut_trait_info)
+		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) mut_trait_info is nullptr" << p_message_end << "." << EidosTerminate();
+	
+	const std::vector<Trait *> &traits = species.Traits();
+	slim_trait_index_t trait_count = species.TraitCount();
+	bool all_neutral_effects = true;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		MutationTraitInfo &traitInfoRec = mut_trait_info[trait_index];
+		
+		if (!std::isfinite(traitInfoRec.effect_size_))
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation effect size is non-finite" << p_message_end << "." << EidosTerminate();
+		if (std::isinf(traitInfoRec.dominance_coeff_UNSAFE_))	// NAN is legal sometimes, checked below
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation dominance is infinite" << p_message_end << "." << EidosTerminate();
+		if (!std::isfinite(traitInfoRec.hemizygous_dominance_coeff_))
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation hemizygous dominance is non-finite" << p_message_end << "." << EidosTerminate();
+		
+		if ((is_independent_dominance_ && !std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)) ||
+			(!is_independent_dominance_ && std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)))
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
+		
+		slim_effect_t effect_size = traitInfoRec.effect_size_;
+		slim_effect_t dominance = RealizedDominanceForTrait(trait);		// handle NAN for independent dominance
+		slim_effect_t hemizygous_dominance = traitInfoRec.hemizygous_dominance_coeff_;
+		slim_effect_t correct_homozygous_effect, correct_heterozygous_effect, correct_hemizygous_effect;
+		
+		if (trait->Type() == TraitType::kAdditive)
+		{
+			correct_homozygous_effect = (slim_effect_t)(2.0f * effect_size);										// 2a
+			correct_heterozygous_effect = (slim_effect_t)(2.0f * dominance * effect_size);							// 2ha
+			correct_hemizygous_effect = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);					// 2ha (using h_hemi)
+		}
+		else
+		{
+			correct_homozygous_effect = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);							// 1 + s
+			correct_heterozygous_effect = (slim_effect_t)std::max(0.0f, 1.0f + dominance * effect_size);			// 1 + hs
+			correct_hemizygous_effect = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);	// 1 + hs (using h_hemi)
+		}
+		
+		if (correct_homozygous_effect != traitInfoRec.homozygous_effect_)
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) homozygous_effect_ does not match expectations" << p_message_end << "." << EidosTerminate();
+		if (correct_heterozygous_effect != traitInfoRec.heterozygous_effect_)
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) heterozygous_effect_ does not match expectations" << p_message_end << "." << EidosTerminate();
+		if (correct_hemizygous_effect != traitInfoRec.hemizygous_effect_)
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) hemizygous_effect_ does not match expectations" << p_message_end << "." << EidosTerminate();
+		
+		if (traitInfoRec.effect_size_ != (slim_effect_t)0.0)
+			all_neutral_effects = false;
+	}
+	
+	if ((is_neutral_ && !all_neutral_effects) || (!is_neutral_ && all_neutral_effects))
+		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation neutrality state is inconsistent" << p_message_end << "." << EidosTerminate();
+}
+
+slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait)
+{
+	slim_trait_index_t trait_index = p_trait->Index();
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	MutationTraitInfo &traitInfoRec = mut_trait_info[trait_index];
+	
+	if (std::isnan(traitInfoRec.dominance_coeff_UNSAFE_))
+	{
+		// NAN indicates independent dominance and needs to be handled specially here
+		if (p_trait->Type() == TraitType::kAdditive)
+		{
+			// for additive traits independent dominance is always 0.5
+			return 0.5;
+		}
+		else
+		{
+			// for multiplicative traits the dominance is calculated as (sqrt(1+s)-1)/s, except that the effect
+			// is clamped to a minimum of -1.0 to avoid a negative square root; this is correct, since it means
+			// that 1+s (1 + -1 == 0) equals 2(1+hs): (2 x (1 + 1 x -1)) == (2 x 0) == 0.  If the resulting
+			// dominance of 1.0 is used in 1+hs with the unclipped effect size, a negative mutational effect will
+			// result, which is OK since multiplicative mutational effects are clipped at a minimum of 0.0.
+			slim_effect_t effect_size = traitInfoRec.effect_size_;
+			
+			if (effect_size == (slim_effect_t)0.0)
+				return (slim_effect_t)0.5;
+			if (effect_size <= (slim_effect_t)-1.0)
+				return (slim_effect_t)1.0;
+			
+			// do the math in double-precision float to avoid numerical error
+			return (slim_effect_t)((std::sqrt(1.0 + (double)effect_size) - 1.0) / (double)effect_size);
+		}
+	}
+	
+	return traitInfoRec.dominance_coeff_UNSAFE_;
+}
+
+// This should be called whenever a mutation effect is changed; it handles the necessary recaching
+void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect)
+{
+	slim_effect_t old_effect = traitInfoRec->effect_size_;
+	
+	if (old_effect == p_new_effect)
+		return;
+	
+	traitInfoRec->effect_size_ = p_new_effect;
+	
+	if (p_new_effect != (slim_effect_t)0.0)
+	{
+		if (old_effect == (slim_effect_t)0.0)
+		{
+			// This mutation is no longer neutral; various observers care about that change
+			is_neutral_ = false;
+			
+			Species &species = mutation_type_ptr_->species_;
+			
+			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
+			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
+		}
+		
+		slim_effect_t realized_dominance = RealizedDominanceForTrait(p_trait);
+		slim_effect_t hemizygous_dominance = traitInfoRec->hemizygous_dominance_coeff_;
+		
+		// cache values used by the fitness calculation code for speed; see header
+		if (p_trait->Type() == TraitType::kMultiplicative)
+		{
+			// For multiplicative traits, we clamp the lower end to 0.0; you can't be more lethal than lethal, and we
+			// never want to go negative and then go positive again by multiplying in another negative effect.  There
+			// is admittedly a philosophical issue here; if a multiplicative trait represented simply some abstract
+			// trait with no direct connection to fitness, then maybe clamping here would not make sense?  But even
+			// then, negative effects don't really seem to me to make sense there, so I think this is good.
+			traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + p_new_effect);							// 1 + s
+			traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * p_new_effect);	// 1 + hs
+			traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * p_new_effect);	// 1 + hs (using h_hemi)
+		}
+		else	// (p_trait->Type() == TraitType::kAdditive)
+		{
+			// For additive traits, the baseline of the trait is arbitrary and there is no cutoff.
+			traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * p_new_effect);										// 2a
+			traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * p_new_effect);					// 2ha
+			traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * p_new_effect);					// 2ha (using h_hemi)
+		}
+	}
+	else	// p_new_effect == 0.0; therefore, old_effect != 0.0
+	{
+		// Changing from non-neutral to neutral; determine whether the whole mutation is now neutral
+		// This is a bit complicated, but I don't expect this case to be hit very often
+		Species &species = mutation_type_ptr_->species_;
+		MutationBlock *mutation_block = species.SpeciesMutationBlock();
+		MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+		slim_trait_index_t trait_count = species.TraitCount();
+		
+		is_neutral_ = true;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			if ((mut_trait_info + trait_index)->effect_size_ != (slim_effect_t)0.0)
+			{
+				is_neutral_ = false;
+				break;
+			}
+		}
+		
+		// Note that we cannot set species.pure_neutral_ and mutation_type_ptr_->all_neutral_mutations_ to
+		// false here, because only this mutation has changed to neutral; other mutations might be non-neutral
+		
+		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
+		
+		// cache values used by the fitness calculation code for speed; see header
+		// for a neutral trait, we can set up this info very quickly
+		if (p_trait->Type() == TraitType::kMultiplicative)
+		{
+			traitInfoRec->homozygous_effect_ = (slim_effect_t)1.0;
+			traitInfoRec->heterozygous_effect_ = (slim_effect_t)1.0;
+			traitInfoRec->hemizygous_effect_ = (slim_effect_t)1.0;
+		}
+		else	// (p_trait->Type() == TraitType::kAdditive)
+		{
+			traitInfoRec->homozygous_effect_ = (slim_effect_t)0.0;
+			traitInfoRec->heterozygous_effect_ = (slim_effect_t)0.0;
+			traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
+		}
+	}
+}
+
+// This should be called whenever a mutation dominance is changed; it handles the necessary recaching
+void Mutation::SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance)
+{
+	traitInfoRec->dominance_coeff_UNSAFE_ = p_new_dominance;
+	
+	// set the is_independent_dominance_ flag according to p_new_dominance; if this produces an inconsistency
+	// with dominance values for other traits, it will be caught by the consistency check at the end
+	if (std::isnan(p_new_dominance))
+		is_independent_dominance_ = true;
+	else
+		is_independent_dominance_ = false;
+	
+	// We only need to recache the heterozygous_effect_ value, since only it is affected by the change in
+	// dominance coefficient.  Changing dominance has no effect on is_neutral_ or any of the other is-neutral
+	// flags.  So this is very simple.
+	
+	slim_effect_t effect_size = traitInfoRec->effect_size_;
+	slim_effect_t realized_dominance = RealizedDominanceForTrait(p_trait);
+	
+	if (p_trait->Type() == TraitType::kMultiplicative)
+	{
+		traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
+	}
+	else	// (p_trait->Type() == TraitType::kAdditive)
+	{
+		traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
+	}
+}
+
+void Mutation::SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance)
+{
+	traitInfoRec->hemizygous_dominance_coeff_ = p_new_dominance;
+	
+	// We only need to recache the hemizygous_effect_ values, since only they are affected by the change in
+	// dominance coefficient.  Changing dominance has no effect on is_neutral_ or any of the other is-neutral
+	// flags.  So this is very simple.
+	
+	if (p_trait->Type() == TraitType::kMultiplicative)
+	{
+		traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + p_new_dominance * traitInfoRec->effect_size_);
+	}
+	else	// (p_trait->Type() == TraitType::kAdditive)
+	{
+		traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * p_new_dominance * traitInfoRec->effect_size_);
+	}
+}
+
 void Mutation::SelfDelete(void)
 {
 	// This is called when our retain count reaches zero
 	// We destruct ourselves and return our memory to our shared pool
-	MutationIndex mutation_index = BlockIndex();
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
 	
 	this->~Mutation();
-	SLiM_DisposeMutationToBlock(mutation_index);
+	mutation_block->DisposeMutationToBlock(mutation_index);
 }
 
 // This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 {
-	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ptr_->mutation_type_id_ << ", position_ " << p_mutation.position_ << ", selection_coeff_ " << p_mutation.selection_coeff_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", origin_tick_ " << p_mutation.origin_tick_;
+	Species &species = p_mutation.mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(&p_mutation);
+	
+	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ptr_->mutation_type_id_ << ", position_ " << p_mutation.position_ << ", effect_size_ " << mut_trait_info[0].effect_size_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", origin_tick_ " << p_mutation.origin_tick_;
 	
 	return p_outstream;
 }
@@ -360,7 +649,8 @@ const EidosClass *Mutation::Class(void) const
 
 void Mutation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassNameForDisplay() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
+	// BCH 10/20/2025: Changing from selection_coeff_ to position_ here, as part of multitrait work
+	p_ostream << Class()->ClassNameForDisplay() << "<" << mutation_id_ << ":" << position_ << ">";
 }
 
 EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
@@ -381,6 +671,10 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_id_));
 		case gID_isFixed:			// ACCELERATED
 			return (((state_ == MutationState::kFixedAndSubstituted) || (state_ == MutationState::kRemovedWithSubstitution)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		case gID_isIndependentDominance: // ACCELERATED
+			return (is_independent_dominance_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		case gID_isNeutral:			// ACCELERATED
+			return (is_neutral_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_isSegregating:		// ACCELERATED
 			return ((state_ == MutationState::kInRegistry) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutationType:		// ACCELERATED
@@ -389,8 +683,93 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_position:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
-		case gID_selectionCoeff:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
+		case gID_effect:
+		{
+			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			MutationBlock *mutation_block = species.SpeciesMutationBlock();
+			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+			slim_trait_index_t trait_count = species.TraitCount();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[0].effect_size_));
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
+					
+					float_result->push_float_no_check((double)effect);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
+		case gID_dominance:
+		{
+			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
+			Species &species = mutation_type_ptr_->species_;
+			const std::vector<Trait *> &traits = species.Traits();
+			slim_trait_index_t trait_count = species.TraitCount();
+			
+			if (trait_count == 1)
+			{
+				slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[0]);
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
+			}
+			else if (trait_count == 0)
+			{
+				return gStaticEidosValue_Float_ZeroVec;
+			}
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t realized_dominance = RealizedDominanceForTrait(traits[trait_index]);
+					
+					float_result->push_float_no_check((double)realized_dominance);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
+		case gID_hemizygousDominance:
+		{
+			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
+			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
+			Species &species = mutation_type_ptr_->species_;
+			MutationBlock *mutation_block = species.SpeciesMutationBlock();
+			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+			slim_trait_index_t trait_count = species.TraitCount();
+			
+			if (trait_count == 1)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[0].hemizygous_dominance_coeff_));
+			else if (trait_count == 0)
+				return gStaticEidosValue_Float_ZeroVec;
+			else
+			{
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_count);
+				
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+					
+					float_result->push_float_no_check((double)dominance);
+				}
+				
+				return EidosValue_SP(float_result);
+			}
+		}
 			
 			// variables
 		case gID_nucleotide:		// ACCELERATED
@@ -437,12 +816,60 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
+			// Here we implement a special behavior: you can do mutation.<trait-name>Effect, mutation.<trait-name>Dominance,
+			// and mutation.<trait-name>HemizygousDominance to access a trait's values directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
+			Species &species = mutation_type_ptr_->species_;
+			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+			
+			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					MutationBlock *mutation_block = species.SpeciesMutationBlock();
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[trait->Index()].effect_size_));
+				}
+			}
+			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 19);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					MutationBlock *mutation_block = species.SpeciesMutationBlock();
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mut_trait_info[trait->Index()].hemizygous_dominance_coeff_));
+				}
+			}
+			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 9);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					// Note that we use RealizedDominanceForTrait() here so that an independent dominance of NAN gets handled.
+					slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
+				}
+			}
+			
 			return super::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -455,8 +882,9 @@ EidosValue *Mutation::GetProperty_Accelerated_id(EidosObject **p_values, size_t 
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -469,8 +897,39 @@ EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Mutation *value = (Mutation *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check(value->is_independent_dominance_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Mutation::GetProperty_Accelerated_isNeutral(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Mutation *value = (Mutation *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check(value->is_neutral_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -483,8 +942,9 @@ EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosObject **p_valu
 	return logical_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -508,8 +968,9 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values,
 	return string_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -526,8 +987,9 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_va
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -540,8 +1002,9 @@ EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values,
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_position(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -554,8 +1017,9 @@ EidosValue *Mutation::GetProperty_Accelerated_position(EidosObject **p_values, s
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -568,8 +1032,9 @@ EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosObject **p_values, s
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -586,22 +1051,9 @@ EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_mutationType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
-	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-	{
-		Mutation *value = (Mutation *)(p_values[value_index]);
-		
-		float_result->set_float_no_check(value->selection_coeff_, value_index);
-	}
-	
-	return float_result;
-}
-
-EidosValue *Mutation::GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size)
-{
+#pragma unused (p_property_id)
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -662,13 +1114,77 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			
 		default:
 		{
+			// Here we implement a special behavior: you can do mutation.<trait-name>Effect and mutation.<trait-name>Dominance to access a trait's values directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
+			Species &species = mutation_type_ptr_->species_;
+			MutationBlock *mutation_block = species.SpeciesMutationBlock();
+			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+			
+			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
+					slim_effect_t new_effect = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					
+					if (!std::isfinite(new_effect))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
+					
+					SetEffect(trait, traitInfoRec, new_effect);
+					SelfConsistencyCheck(" after setting " + property_string);
+					return;
+				}
+			}
+			else if ((property_string.length() > 19) && Eidos_string_hasSuffix(property_string, "HemizygousDominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 19);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
+					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					
+					if (!std::isfinite(new_dominance))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
+					
+					SetHemizygousDominance(trait, traitInfoRec, new_dominance);
+					SelfConsistencyCheck(" after setting " + property_string);
+					return;
+				}
+			}
+			else if ((property_string.length() > 9) && Eidos_string_hasSuffix(property_string, "Dominance"))
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 9);
+				Trait *trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
+					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					
+					if (std::isinf(new_dominance))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
+					
+					SetDominance(trait, traitInfoRec, new_dominance);
+					SelfConsistencyCheck(" after setting " + property_string);
+					return;
+				}
+			}
+			
 			return super::SetProperty(p_property_id, p_value);
 		}
 	}
 }
 
-void Mutation::SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Mutation::SetProperty_Accelerated_subpopID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
@@ -685,8 +1201,9 @@ void Mutation::SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p
 	}
 }
 
-void Mutation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Mutation::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
@@ -708,54 +1225,126 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 {
 	switch (p_method_id)
 	{
-		case gID_setSelectionCoeff:	return ExecuteMethod_setSelectionCoeff(p_method_id, p_arguments, p_interpreter);
-		case gID_setMutationType:	return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
-		default:					return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gID_effectForTrait:				return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_dominanceForTrait:				return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_hemizygousDominanceForTrait:	return ExecuteMethod_hemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setMutationType:				return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
+		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
-//	*********************	- (void)setSelectionCoeff(float$ selectionCoeff)
+//	*********************	- (float)effectForTrait([Niso<Trait> trait = NULL])
 //
-EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *selectionCoeff_value = p_arguments[0].get();
+	EidosValue *trait_value = p_arguments[0].get();
 	
-	double value = selectionCoeff_value->FloatAtIndex_NOCAST(0, nullptr);
-	slim_selcoeff_t old_coeff = selection_coeff_;
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectForTrait");
 	
-	selection_coeff_ = static_cast<slim_selcoeff_t>(value);
-	// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
-	// also, the dominance coefficient modifies the selection coefficient, so values < -1 are in fact meaningfully different
+	// get the trait info for this mutation
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
 	
-	// since this selection coefficient came from the user, check and set pure_neutral_ and all_pure_neutral_DFE_
-	if (selection_coeff_ != 0.0)
+	if (trait_indices.size() == 1)
 	{
-		Species &species = mutation_type_ptr_->species_;
+		slim_trait_index_t trait_index = trait_indices[0];
+		slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
 		
-		species.pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
-		mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
 		
-		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
-		if (old_coeff == 0.0)
+		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			species.nonneutral_change_counter_++;
+			slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
+			
+			float_result->push_float_no_check((double)effect);
 		}
-	}
-	else if (old_coeff != 0.0)	// && (selection_coeff_ == 0.0) implied by the "else"
-	{
-		Species &species = mutation_type_ptr_->species_;
 		
-		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
-		species.nonneutral_change_counter_++;
+		return EidosValue_SP(float_result);
 	}
+}
+
+//	*********************	- (float)dominanceForTrait([Niso<Trait> trait = NULL])
+//
+EidosValue_SP Mutation::ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
 	
-	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "dominanceForTrait");
 	
-	return gStaticEidosValueVOID;
+	// get the trait info for this mutation
+	if (trait_indices.size() == 1)
+	{
+		slim_trait_index_t trait_index = trait_indices[0];
+		Trait *trait = traits[trait_index];
+		slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)realized_dominance));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			Trait *trait = traits[trait_index];
+			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
+			
+			float_result->push_float_no_check((double)realized_dominance);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
+//	*********************	- (float)hemizygousDominanceForTrait([Niso<Trait> trait = NULL])
+//
+EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "hemizygousDominanceForTrait");
+	
+	// get the trait info for this mutation
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	
+	if (trait_indices.size() == 1)
+	{
+		slim_trait_index_t trait_index = trait_indices[0];
+		slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)dominance));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_effect_t dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+			
+			float_result->push_float_no_check((double)dominance);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
 }
 
 //	*********************	- (void)setMutationType(io<MutationType>$ mutType)
@@ -775,13 +1364,11 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	mutation_type_ptr_ = mutation_type_ptr;
 	
 	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral
-	if (selection_coeff_ != 0.0)
-		mutation_type_ptr_->all_pure_neutral_DFE_ = false;
+	if (!is_neutral_)
+		mutation_type_ptr_->all_neutral_mutations_ = false;
 	
-	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
+	// Changing the mutation type no longer changes the dominance coefficient or the hemizygous dominance
+	// coefficient, so there are no longer any side effects on trait effects / fitness to be managed here.
 	
 	return gStaticEidosValueVOID;
 }
@@ -794,7 +1381,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 #pragma mark Mutation_Class
 #pragma mark -
 
-EidosClass *gSLiM_Mutation_Class = nullptr;
+Mutation_Class *gSLiM_Mutation_Class = nullptr;
 
 
 const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) const
@@ -810,13 +1397,17 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isFixed,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isFixed));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isIndependentDominance,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isIndependentDominance));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNeutral,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isNeutral));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isSegregating,			true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isSegregating));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,				false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotideValue));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_originTick));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_position));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_selectionCoeff));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,	true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_subpopID)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_tag));
 		
@@ -836,7 +1427,12 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setEffectForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("effect", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setHemizygousDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -844,6 +1440,426 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 	
 	return methods;
 }
+
+EidosValue_SP Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+	switch (p_method_id)
+	{
+		case gID_setEffectForTrait:					return ExecuteMethod_setEffectForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setDominanceForTrait:
+		case gID_setHemizygousDominanceForTrait:	return ExecuteMethod_setDominanceForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		default:
+			return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+	}
+}
+
+//	*********************	+ (void)setEffectForTrait([Niso<Trait> trait = NULL], [Nif effect = NULL])
+//
+EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *effect_value = p_arguments[1].get();
+	
+	int mutations_count = p_target->Count();
+	int effect_count = effect_value->Count();
+	
+	if (mutations_count == 0)
+		return gStaticEidosValueVOID;
+	
+	Mutation **mutations_buffer = (Mutation **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForMutations(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): setEffectForTrait() requires that all mutations belong to the same species." << EidosTerminate();
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	const std::vector<Trait *> &traits = species->Traits();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectForTrait");
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
+	
+	if (effect_value->Type() == EidosValueType::kValueNULL)
+	{
+		// pattern 1: drawing a default effect value for each trait in one or more mutations
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationType *muttype = mut->mutation_type_ptr_;
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+				slim_effect_t effect = (slim_effect_t)muttype->DrawEffectForTrait(trait_index);
+				
+				mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+			}
+		}
+	}
+	else if (effect_count == 1)
+	{
+		// pattern 2: setting a single effect value across one or more traits in one or more mutations
+		slim_effect_t effect = static_cast<slim_effect_t>(effect_value->NumericAtIndex_NOCAST(0, nullptr));
+		
+		if (trait_count == 1)
+		{
+			// optimized case for one trait
+			slim_trait_index_t trait_index = trait_indices[0];
+			
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+				
+				mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+			}
+		}
+		else
+		{
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				
+				for (slim_trait_index_t trait_index : trait_indices)
+				{
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+					
+					mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+				}
+			}
+		}
+	}
+	else if (effect_count == trait_count)
+	{
+		// pattern 3: setting one effect value per trait, in one or more mutations
+		int effect_index = 0;
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_effect_t effect = static_cast<slim_effect_t>(effect_value->NumericAtIndex_NOCAST(effect_index++, nullptr));
+			
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+				
+				mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+			}
+		}
+	}
+	else if (effect_count == trait_count * mutations_count)
+	{
+		// pattern 4: setting different effect values for each trait in each mutation; in this case,
+		// all effects for the specified traits in a given mutation are given consecutively
+		if (effect_value->Type() == EidosValueType::kValueInt)
+		{
+			// integer effect values
+			const int64_t *effects_int = effect_value->IntData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+					slim_effect_t effect = static_cast<slim_effect_t>(*(effects_int++));
+					
+					mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+				}
+			}
+			else
+			{
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+						slim_effect_t effect = static_cast<slim_effect_t>(*(effects_int++));
+						
+						mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+					}
+				}
+			}
+		}
+		else
+		{
+			// float effect values
+			const double *effects_float = effect_value->FloatData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+					slim_effect_t effect = static_cast<slim_effect_t>(*(effects_float++));
+					
+					mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+				}
+			}
+			else
+			{
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+						slim_effect_t effect = static_cast<slim_effect_t>(*(effects_float++));
+						
+						mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+					}
+				}
+			}
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): setEffectForTrait() requires that effect be (a) NULL, requesting an effect value drawn from the mutation's mutation type for each trait, (b) singleton, providing one effect value for all traits, (c) equal in length to the number of traits in the species, providing one effect value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one effect value per trait per mutation." << EidosTerminate();
+	
+	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+		mutations_buffer[mutation_index]->SelfConsistencyCheck(" after setEffectForTrait()");
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	+ (void)setDominanceForTrait([Niso<Trait> trait = NULL], [Nif dominance = NULL])
+//	*********************	+ (void)setHemizygousDominanceForTrait([Niso<Trait> trait = NULL], [Nif dominance = NULL])
+//
+EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	const char *method_name = (p_method_id == gID_setDominanceForTrait) ? "setDominanceForTrait" : "setHemizygousDominanceForTrait"; 
+	
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *dominance_value = p_arguments[1].get();
+	
+	int mutations_count = p_target->Count();
+	int dominance_count = dominance_value->Count();
+	
+	if (mutations_count == 0)
+		return gStaticEidosValueVOID;
+	
+	Mutation **mutations_buffer = (Mutation **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForMutations(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that all mutations belong to the same species." << EidosTerminate();
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	const std::vector<Trait *> &traits = species->Traits();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, method_name);
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
+	
+	// note there is intentionally no bounds check of dominance coefficients
+	if (dominance_value->Type() == EidosValueType::kValueNULL)
+	{
+		// pattern 1: drawing a default dominance value for each trait in one or more mutations
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationType *muttype = mut->mutation_type_ptr_;
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+				slim_effect_t dominance = ((p_method_id == gID_setDominanceForTrait) ? muttype->DefaultDominanceForTrait(trait_index) : muttype->DefaultHemizygousDominanceForTrait(trait_index));
+				
+				if (p_method_id == gID_setDominanceForTrait)
+					mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+				else
+					mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+			}
+		}
+	}
+	else if (dominance_count == 1)
+	{
+		// pattern 2: setting a single dominance value across one or more traits in one or more mutations
+		slim_effect_t dominance = static_cast<slim_effect_t>(dominance_value->NumericAtIndex_NOCAST(0, nullptr));
+		
+		if (trait_count == 1)
+		{
+			// optimized case for one trait
+			slim_trait_index_t trait_index = trait_indices[0];
+			
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+				
+				if (p_method_id == gID_setDominanceForTrait)
+					mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+				else
+					mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+			}
+		}
+		else
+		{
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				
+				for (slim_trait_index_t trait_index : trait_indices)
+				{
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+					
+					if (p_method_id == gID_setDominanceForTrait)
+						mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+					else
+						mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+				}
+			}
+		}
+	}
+	else if (dominance_count == trait_count)
+	{
+		// pattern 3: setting one dominance value per trait, in one or more mutations
+		int dominance_index = 0;
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_effect_t dominance = static_cast<slim_effect_t>(dominance_value->NumericAtIndex_NOCAST(dominance_index++, nullptr));
+			
+			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+			{
+				Mutation *mut = mutations_buffer[mutation_index];
+				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+				
+				if (p_method_id == gID_setDominanceForTrait)
+					mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+				else
+					mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+			}
+		}
+	}
+	else if (dominance_count == trait_count * mutations_count)
+	{
+		// pattern 4: setting different dominance values for each trait in each mutation; in this case,
+		// all dominances for the specified traits in a given mutation are given consecutively
+		if (dominance_value->Type() == EidosValueType::kValueInt)
+		{
+			// integer dominance values
+			const int64_t *dominances_int = dominance_value->IntData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+					slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_int++));
+					
+					if (p_method_id == gID_setDominanceForTrait)
+						mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+					else
+						mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+				}
+			}
+			else
+			{
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+						slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_int++));
+						
+						if (p_method_id == gID_setDominanceForTrait)
+							mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+						else
+							mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+					}
+				}
+			}
+		}
+		else
+		{
+			// float dominance values
+			const double *dominances_float = dominance_value->FloatData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+					slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_float++));
+					
+					if (p_method_id == gID_setDominanceForTrait)
+						mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+					else
+						mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+				}
+			}
+			else
+			{
+				for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+				{
+					Mutation *mut = mutations_buffer[mutation_index];
+					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
+						slim_effect_t dominance = static_cast<slim_effect_t>(*(dominances_float++));
+						
+						if (p_method_id == gID_setDominanceForTrait)
+							mut->SetDominance(traits[trait_index], traitInfoRec, dominance);
+						else
+							mut->SetHemizygousDominance(traits[trait_index], traitInfoRec, dominance);
+					}
+				}
+			}
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that dominance be (a) NULL, requesting the default" << ((p_method_id == gID_setDominanceForTrait) ? " " : " hemizygous ") << "dominance coefficient from the mutation's mutation type for each trait, (b) singleton, providing one dominance value for all traits, (c) equal in length to the number of traits in the species, providing one dominance value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one dominance value per trait per mutation." << EidosTerminate();
+	
+	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
+		mutations_buffer[mutation_index]->SelfConsistencyCheck(std::string(" after ") + method_name);
+	
+	return gStaticEidosValueVOID;
+}
+
+
 
 
 

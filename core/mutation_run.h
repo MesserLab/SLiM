@@ -133,7 +133,7 @@ private:
 	// are three separate regimes in which these caches are used:
 	//
 	//	1. No mutationEffect() callbacks defined.  Here caches depend solely upon mutation selection coefficients,
-	//		and can be carried forward through cycles with impunity.  If any mutation's selcoeff is changed between
+	//		and can be carried forward through cycles with impunity.  If any mutation's effect is changed between
 	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
 	//
 	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
@@ -470,7 +470,7 @@ public:
 		mutation_count_ += p_copy_count;
 	}
 	
-	inline void insert_sorted_mutation(MutationIndex p_mutation_index)
+	inline void insert_sorted_mutation(Mutation *p_mut_block_ptr, MutationIndex p_mutation_index)
 	{
 		// first push it back on the end, which deals with capacity/locking issues
 		emplace_back(p_mutation_index);
@@ -480,12 +480,12 @@ public:
 			return;
 		
 		// then find the proper position for it
-		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		Mutation *mut_ptr_to_insert = p_mut_block_ptr + p_mutation_index;
 		MutationIndex *sort_position = begin_pointer();
 		const MutationIndex *end_position = end_pointer_const() - 1;		// the position of the newly added element
 		
 		for ( ; sort_position != end_position; ++sort_position)
-			if (CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
+			if (CompareMutations(mut_ptr_to_insert, p_mut_block_ptr + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 				break;
 		
 		// if we got all the way to the end, then the mutation belongs at the end, so we're done
@@ -541,7 +541,7 @@ public:
 		*sort_position = p_mutation_index;
 	}*/
 	
-	inline void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
+	inline void insert_sorted_mutation_if_unique(Mutation *p_mut_block_ptr, MutationIndex p_mutation_index)
 	{
 		// first push it back on the end, which deals with capacity/locking issues
 		emplace_back(p_mutation_index);
@@ -551,13 +551,13 @@ public:
 			return;
 		
 		// then find the proper position for it
-		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		Mutation *mut_ptr_to_insert = p_mut_block_ptr + p_mutation_index;
 		MutationIndex *sort_position = begin_pointer();
 		const MutationIndex *end_position = end_pointer_const() - 1;		// the position of the newly added element
 		
 		for ( ; sort_position != end_position; ++sort_position)
 		{
-			if (CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
+			if (CompareMutations(mut_ptr_to_insert, p_mut_block_ptr + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 			{
 				break;
 			}
@@ -580,8 +580,8 @@ public:
 		*sort_position = p_mutation_index;
 	}
 	
-	bool _EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
-	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr);	// below
+	bool _EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
+	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationType *p_mut_type_ptr);	// below
 	
 	inline __attribute__((always_inline)) void copy_from_run(const MutationRun &p_source_run)
 	{
@@ -626,11 +626,11 @@ public:
 	// this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 	// bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position, and it
 	// must be guaranteed that none of the mutations in the two given runs are the same.
-	void clear_set_and_merge(const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add);
+	void clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add);
 	
 	// This is used by the tree sequence recording code to get the full derived state at a given position.
 	// Note that the vector returned is cached internally and reused with each call, for speed.
-	const std::vector<Mutation *> *derived_mutation_ids_at_position(slim_position_t p_position) const;
+	const std::vector<Mutation *> *derived_mutation_ids_at_position(Mutation *p_mut_block_ptr, slim_position_t p_position) const;
 	
 	inline __attribute__((always_inline)) const MutationIndex *begin_pointer_const(void) const
 	{
@@ -652,14 +652,14 @@ public:
 		return mutations_ + mutation_count_;
 	}
 	
-	void _RemoveFixedMutations(void);
-	inline __attribute__((always_inline)) void RemoveFixedMutations(int64_t p_operation_id)
+	void _RemoveFixedMutations(Mutation *p_mut_block_ptr);
+	inline __attribute__((always_inline)) void RemoveFixedMutations(Mutation *p_mut_block_ptr, int64_t p_operation_id)
 	{
 		if (operation_id_ != p_operation_id)
 		{
 			operation_id_ = p_operation_id;
 			
-			_RemoveFixedMutations();
+			_RemoveFixedMutations(p_mut_block_ptr);
 		}
 	}
 	
@@ -694,122 +694,122 @@ public:
 	}
 	
 	// splitting mutation runs
-	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const;
+	void split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.
 	
-	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void) const
-	{
-		if (!nonneutral_mutations_)
-		{
-			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer
-			nonneutral_mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
-			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
-			if (!nonneutral_mutations_)
-				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		}
-		
-		// empty out the current buffer contents
-		nonneutral_mutations_count_ = 0;
-	}
-	
-	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index) const
-	{
-		// This is basically the emplace_back() code, but for the nonneutral buffer
-		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
-		{
-#ifdef __clang_analyzer__
-			assert(nonneutral_mutation_capacity_ > 0);
-#endif
-			
-			if (nonneutral_mutation_capacity_ < 32)
-				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-			else
-				nonneutral_mutation_capacity_ += 16;
-			
-			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
-			if (!nonneutral_mutations_)
-				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		}
-		
-		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
-		++nonneutral_mutations_count_;
-	}
-	
-	void cache_nonneutral_mutations_REGIME_1() const;
-	void cache_nonneutral_mutations_REGIME_2() const;
-	void cache_nonneutral_mutations_REGIME_3() const;
-	
-	void check_nonneutral_mutation_cache() const;
-	
-	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
-	{
-		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
-		{
-			// When running parallel, all nonneutral caches must be validated
-			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
-			THREAD_SAFETY_IN_ACTIVE_PARALLEL("beginend_nonneutral_pointers()");
-			
-			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
-			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
-			nonneutral_change_validation_ = p_nonneutral_change_counter;
-			
-			switch (p_nonneutral_regime)
-			{
-				case 1: cache_nonneutral_mutations_REGIME_1(); break;
-				case 2: cache_nonneutral_mutations_REGIME_2(); break;
-				case 3: cache_nonneutral_mutations_REGIME_3(); break;
-			}
-			
-#if (SLIMPROFILING == 1)
-			// PROFILING
-			recached_run_ = true;
-#endif
-		}
-		
-#if DEBUG
-		check_nonneutral_mutation_cache();
-#endif
-		
-		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
-		*p_mutptr_iter = nonneutral_mutations_;
-		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
-	}
-	
-#ifdef _OPENMP
-	// This is used by Subpopulation::FixNonNeutralCaches_OMP() to validate
-	// these caches; it starts a new task if the nonneutral cache is invalid
-	// This method is called from within a "single" construct.
-	inline __attribute__((always_inline)) void validate_nonneutral_cache(int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
-	{
-		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
-		{
-			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
-			// reasons (most notably being a new mutation run that has not yet cached), validate it with an OpenMP task
-			// We set up these variables to prevent ourselves from seeing the cache as invalid again
-			nonneutral_change_validation_ = p_nonneutral_change_counter;
-			nonneutral_mutations_count_ = 0;
-			
-#if (SLIMPROFILING == 1)
-			// PROFILING
-			recached_run_ = true;
-#endif
-			
-			// I tried splitting the below code out into its own non-inline method,
-			// but that seemed to trigger a compiler bug, so here we are.
-#pragma omp task
-			{
-				switch (p_nonneutral_regime)
-				{
-					case 1: cache_nonneutral_mutations_REGIME_1(); break;
-					case 2: cache_nonneutral_mutations_REGIME_2(); break;
-					case 3: cache_nonneutral_mutations_REGIME_3(); break;
-				}
-			}
-		}
-	}
-#endif
+//	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void) const
+//	{
+//		if (!nonneutral_mutations_)
+//		{
+//			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer
+//			nonneutral_mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+//			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+//			if (!nonneutral_mutations_)
+//				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+//		}
+//		
+//		// empty out the current buffer contents
+//		nonneutral_mutations_count_ = 0;
+//	}
+//	
+//	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index) const
+//	{
+//		// This is basically the emplace_back() code, but for the nonneutral buffer
+//		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
+//		{
+//#ifdef __clang_analyzer__
+//			assert(nonneutral_mutation_capacity_ > 0);
+//#endif
+//			
+//			if (nonneutral_mutation_capacity_ < 32)
+//				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+//			else
+//				nonneutral_mutation_capacity_ += 16;
+//			
+//			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+//			if (!nonneutral_mutations_)
+//				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+//		}
+//		
+//		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
+//		++nonneutral_mutations_count_;
+//	}
+//	
+//	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const;
+//	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const;
+//	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const;
+//	
+//	void check_nonneutral_mutation_cache() const;
+//	
+//	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(Mutation *p_mut_block_ptr, const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
+//	{
+//		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
+//		{
+//			// When running parallel, all nonneutral caches must be validated
+//			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
+//			THREAD_SAFETY_IN_ACTIVE_PARALLEL("beginend_nonneutral_pointers()");
+//			
+//			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
+//			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
+//			nonneutral_change_validation_ = p_nonneutral_change_counter;
+//			
+//			switch (p_nonneutral_regime)
+//			{
+//				case 1: cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
+//				case 2: cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
+//				case 3: cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
+//			}
+//			
+//#if (SLIMPROFILING == 1)
+//			// PROFILING
+//			recached_run_ = true;
+//#endif
+//		}
+//		
+//#if DEBUG
+//		check_nonneutral_mutation_cache();
+//#endif
+//		
+//		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
+//		*p_mutptr_iter = nonneutral_mutations_;
+//		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
+//	}
+//
+//#ifdef _OPENMP
+//	// This is used by Subpopulation::FixNonNeutralCaches_OMP() to validate
+//	// these caches; it starts a new task if the nonneutral cache is invalid
+//	// This method is called from within a "single" construct.
+//	inline __attribute__((always_inline)) void validate_nonneutral_cache(int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
+//	{
+//		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
+//		{
+//			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
+//			// reasons (most notably being a new mutation run that has not yet cached), validate it with an OpenMP task
+//			// We set up these variables to prevent ourselves from seeing the cache as invalid again
+//			nonneutral_change_validation_ = p_nonneutral_change_counter;
+//			nonneutral_mutations_count_ = 0;
+//			
+//#if (SLIMPROFILING == 1)
+//			// PROFILING
+//			recached_run_ = true;
+//#endif
+//			
+//			// I tried splitting the below code out into its own non-inline method,
+//			// but that seemed to trigger a compiler bug, so here we are.
+//#pragma omp task
+//			{
+//				switch (p_nonneutral_regime)
+//				{
+//					case 1: cache_nonneutral_mutations_REGIME_1(); break;
+//					case 2: cache_nonneutral_mutations_REGIME_2(); break;
+//					case 3: cache_nonneutral_mutations_REGIME_3(); break;
+//				}
+//			}
+//		}
+//	}
+//#endif
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -838,7 +838,7 @@ public:
 // We need MutationType below, but we can't include it at top because it requires MutationRun to be defined...
 #include "mutation_type.h"
 
-inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationType *p_mut_type_ptr)
 {
 	MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
 	
@@ -850,7 +850,7 @@ inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for
 	else
 	{
 		// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-		return _EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
+		return _EnforceStackPolicyForAddition(p_mut_block_ptr, p_position, policy, p_mut_type_ptr->stack_group_);
 	}
 }
 

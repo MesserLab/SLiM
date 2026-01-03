@@ -42,6 +42,23 @@ static int gSLiMTestSuccessCount = 0;
 static int gSLiMTestFailureCount = 0;
 
 
+static void _SLiMTestCleanup(Community *community)
+{
+	if (community)
+		for (Species *species : community->AllSpecies())
+			species->DeleteAllMutationRuns();
+	
+	delete community;
+	InteractionType::DeleteSparseVectorFreeList();
+	
+	ClearErrorContext();
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+}
+
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumber)
 {
@@ -89,25 +106,13 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		return;
 	}
 	
-	if (community)
-		for (Species *species : community->AllSpecies())
-			species->DeleteAllMutationRuns();
-	
-	delete community;
-	InteractionType::DeleteSparseVectorFreeList();
-	
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
 	gSLiMTestSuccessCount++;
 	
 	//std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	
-	ClearErrorContext();
-	
-	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
-	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+	_SLiMTestCleanup(community);
+	}	
 }
 
 void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position, bool p_error_is_in_stop)
@@ -203,20 +208,8 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 		}
 	}
 	
-	if (community)
-		for (Species *species : community->AllSpecies())
-			species->DeleteAllMutationRuns();
-	
-	delete community;
-	InteractionType::DeleteSparseVectorFreeList();
-	
-	ClearErrorContext();
-	
-	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-		std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	_SLiMTestCleanup(community);
 	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
@@ -272,20 +265,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 		}
 	}
 	
-	if (community)
-		for (Species *species : community->AllSpecies())
-			species->DeleteAllMutationRuns();
-	
-	delete community;
-	InteractionType::DeleteSparseVectorFreeList();
-	
-	ClearErrorContext();
-	
-	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-		std::cerr << "WARNING (SLiMAssertScriptStop): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	_SLiMTestCleanup(community);
 	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip, int p_lineNumber)
@@ -365,20 +346,8 @@ void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int
 			}
 		}
 		
-		if (community)
-			for (Species *species : community->AllSpecies())
-				species->DeleteAllMutationRuns();
-		
-		delete community;
-		InteractionType::DeleteSparseVectorFreeList();
-		
-		ClearErrorContext();
-		
-		if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
-			std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+		_SLiMTestCleanup(community);
 	}
-	
-	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 
@@ -392,7 +361,7 @@ std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeM
 std::string gen1_setup_sex("initialize() { initializeSex('X'); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
 std::string gen2_stop(" 2 early() { stop(); } ");
 std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } ");
-std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-4); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } 10 early() { sim.mutations[0].setSelectionCoeff(500.0); sim.recalculateFitness(); } ");
+std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-4); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 5); } 10 early() { sim.mutations[0].setEffectForTrait(0, 500.0); sim.recalculateFitness(); } ");
 std::string gen1_setup_i1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', ''); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { } ");
 std::string gen1_setup_i1x("initialize() { initializeSLiMOptions(dimensionality='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); } ");
 std::string gen1_setup_i1xPx("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); } ");
@@ -461,10 +430,12 @@ int RunSLiMTests(void)
 	_RunChromosomeTests();
 	_RunMutationTests();
 	_RunHaplosomeTests(temp_path);
+	_RunMultitraitTests();
 	_RunSubpopulationTests();
 	_RunIndividualTests();
 	_RunSubstitutionTests();
 	_RunSLiMEidosBlockTests();
+	_RunMateChoiceTests();
 	_RunContinuousSpaceTests();
 	_RunSpatialMapTests();
 	_RunNonWFTests();

@@ -38,7 +38,6 @@
 #include "eidos_functions.h"
 #include "slim_eidos_block.h"
 
-
 class EidosInterpreter;
 class Individual;
 class LogFile;
@@ -49,7 +48,9 @@ struct EidosInterpreterDebugPointsSet_struct;
 typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
 #endif
 
-extern EidosClass *gSLiM_Community_Class;
+
+class Community_Class;
+extern Community_Class *gSLiM_Community_Class;
 
 
 #pragma mark -
@@ -213,7 +214,7 @@ public:
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each cycle stage that calls out to script
 	void ValidateScriptBlockCaches(void);
-	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id, Species *p_species);
+	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, Species *p_species);
 	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
 	std::vector<SLiMEidosBlock*> AllScriptBlocksForSpecies(Species *p_species);
 	void OptimizeScriptBlock(SLiMEidosBlock *p_script_block);

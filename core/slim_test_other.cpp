@@ -2574,13 +2574,13 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc(-1, 0.5, 'f', 0.0); stop(); }", "identifier value is out of range", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('p2', 0.5, 'f', 0.0); stop(); }", "identifier prefix 'm' was expected", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('mm1', 0.5, 'f', 0.0); stop(); }", "must be a simple integer", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f'); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'e', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f'); stop(); }", "requires exactly 1 DES parameter", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', 0.0, 0.0); stop(); }", "requires exactly 1 DES parameter", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'e', 0.0, 0.0); stop(); }", "requires exactly 1 DES parameter", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 'foo', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", "must be of type numeric", __LINE__);
@@ -2736,7 +2736,7 @@ void _RunNucleotideMethodTests(void)
 	
 	// nucleotide & nucleotideValue
 	std::string nuc_highmut("initialize() { initializeSLiMOptions(nucleotideBased=T); initializeAncestralNucleotides(randomNucleotides(1e2)); initializeMutationTypeNuc('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-2)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } ");
-	std::string nuc_fixmut("initialize() { initializeSLiMOptions(nucleotideBased=T); initializeAncestralNucleotides(randomNucleotides(1e2)); initializeMutationTypeNuc('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-2)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } 10 early() { sim.mutations[0].setSelectionCoeff(500.0); sim.recalculateFitness(); } ");
+	std::string nuc_fixmut("initialize() { initializeSLiMOptions(nucleotideBased=T); initializeAncestralNucleotides(randomNucleotides(1e2)); initializeMutationTypeNuc('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-2)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } 10 early() { sim.mutations[0].setEffectForTrait(0, 500.0); sim.recalculateFitness(); } ");
 	
 	SLiMAssertScriptStop(nuc_highmut + "10 early() { mut = sim.mutations[0]; mut.nucleotide; stop(); }", __LINE__);
 	SLiMAssertScriptStop(nuc_highmut + "10 early() { mut = sim.mutations[0]; mut.nucleotideValue; stop(); }", __LINE__);
@@ -3019,7 +3019,7 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
-	// (numeric)calcSFS([Ni$ binCount = NULL], [No<Haplosome> haplosomes = NULL], [No<Mutation> muts = NULL], [string$ metric = "density"], [logical$ fold = F])
+	// (numeric)calcSFS([Ni$ binCount = NULL], [No<Haplosome> haplosomes = NULL], [No<Mutation> muts = NULL], [string$ metric = "density"], [logical$ fold = F])
 	SLiMAssertScriptRaise(base_script + "calcSFS(); }", "when binCount is NULL", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcSFS(10); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);

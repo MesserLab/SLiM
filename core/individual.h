@@ -39,10 +39,12 @@
 
 #include "haplosome.h"
 
-
 class Subpopulation;
 
-extern EidosClass *gSLiM_Individual_Class;
+
+class Individual_Class;
+extern Individual_Class *gSLiM_Individual_Class;
+
 
 // A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID() instead, for THREAD_SAFETY_IN_ACTIVE_PARALLEL()
@@ -62,6 +64,14 @@ inline slim_pedigreeid_t SLiM_GetNextPedigreeID_Block(int p_block_size)
 	
 	return block_base;
 }
+
+// This struct contains all information for a single trait in a single individual.  In a multitrait
+// model, each individual has a pointer to a buffer of these records, providing per-trait information.
+typedef struct _IndividualTraitInfo
+{
+	slim_effect_t phenotype_;	// the phenotypic value for a trait
+	slim_effect_t offset_;		// the individual offset combined in to produce a trait value
+} IndividualTraitInfo;
 
 class Individual : public EidosDictionaryUnretained
 {
@@ -133,22 +143,29 @@ public:
 	slim_usertag_t tag_value_;			// a user-defined tag value of integer type
 	double tagF_value_;					// a user-defined tag value of float type
 	
-	double fitness_scaling_ = 1.0;		// the fitnessScaling property value
-	double cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
-										// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
-										// this value in neutral models; that flag must be checked before using this cached value
+	// FIXME MULTITRAIT: We should also have a typedef for trait indices, and it should be int32_t, again for speed/size; get rid of int64_t for this
+	slim_fitness_t fitness_scaling_ = 1.0f;		// the fitnessScaling property value
+	slim_fitness_t cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
+												// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
+												// this value in constant-fitness models; that flag must be checked before using this cached value
 #ifdef SLIMGUI
-	double cached_unscaled_fitness_;	// the last calculated fitness value for this individual, WITHOUT subpop fitnessScaling; used only in
-										// in SLiMgui, which wants to exclude that scaling because it usually represents density-dependence
-										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
+	slim_fitness_t cached_unscaled_fitness_;	// the last calculated fitness value for this individual, WITHOUT subpop fitnessScaling; used only in
+												// in SLiMgui, which wants to exclude that scaling because it usually represents density-dependence
+												// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	Haplosome *hapbuffer_[2];			// *(hapbuffer_[2]), an internal buffer used to avoid allocation and increase memory nonlocality
+	Haplosome *hapbuffer_[2];			// *(hapbuffer_[2]), an internal buffer used to avoid allocation and increase memory locality
 	Haplosome **haplosomes_;			// OWNED haplosomes; can point to hapbuffer_ or to an external malloced block
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
+	
+	// Per-trait information: trait offsets, trait values.  If the species has 0 traits, the pointer is
+	// nullptr; if 1 trait, it points to trait_info_0_ for memory locality and to avoid mallocs; if 2+
+	// trait, it points to an OWNED malloced buffer.
+	IndividualTraitInfo trait_info_0_;
+	IndividualTraitInfo *trait_info_;
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
 	double spatial_x_, spatial_y_, spatial_z_;
@@ -161,8 +178,10 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age);
 	virtual ~Individual(void) override;
+	
+	void _InitializePerTraitInformation(void);
 	
 	inline __attribute__((always_inline)) void ClearColor(void) {
 #ifdef SLIMGUI
@@ -321,56 +340,61 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_haplosomesForChromosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_offsetForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sharedParentCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_haploidGenome1(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_haploidGenome1NonNull(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_haploidGenome2(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_haploidGenome2NonNull(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_haplosomes(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_haplosomesNonNull(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_index(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_pedigreeID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagL0(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagL1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagL2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagL3(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_cachedFitness(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_reproductiveOutput(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_migrant(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_y(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_z(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_spatialPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_subpopulation(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome1NonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome2NonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomes(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomesNonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
-	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagL0(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagL1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagL2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagL3(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	static bool _SetFitnessScaling_1(double source_value, EidosObject **p_values, size_t p_values_size);
 	static bool _SetFitnessScaling_N(const double *source_data, EidosObject **p_values, size_t p_values_size);
-	static void SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_y(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_z(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_color(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
 	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentHaplosomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
@@ -383,6 +407,15 @@ public:
 	static bool s_any_individual_tagL_set_;
 	static bool s_any_haplosome_tag_set_;
 	static bool s_any_individual_fitness_scaling_set_;
+	
+	// phenotype demand for a single trait in a single individual, across a single chromosome; the result is
+	// accumulated into the trait value of the focal individual, which must be set up with an initial value
+	// see also the method DemandPhenotype() in class Individual_Class, which calls these methods
+	template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+	void _IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
+	template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
 	// for Subpopulation::ExecuteMethod_takeMigrants()
 	friend Subpopulation;
@@ -402,10 +435,21 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_setOffsetForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_setPhenotypeForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_outputIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_outputIndividualsToVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_readIndividualsFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_zygosityOfMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+	EidosValue_SP ExecuteMethod_demandPhenotype(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+	// phenotype demand for all traits for a vector of target individuals, across all chromosomes
+	// if f_force_recalc is true all values are recalculated; if false, only NAN trait values are recalculated
+	// see also the methods class _IncorporateEffects_X() methods in class Individual, called by this method
+	template <const bool f_force_recalc>
+	void DemandPhenotype(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices) const;
 };
 
 

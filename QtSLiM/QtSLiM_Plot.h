@@ -30,7 +30,8 @@
 class QtSLiMGraphView_CustomPlot;
 
 
-extern EidosClass *gSLiM_Plot_Class;
+class Plot_Class;
+extern Plot_Class *gSLiM_Plot_Class;
 
 
 class Plot : public EidosDictionaryUnretained

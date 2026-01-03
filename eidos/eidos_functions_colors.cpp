@@ -136,7 +136,7 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const std::vector<EidosValue_SP> &
 		// returns a vector
 		Eidos_GetColorComponents(color_value->StringRefAtIndex_NOCAST(0, nullptr), &r, &g, &b);
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{r, g, b});
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{(double)r, (double)g, (double)b});
 	}
 	else
 	{
@@ -147,9 +147,9 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const std::vector<EidosValue_SP> &
 		for (int value_index = 0; value_index < color_count; ++value_index)
 		{
 			Eidos_GetColorComponents(color_value->StringRefAtIndex_NOCAST(value_index, nullptr), &r, &g, &b);
-			float_result->set_float_no_check(r, value_index);
-			float_result->set_float_no_check(g, value_index + color_count);
-			float_result->set_float_no_check(b, value_index + color_count + color_count);
+			float_result->set_float_no_check((double)r, value_index);
+			float_result->set_float_no_check((double)g, value_index + color_count);
+			float_result->set_float_no_check((double)b, value_index + color_count + color_count);
 		}
 		
 		const int64_t dim_buf[2] = {color_count, 3};

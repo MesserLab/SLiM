@@ -1754,6 +1754,21 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
     QString beforeSelection4String = beforeSelection4.selectedText();
     
+    // get the one character after the selected error range, to recognize if the error is followed by "("
+    QTextCursor afterSelection1 = selection;
+    afterSelection1.setPosition(afterSelection1.selectionEnd(), QTextCursor::MoveAnchor);
+    afterSelection1.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    QString afterSelection1String = afterSelection1.selectedText();
+    
+    QTextCursor selectionPlus1After = selection;
+    selectionPlus1After.setPosition(selectionPlus1After.selectionStart(), QTextCursor::MoveAnchor);
+    selectionPlus1After.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, selection.selectionEnd() - selection.selectionStart() + 1);
+    QString selectionPlus1AfterString = selectionPlus1After.selectedText();
+    
+    //qDebug() << "selectionString ==" << selectionString;
+    //qDebug() << "afterSelection1String ==" << afterSelection1String;
+    //qDebug() << "selectionPlus1AfterString ==" << selectionPlus1AfterString;
+    
     //
     //  Changes for SLiM 4.0: multispecies SLiM, mostly, plus fitness() -> mutationEffect() and fitness(NULL) -> fitnessEffect()
     //
@@ -1898,14 +1913,15 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method now requires a vector of subpopulations to evaluate.", terminationMessage);
     }
     
-    if (terminationMessage.contains("named argument immediate skipped over required argument subpops") && (selectionString == "evaluate"))
+    if (terminationMessage.contains("named argument 'immediate' skipped over required argument 'subpops'") && (selectionString == "evaluate"))
     {
         QTextCursor entireCall = selection;
         entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
         entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 22);
         QString entireCallString = entireCall.selectedText();
         
-        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);"))
+        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);") ||
+            (entireCallString == "evaluate(immediate = T);") || (entireCallString == "evaluate(immediate = F);"))
             return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
     }
     
@@ -2113,6 +2129,56 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("method outputVCF() is not defined on object element type Haplosome") &&
             (selectionString == "outputVCF"))
         return offerAndExecuteAutofix(selection, "outputHaplosomesToVCF", "The `outputVCF()` method of Haplosome has been renamed to `outputHaplosomesToVCF()`.", terminationMessage);
+    
+    //
+    //  Shift from one trait to multitrait for SLiM 5.1
+    //
+    
+    if (terminationMessage.contains("property dominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "dominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "The `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
+    
+    // the above autofix is imperfect; if the user is assigning into dominanceCoeff, it really needs to be corrected to be a call to setDefaultDominanceForTrait()
+    
+    if (terminationMessage.contains("property hemizygousDominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "hemizygousDominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultHemizygousDominanceForTrait()", "The `hemizygousDominanceCoeff` property of MutationType has become the method `defaultHemizygousDominanceForTrait()`.", terminationMessage);
+    
+    // the above autofix is imperfect; if the user is assigning into hemizygousDominanceCoeff, it really needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
+    
+    if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
+            (selectionString == "distributionType"))
+        return offerAndExecuteAutofix(selection, "effectDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectDistributionTypeForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property distributionParams is not defined for object element type MutationType") &&
+            (selectionString == "distributionParams"))
+        return offerAndExecuteAutofix(selection, "effectDistributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `effectDistributionParamsForTrait()`.", terminationMessage);
+    
+    if ((afterSelection1String == "(") &&
+            terminationMessage.contains("method setDistribution() is not defined on object element type MutationType") &&
+            (selectionPlus1AfterString == "setDistribution("))
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setEffectDistributionForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method drawSelectionCoefficient() is not defined on object element type MutationType") &&
+            (selectionString == "drawSelectionCoefficient"))
+        return offerAndExecuteAutofix(selection, "drawEffectForTrait", "The `drawSelectionCoefficient()` method of MutationType has become the method `drawEffectForTrait()`.", terminationMessage);
+    
+    if ((afterSelection1String == "(") &&
+            terminationMessage.contains("method setSelectionCoeff() is not defined on object element type Mutation") &&
+            (selectionPlus1AfterString == "setSelectionCoeff("))
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectForTrait(NULL, ", "The `setSelectionCoeff()` method of Mutation has become the method `setEffectForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property selectionCoeff is not defined for object element type Mutation") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Mutation has become the property `effect`.", terminationMessage);
+    
+    if (terminationMessage.contains("property selectionCoeff is not defined for object element type Substitution") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Substitution has become the property `effect`.", terminationMessage);
+    
+    if (terminationMessage.contains("unrecognized named argument 'selectionCoeff' to addNewMutation()") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` parameter to addNewMutation() has been renamed to `effect`.", terminationMessage);
     
     return false;
 }
@@ -4368,6 +4434,12 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(" : refcount buffer\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationPerTraitBuffer, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : per-trait buffer\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
 		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
@@ -4962,6 +5034,40 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         
         if (createdWindow)
             QtSLiMMakeWindowVisibleAndExposed(graphWindow);
+        
+        // BCH 11/16/2025: There is one tricky thing here, which is that in practice the plot window might not be allowed
+        // to be the requested size, due to screen constraints.  We don't know that until we try.  Before the call to
+        // the QtSLiMMakeWindowVisibleAndExposed() the window is still at the original size we requested (on macOS, at
+        // least).  After that call, it has been constrained by whatever factors (screen size, dock/menubar, etc.) exist.
+        // We can't do anything about those constraints; but we do want to try to preserve the original aspect ratio
+        // requested by the user, and we emit a warning to the console.  See https://github.com/MesserLab/SLiM/issues/567
+        double realized_width = customPlot->width(), realized_height = customPlot->height();
+        double trim_width = graphWindow->width() - realized_width, trim_height = graphWindow->height() - realized_height;
+        
+        if ((realized_width != width) || (realized_height != height))
+        {
+            std::cout << "SLiMgui: the requested graph window size (" << width << ", " << height << ") was not attainable; the realized size was (" <<
+                         realized_width << ", " << realized_height << ").  Resizing to try to preserve the requested aspect ratio." << std::endl;
+            
+            double requested_aspect_ratio = width / height;
+            double realized_aspect_ratio = realized_width / realized_height;
+            
+            if (realized_aspect_ratio > requested_aspect_ratio)
+            {
+                // the width is, proportionally, larger than requested and needs to be reduced
+                double corrected_width = std::round(requested_aspect_ratio * realized_height + trim_width);
+                graphWindow->resize(corrected_width, graphWindow->height());
+            }
+            else if (realized_aspect_ratio < requested_aspect_ratio)
+            {
+                // the height is, proportionally, larger than requested and needs to be reduced
+                double corrected_height = std::round(realized_width / requested_aspect_ratio + trim_height);
+                graphWindow->resize(graphWindow->width(), corrected_height);
+            }
+            
+            //std::cout << "   requested aspect ratio " << requested_aspect_ratio << "; final aspect ratio after correction " <<
+            //          (customPlot->width() / (double)customPlot->height()) << std::endl;
+        }
     }
     else
     {

@@ -1088,10 +1088,10 @@ void _RunFunctionMathTests_s_through_z(void)
 	// sqrt()
 	EidosAssertScriptSuccess_F("sqrt(64);", 8);
 	EidosAssertScriptSuccess_L("isNAN(sqrt(-64));", true);
-	EidosAssertScriptSuccess_FV("sqrt(c(4, -16, 9, 1024));", {2, NAN, 3, 32});
+	EidosAssertScriptSuccess_FV("sqrt(c(4, -16, 9, 1024));", {2, std::numeric_limits<double>::quiet_NaN(), 3, 32});
 	EidosAssertScriptSuccess_F("sqrt(64.0);", 8);
 	EidosAssertScriptSuccess_L("isNAN(sqrt(-64.0));", true);
-	EidosAssertScriptSuccess_FV("sqrt(c(4.0, -16.0, 9.0, 1024.0));", {2, NAN, 3, 32});
+	EidosAssertScriptSuccess_FV("sqrt(c(4.0, -16.0, 9.0, 1024.0));", {2, std::numeric_limits<double>::quiet_NaN(), 3, 32});
 	EidosAssertScriptRaise("sqrt(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("sqrt('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sqrt(_Test(7));", 0, "cannot be type");

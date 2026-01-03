@@ -134,6 +134,7 @@ public:
 	SLiMModelType model_type_;
 	Community &community_;
 	Species &species_;
+	MutationBlock *mutation_block_ = nullptr;				// NOT OWNED; a pointer to the MutationBlock from the species
 	
 	// Object pools for individuals and haplosomes, kept species-wide
 	EidosObjectPool &species_haplosome_pool_;					// NOT OWNED; a pool out of which haplosomes are allocated, for within-species locality
@@ -187,38 +188,7 @@ public:
 		return mutation_registry_.begin_pointer_const();
 	}
 	
-	inline void MutationRegistryAdd(Mutation *p_mutation)
-	{
-#if DEBUG
-		if ((p_mutation->state_ == MutationState::kInRegistry) ||
-			(p_mutation->state_ == MutationState::kRemovedWithSubstitution) ||
-			(p_mutation->state_ == MutationState::kFixedAndSubstituted))
-			EIDOS_TERMINATION << "ERROR (Population::MutationRegistryAdd): " << "(internal error) cannot add a mutation to the registry that is already in the registry, or has been fixed/substituted." << EidosTerminate();
-#endif
-		
-		// We could be adding a lost mutation back into the registry (from a mutation() callback), in which case it gets a retain
-		// New mutations already have a retain count of 1, which we use (i.e., we take ownership of the mutation passed in to us)
-		if (p_mutation->state_ != MutationState::kNewMutation)
-			p_mutation->Retain();
-		
-		MutationIndex new_mut_index = p_mutation->BlockIndex();
-		mutation_registry_.emplace_back(new_mut_index);
-		
-		p_mutation->state_ = MutationState::kInRegistry;
-		
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-		if (keeping_muttype_registries_)
-		{
-			MutationType *mutation_type_ptr = p_mutation->mutation_type_ptr_;
-			
-			if (mutation_type_ptr->keeping_muttype_registry_)
-			{
-				// This mutation type is also keeping its own private registry, so we need to add to that as well
-				mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
-			}
-		}
-#endif
-	}
+	void MutationRegistryAdd(Mutation *p_mutation);
 	
 	// apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 	bool ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
@@ -250,11 +220,8 @@ public:
 	Individual *(Subpopulation::*GenerateIndividualSelfed_TEMPLATED)(Individual *p_parent) = nullptr;
 	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(Individual *p_parent) = nullptr;
 
-	// An internal method that validates cached fitness values kept by Mutation objects
-	void ValidateMutationFitnessCaches(void);
-	
 	// Recalculate all fitness values for the parental generation, including the use of mutationEffect() callbacks
-	void RecalculateFitness(slim_tick_t p_tick);
+	void RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recalculation);
 	
 	// Scan through all mutation runs in the simulation and unique them
 	void UniqueMutationRuns(void);
@@ -336,7 +303,7 @@ public:
 	slim_popsize_t ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks);
 	
 	// generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-	void EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_dfe_present);
+	void EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_DES_present);
 	
 	// step forward a generation: make the children become the parents
 	void SwapGenerations(void);
