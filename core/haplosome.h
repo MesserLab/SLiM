@@ -60,6 +60,7 @@ class Species;
 class Population;
 class Subpopulation;
 class Individual;
+class Individual_Class;
 class HaplosomeWalker;
 class MutationBlock;
 
@@ -459,6 +460,7 @@ public:
 	friend Subpopulation;
 	friend Chromosome;
 	friend Individual;
+	friend Individual_Class;
 	friend HaplosomeWalker;
 };
 
