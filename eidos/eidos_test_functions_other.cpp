@@ -395,10 +395,12 @@ void _RunFunctionFilesystemTests(const std::string &temp_path)
 		return;
 	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
-	EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
+	// BCH 1/3/2025: I'm commenting out the tests that call filesAtPath() on the temporary directory; that
+	// can contain a very large number of files, and is showing up as a major time-sink for self-tests.
+	//EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
 	// these always fail on Windows and I can't think of any good easy replacement
 	#ifndef _WIN32
-	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
+	//EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("sum(filesAtPath('/', T) == '/bin');", gStaticEidosValue_Integer1);
 	#endif
