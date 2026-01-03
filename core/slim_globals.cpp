@@ -1377,6 +1377,7 @@ const std::string &gStr_setSpatialPosition = EidosRegisteredString("setSpatialPo
 const std::string &gStr_substitutionsOfType = EidosRegisteredString("substitutionsOfType", gID_substitutionsOfType);
 const std::string &gStr_sumOfMutationsOfType = EidosRegisteredString("sumOfMutationsOfType", gID_sumOfMutationsOfType);
 const std::string &gStr_uniqueMutationsOfType = EidosRegisteredString("uniqueMutationsOfType", gID_uniqueMutationsOfType);
+const std::string &gStr_zygosityOfMutations = EidosRegisteredString("zygosityOfMutations", gID_zygosityOfMutations);
 const std::string &gStr_mutationsFromHaplosomes = EidosRegisteredString("mutationsFromHaplosomes", gID_mutationsFromHaplosomes);
 const std::string &gStr_readHaplosomesFromMS = EidosRegisteredString("readHaplosomesFromMS", gID_readHaplosomesFromMS);
 const std::string &gStr_readHaplosomesFromVCF = EidosRegisteredString("readHaplosomesFromVCF", gID_readHaplosomesFromVCF);

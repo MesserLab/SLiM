@@ -1336,6 +1336,261 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(cachedFitness3);
 	
+	// test the new zygosityOfMutations() method
+	std::string test_zygosity1 =	// simple one-chromosome diploid test
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 9999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sim.mutations;
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(NULL);
+			
+			// cross-check row sums: occurrence counts of each mutation
+			mutCounts1 = rowSums(z);
+			mutCounts2 = sim.mutationCounts(p1, NULL);
+			if (!identical(mutCounts1, mutCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check column sums: the number of mutations per individual
+			indCounts1 = colSums(z);
+			indCounts2 = sapply(inds, "applyValue.haplosomes.mutations.size();");
+			if (!identical(indCounts1, indCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check against a zygosity matrix from containsMutations()
+			m = NULL;
+			for (ind in inds)
+			{
+				counts_h0 = ind.haplosomes[0].containsMutations(muts);
+				counts_h1 = ind.haplosomes[1].containsMutations(muts);
+				zygosity = counts_h0 + counts_h1;
+				m = cbind(m, zygosity);
+			}
+			if (!identical(z, m))
+				stop("zygosity matrices do not match");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity1);
+
+	std::string test_zygosity2 =	// multiple chromosomes of different types
+	R"V0G0N(
+		initialize() {
+			initializeSex();
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			
+			ids = 1:6;
+			symbols = c(1:3, "X", "Y", "MT");
+			lengths = rdunif(6, 2e7, 4e7);
+			types = c(rep("A", 3), "X", "Y", "H");
+			
+			for (id in ids, symbol in symbols, length in lengths, type in types)
+			{
+				initializeChromosome(id, length, type, symbol);
+				initializeMutationRate(1e-7);
+				initializeRecombinationRate(1e-8);   // not used for the Y
+				initializeGenomicElement(g1);
+			}
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sim.mutations;
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(NULL);
+			
+			// cross-check row sums: occurrence counts of each mutation
+			mutCounts1 = rowSums(z);
+			mutCounts2 = sim.mutationCounts(p1, NULL);
+			if (!identical(mutCounts1, mutCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check column sums: the number of mutations per individual
+			indCounts1 = colSums(z);
+			indCounts2 = sapply(inds, "applyValue.haplosomesNonNull.mutations.size();");
+			if (!identical(indCounts1, indCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check against a zygosity matrix from containsMutations()
+			m = NULL;
+			for (ind in inds)
+			{
+				zygosity = 0;
+				
+				for (chromosome in sim.chromosomes)
+				{
+					chr_haplosomes = ind.haplosomesForChromosomes(chromosome, includeNulls=F);
+					
+					if (length(chr_haplosomes) == 0)
+						next;
+					
+					chr_muts_indices = which(muts.chromosome == chromosome);
+					chr_muts = muts[chr_muts_indices];
+					
+					for (hap in chr_haplosomes)
+					{
+						chr_muts_counts = hap.containsMutations(chr_muts);
+						all_muts_counts = rep(0, length(muts));
+						all_muts_counts[chr_muts_indices] = chr_muts_counts;
+						zygosity = zygosity + all_muts_counts;
+					}
+				}
+				
+				m = cbind(m, zygosity);
+			}
+			if (!identical(z, m))
+				stop("zygosity matrices do not match");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity2);
+
+	std::string test_zygosity3 =	// same but passing mutations=mut explicitly, different code path
+	R"V0G0N(
+		initialize() {
+			initializeSex();
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			
+			ids = 1:6;
+			symbols = c(1:3, "X", "Y", "MT");
+			lengths = rdunif(6, 2e7, 4e7);
+			types = c(rep("A", 3), "X", "Y", "H");
+			
+			for (id in ids, symbol in symbols, length in lengths, type in types)
+			{
+				initializeChromosome(id, length, type, symbol);
+				initializeMutationRate(1e-7);
+				initializeRecombinationRate(1e-8);   // not used for the Y
+				initializeGenomicElement(g1);
+			}
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sim.mutations;
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(NULL);
+			
+			// cross-check row sums: occurrence counts of each mutation
+			mutCounts1 = rowSums(z);
+			mutCounts2 = sim.mutationCounts(p1, NULL);
+			if (!identical(mutCounts1, mutCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check column sums: the number of mutations per individual
+			indCounts1 = colSums(z);
+			indCounts2 = sapply(inds, "applyValue.haplosomesNonNull.mutations.size();");
+			if (!identical(indCounts1, indCounts2))
+				stop("individual mutation counts do not match");
+			
+			// cross-check against a zygosity matrix from containsMutations()
+			m = NULL;
+			for (ind in inds)
+			{
+				zygosity = 0;
+				
+				for (chromosome in sim.chromosomes)
+				{
+					chr_haplosomes = ind.haplosomesForChromosomes(chromosome, includeNulls=F);
+					
+					if (length(chr_haplosomes) == 0)
+						next;
+					
+					chr_muts_indices = which(muts.chromosome == chromosome);
+					chr_muts = muts[chr_muts_indices];
+					
+					for (hap in chr_haplosomes)
+					{
+						chr_muts_counts = hap.containsMutations(chr_muts);
+						all_muts_counts = rep(0, length(muts));
+						all_muts_counts[chr_muts_indices] = chr_muts_counts;
+						zygosity = zygosity + all_muts_counts;
+					}
+				}
+				
+				m = cbind(m, zygosity);
+			}
+			if (!identical(z, m))
+				stop("zygosity matrices do not match");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity3);
+	
+	std::string test_zygosity4 =	// test specified values for hemizygosity and haploidy
+	R"V0G0N(
+		initialize() {
+			initializeSex();
+			initializeMutationType("m1", 0.5, "n", 0.0, 0.01);
+			initializeGenomicElementType("g1", m1, 1.0);
+			
+			ids = 1:6;
+			symbols = c(1:3, "X", "Y", "MT");
+			lengths = rdunif(6, 2e7, 4e7);
+			types = c(rep("A", 3), "X", "Y", "H");
+			
+			for (id in ids, symbol in symbols, length in lengths, type in types)
+			{
+				initializeChromosome(id, length, type, symbol);
+				initializeMutationRate(1e-7);
+				initializeRecombinationRate(1e-8);   // not used for the Y
+				initializeGenomicElement(g1);
+			}
+		}
+		1 early() {
+			sim.addSubpop("p1", 10);
+		}
+		20 late() {
+			inds = p1.individuals;
+			muts = sample(sim.mutations, 1000, replace=T);
+			
+			// calculate zygosity
+			z = inds.zygosityOfMutations(muts, hemizygousValue=3, haploidValue=4);
+			
+			// check that the correct values were used for each mutation
+			for (mut in muts, index in seqAlong(muts))
+			{
+				chr = mut.chromosome;
+				col = z[index,];
+				u = sort(unique(col, preserveOrder=F));
+				if (chr.type == "A")
+					expected = c(0, 1, 2);
+				else if (chr.type == "X")
+					expected = c(0, 1, 2, 3);
+				else if (chr.type == "Y")
+					expected = c(0, 4);
+				else if (chr.type == "H")
+					expected = c(0, 4);
+				
+				if (any(match(u, expected) == -1))
+					stop("for chromosome type " + chr.type + " expected (" +
+						paste(expected, sep=", ") + ") but saw (" +
+						paste(u, sep=", ") + ")");
+			}
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(test_zygosity4);
+	
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
 

@@ -276,6 +276,8 @@ public:
 	// private scratch space for the use of Population::RemoveAllFixedMutations()
 	std::vector<MutationIndex> fixed_mutation_accumulator_;
 	
+	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
+	
 	// a user-defined tag value
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	

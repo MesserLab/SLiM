@@ -132,6 +132,7 @@ multitrait branch:
 	add a cachedFitness property to class Individual to provide another way of accessing fitness values for individuals, besides the cachedFitness() method of Subpopulation
 	extend the Eidos deleteFile() and fileExists() functions to support passing in a vector of file paths
 	extend the Eidos + operator to support adding logical+logical, integer+logical, and logical+integer (all for NxN, 1xN, Nx1), as in R
+	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
 
 
 version 5.1 (Eidos version 4.1):

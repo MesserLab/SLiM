@@ -4390,6 +4390,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->MarkDeprecated());
+		methods->emplace_back(((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_zygosityOfMutations, kEidosValueMaskInt))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OS("hemizygousValue", gStaticEidosValue_Integer1)->AddInt_OS("haploidValue", gStaticEidosValue_Integer1)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsFromHaplosomes, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("category")->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
@@ -4414,6 +4415,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 		case gID_outputIndividualsToVCF:	return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_zygosityOfMutations:		return ExecuteMethod_zygosityOfMutations(p_method_id, p_target, p_arguments, p_interpreter);
 		default:
 		{
 			// In a sense, we here "subclass" EidosDictionaryUnretained_Class to override setValuesVectorized(); we set a flag remembering that
@@ -5992,6 +5994,369 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	
 	return gStaticEidosValueVOID;
 }			
+
+//	*********************	+ (integer)zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	Individual **target_individuals = (Individual **)p_target->data();
+	int target_size = p_target->Count();
+	
+	if (target_size == 0)
+		return gStaticEidosValue_Integer_ZeroVec;
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividualsVector(target_individuals, target_size);
+	
+	if (species == nullptr)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_zygosityOfMutations): zygosityOfMutations() requires that all target individuals belong to the same species." << EidosTerminate();
+	
+	species->population_.CheckForDeferralInIndividualsVector(target_individuals, target_size, "Individual_Class::ExecuteMethod_zygosityOfMutations");
+	
+	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	
+	EidosValue *mutations_value = p_arguments[0].get();
+	EidosValue *hemizygousValue_value = p_arguments[1].get();
+	EidosValue *haploidValue_value = p_arguments[2].get();
+	
+	int64_t hemizygousValue = hemizygousValue_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t haploidValue = haploidValue_value->IntAtIndex_NOCAST(0, nullptr);
+	std::vector<Mutation *> focalMutations;
+	
+	if (mutations_value->Type() == EidosValueType::kValueNULL)
+	{
+		// When assessing all mutations, we assume that all chromosomes need to be scanned
+		int registry_size;
+		const MutationIndex *registry = species->population_.MutationRegistry(&registry_size);
+		
+		focalMutations.resize(registry_size);
+		
+		Mutation **focalMutations_data = focalMutations.data();
+		
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		{
+			Mutation *mut = mut_block_ptr + registry[registry_index];
+			
+			focalMutations_data[registry_index] = mut;
+		}
+		
+		// mark a scratch value inside all chromosomes; 1 indicates the chromosome is active
+		for (Chromosome *chromosome : chromosomes)
+			chromosome->scratch_ = 1;
+	}
+	else
+	{
+		// When assessing a vector of mutations, we first determine which chromosomes we need to scan
+		// In this case we also need to check that all mutations belong to the same species as the individuals
+		if (Community::SpeciesForMutations(mutations_value) != species)
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_zygosityOfMutations): zygosityOfMutations() requires that all mutations belong to the same species as the target individuals." << EidosTerminate();
+		
+		// zero out the scratch_ for all chromosomes; 0 indicates the chromosome is not active
+		for (Chromosome *chromosome : chromosomes)
+			chromosome->scratch_ = 0;
+		
+		Mutation **mutations_data = (Mutation **)mutations_value->ObjectData();
+		int mutations_count = mutations_value->Count();
+		
+		focalMutations.resize(mutations_count);
+		
+		Mutation **focalMutations_data = focalMutations.data();
+		
+		for (int mutations_index = 0; mutations_index < mutations_count; ++mutations_index)
+		{
+			Mutation *mut = mutations_data[mutations_index];
+			
+			focalMutations_data[mutations_index] = mut;
+			
+			// mark a scratch value inside the associated chromosome; 1 indicates the chromosome is active
+			chromosomes[mut->chromosome_index_]->scratch_ = 1;
+		}
+	}
+	
+	if (focalMutations.size() == 0)
+		return gStaticEidosValue_Integer_ZeroVec;
+	
+	// allocate the result vector
+	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(focalMutations.size() * target_size);
+	int64_t *integer_result_data = integer_result->data_mutable();
+	
+	// tabulate the results for each individuals
+	const int8_t PRESENT_HETEROZYGOUS = 1;
+	const int8_t PRESENT_HOMOZYGOUS = 2;
+	const int8_t PRESENT_HEMIZYGOUS = 3;
+	const int8_t PRESENT_HAPLOID = 4;
+	
+	for (int target_index = 0; target_index < target_size; ++target_index)
+	{
+		Individual *individual = target_individuals[target_index];
+		
+		// first we zero out our zygosity counters; note that if this is parallelized, it will need separate scratch space for each thread
+		for (Mutation *mut : focalMutations)
+			mut->scratch_ = 0;
+		
+		// loop over the active chromosomes
+		for (Chromosome *chromosome : chromosomes)
+		{
+			if (chromosome->scratch_ == 0)
+				continue;
+			
+			unsigned int chromosome_index = chromosome->Index();
+			
+			if (chromosome->IntrinsicPloidy() == 2)
+			{
+				// intrinsically diploid case
+				Haplosome *haplosome1 = individual->haplosomes_[species->FirstHaplosomeIndices()[chromosome_index]];
+				Haplosome *haplosome2 = individual->haplosomes_[species->LastHaplosomeIndices()[chromosome_index]];
+				bool haplosome1_isnull = haplosome1->IsNull();
+				bool haplosome2_isnull = haplosome2->IsNull();
+				
+				if (haplosome1_isnull && haplosome2_isnull)
+					continue;
+				
+				if (haplosome1_isnull || haplosome2_isnull)
+				{
+					// hemizygous case
+					Haplosome *haplosome = (haplosome1_isnull ? haplosome2 : haplosome1);
+					const int32_t mutrun_count = haplosome->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
+						const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+						
+						while (haplosome_iter != haplosome_max)
+						{
+							MutationIndex haplosome_mutation = *haplosome_iter++;
+							Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+							
+							mutation->scratch_ = PRESENT_HEMIZYGOUS;
+						}
+					}
+				}
+				else
+				{
+					// diploid case
+					const int32_t mutrun_count = haplosome1->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+						const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
+						
+						const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
+						const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
+						
+						const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
+						const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
+						
+						if ((haplosome1_iter != haplosome1_max) && (haplosome2_iter != haplosome2_max))
+						{
+							MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
+							slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+							
+							do
+							{
+								if (haplosome1_iter_position < haplosome2_iter_position)
+								{
+									// Process a mutation in haplosome1 since it is leading
+									(mut_block_ptr + haplosome1_mutindex)->scratch_ = PRESENT_HETEROZYGOUS;
+									
+									if (++haplosome1_iter == haplosome1_max)
+										break;
+									else {
+										haplosome1_mutindex = *haplosome1_iter;
+										haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+									}
+								}
+								else if (haplosome1_iter_position > haplosome2_iter_position)
+								{
+									// Process a mutation in haplosome2 since it is leading
+									(mut_block_ptr + haplosome2_mutindex)->scratch_ = PRESENT_HETEROZYGOUS;
+									
+									if (++haplosome2_iter == haplosome2_max)
+										break;
+									else {
+										haplosome2_mutindex = *haplosome2_iter;
+										haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+									}
+								}
+								else
+								{
+									// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
+									slim_position_t position = haplosome1_iter_position;
+									const MutationIndex *haplosome1_start = haplosome1_iter;
+									
+									// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
+									do
+									{
+										const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
+										
+										// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
+										while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
+										{
+											if (haplosome1_mutindex == *haplosome2_matchscan)
+											{
+												// a match was found, so we record a homozygous state
+												(mut_block_ptr + haplosome1_mutindex)->scratch_ = PRESENT_HOMOZYGOUS;
+												goto homozygousExit1;
+											}
+											
+											haplosome2_matchscan++;
+										}
+										
+										// no match was found, so we are heterozygous
+										(mut_block_ptr + haplosome1_mutindex)->scratch_ = PRESENT_HETEROZYGOUS;
+										
+									homozygousExit1:
+										
+										if (++haplosome1_iter == haplosome1_max)
+											break;
+										else {
+											haplosome1_mutindex = *haplosome1_iter;
+											haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+										}
+									} while (haplosome1_iter_position == position);
+									
+									// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
+									do
+									{
+										const MutationIndex *haplosome1_matchscan = haplosome1_start; 
+										
+										// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
+										while ((haplosome1_matchscan != haplosome1_max) && ((mut_block_ptr + *haplosome1_matchscan)->position_ == position))
+										{
+											if (haplosome2_mutindex == *haplosome1_matchscan)
+											{
+												// a match was found; we know this match was already found by the haplosome1 loop above
+												goto homozygousExit2;
+											}
+											
+											haplosome1_matchscan++;
+										}
+										
+										// no match was found, so we are heterozygous
+										(mut_block_ptr + haplosome2_mutindex)->scratch_ = PRESENT_HETEROZYGOUS;
+										
+									homozygousExit2:
+										
+										if (++haplosome2_iter == haplosome2_max)
+											break;
+										else {
+											haplosome2_mutindex = *haplosome2_iter;
+											haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+										}
+									} while (haplosome2_iter_position == position);
+									
+									// break out if either haplosome has reached its end
+									if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
+										break;
+								}
+							} while (true);
+						}
+						
+						// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
+#if DEBUG
+						assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
+#endif
+						
+						// if haplosome1 is unfinished, finish it
+						while (haplosome1_iter != haplosome1_max)
+						{
+							MutationIndex haplosome1_mutindex = *haplosome1_iter++;
+							(mut_block_ptr + haplosome1_mutindex)->scratch_ = PRESENT_HETEROZYGOUS;
+						}
+						
+						// if haplosome2 is unfinished, finish it
+						while (haplosome2_iter != haplosome2_max)
+						{
+							MutationIndex haplosome2_mutindex = *haplosome2_iter++;
+							(mut_block_ptr + haplosome2_mutindex)->scratch_ = PRESENT_HETEROZYGOUS;
+						}
+					}
+				}
+			}
+			else
+			{
+				// intrinsically haploid case
+				Haplosome *haplosome = individual->haplosomes_[species->FirstHaplosomeIndices()[chromosome_index]];
+				
+				if (haplosome->IsNull())
+					continue;
+				
+				// haploid case
+				const int32_t mutrun_count = haplosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
+					const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+					const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+					
+					while (haplosome_iter != haplosome_max)
+					{
+						MutationIndex haplosome_mutation = *haplosome_iter++;
+						Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+						
+						mutation->scratch_ = PRESENT_HAPLOID;
+					}
+				}
+			}
+		}
+		
+		// then run through the mutations again and transfer counts (zygosity) to the result matrix
+		int64_t *result_column_ptr = integer_result_data + focalMutations.size() * target_index;
+		
+		if ((hemizygousValue == 1) && (haploidValue == 1))
+		{
+			// simple occurrence counts
+			for (Mutation *mut : focalMutations)
+			{
+				int8_t scratch_value = mut->scratch_;
+				
+				// an occurrence count of 0 or 2 is unambiguous in the way it is recorded
+				// other occurrence counts all translate to a zygosity of 1
+				if ((scratch_value == 0) || (scratch_value == 2))
+					*(result_column_ptr++) = scratch_value;
+				else
+					*(result_column_ptr++) = 1;
+			}
+		}
+		else
+		{
+			// not simple occurrence counts
+			for (Mutation *mut : focalMutations)
+			{
+				int8_t scratch_value = mut->scratch_;
+				
+				// an occurrence count of 0 or 2 is unambiguous in the way it is recorded
+				if ((scratch_value == 0) || (scratch_value == 2))
+				{
+					*(result_column_ptr++) = scratch_value;
+					continue;
+				}
+				
+				// other occurrence counts need to be translated to the correct result value
+				if (scratch_value == PRESENT_HEMIZYGOUS)
+					*(result_column_ptr++) = hemizygousValue;
+				else if (scratch_value == PRESENT_HAPLOID)
+					*(result_column_ptr++) = haploidValue;
+				else
+					*(result_column_ptr++) = 1;
+			}
+		}
+	}
+	
+	// set the dimensionality of the result matrix
+	const int64_t dim_buf[2] = {(int64_t)focalMutations.size(), target_size};
+	
+	integer_result->SetDimensions(2, dim_buf);
+	
+	return EidosValue_SP(integer_result);
+}
 
 
 //
