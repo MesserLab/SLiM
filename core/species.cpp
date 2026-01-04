@@ -207,119 +207,20 @@ Species::~Species(void)
 	}
 }
 
-void Species::_MakeHaplosomeMetadataRecords(void)
-{
-	// Set up our default metadata records for haplosomes, which are variable-length.  The default records
-	// are used as the initial configuration of the nodes for new individuals; then, as haplosomes are
-	// added to the new individual, the is_vacant_ bits get tweaked as needed in the recorded metadata, which
-	// is a bit gross, but necessary; the node metadata is recorded before the haplosomes are created.
-	// See HaplosomeMetadataRec for comments on this design.
-	
-	// First, calculate how many bytes we need
-	size_t bits_needed_for_is_vacant = chromosomes_.size();					// each chromosome needs one bit per node table entry
-	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_vacant_[1] in the record
-	haplosome_metadata_is_vacant_bytes_ = ((bits_needed_for_is_vacant + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
-	haplosome_metadata_size_ += haplosome_metadata_is_vacant_bytes_;
-	
-	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
-	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
-	hap_metadata_1M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
-	hap_metadata_2F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
-	hap_metadata_2M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
-	
-	// Then set the is_vacant_ bits for the default state for males and females; this is the state in which
-	// all chromosomes that dictate the is_vacant_ state by sex have that dictated state, while all others
-	// (types "A", "H", and "H-" only) are assumed to be non-null.  Any positions that are unused for a
-	// given chromosome type (like the second position for type "Y") are given as 1 here, "vacant", by
-	// definition; "vacant" is either "unused" or "null haplosome".  We go from least-significant bit
-	// to most-significant bit, byte by byte, with each chromosome using two bits.  The less significant
-	// of those two bits is is_vacant_ for haplosome 1 for that chromosome; the more significant of those
-	// two bits is is_vacant_ for haplosome 2 for that chromosome.
-	IndividualSex sex = IndividualSex::kFemale;
-	HaplosomeMetadataRec *focal_metadata_1 = hap_metadata_1F_;
-	HaplosomeMetadataRec *focal_metadata_2 = hap_metadata_2F_;
-	
-	while (true)
+Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) {
+	for (auto subpop_iter : population_.subpops_)
 	{
-		for (Chromosome *chromosome : chromosomes_)
-		{
-			slim_chromosome_index_t chromosome_index = chromosome->Index();
-			bool haplosome_1_is_vacant = false, haplosome_2_is_vacant = false;
-			
-			switch (chromosome->Type())
-			{
-				case ChromosomeType::kA_DiploidAutosome:
-					haplosome_1_is_vacant = false;								// always present (by default)
-					haplosome_2_is_vacant = false;								// always present (by default)
-					break;
-					
-				case ChromosomeType::kH_HaploidAutosome:
-				case ChromosomeType::kHF_HaploidFemaleInherited:
-				case ChromosomeType::kHM_HaploidMaleInherited:
-					haplosome_1_is_vacant = false;								// always present (by default)
-					haplosome_2_is_vacant = true;								// always unused
-					break;
-					
-				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-					haplosome_1_is_vacant = false;								// always present
-					haplosome_2_is_vacant = true;								// always null
-					break;
-					
-				case ChromosomeType::kX_XSexChromosome:
-					haplosome_1_is_vacant = false;								// always present
-					haplosome_2_is_vacant = (sex == IndividualSex::kMale);		// null in males
-					break;
-					
-				case ChromosomeType::kY_YSexChromosome:
-				case ChromosomeType::kML_HaploidMaleLine:
-					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
-					haplosome_2_is_vacant = true;								// always unused
-					break;
-					
-				case ChromosomeType::kZ_ZSexChromosome:
-					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
-					haplosome_2_is_vacant = false;								// always present
-					break;
-					
-				case ChromosomeType::kW_WSexChromosome:
-				case ChromosomeType::kFL_HaploidFemaleLine:
-					haplosome_1_is_vacant = (sex == IndividualSex::kMale);		// null in males
-					haplosome_2_is_vacant = true;								// always unused
-					break;
-					
-				case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					haplosome_1_is_vacant = true;								// always null
-					haplosome_2_is_vacant = (sex == IndividualSex::kFemale);	// null in females
-					break;
-			}
-			
-			// set the appropriate bits in the focal metadata, which we know was cleared to zero initially
-			int byte_index = chromosome_index / 8;
-			int bit_shift = chromosome_index % 8;
-			
-			if (haplosome_1_is_vacant)
-				focal_metadata_1->is_vacant_[byte_index] |= (0x01 << bit_shift);
-			
-			if (haplosome_2_is_vacant)
-				focal_metadata_2->is_vacant_[byte_index] |= (0x01 << bit_shift);
-		}
-		
-		// loop from female to male, then break out
-		if (sex_enabled_ && (sex == IndividualSex::kFemale))
-		{
-			sex = IndividualSex::kMale;
-			focal_metadata_1 = hap_metadata_1M_;
-			focal_metadata_2 = hap_metadata_2M_;
-			continue;
-		}
-		break;
+		Subpopulation *subpop = subpop_iter.second;
+		if (subpop->name_ == p_subpop_name)
+			return subpop;
 	}
-	
-//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_vacant_[0]);
-//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_vacant_[0]);
-//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_vacant_[0]);
-//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_vacant_[0]);
+	return nullptr;
 }
+
+// Chromosome management
+#pragma mark -
+#pragma mark Chromosome management
+#pragma mark -
 
 Chromosome *Species::ChromosomeFromID(int64_t p_id)
 {
@@ -534,6 +435,11 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 	}
 }
 
+// Trait management
+#pragma mark -
+#pragma mark Trait management
+#pragma mark -
+
 Trait *Species::TraitFromName(const std::string &p_name) const
 {
 	auto iter = trait_from_name.find(p_name);
@@ -670,6 +576,11 @@ void Species::GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &tra
 			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): (internal error) unexpected type for parameter trait." << EidosTerminate();
 	}
 }
+
+// Input/output
+#pragma mark -
+#pragma mark Input/output
+#pragma mark -
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
 void GetInputLine(std::istream &p_input_file, std::string &p_line);
@@ -2584,16 +2495,6 @@ void Species::DeleteAllMutationRuns(void)
 			MutationRun::DeleteMutationRunContextContents(mutrun_context);
 		}
 	}
-}
-
-Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) {
-	for (auto subpop_iter : population_.subpops_)
-	{
-		Subpopulation *subpop = subpop_iter.second;
-		if (subpop->name_ == p_subpop_name)
-			return subpop;
-	}
-	return nullptr;
 }
 
 
@@ -7846,6 +7747,120 @@ void Species::RecordAllDerivedStatesFromSLiM(void)
 			}
 		}
 	}
+}
+
+void Species::_MakeHaplosomeMetadataRecords(void)
+{
+	// Set up our default metadata records for haplosomes, which are variable-length.  The default records
+	// are used as the initial configuration of the nodes for new individuals; then, as haplosomes are
+	// added to the new individual, the is_vacant_ bits get tweaked as needed in the recorded metadata, which
+	// is a bit gross, but necessary; the node metadata is recorded before the haplosomes are created.
+	// See HaplosomeMetadataRec for comments on this design.
+	
+	// First, calculate how many bytes we need
+	size_t bits_needed_for_is_vacant = chromosomes_.size();					// each chromosome needs one bit per node table entry
+	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_vacant_[1] in the record
+	haplosome_metadata_is_vacant_bytes_ = ((bits_needed_for_is_vacant + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
+	haplosome_metadata_size_ += haplosome_metadata_is_vacant_bytes_;
+	
+	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
+	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
+	hap_metadata_1M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
+	hap_metadata_2F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
+	hap_metadata_2M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
+	
+	// Then set the is_vacant_ bits for the default state for males and females; this is the state in which
+	// all chromosomes that dictate the is_vacant_ state by sex have that dictated state, while all others
+	// (types "A", "H", and "H-" only) are assumed to be non-null.  Any positions that are unused for a
+	// given chromosome type (like the second position for type "Y") are given as 1 here, "vacant", by
+	// definition; "vacant" is either "unused" or "null haplosome".  We go from least-significant bit
+	// to most-significant bit, byte by byte, with each chromosome using two bits.  The less significant
+	// of those two bits is is_vacant_ for haplosome 1 for that chromosome; the more significant of those
+	// two bits is is_vacant_ for haplosome 2 for that chromosome.
+	IndividualSex sex = IndividualSex::kFemale;
+	HaplosomeMetadataRec *focal_metadata_1 = hap_metadata_1F_;
+	HaplosomeMetadataRec *focal_metadata_2 = hap_metadata_2F_;
+	
+	while (true)
+	{
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			bool haplosome_1_is_vacant = false, haplosome_2_is_vacant = false;
+			
+			switch (chromosome->Type())
+			{
+				case ChromosomeType::kA_DiploidAutosome:
+					haplosome_1_is_vacant = false;								// always present (by default)
+					haplosome_2_is_vacant = false;								// always present (by default)
+					break;
+					
+				case ChromosomeType::kH_HaploidAutosome:
+				case ChromosomeType::kHF_HaploidFemaleInherited:
+				case ChromosomeType::kHM_HaploidMaleInherited:
+					haplosome_1_is_vacant = false;								// always present (by default)
+					haplosome_2_is_vacant = true;								// always unused
+					break;
+					
+				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+					haplosome_1_is_vacant = false;								// always present
+					haplosome_2_is_vacant = true;								// always null
+					break;
+					
+				case ChromosomeType::kX_XSexChromosome:
+					haplosome_1_is_vacant = false;								// always present
+					haplosome_2_is_vacant = (sex == IndividualSex::kMale);		// null in males
+					break;
+					
+				case ChromosomeType::kY_YSexChromosome:
+				case ChromosomeType::kML_HaploidMaleLine:
+					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_vacant = true;								// always unused
+					break;
+					
+				case ChromosomeType::kZ_ZSexChromosome:
+					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_vacant = false;								// always present
+					break;
+					
+				case ChromosomeType::kW_WSexChromosome:
+				case ChromosomeType::kFL_HaploidFemaleLine:
+					haplosome_1_is_vacant = (sex == IndividualSex::kMale);		// null in males
+					haplosome_2_is_vacant = true;								// always unused
+					break;
+					
+				case ChromosomeType::kNullY_YSexChromosomeWithNull:
+					haplosome_1_is_vacant = true;								// always null
+					haplosome_2_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					break;
+			}
+			
+			// set the appropriate bits in the focal metadata, which we know was cleared to zero initially
+			int byte_index = chromosome_index / 8;
+			int bit_shift = chromosome_index % 8;
+			
+			if (haplosome_1_is_vacant)
+				focal_metadata_1->is_vacant_[byte_index] |= (0x01 << bit_shift);
+			
+			if (haplosome_2_is_vacant)
+				focal_metadata_2->is_vacant_[byte_index] |= (0x01 << bit_shift);
+		}
+		
+		// loop from female to male, then break out
+		if (sex_enabled_ && (sex == IndividualSex::kFemale))
+		{
+			sex = IndividualSex::kMale;
+			focal_metadata_1 = hap_metadata_1M_;
+			focal_metadata_2 = hap_metadata_2M_;
+			continue;
+		}
+		break;
+	}
+	
+//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_vacant_[0]);
+//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_vacant_[0]);
+//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_vacant_[0]);
+//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_vacant_[0]);
 }
 
 void Species::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata)
