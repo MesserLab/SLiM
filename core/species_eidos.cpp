@@ -4033,7 +4033,7 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessEffectCallback(EidosGlobalSt
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (InsideTraitOrFitnessCalculation())
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
-	if (Active() && ((community_.cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+	if (Active() && ((community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
@@ -4191,7 +4191,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (InsideTraitOrFitnessCalculation())
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
-	if (Active() && ((community_.cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+	if (Active() && ((community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
