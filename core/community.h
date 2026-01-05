@@ -361,6 +361,12 @@ public:
 	static const std::vector<EidosFunctionSignature_CSP> *SLiMFunctionSignatures(void);		// all non-zero-tick functions
 	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
 	
+	// timing restriction enforcement
+	// FIXME MULTITRAIT should add more timing restriction categories like this, to share the code and make things more readable
+	void EnforceTimingRestriction_EventBlockOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
+	void EnforceTimingRestriction_ReproductionCallbackOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
+	void EnforceTimingRestriction_FirstEventStageOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
+	
 	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	

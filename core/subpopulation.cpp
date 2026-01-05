@@ -1783,6 +1783,7 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 	
 	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
+		// FIXME MULTITRAIT: I think this check will no longer be necessary, once my overhaul of optimization flags is complete; p_mutationEffect_callbacks will only contain active callbacks in the first place!
 		if (mutationEffect_callback->block_active_)
 		{
 			slim_objectid_t callback_mutation_type_id = mutationEffect_callback->mutation_type_id_;
@@ -1959,6 +1960,7 @@ slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosB
 	
 	for (SLiMEidosBlock *fitnessEffect_callback : p_fitnessEffect_callbacks)
 	{
+		// FIXME MULTITRAIT: I think this check will no longer be necessary, once my overhaul of optimization flags is complete; p_fitnessEffect_callbacks will only contain active callbacks in the first place!
 		if (fitnessEffect_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
@@ -5737,10 +5739,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
-	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() may only be called from a reproduction() callback." << EidosTerminate();
-	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() may not be called from a nested callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_ReproductionCallbackOnly("Subpopulation::ExecuteMethod_addCloned", "addCloned()", "");
 	
 	// Get and check the parent
 	EidosValue *parent_value = p_arguments[0].get();
@@ -5827,10 +5826,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
-	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
-	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() may not be called from a nested callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_ReproductionCallbackOnly("Subpopulation::ExecuteMethod_addCrossed", "addCrossed()", "");
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent1_value = p_arguments[0].get();
@@ -5942,10 +5938,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
-	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
-	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() may not be called from a nested callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_ReproductionCallbackOnly("Subpopulation::ExecuteMethod_addEmpty", "addEmpty()", "");
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[3].get();
@@ -6018,10 +6011,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
-	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
-	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() may not be called from a nested callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_ReproductionCallbackOnly("Subpopulation::ExecuteMethod_addMultiRecombinant", "addMultiRecombinant()", "");
 	
 	// We could technically make this work in the no-genetics case, if the parameters specify that both
 	// child haplosomes are null, but there's really no reason for anybody to use addRecombinant() in that
@@ -6887,10 +6877,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
-	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
-	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() may not be called from a nested callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_ReproductionCallbackOnly("Subpopulation::ExecuteMethod_addRecombinant", "addRecombinant()", "");
 	
 	// We could technically make this work in the no-genetics case, if the parameters specify that both
 	// child haplosomes are null, but there's really no reason for anybody to use addRecombinant() in that
@@ -7479,10 +7466,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
-	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
-	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() may not be called from a nested callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_ReproductionCallbackOnly("Subpopulation::ExecuteMethod_addSelfed", "addSelfed()", "");
 	
 	// Get and check the parent
 	EidosValue *parent_value = p_arguments[0].get();
@@ -7570,8 +7554,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	// TIMING RESTRICTION
 	if (community_.executing_species_ == &species_)
-		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
+		community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_takeMigrants", "takeMigrants()", ", when called on the currently executing species");
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
 	int migrant_count = migrants_value->Count();
@@ -7824,11 +7807,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
 	// TIMING RESTRICTION
-	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
-		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositions): deviatePositions() may only be called from a first(), early(), or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositions): deviatePositions() may not be called from inside a callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_deviatePositions", "deviatePositions()", "");
 	
 	int dimensionality = species_.SpatialDimensionality();
 	
@@ -8249,11 +8228,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
 	// TIMING RESTRICTION
-	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
-		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() may only be called from a first(), early(), or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() may not be called from inside a callback." << EidosTerminate();
+	community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_deviatePositionsWithMap", "deviatePositionsWithMap()", "");
 	
 	int dimensionality = species_.SpatialDimensionality();
 	
@@ -10232,9 +10207,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): removeSubpopulation() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
-	if (community_.executing_species_ == &species_)
-		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): removeSubpopulation() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
+	community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_removeSubpopulation", "removeSubpopulation()", "");
 	
 	population_.RemoveSubpopulation(*this);
 	

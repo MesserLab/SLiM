@@ -90,10 +90,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		{
 			is_neutral_ = false;
 			
-			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer neutral
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
-			
 			// get the realized dominance to handle the possibility of independent dominance
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 			
@@ -125,6 +121,16 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
 			}
 		}
+	}
+	
+	// this mutation will be added to the simulation somewhere, so tell the species about it
+	// (OK, it might not get added due to stacking policy or mutation() callbacks, but we assume it will be)
+	if (!is_neutral_)
+	{
+		species.NoteNonNeutralMutation(this);
+		
+		// FIXME MULTITRAIT maybe this should get managed by NoteNonNeutralMutation() as well?  seems like part of its duties...
+		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 	}
 	
 #if DEBUG
@@ -200,7 +206,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	}
 	else
 	{
-		// The DES of the mutation type is not pure neutral.  Note that species.pure_neutral_ might still be true
+		// The DES of the mutation type is not pure neutral.  Note that species.species_all_neutral_mutations_ might still be true
 		// at this point; the mutation type for this mutation might not be used by any genomic element type,
 		// because we might be getting called by addNewDrawnMutation() for a type that is otherwise unused.
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
@@ -220,9 +226,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			if (effect != (slim_effect_t)0.0)
 			{
 				is_neutral_ = false;
-				
-				species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-				species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 				
 				// get the realized dominance to handle the possibility of independent dominance
 				slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
@@ -256,6 +259,16 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				}
 			}
 		}
+	}
+	
+	// this mutation will be added to the simulation somewhere, so tell the species about it
+	// (OK, it might not get added due to stacking policy or mutation() callbacks, but we assume it will be)
+	if (!is_neutral_)
+	{
+		species.NoteNonNeutralMutation(this);
+		
+		// FIXME MULTITRAIT maybe this should get managed by NoteNonNeutralMutation() as well?  seems like part of its duties...
+		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 	}
 	
 #if DEBUG
@@ -317,10 +330,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		{
 			is_neutral_ = false;
 			
-			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
-			
 			// get the realized dominance to handle the possibility of independent dominance
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
 			
@@ -352,6 +361,16 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
 			}
 		}
+	}
+	
+	// this mutation will be added to the simulation somewhere, so tell the species about it
+	// (OK, it might not get added due to stacking policy or mutation() callbacks, but we assume it will be)
+	if (!is_neutral_)
+	{
+		species.NoteNonNeutralMutation(this);
+		
+		// FIXME MULTITRAIT maybe this should get managed by NoteNonNeutralMutation() as well?  seems like part of its duties...
+		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT only the mutrun(s) this is added to should be recached!
 	}
 	
 #if DEBUG
@@ -486,18 +505,6 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 	
 	if (p_new_effect != (slim_effect_t)0.0)
 	{
-		if (old_effect == (slim_effect_t)0.0)
-		{
-			// This mutation is no longer neutral; various observers care about that change
-			is_neutral_ = false;
-			
-			Species &species = mutation_type_ptr_->species_;
-			
-			species.pure_neutral_ = false;						// let the sim know that it is no longer a pure-neutral simulation
-			mutation_type_ptr_->all_neutral_mutations_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
-			species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
-		}
-		
 		slim_effect_t realized_dominance = RealizedDominanceForTrait(p_trait);
 		slim_effect_t hemizygous_dominance = traitInfoRec->hemizygous_dominance_coeff_;
 		
@@ -520,6 +527,15 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 			traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * p_new_effect);					// 2ha
 			traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * p_new_effect);					// 2ha (using h_hemi)
 		}
+		
+		// This mutation is no longer neutral; various observers care about that change
+		Species &species = mutation_type_ptr_->species_;
+		
+		is_neutral_ = false;
+		species.NoteNonNeutralMutation(this);
+		
+		// FIXME MULTITRAIT maybe this should get managed by NoteNonNeutralMutation() as well?  seems like part of its duties...
+		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
 	}
 	else	// p_new_effect == 0.0; therefore, old_effect != 0.0
 	{
@@ -541,7 +557,7 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 			}
 		}
 		
-		// Note that we cannot set species.pure_neutral_ and mutation_type_ptr_->all_neutral_mutations_ to
+		// Note that we cannot set species.species_all_neutral_mutations_ and mutation_type_ptr_->all_neutral_mutations_ to
 		// false here, because only this mutation has changed to neutral; other mutations might be non-neutral
 		
 		species.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
@@ -590,6 +606,10 @@ void Mutation::SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, sli
 	{
 		traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
 	}
+	
+	// when non-neutral mutation characteristics change, the species needs to be notified
+	if (!is_neutral_)
+		mutation_type_ptr_->species_.NoteNonNeutralMutation(this);
 }
 
 void Mutation::SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance)
@@ -608,6 +628,10 @@ void Mutation::SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitIn
 	{
 		traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * p_new_dominance * traitInfoRec->effect_size_);
 	}
+	
+	// when non-neutral mutation characteristics change, the species needs to be notified
+	if (!is_neutral_)
+		mutation_type_ptr_->species_.NoteNonNeutralMutation(this);
 }
 
 void Mutation::SelfDelete(void)
@@ -1363,9 +1387,9 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;
 	
-	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral
+	// when non-neutral mutation characteristics change, the species needs to be notified
 	if (!is_neutral_)
-		mutation_type_ptr_->all_neutral_mutations_ = false;
+		mutation_type_ptr_->species_.NoteNonNeutralMutation(this);
 	
 	// Changing the mutation type no longer changes the dominance coefficient or the hemizygous dominance
 	// coefficient, so there are no longer any side effects on trait effects / fitness to be managed here.

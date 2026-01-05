@@ -190,6 +190,32 @@ EidosSymbolTable *Community::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_sym
 	return simulation_constants_;
 }
 
+void Community::EnforceTimingRestriction_EventBlockOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
+{
+	// TIMING RESTRICTION
+	// must be called directly from an event block -- not from a callback, even if the callback was triggered inside the event block
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called directly from a first(), early(), or late() event" << p_addendum << "." << EidosTerminate();
+}
+
+void Community::EnforceTimingRestriction_ReproductionCallbackOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
+{
+	// TIMING RESTRICTION
+	// must be called directly from a reproduction() callback -- not from another callback, even if the callback was triggered inside the event block
+	if (executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called directly from a reproduction() callback" << p_addendum << "." << EidosTerminate();
+}
+
+void Community::EnforceTimingRestriction_FirstEventStageOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
+{
+	SLiMCycleStage cycle_stage = CycleStage();
+	
+	// TIMING RESTRICTION
+	// must be called during the first() event tick cycle stage, but can be within a called block during that stage
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts))
+		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called from a first() event" << p_addendum << "." << EidosTerminate();
+}
+
 //	*********************	(void)initializeSLiMModelType(string$ modelType)
 //
 EidosValue_SP Community::ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -720,6 +746,17 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 		}
 		else
 		{
+			// TIMING RESTRICTION
+			// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+			// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+			if (block->species_spec_ && ((block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
+			{
+				if (block->species_spec_->InsideTraitOrFitnessCalculation())
+					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+				if (block->species_spec_->Active() && ((cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered during the fitness recalculation tick cycle stage." << EidosTerminate();
+			}
+			
 			// all other script blocks go on the main list and get cleared out at the end of each cycle stage
 			if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
@@ -1162,6 +1199,17 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 	{
 		// this should never be hit, because the user should have no way to get a reference to a function block
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
+	}
+	
+	// TIMING RESTRICTION
+	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+	if (block->species_spec_ && ((block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
+	{
+		if (block->species_spec_->InsideTraitOrFitnessCalculation())
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+		if (block->species_spec_->Active() && ((cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled during the fitness recalculation tick cycle stage." << EidosTerminate();
 	}
 	
 	SLiMCycleStage stage = CycleStageForScriptBlockType(block->type_);

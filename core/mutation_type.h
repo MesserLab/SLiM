@@ -129,11 +129,17 @@ public:
 	MutationRun muttype_registry_;
 #endif
 	
+	// OPTIMIZATION FLAGS
+	
 	// For optimizing phenotype calculations, the exact situation for each mutation type is of great interest:
 	// does it have a neutral DES, and if so has any mutation of that type had its selection coefficient changed
 	// to be non-zero, are mutations of this type made neutral by a constant callback like "return 1.0;", and so
 	// forth.  Different parts of the code need to know slightly different things, so we have several different
 	// flags of this sort.  The subtle differences between these flags can be crucially important!
+	
+	// this flag is set if the mutation type is ever used in a GenomicElementType; if a mutation type
+	// is never used in a GenomicElementType, it does not affect whether the simulation is non-neutral
+	mutable bool used_in_GEType_;
 	
 	// all_neutral_DES_ is true if and only if the DES for all traits is "f" 0.0.  Mutations of this type
 	// could still be non-neutral (because they were changed, or created at a time when the DES was not neutral),
@@ -145,7 +151,7 @@ public:
 	// all_pure_neutral_mutations_ is true if any mutation of this type could be non-neutral.  That is the case
 	// if (a) the mutation type has ever had a non-neutral DES, or (b) if any mutation of this type has ever been
 	// configured to be non-neutral.  This flag is "sticky"; once set to true it will remain true forever.
-	mutable bool all_neutral_mutations_;
+	mutable bool muttype_all_neutral_mutations_;
 	
 	// is_pure_neutral_now_ is set up by Subpopulation::UpdateFitness(), and is valid only inside a given UpdateFitness() call.
 	// If set, it indicates that the mutation type is currently pure neutral – either because all_neutral_DES_ is set and the

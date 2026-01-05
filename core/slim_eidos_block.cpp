@@ -1754,8 +1754,18 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 			if (value && ((species_spec_ && !species_spec_->Active()) || (ticks_spec_ && !ticks_spec_->Active())))
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): property active cannot be used to activate a block that is inactive because of a 'species' or 'ticks' specifier in its declaration, or because it was deactivated by a call to skipTick()." << EidosTerminate();
 			
-			block_active_ = value;
+			// TIMING RESTRICTION
+			// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+			// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+			if (species_spec_ && ((type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
+			{
+				if (species_spec_->InsideTraitOrFitnessCalculation())
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+				if (species_spec_->Active() && ((species_spec_->community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (species_spec_->community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set during the fitness recalculation tick cycle stage." << EidosTerminate();
+			}
 			
+			block_active_ = value;
 			return;
 		}
 	

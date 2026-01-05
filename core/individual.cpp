@@ -5504,12 +5504,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				
-				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-				if (selection_coeff != (slim_effect_t)0.0)
-				{
-					species->pure_neutral_ = false;
-					mutation_type_ptr->all_neutral_mutations_ = false;
-				}
+				// all mutations seen here will be added to the simulation somewhere, so tell the species about it
+				if (!new_mut->is_neutral_)
+					species->NoteNonNeutralMutation(new_mut);
 				
 				// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 				pop.MutationRegistryAdd(new_mut);
@@ -6387,6 +6384,20 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotype(EidosGlobalStringI
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_demandPhenotype): demandPhenotype() requires that all individuals belong to the same species." << EidosTerminate();
 	
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	// demandPhenotype() is strictly limited to first()/early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running mutationEffect() callbacks, and those cannot nest inside
+	// the execution of a different species.
+	community.EnforceTimingRestriction_EventBlockOnly("Individual_Class::ExecuteMethod_demandPhenotype", "demandPhenotype()", "");
+	if (species->InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_demandPhenotype): demandPhenotype() cannot be called when trait/fitness calculation is already underway." << EidosTerminate();
+	
+	// mark that we are doing trait calculations, to block changes to callbacks in use
+	species->SetInsideTraitOrFitnessCalculation(true);
+	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
 	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "demandPhenotype");
@@ -6402,6 +6413,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotype(EidosGlobalStringI
 		DemandPhenotype<true>(species, individuals_buffer, individuals_count, trait_indices);
 	else
 		DemandPhenotype<false>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	// done with trait calculations, unblock
+	species->SetInsideTraitOrFitnessCalculation(false);
 	
 	// BCH 12/25/2025: I considered having this return the trait values that were demanded; but I think void is
 	// better.  Collecting the trait values would be additional work here that would not always be desired, so

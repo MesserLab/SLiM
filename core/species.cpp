@@ -217,6 +217,20 @@ Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) 
 	return nullptr;
 }
 
+void Species::NoteNonNeutralMutation(Mutation *p_mut)
+{
+	// This should be called whenever a non-neutral mutation is added to the simulation, or an existing
+	// mutation is made non-neutral, or an existing non-neutral mutation changes mutation type: anything
+	// that would affect the optimization flags we keep.  The goal here is to centralize this logic.
+#if DEBUG
+	if (p_mut->is_neutral_)
+			EIDOS_TERMINATION << "ERROR (Species::NoteNonNeutralMutation): (internal error) NoteNonNeutralMutation() called for neutral mutation." << EidosTerminate();
+#endif
+	
+	species_all_neutral_mutations_ = false;
+	p_mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+}
+
 // Chromosome management
 #pragma mark -
 #pragma mark Chromosome management
@@ -1329,12 +1343,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
-			if (selection_coeff != (slim_effect_t)0.0)
-			{
-				pure_neutral_ = false;
-				mutation_type_ptr->all_neutral_mutations_ = false;
-			}
+			// all mutations seen here will be added to the simulation somewhere, so tell the species about it
+			if (!new_mut->is_neutral_)
+				NoteNonNeutralMutation(new_mut);
 		}
 		
 		population_.InvalidateMutationReferencesCache();
@@ -2096,12 +2107,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
-			if (selection_coeff != (slim_effect_t)0.0)
-			{
-				pure_neutral_ = false;
-				mutation_type_ptr->all_neutral_mutations_ = false;
-			}
+			// all mutations seen here will be added to the simulation somewhere, so tell the species about it
+			if (!new_mut->is_neutral_)
+				NoteNonNeutralMutation(new_mut);
 		}
 		
 		population_.InvalidateMutationReferencesCache();
@@ -9950,6 +9958,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			
 			// add -1 to our local map, so we know there's an entry but we also know it's a substitution
 			p_mutIndexMap[mutation_id] = -1;
+			
+			// FIXME MULTITRAIT: I don't think non-neutral substitutions should make the simulation non-neutral, but this needs some thought
+			//if (!sub->is_neutral_)
+			//	NoteNonNeutralMutation(new_mut);
 		}
 		else
 		{
@@ -9968,13 +9980,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-		}
-		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_neutral_mutations_
-		if (metadata.selection_coeff_ != (slim_effect_t)0.0)
-		{
-			pure_neutral_ = false;
-			mutation_type_ptr->all_neutral_mutations_ = false;
+			
+			// all mutations seen here will be added to the simulation somewhere, so tell the species about it
+			if (!new_mut->is_neutral_)
+				NoteNonNeutralMutation(new_mut);
 		}
 	}
 }

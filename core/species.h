@@ -179,6 +179,8 @@ private:
 	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
 	slim_tick_t tick_phase_ = 1;													// the species is first active in tick tick_phase_
 	
+	bool inside_trait_or_fitness_calculation_ = false;								// a flag to prevent re-entry and prohibited operations during trait/fitness calculations
+	
 	std::string color_;																// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;									// cached color components from color_; should always be in sync
 	
@@ -393,7 +395,7 @@ public:
 	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
 	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.  BCH 12 January 2018: Also, note that this flag
 	// is unaffected by the fitness_scaling_ properties on Subpopulation and Individual, which are taken into account even when this flag is set.
-	bool pure_neutral_ = true;														// optimization flag
+	bool species_all_neutral_mutations_ = true;										// optimization flag
 	
 	// this flag tracks whether a type 's' mutation type has ever been seen; we just set it to true if we see one, we never set it back to false again, for simplicity
 	// this switches to a less optimized case when evolving in WF models, if a type 's' DES could be present, since that can open up various cans of worms
@@ -427,6 +429,8 @@ public:
 	Species& operator=(const Species&) = delete;														// no copying
 	Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name);			// construct a Species from a community / id / name
 	~Species(void);																						// destructor
+	
+	void NoteNonNeutralMutation(Mutation *p_mut);	// call whenever a non-neutral mutation needs to be noted to update optimization flags
 	
 	// Chromosome configuration and access
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
@@ -534,6 +538,9 @@ public:
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }
+	
+	inline __attribute__((always_inline)) bool InsideTraitOrFitnessCalculation(void) const									{ return inside_trait_or_fitness_calculation_; }
+	inline __attribute__((always_inline)) void SetInsideTraitOrFitnessCalculation(bool p_flag)								{ inside_trait_or_fitness_calculation_ = p_flag; }
 	
 	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
 		auto id_iter = population_.subpops_.find(p_subpop_id);
