@@ -37,7 +37,7 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
-EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), is_neutral_(p_mutation.is_neutral_), is_independent_dominance_(p_mutation.is_independent_dominance_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), is_neutral_for_all_traits_(p_mutation.is_neutral_for_all_traits_), is_neutral_for_direct_fitness_traits_(p_mutation.is_neutral_for_direct_fitness_traits_), is_independent_dominance_(p_mutation.is_independent_dominance_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 	AddKeysAndValuesFrom(&p_mutation);
@@ -73,9 +73,10 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
 	
-	// We need to infer the values of the is_neutral_ and is_independent_dominance_ flags
+	// We need to infer the values of the is_neutral_for_all_traits_ and is_independent_dominance_ flags
 	// FIXME MULTITRAIT: needs to be fixed when the below issues are fixed
-	is_neutral_ = (p_selection_coeff == (slim_effect_t)0.0);
+	is_neutral_for_all_traits_ = (p_selection_coeff == (slim_effect_t)0.0);
+	is_neutral_for_direct_fitness_traits_ = is_neutral_for_all_traits_;		// FIXME MULTITRAIT
 	is_independent_dominance_ = std::isnan(p_dominance_coeff);
 	
 	trait_info_[0].effect_size_ = p_selection_coeff;
@@ -102,11 +103,14 @@ void Substitution::SelfConsistencyCheck(const std::string &p_message_end)
 		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): (internal error) trait_info_ is nullptr" << p_message_end << "." << EidosTerminate();
 	
 	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
 	slim_trait_index_t trait_count = species.TraitCount();
 	bool all_neutral_effects = true;
+	bool all_neutral_direct_effects = true;
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
+		Trait *trait = traits[trait_index];
 		SubstitutionTraitInfo &traitInfoRec = trait_info_[trait_index];
 		
 		if (!std::isfinite(traitInfoRec.effect_size_))
@@ -121,11 +125,21 @@ void Substitution::SelfConsistencyCheck(const std::string &p_message_end)
 			EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
 		
 		if (traitInfoRec.effect_size_ != (slim_effect_t)0.0)
+		{
 			all_neutral_effects = false;
+			
+			if (trait->HasDirectFitnessEffect())
+				all_neutral_direct_effects = false;
+		}
 	}
 	
-	if ((is_neutral_ && !all_neutral_effects) || (!is_neutral_ && all_neutral_effects))
+	if ((is_neutral_for_all_traits_ && !all_neutral_effects) ||
+		(!is_neutral_for_all_traits_ && all_neutral_effects))
 		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution neutrality state is inconsistent" << p_message_end << "." << EidosTerminate();
+	
+	if ((is_neutral_for_direct_fitness_traits_ && !all_neutral_direct_effects) ||
+		(!is_neutral_for_direct_fitness_traits_ && all_neutral_direct_effects))
+		EIDOS_TERMINATION << "ERROR (Substitution::SelfConsistencyCheck): substitution direct-effect neutrality state is inconsistent" << p_message_end << "." << EidosTerminate();
 }
 
 slim_effect_t Substitution::RealizedDominanceForTrait(Trait *p_trait)
@@ -299,7 +313,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_isIndependentDominance: // ACCELERATED
 			return (is_independent_dominance_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_isNeutral:				// ACCELERATED
-			return (is_neutral_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+			return (is_neutral_for_all_traits_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutationType:			// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:				// ACCELERATED
@@ -517,7 +531,7 @@ EidosValue *Substitution::GetProperty_Accelerated_isNeutral(EidosGlobalStringID 
 	{
 		Substitution *value = (Substitution *)(p_values[value_index]);
 		
-		logical_result->set_logical_no_check(value->is_neutral_, value_index);
+		logical_result->set_logical_no_check(value->is_neutral_for_all_traits_, value_index);
 	}
 	
 	return logical_result;

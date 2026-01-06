@@ -1430,7 +1430,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			}
 			
 			Subpopulation *subpop = subpopulation_;
-			double fitness = subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : cached_fitness_UNSAFE_;
+			double fitness = subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : (double)cached_fitness_UNSAFE_;
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness));
 		}
@@ -1955,7 +1955,7 @@ EidosValue *Individual::GetProperty_Accelerated_cachedFitness(EidosGlobalStringI
 			{
 				Individual *ind = (Individual *)(p_values[value_index]);
 				
-				float_result->set_float_no_check(ind->cached_fitness_UNSAFE_, value_index);
+				float_result->set_float_no_check((double)ind->cached_fitness_UNSAFE_, value_index);
 			}
 		}
 	}
@@ -1965,7 +1965,7 @@ EidosValue *Individual::GetProperty_Accelerated_cachedFitness(EidosGlobalStringI
 		{
 			Individual *ind = (Individual *)(p_values[value_index]);
 			Subpopulation *subpop = ind->subpopulation_;
-			double fitness = (subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : ind->cached_fitness_UNSAFE_);
+			double fitness = (subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : (double)ind->cached_fitness_UNSAFE_);
 			
 			float_result->set_float_no_check(fitness, value_index);
 		}
@@ -5493,6 +5493,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_mutids.size() > 0)
 				{
 					// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
+					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 					slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 					
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
@@ -5503,10 +5504,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
-				
-				// all mutations seen here will be added to the simulation somewhere, so tell the species about it
-				if (!new_mut->is_neutral_)
-					species->NoteNonNeutralMutation(new_mut);
 				
 				// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 				pop.MutationRegistryAdd(new_mut);

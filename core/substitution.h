@@ -66,19 +66,20 @@ private:
 
 public:
 	
-	MutationType *mutation_type_ptr_;			// mutation type identifier
-	slim_position_t position_;					// position
-	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
-	slim_tick_t origin_tick_;					// tick in which mutation arose
-	slim_tick_t fixation_tick_;					// tick in which mutation fixed
-	slim_chromosome_index_t chromosome_index_;	// the (uint8_t) index of this mutation's chromosome
+	MutationType *mutation_type_ptr_;						// mutation type identifier
+	slim_position_t position_;								// position
+	slim_objectid_t subpop_index_;							// subpopulation in which mutation arose
+	slim_tick_t origin_tick_;								// tick in which mutation arose
+	slim_tick_t fixation_tick_;								// tick in which mutation fixed
+	slim_chromosome_index_t chromosome_index_;				// the (uint8_t) index of this mutation's chromosome
 	
-	unsigned int is_neutral_ : 1;				// all effects are 0.0; see mutation.h
-	unsigned int is_independent_dominance_ : 1;	// configured for "independent dominance"; see mutation.h
+	unsigned int is_neutral_for_all_traits_ : 1;			// all effects are 0.0; see mutation.h
+	unsigned int is_neutral_for_direct_fitness_traits_ : 1;	// all effects for direct fitness traits are 0.0
+	unsigned int is_independent_dominance_ : 1;				// configured for "independent dominance"; see mutation.h
 	
-	int8_t nucleotide_;							// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
-	const slim_mutationid_t mutation_id_;		// a unique id for each mutation, used to track mutations
-	slim_usertag_t tag_value_;					// a user-defined tag value
+	int8_t nucleotide_;										// A=0, C=1, G=2, T=3.  -1 means non-nucleotide-based.
+	const slim_mutationid_t mutation_id_;					// a unique id for each mutation, to track mutations
+	slim_usertag_t tag_value_;								// a user-defined tag value
 	
 	// Per-trait information
 	SubstitutionTraitInfo *trait_info_;			// OWNED: a malloced block of per-trait information

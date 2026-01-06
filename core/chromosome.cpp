@@ -1045,11 +1045,6 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
-	// BCH 1/4/2025: For simplicity we assume that this mutation will be added, and call NoteNonNeutralMutation()
-	// here.  The worst that will happen is that the simulation will shift to non-neutral unnecessarily.
-	if (!mutation->is_neutral_)
-		species_.NoteNonNeutralMutation(mutation);
-	
 	return new_mut_index;
 }
 
@@ -1446,11 +1441,6 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	}
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
-	
-	// BCH 1/4/2025: For simplicity we assume that this mutation will be added, and call NoteNonNeutralMutation()
-	// here.  The worst that will happen is that the simulation will shift to non-neutral unnecessarily.
-	if (!mutation->is_neutral_)
-		species_.NoteNonNeutralMutation(mutation);
 	
 	return new_mut_index;
 }

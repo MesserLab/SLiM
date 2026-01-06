@@ -101,19 +101,16 @@ public:
 	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
 	int state_ : 4;										// see MutationState above; 4 bits so we can represent -1
 	
-	// is_neutral_ is true if all mutation effects are 0.0 (note this might be overridden by a callback).
-	// The state of is_neutral_ is updated to reflect the current state of the mutation whenever it changes.
+	// is_neutral_for_all_traits_ is true if all mutation effects are 0.0 (note a callback might override this).
+	// The state of is_neutral_for_all_traits_ is updated to reflect the state of the mutation when it changes.
 	// This is used to make constructing non-neutral caches for trait evaluation fast with multiple traits.
-	unsigned int is_neutral_ : 1;
-	// FIXME MULTITRAIT: it occurs to me that the present is_neutral_ flag on mutations is ambiguous.  One meaning
-	// is "this mutation has neutral effects for all traits"; such mutations can be disregarded in all phenotype
-	// calculations.  The other is "this mutation has neutral effects for all traits *that have a direct fitness
-	// effect*"; such mutations can be disregarded for all calculations leading to a fitness value.  The former
-	// is the meaning that needs to determine whether a given mutation is placed into a non-neutral cache, since
-	// the non-neutral caches will be used for all phenotype calculations (I THINK?).  The latter is the meaning
-	// that should be used to determine whether a given trait with a direct fitness effect is considered to be
-	// neutral or not; if any mutation has a non-neutral effect on that given trait, then that trait needs to be
-	// demanded and factored in to fitness calculations.
+	unsigned int is_neutral_for_all_traits_ : 1;
+	
+	// is_neutral_for_direct_fitness_traits_ is all mutation effects for traits with a direct effect on fitness
+	// are 0.0 (note a callback might override this).  The state of is_neutral_for_direct_fitness_traits_ is
+	// updated to reflect the state of the mutation when it changes.  This is used to decide which traits to
+	// demand and calculate when fitness is being calculated.
+	unsigned int is_neutral_for_direct_fitness_traits_ : 1;
 	
 	// is_independent_dominance_ is true if the mutation has been configured to exhibit "independent dominance",
 	// meaning that two heterozygous effects equal one homozygous effect, allowing the effects from haplosomes
@@ -122,7 +119,7 @@ public:
 	// but only based upon the special NAN dominance value in setDominanceForTrait(); setting dominance values
 	// that happen to produce independent dominance does not cause this flag to be set, only the special NAN
 	// value.  This is used to construct independent-dominance caches for fast trait evaluation.  Note that this
-	// flag can be true when is_neutral_ is also true, recording that independent dominance was configured.
+	// flag and is_neutral_for_all_traits_ can both be true, recording that independent dominance was configured.
 	unsigned int is_independent_dominance_ : 1;
 	
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.

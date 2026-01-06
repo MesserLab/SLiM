@@ -877,12 +877,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 								for (slim_popsize_t female_index = 0; female_index < p_source_subpop->parent_first_male_index_; female_index++)
 									local_weights_data[female_index] = 0;
 								for (slim_popsize_t male_index = p_source_subpop->parent_first_male_index_; male_index < weights_length; male_index++)
-									local_weights_data[male_index] = individuals_data[male_index]->cached_fitness_UNSAFE_;
+									local_weights_data[male_index] = (double)individuals_data[male_index]->cached_fitness_UNSAFE_;
 							}
 							else
 							{
 								for (slim_popsize_t individual_index = 0; individual_index < weights_length; individual_index++)
-									local_weights_data[individual_index] = individuals_data[individual_index]->cached_fitness_UNSAFE_;
+									local_weights_data[individual_index] = (double)individuals_data[individual_index]->cached_fitness_UNSAFE_;
 							}
 						}
 						
@@ -3232,8 +3232,6 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						if (new_mutation != -1)
 							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// NoteNonNeutralMutation() has already been called by DrawNewMutationExtended() if necessary
-						
 						// see further comments below, in the non-nucleotide case; they apply here as well
 					}
 				}
@@ -3245,8 +3243,6 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						MutationIndex new_mutation = p_chromosome.DrawNewMutation(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick());
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-						
-						// NoteNonNeutralMutation() has already been called by DrawNewMutation() if necessary
 						
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
@@ -3877,8 +3873,6 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						if (new_mutation != -1)
 							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
-						// NoteNonNeutralMutation() has already been called by DrawNewMutationExtended() if necessary
-						
 						// see further comments below, in the non-nucleotide case; they apply here as well
 					}
 				}
@@ -3890,8 +3884,6 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						MutationIndex new_mutation = p_chromosome.DrawNewMutation(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-						
-						// NoteNonNeutralMutation() has already been called by DrawNewMutation() if necessary
 						
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
@@ -4295,8 +4287,6 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 						MutationIndex new_mutation = p_chromosome.DrawNewMutation(mut_positions[k], dest_subpop->subpopulation_id_, community_.Tick());
 						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-						
-						// NoteNonNeutralMutation() has already been called by DrawNewMutation() if necessary
 						
 						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added

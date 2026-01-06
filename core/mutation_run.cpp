@@ -458,7 +458,7 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 //		MutationIndex mutindex = mutations_[bufindex];
 //		Mutation *mutptr = p_mut_block_ptr + mutindex;
 //		
-//		if (!mutptr->is_neutral_)
+//		if (!mutptr->is_neutral_for_all_traits_)
 //			add_to_nonneutral_buffer(mutindex);
 //	}
 //}
@@ -494,7 +494,7 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 //		// The result of && is not order-dependent, but the first condition is checked first.
 //		// I expect many mutations would fail the first test (thus short-circuiting), whereas
 //		// few would fail the second test (i.e. actually be 0.0) in a QTL model.
-//		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && !mutptr->is_neutral_)
+//		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && !mutptr->is_neutral_for_all_traits_)
 //			add_to_nonneutral_buffer(mutindex);
 //	}
 //}
@@ -519,7 +519,7 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 //		
 //		// The result of || is not order-dependent, but the first condition is checked first.
 //		// I have reordered this to put the fast test first; or I'm guessing it's the fast test.
-//		if (!mutptr->is_neutral_ || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
+//		if (!mutptr->is_neutral_for_all_traits_ || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
 //			add_to_nonneutral_buffer(mutindex);
 //	}
 //}

@@ -2583,9 +2583,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 						
 						// No need to add the mutation to the registry; how would the user ever get a Mutation that was not already in it?
 						
-						// BCH 1/4/2025: the mutation is already in the system, so for now we don't need to note it
-						//if (!mut_to_add->is_neutral_)
-						//	species->NoteNonNeutralMutation(mut_to_add);
+						// BCH 1/4/2025: the mutation is already in the system, so its effects have been
+						// noted; no call to NoteChangedMutation(mut_to_add) is needed
 					}
 				}
 			}
@@ -2964,10 +2963,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				if (p_method_id == gID_addNewDrawnMutation)
 				{
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, origin_subpop_id, origin_tick, (int8_t)nucleotide);
-					
-					// this mutation will be added to the simulation somewhere, so tell the species about it
-					if (!new_mut->is_neutral_)
-						species->NoteNonNeutralMutation(new_mut);
 				}
 				else	// (p_method_id == gID_addNewMutation)
 				{
@@ -2984,10 +2979,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now... and hemizygous dominance...
 					// FIXME MULTITRAIT this code will also now need to handle the independent dominance case
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);
-					
-					// this mutation will be added to the simulation somewhere, so tell the species about it
-					if (!new_mut->is_neutral_)
-						species->NoteNonNeutralMutation(new_mut);
 				}
 				
 				// add to the registry, return value, haplosome, etc.
@@ -3483,10 +3474,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now... and hemizygous dominance...
 		// FIXME MULTITRAIT this code will also now need to handle the independent dominance case
 		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);
-		
-		// this mutation will be added to the simulation somewhere, so tell the species about it
-		if (!new_mut->is_neutral_)
-			species.NoteNonNeutralMutation(new_mut);
 		
 		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		pop.MutationRegistryAdd(new_mut);
@@ -4136,10 +4123,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			
-			// this mutation will be added to the simulation somewhere, so tell the species about it
-			if (!new_mut->is_neutral_)
-				species->NoteNonNeutralMutation(new_mut);
-			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			pop.MutationRegistryAdd(new_mut);
 			alt_allele_mut_indices.emplace_back(new_mut_index);
@@ -4391,7 +4374,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 		// Construct a vector of mutations to remove that is sorted by position
 		std::vector<Mutation *> mutations_to_remove;
 		Mutation * const *mutations_data = (Mutation * const *)mutations_value->ObjectData();
-		slim_trait_index_t trait_count = species->TraitCount();
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
@@ -4405,20 +4387,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			
 			mutations_to_remove.emplace_back(mut);
 			
+			// Note the removal; it might affect our caching, even if the mutation is neutral
+			species->NoteChangedMutation(mut);
+			
 			// If we're not already aware of having removed a non-neutral mutation, check on that now
-			if (!any_nonneutral_removed)
-			{
-				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
-				
-				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-				{
-					if (mut_trait_info[trait_index].effect_size_ != (slim_effect_t)0.0)
-					{
-						any_nonneutral_removed = true;
-						break;
-					}
-				}
-			}
+			if (!mut->is_neutral_for_all_traits_)
+				any_nonneutral_removed = true;
 		}
 		
 		std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});

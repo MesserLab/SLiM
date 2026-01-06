@@ -7804,8 +7804,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	
 	// NOTE: most of the code of this method is shared with pointDeviated()
 	
-	SLiMCycleStage cycle_stage = community_.CycleStage();
-	
 	// TIMING RESTRICTION
 	community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_deviatePositions", "deviatePositions()", "");
 	
@@ -8224,8 +8222,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	
 	// NOTE: most of the code of this method is shared with pointDeviated(), and even more, with deviatePositions()
-	
-	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
 	// TIMING RESTRICTION
 	community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_deviatePositionsWithMap", "deviatePositionsWithMap()", "");

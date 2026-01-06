@@ -217,18 +217,100 @@ Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) 
 	return nullptr;
 }
 
-void Species::NoteNonNeutralMutation(Mutation *p_mut)
+void Species::AutogenerationConfigurationChanged(void)
 {
-	// This should be called whenever a non-neutral mutation is added to the simulation, or an existing
-	// mutation is made non-neutral, or an existing non-neutral mutation changes mutation type: anything
-	// that would affect the optimization flags we keep.  The goal here is to centralize this logic.
-#if DEBUG
-	if (p_mut->is_neutral_)
-			EIDOS_TERMINATION << "ERROR (Species::NoteNonNeutralMutation): (internal error) NoteNonNeutralMutation() called for neutral mutation." << EidosTerminate();
-#endif
+	// This is called when a GenomicElementType / MutationType is changed, including at the end of initialize()
+	// callbacks.  It runs through the autogeneration configuration for the species and sets optimization flags.
+	int registry_count = 0;
+	population_.MutationRegistry(&registry_count);
 	
-	species_all_neutral_mutations_ = false;
-	p_mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+	// First we loop through all the mutation types (whether in use by a GEType or not) and validate them
+	type_s_DESs_present_ = false;
+	
+	for (auto mut_type_iter : mutation_types_)
+	{
+		MutationType *mutation_type_ptr = mut_type_iter.second;
+		
+		// recalculate whether the mutation type's effect distributions are all neutral
+		mutation_type_ptr->all_neutral_DES_ = true;
+		
+		for (EffectDistributionInfo &DES_info : mutation_type_ptr->effect_distributions_)
+		{
+			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+				mutation_type_ptr->all_neutral_DES_ = false;
+			
+			if (DES_info.DES_type_ == DESType::kScript)
+				type_s_DESs_present_ = true;
+		}
+		
+		// recalculate whether the mutation type has any non-neutral mutations associated with it
+		// normally this flag is sticky, because non-neutral mutations could exist even if all_neutral_DES_
+		// is true, but if there are no mutations segregating we can reset this flag and recover neutrality
+		if (registry_count == 0)
+			mutation_type_ptr->muttype_all_neutral_mutations_ = true;
+		
+		if (!mutation_type_ptr->all_neutral_DES_)
+			mutation_type_ptr->muttype_all_neutral_mutations_ = false;
+	}
+	
+	// Then we loop through the GETypes and determine whether the species has any non-neutral mutations; it is
+	// assumed that if a GEType uses a non-neutral mutation type the species is non-neutral.  Normally this
+	// flag is sticky, but if there are no segregating mutations we can reset it and recover neutrality.
+	if (registry_count == 0)
+		species_all_neutral_mutations_ = true;
+	
+	for (auto ge_type_iter : genomic_element_types_)
+	{
+		GenomicElementType *ge_type_ptr = ge_type_iter.second;
+		
+		for (MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+			if (!mutation_type_ptr->all_neutral_DES_)
+				species_all_neutral_mutations_ = false;
+	}
+	
+	// These flags cause a refresh of the user interface in SLiMgui.  We don't know for sure here that these
+	// flags need to be set, but assuming it simplifies our design and the impact should be minimal.
+	community_.mutation_types_changed_ = true;
+	community_.genomic_element_types_changed_ = true;
+}
+
+void Species::CheckOptimizationFlags(void)
+{
+	// This is called to check that the various optimization flags set by AutogenerationConfigurationChanged()
+	// are in the correct state; incorrect results will be produced if the optimization flags are wrong!
+	
+	for (auto mut_type_iter : mutation_types_)
+	{
+		MutationType *mutation_type_ptr = mut_type_iter.second;
+		
+		for (EffectDistributionInfo &DES_info : mutation_type_ptr->effect_distributions_)
+		{
+			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+				if (mutation_type_ptr->all_neutral_DES_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) all_neutral_DES_ is incorrect." << EidosTerminate();
+			
+			if (DES_info.DES_type_ == DESType::kScript)
+				if (type_s_DESs_present_ != true)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) type_s_DESs_present_ is incorrect." << EidosTerminate();
+		}
+		
+		// recalculate whether the mutation type has any non-neutral mutations associated with it
+		// normally this flag is sticky, because non-neutral mutations could exist even if all_neutral_DES_
+		// is true, but if there are no mutations segregating we can reset this flag and recover neutrality
+		if (!mutation_type_ptr->all_neutral_DES_)
+			if (mutation_type_ptr->muttype_all_neutral_mutations_ != false)
+				EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect." << EidosTerminate();
+	}
+	
+	for (auto ge_type_iter : genomic_element_types_)
+	{
+		GenomicElementType *ge_type_ptr = ge_type_iter.second;
+		
+		for (MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+			if (!mutation_type_ptr->all_neutral_DES_)
+				if (species_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect." << EidosTerminate();
+	}
 }
 
 // Chromosome management
@@ -1342,10 +1424,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-			
-			// all mutations seen here will be added to the simulation somewhere, so tell the species about it
-			if (!new_mut->is_neutral_)
-				NoteNonNeutralMutation(new_mut);
 		}
 		
 		population_.InvalidateMutationReferencesCache();
@@ -2106,10 +2184,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-			
-			// all mutations seen here will be added to the simulation somewhere, so tell the species about it
-			if (!new_mut->is_neutral_)
-				NoteNonNeutralMutation(new_mut);
 		}
 		
 		population_.InvalidateMutationReferencesCache();
@@ -2439,48 +2513,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	population_.InvalidateMutationReferencesCache();	// force a retally
 	population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 	
-	if (file_version <= 2)
-	{
-		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next cycle
-		// used to be generation + 1; removing that 18 Feb 2016 BCH
-		
-		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
-		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
-		
-		for (auto muttype_iter : mutation_types_)
-			(muttype_iter.second)->subject_to_mutationEffect_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
-		
-		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
-		community_.executing_species_ = this;
-		
-		// we need to recalculate phenotypes for traits that have a direct effect on fitness
-		std::vector<slim_trait_index_t> p_direct_effect_trait_indices;
-		const std::vector<Trait *> &traits = Traits();
-		
-		for (slim_trait_index_t trait_index = 0; trait_index < TraitCount(); ++trait_index)
-			if (traits[trait_index]->HasDirectFitnessEffect())
-				p_direct_effect_trait_indices.push_back(trait_index);
-		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-		{
-			slim_objectid_t subpop_id = subpop_pair.first;
-			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1, -1);
-			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1, -1);
-			
-			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks, p_direct_effect_trait_indices, /* p_force_trait_recalculation */ true);
-		}
-		
-		community_.executing_block_type_ = old_executing_block_type;
-		community_.executing_species_ = nullptr;
-		
-#ifdef SLIMGUI
-		// Let SLiMgui survey the population for mean fitness and such, if it is our target
-		population_.SurveyPopulation();
-#endif
-	}
-	
 	return file_tick;
 }
 #else
@@ -2743,6 +2775,11 @@ void Species::RunInitializeCallbacks(void)
 			if (chromosome->ancestral_seq_buffer_->size() != (std::size_t)(chromosome->last_position_ + 1))
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << chromosome->last_position_ + 1 << " base" << (chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome->ancestral_seq_buffer_->size() << " base" << (chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
+	
+	// notify the species that the mutation autogeneration configuration has changed; rather than
+	// calling this for each change during initialize(), we call it once here at the end; note
+	// that this design means that the flags managed by this method will be incorrect until here
+	AutogenerationConfigurationChanged();
 	
 	// always start at cycle 1, regardless of what the starting tick value might be
 	SetCycle(1);
@@ -9959,9 +9996,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// add -1 to our local map, so we know there's an entry but we also know it's a substitution
 			p_mutIndexMap[mutation_id] = -1;
 			
-			// FIXME MULTITRAIT: I don't think non-neutral substitutions should make the simulation non-neutral, but this needs some thought
-			//if (!sub->is_neutral_)
-			//	NoteNonNeutralMutation(new_mut);
+			// FIXME MULTITRAIT: non-neutral substitutions don't make the simulation non-neutral, so no
+			// NoteChangedMutation() type of call is needed, I think?  But what if substitution effects
+			// are merged into baseline offsets?  Might require more thought here.  See also where
+			// new substitutions are created by readFromPopulationFile()...
 		}
 		else
 		{
@@ -9980,10 +10018,6 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-			
-			// all mutations seen here will be added to the simulation somewhere, so tell the species about it
-			if (!new_mut->is_neutral_)
-				NoteNonNeutralMutation(new_mut);
 		}
 	}
 }

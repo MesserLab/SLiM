@@ -2610,6 +2610,9 @@ void Community::AllSpecies_CheckIntegrity(void)
 		// Check the integrity of all substitution objects
 		for (Substitution *sub : species->population_.substitutions_)
 			sub->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
+		
+		// Check the integrity of Species optimization flags
+		species->CheckOptimizationFlags();
 	}
 #endif
 }

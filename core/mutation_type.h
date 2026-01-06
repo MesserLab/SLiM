@@ -137,10 +137,6 @@ public:
 	// forth.  Different parts of the code need to know slightly different things, so we have several different
 	// flags of this sort.  The subtle differences between these flags can be crucially important!
 	
-	// this flag is set if the mutation type is ever used in a GenomicElementType; if a mutation type
-	// is never used in a GenomicElementType, it does not affect whether the simulation is non-neutral
-	mutable bool used_in_GEType_;
-	
 	// all_neutral_DES_ is true if and only if the DES for all traits is "f" 0.0.  Mutations of this type
 	// could still be non-neutral (because they were changed, or created at a time when the DES was not neutral),
 	// and callbacks could still change mutation effects.  What this flag does tell you is that if a new mutation
