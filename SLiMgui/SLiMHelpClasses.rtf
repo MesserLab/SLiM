@@ -2926,7 +2926,18 @@ The species to which the target object belongs.\
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 age \cf2 \expnd0\expndtw0\kerning0
+\f2\fs18 \cf2 <trait-name>
+\f3\i0  <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the phenotype of the individual for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 phenotypeForTrait()
+\f4\fs20  method provides an alternative way to access phenotype values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 age \cf2 \expnd0\expndtw0\kerning0
 <\'96>\cf0 \kerning1\expnd0\expndtw0  (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3896,24 +3907,6 @@ This method replaces the deprecated method
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)phenotypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Returns the individual phenotype(s) for the trait(s) specified by 
-\f3\fs18 trait
-\f4\fs20 .  The traits can be specified as 
-\f3\fs18 integer
-\f4\fs20  indices or 
-\f3\fs18 string
-\f4\fs20  names of traits in the species, or directly as 
-\f3\fs18 Trait
-\f4\fs20  objects; 
-\f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Phenotypes for a given target individual will be returned consecutively in the order in which the traits are specified by 
-\f3\fs18 trait
-\f4\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0objectTags\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4106,6 +4099,24 @@ The parameters
 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)phenotypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the individual phenotype(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Phenotypes for a given target individual will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(object<Mutation>)readIndividualsFromVCF(string$\'a0filePath, [Nio<MutationType>$\'a0mutationType\'a0=\'a0NULL])\
@@ -6142,7 +6153,49 @@ You can get the
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 chromosome => (object<Chromosome>$)\
+\f2\fs18 \cf2 <trait-name>
+\f3\i0 Dominance \expnd0\expndtw0\kerning0
+<\'96>\kerning1\expnd0\expndtw0  (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the dominance coefficient of the mutation for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 dominance
+\f4\fs20  property and the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method provide alternative ways to access dominance values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 Effect \expnd0\expndtw0\kerning0
+<\'96>\kerning1\expnd0\expndtw0  (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the effect size of the mutation for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 effect
+\f4\fs20  property and the 
+\f3\fs18 effectForTrait()
+\f4\fs20  method provide alternative ways to access effect values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 HemizygousDominance \expnd0\expndtw0\kerning0
+<\'96>\kerning1\expnd0\expndtw0  (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the hemizygous dominance coefficient of the mutation for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 hemizygousDominance
+\f4\fs20  property and the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method provide alternative ways to access hemizygous dominance values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The 
@@ -9148,7 +9201,26 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 avatar => (string$)\
+\f2\fs18 \cf2 <trait-name>
+\f3\i0  => (object<Trait>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the 
+\f3\fs18 Trait
+\f4\fs20  object in the species for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 traits
+\f4\fs20  property and the 
+\f3\fs18 traitsWithIndices()
+\f4\fs20  and 
+\f3\fs18 traitsWithNames()
+\f4\fs20  methods provide alternative ways to access 
+\f3\fs18 Trait
+\f4\fs20  objects.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 avatar => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The avatar string used to represent this species in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Avatars are typically one-character strings, often using an emoji that symbolizes the species.  This property is read-only; its value should be set with the 
@@ -14312,7 +14384,46 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 chromosome => (object<Chromosome>$)\
+\f2\fs18 \cf2 <trait-name>
+\f3\i0 Dominance => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the dominance coefficient of the substitution for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 dominance
+\f4\fs20  property and the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method provide alternative ways to access dominance values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 Effect => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the effect size of the substitution for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 effect
+\f4\fs20  property and the 
+\f3\fs18 effectForTrait()
+\f4\fs20  method provide alternative ways to access effect values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 HemizygousDominance => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the hemizygous dominance coefficient of the substitution for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 hemizygousDominance
+\f4\fs20  property and the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method provide alternative ways to access hemizygous dominance values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The 

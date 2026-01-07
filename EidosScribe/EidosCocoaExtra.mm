@@ -223,6 +223,15 @@
 		
 		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
 		
+		// BCH 1/7/2025: For dynamic properties with a name like "<trait-name>Effect", italicize the portion in the <>
+		if ([propertyNameString hasPrefix:@"<"])
+		{
+			NSRange endRange = [propertyNameString rangeOfString:@">"];
+			
+			if (endRange.location != NSNotFound)
+				[attrStr applyFontTraits:NSItalicFontMask range:NSMakeRange(0, endRange.location)];
+		}
+		
 		return attrStr;
 	}
 	

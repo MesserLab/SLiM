@@ -1168,7 +1168,8 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			
 		default:
 		{
-			// Here we implement a special behavior: you can do mutation.<trait-name>Effect and mutation.<trait-name>Dominance to access a trait's values directly.
+			// Here we implement a special behavior: you can do mutation.<trait-name>Effect, mutation.<trait-name>Dominance,
+			// and mutation.<trait-name>HemizygousDominance to access a trait's values directly.
 			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
 			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = mutation_type_ptr_->species_;

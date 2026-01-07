@@ -624,6 +624,19 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 1);
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, typeLength);
     typeCursor.setCharFormat(typeAttrs);
+    
+    // BCH 1/7/2025: For dynamic properties with a name like "<trait-name>Effect", italicize the portion in the <>
+    if (Eidos_string_hasPrefix(property_signature->property_name_, "<"))
+    {
+        size_t end_position = property_signature->property_name_.find_first_of('>');
+        QTextCharFormat italicTypeAttrs(functionAttrs);
+        italicTypeAttrs.setFontItalic(true);
+        
+        QTextCursor dynamicCursor(lineCursor);
+        dynamicCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
+        dynamicCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(end_position));
+        dynamicCursor.setCharFormat(italicTypeAttrs);
+    }
 }
 
 void ColorizeCallSignature(const EidosCallSignature *call_signature, double pointSize, QTextCursor lineCursor)
