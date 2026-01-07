@@ -68,8 +68,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	is_neutral_for_all_traits_ = true;					// will be set to false below as needed
 	is_neutral_for_direct_fitness_traits_ = true;
 	
-	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
-	is_independent_dominance_ = std::isnan(p_dominance_coeff);
+	// a dominance coefficient of NAN indicates independent dominance
+	independent_dominance_for_all_traits_ = true;
+	independent_dominance_for_any_traits_ = false;
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
@@ -93,6 +94,11 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			if (trait->HasDirectFitnessEffect())
 				is_neutral_for_direct_fitness_traits_ = false;
+			
+			if (std::isnan(dominance))
+				independent_dominance_for_any_traits_ = true;
+			else
+				independent_dominance_for_all_traits_ = false;
 			
 			// get the realized dominance to handle the possibility of independent dominance
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
@@ -172,8 +178,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	is_neutral_for_all_traits_ = true;					// will be set to false below as needed
 	is_neutral_for_direct_fitness_traits_ = true;
 	
-	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
-	is_independent_dominance_ = std::isnan(mutation_type_ptr_->DefaultDominanceForTrait(0));
+	// a dominance coefficient of NAN indicates independent dominance
+	independent_dominance_for_all_traits_ = true;
+	independent_dominance_for_any_traits_ = false;
 	
 	if (mutation_type_ptr_->all_neutral_DES_)
 	{
@@ -228,6 +235,11 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				
 				if (trait->HasDirectFitnessEffect())
 					is_neutral_for_direct_fitness_traits_ = false;
+				
+				if (std::isnan(dominance))
+					independent_dominance_for_any_traits_ = true;
+				else
+					independent_dominance_for_all_traits_ = false;
 				
 				// get the realized dominance to handle the possibility of independent dominance
 				slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
@@ -304,8 +316,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	is_neutral_for_all_traits_ = true;		// will be set to false below as needed
 	is_neutral_for_direct_fitness_traits_ = true;
 	
-	// a dominance coefficient of NAN indicates independent dominance; it must be NAN for all traits
-	is_independent_dominance_ = std::isnan(p_dominance_coeff);
+	// a dominance coefficient of NAN indicates independent dominance
+	independent_dominance_for_all_traits_ = true;
+	independent_dominance_for_any_traits_ = false;
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
@@ -329,6 +342,11 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			if (trait->HasDirectFitnessEffect())
 				is_neutral_for_direct_fitness_traits_ = false;
+			
+			if (std::isnan(dominance))
+				independent_dominance_for_any_traits_ = true;
+			else
+				independent_dominance_for_all_traits_ = false;
 			
 			// get the realized dominance to handle the possibility of independent dominance
 			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
@@ -384,8 +402,50 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		gSLiM_next_mutation_id = mutation_id_ + 1;
 }
 
-void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
+void Mutation::EvaluateFlags(void)
 {
+	// This mirrors Mutation::SelfConsistencyCheck(); essentially it sets up flags as expected by that method.
+	// When we know the specific nature of a change, there can be some wasted effort here, but changes to the
+	// state of mutations are not common, and guaranteeing consistency is more important.
+	Species &species = mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	const std::vector<Trait *> &traits = species.Traits();
+	slim_trait_index_t trait_count = species.TraitCount();
+	
+	// keep flags in local variables until we are ready to set their final values
+	bool is_neutral_for_all_traits = true;
+	bool is_neutral_for_direct_fitness_traits = true;
+	bool independent_dominance_for_all_traits = true;
+	bool independent_dominance_for_any_traits = false;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		MutationTraitInfo &traitInfoRec = mut_trait_info[trait_index];
+		
+		if (traitInfoRec.effect_size_ != (slim_effect_t)0.0)
+		{
+			is_neutral_for_all_traits = false;
+			
+			if (traits[trait_index]->HasDirectFitnessEffect())
+				is_neutral_for_direct_fitness_traits = false;
+			
+			if (std::isnan(traitInfoRec.dominance_coeff_UNSAFE_))
+				independent_dominance_for_any_traits = true;
+			else
+				independent_dominance_for_all_traits = false;
+		}
+	}
+	
+	is_neutral_for_all_traits_ = is_neutral_for_all_traits;
+	is_neutral_for_direct_fitness_traits_ = is_neutral_for_direct_fitness_traits;
+	independent_dominance_for_all_traits_ = independent_dominance_for_all_traits;
+	independent_dominance_for_any_traits_ = independent_dominance_for_any_traits;
+}
+
+void Mutation::SelfConsistencyCheck(const std::string &p_message_end) const
+{
+	// This mirrors Mutation::EvaluateFlags(); essentially it checks that flags are set as guaranteed by that method
 	if (!mutation_type_ptr_)
 		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) mutation_type_ptr_ is nullptr" << p_message_end << "." << EidosTerminate();
 	
@@ -398,8 +458,10 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
 	
 	const std::vector<Trait *> &traits = species.Traits();
 	slim_trait_index_t trait_count = species.TraitCount();
-	bool all_neutral_effects = true;
-	bool all_neutral_direct_effects = true;
+	bool is_neutral_for_all_traits = true;
+	bool is_neutral_for_direct_fitness_traits = true;
+	bool independent_dominance_for_all_traits = true;
+	bool independent_dominance_for_any_traits = false;
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
@@ -408,14 +470,10 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
 		
 		if (!std::isfinite(traitInfoRec.effect_size_))
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation effect size is non-finite" << p_message_end << "." << EidosTerminate();
-		if (std::isinf(traitInfoRec.dominance_coeff_UNSAFE_))	// NAN is legal sometimes, checked below
+		if (std::isinf(traitInfoRec.dominance_coeff_UNSAFE_))	// NAN is legal
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation dominance is infinite" << p_message_end << "." << EidosTerminate();
 		if (!std::isfinite(traitInfoRec.hemizygous_dominance_coeff_))
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation hemizygous dominance is non-finite" << p_message_end << "." << EidosTerminate();
-		
-		if ((is_independent_dominance_ && !std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)) ||
-			(!is_independent_dominance_ && std::isnan(traitInfoRec.dominance_coeff_UNSAFE_)))
-			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
 		
 		slim_effect_t effect_size = traitInfoRec.effect_size_;
 		slim_effect_t dominance = RealizedDominanceForTrait(trait);		// handle NAN for independent dominance
@@ -442,25 +500,38 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end)
 		if (correct_hemizygous_effect != traitInfoRec.hemizygous_effect_)
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) hemizygous_effect_ does not match expectations" << p_message_end << "." << EidosTerminate();
 		
-		if (traitInfoRec.effect_size_ != (slim_effect_t)0.0)
+		if (effect_size != (slim_effect_t)0.0)
 		{
-			all_neutral_effects = false;
+			is_neutral_for_all_traits = false;
 			
 			if (trait->HasDirectFitnessEffect())
-				all_neutral_direct_effects = false;
+				is_neutral_for_direct_fitness_traits = false;
+			
+			if (std::isnan(traitInfoRec.dominance_coeff_UNSAFE_))
+				independent_dominance_for_any_traits = true;
+			else
+				independent_dominance_for_all_traits = false;
 		}
 	}
 	
-	if ((is_neutral_for_all_traits_ && !all_neutral_effects) ||
-		(!is_neutral_for_all_traits_ && all_neutral_effects))
+	if ((is_neutral_for_all_traits_ && !is_neutral_for_all_traits) ||
+		(!is_neutral_for_all_traits_ && is_neutral_for_all_traits))
 		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation neutrality state is inconsistent" << p_message_end << "." << EidosTerminate();
 	
-	if ((is_neutral_for_direct_fitness_traits_ && !all_neutral_direct_effects) ||
-		(!is_neutral_for_direct_fitness_traits_ && all_neutral_direct_effects))
+	if ((is_neutral_for_direct_fitness_traits_ && !is_neutral_for_direct_fitness_traits) ||
+		(!is_neutral_for_direct_fitness_traits_ && is_neutral_for_direct_fitness_traits))
 		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): mutation direct-effect neutrality state is inconsistent" << p_message_end << "." << EidosTerminate();
+	
+	if ((independent_dominance_for_all_traits && !independent_dominance_for_all_traits_) ||
+		(!independent_dominance_for_all_traits && independent_dominance_for_all_traits_))
+		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): independent_dominance_for_all_traits_ state is inconsistent" << p_message_end << "." << EidosTerminate();
+	
+	if ((independent_dominance_for_any_traits && !independent_dominance_for_any_traits_) ||
+		(!independent_dominance_for_any_traits && independent_dominance_for_any_traits_))
+		EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): independent_dominance_for_any_traits_ state is inconsistent" << p_message_end << "." << EidosTerminate();
 }
 
-slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait)
+slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait) const
 {
 	slim_trait_index_t trait_index = p_trait->Index();
 	Species &species = mutation_type_ptr_->species_;
@@ -532,43 +603,9 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 			traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * p_new_effect);					// 2ha
 			traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * p_new_effect);					// 2ha (using h_hemi)
 		}
-		
-		is_neutral_for_all_traits_ = false;
-		
-		if (p_trait->HasDirectFitnessEffect())
-			is_neutral_for_direct_fitness_traits_ = false;
 	}
 	else	// p_new_effect == 0.0; therefore, old_effect != 0.0
 	{
-		// Changing from non-neutral to neutral; determine whether the whole mutation is now neutral
-		// This is a bit complicated, but I don't expect this case to be hit very often
-		Species &species = mutation_type_ptr_->species_;
-		const std::vector<Trait *> &traits = species.Traits();
-		MutationBlock *mutation_block = species.SpeciesMutationBlock();
-		MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
-		slim_trait_index_t trait_count = species.TraitCount();
-		
-		is_neutral_for_all_traits_ = true;
-		is_neutral_for_direct_fitness_traits_ = true;
-		
-		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-		{
-			MutationTraitInfo &info_for_trait = mut_trait_info[trait_index];
-			
-			if (info_for_trait.effect_size_ != (slim_effect_t)0.0)
-			{
-				is_neutral_for_all_traits_ = false;
-				
-				if (traits[trait_index]->HasDirectFitnessEffect())
-					is_neutral_for_direct_fitness_traits_ = false;
-				
-				break;
-			}
-		}
-		
-		// Note that we cannot set species.species_all_neutral_mutations_ and mutation_type_ptr_->all_neutral_mutations_ to
-		// false here, because only this mutation has changed to neutral; other mutations might be non-neutral
-		
 		// cache values used by the fitness calculation code for speed; see header
 		// for a neutral trait, we can set up this info very quickly
 		if (p_trait->Type() == TraitType::kMultiplicative)
@@ -585,6 +622,8 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 		}
 	}
 	
+	EvaluateFlags();
+	
 	// notify the species that the mutation has changed
 	Species &species = mutation_type_ptr_->species_;
 	
@@ -595,13 +634,6 @@ void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_e
 void Mutation::SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance)
 {
 	traitInfoRec->dominance_coeff_UNSAFE_ = p_new_dominance;
-	
-	// set the is_independent_dominance_ flag according to p_new_dominance; if this produces an inconsistency
-	// with dominance values for other traits, it will be caught by the consistency check at the end
-	if (std::isnan(p_new_dominance))
-		is_independent_dominance_ = true;
-	else
-		is_independent_dominance_ = false;
 	
 	// We only need to recache the heterozygous_effect_ value, since only it is affected by the change in
 	// dominance coefficient.  Changing dominance has no effect on is_neutral_for_all_traits_ or any of the
@@ -618,6 +650,8 @@ void Mutation::SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, sli
 	{
 		traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
 	}
+	
+	EvaluateFlags();
 	
 	// when mutation characteristics change, the species needs to be notified
 	mutation_type_ptr_->species_.NoteChangedMutation(this);
@@ -639,6 +673,9 @@ void Mutation::SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitIn
 	{
 		traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * p_new_dominance * traitInfoRec->effect_size_);
 	}
+	
+	// No need for this here; hemizygous dominance does not affect our flags
+	//EvaluateFlags();
 	
 	// when mutation characteristics change, the species needs to be notified
 	mutation_type_ptr_->species_.NoteChangedMutation(this);
@@ -705,8 +742,6 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_id_));
 		case gID_isFixed:			// ACCELERATED
 			return (((state_ == MutationState::kFixedAndSubstituted) || (state_ == MutationState::kRemovedWithSubstitution)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		case gID_isIndependentDominance: // ACCELERATED
-			return (is_independent_dominance_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_isNeutral:			// ACCELERATED
 			return (is_neutral_for_all_traits_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_isSegregating:		// ACCELERATED
@@ -926,21 +961,6 @@ EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosGlobalStringID p_prop
 		Mutation *value = (Mutation *)(p_values[value_index]);
 		
 		logical_result->set_logical_no_check((value->state_ == MutationState::kFixedAndSubstituted) || (value->state_ == MutationState::kRemovedWithSubstitution), value_index);
-	}
-	
-	return logical_result;
-}
-
-EidosValue *Mutation::GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
-{
-#pragma unused (p_property_id)
-	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
-	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-	{
-		Mutation *value = (Mutation *)(p_values[value_index]);
-		
-		logical_result->set_logical_no_check(value->is_independent_dominance_, value_index);
 	}
 	
 	return logical_result;
@@ -1170,7 +1190,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
 					
 					SetEffect(trait, traitInfoRec, new_effect);
+#if DEBUG
 					SelfConsistencyCheck(" after setting " + property_string);
+#endif
 					return;
 				}
 			}
@@ -1188,7 +1210,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
 					
 					SetHemizygousDominance(trait, traitInfoRec, new_dominance);
+#if DEBUG
 					SelfConsistencyCheck(" after setting " + property_string);
+#endif
 					return;
 				}
 			}
@@ -1206,7 +1230,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
 					
 					SetDominance(trait, traitInfoRec, new_dominance);
+#if DEBUG
 					SelfConsistencyCheck(" after setting " + property_string);
+#endif
 					return;
 				}
 			}
@@ -1262,6 +1288,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 		case gID_effectForTrait:				return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_dominanceForTrait:				return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_hemizygousDominanceForTrait:	return ExecuteMethod_hemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_isIndependentDominanceForTrait:	return ExecuteMethod_isIndependentDominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationType:				return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
@@ -1381,6 +1408,44 @@ EidosValue_SP Mutation::ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStr
 	}
 }
 
+//	*********************	- (logical)isIndependentDominanceForTrait([Niso<Trait> trait = NULL])
+//
+EidosValue_SP Mutation::ExecuteMethod_isIndependentDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = mutation_type_ptr_->species_;
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "isIndependentDominanceForTrait");
+	
+	// get the trait info for this mutation
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
+	
+	if (trait_indices.size() == 1)
+	{
+		slim_trait_index_t trait_index = trait_indices[0];
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;
+		
+		return (std::isnan(dominance) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	}
+	else
+	{
+		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(trait_indices.size());
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;
+			
+			logical_result->push_logical_no_check(std::isnan(dominance));
+		}
+		
+		return EidosValue_SP(logical_result);
+	}
+}
+
 //	*********************	- (void)setMutationType(io<MutationType>$ mutType)
 //
 EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1430,7 +1495,6 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isFixed,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isFixed));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isIndependentDominance,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isIndependentDominance));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNeutral,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isNeutral));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isSegregating,			true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isSegregating));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_mutationType));
@@ -1463,6 +1527,7 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_isIndependentDominanceForTrait, kEidosValueMaskLogical))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setEffectForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("effect", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setHemizygousDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
@@ -1669,8 +1734,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 	else
 		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): setEffectForTrait() requires that effect be (a) NULL, requesting an effect value drawn from the mutation's mutation type for each trait, (b) singleton, providing one effect value for all traits, (c) equal in length to the number of traits in the species, providing one effect value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one effect value per trait per mutation." << EidosTerminate();
 	
+#if DEBUG
 	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 		mutations_buffer[mutation_index]->SelfConsistencyCheck(" after setEffectForTrait()");
+#endif
 	
 	return gStaticEidosValueVOID;
 }
@@ -1886,8 +1953,10 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 	else
 		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that dominance be (a) NULL, requesting the default" << ((p_method_id == gID_setDominanceForTrait) ? " " : " hemizygous ") << "dominance coefficient from the mutation's mutation type for each trait, (b) singleton, providing one dominance value for all traits, (c) equal in length to the number of traits in the species, providing one dominance value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one dominance value per trait per mutation." << EidosTerminate();
 	
+#if DEBUG
 	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 		mutations_buffer[mutation_index]->SelfConsistencyCheck(std::string(" after ") + method_name);
+#endif
 	
 	return gStaticEidosValueVOID;
 }

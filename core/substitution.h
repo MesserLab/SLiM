@@ -75,7 +75,8 @@ public:
 	
 	unsigned int is_neutral_for_all_traits_ : 1;			// all effects are 0.0; see mutation.h
 	unsigned int is_neutral_for_direct_fitness_traits_ : 1;	// all effects for direct fitness traits are 0.0
-	unsigned int is_independent_dominance_ : 1;				// configured for "independent dominance"; see mutation.h
+	unsigned int independent_dominance_for_all_traits_ : 1;	// all non-neutral traits configured for "independent dominance"; see mutation.h
+	unsigned int independent_dominance_for_any_traits_ : 1;	// any non-neutral traits configured for "independent dominance"; see mutation.h
 	
 	int8_t nucleotide_;										// A=0, C=1, G=2, T=3.  -1 means non-nucleotide-based.
 	const slim_mutationid_t mutation_id_;					// a unique id for each mutation, to track mutations
@@ -92,8 +93,11 @@ public:
 	
 	inline virtual ~Substitution(void) override { free(trait_info_); trait_info_ = nullptr; }
 	
+	// Re-evaluate our internal flags (neutrality, independent dominance) based upon current state
+	void EvaluateFlags(void);
+	
 	// Check that our internal state all makes sense
-	void SelfConsistencyCheck(const std::string &p_message_end);
+	void SelfConsistencyCheck(const std::string &p_message_end) const;
 	
 	// This handles the possibility that a dominance coefficient is NAN, representing independent dominance, and returns the correct value
 	slim_effect_t RealizedDominanceForTrait(Trait *p_trait);
@@ -113,10 +117,10 @@ public:
 	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_isIndependentDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isNeutral(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);

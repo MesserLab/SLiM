@@ -6166,7 +6166,7 @@ You can get the
 \f4\fs20  to access the dominance for that trait.  The dominance coefficient(s) of a mutation can be changed with the 
 \f3\fs18 setDominanceForTrait()
 \f4\fs20  method.\
-If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
+If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
 \f3\fs18 initializeMutationType()
@@ -6174,7 +6174,9 @@ If the target mutation has been configured to exhibit independent dominance by s
 \f3\fs18 setDominanceForTrait()
 \f4\fs20 , this property does not provide that value of 
 \f3\fs18 NAN
-\f4\fs20 ; instead, it provides the dominance values that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance values.  These realized dominance values depend upon the mutation\'92s corresponding effects, and may change if those effects change.  The class 
+\f4\fs20 ; instead, it provides the dominance value that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance value (see 
+\f3\fs18 isIndependentDominanceForTrait()
+\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect, and may change if the effect changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
 Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
@@ -6259,32 +6261,6 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f4\fs20  otherwise.  Since fixed/substituted mutations are removed from the simulation, you will only see this flag be 
 \f3\fs18 T
 \f4\fs20  if you have held onto a mutation beyond its usual lifetime.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 isIndependentDominance => (logical$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 T
-\f4\fs20  if the mutation is considered to exhibit independent dominance, 
-\f3\fs18 F
-\f4\fs20  otherwise.  For a mutation to be considered to exhibit independent dominance, it must have received its dominance from a 
-\f3\fs18 MutationType
-\f4\fs20  configured for independent dominance (with a default dominance of 
-\f3\fs18 NAN
-\f4\fs20 ), or had its dominance configured as 
-\f3\fs18 NAN
-\f4\fs20  for all traits with 
-\f3\fs18 setDominanceForTrait()
-\f4\fs20 ; simply having the appropriate dominance value is not sufficient for this determination.  Its mutation type and effect are irrelevant to this determination.  A mutation can be 
-\f3\fs18 T
-\f4\fs20  for both 
-\f3\fs18 isIndependentDominance
-\f4\fs20  and 
-\f3\fs18 isNeutral
-\f4\fs20 ; in this case, the mutation is configured to exhibit independent dominance, but happens to currently have effects of 
-\f3\fs18 0.0
-\f4\fs20  for all traits.  See the class 
-\f3\fs18 Trait
-\f4\fs20  documentation in for further discussion of independent dominance.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 isNeutral => (logical$)\
@@ -6424,7 +6400,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
-If the target mutation has been configured to exhibit independent dominance by setting its dominance values to 
+If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
 \f3\fs18 initializeMutationType()
@@ -6432,7 +6408,9 @@ If the target mutation has been configured to exhibit independent dominance by s
 \f3\fs18 setDominanceForTrait()
 \f4\fs20 , this method does not return that value of 
 \f3\fs18 NAN
-\f4\fs20 ; instead, it returns the dominance values that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance values.  These realized dominance values depend upon the mutation\'92s corresponding effects, and may change if those effects change.  The class 
+\f4\fs20 ; instead, it returns the dominance value that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance value (see 
+\f3\fs18 isIndependentDominanceForTrait()
+\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect, and may change if that effect changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6480,6 +6458,32 @@ If the target mutation has been configured to exhibit independent dominance by s
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns whether the mutation is configured for independent dominance for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  A mutation is configured for independent dominance for a trait if it inherited a default dominance of 
+\f3\fs18 NAN
+\f4\fs20  for the trait from its mutation type, or if its dominance for the trait was subsequently set to 
+\f3\fs18 NAN
+\f4\fs20  with 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 ; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation in section 26.19 for discussion of this feature.  Independent dominance flags for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6513,15 +6517,15 @@ The parameter
 \f4\fs20  to set the dominance for each of the specified traits in one mutation before moving to the next mutation.\
 A dominance value of 
 \f3\fs18 NAN
-\f4\fs20  configures the mutation to use independent dominance; see the class 
+\f4\fs20  for a given trait configures the mutation to use independent dominance for that trait; see the class 
 \f3\fs18 Trait
-\f4\fs20  documentation for discussion of this feature, which can also be set at the 
+\f4\fs20  documentation in section 26.19 for discussion of this feature, which can also be set at the 
 \f3\fs18 MutationType
 \f4\fs20  level with 
 \f3\fs18 initializeMutationType()
 \f4\fs20  or 
 \f3\fs18 setDefaultDominanceForTrait()
-\f4\fs20 .  A given mutation must be configured to exhibit independent dominance for all traits or for none; a mixed configuration is not allowed.\
+\f4\fs20 .  A given mutation may be configured to exhibit independent dominance for some traits and not for others; a mixed configuration is allowed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)setEffectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effect\'a0=\'a0NULL])\
@@ -6837,6 +6841,15 @@ The species to which the target object belongs.\
 \f4\fs20  method 
 \f3\fs18 setDominanceForTrait()
 \f4\fs20 .\
+If a default dominance coefficient of 
+\f3\fs18 NAN
+\f4\fs20  has been set for a given trait, to configure a default of \'93independent dominance\'94 for that trait, 
+\f3\fs18 NAN
+\f4\fs20  will be returned by this method for that trait; a realized dominance value cannot be returned since the corresponding effect size is not necessarily known.  See the 
+\f3\fs18 Mutation
+\f4\fs20  method 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  regarding obtaining the realized dominance coefficient used in a particular mutation, given that mutation\'92s effect for the trait.\
 Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
 \f3\fs18 1.0
 \f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
@@ -6967,11 +6980,9 @@ As for
 \f3\fs18 dominance
 \f4\fs20  value of 
 \f3\fs18 NAN
-\f4\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type; see the class 
+\f4\fs20  for a given trait configures the mutation type to use \'93independent dominance\'94 for that trait in new mutations of that type; see the class 
 \f3\fs18 Trait
-\f4\fs20  documentation for discussion of independent dominance.  If the mutation type is configured to use independent dominance for one trait, it must use it for 
-\f1\i all
-\f4\i0  traits; this is because the same restriction applies to mutations themselves.\
+\f4\fs20  documentation for discussion of independent dominance.  A mutation type may be configured to use independent dominance for some traits and not for others; a mixed configuration is allowed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setDefaultHemizygousDominanceForTrait(Niso<Trait>\'a0trait, float\'a0dominance)\
@@ -14359,16 +14370,6 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  object when the mutation fixes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 isIndependentDominance => (logical$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 T
-\f4\fs20  if the substitution is considered to exhibit independent dominance, 
-\f3\fs18 F
-\f4\fs20  otherwise.  The value of this property is carried over from the original mutation; see the same property on 
-\f3\fs18 Mutation
-\f4\fs20  for further details.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf2 isNeutral => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 T
@@ -14532,6 +14533,32 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns whether the substitution is configured for independent dominance for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  A substitution is configured for independent dominance for a trait if the original mutation inherited a default dominance of 
+\f3\fs18 NAN
+\f4\fs20  for the trait from its mutation type, or if the original mutation\'92s dominance for the trait was subsequently set to 
+\f3\fs18 NAN
+\f4\fs20  with 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 ; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation in section 26.19 for discussion of this feature.  Independent dominance flags for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0

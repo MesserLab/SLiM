@@ -112,15 +112,24 @@ public:
 	// demand and calculate when fitness is being calculated.
 	unsigned int is_neutral_for_direct_fitness_traits_ : 1;
 	
-	// is_independent_dominance_ is true if the mutation has been configured to exhibit "independent dominance",
-	// meaning that two heterozygous effects equal one homozygous effect, allowing the effects from haplosomes
-	// to be calculated separately with no regard for zygosity; this is configured by using NAN as the default
-	// dominance coefficient for MutationType.  It is updated if the state of the mutation's dominance changes,
-	// but only based upon the special NAN dominance value in setDominanceForTrait(); setting dominance values
-	// that happen to produce independent dominance does not cause this flag to be set, only the special NAN
-	// value.  This is used to construct independent-dominance caches for fast trait evaluation.  Note that this
-	// flag and is_neutral_for_all_traits_ can both be true, recording that independent dominance was configured.
-	unsigned int is_independent_dominance_ : 1;
+	// independent_dominance_for_all_traits_ is true if the mutation has been configured to exhibit "independent
+	// dominance" for ALL traits (among those that are non-neutral; traits for which the mutation is neutral are
+	// irrelevant for the determination of this flag).  Independent dominance is configured by using NAN as the
+	// dominance coefficient for for the mutation, for a given trait.  This flag is updated if the state of the
+	// mutation's dominance changes; it is not sticky.  If this flag is set, the mutation can be omitted from
+	// non-neutral caches even if it is non-neutral, because all of its effects can be handled separately by the
+	// independent dominance mechanism.  Note that this flag and is_neutral_for_all_traits_ can both be true,
+	// recording that independent dominance is configured even though all effects are presently neutral.  Also
+	// note that if all effects for a mutation are neutral, this flag will be true.
+	unsigned int independent_dominance_for_all_traits_ : 1;
+	
+	// independent_dominance_for_any_traits_ is true if the mutation has been configured to exhibit "independent
+	// dominance" for ANY traits (among those that are non-neutral; traits for which the mutation is neutral are
+	// irrelevant for the determination of this flag).  See independent_dominance_for_all_traits_.  If this flag
+	// is set for a given trait across all mutations, SLiM will attempt to optimize for that trait being entirely
+	// independent dominance, allowing the calculation of phenotypes for that trait to be optimized.  Note that
+	// if all effects for a mutation are neutral, this flag will be false.
+	unsigned int independent_dominance_for_any_traits_ : 1;
 	
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
@@ -163,11 +172,14 @@ public:
 	
 	virtual void SelfDelete(void) override;
 	
+	// Re-evaluate our internal flags (neutrality, independent dominance) based upon current state
+	void EvaluateFlags(void);
+	
 	// Check that our internal state all makes sense
-	void SelfConsistencyCheck(const std::string &p_message_end);
+	void SelfConsistencyCheck(const std::string &p_message_end) const;
 	
 	// This handles the possibility that a dominance coefficient is NAN, representing independent dominance, and returns the correct value
-	slim_effect_t RealizedDominanceForTrait(Trait *p_trait);
+	slim_effect_t RealizedDominanceForTrait(Trait *p_trait) const;
 	
 	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
 	void SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
@@ -186,12 +198,12 @@ public:
 	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_isIndependentDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isFixed(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_isIndependentDominance(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isNeutral(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isSegregating(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotide(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);

@@ -253,19 +253,45 @@ void Species::AutogenerationConfigurationChanged(void)
 			mutation_type_ptr->muttype_all_neutral_mutations_ = false;
 	}
 	
-	// Then we loop through the GETypes and determine whether the species has any non-neutral mutations; it is
-	// assumed that if a GEType uses a non-neutral mutation type the species is non-neutral.  Normally this
-	// flag is sticky, but if there are no segregating mutations we can reset it and recover neutrality.
+	// Then we loop through the GETypes and determine whether there are mutation types in use by a GEType
+	// that are non-neutral, and if so, set the appropriate optimization flags.  Normally these flags are
+	// sticky, but if there are no segregating mutations we can reset them and recover neutrality.
 	if (registry_count == 0)
+	{
 		species_all_neutral_mutations_ = true;
+		
+		for (Trait *trait : traits_)
+		{
+			trait->trait_all_neutral_mutations_ = true;
+			trait->trait_all_mutations_independent_dominance_ = true;
+		}
+	}
 	
 	for (auto ge_type_iter : genomic_element_types_)
 	{
 		GenomicElementType *ge_type_ptr = ge_type_iter.second;
 		
 		for (MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+		{
 			if (!mutation_type_ptr->all_neutral_DES_)
+			{
 				species_all_neutral_mutations_ = false;
+				
+				for (Trait *trait : traits_)
+				{
+					slim_trait_index_t trait_index = trait->Index();
+					EffectDistributionInfo &DES_info = mutation_type_ptr->effect_distributions_[trait_index];
+					
+					if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+					{
+						trait->trait_all_neutral_mutations_ = false;
+						
+						if (!std::isnan(DES_info.default_dominance_coeff_))
+							trait->trait_all_mutations_independent_dominance_ = false;
+					}
+				}
+			}
+		}
 	}
 	
 	// These flags cause a refresh of the user interface in SLiMgui.  We don't know for sure here that these
@@ -279,6 +305,7 @@ void Species::CheckOptimizationFlags(void)
 	// This is called to check that the various optimization flags set by AutogenerationConfigurationChanged()
 	// are in the correct state; incorrect results will be produced if the optimization flags are wrong!
 	
+	// First check that all mutation types are tracked correctly
 	for (auto mut_type_iter : mutation_types_)
 	{
 		MutationType *mutation_type_ptr = mut_type_iter.second;
@@ -287,11 +314,11 @@ void Species::CheckOptimizationFlags(void)
 		{
 			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
 				if (mutation_type_ptr->all_neutral_DES_ != false)
-					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) all_neutral_DES_ is incorrect." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) all_neutral_DES_ is incorrect (a DES is non-neutral)." << EidosTerminate();
 			
 			if (DES_info.DES_type_ == DESType::kScript)
 				if (type_s_DESs_present_ != true)
-					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) type_s_DESs_present_ is incorrect." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) type_s_DESs_present_ is incorrect (a DES uses type 's')." << EidosTerminate();
 		}
 		
 		// recalculate whether the mutation type has any non-neutral mutations associated with it
@@ -299,17 +326,118 @@ void Species::CheckOptimizationFlags(void)
 		// is true, but if there are no mutations segregating we can reset this flag and recover neutrality
 		if (!mutation_type_ptr->all_neutral_DES_)
 			if (mutation_type_ptr->muttype_all_neutral_mutations_ != false)
-				EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect (the mutation type DES is non-neutral)." << EidosTerminate();
 	}
 	
+	// Then check that mutation types used by genomic element types have the correct effect on flags
 	for (auto ge_type_iter : genomic_element_types_)
 	{
 		GenomicElementType *ge_type_ptr = ge_type_iter.second;
 		
 		for (MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+		{
 			if (!mutation_type_ptr->all_neutral_DES_)
+			{
 				if (species_all_neutral_mutations_ != false)
-					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect (a non-neutral mutation type is in use)." << EidosTerminate();
+				
+				for (Trait *trait : traits_)
+				{
+					slim_trait_index_t trait_index = trait->Index();
+					EffectDistributionInfo &DES_info = mutation_type_ptr->effect_distributions_[trait_index];
+					
+					if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+					{
+						if (trait->trait_all_neutral_mutations_ != false)
+							EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_neutral_mutations_ is incorrect (a mutation type with a non-neutral DES for the trait is in use)." << EidosTerminate();
+						
+						if (!std::isnan(DES_info.default_dominance_coeff_))
+							if (trait->trait_all_mutations_independent_dominance_ != false)
+								EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_mutations_independent_dominance_ is incorrect (a mutation type with a non-neutral non-independent DES for the trait is in use)." << EidosTerminate();
+					}
+				}
+			}
+		}
+	}
+	
+	// Finally, check that all mutations in the registry are compatible with the flag settings.  Note that this
+	// state is taken care of by _NoteNonNeutralMutation(), not by AutogenerationConfigurationChanged().
+	int registry_count = 0;
+	const MutationIndex *registry_iter = population_.MutationRegistry(&registry_count);
+	
+	if (registry_count > 0)
+	{
+		MutationBlock *mutation_block = mutation_block_;
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+			
+			mut->SelfConsistencyCheck(" in Species::CheckOptimizationFlags()");
+			
+			if (!mut->is_neutral_for_all_traits_)
+			{
+				if (species_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect (a non-neutral mutation is segregating)." << EidosTerminate();
+				
+				if (mut->mutation_type_ptr_->muttype_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect (a non-neutral mutation belongs to this mutation type)." << EidosTerminate();
+				
+				// check Trait flags against this mutation
+				MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(mut);
+				
+				for (Trait *trait : traits_)
+				{
+					slim_trait_index_t trait_index = trait->Index();
+					MutationTraitInfo &trait_info = mut_trait_info[trait_index];
+					
+					if (trait_info.effect_size_ != 0.0)
+					{
+						// this mutation is non-neutral for this trait
+						if (trait->trait_all_neutral_mutations_ != false)
+							EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_neutral_mutations_ is incorrect (a mutation has a non-neutral effect for this trait)." << EidosTerminate();
+						
+						if (!std::isnan(trait_info.dominance_coeff_UNSAFE_))
+						{
+							// this mutation is non-neutral *and* not independent-dominance
+							if (trait->trait_all_mutations_independent_dominance_ != false)
+								EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_mutations_independent_dominance_ is incorrect (a mutation has a non-neutral, non-independent effect for this trait)." << EidosTerminate();
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void Species::_NoteNonNeutralMutation(const Mutation *p_mut)
+{
+	// This is a fair bit of work, but it is only done once when a new non-neutral mutation is created, or a
+	// mutation is changed to a non-neutral state.  That is not very frequent compared to other overhead.
+	
+	species_all_neutral_mutations_ = false;
+	p_mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+	
+	// since the mutation is non-neutral for at least one trait, we have to fix the Trait flags
+	MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(p_mut);
+	
+	for (Trait *trait : traits_)
+	{
+		slim_trait_index_t trait_index = trait->Index();
+		MutationTraitInfo &trait_info = mut_trait_info[trait_index];
+		
+		if (trait_info.effect_size_ != 0.0)
+		{
+			// this mutation is non-neutral for this trait
+			trait->trait_all_neutral_mutations_ = false;
+			
+			if (!std::isnan(trait_info.dominance_coeff_UNSAFE_))
+			{
+				// this mutation is non-neutral *and* not independent-dominance
+				trait->trait_all_mutations_independent_dominance_ = false;
+			}
+		}
 	}
 }
 

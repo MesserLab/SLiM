@@ -887,7 +887,8 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20  to specify an ID of 5).  The global symbol for the new mutation type, such as 
 \f1\fs18 m5
 \f2\fs20 , is immediately available; the return value also provides the new object.\
-The 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 dominanceCoeff
 \f2\fs20  parameter supplies the default dominance coefficient for the mutation type, for all traits; 
 \f1\fs18 0.0
@@ -895,20 +896,21 @@ The
 \f1\fs18 1.0
 \f2\fs20  complete dominance, and values greater than 
 \f1\fs18 1.0
-\f2\fs20 , overdominance.  The default dominance coefficient for the mutation type for a specific trait can subsequently be configured with the 
+\f2\fs20 , overdominance.  A 
+\f1\fs18 dominanceCoeff
+\f2\fs20  value of 
+\f1\fs18 NAN
+\f2\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type, for all traits; see the class 
+\f1\fs18 Trait
+\f2\fs20  documentation for discussion of independent dominance.  The default dominance coefficient for the mutation type for a specific trait can subsequently be configured with the 
 \f1\fs18 setDefaultDominanceForTrait()
 \f2\fs20  method if desired.  Note that the mutation type\'92s default hemizygous dominance coefficient is not supplied to this function; it always defaults to 
 \f1\fs18 1.0
 \f2\fs20 , but the 
 \f1\fs18 setDefaultHemizygousDominanceForTrait()
-\f2\fs20  method can configure it subsequently if desired.  A 
-\f1\fs18 dominanceCoeff
-\f2\fs20  value of 
-\f1\fs18 NAN
-\f2\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type; see the class 
-\f1\fs18 Trait
-\f2\fs20  documentation for discussion of independent dominance.\
-The 
+\f2\fs20  method can configure it subsequently if desired.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 distributionType
 \f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
 \f1\fs18 setEffectDistributionForTrait()

@@ -252,13 +252,8 @@ void MutationType::SelfConsistencyCheck(const std::string &p_message_end)
 	
 	if (effect_distributions_.size() > 0)
 	{
-		bool is_independent_dominance = std::isnan(effect_distributions_[0].default_dominance_coeff_);
-		
 		for (EffectDistributionInfo &des_info : effect_distributions_)
 		{
-			if (std::isnan(des_info.default_dominance_coeff_) != is_independent_dominance)
-				EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): mutation type independent dominance state is inconsistent" << p_message_end << "." << EidosTerminate();
-			
 			if (std::isinf(des_info.default_dominance_coeff_))	// NAN allowed
 				EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): mutation type default dominance is infinite" << p_message_end << "." << EidosTerminate();
 			

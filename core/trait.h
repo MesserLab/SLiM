@@ -78,6 +78,16 @@ public:
 	// a user-defined tag value
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
+	// OPTIMIZATION FLAGS
+	
+	// this is set to false if any mutation has a non-neutral effect on this trait
+	bool trait_all_neutral_mutations_ = true;
+	
+	// this is set to false if any mutation has a non-neutral effect on this trait that
+	// is not designated as "independent dominance"; neutral effects don't matter
+	bool trait_all_mutations_independent_dominance_ = true;
+	
+	
 	Trait(const Trait&) = delete;									// no copying
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor

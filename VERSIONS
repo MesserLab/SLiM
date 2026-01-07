@@ -112,14 +112,15 @@ multitrait branch:
 	extend initializeMutationType() and initializeMutationTypeNuc() to make the effect distribution optional with [Ns$ distributionType = NULL], where NULL is equivalent to `"f", 0.0`
 	make setOffsetForTrait() clamp values to 0.0 for multiplicative traits; fix doc to discuss clamping of effects
 	extend all methods taking a `Nio<Trait> trait` parameter to `Niso<Trait> trait`, allowing traits to also be identified by string name
-	add the concept of "independent dominance" to SLiM; mutations with independent dominance allow optimization because two heterozygous effects equals one homozygous effect
-		initializeMutationType() and initializeMutationTypeNuc() now allow NAN to be passed for dominanceCoeff, indicating independent dominance for that mutation type (for all traits)
-		new-mutation construction now sets the `is_independent_dominance_` flag for mutations from such a mutation type
-		add isIndependentDominance and isNeutral properties to Mutation and Substitution
-		MutationType's setDefaultDominanceForTrait() now correctly handles converting mutation types to and from a default of independent dominance
-		Mutation's setDominanceForTrait() method now correctly handles converting mutations to and from independent dominance
-		a new RealizedDominance() internal (C++) method calculates the correct dominance value to use when independent dominance is configured for a mutation
-		Mutation and Substitution's dominanceForTrait() methods now use RealizedDominance(), and thus never report NAN as a dominance value (use isIndependentDominance to check for that)
+	add the concept of "independent dominance" to SLiM; mutations with independent dominance for a trait allow optimization because two heterozygous effects equals one homozygous effect
+		initializeMutationType() and initializeMutationTypeNuc() now allow NAN to be passed for dominanceCoeff, indicating independent dominance (initially for all traits)
+		new-mutation construction now sets the `is_independent_dominance_for_any_trait_` and `is_independent_dominance_for_all_traits_` flags for mutations from such a mutation type
+		add isIndependentDominanceForTrait() method to Mutation and Substitution, to test for independent dominance (since the realized dominance coefficient is provided)
+		add isNeutral property to Mutation and Substitution (indicating neutrality for all traits)
+		MutationType's setDefaultDominanceForTrait() now correctly handles the use of NAN to indicate independent dominance
+		Mutation's setDominanceForTrait() method now correctly handles the use of NAN to indicate independent dominance
+		a new RealizedDominance() internal (C++) method calculates the correct dominance value to use when independent dominance is configured for a mutation, for a particular trait
+		Mutation and Substitution's dominanceForTrait() methods now use RealizedDominance(), and thus never report NAN as a dominance value (use isIndependentDominanceForTrait() for that)
 		note that there is no concept of independent dominance for the hemizygous dominance coefficient, since hemizygous mutations are present in only one copy by definition
 	switch fitness calculation over to being based upon the calculated values of traits, rather than directly upon mutations
 	eliminate overhead for setting up fitness buffers in neutral WF models; this should provide a significant speedup for such models, if they don't use a mateChoice() callback
