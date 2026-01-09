@@ -410,7 +410,7 @@ public:
 	
 	// phenotype demand for a single trait in a single individual, across a single chromosome; the result is
 	// accumulated into the trait value of the focal individual, which must be set up with an initial value
-	// see also the method DemandPhenotype() in class Individual_Class, which calls these methods
+	// see also the DemandPhenotype_X() methods in class Individual_Class, which call these methods
 	template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 	void _IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
@@ -443,13 +443,16 @@ public:
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_zygosityOfMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	
-	EidosValue_SP ExecuteMethod_demandPhenotype(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_demandPhenotypeForIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	
 	// phenotype demand for all traits for a vector of target individuals, across all chromosomes
 	// if f_force_recalc is true all values are recalculated; if false, only NAN trait values are recalculated
 	// see also the methods class _IncorporateEffects_X() methods in class Individual, called by this method
 	template <const bool f_force_recalc>
-	void DemandPhenotype(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices) const;
+	static void DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
+	
+	template <const bool f_force_recalc>
+	static void DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> p_subpop_mutationEffect_callbacks);
 };
 
 

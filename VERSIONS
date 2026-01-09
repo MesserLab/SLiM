@@ -135,6 +135,7 @@ multitrait branch:
 	extend the Eidos + operator to support adding logical+logical, integer+logical, and logical+integer (all for NxN, 1xN, Nx1), as in R
 	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
 	add SLiMgui doc for the various dynamic properties added for traits
+	add a Species demandPhenotype() method, and change the Individual method demandPhenotype() to demandPhenotypeForIndividuals(); the Species method is generally preferred for speed
 
 
 version 5.1 (Eidos version 4.1):

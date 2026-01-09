@@ -1760,7 +1760,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 			if (species_spec_ && ((type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
 			{
 				if (species_spec_->InsideTraitOrFitnessCalculation())
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
 				if (species_spec_->Active() && ((species_spec_->community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (species_spec_->community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set during the fitness recalculation tick cycle stage." << EidosTerminate();
 			}

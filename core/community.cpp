@@ -556,7 +556,7 @@ void Community::ValidateScriptBlockCaches(void)
 	}
 }
 
-std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, Species *p_species)
+std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, Species *p_species, bool p_active_only)
 {
 	if (!script_block_types_cached_)
 		ValidateScriptBlockCaches();
@@ -658,6 +658,12 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 		
 		// check that the species matches; this check is always on, nullptr means check that the species is nullptr
 		if (p_species != script_block->species_spec_)
+			continue;
+		
+		// check that the block is active, if the caller has requested only active script blocks; in general this
+		// is not a good idea, since a callback can change its own active flag or that of another callback unless
+		// there is a specific mechanism preventing that; see SetInsideTraitOrFitnessCalculation() for example
+		if (p_active_only && !script_block->block_active_)
 			continue;
 		
 		// OK, everything matches, so we want to return this script block
@@ -2291,7 +2297,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// The zero tick is handled here by shared code, since it is the same for WF and nonWF models
 	
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
-	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, -1, -1, nullptr);
+	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 	
 	for (auto script_block : function_blocks)
 		ExecuteFunctionDefinitionBlock(script_block);
@@ -2391,7 +2397,7 @@ void Community::RunInitializeCallbacks(void)
 	num_modeltype_declarations_ = 0;
 	
 	// execute `species all` initialize() callbacks, which should always have a tick of 0 set
-	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1, nullptr);
+	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 	
 	for (auto script_block : init_blocks)
 		ExecuteEidosEvent(script_block);
@@ -2657,7 +2663,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2689,7 +2695,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage1ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2854,7 +2860,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage5ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3020,7 +3026,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3156,7 +3162,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3317,7 +3323,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage6ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);

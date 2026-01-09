@@ -160,9 +160,9 @@ public:
 	std::vector<SLiMEidosBlock*> registered_mutation_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_reproduction_callbacks_;	// nonWF only; NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	
-	// These per-subpopulation caches are used by IndividualClass::DemandPhenotype() and are valid only within
-	// that method.  There is a std::vector of PerTraitSubpopCache structs with one entry per trait in the
-	// species.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
+	// These per-subpopulation caches are used by IndividualClass::DemandPhenotype_INDIVIDUALS() and are valid
+	// only within that method.  There is a std::vector of PerTraitSubpopCache structs below with one entry per
+	// trait.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
 	typedef struct _PerTraitSubpopCaches {
 		std::vector<SLiMEidosBlock*> mutationEffect_callbacks_per_trait;	// NOT OWNED: mutationEffect() callbacks per subpopulation per trait
 		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
@@ -383,11 +383,17 @@ public:
 	void FixNonNeutralCaches_OMP(void);
 #endif
 	
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
+	// this is called by Population::RecalculateFitness(); first it expresses demand for traits that have direct fitness effects, then it recalculates fitness values
+	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
 	
+	// this is called only by UpdateFitness(), and calculates fitness values given that trait values have already been demanded/calculated
 	template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
-	void _UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+	void _CalculateFitnessAfterDemand(std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
 	
+	// WF only: this updates the WF model fitness buffers after UpdateFitness() has completed, preparing to draw parents according to relative fitness
+	void UpdateWFFitnessBuffers(void);
+	
+	// applying mutationEffect() and fitnessEffect() callbacks during trait/fitness calculation
 	slim_effect_t ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	slim_fitness_t ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual);
 	
@@ -430,7 +436,6 @@ public:
 	// WF only:
 	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
 	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation haplosomes and individuals to fit
-	void UpdateWFFitnessBuffers(void);																					// update the WF model fitness buffers after UpdateFitness()
 	void TallyLifetimeReproductiveOutput(void);
 	void SwapChildAndParentHaplosomes(void);															// switch to the next generation by swapping; the children become the parents
 

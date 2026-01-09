@@ -2411,6 +2411,7 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_chromosomesWithSymbols:			return ExecuteMethod_chromosomesWithSymbols(p_method_id, p_arguments, p_interpreter);
 		case gID_traitsWithIndices:					return ExecuteMethod_traitsWithIndices(p_method_id, p_arguments, p_interpreter);
 		case gID_traitsWithNames:					return ExecuteMethod_traitsWithNames(p_method_id, p_arguments, p_interpreter);
+		case gID_demandPhenotype:					return ExecuteMethod_demandPhenotype(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:		return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_killIndividuals:					return ExecuteMethod_killIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
@@ -3082,6 +3083,101 @@ EidosValue_SP Species::ExecuteMethod_traitsWithNames(EidosGlobalStringID p_metho
 	}
 	
 	return EidosValue_SP(result);
+}
+
+//	*********************	– (void)demandPhenotype(Nio<Subpopulation> subpops, [Niso<Trait> trait = NULL], [l$ forceRecalc = F])
+EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *subpops_value = p_arguments[0].get();
+	EidosValue *trait_value = p_arguments[1].get();
+	EidosValue *forceRecalc_value = p_arguments[2].get();
+	
+	// TIMING RESTRICTION
+	// demandPhenotypeForIndividuals() is strictly limited to first()/early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running mutationEffect() callbacks, and those cannot nest inside
+	// the execution of a different species.
+	community_.EnforceTimingRestriction_EventBlockOnly("Species::ExecuteMethod_demandPhenotype", "demandPhenotype()", "");
+	if (InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_demandPhenotype): demandPhenotype() cannot be called when trait/fitness calculation is already underway." << EidosTerminate();
+	
+	// mark that we are doing trait calculations, to block changes to callbacks in use
+	SetInsideTraitOrFitnessCalculation(true);
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	GetTraitIndicesFromEidosValue(trait_indices, trait_value, "demandPhenotype");
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
+	
+	if (trait_count == 0)
+		return gStaticEidosValueVOID;
+	
+	// forceRecalc
+	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// subpops
+	std::vector<Subpopulation*> subpops_to_demand;
+	
+	if (subpops_value->Type() == EidosValueType::kValueNULL)
+	{
+		// demand the specified phenotypes across all subpopulations
+		subpops_to_demand.resize(population_.subpops_.size());
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+			subpops_to_demand.push_back(subpop_pair.second);
+	}
+	else
+	{
+		// requested subpops, so get them
+		int requested_subpop_count = subpops_value->Count();
+		
+		if (requested_subpop_count)
+		{
+			subpops_to_demand.resize(requested_subpop_count);
+			
+			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
+				subpops_to_demand.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this, "demandPhenotype()"));		// SPECIES CONSISTENCY CHECK
+			
+			// unique subpops_to_demand to avoid duplicated work
+			std::sort(subpops_to_demand.begin(), subpops_to_demand.end());
+			subpops_to_demand.resize(static_cast<size_t>(std::distance(subpops_to_demand.begin(), std::unique(subpops_to_demand.begin(), subpops_to_demand.end()))));
+		}
+	}
+	
+	// validate non-neutral caches and independent-dominance precalculated values
+	// FIXME MULTITRAIT: VALIDATE NON-NEUTRAL CACHES HERE
+	
+	// call DemandPhenotype_SUBPOP() to express the demand, one subpop at a time
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = Species::CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
+	
+	for (Subpopulation *subpop : subpops_to_demand)
+	{
+		// narrow down to the mutationEffect() callbacks for subpop
+		subpop_mutationEffect_callbacks.resize(0);
+		
+		for (SLiMEidosBlock *callback : mutationEffect_callbacks)
+		{
+			if ((callback->subpopulation_id_ == -1) || (callback->subpopulation_id_ == subpop->subpopulation_id_))
+				subpop_mutationEffect_callbacks.push_back(callback);
+		}
+		
+		if (forceRecalc)
+			Individual_Class::DemandPhenotype_SUBPOP<true>(this, subpop, trait_indices, subpop_mutationEffect_callbacks);
+		else
+			Individual_Class::DemandPhenotype_SUBPOP<false>(this, subpop, trait_indices, subpop_mutationEffect_callbacks);
+	}
+	
+	// done with trait calculations, unblock
+	SetInsideTraitOrFitnessCalculation(false);
+	
+	// BCH 12/25/2025: I considered having this return the trait values that were demanded; but I think void is
+	// better.  Collecting the trait values would be additional work here that would not always be desired, so
+	// it's better to make the user do it separately if they want it.  Also, this method should generally be
+	// called once to demand a set of traits, but getting a whole set of trait values back -- as an interleaved
+	// vector or a matrix -- is pretty inconvenient to work with.
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [Nio<Subpopulation> subpops = NULL])
@@ -4017,7 +4113,7 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessEffectCallback(EidosGlobalSt
 	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (InsideTraitOrFitnessCalculation())
-		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
 	if (Active() && ((community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
@@ -4175,7 +4271,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (InsideTraitOrFitnessCalculation())
-		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
 	if (Active() && ((community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
@@ -4748,6 +4844,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesWithIDs, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesWithSymbols, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString("symbols"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_demandPhenotype, kEidosValueMaskVOID))->AddIntObject_N("subpops", gSLiM_Subpopulation_Class)->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddLogical_OS("forceRecalc", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_individualsWithPedigreeIDs, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt("pedigreeIDs")->AddIntObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_killIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddIntObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));

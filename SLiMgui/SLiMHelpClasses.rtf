@@ -3703,7 +3703,7 @@ See the description of the
 \f4\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)demandPhenotype([Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
+\f3\fs18 \cf2 +\'a0(void)demandPhenotypeForIndividuals([Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Expresses \'93demand\'94 for the phenotypes (trait values) of the trait(s) specified by 
@@ -3727,12 +3727,16 @@ See the description of the
 \f4\fs20  is 
 \f3\fs18 T
 \f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
+\f3\fs18 demandPhenotypeForIndividuals()
+\f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.  Note that the target individuals are processed in the order in which they are provided; ordering artifacts could be observed if 
+\f3\fs18 mutationEffect()
+\f4\fs20  callbacks with order-dependency effects are active.\
+This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.  Note that the 
+\f3\fs18 Species
+\f4\fs20  method 
 \f3\fs18 demandPhenotype()
-\f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.\
-This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.\
-Note that the fitness recalculation tick cycle stage intrinsically expresses demand for all traits that have a direct effect on fitness, so 
-\f3\fs18 demandPhenotype()
-\f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.\
+\f4\fs20  is more efficient than this individual-level method since it processes the whole species at once, allowing a more structured computational approach.\
+Note that the fitness recalculation tick cycle stage automatically expresses demand for all traits that have a direct effect on fitness, so phenotypes often do not need to be demanded explicitly; doing so is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
@@ -6532,7 +6536,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 setDominanceForTrait()
 \f4\fs20 ; see the class 
 \f3\fs18 Trait
-\f4\fs20  documentation in section 26.19 for discussion of this feature.  Independent dominance flags for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f4\fs20  documentation for discussion of this feature.  Independent dominance flags for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6572,7 +6576,7 @@ A dominance value of
 \f3\fs18 NAN
 \f4\fs20  for a given trait configures the mutation to use independent dominance for that trait; see the class 
 \f3\fs18 Trait
-\f4\fs20  documentation in section 26.19 for discussion of this feature, which can also be set at the 
+\f4\fs20  documentation for discussion of this feature, which can also be set at the 
 \f3\fs18 MutationType
 \f4\fs20  level with 
 \f3\fs18 initializeMutationType()
@@ -10074,6 +10078,50 @@ Subpopulations added by this method will consist of individuals that are clonal 
 \f5\fs20 .
 \f4   This method is often used to determine whether an introduced mutation is still active (as opposed to being either lost or fixed).  This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f5 \
+\pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)demandPhenotype(Nio<Subpopulation>\'a0subpops, [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Expresses \'93demand\'94 for the phenotypes (trait values) of the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , for all individuals in the subpopulations specified by 
+\f3\fs18 subpops
+\f4\fs20 .  Subpopulations may be supplied either as 
+\f3\fs18 integer
+\f4\fs20  IDs, or as 
+\f3\fs18 Subpopulation
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the subpopulations in the species.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  This triggers the recalculation of those trait values in those subpopulations, as needed.  More specifically, if 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the specified trait values will only be recalculated if their current value is 
+\f3\fs18 NAN
+\f4\fs20 ; if they have any other value, they are considered to already be calculated, and will not be recalculated.  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
+\f3\fs18 demandPhenotype()
+\f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.\
+This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it for all subpopulations than to call it separately for each subpopulation.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.  Note that the 
+\f3\fs18 Individual
+\f4\fs20  method 
+\f3\fs18 demandPhenotypeForIndividuals()
+\f4\fs20  allows demand to be expressed for traits in a specific set of individuals, but is significantly less efficient than this method.\
+Note that the fitness recalculation tick cycle stage intrinsically expresses demand for all traits that have a direct effect on fitness, so 
+\f3\fs18 demandPhenotype()
+\f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Individual>)individualsWithPedigreeIDs(integer\'a0pedigreeIDs, [Nio<Subpopulation>\'a0subpops\'a0=\'a0NULL])\
@@ -14669,7 +14717,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 setDominanceForTrait()
 \f4\fs20 ; see the class 
 \f3\fs18 Trait
-\f4\fs20  documentation in section 26.19 for discussion of this feature.  Independent dominance flags for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f4\fs20  documentation for discussion of this feature.  Independent dominance flags for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0

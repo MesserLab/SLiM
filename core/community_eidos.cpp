@@ -752,7 +752,7 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 			if (block->species_spec_ && ((block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
 			{
 				if (block->species_spec_->InsideTraitOrFitnessCalculation())
-					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
 				if (block->species_spec_->Active() && ((cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered during the fitness recalculation tick cycle stage." << EidosTerminate();
 			}
@@ -1207,7 +1207,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 	if (block->species_spec_ && ((block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
 	{
 		if (block->species_spec_->InsideTraitOrFitnessCalculation())
-			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled within the context of a call to demandPhenotype() or recalculateFitness()." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
 		if (block->species_spec_->Active() && ((cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled during the fitness recalculation tick cycle stage." << EidosTerminate();
 	}

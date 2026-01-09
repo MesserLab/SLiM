@@ -5278,23 +5278,11 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1);
-	bool no_active_callbacks = true;
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	bool no_active_callbacks = (mutationEffect_callbacks.size() == 0) && (fitnessEffect_callbacks.size() == 0);
 	
-	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
-		if (callback->block_active_)
-		{
-			no_active_callbacks = false;
-			break;
-		}
-	if (no_active_callbacks)
-		for (SLiMEidosBlock *callback : fitnessEffect_callbacks)
-			if (callback->block_active_)
-			{
-				no_active_callbacks = false;
-				break;
-			}
+	// FIXME MULTITRAIT: the "regime" logic here needs to adapt to the fact that we only fetch active callbacks now; it is more conservative than it now needs to be!
 	
 	// Figure out how we are going to handle MutationRun nonneutral mutation caches; see mutation_run.h.  We need to assess
 	// the state of callbacks and decide which of the three "regimes" we are in, and then depending upon that and what

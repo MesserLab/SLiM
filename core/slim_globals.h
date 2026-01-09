@@ -953,7 +953,7 @@ extern const std::string &gStr_containsMarkerMutation;
 extern const std::string &gStr_haplosomesForChromosomes;
 extern const std::string &gStr_offsetForTrait;
 extern const std::string &gStr_phenotypeForTrait;
-extern const std::string &gStr_demandPhenotype;
+extern const std::string &gStr_demandPhenotypeForIndividuals;
 extern const std::string &gStr_setOffsetForTrait;
 extern const std::string &gStr_setPhenotypeForTrait;
 extern const std::string &gStr_relatedness;
@@ -1006,6 +1006,7 @@ extern const std::string &gStr_scriptBlocksWithIDs;
 extern const std::string &gStr_speciesWithIDs;
 extern const std::string &gStr_subpopulationsWithIDs;
 extern const std::string &gStr_subpopulationsWithNames;
+extern const std::string &gStr_demandPhenotype;
 extern const std::string &gStr_individualsWithPedigreeIDs;
 extern const std::string &gStr_killIndividuals;
 extern const std::string &gStr_mutationCounts;
@@ -1441,7 +1442,7 @@ enum _SLiMGlobalStringID : int {
 	gID_haplosomesForChromosomes,
 	gID_offsetForTrait,
 	gID_phenotypeForTrait,
-	gID_demandPhenotype,
+	gID_demandPhenotypeForIndividuals,
 	gID_setOffsetForTrait,
 	gID_setPhenotypeForTrait,
 	gID_relatedness,
@@ -1494,6 +1495,7 @@ enum _SLiMGlobalStringID : int {
 	gID_speciesWithIDs,
 	gID_subpopulationsWithIDs,
 	gID_subpopulationsWithNames,
+	gID_demandPhenotype,
 	gID_individualsWithPedigreeIDs,
 	gID_killIndividuals,
 	gID_mutationCounts,
