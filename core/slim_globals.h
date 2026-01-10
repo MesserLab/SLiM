@@ -492,6 +492,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
 #define DEBUG_SHUFFLE_BUFFER		1		// debug memory overruns with the shuffle buffer
 #define DEBUG_TICK_RANGES			0		// debug tick range parsing and evaluation
+#define DEBUG_TRAIT_DEMAND			0		// enable debugging logs about the trait "demand" evalutation process
 #define DEBUG_LESS_INTENSIVE		0		// decrease the frequency of some very intensive DEBUG checks
 
 
@@ -580,6 +581,10 @@ enum class TraitType : uint8_t {
 	kMultiplicative = 0,
 	kAdditive
 };
+
+std::string StringForTraitType(TraitType p_trait_type);
+TraitType TraitTypeForString(std::string type);				// raises if no match
+std::ostream& operator<<(std::ostream& p_out, TraitType p_trait_type);
 
 // This enumeration represents the type of a chromosome.  Note that the sex of an individual cannot always be inferred
 // from chromosomal state, and the user is allowed to play games with null haplosomes; the chromosomes follow the sex
@@ -1213,6 +1218,8 @@ extern const std::string &gStr_setSuppliedValue;
 extern const std::string &gStr_willAutolog;
 extern const std::string &gStr_context;
 
+extern const std::string gStr_additive;	// these trait type strings are not registered, no need
+extern const std::string gStr_multiplicative;
 extern const std::string gStr_A;	// these nucleotide strings are not registered, no need
 extern const std::string gStr_C;
 extern const std::string gStr_G;

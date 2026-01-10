@@ -392,7 +392,7 @@ void Species::CheckOptimizationFlags(void)
 					slim_trait_index_t trait_index = trait->Index();
 					MutationTraitInfo &trait_info = mut_trait_info[trait_index];
 					
-					if (trait_info.effect_size_ != 0.0)
+					if (trait_info.effect_size_ != (slim_effect_t)0.0)
 					{
 						// this mutation is non-neutral for this trait
 						if (trait->trait_all_neutral_mutations_ != false)
@@ -427,7 +427,7 @@ void Species::_NoteNonNeutralMutation(const Mutation *p_mut)
 		slim_trait_index_t trait_index = trait->Index();
 		MutationTraitInfo &trait_info = mut_trait_info[trait_index];
 		
-		if (trait_info.effect_size_ != 0.0)
+		if (trait_info.effect_size_ != (slim_effect_t)0.0)
 		{
 			// this mutation is non-neutral for this trait
 			trait->trait_all_neutral_mutations_ = false;

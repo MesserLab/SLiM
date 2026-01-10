@@ -1678,9 +1678,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
 	TraitType type;
 	
-	if ((type_string == "multiplicative") || (type_string == "mul"))
+	if ((type_string == gStr_multiplicative) || (type_string == "mul"))
 		type = TraitType::kMultiplicative;
-	else if ((type_string == "additive") || (type_string == "add"))
+	else if ((type_string == gStr_additive) || (type_string == "add"))
 		type = TraitType::kAdditive;
 	else
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'mul'), or 'additive' ('add')." << EidosTerminate();
@@ -3117,13 +3117,14 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// subpops
-	std::vector<Subpopulation*> subpops_to_demand;
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::ExecuteMethod_demandPhenotype(): usage of statics");
+	
+	static std::vector<Subpopulation*> subpops_to_demand;	// using and clearing a static prevents allocation thrash; should be safe from re-entry
+	subpops_to_demand.resize(0);
 	
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// demand the specified phenotypes across all subpopulations
-		subpops_to_demand.resize(population_.subpops_.size());
-		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpops_to_demand.push_back(subpop_pair.second);
 	}
@@ -3134,16 +3135,24 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 		
 		if (requested_subpop_count)
 		{
-			subpops_to_demand.resize(requested_subpop_count);
-			
 			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-				subpops_to_demand.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this, "demandPhenotype()"));		// SPECIES CONSISTENCY CHECK
+				subpops_to_demand.push_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this, "demandPhenotype()"));		// SPECIES CONSISTENCY CHECK
 			
 			// unique subpops_to_demand to avoid duplicated work
 			std::sort(subpops_to_demand.begin(), subpops_to_demand.end());
 			subpops_to_demand.resize(static_cast<size_t>(std::distance(subpops_to_demand.begin(), std::unique(subpops_to_demand.begin(), subpops_to_demand.end()))));
 		}
 	}
+	
+#if DEBUG_TRAIT_DEMAND
+	std::cout << "# " << community_.Tick() << " --- demandPhenotype(): for traits {";
+	for (slim_trait_index_t trait_index : trait_indices)
+		std::cout << " " << Traits()[trait_index]->Name();
+	std::cout << " } in subpops {";
+	for (Subpopulation *subpop : subpops_to_demand)
+		std::cout << " p" << subpop->subpopulation_id_;
+	std::cout << " }, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
+#endif
 	
 	// validate non-neutral caches and independent-dominance precalculated values
 	// FIXME MULTITRAIT: VALIDATE NON-NEUTRAL CACHES HERE

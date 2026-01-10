@@ -417,6 +417,13 @@ public:
 	template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
+	// Debugging checkback for phenotype calculation; this is very slow, and does not use the non-neutral cache
+	slim_effect_t _CheckPhenotypeForTrait(slim_trait_index_t trait_index);
+	
+	void _Check_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	void _Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	void _Check_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
 	// for Subpopulation::ExecuteMethod_takeMigrants()
 	friend Subpopulation;
 };

@@ -1387,6 +1387,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 	{
 		// we know this subpopulation has effectively constant fitness; we therefore don't express demand for
 		// any traits, which means trait may keep NAN values even if the traits have a direct fitness effect
+#if DEBUG_TRAIT_DEMAND
+		std::cout << "# " << community_.Tick() << " --- UpdateFitness() determined constant fitness of " << constant_fitness_value << std::endl;
+#endif
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
@@ -1425,10 +1428,23 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 		// demand phenotypes for all the relevant traits
 		if (p_direct_effect_trait_indices.size())
 		{
+#if DEBUG_TRAIT_DEMAND
+				std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding traits {";
+				for (slim_trait_index_t trait_index : p_direct_effect_trait_indices)
+					std::cout << " " << species_.Traits()[trait_index]->Name();
+				std::cout << " } in subpop p" << subpopulation_id_  << ", forceRecalc == " << (p_force_trait_recalculation ? "T" : "F") << std::endl;
+#endif
+			
 			if (p_force_trait_recalculation)
 				Individual_Class::DemandPhenotype_SUBPOP<true>(&species_, this, p_direct_effect_trait_indices, p_subpop_mutationEffect_callbacks);
 			else
 				Individual_Class::DemandPhenotype_SUBPOP<false>(&species_, this, p_direct_effect_trait_indices, p_subpop_mutationEffect_callbacks);
+		}
+		else
+		{
+#if DEBUG_TRAIT_DEMAND
+				std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding NO traits in subpop p" << subpopulation_id_ << std::endl;
+#endif
 		}
 		
 		// then loop over individuals and pull together the relevant phenotype values, fitnessEffect() callbacks,

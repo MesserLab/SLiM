@@ -113,8 +113,8 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!static_type_string_multiplicative)
 				{
-					static_type_string_multiplicative = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("multiplicative"));
-					static_type_string_additive = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("additive"));
+					static_type_string_multiplicative = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_multiplicative));
+					static_type_string_additive = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_additive));
 				}
 			}
 			

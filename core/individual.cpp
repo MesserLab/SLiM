@@ -1282,8 +1282,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 2;
 						break;
 					}
 						// chromosomes that have one haplosome, from the female parent
@@ -1296,8 +1294,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 1;
 						break;
 					}
 						// chromosomes that have one haplosome, from the male parent
@@ -1305,10 +1301,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					case ChromosomeType::kHM_HaploidMaleInherited:
 					case ChromosomeType::kML_HaploidMaleLine:
 					{
-						haplosome_index += 1;
 						break;
 					}
 				}
+				haplosome_index += chromosome->IntrinsicPloidy();
 			}
 			
 			return EidosValue_SP(vec);
@@ -1342,8 +1338,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 2;
 						break;
 					}
 						// chromosomes that have one haplosome, from the female parent
@@ -1352,7 +1346,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					case ChromosomeType::kFL_HaploidFemaleLine:
 					case ChromosomeType::kH_HaploidAutosome:				// assumed to follow the same pattern, so skipped
 					{
-						haplosome_index += 1;
 						break;
 					}
 						// chromosomes that have one haplosome, from the male parent
@@ -1364,11 +1357,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 1;
 						break;
 					}
 				}
+				haplosome_index += chromosome->IntrinsicPloidy();
 			}
 			
 			return EidosValue_SP(vec);
@@ -6406,6 +6398,13 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals(Eido
 	// forceRecalc
 	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
+#if DEBUG_TRAIT_DEMAND
+	std::cout << "# " << community.Tick() << " --- demandPhenotypeForIndividuals(): for traits {";
+	for (slim_trait_index_t trait_index : trait_indices)
+		std::cout << " " << species->Traits()[trait_index]->Name();
+	std::cout << " } in " << individuals_count << " individuals, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
+#endif
+	
 	// validate non-neutral caches and independent-dominance precalculated values
 	// FIXME MULTITRAIT: VALIDATE NON-NEUTRAL CACHES HERE
 	
@@ -6705,6 +6704,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				{
 					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					
+#if DEBUG_TRAIT_DEMAND
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->symbol_ << "'" << std::endl;
+#endif
+					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
 						Individual *ind = individuals_buffer[individual_index];
@@ -6788,8 +6791,6 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 						}
 					}
 				}
-				
-				haplosome_index += 2;
 				break;
 			}
 				
@@ -6801,34 +6802,6 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			case ChromosomeType::kFL_HaploidFemaleLine:
 			case ChromosomeType::kHM_HaploidMaleInherited:
 			case ChromosomeType::kML_HaploidMaleLine:
-			{
-				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
-				{
-					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
-					
-					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					{
-						Individual *ind = individuals_buffer[individual_index];
-						Haplosome *haplosome = ind->haplosomes_[haplosome_index];
-						
-						if (haplosome->IsNull())
-							continue;
-						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
-							continue;
-						
-						Subpopulation *subpop = ind->subpopulation_;
-						Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
-						std::vector<SLiMEidosBlock*> &subpop_trait_mutationEffect_callbacks = subpop_trait_caches.mutationEffect_callbacks_per_trait;
-						auto IncorporateEffects_Haploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED;
-						
-						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait_index, subpop_trait_mutationEffect_callbacks);
-					}
-				}
-				
-				haplosome_index += 1;
-				break;
-			}
-				
 				// haploid special cases that have an accompanying null haplosome for backward compatibility
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
@@ -6836,6 +6809,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 				{
 					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+					
+#if DEBUG_TRAIT_DEMAND
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->symbol_ << "'" << std::endl;
+#endif
 					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
@@ -6855,14 +6832,14 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait_index, subpop_trait_mutationEffect_callbacks);
 					}
 				}
-				
-				haplosome_index += 2;
 				break;
 			}
 		}
 		
 		if (species->DoingAnyMutationRunExperiments())
 			chromosome->StopMutationRunExperimentClock("DemandPhenotype_INDIVIDUALS()");
+		
+		haplosome_index += chromosome->IntrinsicPloidy();
 	}
 	
 	// clear out each subpopulation's per-trait caches that we set up above; these are only for our private use
@@ -6881,6 +6858,32 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED = nullptr;
 		}
 	}
+	
+#if DEBUG
+	// Do a check of all computed results, against the same things computed by brute force.  This will
+	// probably be quite expensive, so probably I can't leave it enabled all the time even in DEBUG.
+	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+	{
+		Individual *ind = individuals_buffer[individual_index];
+		
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			
+			if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+				continue;
+			
+			slim_effect_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			slim_effect_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+			
+			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
+			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
+			// calculations, so I use a larger threshold here of 1e-6; we'll see how this does in practice.
+			if (std::abs(calculated_phenotype - check_phenotype) > (slim_effect_t)1e-6)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+		}
+	}
+#endif
 }
 
 template void Individual_Class::DemandPhenotype_INDIVIDUALS<false>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
@@ -6935,12 +6938,20 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		TraitType traitType = trait->Type();
 		slim_effect_t trait_baseline_offset = trait->BaselineOffset();
 		
+#if DEBUG_TRAIT_DEMAND
+		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << traitType << ") has baseline offset " << trait_baseline_offset << std::endl;
+#endif
+		
 		if (traitType == TraitType::kAdditive)
 		{
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals_buffer[individual_index];
 				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+				
+#if DEBUG_TRAIT_DEMAND
+				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
 				
 				if (f_force_recalc)
 				{
@@ -6960,6 +6971,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			{
 				Individual *ind = individuals_buffer[individual_index];
 				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+				
+#if DEBUG_TRAIT_DEMAND
+				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
 				
 				if (f_force_recalc)
 				{
@@ -7074,6 +7089,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				}
 			}
 			
+#if DEBUG_TRAIT_DEMAND
+			std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for chromosome '" << chromosome->symbol_ << "'" << std::endl;
+#endif
+			
 			// Then process the chromosome for the focal trait
 			switch (chromosome->Type())
 			{
@@ -7112,11 +7131,15 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 						else
 						{
 							// diploid, both haplosomes non-null
+#if DEBUG_TRAIT_DEMAND
+							//std::cout << "      individual #" << individual_index << " existing trait value == " << ind->trait_info_[trait_index].phenotype_ << std::endl;
+#endif
 							(ind->*IncorporateEffects_Diploid_TEMPLATED)(species, haplosome1, haplosome2, trait_index, subpop_per_trait_mutationEffect_callbacks);
+#if DEBUG_TRAIT_DEMAND
+							//std::cout << "      individual #" << individual_index << " updated trait value == " << ind->trait_info_[trait_index].phenotype_ << std::endl;
+#endif
 						}
 					}
-					
-					haplosome_index += 2;
 					break;
 				}
 					
@@ -7128,24 +7151,6 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				case ChromosomeType::kFL_HaploidFemaleLine:
 				case ChromosomeType::kHM_HaploidMaleInherited:
 				case ChromosomeType::kML_HaploidMaleLine:
-				{
-					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					{
-						Individual *ind = individuals_buffer[individual_index];
-						Haplosome *haplosome = ind->haplosomes_[haplosome_index];
-						
-						if (haplosome->IsNull())
-							continue;
-						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
-							continue;
-						
-						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait_index, subpop_per_trait_mutationEffect_callbacks);
-					}
-					
-					haplosome_index += 1;
-					break;
-				}
-					
 					// haploid special cases that have an accompanying null haplosome for backward compatibility
 				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 				case ChromosomeType::kNullY_YSexChromosomeWithNull:
@@ -7162,8 +7167,6 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 						
 						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait_index, subpop_per_trait_mutationEffect_callbacks);
 					}
-					
-					haplosome_index += 2;
 					break;
 				}
 			}
@@ -7171,7 +7174,35 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		
 		if (species->DoingAnyMutationRunExperiments())
 			chromosome->StopMutationRunExperimentClock("DemandPhenotype_SUBPOP()");
+		
+		haplosome_index += chromosome->IntrinsicPloidy();
 	}
+	
+#if DEBUG
+	// Do a check of all computed results, against the same things computed by brute force.  This will
+	// probably be quite expensive, so probably I can't leave it enabled all the time even in DEBUG.
+	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+	{
+		Individual *ind = individuals_buffer[individual_index];
+		
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			
+			if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+				continue;
+			
+			slim_effect_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			slim_effect_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+			
+			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
+			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
+			// calculations, so I use a larger threshold here of 1e-6; we'll see how this does in practice.
+			if (std::abs(calculated_phenotype - check_phenotype) > (slim_effect_t)1e-6)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+		}
+	}
+#endif
 }
 
 template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> p_mutationEffect_callbacks);
@@ -7279,7 +7310,7 @@ template void Individual::_IncorporateEffects_Haploid<true, true, true, true>(Sp
 // Low-level method to calculate a phenotype for one individual, for one diploid chromosome, for one trait.
 // This will put the result of the calculation into the individual's phenotype information.  This is called
 // by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
-template <const bool f_additive_trait, const bool f_callbacks, const bool f_singlecallback>
+template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
@@ -7345,7 +7376,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 					Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
 					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
 					
-					if (f_additive_trait)
+					if (f_additiveTrait)
 					{
 						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7380,7 +7411,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 					Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
 					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
 					
-					if (f_additive_trait)
+					if (f_additiveTrait)
 					{
 						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7429,7 +7460,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
 								slim_effect_t homozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].homozygous_effect_;
 								
-								if (f_additive_trait)
+								if (f_additiveTrait)
 								{
 									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7461,7 +7492,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 							Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
 							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
 							
-							if (f_additive_trait)
+							if (f_additiveTrait)
 							{
 								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7516,7 +7547,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 							Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
 							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
 							
-							if (f_additive_trait)
+							if (f_additiveTrait)
 							{
 								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7568,7 +7599,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 			Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
 			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
 			
-			if (f_additive_trait)
+			if (f_additiveTrait)
 			{
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7598,7 +7629,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 			Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
 			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
 			
-			if (f_additive_trait)
+			if (f_additiveTrait)
 			{
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
@@ -7633,6 +7664,580 @@ template void Individual::_IncorporateEffects_Diploid<true, true, false>(Species
 template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 
 
+// the rest of the code below is for checking the correctness of the calculations performed by the code above
+
+slim_effect_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index)
+{
+	Subpopulation *subpop = subpopulation_;
+	Species &species = subpop->species_;
+	Community &community = species.community_;
+	Trait *trait = species.Traits()[trait_index];
+	TraitType traitType = trait->Type();
+	int haplosome_index = 0;
+	slim_effect_t trait_value = trait->BaselineOffset();
+	IndividualTraitInfo &trait_info = trait_info_[trait_index];
+	
+	if (traitType == TraitType::kAdditive)
+		trait_value += trait_info.offset_;
+	else // (traitType == TraitType::kMultiplicative)
+		trait_value *= trait_info.offset_;
+	
+	// because the low-level functions are designed to combine their effects into our phenotype,
+	// we save the phenotype value here and restore it at the end so we leave it untouched
+	slim_effect_t saved_phenotype = trait_info.phenotype_;
+	trait_info.phenotype_ = trait_value;
+	
+	// determine the versions of _IncorporateEffects_X() we will use; note that we use special
+	// variants that do not use the non-neutral caches, since that is what we want to check!
+	std::vector<SLiMEidosBlock*> subpop_per_trait_mutationEffect_callbacks = species.CallbackBlocksMatching(community.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop->subpopulation_id_, trait_index, -1, /* p_active_only */ true);
+	
+	// then loop over the chromosomes and incorporate trait effects
+	for (Chromosome *chromosome : species.Chromosomes())
+	{
+		switch (chromosome->Type())
+		{
+				// diploid, possibly with one or both being null haplosomes
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				Haplosome *haplosome1 = haplosomes_[haplosome_index];
+				Haplosome *haplosome2 = haplosomes_[haplosome_index+1];
+				
+				if (haplosome1->IsNull())
+				{
+					if (!haplosome2->IsNull())
+					{
+						// hemizygous (haplosome2)
+						_Check_IncorporateEffects_Hemizygous(&species, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
+					}
+					else
+					{
+						// both haplosomes are null (only happens with chromosome type "A"; no work to be done
+					}
+				}
+				else if (haplosome2->IsNull())
+				{
+					// hemizygous (haplosome1)
+					_Check_IncorporateEffects_Hemizygous(&species, haplosome1, trait, subpop_per_trait_mutationEffect_callbacks);
+				}
+				else
+				{
+					// diploid, both haplosomes non-null
+					_Check_IncorporateEffects_Diploid(&species, haplosome1, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
+				}
+				break;
+			}
+				
+				// haploid, possibly null
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+				// haploid special cases that have an accompanying null haplosome for backward compatibility
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *haplosome = haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
+				
+				if (!haplosome->IsNull())
+					_Check_IncorporateEffects_Haploid(&species, haplosome, trait, subpop_per_trait_mutationEffect_callbacks);
+				break;
+			}
+		}
+		
+		haplosome_index += chromosome->IntrinsicPloidy();
+	}
+	
+	// finally, restore our saved phenotype so we don't modify the official individual state
+	trait_value = trait_info.phenotype_;
+	trait_info.phenotype_ = saved_phenotype;
+	
+	return trait_value;
+}
+
+void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	// set up variables for what are, in the main code path, templated variants
+	slim_trait_index_t trait_index = trait->Index();
+	bool f_callbacks = (p_mutationEffect_callbacks.size() > 0);
+	bool f_singlecallback = (p_mutationEffect_callbacks.size() == 1);
+	bool f_additiveTrait = (trait->Type() == TraitType::kAdditive);
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type = nullptr;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+	slim_effect_t effect_accumulator = trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+		// Read directly from the MutationRun buffers (we do not use non-neutral caches; we evaluate everything)
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].homozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				effect_accumulator += effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = effect_accumulator;
+}
+
+void Individual::_Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	// set up variables for what are, in the main code path, templated variants
+	slim_trait_index_t trait_index = trait->Index();
+	bool f_callbacks = (p_mutationEffect_callbacks.size() > 0);
+	bool f_singlecallback = (p_mutationEffect_callbacks.size() == 1);
+	bool f_additiveTrait = (trait->Type() == TraitType::kAdditive);
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type = nullptr;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+	slim_effect_t effect_accumulator = trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+		// Read directly from the MutationRun buffers (we do not use non-neutral caches; we evaluate everything)
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].hemizygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				effect_accumulator += effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = effect_accumulator;
+}
+
+void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// This method assumes that haplosome1 and haplosome2 are not null; the caller needs to guarantee this
+	if (haplosome1->IsNull() || haplosome2->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	// set up variables for what are, in the main code path, templated variants
+	slim_trait_index_t trait_index = trait->Index();
+	bool f_callbacks = (p_mutationEffect_callbacks.size() > 0);
+	bool f_singlecallback = (p_mutationEffect_callbacks.size() == 1);
+	bool f_additiveTrait = (trait->Type() == TraitType::kAdditive);
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type = nullptr;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome1->mutrun_count_;
+	slim_effect_t effect_accumulator = trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+		const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
+		
+		// Read directly from the MutationRun buffers (we do not use non-neutral caches; we evaluate everything)
+		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
+		const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
+		
+		const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
+		const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
+		
+		// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
+		if ((haplosome1_iter != haplosome1_max) && (haplosome2_iter != haplosome2_max))
+		{
+			MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
+			slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+			
+			do
+			{
+				if (haplosome1_iter_position < haplosome2_iter_position)
+				{
+					// Process a mutation in haplosome1 since it is leading
+					Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+					
+					if (f_additiveTrait)
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+						
+						effect_accumulator += heterozygous_effect;
+					}
+					else	// multiplicative
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+								trait_info_[trait_index].phenotype_ = 0.0;
+								return;
+							}
+						}
+						
+						effect_accumulator *= heterozygous_effect;
+					}
+					
+					if (++haplosome1_iter == haplosome1_max)
+						break;
+					else {
+						haplosome1_mutindex = *haplosome1_iter;
+						haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+					}
+				}
+				else if (haplosome1_iter_position > haplosome2_iter_position)
+				{
+					// Process a mutation in haplosome2 since it is leading
+					Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+					
+					if (f_additiveTrait)
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+						
+						effect_accumulator += heterozygous_effect;
+					}
+					else	// multiplicative
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+								trait_info_[trait_index].phenotype_ = 0.0;
+								return;
+							}
+						}
+						
+						effect_accumulator *= heterozygous_effect;
+					}
+					
+					if (++haplosome2_iter == haplosome2_max)
+						break;
+					else {
+						haplosome2_mutindex = *haplosome2_iter;
+						haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+					}
+				}
+				else
+				{
+					// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
+					slim_position_t position = haplosome1_iter_position;
+					const MutationIndex *haplosome1_start = haplosome1_iter;
+					
+					// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
+					do
+					{
+						const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
+						
+						// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
+						while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
+						{
+							if (haplosome1_mutindex == *haplosome2_matchscan)
+							{
+								// a match was found, so we multiply our fitness by the full homozygous effect
+								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								slim_effect_t homozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].homozygous_effect_;
+								
+								if (f_additiveTrait)
+								{
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									effect_accumulator += homozygous_effect;
+								}
+								else	// multiplicative
+								{
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									{
+										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+										
+										if (homozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+											trait_info_[trait_index].phenotype_ = 0.0;
+											return;
+										}
+									}
+									
+									effect_accumulator *= homozygous_effect;
+								}
+								goto homozygousExit1;
+							}
+							
+							haplosome2_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						{
+							Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+							
+							if (f_additiveTrait)
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+								
+								effect_accumulator += heterozygous_effect;
+							}
+							else	// multiplicative
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+										trait_info_[trait_index].phenotype_ = 0.0;
+										return;
+									}
+								}
+								
+								effect_accumulator *= heterozygous_effect;
+							}
+						}
+						
+					homozygousExit1:
+						
+						if (++haplosome1_iter == haplosome1_max)
+							break;
+						else {
+							haplosome1_mutindex = *haplosome1_iter;
+							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+						}
+					} while (haplosome1_iter_position == position);
+					
+					// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
+					do
+					{
+						const MutationIndex *haplosome1_matchscan = haplosome1_start; 
+						
+						// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
+						while ((haplosome1_matchscan != haplosome1_max) && ((mut_block_ptr + *haplosome1_matchscan)->position_ == position))
+						{
+							if (haplosome2_mutindex == *haplosome1_matchscan)
+							{
+								// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
+								goto homozygousExit2;
+							}
+							
+							haplosome1_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						{
+							Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+							
+							if (f_additiveTrait)
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+								
+								effect_accumulator += heterozygous_effect;
+							}
+							else	// multiplicative
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+										trait_info_[trait_index].phenotype_ = 0.0;
+										return;
+									}
+								}
+								
+								effect_accumulator *= heterozygous_effect;
+							}
+						}
+						
+					homozygousExit2:
+						
+						if (++haplosome2_iter == haplosome2_max)
+							break;
+						else {
+							haplosome2_mutindex = *haplosome2_iter;
+							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+						}
+					} while (haplosome2_iter_position == position);
+					
+					// break out if either haplosome has reached its end
+					if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
+						break;
+				}
+			} while (true);
+		}
+		
+		// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
+#if DEBUG
+		assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
+#endif
+		
+		// if haplosome1 is unfinished, finish it
+		while (haplosome1_iter != haplosome1_max)
+		{
+			MutationIndex haplosome1_mutindex = *haplosome1_iter++;
+			Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+				
+				effect_accumulator += heterozygous_effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= heterozygous_effect;
+			}
+		}
+		
+		// if haplosome2 is unfinished, finish it
+		while (haplosome2_iter != haplosome2_max)
+		{
+			MutationIndex haplosome2_mutindex = *haplosome2_iter++;
+			Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+				
+				effect_accumulator += heterozygous_effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= heterozygous_effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = effect_accumulator;
+}
 
 
 

@@ -653,6 +653,30 @@ std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
 }
 
 // stream output for enumerations
+std::string StringForTraitType(TraitType p_trait_type)
+{
+	switch (p_trait_type)
+	{
+		case TraitType::kAdditive:								return gStr_additive;
+		case TraitType::kMultiplicative:						return gStr_multiplicative;
+	}
+	EIDOS_TERMINATION << "ERROR (StringForTraitType): (internal error) unexpected p_trait_type value." << EidosTerminate();
+}
+
+TraitType TraitTypeForString(std::string type)
+{
+	if (type == gStr_additive)	return TraitType::kAdditive;
+	else if (type == gStr_multiplicative)	return TraitType::kMultiplicative;
+	else
+		EIDOS_TERMINATION << "ERROR (TraitTypeForString): unrecognized triat type '" << type << "'." << EidosTerminate();
+}
+
+std::ostream& operator<<(std::ostream& p_out, TraitType p_trait_type)
+{
+	p_out << StringForTraitType(p_trait_type);
+	return p_out;
+}
+
 std::string StringForChromosomeType(ChromosomeType p_chromosome_type)
 {
 	switch (p_chromosome_type)
@@ -1629,6 +1653,8 @@ const std::string &gStr_willAutolog = EidosRegisteredString("willAutolog", gID_w
 const std::string &gStr_context = EidosRegisteredString("context", gID_context);
 
 // mostly other fixed strings
+const std::string gStr_additive = "additive"; // these trait type strings are not registered, no need
+const std::string gStr_multiplicative = "multiplicative";
 const std::string gStr_A = "A";	// these nucleotide strings are not registered, no need
 const std::string gStr_C = "C";
 const std::string gStr_G = "G";
