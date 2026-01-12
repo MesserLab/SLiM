@@ -243,17 +243,17 @@ void MutationType::_LogMutationInfo(Mutation *p_mut)
 		
 		if (log_effect_) {
 			slim_effect_t effect = mut_trait_info.effect_size_;
-			trait_log.running_effect_ += effect;
+			trait_log.running_effect_ += (double)effect;
 			if (!log_meanOnly_)		trait_log.logged_effect_[log_size_] = effect;
 		}
 		if (log_dominance_) {
 			slim_effect_t dominance = p_mut->RealizedDominanceForTrait(species_.Traits()[trait_index]);
-			trait_log.running_dominance_ += dominance;
+			trait_log.running_dominance_ += (double)dominance;
 			if (!log_meanOnly_)		trait_log.logged_dominance_[log_size_] = dominance;
 		}
 		if (log_hemizygousDominance_) {
 			slim_effect_t hemizygousDominance = mut_trait_info.hemizygous_dominance_coeff_;
-			trait_log.running_hemizygous_dominance_ += hemizygousDominance;
+			trait_log.running_hemizygous_dominance_ += (double)hemizygousDominance;
 			if (!log_meanOnly_)		trait_log.logged_hemizygous_dominance_[log_size_] = hemizygousDominance;
 		}
 	}
@@ -1076,7 +1076,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	if (kind == KindEnum::kCount)
 	{
 		// for "count" the remaining flags are ignored; we just return the singleton count of mutations recorded
-		return EidosValue_SP(new EidosValue_Int((int64_t)log_size_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int((int64_t)log_size_));
 	}
 	
 	// trait
@@ -1166,10 +1166,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_id)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_id_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_id_[log_index];
@@ -1180,10 +1180,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_mutationTypeID)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_muttype_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_muttype_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_muttype_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_muttype_id_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_muttype_id_[log_index];
@@ -1194,10 +1194,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_chromosomeID)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_chromosome_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_chromosome_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_chromosome_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_chromosome_id_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_chromosome_id_[log_index];
@@ -1208,10 +1208,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_position)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_position_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_position_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_position_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_position_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_position_[log_index];
@@ -1222,10 +1222,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_nucleotideValue)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_nucleotide_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_nucleotide_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_nucleotide_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_nucleotide_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_nucleotide_[log_index];
@@ -1236,10 +1236,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_originTick)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_origin_tick_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_origin_tick_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_origin_tick_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_origin_tick_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_origin_tick_[log_index];
@@ -1250,10 +1250,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_subpopID)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_subpop_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_subpop_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_subpop_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_subpop_id_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_subpop_id_[log_index];
@@ -1264,10 +1264,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	if (get_tag)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(running_tag_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(logged_tag_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_tag_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_tag_, log_size_));
 		else /* kind == KindEnum::kValues */ {
-			column = (new EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
 			int64_t *column_data = column->IntData_Mutable();
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_tag_[log_index];
@@ -1283,10 +1283,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		
 		if (get_effect)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(trait_log.running_effect_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_effect_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_effect_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_effect_, log_size_));
 			else /* kind == KindEnum::kValues */ {
-				column = (new EidosValue_Float())->resize_no_initialize(log_size_);
+				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
 				double *column_data = column->FloatData_Mutable();
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_effect_[log_index];
@@ -1297,10 +1297,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		
 		if (get_dominance)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(trait_log.running_dominance_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_dominance_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_dominance_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_dominance_, log_size_));
 			else /* kind == KindEnum::kValues */ {
-				column = (new EidosValue_Float())->resize_no_initialize(log_size_);
+				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
 				double *column_data = column->FloatData_Mutable();
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_dominance_[log_index];
@@ -1311,10 +1311,10 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		
 		if (get_hemizygousDominance)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new EidosValue_Float(trait_log.running_hemizygous_dominance_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_hemizygous_dominance_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_hemizygous_dominance_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_hemizygous_dominance_, log_size_));
 			else /* kind == KindEnum::kValues */ {
-				column = (new EidosValue_Float())->resize_no_initialize(log_size_);
+				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
 				double *column_data = column->FloatData_Mutable();
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_hemizygous_dominance_[log_index];
