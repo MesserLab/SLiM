@@ -660,6 +660,30 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 // see https://stackoverflow.com/a/17097978/2752221 for some justification
 #define EIDOS_BZERO(s, n) memset((s), 0, (n))
 
+// Standard deviation of a vector of values.  The math is done in double, regardless of the type T.
+template <typename T>
+double Eidos_StandardDeviation(T *x, size_t count)
+{
+	if (count < 2)
+		return std::numeric_limits<double>::quiet_NaN();
+	
+	double mean = 0;
+	double sd = 0;
+	
+	for (size_t value_index = 0; value_index < count; ++value_index)
+		mean += (double)x[value_index];
+	
+	mean /= count;
+	
+	for (size_t value_index = 0; value_index < count; ++value_index)
+	{
+		double temp = (double)x[value_index] - mean;
+		sd += temp * temp;
+	}
+	
+	return sqrt(sd / (count - 1));		// note: sample sd, not population sd
+}
+
 // Correlation between two vectors x and y of equal length; int64_t or double are used, and can be mixed
 template <typename T1, typename T2>
 double Eidos_Correlation(T1 *x, T2 *y, size_t count)

@@ -988,6 +988,8 @@ extern const std::string &gStr_setDominanceForTrait;
 extern const std::string &gStr_setHemizygousDominanceForTrait;
 extern const std::string &gStr_setMutationType;
 extern const std::string &gStr_drawEffectForTrait;
+extern const std::string &gStr_loggedData;
+extern const std::string &gStr_logMutationData;
 extern const std::string &gStr_setDefaultDominanceForTrait;
 extern const std::string &gStr_setDefaultHemizygousDominanceForTrait;
 extern const std::string &gStr_setEffectDistributionForTrait;
@@ -1479,6 +1481,8 @@ enum _SLiMGlobalStringID : int {
 	gID_setHemizygousDominanceForTrait,
 	gID_setMutationType,
 	gID_drawEffectForTrait,
+	gID_loggedData,
+	gID_logMutationData,
 	gID_setDefaultDominanceForTrait,
 	gID_setDefaultHemizygousDominanceForTrait,
 	gID_setEffectDistributionForTrait,
