@@ -1053,7 +1053,8 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	// kind
 	typedef enum class _KindEnum {
-		kMean = 1,
+		kCount = 0,
+		kMean,
 		kSD,
 		kValues
 	} KindEnum;
@@ -1062,14 +1063,21 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	const std::string &kind_str = kind_value_string->StringRefAtIndex_NOCAST(0, nullptr);
 	KindEnum kind;
 	
-	if		(kind_str == "mean")	kind = KindEnum::kMean;
+	if		(kind_str == "count")	kind = KindEnum::kCount;
+	else if	(kind_str == "mean")	kind = KindEnum::kMean;
 	else if	(kind_str == "sd")		kind = KindEnum::kSD;
 	else if	(kind_str == "values")	kind = KindEnum::kValues;
 	else
-		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_loggedData): loggedData() requires that kind be 'mean', 'sd', or 'values'." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_loggedData): loggedData() requires that kind be 'count', 'mean', 'sd', or 'values'." << EidosTerminate(nullptr);
 	
 	if (log_meanOnly_ && (kind != KindEnum::kMean))
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_loggedData): loggedData() can only return means (kind='mean'), since meanOnly=T was set in logMutationData()." << EidosTerminate(nullptr);
+	
+	if (kind == KindEnum::kCount)
+	{
+		// for "count" the remaining flags are ignored; we just return the singleton count of mutations recorded
+		return EidosValue_SP(new EidosValue_Int((int64_t)log_size_));
+	}
 	
 	// trait
 	std::vector<slim_trait_index_t> trait_indices;
@@ -1137,6 +1145,9 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	int requested_count = (int)get_id + (int)get_mutationTypeID + (int)get_chromosomeID + (int)get_position +
 		(int)get_nucleotideValue + (int)get_originTick + (int)get_subpopID + (int)get_tag +
 		((int)get_effect) * trait_count + ((int)get_dominance) * trait_count + ((int)get_hemizygousDominance) * trait_count;
+	
+	if (requested_count == 0)
+		return gStaticEidosValueNULL;
 	
 	EidosDataFrame *dataframe = nullptr;
 	EidosValue_SP result_SP;
@@ -1613,7 +1624,7 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionTypeForTrait, kEidosValueMaskString))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawEffectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON("trait", gSLiM_Trait_Class, gStaticEidosValueNULL)->AddInt_OS("n", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_N("trait", gSLiM_Trait_Class)->AddFloat("dominance"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_loggedData, kEidosValueMaskFloat | kEidosValueMaskObject, gEidosDataFrame_Class))
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_loggedData, kEidosValueMaskInt | kEidosValueMaskFloat | kEidosValueMaskObject, gEidosDataFrame_Class))
 							  ->AddString_S("kind")
 							  ->AddLogical_OS("id", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("mutationTypeID", gStaticEidosValue_LogicalF)

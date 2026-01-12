@@ -146,6 +146,30 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 2.910106) < 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); m1.drawEffectForTrait(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 2.0) < 0.1) stop(); }", __LINE__);
+	
+	// test mutation date recording with logMutationData() and loggedData()
+	std::string data_recording =
+	R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-7);
+			initializeMutationType("m1", 0.5, "f", 0.0);
+			m1.logMutationData(T, chromosomeID=T, position=T);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 999999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() { sim.addSubpop("p1", 50); }
+		100 late() {
+			count = m1.loggedData(kind="count");
+			pos = m1.loggedData(kind="values", position=T);
+			df = m1.loggedData(kind="values", chromosomeID=T, position=T);
+			
+			if ((count == 0) | (count != length(pos)) | (count != df.nrow))
+				stop("MutationType data recording problem");
+		}
+	)V0G0N";
+	
+	SLiMAssertScriptSuccess(data_recording);
 }
 
 #pragma mark GenomicElementType tests

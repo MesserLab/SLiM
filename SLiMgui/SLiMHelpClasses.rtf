@@ -7015,7 +7015,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  class documentation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(fo<DataFrame>)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effect\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(ifo<DataFrame>)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effect\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns mutation data produced by the mutation type\'92s logging facility, as configured by 
@@ -7026,14 +7026,25 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f3\fs18 kind="sd"
 \f4\fs20 ), or separate values for each mutation (for 
 \f3\fs18 kind="values"
-\f4\fs20 ).  If logging only of means was enabled (with the 
+\f4\fs20 ); 
+\f3\fs18 kind="count"
+\f4\fs20  is also allowed, and simply returns a singleton 
+\f3\fs18 integer
+\f4\fs20  providing the number of entries (i.e., the number of mutations) that have been recorded.  If logging only of means was enabled (with the 
 \f3\fs18 meanOnly=T
 \f4\fs20  option to 
 \f3\fs18 logMutationData()
 \f4\fs20 ), only 
 \f3\fs18 kind="mean"
-\f4\fs20  is allowed, since separate values for each mutation are then not logged.\
-The remaining flags control which columns of data should be returned; see 
+\f4\fs20  and 
+\f3\fs18 kind="count"
+\f4\fs20  are allowed, since separate values for each mutation are then not logged.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The remaining flags control which columns of data should be returned (for 
+\f3\fs18 kind
+\f4\fs20  options other than 
+\f3\fs18 "count"
+\f4\fs20 ); see 
 \f3\fs18 logMutationData()
 \f4\fs20  for a summary of the mutation properties they refer to.  If only one data column is specified by the flags, a vector of values (or a mean or standard deviation) will be returned for that one specified data column.  If more than one flag is set to 
 \f3\fs18 T
@@ -7049,15 +7060,7 @@ The remaining flags control which columns of data should be returned; see
 \f3\fs18 hemizygousDominance
 \f4\fs20  flags; see 
 \f3\fs18 logMutationData()
-\f4\fs20  for further description.  If 
-\f1\i all
-\f4\i0  of these flags are 
-\f3\fs18 F
-\f4\fs20  (the default), that is taken to mean that 
-\f1\i all
-\f4\i0  logged data should be returned; in that case, a vector will be returned if only one column of data was logged, otherwise a 
-\f3\fs18 DataFrame
-\f4\fs20  object will be returned, the same as when flags are specified explicitly.  Flags set to 
+\f4\fs20  for further description.  Flags set to 
 \f3\fs18 T
 \f4\fs20  for data columns that were not actually logged will simply be ignored; similarly, traits specified by 
 \f3\fs18 trait
@@ -7094,8 +7097,7 @@ The remaining flags control which columns of data should be returned; see
 \f4\fs20 ; and if logging is subsequently resumed with 
 \f3\fs18 enable=T
 \f4\fs20 , any previously logged data will be discarded.  (This can be useful if you wish to limit the size of the in-memory data while continuing to log new data: periodically write the accumulated data to a file and then disable and re-enable logging to discard the old data.)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 If 
+If 
 \f3\fs18 meanOnly
 \f4\fs20  is 
 \f3\fs18 F
