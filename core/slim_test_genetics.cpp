@@ -158,13 +158,32 @@ void _RunMutationTypeTests(void)
 			initializeGenomicElement(g1, 0, 999999);
 			initializeRecombinationRate(1e-8);
 		}
-		1 early() { sim.addSubpop("p1", 50); }
+		1 late() {
+			sim.addSubpop("p1", 50);
+			if (m1.loggedData(kind="count") != 0)
+				stop("MutationType data recording initial state incorrect");
+			df1 = m1.loggedData(kind="values");         // get all logged columns
+			if ((df1.nrow != 0) | (df1.ncol != 2))
+				stop("MutationType data recording initial state incorrect");
+			df2 = m1.loggedData(kind="values", chromosomeID=T);
+			if ((df2.nrow != 0) | (df2.ncol != 1))
+				stop("MutationType data recording initial state incorrect");
+			df3 = m1.loggedData(kind="values", chromosomeID=T, position=T, originTick=T);
+			if ((df3.nrow != 0) | (df3.ncol != 2))
+				stop("MutationType data recording initial state incorrect");
+		}
 		100 late() {
 			count = m1.loggedData(kind="count");
-			pos = m1.loggedData(kind="values", position=T);
-			df = m1.loggedData(kind="values", chromosomeID=T, position=T);
-			
-			if ((count == 0) | (count != length(pos)) | (count != df.nrow))
+			if ((count == 0))
+				stop("MutationType data recording recorded no mutations");
+			df1 = m1.loggedData(kind="values");         // get all logged columns
+			if ((df1.nrow != count) | (df1.ncol != 2))
+				stop("MutationType data recording problem");
+			df2 = m1.loggedData(kind="values", position=T);
+			if ((df2.nrow != count) | (df2.ncol != 1))
+				stop("MutationType data recording problem");
+			df3 = m1.loggedData(kind="values", chromosomeID=T, position=T, originTick=T);
+			if ((df3.nrow != count) | (df3.ncol != 2))
 				stop("MutationType data recording problem");
 		}
 	)V0G0N";

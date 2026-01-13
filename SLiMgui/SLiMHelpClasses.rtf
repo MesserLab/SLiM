@@ -7015,7 +7015,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  class documentation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(ifo<DataFrame>)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effect\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(io<DataFrame>$)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effect\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns mutation data produced by the mutation type\'92s logging facility, as configured by 
@@ -7045,13 +7045,11 @@ The remaining flags control which columns of data should be returned (for
 \f3\fs18 "count"
 \f4\fs20 ); see 
 \f3\fs18 logMutationData()
-\f4\fs20  for a summary of the mutation properties they refer to.  If only one data column is specified by the flags, a vector of values (or a mean or standard deviation) will be returned for that one specified data column.  If more than one flag is set to 
-\f3\fs18 T
-\f4\fs20 , a 
+\f4\fs20  for a summary of the mutation properties they refer to.  A 
 \f3\fs18 DataFrame
 \f4\fs20  object will be returned with named columns of values (or means, or standard deviations) for each specified data column.  The 
 \f3\fs18 trait
-\f4\fs20  property specifies which traits values should be returned for, with respect to the 
+\f4\fs20  property specifies which the traits for which values should be returned, with respect to the 
 \f3\fs18 effect
 \f4\fs20 , 
 \f3\fs18 dominance
@@ -7059,7 +7057,9 @@ The remaining flags control which columns of data should be returned (for
 \f3\fs18 hemizygousDominance
 \f4\fs20  flags; see 
 \f3\fs18 logMutationData()
-\f4\fs20  for further description.  Flags set to 
+\f4\fs20  for further description.  As a convenience, if all of these flags are 
+\f3\fs18 F
+\f4\fs20  (the default), all of the logged data columns will be returned (rather than returning no data at all).  Flags set to 
 \f3\fs18 T
 \f4\fs20  for data columns that were not actually logged will simply be ignored; similarly, traits specified by 
 \f3\fs18 trait

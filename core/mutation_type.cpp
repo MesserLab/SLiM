@@ -1027,7 +1027,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	}
 }
 
-//	*********************	- (fo<DataFrame>)loggedData(string$ kind, [logical$ id = F], [logical$ mutationTypeID = F], [logical$ chromosomeID = F], [logical$ position = F],
+//	*********************	- (io<DataFrame>)loggedData(string$ kind, [logical$ id = F], [logical$ mutationTypeID = F], [logical$ chromosomeID = F], [logical$ position = F],
 //														[logical$ nucleotideValue = F], [logical$ originTick = F], [logical$ subpopID = F], [logical$ tag = F],
 //														[Niso<Trait> trait = NULL], [l$ effect = F], [l$ dominance = F], [l$ hemizygousDominance = F])
 //
@@ -1094,8 +1094,6 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		get_trait_indices.push_back(trait_index);
 	}
 	
-	int trait_count = (int)get_trait_indices.size();
-	
 	// all other logical flags
 	bool get_id = id_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool get_mutationTypeID = mutationTypeID_value->LogicalAtIndex_NOCAST(0, nullptr);
@@ -1129,39 +1127,25 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	}
 	
 	// then narrow down to the flags that were actually logged, silently skipping those that weren't
-	if (get_id && !log_id_)										get_id = false;
-	if (get_mutationTypeID && !log_mutationTypeID_)				get_mutationTypeID = false;
-	if (get_chromosomeID && !log_chromosomeID_)					get_chromosomeID = false;
-	if (get_position && !log_position_)							get_position = false;
-	if (get_nucleotideValue && !log_nucleotideValue_)			get_nucleotideValue = false;
-	if (get_originTick && !log_originTick_)						get_originTick = false;
-	if (get_subpopID && !log_subpopID_)							get_subpopID = false;
-	if (get_tag && !log_tag_)									get_tag = false;
-	if (get_effect && !log_effect_)								get_effect = false;
-	if (get_dominance && !log_dominance_)						get_dominance = false;
-	if (get_hemizygousDominance && !log_hemizygousDominance_)	get_hemizygousDominance = false;
+	if (!log_id_)					get_id = false;
+	if (!log_mutationTypeID_)		get_mutationTypeID = false;
+	if (!log_chromosomeID_)			get_chromosomeID = false;
+	if (!log_position_)				get_position = false;
+	if (!log_nucleotideValue_)		get_nucleotideValue = false;
+	if (!log_originTick_)			get_originTick = false;
+	if (!log_subpopID_)				get_subpopID = false;
+	if (!log_tag_)					get_tag = false;
+	if (!log_effect_)				get_effect = false;
+	if (!log_dominance_)			get_dominance = false;
+	if (!log_hemizygousDominance_)	get_hemizygousDominance = false;
 	
-	// figure out how many separate items we're actually going to return
-	int requested_count = (int)get_id + (int)get_mutationTypeID + (int)get_chromosomeID + (int)get_position +
-		(int)get_nucleotideValue + (int)get_originTick + (int)get_subpopID + (int)get_tag +
-		((int)get_effect) * trait_count + ((int)get_dominance) * trait_count + ((int)get_hemizygousDominance) * trait_count;
+	// we need to construct a DataFrame object; set it up
+	EidosDataFrame *dataframe = new EidosDataFrame();
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(dataframe, gEidosDataFrame_Class));
 	
-	if (requested_count == 0)
-		return gStaticEidosValueNULL;
+	dataframe->Release();	// dataframe is now retained by result_SP, so we can release it
 	
-	EidosDataFrame *dataframe = nullptr;
-	EidosValue_SP result_SP;
-	
-	if (requested_count > 1)
-	{
-		// we need to construct a DataFrame object; set it up
-		dataframe = new EidosDataFrame();
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(dataframe, gEidosDataFrame_Class));
-		
-		// dataframe is now retained by result_SP, so we can release it
-		dataframe->Release();
-	}
-	
+	// now generate columns into dataframe as requested
 	EidosValue *column;
 	
 	if (get_id)
@@ -1174,8 +1158,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_id_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("id", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("id", EidosValue_SP(column));
 	}
 	
 	if (get_mutationTypeID)
@@ -1188,8 +1171,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_muttype_id_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("mutationTypeID", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("mutationTypeID", EidosValue_SP(column));
 	}
 	
 	if (get_chromosomeID)
@@ -1202,8 +1184,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_chromosome_id_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("chromosomeID", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("chromosomeID", EidosValue_SP(column));
 	}
 	
 	if (get_position)
@@ -1216,8 +1197,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_position_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("position", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("position", EidosValue_SP(column));
 	}
 	
 	if (get_nucleotideValue)
@@ -1230,8 +1210,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_nucleotide_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("nucleotideValue", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("nucleotideValue", EidosValue_SP(column));
 	}
 	
 	if (get_originTick)
@@ -1244,8 +1223,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_origin_tick_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("originTick", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("originTick", EidosValue_SP(column));
 	}
 	
 	if (get_subpopID)
@@ -1258,8 +1236,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_subpop_id_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("subpopID", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("subpopID", EidosValue_SP(column));
 	}
 	
 	if (get_tag)
@@ -1272,8 +1249,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 			for (size_t log_index = 0; log_index < log_size_; log_index++)
 				column_data[log_index] = logged_tag_[log_index];
 		}
-		if (requested_count == 1)				return EidosValue_SP(column);
-		else									dataframe->SetKeyValue_StringKeys("tag", EidosValue_SP(column));
+		dataframe->SetKeyValue_StringKeys("tag", EidosValue_SP(column));
 	}
 	
 	for (slim_trait_index_t trait_index : get_trait_indices)
@@ -1291,8 +1267,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_effect_[log_index];
 			}
-			if (requested_count == 1)				return EidosValue_SP(column);
-			else									dataframe->SetKeyValue_StringKeys(trait_name + "Effect", EidosValue_SP(column));
+			dataframe->SetKeyValue_StringKeys(trait_name + "Effect", EidosValue_SP(column));
 		}
 		
 		if (get_dominance)
@@ -1305,8 +1280,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_dominance_[log_index];
 			}
-			if (requested_count == 1)				return EidosValue_SP(column);
-			else									dataframe->SetKeyValue_StringKeys(trait_name + "Dominance", EidosValue_SP(column));
+			dataframe->SetKeyValue_StringKeys(trait_name + "Dominance", EidosValue_SP(column));
 		}
 		
 		if (get_hemizygousDominance)
@@ -1319,8 +1293,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_hemizygous_dominance_[log_index];
 			}
-			if (requested_count == 1)				return EidosValue_SP(column);
-			else									dataframe->SetKeyValue_StringKeys(trait_name + "HemizygousDominance", EidosValue_SP(column));
+			dataframe->SetKeyValue_StringKeys(trait_name + "HemizygousDominance", EidosValue_SP(column));
 		}
 	}
 	
@@ -1624,7 +1597,7 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionTypeForTrait, kEidosValueMaskString))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawEffectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddInt_OS("n", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_N(gStr_trait, gSLiM_Trait_Class)->AddFloat("dominance"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_loggedData, kEidosValueMaskInt | kEidosValueMaskFloat | kEidosValueMaskObject, gEidosDataFrame_Class))
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_loggedData, kEidosValueMaskInt | kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))
 							  ->AddString_S("kind")
 							  ->AddLogical_OS("id", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("mutationTypeID", gStaticEidosValue_LogicalF)
