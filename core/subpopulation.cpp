@@ -23,6 +23,7 @@
 #include "species.h"
 #include "slim_globals.h"
 #include "population.h"
+#include "trait.h"
 #include "interaction_type.h"
 #include "mutation_block.h"
 #include "eidos_call_signature.h"
@@ -1783,9 +1784,32 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 }
 
 // FIXME MULTITRAIT: should return slim_effect_t so the caller doesn't have to cast
-slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
+slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, Trait *p_trait, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
+	
+#if DEBUG
+	// this should only be called with callbacks that match the situation; the caller is responsible for weeding the list
+	for (SLiMEidosBlock *callback : p_mutationEffect_callbacks)
+	{
+		if (callback->species_spec_ != &species_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) incorrect mutationEffect() callback species." << EidosTerminate(callback->identifier_token_);
+		if (callback->type_ != SLiMEidosBlockType::SLiMEidosMutationEffectCallback)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) incorrect mutationEffect() callback type." << EidosTerminate(callback->identifier_token_);
+		if ((callback->subpopulation_id_ != -1) && (callback->subpopulation_id_ != subpopulation_id_))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) incorrect mutationEffect() subpopulation id." << EidosTerminate(callback->identifier_token_);
+		if ((callback->trait_index_ != -1) && (callback->trait_index_ != p_trait->Index()))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) incorrect mutationEffect() trait index." << EidosTerminate(callback->identifier_token_);
+		
+		// note that mutation_type_id_ is not expected to match; we check it below
+		
+		// It should now be the case that p_fitnessEffect_callbacks only contains active callbacks; the caller should guarantee this.
+		// This is made possible by the SetInsideTraitOrFitnessCalculation() mechanism, which locks out changes to fitnessEffect()
+		// and mutationEffect() callbacks inside trait/fitness calculation; the callback set is therefore fixed and can be cached.
+		if (!callback->block_active_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) mutationEffect() callback with block_active_ == false included in p_mutationEffect_callbacks." << EidosTerminate(callback->identifier_token_);
+	}
+#endif
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1797,14 +1821,6 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 	
 	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
-#if DEBUG
-		// It should now be the case that p_fitnessEffect_callbacks only contains active callbacks; the caller should guarantee this.
-		// This is made possible by the SetInsideTraitOrFitnessCalculation() mechanism, which locks out changes to fitnessEffect()
-		// and mutationEffect() callbacks inside trait/fitness calculation; the callback set is therefore fixed and can be cached.
-		if (!mutationEffect_callback->block_active_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) mutationEffect() callback with block_active_ == false included in p_mutationEffect_callbacks." << EidosTerminate(mutationEffect_callback->identifier_token_);
-#endif
-		
 		if (mutationEffect_callback->block_active_)
 		{
 			slim_objectid_t callback_mutation_type_id = mutationEffect_callback->mutation_type_id_;
@@ -1828,6 +1844,8 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutationEffect(m" << mutationEffect_callback->mutation_type_id_;
 						if (mutationEffect_callback->subpopulation_id_ != -1)
 							SLIM_ERRSTREAM << ", p" << mutationEffect_callback->subpopulation_id_;
+						if (mutationEffect_callback->trait_index_ != -1)
+							SLIM_ERRSTREAM << ", '" << mutationEffect_callback->trait_identifier_ << "'";
 						SLIM_ERRSTREAM << ")";
 						
 						if (mutationEffect_callback->block_id_ != -1)
@@ -1848,17 +1866,14 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 					// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
 					EidosValue_SP result_SP = compound_statement_node->cached_return_value_;
 					EidosValue *result = result_SP.get();
+					EidosValueType result_type = result->Type();
 					
-					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
-					
-#if DEBUG
-					// this checks the value type at runtime
-					p_effect = (slim_effect_t)result->FloatData()[0];
-#else
-					// unsafe cast for speed
-					p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
-#endif
+					if (result_type == EidosValueType::kValueNULL)
+						p_effect = ((p_trait->Type() == TraitType::kAdditive) ? (slim_effect_t)0.0 : (slim_effect_t)1.0);
+					else if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+						p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
+					else
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value, or NULL to represent neutrality for the focal trait." << EidosTerminate(mutationEffect_callback->identifier_token_);
 					
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
@@ -1885,6 +1900,7 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 					EidosValue_Object local_mut(mut_block_ptr + p_mutation, gSLiM_Mutation_Class);
+					EidosValue_Object local_trait(p_trait, gSLiM_Trait_Class);
 					EidosValue_Float local_effect((double)p_effect);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
@@ -1911,6 +1927,11 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 							local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
 							callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 						}
+						if (mutationEffect_callback->contains_trait_)
+						{
+							local_trait.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+							callback_symbols.InitializeConstantSymbolEntry(gID_trait, EidosValue_SP(&local_trait));
+						}
 						if (mutationEffect_callback->contains_effect_)
 						{
 							local_effect.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
@@ -1934,20 +1955,19 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 						
 						try
 						{
-							// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
+							// Interpret the script; the result from the interpretation must be a singleton float used
+							// as a new fitness value, or NULL representing a neutral effect for the focal trait; the
+							// latter is useful for making a mutation neutral across multiple traits
 							EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutationEffect_callback->script_);
 							EidosValue *result = result_SP.get();
+							EidosValueType result_type = result->Type();
 							
-							if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
-							
-#if DEBUG
-							// this checks the value type at runtime
-							p_effect = (slim_effect_t)result->FloatData()[0];
-#else
-							// unsafe cast for speed
-							p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
-#endif
+							if (result_type == EidosValueType::kValueNULL)
+								p_effect = ((p_trait->Type() == TraitType::kAdditive) ? (slim_effect_t)0.0 : (slim_effect_t)1.0);
+							else if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+								p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
+							else
+								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value, or NULL to represent neutrality for the focal trait." << EidosTerminate(mutationEffect_callback->identifier_token_);
 						}
 						catch (...)
 						{
@@ -1956,6 +1976,13 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 						
 					}
 				}
+				
+				// Note that we deliberately do *not* clip the effect to a minimum of 0.0 for multiplicative
+				// traits here.  It is better for the caller to do that, because then they can also short-circuit
+				// any remaining work.  We cannot do that here, so it's better to leave the check for <= 0.0 to
+				// the caller to perform.  We can check for values that are actually illegal here, though.
+				if (!std::isfinite(p_effect))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks cannot return NAN or INF; mutation effects must be finite." << EidosTerminate(mutationEffect_callback->identifier_token_);
 			}
 		}
 	}

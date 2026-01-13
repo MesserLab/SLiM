@@ -2721,15 +2721,15 @@ The optional parameter
 
 \f4\fs20 \cf2 Returns the sum of the effects of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the haplosome, for the trait(s) specified by 
+\f4\fs20 , out of all of the mutations in the haplosome, for the trait specified by 
 \f3\fs18 trait
-\f4\fs20 .  The traits can be specified as 
+\f4\fs20 .  The trait can be specified as the 
 \f3\fs18 integer
-\f4\fs20  indices or 
+\f4\fs20  index or 
 \f3\fs18 string
-\f4\fs20  names of traits in the species, or directly as 
+\f4\fs20  name of a trait in the species, or directly as a 
 \f3\fs18 Trait
-\f4\fs20  objects; 
+\f4\fs20  object; 
 \f3\fs18 NULL
 \f4\fs20  can be used to represent the one defined trait in a single-trait species.\
 Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
@@ -4526,15 +4526,15 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 
 \f4\fs20 \cf2 Returns the sum of the effects of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the haplosomes of the individual, for the trait(s) specified by 
+\f4\fs20 , out of all of the mutations in the haplosomes of the individual, for the trait specified by 
 \f3\fs18 trait
-\f4\fs20 .  The traits can be specified as 
+\f4\fs20 .  The trait can be specified as the 
 \f3\fs18 integer
-\f4\fs20  indices or 
+\f4\fs20  index or 
 \f3\fs18 string
-\f4\fs20  names of traits in the species, or directly as 
+\f4\fs20  name of a trait in the species, or directly as a 
 \f3\fs18 Trait
-\f4\fs20  objects; 
+\f4\fs20  object; 
 \f3\fs18 NULL
 \f4\fs20  can be used to represent the one defined trait in a single-trait species.\
 Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
@@ -7039,8 +7039,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  and 
 \f3\fs18 kind="count"
 \f4\fs20  are allowed, since separate values for each mutation are then not logged.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The remaining flags control which columns of data should be returned (for 
+The remaining flags control which columns of data should be returned (for 
 \f3\fs18 kind
 \f4\fs20  options other than 
 \f3\fs18 "count"
@@ -11133,7 +11132,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerMutationEffectCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerMutationEffectCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Niso<Trait>$\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Register a block of Eidos source code, represented as the 
@@ -11152,11 +11151,21 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3\fs18 integer
 \f4\fs20  identifier, or 
 \f3\fs18 NULL
-\f4\fs20 , the default, to indicate all subpopulations), and optional 
+\f4\fs20 , the default, to indicate all subpopulations), optional 
 \f3\fs18 start
 \f4\fs20  and 
 \f3\fs18 end
-\f4\fs20  ticks all limiting its applicability.  The script block will be given identifier 
+\f4\fs20  ticks, and optional trait identifier 
+\f3\fs18 trait
+\f4\fs20  (which may be an 
+\f3\fs18 integer
+\f4\fs20  trait index, a 
+\f3\fs18 string
+\f4\fs20  trait name, a 
+\f3\fs18 Trait
+\f4\fs20  object, or 
+\f3\fs18 NULL
+\f4\fs20  if the species has only one defined trait anyway), all limiting its applicability.  The script block will be given identifier 
 \f3\fs18 id
 \f4\fs20  (specified as an 
 \f3\fs18 integer

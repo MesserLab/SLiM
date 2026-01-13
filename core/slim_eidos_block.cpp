@@ -455,6 +455,35 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 						}
 					}
 					
+					if (current_token_type_ == EidosTokenType::kTokenComma)
+					{
+						// A (optional) trait identifier is present, which must be either NULL or a string trait name; add it
+						Match(EidosTokenType::kTokenComma, "SLiM mutationEffect() callback");
+						
+						if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "NULL"))
+						{
+							callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+							
+							Match(EidosTokenType::kTokenIdentifier, "SLiM mutationEffect() callback");
+						}
+						else if (current_token_type_ == EidosTokenType::kTokenString)
+						{
+							callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+							
+							Match(EidosTokenType::kTokenString, "SLiM mutationEffect() callback");
+						}
+						else
+						{
+							if (!parse_make_bad_nodes_)
+								EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; trait identifier expected." << EidosTerminate(current_token_);
+							
+							// Make a placeholder bad node, to be error-tolerant
+							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
+							EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+							callback_info_node->AddChild(bad_node);
+						}
+					}
+					
 					Match(EidosTokenType::kTokenRParen, "SLiM mutationEffect() callback");
 				}
 				else if (current_token_->token_string_.compare(gStr_mutation) == 0)
@@ -1111,19 +1140,41 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mutationEffect) == 0))
 				{
-					if ((n_callback_children != 1) && (n_callback_children != 2))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() callback needs 1 or 2 parameters." << EidosTerminate(callback_token);
+					if ((n_callback_children != 1) && (n_callback_children != 2) && (n_callback_children != 3))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() callback needs 1, 2, or 3 parameters." << EidosTerminate(callback_token);
 					
 					EidosToken *mutation_type_id_token = callback_children[0]->token_;
 					
 					mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
 					type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
 					
-					if (n_callback_children == 2)
+					if (n_callback_children >= 2)
 					{
 						EidosToken *subpop_id_token = callback_children[1]->token_;
 						
-						subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						if (subpop_id_token->token_string_ == gEidosStr_NULL)
+							subpopulation_id_ = -1;	// special placeholder that indicates a NULL subpopulation identifier
+						else
+							subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						
+						if (n_callback_children == 3)
+						{
+							EidosToken *trait_identifier_token = callback_children[2]->token_;
+							
+							if ((trait_identifier_token->token_type_ == EidosTokenType::kTokenIdentifier) && (trait_identifier_token->token_string_ == "NULL"))
+							{
+								trait_index_ = -2;
+								trait_identifier_ = "NULL";
+							}
+							else if (trait_identifier_token->token_type_ == EidosTokenType::kTokenString)
+							{
+								trait_index_ = -2;
+								trait_identifier_ = trait_identifier_token->token_string_;
+							}
+							
+							if (!EidosScript::Eidos_IsIdentifier(trait_identifier_))
+								EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() trait identifier must be a valid Eidos identifier." << EidosTerminate(callback_token);
+						}
 					}
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mutation) == 0))
@@ -1364,6 +1415,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_self) == 0)				contains_self_ = true;
 		
 		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
+		if (token_string.compare(gStr_trait) == 0)				contains_trait_ = true;
 		if (token_string.compare(gStr_effect) == 0)				contains_effect_ = true;
 		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
 		if (token_string.compare(gStr_element) == 0)			contains_element_ = true;
@@ -1402,6 +1454,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 	{
 		contains_self_ = true;
 		contains_mut_ = true;
+		contains_trait_ = true;
 		contains_effect_ = true;
 		contains_individual_ = true;
 		contains_element_ = true;
@@ -1493,14 +1546,14 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			
 		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 		{
-			// mutationEffect(<mutTypeId> [, <subpopId> [, <traitIndex>]])
+			// mutationEffect(<mutTypeId> [, <subpopId> [, <traitName>]])
 			p_out << "mutationEffect(m" << mutation_type_id_;
 			if (subpopulation_id_ != -1)
 				p_out << ", p" << subpopulation_id_;
 			else if (trait_index_ != -1)
 				p_out << ", NULL";
-			if (trait_index_ != -1)
-				p_out << ", " << trait_index_ << "";
+			if (trait_identifier_.length())
+				p_out << ", '" << trait_identifier_ << "'";
 			p_out << ")";
 			break;
 		}

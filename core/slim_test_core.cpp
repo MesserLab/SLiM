@@ -2235,13 +2235,12 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutationEffect(m1, p1) { stop(); } 100 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect() { stop(); } 100 early() { ; }", "mutation type id is required", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, p1, p2) { stop(); } 100 early() { ; }", "unexpected token", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(p1) { stop(); } 100 early() { ; }", "identifier prefix 'm' was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { ; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return NULL; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { return NULL; } 100 early() { stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return F; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return T; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return 1; } 100 early() { ; }", "return value", __LINE__);
@@ -2249,7 +2248,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return mut; } 100 early() { ; }", "return value", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; ; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return NULL; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return NULL; } 100 early() { stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return F; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return T; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return 1; } 100 early() { ; }", "return value", __LINE__);

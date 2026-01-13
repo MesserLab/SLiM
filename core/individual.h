@@ -412,10 +412,10 @@ public:
 	// accumulated into the trait value of the focal individual, which must be set up with an initial value
 	// see also the DemandPhenotype_X() methods in class Individual_Class, which call these methods
 	template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-	void _IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	void _IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
 	template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, slim_trait_index_t trait_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
 	// Debugging checkback for phenotype calculation; this is very slow, and does not use the non-neutral cache
 	slim_effect_t _CheckPhenotypeForTrait(slim_trait_index_t trait_index);

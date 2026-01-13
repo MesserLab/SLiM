@@ -158,7 +158,8 @@ public:
 	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
-	slim_trait_index_t trait_index_ = -1;							// -1 if not limited by this
+	slim_trait_index_t trait_index_ = -1;						// -1 if not limited by this; -2 if it needs to be evaluated from trait_identifier_ below
+	std::string trait_identifier_;								// the original trait identifier string supplied by the user; used to determine trait_index_
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
 	int64_t chromosome_id_ = -1;								// -1 if not limited by this
@@ -176,6 +177,7 @@ public:
 	bool contains_wildcard_ = false;			// "apply", "sapply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T
 	bool contains_self_ = false;				// "self"
 	bool contains_mut_ = false;					// "mut" (mutationEffect/mutation callback parameter)
+	bool contains_trait_ = false;				// "trait" (mutationEffect callback parameter)
 	bool contains_effect_ = false;				// "effect" (mutationEffect callback parameter)
 	bool contains_individual_ = false;			// "individual" (fitnessEffect/mutationEffect/mateChoice/recombination/survival/reproduction callback parameter)
 	bool contains_element_ = false;				// "element" (mutation callback parameter)

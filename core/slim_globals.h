@@ -1142,6 +1142,7 @@ extern const std::string &gStr_isCloning;
 extern const std::string &gStr_isSelfing;
 extern const std::string &gStr_parent2;
 extern const std::string &gStr_mut;
+extern const std::string &gStr_trait;
 extern const std::string &gStr_effect;
 extern const std::string &gStr_homozygous;
 extern const std::string &gStr_breakpoints;
@@ -1635,6 +1636,7 @@ enum _SLiMGlobalStringID : int {
 	gID_isSelfing,
 	gID_parent2,
 	gID_mut,
+	gID_trait,
 	gID_effect,
 	gID_homozygous,
 	gID_breakpoints,

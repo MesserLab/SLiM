@@ -1572,6 +1572,7 @@ const std::string &gStr_isCloning = EidosRegisteredString("isCloning", gID_isClo
 const std::string &gStr_isSelfing = EidosRegisteredString("isSelfing", gID_isSelfing);
 const std::string &gStr_parent2 = EidosRegisteredString("parent2", gID_parent2);
 const std::string &gStr_mut = EidosRegisteredString("mut", gID_mut);
+const std::string &gStr_trait = EidosRegisteredString("trait", gID_trait);
 const std::string &gStr_effect = EidosRegisteredString("effect", gID_effect);
 const std::string &gStr_homozygous = EidosRegisteredString("homozygous", gID_homozygous);
 const std::string &gStr_breakpoints = EidosRegisteredString("breakpoints", gID_breakpoints);
@@ -1726,6 +1727,7 @@ void SLiM_ConfigureContext(void)
 		gEidosContextReservedSymbols.push_back("receiver");		// defined in ApplyInteractionCallbacks()
 		gEidosContextReservedSymbols.push_back("exerter");		// defined in ApplyInteractionCallbacks()
 		gEidosContextReservedSymbols.push_back("mut");			// defined in ApplyMutationEffectCallbacks() etc.
+		gEidosContextReservedSymbols.push_back("trait");		// defined in ApplyMutationEffectCallbacks()
 		gEidosContextReservedSymbols.push_back("effect");		// defined in ApplyMutationEffectCallbacks()
 		gEidosContextReservedSymbols.push_back("individual");	// defined in ApplyMutationEffectCallbacks() etc.
 		gEidosContextReservedSymbols.push_back("subpop");		// defined in ApplyMutationEffectCallbacks() etc.

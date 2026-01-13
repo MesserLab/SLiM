@@ -709,27 +709,57 @@ void Species::AddTrait(Trait *p_trait)
 	trait_from_string_id.emplace(name_string_id, p_trait);
 }
 
-// This returns the trait index for a single trait, represented by an EidosValue with an integer index or a Trait object
+// This returns the trait index for a single trait, represented by an EidosValue with an integer index, a
+// string name, a Trait object, or -- only in single-trait models -- NULL to represent the single trait.
 slim_trait_index_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name)
 {
 	int64_t trait_index;
 	
-	if (trait_value->Type() == EidosValueType::kValueInt)
+	if (trait_value->Type() == EidosValueType::kValueNULL)
 	{
-		trait_index = trait_value->IntAtIndex_NOCAST(0, nullptr);
-	}
-	else
-	{
-		const Trait *trait = (const Trait *)trait_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		if (TraitCount() != 1)
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() allows NULL to be passed for trait only in single-trait models, since only a single trait may be specified." << EidosTerminate(nullptr);
 		
-		if (&trait->species_ != this)
-			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
-		
-		trait_index = trait->Index();
+		return (slim_trait_index_t)0;
 	}
 	
-	if ((trait_index < 0) || (trait_index >= TraitCount()))
-		EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+	if (trait_value->Count() != 1)
+		EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires that only a single trait may be specified." << EidosTerminate(nullptr);
+	
+	switch (trait_value->Type())
+	{
+		case EidosValueType::kValueInt:
+		{
+			trait_index = trait_value->IntAtIndex_NOCAST(0, nullptr);
+			
+			if ((trait_index < 0) || (trait_index >= TraitCount()))
+				EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+			break;
+		}
+		case EidosValueType::kValueString:
+		{
+			const std::string trait_name = trait_value->StringAtIndex_NOCAST(0, nullptr);
+			Trait *trait = TraitFromName(trait_name);
+			
+			if (trait == nullptr)
+				EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): unrecognized trait name in " << p_method_name << "(); trait name " << trait_name << " is not defined for the species." << EidosTerminate(nullptr);
+			
+			trait_index = trait->Index();
+			break;
+		}
+		case EidosValueType::kValueObject:
+		{
+			const Trait *trait = (const Trait *)trait_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			if (&trait->species_ != this)
+				EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+			
+			trait_index = trait->Index();
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): (internal error) unexpected type for triat_value." << EidosTerminate(nullptr);
+	}
 	
 	return (slim_trait_index_t)trait_index;
 }
@@ -2792,6 +2822,7 @@ void Species::RunInitializeCallbacks(void)
 				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): reproduction() callbacks may not be limited by sex in non-sexual models." << EidosTerminate(script_block->identifier_token_);
 	}
 	{
+		// validate recombination() callbacks --  particularly their chromosome specifier, which is deferred to here
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
 		for (auto script_block : script_blocks)
@@ -2813,6 +2844,39 @@ void Species::RunInitializeCallbacks(void)
 					// translate the symbol into an id, which is what ApplyRecombinationCallbacks() checks
 					script_block->chromosome_id_ = chrom->ID();
 				}
+			}
+		}
+	}
+	{
+		// validate mutationEffect() callbacks --  particularly their trait specifier, which is deferred to here
+		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
+		
+		for (auto script_block : script_blocks)
+		{
+			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && (script_block->trait_index_ == -2))
+			{
+				if (script_block->trait_identifier_.length() == 0)
+					EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) missing mutationEffect() trait specifier." << EidosTerminate(script_block->identifier_token_);
+				
+				Trait *trait;
+				
+				if (script_block->trait_identifier_ == "NULL")
+				{
+					trait = Traits()[0];
+				}
+				else
+				{
+					if (has_implicit_trait_)
+						EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): mutationEffect() callbacks may only use a non-NULL trait specifier in models with explicitly declared traits." << EidosTerminate(script_block->identifier_token_);
+					trait = TraitFromName(script_block->trait_identifier_);
+				}
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): mutationEffect() callback declaration references a trait with identifier '" << script_block->trait_identifier_ << "' that has not been declared." << EidosTerminate(script_block->identifier_token_);
+				
+				// translate the identifier into an index, which is what the rest of the SLiM core uses
+				script_block->trait_index_ = trait->Index();
+				script_block->trait_identifier_ = trait->Name();
 			}
 		}
 	}
