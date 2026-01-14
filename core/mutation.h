@@ -115,7 +115,7 @@ public:
 	// independent_dominance_for_all_traits_ is true if the mutation has been configured to exhibit "independent
 	// dominance" for ALL traits (among those that are non-neutral; traits for which the mutation is neutral are
 	// irrelevant for the determination of this flag).  Independent dominance is configured by using NAN as the
-	// dominance coefficient for for the mutation, for a given trait.  This flag is updated if the state of the
+	// dominance coefficient for the mutation, for a given trait.  This flag is updated if the state of the
 	// mutation's dominance changes; it is not sticky.  If this flag is set, the mutation can be omitted from
 	// non-neutral caches even if it is non-neutral, because all of its effects can be handled separately by the
 	// independent dominance mechanism.  Note that this flag and is_neutral_for_all_traits_ can both be true,

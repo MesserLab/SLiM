@@ -5438,16 +5438,36 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 		}
 	}
 	
+	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
+	species_.last_nonneutral_regime_ = current_regime;
 	// we need to recalculate phenotypes for traits that have a direct effect on fitness
 	std::vector<slim_trait_index_t> p_direct_effect_trait_indices;
 	const std::vector<Trait *> &traits = species_.Traits();
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
-		if (traits[trait_index]->HasDirectFitnessEffect())
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			// Sneaky optimization: we might know that all mutations are completely neutral for this trait;
+			// if so, we can exclude it from the list of direct-effect traits and skip the demand for its
+			// phenotypes.  This will mean that fitness recalculation does not necessarily demand phenotypes
+			// for all direct-effect traits, which might be surprising to the user and should be documented.
+			// See also the optimization for trait_all_mutations_independent_dominance_, which is done inside
+			// non-neutral cache validation since the effects for such traits go into that cache.
+			if (trait->trait_all_neutral_mutations_)
+			{
+#if DEBUG_TRAIT_DEMAND
+				std::cout << "# " << community_.Tick() << " --- RecalculateFitness() removed demand for direct-effect trait '" << trait->Name() << "' because it is known to be neutral" << std::endl;
+#endif
+				
+				continue;
+			}
+			
 			p_direct_effect_trait_indices.push_back(trait_index);
-	
-	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
-	species_.last_nonneutral_regime_ = current_regime;
+		}
+	}
 	
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
