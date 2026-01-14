@@ -147,7 +147,7 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); m1.drawEffectForTrait(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 2.0) < 0.1) stop(); }", __LINE__);
 	
-	// test mutation date recording with logMutationData() and loggedData()
+	// test mutation data recording with logMutationData() and loggedData()
 	std::string data_recording =
 	R"V0G0N(
 		initialize() {
