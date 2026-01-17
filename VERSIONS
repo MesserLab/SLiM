@@ -145,6 +145,7 @@ multitrait branch:
 		add trait pseudo-parameter to mutationEffect() callbacks
 		add [Niso<Trait>$ trait = NULL] parameter to registerMutationEffectCallback() to allow the trait specifier to be given (defaults to NULL for backward compatibility)
 	add a new return option for mutationEffect() callbacks: NULL now indicates neutrality for the focal trait, meaning either 1.0 (multiplicative) or 0.0 (additive)
+	re-enable non-neutral caching (but without independent dominance optimizations, so far)
 
 
 version 5.1 (Eidos version 4.1):
@@ -340,7 +341,7 @@ version 5.0 (Eidos version 4.0):
 		add a "page guide at column" pref to SLiMgui, for those trying to lay out code to a maximum width
 		fix a SLiMgui bug where an error panel would not be visible because it was obscured by a floating window above it, appearing to lock up the whole app
 		fixed a long-standing SLiMgui bug involving mutation frequencies and mutation run reuse when a subset of the subpopulations are selected in the GUI
-			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES debugging code, (2) separated SLiMgui's refcounting more completely from
+			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES() debugging code, (2) separated SLiMgui's refcounting more completely from
 			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
 		cleaned up the confusion around Dictionary vs. DictionaryBase; methods/functions can now use Dictionary in their signature without problems
 		fix a bug in treeSeqMetadata(); if no metadata was found, it would return object<Dictionary>(0), not an empty Dictionary object (and it leaked)

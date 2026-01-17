@@ -958,10 +958,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_nod
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NullStatement()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NullStatement", 0);
 	
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -1433,7 +1430,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 
 EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments)
 {
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -1632,7 +1629,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, function_signature);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -1682,7 +1679,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) function " << *function_name << " returned nullptr." << EidosTerminate(call_identifier_token);
 #endif
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -1758,7 +1755,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, method_signature);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -1791,7 +1788,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		_DeprocessArgumentList(p_node, argument_buffer);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -4182,7 +4179,7 @@ compoundAssignmentSkip:
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		EidosValue_SP rvalue = FastEvaluateNode(p_node->children_[1]);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -5466,7 +5463,7 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	EidosASTNode *condition_node = p_node->children_[0];
 	EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -5582,7 +5579,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -5644,7 +5641,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[1];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
@@ -5716,7 +5713,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[0];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -6013,7 +6010,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	{
 		for (int range_index = 0; range_index < iteration_count; ++range_index)
 		{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			bool log_debug_point = false;
@@ -6062,7 +6059,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						*int_data = iterator_int_value;
 					}
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 					// SLiMgui debugging point
 					if (log_debug_point)
 					{
@@ -6161,7 +6158,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						}
 					}
 					
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 					// SLiMgui debugging point
 					if (log_debug_point)
 					{
@@ -6175,7 +6172,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 #endif
 				}
 				
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				if (log_debug_point)
 				{
@@ -6268,7 +6265,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Next()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Next", 0);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6296,7 +6293,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Break()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Break", 0);
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6340,7 +6337,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	else
 		result_SP = FastEvaluateNode(p_node->children_[0]);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	

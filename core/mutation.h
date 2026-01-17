@@ -161,7 +161,7 @@ public:
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 	inline virtual ~Mutation(void) override
 	{
 		std::cout << "Mutation destructed: " << this << std::endl;

@@ -4163,7 +4163,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		}
 	}
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	//
 	//	MutationRun metrics, presented per Species
 	//

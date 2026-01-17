@@ -283,14 +283,14 @@ public:
 	
 	// PROFILING : Chromosome keeps track of some additional profile information that is per-chromosome
 #if (SLIMPROFILING == 1)
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
 	int64_t profile_mutation_total_usage_ = 0;										// how many (non-unique) mutations were used by mutation runs, summed across cycles
 	int64_t profile_nonneutral_mutation_total_ = 0;									// of profile_mutation_total_usage_, how many were deemed to be nonneutral
 	int64_t profile_mutrun_total_usage_ = 0;										// how many (non-unique) mutruns were used by haplosomes, summed across cycles
 	int64_t profile_unique_mutrun_total_ = 0;										// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
 	int64_t profile_mutrun_nonneutral_recache_total_ = 0;							// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
-#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 #endif	// (SLIMPROFILING == 1)
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
@@ -744,13 +744,13 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 			{
 				back->mutruns_ = back->run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 				EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 			}
 			else
 			{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 				back->mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 #else
 				back->mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
@@ -759,7 +759,7 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 		}
 		else
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			// the number of mutruns is unchanged, but we need to zero out the reused buffer here
 			EIDOS_BZERO(back->mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 #endif
@@ -782,7 +782,7 @@ inline __attribute__((always_inline)) void Chromosome::FreeHaplosome(Haplosome *
 #if DEBUG
 	p_haplosome->individual_ = nullptr;		// crash if anybody tries to use this pointer after the free
 #endif
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	p_haplosome->clear_to_nullptr();
 #endif
 	

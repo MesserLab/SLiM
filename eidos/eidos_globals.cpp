@@ -103,7 +103,7 @@ EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 int gEidosFloatOutputPrecision = 6;
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 int gEidosDebugIndent = 0;
 #endif
 
@@ -2854,7 +2854,7 @@ int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 	return -1;
 }
 
-#if EIDOS_BUFFER_ZIP_APPENDS
+#if EIDOS_BUFFER_ZIP_APPENDS()
 // This contains all unflushed append data for zip files written by writeFile(); see Eidos_FlushFiles() below
 std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
 
@@ -2906,7 +2906,7 @@ void Eidos_FlushFile(const std::string &p_file_path)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFile():  filesystem write");
 	
-#if EIDOS_BUFFER_ZIP_APPENDS
+#if EIDOS_BUFFER_ZIP_APPENDS()
 	auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
 	
 	if (buffer_iter != gEidosBufferedZipAppendData.end())
@@ -2927,7 +2927,7 @@ bool Eidos_FlushFiles(void)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFiles():  filesystem write");
 	
-#if EIDOS_BUFFER_ZIP_APPENDS
+#if EIDOS_BUFFER_ZIP_APPENDS()
 	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
 	bool success = true;
 	
@@ -2962,10 +2962,10 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 	if (p_compress)
 	{
 		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
-		#if EIDOS_BUFFER_ZIP_APPENDS
+		#if EIDOS_BUFFER_ZIP_APPENDS()
 		if (p_append)
 		{
-			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS is true
+			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS() is true
 			auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
 			
 			if (buffer_iter == gEidosBufferedZipAppendData.end())
@@ -4270,7 +4270,7 @@ EidosGlobalStringID EidosStringRegistry::_GlobalStringIDForString(const std::str
 		gStringToID[*copied_string] = string_id;	// makes another copy for the key
 		gIDToString[string_id] = copied_string;		// uses the copy we made above
 		
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 		// We add the string copies to a thunk object for later freeing, if we're leak-checking.
 		// Normally all these copied strings live for the lifespan of the process.
 		globalString_Thunk.emplace_back(copied_string);
@@ -4299,7 +4299,7 @@ const std::string &EidosRegisteredString(const char *p_cstr, EidosGlobalStringID
 {
 	_EidosRegisteredString *registration_object = new _EidosRegisteredString(p_cstr, p_id);
 	
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 	// We add registration objects to a thunk vector so we can free them at the end to un-confuse Valgrind;
 	// see ~EidosStringRegistry().  Note that this thunk vector is not used by Eidos or SLiM, but the
 	// registration objects are; they hold onto the std::string objects used by _RegisterStringForGlobalID().

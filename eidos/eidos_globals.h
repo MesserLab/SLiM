@@ -98,14 +98,16 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 // Change this define to 1 to enable Robin Hood Hashing, or change it to 0 to disable it
 // Note that you have a choice of robin_hood::unordered_node_map or robin_hood::unordered_flat_map
 // With robin_hood::unordered_flat_map, references to elements are not stable, but it is probably a bit faster
-// STD_UNORDERED_MAP_HASHING is the reverse flag; this just makes it easy to get an error message if this header
+// STD_UNORDERED_MAP_HASHING() is the reverse flag; this just makes it easy to get an error message if this header
 // is not included, following a standard usage pattern, since then neither of these defines will exist.
-#define EIDOS_ROBIN_HOOD_HASHING	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_ROBIN_HOOD_HASHING()	1
 
-#if EIDOS_ROBIN_HOOD_HASHING
-#define STD_UNORDERED_MAP_HASHING	0
+#if EIDOS_ROBIN_HOOD_HASHING()
+#define STD_UNORDERED_MAP_HASHING()	0
 #else
-#define STD_UNORDERED_MAP_HASHING	1
+#define STD_UNORDERED_MAP_HASHING()	1
 #endif
 
 
@@ -233,22 +235,26 @@ extern bool eidos_do_memory_checks;
 // To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
 // keep Valgrind from getting confused.  Use a DEBUG build so it is symbolicated (-g) and minimally optimized (-Og),
 // or add those flags to CMAKE_C_FLAGS_RELEASE and CMAKE_CXX_FLAGS_RELEASE in CMakeLists.txt.
-#define SLIM_LEAK_CHECKING	0
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define SLIM_LEAK_CHECKING()	0
 
-#if SLIM_LEAK_CHECKING
-#warning SLIM_LEAK_CHECKING enabled!
+#if SLIM_LEAK_CHECKING()
+#warning SLIM_LEAK_CHECKING() enabled!
 #endif
 
 // Enabling "debug points" in SLiMgui.  These are only enabled under SLiMgui (i.e., QtSLiM), and should always be enabled
 // in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
 #ifdef SLIMGUI
-#define DEBUG_POINTS_ENABLED	1
+#define DEBUG_POINTS_ENABLED()	1
 extern int gEidosDebugIndent;
 #else
-#define DEBUG_POINTS_ENABLED	0
+#define DEBUG_POINTS_ENABLED()	0
 #endif
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 // A simple class for RAII-based debug point indentation; saves some hassle with exceptions, etc.
 class EidosDebugPointIndent
 {
@@ -628,9 +634,11 @@ int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len);
 
 // Writing files with support for gzip compression and buffered flushing
-#define EIDOS_BUFFER_ZIP_APPENDS	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_BUFFER_ZIP_APPENDS()	1
 
-#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
+#if EIDOS_BUFFER_ZIP_APPENDS()	// implementation details for Eidos_FlushFiles(); for internal use only
 extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// canonical absolute file path -> buffered text
 bool _Eidos_FlushZipBuffer(const std::string &p_file_path, const std::string &p_outstring);
 #endif
@@ -951,7 +959,8 @@ public:
 
 #ifdef Eidos_add_overflow
 
-#define EIDOS_HAS_OVERFLOW_BUILTINS		1
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_HAS_OVERFLOW_BUILTINS()		1
 
 #else
 
@@ -960,7 +969,7 @@ public:
 #define Eidos_add_overflow(a, b, c)	(*(c)=(a)+(b), false)
 #define Eidos_sub_overflow(a, b, c)	(*(c)=(a)-(b), false)
 #define Eidos_mul_overflow(a, b, c)	(*(c)=(a)*(b), false)
-#define EIDOS_HAS_OVERFLOW_BUILTINS		0
+#define EIDOS_HAS_OVERFLOW_BUILTINS()		0
 
 #endif
 
@@ -1073,7 +1082,7 @@ public:
 		return EidosStringRegistry::sharedRegistry()._StringForGlobalStringID(p_string_id);
 	}
     
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
     static inline void ThunkRegistration(_EidosRegisteredString *p_registration_object)
     {
         EidosStringRegistry::sharedRegistry().gIDToString_Thunk.emplace_back(p_registration_object);

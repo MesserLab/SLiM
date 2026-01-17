@@ -141,7 +141,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	SelfConsistencyCheck(" in Mutation::Mutation()");
 #endif
 	
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
@@ -283,7 +283,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	SelfConsistencyCheck(" in Mutation::Mutation()");
 #endif
 	
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
@@ -389,7 +389,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	SelfConsistencyCheck(" in Mutation::Mutation()");
 #endif
 	
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
@@ -1176,6 +1176,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			MutationBlock *mutation_block = species.SpeciesMutationBlock();
 			MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(this);
 			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+			Community &community = species.community_;
 			
 			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
 			{
@@ -1184,6 +1185,14 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 				
 				if (trait)
 				{
+					// TIMING RESTRICTION
+					// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+					// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+					if (species.InsideTraitOrFitnessCalculation())
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): mutation effects may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+					if (species.Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): mutation effects may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
+					
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
 					slim_effect_t new_effect = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
@@ -1204,6 +1213,14 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 				
 				if (trait)
 				{
+					// TIMING RESTRICTION
+					// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+					// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+					if (species.InsideTraitOrFitnessCalculation())
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): mutation dominances may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+					if (species.Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): mutation dominances may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
+					
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
 					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
@@ -1224,6 +1241,14 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 				
 				if (trait)
 				{
+					// TIMING RESTRICTION
+					// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+					// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+					if (species.InsideTraitOrFitnessCalculation())
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): mutation dominances may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+					if (species.Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): mutation dominances may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
+					
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait->Index();
 					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
@@ -1454,6 +1479,15 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	Species &species = mutation_type_ptr_->species_;
+	Community &community = species.community_;
+	
+	// TIMING RESTRICTION
+	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+	if (species.InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): mutation types may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+	if (species.Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): mutation types may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "setMutationType()");		// SPECIES CONSISTENCY CHECK
 	
@@ -1576,6 +1610,15 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 	
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	const std::vector<Trait *> &traits = species->Traits();
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+	if (species->InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): mutation effects may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+	if (species->Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): mutation effects may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
@@ -1770,6 +1813,15 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 	
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	const std::vector<Trait *> &traits = species->Traits();
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+	if (species->InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): mutation dominances may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+	if (species->Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): mutation dominances may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;

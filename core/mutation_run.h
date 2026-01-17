@@ -92,7 +92,33 @@ typedef struct MutationRunContext {
 // fitness calculations, but does consume additional memory, and is not always advantageous.  Define to 0 to disable this feature.
 // I'm not sure how long I will maintain the ability to disable these caches; the overhead is quite small, so I think it would be OK
 // to just make this always be on.  At present this flag is mostly useful for testing purposes.
-#define SLIM_USE_NONNEUTRAL_CACHES	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define SLIM_USE_NONNEUTRAL_CACHES()	1
+
+#warning FIXME MULTITRAIT turn on profiling of non-neutral caches eventually
+#if SLIM_USE_NONNEUTRAL_CACHES() && (SLIMPROFILING == 1)
+// PROFILING: this flag should be 1 to profile the use of non-neutral caches.  It's a separate flag to
+// separate out the profiling ramifications of non-neutral caches from all the rest of that code.
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define SLIM_PROFILE_NONNEUTRAL_CACHES() 0	// FIXME MULTITRAIT: should be 1
+#else
+#define SLIM_PROFILE_NONNEUTRAL_CACHES() 0
+#endif	// SLIM_USE_NONNEUTRAL_CACHES() && (SLIMPROFILING == 1)
+
+// This enumeration represents a particular modality for the calculation of trait values, depending upon the
+// callbacks present, whether independent dominance is being used, and other factors.  This affects the way
+// that non-neutral caches for MutationRun are constructed, and can be used in other ways as well.
+enum class TraitCalculationRegime : int8_t {
+	kUndefined = -1,		// used for the initial state
+	kPureNeutral = 0,		// all mutations are effectively neutral; genetics can be skipped
+	kNoActiveCallbacks,		// no active callbacks, so you don't have to look at the mutation type at all
+	kAllNeutralCallbacks,	// we can skip actually calling all callbacks, since they are all global-neutral
+	kNonNeutralCallbacks,	// we can't skip calling all callbacks, since some are non-global-neutral
+};
+
+std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_type);
 
 
 class MutationRun
@@ -121,73 +147,155 @@ private:
 	mutable EidosDebugLock mutrun_use_count_LOCK;
 #endif
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_USE_NONNEUTRAL_CACHES()
 	
-	// Non-neutral mutation caching.  This is a somewhat complex scheme designed to speed up fitness calculations.
-	// The idea is that the mutation run can cache, once, a list of all of the non-neutral mutations it contains,
-	// and then the fitness code can refer to that cached list from then on, saving a huge amount of looping over
-	// neutral mutations in many simulations.  This simple idea is complicated by a few factors.  First of all, if
-	// the mutation run changes, the cache needs to be invalidated.  Second, if the external information that the
-	// cache relies upon changes, the cache needs to be invalidated.  That external information consists of (a) the
-	// selection coefficients of mutations, and (b) the existence and state of mutationEffect() callbacks.  There
-	// are three separate regimes in which these caches are used:
 	//
-	//	1. No mutationEffect() callbacks defined.  Here caches depend solely upon mutation selection coefficients,
-	//		and can be carried forward through cycles with impunity.  If any mutation's effect is changed between
-	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
+	//	Non-neutral mutation caching
 	//
-	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
-	//		mutation types and callbacks, and figures this state out and sets a flag in each mutation type as to
-	//		whether it is effectively neutral, after considering these constant-effect callbacks, or not.  This
-	//		state changes in every cycle, so caches cannot be carried forward from cycle to cycle
-	//		in this regime unless the state of the callbacks, with respect to making mutation types neutral, is
-	//		unchanged.  If RecalculateFitness() detects a callback change, it sets the global all-invalid flag.
+	// This is a complex area, designed to optimize SLiM's performance across a wide variety of models when it
+	// calculates the genetic component of the trait values for individuals from the mutations present in those
+	// individuals.  Each mutation run can keep a "non-neutral cache" that is composed of multiple elements:
 	//
-	//	3. At least one non-constant callback is defined.  RecalculateFitness() figures this out, and if this is
-	//		the case, the non-neutral cache must include all mutations for which their muttype has a callback
-	//		defined at all, whether constant or not, neutral or not, active or not, because the callback regime
-	//		itself could change unpredictably.  These caches cannot be carried forward unless the state of the
-	//		callbacks, with respect to which mutation types are influenced by them, is unchanged.  If a callback
-	//		change is detected by RecalculateFitness(), it sets the global all-invalid flag.
+	//	- a "non-neutral mutation buffer" that contains references to a set of mutations that need to be included
+	//		in trait value calculations *with* knowledge of whether the mutations are homozygous or heterozygous
 	//
-	//	(FIXME) One could imagine inserting a regime between 2 and 3 that would allow a mix of constant and
-	//		non-constant callbacks, as long as the non-constant callbacks were "well-behaved" – no use of the
-	//		active property, no executeLambda, etc. – so that SLiM could know that the constant callbacks would
-	//		apply if they were active.  This could be pretty useful for models that have a mix of QTLs (using
-	//		a constant neutral callbacks) and other loci that are governed by mutationEffect() callbacks.  This
-	//		strikes me as an edge case, though; mostly models are either QTL models or non-QTL models, I think.
+	//	- a set of "independent-dominance effect caches", one per trait; these are slim_effect_t values that
+	//		represent the composite effects of all mutations that satisfy certain "independent dominance"
+	//		criteria and can thus be handled *without* knowledge of homozygosity vs. heterozygosity
 	//
-	// When models switch between one regime and another, they generally need to recache, since the criteria
-	// for inclusion in the cache differs from regime to regime.  This is handled by RecalculateFitness().
-	// The last regime used (for the previous cycle) is remembered in sim.last_nonneutral_regime_.
+	// Any given mutation will be treated in one of three ways: it will be placed in the non-neutral mutation
+	// buffer, it will be included in the independent-dominance effect caches, or (if it is deemed completely
+	// neutral) it will not be included in either since it can be ignored for purposes of trait value calculation.
+	// This determination is managed primarily based upon the mutation type of the mutation, because that is
+	// the level at which mutationEffect() callbacks operate -- they make particular mutation types become one
+	// of three things: (a) completely neutral, (b) non-neutral but with trait effects that are either neutral or
+	// independent-dominance, or (c) non-neutral with at least one trait effect that is non-neutral and non-
+	// independent-dominance.  Category (a) is left out of the non-neutral caching entirely; category (b) is put
+	// into the independent-dominance effect caches; and category (c) is put into the non-neutral mutation buffer.
+	// Whenever the non-neutral mutation caches are about to be used -- whenever trait values are about to be
+	// re-calculated -- the status of all mutation types is re-checked, with respect to their intrinsic status
+	// due to the mutations they represent, and also how that status is modified by all of the currently active
+	// mutationEffect() callbacks.  If the status of all of the mutation types is unchanged from the last cache
+	// validation, the existing cache state can be used; otherwise, the existing caches have to be thrown out and
+	// remade from scratch, because a mutation type's change in status means that a whole set of mutations needs
+	// to change how it is treated in the caches, which cannot be done incrementally.
 	//
-	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one haplosome.
-	// If they are referred to only once, however, they can be changed.  What that occurs, their nonneutral
-	// cache must be invalidated.  This means that any code that calls use_count() on a mutrun, and modifies it
-	// if the count is 1, must also invalidate the nonneutral cache.  This is done automatically by the existing
-	// methods – in particular, MutationRun::will_modify_run(), which should be a funnel for all such code.
-	// Newly created mutation runs are also routinely modified on the (valid) assumption that they are referred
-	// to by only one haplosome (or no haplosomes at all, more likely); this is fine since they don't have a nonneutral
-	// cache yet anyway.
+	// The story is a little more complicated than that, because we can be a bit smarter.  If a mutationEffect()
+	// callback is present for a mutation type, that puts mutations of that mutation type firmly into category (a),
+	// (b), or (c), or it means that we simply don't know what the callback will do and so we're in category (c)
+	// due to our lack of knowledge.  But there is also the case where there are no mutationEffect() callbacks for
+	// a given mutation type!  In this case -- probably the most common case, actually -- we only care about the
+	// state of the mutation itself; its mutation type is irrelevant since it exerts no control.  Here we use
+	// precalculated flags on Mutation to guide how the mutation is handled for caching.  If the mutation is
+	// neutral for all traits, it goes into category (a).  If it is non-neutral but its non-neutral effects are
+	// all independent-dominance, it is category (b).  If it is non-neutral with non-independent effects, it is
+	// category (c).
 	//
-	// These caches are only used for mutation runs that are accessed by the FitnessOfParentWithHaplosomeIndices...()
-	// suite of methods; pure neutral models and non-chromosome-dependent models will never touch these caches
-	// and the buffer will never be allocated.
+	// The trickiest thing is if constant-effect mutationEffect() callbacks are present that would allow an
+	// inference to be drawn for a particular mutation.  Suppose a mutation is neutral for all traits but B; for
+	// B it is non-neutral.  Some other mutations for the same mutation type are also non-neutral for trait A,
+	// so the mutation type itself is known to be non-neutral for both A and B.  Then a mutationEffect() callback
+	// makes the mutation type neutral for B.  The mutation type is still known to be non-neutral, since it has
+	// mutations that are non-neutral for A.  But our particular focal mutation has been rendered completely
+	// neutral by the callback, and could be omitted from the non-neutral cache. I don't see a reasonable way to
+	// make this kind of determination, however.  The present design relies on just two basic inferences: (a) do
+	// we know, simply from the mutation type itself, the category a mutation goes into?  And (b) if the mutation
+	// type is not relevant (no callbacks for it), then what category does the mutation's own state say that it
+	// should be in?  Inferences that combine these two levels are too complex, and are not attempted.
+	//
+	// There are a few smaller details here.  The non-neutral cache for one mutation run can be invalidated on
+	// its own, if that mutation run is modified (by adding or removing a mutation).  Each mutation run thus has
+	// its own "I'm valid" flag, and all mutation runs get checked and re-validated before non-neutral caches are
+	// used.  Second, a particular position in a particular chromosome can be invalidated; this occurs when an
+	// existing mutation changes its effect between neutral and non-neutral, or its dominance between independent
+	// and non-independent, for example.  When this occurs, we want to invalidate all mutation runs that represent
+	// that position (because they might be affected by the change), without invalidating the rest of the caches;
+	// for this purpose, each Chromosome keeps a per-mutrun-slot "I'm valid" flag, and if one of those flags is
+	// set to invalid, all mutation runs in the affected slot get re-validated before non-neutral caches are used.
+	// (FIXME MULTITRAIT: For right now, we will just have a per-Chromosome flag, which can be refined later;
+	// leveraging the specific mutrun slot is a little complicated because of mutrun experiments.)
+	//
+	// There are some special cases.  If all mutations in the model are neutral, the non-neutral caches are not
+	// used at all, and trait calculation can skip looking at genetics completely.  If all mutations in the model
+	// are non-neutral (as is common in tree-seq models), then (a) if all are independent-dominance only the
+	// independent-dominance effect caches get set up, (b) if none are independent-dominance then the non-neutral
+	// caches do not get set up at all and trait calculations use the main mutation run buffers instead (no point
+	// in copying every mutation into an identical buffer of non-neutral mutations), or (c) if there is a mix
+	// of independent and non-independent-dominance, the non-neutral cache is set up as usual, since it remains
+	// worthwhile to divide mutations into those two categories.
+	//
+	// There is also the special case of the ploidy of particular chromosomes.  The description above applies to
+	// mutation runs that represent diploid chromosomes.  For haploid chromosomes, effects are "independent" by
+	// definition; ploidy is not a factor.  For such mutation runs, the non-neutral mutation buffers are not
+	// used at all; instead, all non-neutral mutations are included in the independent-dominance effect caches,
+	// and all trait calculations can be based simply upon those caches (making haploid models very fast).  For
+	// intrinsically diploid chromosomes that can be present in one copy in a given individual (like an X), the
+	// caching is currently done following the standard diploid approach, but with the addition of per-trait
+	// hemizygous effect caches kept in each mutation run as well.  This adds substantial complication, but
+	// seems worth it given that typically 50% of individuals for a chromosome like an X would be hemizygous,
+	// and some models might be models of only an X; that's a lot of performance to leave on the table.  This
+	// added complexity is only for the X and W chromosome types, however; a regular diploid autosome is also
+	// allowed to have null haplosomes and be hemizygous, but that situation does not receive hemizygous effect
+	// caches in the present design since it is not clear that it would be a win in most cases (although for
+	// haplodiploid models it probably would be, in fact).  FIXME MULTITRAIT: Maybe we can be smarter on this...
+	//
+	// Another special case has to do with the evaluation of traits for neutrality.  As described above, mutations
+	// with non-independent effects on at least one trait have to be put in the non-neutral mutation buffer, so
+	// that those effects get evaluated correctly (for heterozygous vs. homozygous effects).  And normally this
+	// means that any independent-dominance effects the mutation might have on other traits cannot be optimized,
+	// since the mutation is in the non-neutral mutation buffer.  There is one case where this can be finessed,
+	// however: when ALL mutations are known to be independent-dominance (or neutral) for a given trait.  If SLiM
+	// can determine that, it can put the effects of all mutations for that trait into the independent-dominance
+	// effect cache for that trait!  This setup needs to be flagged separately, and the code that calculates the
+	// effects of mutations in the non-neutral mutation buffer needs to see that flag and skip that trait, to
+	// avoid double-counting the effect of these mutations.  This introduces significant additional complexity in
+	// the design, but it is very much worthwhile since it allows models containing both an independent trait and
+	// a non-independent trait to run much faster -- and that kind of setup is expected to be fairly common.
+	//
+	// There is a final special case that we do not cater to for now, and that is separate non-neutral mutation
+	// caching behavior on a per-chromosome basis.  Since any given mutation run belongs to one chromosome, we
+	// can potentially customize the non-neutral caching policy on a per-chromosome basis, catering to the
+	// possibility that different chromosomes will have different genetic configurations -- one might be neutral
+	// for trait A while another is non-neutral for trait A, for example.  If we kept track of that (not hard),
+	// we could optimize the caching behavior for each chromosome and potentially get some big wins, like skipping
+	// all genetic calculations for most of the chromosomes in a model because we can deduce that non-neutral
+	// effects are only present on a couple of the chromosomes, which seems like it might be common.  Optimization
+	// at this level might be added later.  FIXME MULTITRAIT
 	//
 	// BCH 4/19/2023: Note that this stuff is all related to caching, so it is mutable even for immutable objects.
 	
-	mutable int32_t nonneutral_change_validation_ = 0;			// compared to sim.nonneutral_change_counter_ to detect changes
-	
+	// BCH 1/14/2025: PLANNED CHANGES:
+	//
+	//	X remove nonneutral_change_validation_; now that we will pre-validate all non-neutral caches prior to use,
+	//		this is no longer needed and just wastes space.  Instead, we will simply have a flag on Species, or
+	//		perhaps per-chromosome, that says "everything is invalid", and we will check that flag and act on it
+	//		at validation time
+	//	- nonneutral_mutations_: this pointer should now point first to the per-trait independent-dominance effects,
+	//		then to the hemizygous per-trait effects if present, then to the MutationIndex buffer, sequentially.
+	//		this is to avoid multiple allocations and multiple pointers, and to maximize memory locality.  Since
+	//		this arrangement will be very gross to work with, it should be private only to a set of helper methods
+	//		that mask the implementation details completely.  TBD: who exactly will know whether hemizygous effects
+	//		are present, and how many traits exist, and so forth?  The chromosome knows all that, or can get to it;
+	//		but we don't have a pointer to the chromosome.  Maybe all the non-neutral cache helper methods take a
+	//		Chromosome * parameter to help those methods find their way out?  But ugh.  I think after we remove
+	//		nonneutral_change_validation_ there will be room in the class layout for a little info:
+	//			bool chromosome_type_is_hemizygous;
+	//			uint8_t species_trait_count;
+	//		That info would be present only when non-neutral caching is enabled.
+	//	- the capacity and count and that info stuff should actually get moved inside the non-neutral cache pointer.
+	//		The rationale for this is that there will be cases where we want to turn non-neutral caching off,
+	//		entirely or per-chromosome, even though it is enabled in the build: if we know that all mutations are
+	//		neutral, for example, or if we know that NO mutations are neutral or independent-dominance, such that
+	//		the non-neutral cache would just be a copy of the main mutation buffer.  In such cases, keeping all of
+	//		the non-neutral cache state inside the pointer will allow us to minimize our memory footprint for all
+	//		of the mutation runs in question.
+	//	- to manage this within-pointer complexity we should have a struct, NonNeutralCache, that the pointer
+	//		points to.  It would have the fixed state up front, and then the variable-length state after.
 	mutable int32_t nonneutral_mutation_capacity_ = 0;			// the capacity of nonneutral_mutations_
 	mutable int32_t nonneutral_mutations_count_ = -1;			// the number of entries currently used; -1 indicates an invalid cache
 	mutable MutationIndex *nonneutral_mutations_ = nullptr;		// OWNED POINTER: a pointer to MutationIndex for non-neutral mutations
 	
-#if (SLIMPROFILING == 1)
-// PROFILING
-	mutable bool recached_run_ = false;							// so SLiMgui can count how many nonneutral caches get recached each tick
-#endif	// (SLIMPROFILING == 1)
-	
-#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
 public:
 	
@@ -306,7 +414,7 @@ public:
 		
 		freed_run->mutation_count_ = 0;						// empty the mutation buffer
 		
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_USE_NONNEUTRAL_CACHES()
 		freed_run->nonneutral_mutations_count_ = -1;		// mark the non-neutral mutation cache as invalid
 #endif
 		
@@ -377,7 +485,7 @@ public:
 	}
 	
 	inline __attribute__((always_inline)) void will_modify_run(void) {
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_USE_NONNEUTRAL_CACHES()
 		nonneutral_mutations_count_ = -1;		// invalidate the nonneutral cache since the run is changing
 #endif
 	}
@@ -696,123 +804,72 @@ public:
 	// splitting mutation runs
 	void split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const;
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	// caching non-neutral mutations; see above for comments about the "regime" etc.
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	// caching non-neutral mutations; see above for comments about how this works
 	
-//	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void) const
-//	{
-//		if (!nonneutral_mutations_)
-//		{
-//			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer
-//			nonneutral_mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
-//			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
-//			if (!nonneutral_mutations_)
-//				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-//		}
-//		
-//		// empty out the current buffer contents
-//		nonneutral_mutations_count_ = 0;
-//	}
-//	
-//	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index) const
-//	{
-//		// This is basically the emplace_back() code, but for the nonneutral buffer
-//		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
-//		{
-//#ifdef __clang_analyzer__
-//			assert(nonneutral_mutation_capacity_ > 0);
-//#endif
-//			
-//			if (nonneutral_mutation_capacity_ < 32)
-//				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-//			else
-//				nonneutral_mutation_capacity_ += 16;
-//			
-//			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
-//			if (!nonneutral_mutations_)
-//				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-//		}
-//		
-//		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
-//		++nonneutral_mutations_count_;
-//	}
-//	
-//	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const;
-//	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const;
-//	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const;
-//	
-//	void check_nonneutral_mutation_cache() const;
-//	
-//	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(Mutation *p_mut_block_ptr, const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
-//	{
-//		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
-//		{
-//			// When running parallel, all nonneutral caches must be validated
-//			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
-//			THREAD_SAFETY_IN_ACTIVE_PARALLEL("beginend_nonneutral_pointers()");
-//			
-//			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
-//			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
-//			nonneutral_change_validation_ = p_nonneutral_change_counter;
-//			
-//			switch (p_nonneutral_regime)
-//			{
-//				case 1: cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
-//				case 2: cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
-//				case 3: cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
-//			}
-//			
-//#if (SLIMPROFILING == 1)
-//			// PROFILING
-//			recached_run_ = true;
-//#endif
-//		}
-//		
-//#if DEBUG
-//		check_nonneutral_mutation_cache();
-//#endif
-//		
-//		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
-//		*p_mutptr_iter = nonneutral_mutations_;
-//		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
-//	}
-//
-//#ifdef _OPENMP
-//	// This is used by Subpopulation::FixNonNeutralCaches_OMP() to validate
-//	// these caches; it starts a new task if the nonneutral cache is invalid
-//	// This method is called from within a "single" construct.
-//	inline __attribute__((always_inline)) void validate_nonneutral_cache(int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime) const
-//	{
-//		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
-//		{
-//			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
-//			// reasons (most notably being a new mutation run that has not yet cached), validate it with an OpenMP task
-//			// We set up these variables to prevent ourselves from seeing the cache as invalid again
-//			nonneutral_change_validation_ = p_nonneutral_change_counter;
-//			nonneutral_mutations_count_ = 0;
-//			
-//#if (SLIMPROFILING == 1)
-//			// PROFILING
-//			recached_run_ = true;
-//#endif
-//			
-//			// I tried splitting the below code out into its own non-inline method,
-//			// but that seemed to trigger a compiler bug, so here we are.
-//#pragma omp task
-//			{
-//				switch (p_nonneutral_regime)
-//				{
-//					case 1: cache_nonneutral_mutations_REGIME_1(); break;
-//					case 2: cache_nonneutral_mutations_REGIME_2(); break;
-//					case 3: cache_nonneutral_mutations_REGIME_3(); break;
-//				}
-//			}
-//		}
-//	}
-//#endif
+	// note this method does NOT check external invalidation flags!  it tells you only if the mutrun itself knows it is invalid!
+	inline __attribute__((always_inline)) bool nonneutral_cache_invalid(void) const { return (nonneutral_mutations_count_ == -1); }
 	
-#if (SLIMPROFILING == 1)
+	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void) const
+	{
+		if (!nonneutral_mutations_)
+		{
+			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer
+			nonneutral_mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+			if (!nonneutral_mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
+		// empty out the current buffer contents
+		nonneutral_mutations_count_ = 0;
+	}
+	
+	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index) const
+	{
+		// This is basically the emplace_back() code, but for the nonneutral buffer
+		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
+		{
+#ifdef __clang_analyzer__
+			assert(nonneutral_mutation_capacity_ > 0);
+#endif
+			
+			if (nonneutral_mutation_capacity_ < 32)
+				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+			else
+				nonneutral_mutation_capacity_ += 16;
+			
+			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+			if (!nonneutral_mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
+		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
+		++nonneutral_mutations_count_;
+	}
+	
+	void cache_nonneutral_mutations_REGIME_0(void) const;
+	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const;
+	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const;
+	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const;
+	
+	void check_nonneutral_mutation_cache() const;
+	
+	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max) const
+	{
+#if DEBUG
+		// All nonneutral caches must be validated ahead of time; see Species::ValidateNonNeutralCaches()
+		check_nonneutral_mutation_cache();
+#endif
+		
+		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
+		*p_mutptr_iter = nonneutral_mutations_;
+		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
+	}
+
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	// PROFILING
+	// FIXME MULTITRAIT: I think maybe this gets absorbed into Species::ValidateNonNeutralCaches()?
 	inline __attribute__((always_inline)) void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count, int64_t *p_recached_count) const
 	{
 		*p_mutation_count += mutation_count_;
@@ -826,9 +883,9 @@ public:
 			recached_run_ = false;
 		}
 	}
-#endif	// (SLIMPROFILING == 1)
+#endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 	
-#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutationIndexBuffers(void) const;

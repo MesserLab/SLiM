@@ -96,7 +96,7 @@ void _RunOperatorPlusTests1(void)
 	// operator +: raise on integer addition overflow for all code paths
 	EidosAssertScriptSuccess_I("5e18;", 5000000000000000000LL);
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("5e18 + 5e18;", 5, "overflow with the binary");
 	EidosAssertScriptRaise("5e18 + c(0, 0, 5e18, 0);", 5, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + 5e18;", 17, "overflow with the binary");
@@ -452,7 +452,7 @@ void _RunOperatorMinusTests(void)
 	EidosAssertScriptSuccess_I("9223372036854775807;", INT64_MAX);
 	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
 	EidosAssertScriptSuccess_I("-5e18;", -5000000000000000000LL);
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("-(-9223372036854775807 - 1);", 0, "overflow with the unary");
 	EidosAssertScriptRaise("-c(-9223372036854775807 - 1, 10);", 0, "overflow with the unary");
 	EidosAssertScriptRaise("-5e18 - 5e18;", 6, "overflow with the binary");
@@ -524,7 +524,7 @@ void _RunOperatorMultTests(void)
 	// operator *: raise on integer multiplication overflow for all code paths
 	EidosAssertScriptSuccess_I("5e18;", 5000000000000000000LL);
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("5e18 * 2;", 5, "multiplication overflow");
 	EidosAssertScriptRaise("5e18 * c(0, 0, 2, 0);", 5, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 2, 0) * 5e18;", 14, "multiplication overflow");

@@ -193,10 +193,10 @@ private:
 	
 	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
 	// as well as hash tables for quick lookup by id and symbol
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
 	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	typedef std::unordered_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
 	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
 #endif
@@ -219,10 +219,10 @@ private:
 	
 	// for multiple traits, we now have a vector of pointers to Trait objects, as well as hash tables for quick
 	// lookup by name and by string ID; the latter is to make using trait names as properties on Individual fast
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<std::string, Trait *> TRAIT_NAME_HASH;
 	typedef robin_hood::unordered_flat_map<EidosGlobalStringID, Trait *> TRAIT_STRID_HASH;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	typedef std::unordered_map<std::string, Trait *> TRAIT_NAME_HASH;
 	typedef std::unordered_map<EidosGlobalStringID, Trait *> TRAIT_STRID_HASH;
 #endif
@@ -238,9 +238,9 @@ private:
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
 	
 	// private initialization methods
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	typedef std::unordered_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
 #endif
 	
@@ -336,9 +336,9 @@ private:
 												// actually be shared by multiple haplosomes in different chromosomes
 	//Individual *current_new_individual_;
 	
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	typedef std::unordered_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
 #endif
 	INDIVIDUALS_HASH tabled_individuals_hash_;	// look up individuals table row numbers from pedigree IDs
@@ -403,11 +403,15 @@ public:
 	// this switches to a less optimized case when evolving in WF models, if a type 's' DES could be present, since that can open up various cans of worms
 	bool type_s_DESs_present_ = false;												// optimization flag
 	
-	// this counter is incremented when a selection coefficient is changed on any mutation object in the simulation.  This is used as a signal to mutation runs that their
-	// cache of non-neutral mutations is invalid (because their counter is not equal to this counter).  The caches will be re-validated the next time they are used.  Other
-	// code can also increment this counter in order to trigger a re-validation of all non-neutral mutation caches; it is a general-purpose mechanism.
-	int32_t nonneutral_change_counter_ = 0;
-	int32_t last_nonneutral_regime_ = 0;		// see mutation_run.h; 1 = no mutationEffect() callbacks, 2 = only constant-effect neutral callbacks, 3 = arbitrary callbacks
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	// this flag is set whenever a change invalidates all non-neutral caches in the species; the caches will be re-validated the next time they are used
+	// note that there are finer-grained invalidation flags elsewhere that should be used if a total invalidation is not actually necessary, to save work
+	bool all_nonneutral_caches_invalid_ = true;
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+	
+	// the current trait calculation regime, under which the current nonneutral caches were constructed; see mutation_run.h and Species::ValidateNonNeutralCaches()
+	// note that this is only the top-level strategy for building the nonneutral caches; flags in MutationType and Mutation also affect the process
+	TraitCalculationRegime current_trait_calculation_regime_ = TraitCalculationRegime::kUndefined;
 	
 	// state about what symbols/names/identifiers have been used or are being used
 	// used_subpop_ids_ has every subpop id ever used, even if no longer in use, with the *last* name used for that subpop
@@ -421,10 +425,10 @@ public:
 	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
 	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each cycle
 	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
-#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 #endif	// (SLIMPROFILING == 1)
 	
 	Species(const Species&) = delete;																	// no copying
@@ -443,7 +447,9 @@ public:
 		// is known, and has already been factored in to SLiM optimization settings.
 		if (!p_mut->is_neutral_for_all_traits_)
 		{
-			p_mut->mutation_type_ptr_->species_.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+			p_mut->mutation_type_ptr_->species_.all_nonneutral_caches_invalid_ = true;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
+#endif
 		}
 		else
 		{
@@ -463,8 +469,23 @@ public:
 		
 		// This needs to be done in the neutral case too; for example, a non-neutral mutation might
 		// have been changed into a neutral mutation, which invalidates our non-neutral caches
-		p_mut->mutation_type_ptr_->species_.nonneutral_change_counter_++;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		p_mut->mutation_type_ptr_->species_.all_nonneutral_caches_invalid_ = true;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
+#endif
 	}
+	
+	void PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutationEffect_callbacks);
+	bool _CallbackMakesMutationTypeNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref);
+	bool _CallbackMakesTraitNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref);
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	// Validates the MutationRun non-neutral caches across the species.  This must be called immediately before nonneutral cache use, every time.
+	// Note that it does not call mutationEffect() callbacks; it just needs to examine them to determine the status of each MutationType.
+	void ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime);
+	
+	template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime>
+	int64_t _ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr);
+#endif
 	
 	// Chromosome configuration and access
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
@@ -544,7 +565,7 @@ public:
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	void CollectMutationProfileInfo(void);
 #endif
 #endif

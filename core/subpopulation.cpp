@@ -612,7 +612,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				
 				if (population_.child_generation_valid_)
 				{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 					// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
 					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
 						if (haplosome1->mutruns_[mutrun_index] != nullptr)
@@ -621,7 +621,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				}
 				else
 				{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 					// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
 					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
 						if (haplosome1->mutruns_[mutrun_index] == nullptr)
@@ -741,7 +741,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				
 				if (population_.child_generation_valid_)
 				{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 					// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
 					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
 						if (haplosome2->mutruns_[mutrun_index] != nullptr)
@@ -750,7 +750,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				}
 				else
 				{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 					// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
 					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
 						if (haplosome2->mutruns_[mutrun_index] == nullptr)
@@ -854,7 +854,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
 						
 						// do not check haplosomes in the child generation; they are conceptually cleared to
-						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES is set
+						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES() is set
 					}
 					
 					if (((haplosome1->mutrun_count_ == 0) && ((haplosome1->mutrun_length_ != 0) || (haplosome1->mutruns_ != nullptr))) ||
@@ -908,7 +908,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					
 					if (!population_.child_generation_valid_)
 					{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 						// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
 						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
 							if (haplosome1->mutruns_[mutrun_index] != nullptr)
@@ -917,7 +917,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					}
 					else
 					{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 						// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
 						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
 							if (haplosome1->mutruns_[mutrun_index] == nullptr)
@@ -962,7 +962,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
 						
 						// do not check haplosomes in the child generation; they are conceptually cleared to
-						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES is set
+						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES() is set
 					}
 					
 					if (((haplosome2->mutrun_count_ == 0) && ((haplosome2->mutrun_length_ != 0) || (haplosome2->mutruns_ != nullptr))) ||
@@ -1020,7 +1020,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					
 					if (!population_.child_generation_valid_)
 					{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 						// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
 						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
 							if (haplosome2->mutruns_[mutrun_index] != nullptr)
@@ -1029,7 +1029,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					}
 					else
 					{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 						// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
 						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
 							if (haplosome2->mutruns_[mutrun_index] == nullptr)
@@ -1104,7 +1104,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (haplosome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null haplosome in the nonnull haplosome junkyard." << EidosTerminate();
 			
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			haplosome->check_cleared_to_nullptr();
 #endif
 		}
@@ -1114,7 +1114,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (!haplosome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull haplosome in the null haplosome junkyard." << EidosTerminate();
 			
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			haplosome->check_cleared_to_nullptr();
 #endif
 		}
@@ -1319,39 +1319,6 @@ slim_refcount_t Subpopulation::NullHaplosomeCount(void)
 	return null_haplosome_count;
 }
 
-#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
-void Subpopulation::FixNonNeutralCaches_OMP(void)
-{
-	// This is used in the parallel fitness evaluation case to fix caches up front
-	// This is task-based; note the top-level parallel is *not* a parallel for loop!
-#pragma omp parallel default(none)
-	{
-#pragma omp single
-		{
-			int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-			int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#error 	FIXME this *2 is now based on an incorrect assumption of simple diploidy
-			slim_popsize_t haplosomeCount = parent_subpop_size_ * 2;
-			
-			for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosomeCount; haplosome_index++)
-			{
-				Haplosome *haplosome = parent_haplosomes_[haplosome_index];
-				const int32_t mutrun_count = haplosome->mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-				{
-					const MutationRun *mutrun = haplosome->mutruns_[run_index];
-					
-					// This will start a new task if the mutrun needs to validate
-					// its nonneutral cache.  It avoids doing so more than once.
-					mutrun->validate_nonneutral_cache(nonneutral_change_counter, nonneutral_regime);
-				}
-			}
-		}
-	}
-}
-#endif
-
 // Population::RecalculateFitness() figures out which callbacks are relevant for each subpopulation, and which
 // traits need to be evaluated in order to calculate fitness (only with a direct fitness effect).  It then
 // calls UpdateFitness() on each subpopulation.  This method expresses demand for the traits in question, and
@@ -1388,7 +1355,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 	{
 		// we know this subpopulation has effectively constant fitness; we therefore don't express demand for
 		// any traits, which means trait may keep NAN values even if the traits have a direct fitness effect
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 		std::cout << "# " << community_.Tick() << " --- UpdateFitness() determined constant fitness of " << constant_fitness_value << std::endl;
 #endif
 		
@@ -1429,7 +1396,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 		// demand phenotypes for all the relevant traits
 		if (p_direct_effect_trait_indices.size())
 		{
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 				std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding traits {";
 				for (slim_trait_index_t trait_index : p_direct_effect_trait_indices)
 					std::cout << " " << species_.Traits()[trait_index]->Name();
@@ -1443,7 +1410,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 		}
 		else
 		{
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 				std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding NO traits in subpop p" << subpopulation_id_ << std::endl;
 #endif
 		}
@@ -1827,10 +1794,7 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				EidosDebugPointIndent indenter;
 				
@@ -2017,7 +1981,7 @@ slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosB
 #endif
 		
 		{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
@@ -3191,7 +3155,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 		// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
 		if (haplosome1)
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			haplosome1->check_cleared_to_nullptr();
 #endif
 			if (!haplosome1->IsNull())
@@ -3222,7 +3186,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 		}
 		if (haplosome2)
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			haplosome2->check_cleared_to_nullptr();
 #endif
 			if (!haplosome2->IsNull())
@@ -3632,7 +3596,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 			// back out child state we created; this restores it to a reuseable state
 			// FIXME we could back out the assigned pedigree ID too
 			
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			// BCH 10/15/2024: We used to need to clear here, but we no longer do.  We don't even need to free
 			// the haplosomes we made above; they will be garbage collected by FreeUnusedMutationRuns().
 			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
@@ -4001,7 +3965,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 			// back out child state we created; this restores it to a reuseable state
 			// FIXME we could back out the assigned pedigree ID too
 			
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			// BCH 10/15/2024: We used to need to clear here, but we no longer do.  We don't even need to free
 			// the haplosomes we made above; they will be garbage collected by FreeUnusedMutationRuns().
 			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
@@ -4292,7 +4256,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 			// back out child state we created; this restores it to a reuseable state
 			// FIXME we could back out the assigned pedigree ID too
 			
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			// BCH 10/15/2024: We used to need to clear here, but we no longer do.  We don't even need to free
 			// the haplosomes we made above; they will be garbage collected by FreeUnusedMutationRuns().
 			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
@@ -4528,7 +4492,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 			
 			if ((sex_specificity == IndividualSex::kUnspecified) || (sex_specificity == individual->sex_))
 			{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				EidosDebugPointIndent indenter;
 				
@@ -4739,10 +4703,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	{
 		if (survival_callback->block_active_)
 		{
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			

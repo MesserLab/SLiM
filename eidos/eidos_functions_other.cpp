@@ -194,7 +194,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 //	(string$)debugIndent(void)
 EidosValue_SP Eidos_ExecuteFunction_debugIndent(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(EidosDebugPointIndent::Indent()));
 #else
 	return gStaticEidosValue_StringEmpty;

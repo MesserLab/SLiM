@@ -62,13 +62,13 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 // This is a bit convoluted so that we can forward-declare it in other headers even though it's a typedef of a
 // templated class; I couldn't figure out a better way to do it than wrapping it in a struct, ugh.
 #ifdef SLIMGUI
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 struct EidosInterpreterDebugPointsSet_struct {
 	robin_hood::unordered_set<int> set;
 };
 typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_set>
 struct EidosInterpreterDebugPointsSet_struct {
 	std::unordered_set<int> set;

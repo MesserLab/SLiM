@@ -52,7 +52,7 @@
 #include <ctime>
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 #endif
 
@@ -2421,10 +2421,7 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 	if (!p_script_block->block_active_)
 		return;
 	
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -2645,7 +2642,7 @@ bool Community::_RunOneTickWF(void)
 {
 #if (SLIMPROFILING == 1)
 	// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	if (gEidosProfilingClientCount)
 		for (Species *species : all_species_)
 			species->CollectMutationProfileInfo();
@@ -3008,7 +3005,7 @@ bool Community::_RunOneTickNonWF(void)
 {
 #if (SLIMPROFILING == 1)
 	// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	if (gEidosProfilingClientCount)
 		for (Species *species : all_species_)
 			species->CollectMutationProfileInfo();
@@ -3548,7 +3545,7 @@ void Community::StartProfiling(void)
 			signature->body_script_->AST()->ZeroProfileTotals();
 	}
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
 	for (Species *focal_species : all_species_)
 	{

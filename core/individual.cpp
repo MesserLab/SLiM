@@ -98,7 +98,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	tagL4_set_ = false;
 	
 	// Initialize x/y/z to 0.0, only when leak-checking (they show up as used before initialized in Valgrind)
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 	spatial_x_ = 0.0;
 	spatial_y_ = 0.0;
 	spatial_z_ = 0.0;
@@ -637,7 +637,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	if (population.child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Individual::PrintIndividuals_SLiM): (internal error) called with child generation active!." << EidosTerminate();
 	
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 	// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
 	// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
 	int mem_check_counter = 0, mem_check_mod = 100;
@@ -750,7 +750,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			
 			p_out << std::endl;
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -863,7 +863,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		
 		p_out << std::endl;
 		
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 		if (eidos_do_memory_checks)
 		{
 			mem_check_counter++;
@@ -925,7 +925,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 						AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 				}
 				
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 				if (eidos_do_memory_checks)
 				{
 					mem_check_counter++;
@@ -949,7 +949,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			else
 				polymorphism_pair.second.Print_ID(p_out);
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -1014,7 +1014,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 				
 				p_out << std::endl;
 				
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 				if (eidos_do_memory_checks)
 				{
 					mem_check_counter++;
@@ -1054,7 +1054,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			else
 				subs[i]->PrintForSLiMOutput(p_out);
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -6392,21 +6392,23 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals(Eido
 	// forceRecalc
 	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
-#if DEBUG_TRAIT_DEMAND
-	std::cout << "# " << community.Tick() << " --- demandPhenotypeForIndividuals(): for traits {";
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community.Tick() << " ====== demandPhenotypeForIndividuals(): for traits {";
 	for (slim_trait_index_t trait_index : trait_indices)
 		std::cout << " " << species->Traits()[trait_index]->Name();
 	std::cout << " } in " << individuals_count << " individuals, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
 #endif
 	
-	// validate non-neutral caches and independent-dominance precalculated values
-	// FIXME MULTITRAIT: VALIDATE NON-NEUTRAL CACHES HERE
+	// prepare for trait calculations, such as by validating non-neutral caches and independent-dominance precalculated values
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species->CallbackBlocksMatching(community.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	
+	species->PrepareForTraitCalculations(mutationEffect_callbacks);
 	
 	// call DemandPhenotype_INDIVIDUALS() to express the demand, across the vector of individuals
 	if (forceRecalc)
-		DemandPhenotype_INDIVIDUALS<true>(species, individuals_buffer, individuals_count, trait_indices);
+		DemandPhenotype_INDIVIDUALS<true>(species, individuals_buffer, individuals_count, trait_indices, mutationEffect_callbacks);
 	else
-		DemandPhenotype_INDIVIDUALS<false>(species, individuals_buffer, individuals_count, trait_indices);
+		DemandPhenotype_INDIVIDUALS<false>(species, individuals_buffer, individuals_count, trait_indices, mutationEffect_callbacks);
 	
 	// done with trait calculations, unblock
 	species->SetInsideTraitOrFitnessCalculation(false);
@@ -6419,9 +6421,66 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals(Eido
 	return gStaticEidosValueVOID;
 }
 
+template <const bool f_force_recalc>
+void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices)
+{
+	// Given a vector of trait indices, this scans through them looking for "pure neutral" traits -- traits that
+	// are known to be neutral even considering the effect of mutationEffect() callbacks, and for which there are
+	// no non-neutral callbacks that have to be called for their side effects.  For any such traits, the effect
+	// is simply the baseline offset combined with the individual offset.  That effect is calculated here, if
+	// necessary, for each individual, and the pure neutral trait is then removed from the trait indices so it
+	// takes no further effort downstream.  This saves a calculation pass through the mutation list for the trait.
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();
+	
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		
+		if (trait->is_pure_neutral_now)
+		{
+			TraitType traitType = trait->Type();
+			slim_effect_t trait_baseline_offset = trait->BaselineOffset();
+			
+			if (traitType == TraitType::kAdditive)
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+					
+					if (f_force_recalc || std::isnan(trait_info.phenotype_))
+						trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+				}
+			}
+			else	// (traitType == TraitType::kMultiplicative)
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+					
+					if (f_force_recalc || std::isnan(trait_info.phenotype_))
+						trait_info.phenotype_ = trait_baseline_offset * trait_info.offset_;
+				}
+			}
+			
+			// remove the element at index trait_indices_index, decrement the count, and do this index again
+			trait_indices.erase(trait_indices.begin() + trait_indices_index);
+			trait_indices_count--;
+			trait_indices_index--;
+			
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << species->community_.Tick() << " --- _HandleAndRemovePureNeutralTraits() resolved demand for trait '" << trait->Name() << "' because it is known to be neutral" << std::endl;
+#endif
+		}
+	}
+}
+
 // This version of DemandPhenotype is called for a vector of individuals.  This is called by the Individual method demandPhenotypeForIndividuals().
 template <const bool f_force_recalc>
-void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices)
+void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &mutationEffect_callbacks)
 {
 	// Given a vector of individuals that are all guaranteed to belong to the provided species, and a vector of
 	// trait indices guaranteed to be of length 1 or longer, this method loops over the chromosomes of the
@@ -6435,10 +6494,8 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	// First we cache a vector of mutationEffect() callbacks for each subpop; we do this here, rather than at the
 	// start of each tick, so that newly registered callbacks function, and the current active state of each
 	// callback is respected.
-	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species->CallbackBlocksMatching(species->community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
 	Population &population = species->population_;
 	bool has_active_callbacks = false;
-	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();
 	
 	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
 	{
@@ -6473,6 +6530,14 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		}
 	}
 #endif
+	
+	// If a trait is known to be "pure neutral" -- neutral even including the effects of callbacks, and not
+	// involving any non-neutral callbacks that need to be called for side effects -- then we want to handle
+	// the trait up front here and remove it from the vector of trait indices, for efficiency downstream.
+	// A "pure neutral" trait has phenotypes determined purely by baseline offset and individual offset.
+	_HandleAndRemovePureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleAndRemovePureNeutralTraits()!
 	
 	// Next we cache method pointers for haploid and diploid chromosomes, which we will use throughout.  These
 	// are templated for efficiency, so we have to choose the correct template.  That depends on the subpopulation
@@ -6611,10 +6676,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		}
 	}
 	
-	// FIXME MULTITRAIT: We need to recache non-neutral caches for all mutation runs here when running parallel.
-	// This is maybe also where we would recache the total phenotypic effect of any mutation runs for traits with
-	// "independent dominance".
-#warning re-enable non-neutral caches and recache non-neutral caches first
+	// Note that our caller has already validated non-neutral caches and independent-dominance effects.
 	
 	// For a given individual, for a given trait, we have to make a decision as to whether we will recalculate or not.  That decision gets made
 	// once and then holds across all chromosomes for the individual.  But we're looping over chromosomes at the topmost level, so we have a
@@ -6699,8 +6761,8 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					Trait *trait = species->Traits()[trait_index];
 					
-#if DEBUG_TRAIT_DEMAND
-					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->symbol_ << "'" << std::endl;
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->Symbol() << "'" << std::endl;
 #endif
 					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
@@ -6806,8 +6868,8 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					Trait *trait = species->Traits()[trait_index];
 					
-#if DEBUG_TRAIT_DEMAND
-					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->symbol_ << "'" << std::endl;
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->Symbol() << "'" << std::endl;
 #endif
 					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
@@ -6882,16 +6944,15 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #endif
 }
 
-template void Individual_Class::DemandPhenotype_INDIVIDUALS<false>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
-template void Individual_Class::DemandPhenotype_INDIVIDUALS<true>(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
+template void Individual_Class::DemandPhenotype_INDIVIDUALS<false>(Species *, Individual **, int, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_INDIVIDUALS<true>(Species *, Individual **, int, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
 
 
 // This version of DemandPhenotype is called for a whole subpopulation.  This allows for greater efficiency than the individual-level version of this method.
 // This is called by the Subpopulation method demandPhenotype(), and by SLiM's internal fitness calculation code for traits with a direct effect on fitness.
 template <const bool f_force_recalc>
-void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> p_subpop_mutationEffect_callbacks)
+void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks)
 {
-#warning DemandPhenotype_SUBPOP() -- implement me!
 	// FIXME MULTITRAIT: think about shuffling the order in which individuals are handled, in this code path
 	
 	// Given a subpopulation `subpop` that is guaranteed to belong to the provided species, and a vector of
@@ -6907,10 +6968,16 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	// callbacks, and does not use the subpopulation per-trait caches used by DemandPhenotype_INDIVIDUALS().
 	Individual **individuals_buffer = subpop->parent_individuals_.data();
 	int individuals_count = subpop->parent_subpop_size_;
-	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();
 	
-	// FIXME MULTITRAIT: validate non-neutral caches and independent-dominance effects here
-#warning re-enable non-neutral caches and recache non-neutral caches first
+	// Note that our caller has already validated non-neutral caches and independent-dominance effects.
+	
+	// If a trait is known to be "pure neutral" -- neutral even including the effects of callbacks, and not
+	// involving any non-neutral callbacks that need to be called for side effects -- then we want to handle
+	// the trait up front here and remove it from the vector of trait indices, for efficiency downstream.
+	// A "pure neutral" trait has phenotypes determined purely by baseline offset and individual offset.
+	_HandleAndRemovePureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleAndRemovePureNeutralTraits()!
 	
 	// For a given individual, for a given trait, we have to make a decision as to whether we will recalculate or not.  That decision gets made
 	// once and then holds across all chromosomes for the individual.  But we're looping over chromosomes at the topmost level, so we have a
@@ -6934,7 +7001,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		TraitType traitType = trait->Type();
 		slim_effect_t trait_baseline_offset = trait->BaselineOffset();
 		
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << traitType << ") has baseline offset " << trait_baseline_offset << std::endl;
 #endif
 		
@@ -6945,7 +7012,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				Individual *ind = individuals_buffer[individual_index];
 				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
 				
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
 #endif
 				
@@ -6968,7 +7035,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				Individual *ind = individuals_buffer[individual_index];
 				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
 				
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
 #endif
 				
@@ -7085,8 +7152,8 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				}
 			}
 			
-#if DEBUG_TRAIT_DEMAND
-			std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for chromosome '" << chromosome->symbol_ << "'" << std::endl;
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for chromosome '" << chromosome->Symbol() << "'" << std::endl;
 #endif
 			
 			// Then process the chromosome for the focal trait
@@ -7127,11 +7194,11 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 						else
 						{
 							// diploid, both haplosomes non-null
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 							//std::cout << "      individual #" << individual_index << " existing trait value == " << ind->trait_info_[trait_index].phenotype_ << std::endl;
 #endif
 							(ind->*IncorporateEffects_Diploid_TEMPLATED)(species, haplosome1, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
-#if DEBUG_TRAIT_DEMAND
+#if DEBUG_TRAIT_DEMAND()
 							//std::cout << "      individual #" << individual_index << " updated trait value == " << ind->trait_info_[trait_index].phenotype_ << std::endl;
 #endif
 						}
@@ -7195,14 +7262,14 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
 			// calculations, so I use a larger threshold here of 1e-6; we'll see how this does in practice.
 			if (std::abs(calculated_phenotype - check_phenotype) > (slim_effect_t)1e-6)
-				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
 #endif
 }
 
-template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> p_mutationEffect_callbacks);
-template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> p_mutationEffect_callbacks);
+template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *, Subpopulation *, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *, Subpopulation *, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
 
 
 // Low-level method to calculate a phenotype for one individual, for one haploid (or hemizygous) chromosome,
@@ -7219,10 +7286,6 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	
 	// we just need to scan through the haplosome and account for its mutations, using the homozygous mutation
 	// effect (no dominance effects with haploidy), or the hemizygous mutation effect for f_hemizygous == true
-//#if SLIM_USE_NONNEUTRAL_CACHES
-//	int32_t nonneutral_change_counter = species->nonneutral_change_counter_;
-//	int32_t nonneutral_regime = species->last_nonneutral_regime_;
-//#endif
 	
 	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
 	MutationType *single_callback_mut_type;
@@ -7245,16 +7308,16 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	{
 		const MutationRun *mutrun = haplosome->mutruns_[run_index];
 		
-//#if SLIM_USE_NONNEUTRAL_CACHES
-//		// Cache non-neutral mutations and read from the non-neutral buffers
-//		const MutationIndex *haplosome_iter, *haplosome_max;
-//		
-//		mutrun->beginend_nonneutral_pointers(mut_block_ptr, &haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
-//#else
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		// Cache non-neutral mutations and read from the non-neutral buffers
+		const MutationIndex *haplosome_iter, *haplosome_max;
+		
+		mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max);
+#else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
-//#endif
+#endif
 		
 		// scan the mutation run and apply mutation effects
 		while (haplosome_iter != haplosome_max)
@@ -7291,18 +7354,18 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Haploid<false, false, false, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, true>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, true, false, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, true>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, false, false, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, true>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, true, false, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, false>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, true>(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Haploid<false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
 
 // Low-level method to calculate a phenotype for one individual, for one diploid chromosome, for one trait.
 // This will put the result of the calculation into the individual's phenotype information.  This is called
@@ -7318,10 +7381,6 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	
 	// both haplosomes are non-null, so we need to scan through and figure out which mutations are
 	// heterozygous and which are homozygous, and assign effects accordingly
-//#if SLIM_USE_NONNEUTRAL_CACHES
-//	int32_t nonneutral_change_counter = species->nonneutral_change_counter_;
-//	int32_t nonneutral_regime = species->last_nonneutral_regime_;
-//#endif
 	
 	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
 	MutationType *single_callback_mut_type;
@@ -7345,20 +7404,20 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 		const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
 		const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
 		
-//#if SLIM_USE_NONNEUTRAL_CACHES
-//		// Cache non-neutral mutations and read from the non-neutral buffers
-//		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
-//		
-//		mutrun1->beginend_nonneutral_pointers(mut_block_ptr, &haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-//		mutrun2->beginend_nonneutral_pointers(mut_block_ptr, &haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
-//#else
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		// Cache non-neutral mutations and read from the non-neutral buffers
+		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
+		
+		mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max);
+		mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max);
+#else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
 		const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
 		
 		const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
 		const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
-//#endif
+#endif
 		
 		// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
 		if ((haplosome1_iter != haplosome1_max) && (haplosome2_iter != haplosome2_max))
@@ -7654,12 +7713,12 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Diploid<false, false, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<false, true, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<false, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<true, false, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<true, true, false>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template void Individual::_IncorporateEffects_Diploid<false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
 
 
 // the rest of the code below is for checking the correctness of the calculations performed by the code above

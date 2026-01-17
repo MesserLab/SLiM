@@ -388,7 +388,8 @@ void Eidos_Deleter(void *ptr) {
  
  */
 
-#define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define DEBUG_MUTATIONS()				0		// turn on logging of mutation construction and destruction
 
 // Per-species memory usage assessment as done by Species::TabulateSLiMMemoryUsage_Species() is placed into this struct
 typedef struct
@@ -487,13 +488,19 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #pragma mark -
 
 // Debugging #defines that can be turned on
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
 #define DEBUG_MUTATION_ZOMBIES		0		// avoid destroying Mutation objects; keep them as zombies
 #define SLIM_DEBUG_MUTATION_RUNS	0		// turn on to get logging about mutation run uniquing and usage
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
-#define DEBUG_SHUFFLE_BUFFER		1		// debug memory overruns with the shuffle buffer
+#define DEBUG_SHUFFLE_BUFFER()		1		// debug memory overruns with the shuffle buffer
 #define DEBUG_TICK_RANGES			0		// debug tick range parsing and evaluation
-#define DEBUG_TRAIT_DEMAND			0		// enable debugging logs about the trait "demand" evalutation process
+#define DEBUG_TRAIT_DEMAND()		0		// enable debugging logs about the trait "demand" evalutation process
 #define DEBUG_LESS_INTENSIVE		0		// decrease the frequency of some very intensive DEBUG checks
+
+#if DEBUG_TRAIT_DEMAND()
+#warning DEBUG_TRAIT_DEMAND() enabled!
+#endif
 
 
 // In SLiMgui we want to emit only a reasonably limited number of lines of input debugging; for big models, this output
@@ -508,10 +515,12 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // where we are particularly likely to run out of memory, to provide the user with a better error message.
 // Note that even when this is 1, the user can disable some of these checks with -x.
 // Disable for Windows until Eidos_GetMaxRSS() issue fixed:
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
 #ifdef _WIN32
-#define DO_MEMORY_CHECKS	0
+#define DO_MEMORY_CHECKS()	0
 #else
-#define DO_MEMORY_CHECKS	1
+#define DO_MEMORY_CHECKS()	1
 #endif
 
 // If 1, and SLiM_verbosity_level >= 2, additional output will be generated regarding the mutation run count
@@ -525,7 +534,9 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // freed, or disposed of into a junkyard, or anything like that -- whenever it is no longer in use.  This
 // could be useful for debugging problems with dereferencing stale MutationRun pointers.  Otherwise it is
 // not necessary, and just slows SLiM down.
-#define SLIM_CLEAR_HAPLOSOMES	0
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define SLIM_CLEAR_HAPLOSOMES()	0
 
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 extern int64_t SLiM_verbosity_level;

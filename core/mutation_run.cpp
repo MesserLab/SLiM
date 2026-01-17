@@ -29,6 +29,21 @@
 int64_t MutationRun::sOperationID = 0;
 
 
+std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_type)
+{
+	switch (p_trait_type)
+	{
+		case TraitCalculationRegime::kUndefined:			p_out << "kUndefined";				break;
+		case TraitCalculationRegime::kPureNeutral:			p_out << "kPureNeutral";			break;
+		case TraitCalculationRegime::kNoActiveCallbacks:	p_out << "kNoActiveCallbacks";		break;
+		case TraitCalculationRegime::kAllNeutralCallbacks:	p_out << "kAllNeutralCallbacks";	break;
+		case TraitCalculationRegime::kNonNeutralCallbacks:	p_out << "kNonNeutralCallbacks";	break;
+	}
+	
+	return p_out;
+}
+
+
 MutationRun::MutationRun(void)
 #ifdef DEBUG_LOCKS_ENABLED
 	: mutrun_use_count_LOCK("mutrun_use_count_LOCK")
@@ -45,7 +60,7 @@ MutationRun::~MutationRun(void)
 {
 	free(mutations_);
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_USE_NONNEUTRAL_CACHES()
 	if (nonneutral_mutations_)
 		free(nonneutral_mutations_);
 #endif
@@ -341,7 +356,7 @@ void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 	{
 		mutation_count_ -= (haplosome_iter - haplosome_backfill_iter);
 		
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_USE_NONNEUTRAL_CACHES()
 		// invalidate the nonneutral mutation cache
 		nonneutral_mutations_count_ = -1;
 #endif
@@ -442,116 +457,105 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 }
 
 
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_USE_NONNEUTRAL_CACHES()
 
-//void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const
-//{
-//	//
-//	//	Regime 1 means there are no mutationEffect() callbacks at all, so neutrality can be assessed
-//	//	simply by looking at selection_coeff_ != 0.0.  The mutation type is irrelevant.
-//	//
-//	zero_out_nonneutral_buffer();
-//	
-//	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
-//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-//	{
-//		MutationIndex mutindex = mutations_[bufindex];
-//		Mutation *mutptr = p_mut_block_ptr + mutindex;
-//		
-//		if (!mutptr->is_neutral_for_all_traits_)
-//			add_to_nonneutral_buffer(mutindex);
-//	}
-//}
-//
-//void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const
-//{
-//	// FIXME MULTICHROM: I think regime 2 needs to be rethought with multitrait.  We won't have
-//	// constant mutationEffect() callbacks any more; all of those optimizations, including regime 2,
-//	// can be ripped out.  Instead, QTL mutations will contribute an additive effect to a quantitative
-//	// trait, and their effect on whatever multiplicative trait might be in the model will be zero
-//	// (absent pleiotropy).  That is the case that we will now want to detect and optimize somehow.
-//	// I'm not sure what the right strategy would be.  What exactly will the role of non-neutral
-//	// caches be?  Should mutations that are non-neutral for *any* trait be put into them, which would
-//	// be best for universal pleiotropy?  Or maybe we have separate non-neutral caches for each trait,
-//	// which would be best for zero pleiotropy?  Or some kind of adaptive approach?
-//	
-//	//
-//	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
-//	//	make their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
-//	//	Here neutrality is assessed by first consulting the set_neutral_by_global_active_callback
-//	//	flag of MutationType, which is set up by RecalculateFitness() for us.  If that is true,
-//	//	the mutation is neutral; if false, selection_coeff_ is reliable.  Note the code below uses
-//	//	the exact way that the C operator && works to implement this order of checks.
-//	//
-//	zero_out_nonneutral_buffer();
-//	
-//	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
-//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-//	{
-//		MutationIndex mutindex = mutations_[bufindex];
-//		Mutation *mutptr = p_mut_block_ptr + mutindex;
-//		
-//		// The result of && is not order-dependent, but the first condition is checked first.
-//		// I expect many mutations would fail the first test (thus short-circuiting), whereas
-//		// few would fail the second test (i.e. actually be 0.0) in a QTL model.
-//		if ((!mutptr->mutation_type_ptr_->set_neutral_by_global_active_callback_) && !mutptr->is_neutral_for_all_traits_)
-//			add_to_nonneutral_buffer(mutindex);
-//	}
-//}
-//
-//void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const
-//{
-//	//
-//	//	Regime 3 means that there are mutationEffect() callbacks beyond the constant neutral global
-//	//	callbacks of regime 2, so if a mutation's muttype is subject to any mutationEffect() callbacks
-//	//	at all, whether active or not, that mutation must be considered to be non-neutral (because
-//	//	a rogue callback could enable/disable other callbacks).  This is determined by consulting
-//	//	the subject_to_mutationEffect_callback flag of MutationType, set up by RecalculateFitness()
-//	//	for us.  If that flag is not set, then the selection_coeff_ is reliable as usual.
-//	//
-//	zero_out_nonneutral_buffer();
-//	
-//	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
-//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-//	{
-//		MutationIndex mutindex = mutations_[bufindex];
-//		Mutation *mutptr = p_mut_block_ptr + mutindex;
-//		
-//		// The result of || is not order-dependent, but the first condition is checked first.
-//		// I have reordered this to put the fast test first; or I'm guessing it's the fast test.
-//		if (!mutptr->is_neutral_for_all_traits_ || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
-//			add_to_nonneutral_buffer(mutindex);
-//	}
-//}
-//
-//void MutationRun::check_nonneutral_mutation_cache() const
-//{
-//	if (!nonneutral_mutations_)
-//		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
-//	if (nonneutral_mutations_count_ == -1)
-//		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
-//	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
-//		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
-//	
-//	// Check for correctness in regime 1.  Now that we have three regimes, this isn't really worth maintaining;
-//	// it really just replicates the above logic exactly, so it is not a very effective cross-check.
-//	
-//	/*
-//	int32_t cache_index = 0;
-//	
-//	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
-//	{
-//		MutationIndex mutindex = mutations_[bufindex];
-//		Mutation *mutptr = gSLiM_Mutation_Block + mutindex;
-//		
-//		if (mutptr->selection_coeff_ != 0.0)
-//			if (*(nonneutral_mutations_ + cache_index++) != mutindex)
-//				EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unsynchronized cache." << EidosTerminate();
-//	}
-//	 */
-//}
+void MutationRun::cache_nonneutral_mutations_REGIME_0(void) const
+{
+	//
+	//	Regime 0 means there are no genetic effects at all, so we can simply empty the non-neutral cache.
+	//
+	zero_out_nonneutral_buffer();
+}
 
-#endif
+void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const
+{
+	//
+	//	Regime 1 means there are no active mutationEffect() callbacks at all, so neutrality can be assessed
+	//	simply by looking at whether the mutation itself is neutral.  The mutation type is irrelevant.
+	//
+	zero_out_nonneutral_buffer();
+	
+	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+	{
+		MutationIndex mutindex = mutations_[bufindex];
+		Mutation *mutptr = p_mut_block_ptr + mutindex;
+		
+		if (!mutptr->is_neutral_for_all_traits_)
+			add_to_nonneutral_buffer(mutindex);
+	}
+}
+
+void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const
+{
+	//
+	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
+	//	make their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
+	//	Here neutrality is assessed by first consulting the subject_to_mutationEffect_callback_ flag
+	//	of MutationType; if it is set, the mutation is neutral because the callback is known to be
+	//	global-neutral.  Otherwise, the mutation's neutral flag is reliable.
+	//
+	zero_out_nonneutral_buffer();
+	
+	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+	{
+		MutationIndex mutindex = mutations_[bufindex];
+		Mutation *mutptr = p_mut_block_ptr + mutindex;
+		
+		// The result of && is not order-dependent, but the first condition is checked first.
+		// I expect many mutations would fail the first test (thus short-circuiting), whereas
+		// few would fail the second test (i.e. actually be neutral) in a model in this regime.
+		if ((!mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_) && !mutptr->is_neutral_for_all_traits_)
+			add_to_nonneutral_buffer(mutindex);
+	}
+}
+
+void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const
+{
+	//
+	//	Regime 3 means that there are active mutationEffect() callbacks beyond the constant neutral global
+	//	callbacks of regime 2 -- but those non-global-neutral callbacks might not affect the mutation.  So
+	//	we first consult subject_to_mutationEffect_callback_ to find out if a callback of any kind affects
+	//	the mutation.  If that is true, then we consult subject_to_non_neutral_callback_; if that is true,
+	//	the mutation is affected by a nonneutral callback, which must be called even if it is overridden
+	//	by a global-neutral callback since it might have side effects.  If subject_to_non_neutral_callback_
+	//	is false, we know the mutation is rendered neutral by a global-neutral callback.  And if the test
+	//	of subject_to_mutationEffect_callback_ was false, the mutation's neutral flag is reliable.
+	//
+	zero_out_nonneutral_buffer();
+	
+	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+	{
+		MutationIndex mutindex = mutations_[bufindex];
+		Mutation *mutptr = p_mut_block_ptr + mutindex;
+		MutationType *muttypeptr = mutptr->mutation_type_ptr_;
+		
+		if (muttypeptr->subject_to_mutationEffect_callback_)
+		{
+			if (muttypeptr->subject_to_non_neutral_callback_)
+				add_to_nonneutral_buffer(mutindex);
+		}
+		else
+		{
+			if (!mutptr->is_neutral_for_all_traits_)
+				add_to_nonneutral_buffer(mutindex);
+		}
+	}
+}
+
+void MutationRun::check_nonneutral_mutation_cache() const
+{
+	if (!nonneutral_mutations_)
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
+	if (nonneutral_mutations_count_ == -1)
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
+	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+}
+
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
 
 // Shorthand for clear(), then copy_from_run(p_mutations_to_set), then insert_sorted_mutation() on every
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
@@ -664,7 +668,11 @@ size_t MutationRun::MemoryUsageForMutationIndexBuffers(void) const
 
 size_t MutationRun::MemoryUsageForNonneutralCaches(void) const
 {
+#if SLIM_USE_NONNEUTRAL_CACHES()
 	return nonneutral_mutation_capacity_ * sizeof(MutationIndex);
+#else
+	return 0;
+#endif
 }
 
 

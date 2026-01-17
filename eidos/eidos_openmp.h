@@ -40,11 +40,11 @@
 	 on macOS, you may (several times!) get a system alert that libomp was blocked for security; after that, go to System Preferences, Security & Privacy, tab General, click "Allow Anyway", and then click "Open" back in the system panel
 	 use the -maxThreads <x> command-line option to change the maximum number of threads from OpenMP's default
 
- We allocate per-thread storage (for gEidosMaxThreads threads) at the global/species level for these facilities:
+ We allocate per-thread storage (for gEidosMaxThreads threads) at the global/species/chromosome level for these facilities:
  
 	SparseVector pools; see s_freed_sparse_vectors_PERTHREAD vs. s_freed_sparse_vectors_SINGLE
 	random number generators; see gEidos_RNG_PERTHREAD vs. gEidos_RNG_SINGLE
-	MutationRunContexts; see mutation_run_context_PERTHREAD vs. mutation_run_SINGLE
+	MutationRunContexts; see mutation_run_context_PERTHREAD vs. mutation_run_context_SINGLE_
  
  We use #pragma omp critical to protect some places in the code, with specified names
  

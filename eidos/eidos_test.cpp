@@ -293,7 +293,7 @@ int RunEidosTests(void)
 	gEidosTestSuccessCount = 0;
 	gEidosTestFailureCount = 0;
 	
-#if (!EIDOS_HAS_OVERFLOW_BUILTINS)
+#if !EIDOS_HAS_OVERFLOW_BUILTINS()
 	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
 #endif
 	

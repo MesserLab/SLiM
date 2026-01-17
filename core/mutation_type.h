@@ -182,34 +182,35 @@ public:
 	// change back from false to true if the DES changes from non-neutral back to neutral.
 	mutable bool all_neutral_DES_;
 	
-	// all_pure_neutral_mutations_ is true if any mutation of this type could be non-neutral.  That is the case
-	// if (a) the mutation type has ever had a non-neutral DES, or (b) if any mutation of this type has ever been
-	// configured to be non-neutral.  This flag is "sticky"; once set to true it will remain true forever.
+	// muttype_all_neutral_mutations_ is false if any mutation of this type could be intrinsically non-neutral,
+	// ignoring the effects of callbacks.  That is the case if (a) the mutation type has ever had a non-neutral
+	// DES, or (b) if any mutation of this type has ever been configured to be non-neutral.  This flag is
+	// "sticky"; once set to true it will remain true forever.
 	mutable bool muttype_all_neutral_mutations_;
 	
-	// is_pure_neutral_now_ is set up by Subpopulation::UpdateFitness(), and is valid only inside a given UpdateFitness() call.
-	// If set, it indicates that the mutation type is currently pure neutral – either because all_neutral_DES_ is set and the
-	// mutation type cannot be influenced by any callbacks in the current subpopulation / tick, or because an active callback
-	// actually sets the mutation type to be a constant value of 1.0 in this subpopulation / tick.  Mutations for which this
-	// flag is set can be safely elided from fitness calculations altogether; the flag will not be set if other active callbacks
-	// could mess things up for the mutation type by, e.g., deactivating the neutral-making callback.  If this flag is set for all
-	// muttypes, chromosome-based fitness calculations will be skipped altogether for this tick.
+	
+	// Optimization flags set up by Species::PrepareForTraitCalculations() and valid only subsequent to that call.
+	// These flags are used to determine which mutations of this type go into the non-neutral cache.  The previous
+	// flags are used as scratch space by PrepareForTraitCalculations() and should not otherwise be used.
+	
+	// If set, it indicates that the mutation type is currently completely neutral, including callbacks – either
+	// because muttype_all_neutral_mutations_ is set and the mutation type cannot be influenced by any callbacks
+	// in the current subpopulation / tick, or because an active callback actually sets this mutation type to be
+	// neutral in this subpopulation / tick.  Mutation types for which this flag is set can be safely elided from
+	// trait calculations altogether.  If this flag is set for all muttypes, chromosome-based trait calculations
+	// will be skipped altogether for this tick.
 	mutable bool is_pure_neutral_now_;
+	mutable bool previous_is_pure_neutral_now_;
 	
-	// set_neutral_by_global_active_callback_ is set by RecalculateFitness() if the muttype is made neutral by a constant callback
-	// (i.e., return 1.0) that is global (i.e., applies to all subpops) and active.  This flag should be consulted only when the
-	// "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 2 (constant neutral mutationEffect() callbacks only); it is not
-	// valid in other scenarios, so it should be used with extreme caution.
-	mutable bool set_neutral_by_global_active_callback_ = false;
-	mutable bool previous_set_neutral_by_global_active_callback_;	// the previous value; scratch space for RecalculateFitness()
+	// If set, subject_to_mutationEffect_callback_ indicates that the muttype is influenced by a mutationEffect
+	// callback in at least one subpop.  Mutation types with this flag set are subject to a callback, and so the
+	// effect of mutations of that type cannot be consulted reliably; the callback needs to be considered.
+	mutable bool subject_to_mutationEffect_callback_;
+	mutable bool previous_subject_to_mutationEffect_callback_;
 	
-	// subject_to_mutationEffect_callback_ is set by RecalculateFitness() if the muttype is currently influenced by a callback in any subpop.
-	// Mutations with this flag set are considered to be non-neutral, since their fitness value is unpredictable; mutations without
-	// this flag set, on the other hand, are not influenced by any callback (active or inactive), so their effect may be consulted.
-	// This flag is valid only when the "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 3 (non-constant or non-neutral
-	// callbacks present); it is not valid in other scenarios, so it should be used with extreme caution.
-	mutable bool subject_to_mutationEffect_callback_ = false;
-	mutable bool previous_subject_to_mutationEffect_callback_;				// the previous value; scratch space for RecalculateFitness()
+	mutable bool subject_to_non_neutral_callback_;
+	mutable bool previous_subject_to_non_neutral_callback_;
+	
 	
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type

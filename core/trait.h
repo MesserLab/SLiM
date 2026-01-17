@@ -81,11 +81,27 @@ public:
 	// OPTIMIZATION FLAGS
 	
 	// this is set to false if any mutation has a non-neutral effect on this trait
-	bool trait_all_neutral_mutations_ = true;
+	mutable bool trait_all_neutral_mutations_ = true;
 	
 	// this is set to false if any mutation has a non-neutral effect on this trait that
 	// is not designated as "independent dominance"; neutral effects don't matter
-	bool trait_all_mutations_independent_dominance_ = true;
+	mutable bool trait_all_mutations_independent_dominance_ = true;
+	
+	// Optimization flags set up by Species::PrepareForTraitCalculations() and valid only subsequent to that call.
+	
+	// If set, it indicates that the trait is currently completely neutral, including callbacks – either because
+	// because trait_all_neutral_mutations_ is set and the trait cannot be influenced by any callbacks in the
+	// current subpopulation / tick, or because an active callback actually sets this trait to be neutral in
+	// this subpopulation / tick.  Traits for which this flag is set can be safely elided from trait calculations
+	// except for the baseline offset and individual offset.
+	mutable bool is_pure_neutral_now;
+	
+	// If set, subject_to_mutationEffect_callback_ indicates that the trait is influenced by a mutationEffect
+	// callback in at least one subpop.  Traits with this flag set are subject to a callback, and so the effect
+	// effect of mutations on that trait cannot be consulted reliably; the callback needs to be considered.
+	mutable bool subject_to_mutationEffect_callback_;
+	
+	mutable bool subject_to_non_neutral_callback_;
 	
 	
 	Trait(const Trait&) = delete;									// no copying

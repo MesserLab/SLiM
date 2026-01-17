@@ -25,18 +25,18 @@
 #include "eidos_class_Object.h"
 #include "json_fwd.hpp"
 
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
 #endif
 
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
 #endif

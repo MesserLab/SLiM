@@ -110,7 +110,7 @@ void SLiM_WarmUp(void)
 		gStaticEidosValue_StringG = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_G));
 		gStaticEidosValue_StringT = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_T));
 		
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 		// Check for a memory limit and prepare for memory-limit testing
 		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
@@ -2494,7 +2494,7 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 	}
 	
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	//
 	//	MutationRun metrics, presented per Species
 	//

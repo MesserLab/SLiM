@@ -29,7 +29,7 @@
 #include <utility>
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 #endif
 
@@ -2056,10 +2056,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table to speed up lookups from O(N) to O(1)
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<int64_t, int64_t> fromValueToIndex;
 				//typedef robin_hood::pair<int64_t, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<int64_t, int64_t> fromValueToIndex;
 				//typedef std::pair<int64_t, int64_t> MAP_PAIR;
 #endif
@@ -2104,10 +2104,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				// use a hash table to speed up lookups from O(N) to O(1)
 				// we have to use a custom comparator so that NAN==NAN is true, so that NAN gets matched correctly
 				auto equal = [](const double& l, const double& r) { if (std::isnan(l) && std::isnan(r)) return true; return l == r; };
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<double, int64_t, robin_hood::hash<double>, decltype(equal)> fromValueToIndex(0, robin_hood::hash<double>{}, equal);
 				//typedef robin_hood::pair<double, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<double, int64_t, std::hash<double>, decltype(equal)> fromValueToIndex(0, std::hash<double>{}, equal);
 				//typedef std::pair<double, int64_t> MAP_PAIR;
 #endif
@@ -2154,10 +2154,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table to speed up lookups from O(N) to O(1)
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<std::string, int64_t> fromValueToIndex;
 				//typedef robin_hood::pair<std::string, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<std::string, int64_t> fromValueToIndex;
 				//typedef std::pair<std::string, int64_t> MAP_PAIR;
 #endif
@@ -2201,10 +2201,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table to speed up lookups from O(N) to O(1)
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<EidosObject *, int64_t> fromValueToIndex;
 				//typedef robin_hood::pair<EidosObject *, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<EidosObject *, int64_t> fromValueToIndex;
 				//typedef std::pair<EidosObject *, int64_t> MAP_PAIR;
 #endif

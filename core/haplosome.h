@@ -46,11 +46,11 @@
 #include "../treerec/tskit/tables.h"
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<const MutationRun*, const MutationRun*> SLiMBulkOperationHashTable;
 typedef robin_hood::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<const MutationRun*, const MutationRun*> SLiMBulkOperationHashTable;
 typedef std::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
@@ -163,13 +163,13 @@ public:
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
 			mutruns_ = run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 		}
 		else
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 #else
 			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
@@ -325,7 +325,7 @@ public:
 		}
 	}
 	
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	// BCH 10/15/2024: clearing haplosomes to nullptr is no longer required; it just slows us down.
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{

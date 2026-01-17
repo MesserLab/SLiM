@@ -3147,8 +3147,8 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 		}
 	}
 	
-#if DEBUG_TRAIT_DEMAND
-	std::cout << "# " << community_.Tick() << " --- demandPhenotype(): for traits {";
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " ====== demandPhenotype(): for traits {";
 	for (slim_trait_index_t trait_index : trait_indices)
 		std::cout << " " << Traits()[trait_index]->Name();
 	std::cout << " } in subpops {";
@@ -3157,11 +3157,12 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 	std::cout << " }, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
 #endif
 	
-	// validate non-neutral caches and independent-dominance precalculated values
-	// FIXME MULTITRAIT: VALIDATE NON-NEUTRAL CACHES HERE
+	// prepare for trait calculations, such as by validating non-neutral caches and independent-dominance precalculated values
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	
+	PrepareForTraitCalculations(mutationEffect_callbacks);
 	
 	// call DemandPhenotype_SUBPOP() to express the demand, one subpop at a time
-	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = Species::CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
 	std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
 	
 	for (Subpopulation *subpop : subpops_to_demand)
@@ -3264,10 +3265,10 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		// for larger problem sizes, we speed up lookups by building a hash table first, changing from O(N*M) to O(N)
 		// we could get even more fancy and cache this hash table to speed up successive calls within one cycle,
 		// but since the hash table is specific to the set of subpops we're searching, that would get a bit hairy...
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 		robin_hood::unordered_flat_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
 		//typedef robin_hood::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 		std::unordered_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
 		//typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
 #endif
@@ -3728,7 +3729,7 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
 	
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 	// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
 	// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
 	int mem_check_counter = 0, mem_check_mod = 100;
@@ -3760,7 +3761,7 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		else
 			subs[i]->PrintForSLiMOutput(out);
 		
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 		if (eidos_do_memory_checks)
 		{
 			mem_check_counter++;

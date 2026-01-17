@@ -283,13 +283,13 @@ void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, Chromosom
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
 			mutruns_ = run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 		}
 		else
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 #else
 			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
@@ -308,13 +308,13 @@ void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, Chromosom
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
 			mutruns_ = run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 		}
 		else
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 #else
 			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
@@ -323,7 +323,7 @@ void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, Chromosom
 	}
 	else
 	{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 		// the number of mutruns has not changed; need to zero out
 		EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 #endif
@@ -1495,10 +1495,10 @@ void Haplosome::PrintHaplosomes_MS(std::ostream &p_out, Species &p_species, std:
 	}
 	
 	// make a hash table that looks up the genotype string position from a mutation pointer
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	robin_hood::unordered_flat_map<const Mutation*, int> genotype_string_positions;
 	//typedef robin_hood::pair<const Mutation*, int> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	std::unordered_map<const Mutation*, int> genotype_string_positions;
 	//typedef std::pair<const Mutation*, int> MAP_PAIR;
 #endif

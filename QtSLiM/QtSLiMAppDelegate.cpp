@@ -322,7 +322,7 @@ QtSLiMAppDelegate::~QtSLiMAppDelegate(void)
 {
     //qDebug() << "QtSLiMAppDelegate::~QtSLiMAppDelegate";
     
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
     QtSLiM_FreeGLBuffers();
 #endif
     

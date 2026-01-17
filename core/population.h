@@ -308,7 +308,7 @@ public:
 	// step forward a generation: make the children become the parents
 	void SwapGenerations(void);
 	
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	// Clear all parental haplosomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
 	void ClearParentalHaplosomes(void);
 #endif

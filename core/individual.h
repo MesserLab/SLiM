@@ -452,14 +452,17 @@ public:
 	
 	EidosValue_SP ExecuteMethod_demandPhenotypeForIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	
+	template <const bool f_force_recalc>
+	static void _HandleAndRemovePureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
+	
 	// phenotype demand for all traits for a vector of target individuals, across all chromosomes
 	// if f_force_recalc is true all values are recalculated; if false, only NAN trait values are recalculated
 	// see also the methods class _IncorporateEffects_X() methods in class Individual, called by this method
 	template <const bool f_force_recalc>
-	static void DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
+	static void DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &mutationEffect_callbacks);
 	
 	template <const bool f_force_recalc>
-	static void DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> p_subpop_mutationEffect_callbacks);
+	static void DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks);
 };
 
 

@@ -40,9 +40,9 @@
 #include "mutation_block.h"
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 #endif
 
@@ -732,7 +732,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	{
 		if (mate_choice_callback->block_active_)
 		{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
@@ -1165,7 +1165,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 	{
 		if (modify_child_callback->block_active_)
 		{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
@@ -2777,7 +2777,7 @@ bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_
 					continue;
 			}
 			
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
@@ -2933,7 +2933,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	
 	Haplosome::DebugCheckStructureMatch(parent_haplosome_1, parent_haplosome_2, &p_child_haplosome, &p_chromosome);
 #endif
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
 	p_child_haplosome.check_cleared_to_nullptr();
 #endif
@@ -3795,7 +3795,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	
 	Haplosome::DebugCheckStructureMatch(parent_haplosome, &p_child_haplosome, &p_chromosome);
 #endif
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
 	p_child_haplosome.check_cleared_to_nullptr();
 #endif
@@ -4072,7 +4072,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 	
 	Haplosome::DebugCheckStructureMatch(parent_haplosome_1, parent_haplosome_2, &p_child_haplosome, &p_chromosome);
 #endif
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
 	p_child_haplosome.check_cleared_to_nullptr();
 #endif
@@ -5279,199 +5279,28 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
 	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
-	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
-	bool no_active_callbacks = (mutationEffect_callbacks.size() == 0) && (fitnessEffect_callbacks.size() == 0);
 	
-	// FIXME MULTITRAIT: the "regime" logic here needs to adapt to the fact that we only fetch active callbacks now; it is more conservative than it now needs to be!
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " ====== RecalculateFitness(): forceRecalc == " << (p_force_trait_recalculation ? "T" : "F") << std::endl;
+#endif
 	
-	// Figure out how we are going to handle MutationRun nonneutral mutation caches; see mutation_run.h.  We need to assess
-	// the state of callbacks and decide which of the three "regimes" we are in, and then depending upon that and what
-	// regime we were in in the previous generation, invalidate nonneutral caches or allow them to persist.
-	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
-	int32_t last_regime = species_.last_nonneutral_regime_;
-	int32_t current_regime;
+	species_.PrepareForTraitCalculations(mutationEffect_callbacks);
 	
-	if (no_active_callbacks)
-	{
-		current_regime = 1;
-	}
-	else
-	{
-		// First, we want to save off the old values of our flags that govern nonneutral caching
-		for (auto muttype_iter : mut_types)
-		{
-			MutationType *muttype = muttype_iter.second;
-			
-			muttype->previous_set_neutral_by_global_active_callback_ = muttype->set_neutral_by_global_active_callback_;
-			muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
-		}
-		
-		// Then we assess which muttypes are being made globally neutral by a constant-value mutationEffect() callback
-		bool all_active_callbacks_are_global_neutral_effects = true;
-		
-		for (auto muttype_iter : mut_types)
-			(muttype_iter.second)->set_neutral_by_global_active_callback_ = false;
-		
-		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
-		{
-			if (mutationEffect_callback->block_active_)
-			{
-				if (mutationEffect_callback->subpopulation_id_ == -1)
-				{
-					const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
-					
-					if (compound_statement_node->cached_return_value_)
-					{
-						// The script is a constant expression such as "{ return 1.1; }"
-						EidosValue *result = compound_statement_node->cached_return_value_.get();
-						
-						if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
-						{
-							if (result->FloatData()[0] == 1.0)
-							{
-								// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-								slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
-								
-								if (mutation_type_id != -1)
-								{
-                                    MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
-									
-									if (found_muttype)
-										found_muttype->set_neutral_by_global_active_callback_ = true;
-								}
-								
-								// This is a constant neutral effect, so avoid dropping through to the flag set below
-								continue;
-							}
-						}
-					}
-				}
-				
-				// if we reach this point, we have an active callback that is not a
-				// global constant neutral effect, so set our flag and break out
-				all_active_callbacks_are_global_neutral_effects = false;
-				break;
-			}
-		}
-		
-		if (all_active_callbacks_are_global_neutral_effects)
-		{
-			// The only active callbacks are global (i.e. not subpop-specific) constant-effect neutral callbacks,
-			// so we will use the set_neutral_by_global_active_callback flag in the muttypes that we set up above.
-			// When that flag is true, the mut is neutral; when it is false, consult the selection coefficient.
-			current_regime = 2;
-		}
-		else
-		{
-			// We have at least one active callback that is not a global constant-effect callback, so all
-			// bets are off; any mutation of a muttype influenced by a callback must be considered non-neutral,
-			// as governed by the flag set up below
-			current_regime = 3;
-			
-			for (auto muttype_iter : mut_types)
-				(muttype_iter.second)->subject_to_mutationEffect_callback_ = false;
-			
-			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
-			{
-				slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
-				
-				if (mutation_type_id != -1)
-				{
-                    MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
-					
-					if (found_muttype)
-						found_muttype->subject_to_mutationEffect_callback_ = true;
-				}
-			}
-		}
-	}
-	
-	// trigger a recache of nonneutral mutation lists for some regime transitions; see mutation_run.h
-	if (last_regime == 0)									// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
-		species_.nonneutral_change_counter_++;
-	else if ((current_regime == 1) && ((last_regime == 2) || (last_regime == 3)))
-		species_.nonneutral_change_counter_++;
-	else if (current_regime == 2)
-	{
-		if (last_regime != 2)
-			species_.nonneutral_change_counter_++;
-		else
-		{
-			// If we are in regime 2 this cycle and were last cycle as well, then if the way that
-			// mutationEffect() callbacks are influencing mutation types is the same this cycle as it was last
-			// cycle, we can actually carry over our nonneutral buffers.
-			bool callback_state_identical = true;
-			
-			for (auto muttype_iter : mut_types)
-			{
-				MutationType *muttype = muttype_iter.second;
-				
-				if (muttype->set_neutral_by_global_active_callback_ != muttype->previous_set_neutral_by_global_active_callback_)
-					callback_state_identical = false;
-			}
-			
-			if (!callback_state_identical)
-				species_.nonneutral_change_counter_++;
-		}
-	}
-	else if (current_regime == 3)
-	{
-		if (last_regime != 3)
-			species_.nonneutral_change_counter_++;
-		else
-		{
-			// If we are in regime 3 this cycle and were last cycle as well, then if the way that
-			// mutationEffect() callbacks are influencing mutation types is the same this cycle as it was last
-			// cycle, we can actually carry over our nonneutral buffers.
-			bool callback_state_identical = true;
-			
-			for (auto muttype_iter : mut_types)
-			{
-				MutationType *muttype = muttype_iter.second;
-				
-				if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
-					callback_state_identical = false;
-			}
-			
-			if (!callback_state_identical)
-				species_.nonneutral_change_counter_++;
-		}
-	}
-	
-	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
-	species_.last_nonneutral_regime_ = current_regime;
 	// we need to recalculate phenotypes for traits that have a direct effect on fitness
 	std::vector<slim_trait_index_t> p_direct_effect_trait_indices;
 	const std::vector<Trait *> &traits = species_.Traits();
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
-	{
-		Trait *trait = traits[trait_index];
-		
-		if (trait->HasDirectFitnessEffect())
-		{
-			// Sneaky optimization: we might know that all mutations are completely neutral for this trait;
-			// if so, we can exclude it from the list of direct-effect traits and skip the demand for its
-			// phenotypes.  This will mean that fitness recalculation does not necessarily demand phenotypes
-			// for all direct-effect traits, which might be surprising to the user and should be documented.
-			// See also the optimization for trait_all_mutations_independent_dominance_, which is done inside
-			// non-neutral cache validation since the effects for such traits go into that cache.
-			if (trait->trait_all_neutral_mutations_)
-			{
-#if DEBUG_TRAIT_DEMAND
-				std::cout << "# " << community_.Tick() << " --- RecalculateFitness() removed demand for direct-effect trait '" << trait->Name() << "' because it is known to be neutral" << std::endl;
-#endif
-				
-				continue;
-			}
-			
+		if (traits[trait_index]->HasDirectFitnessEffect())
 			p_direct_effect_trait_indices.push_back(trait_index);
-		}
-	}
 	
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
 																							// FIXME MULTITRAIT: this will get cleaned up when multiple phenotypes is done
+	
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	bool no_active_callbacks = (mutationEffect_callbacks.size() == 0) && (fitnessEffect_callbacks.size() == 0);
+	
 	// call UpdateFitness() for each subpopulation
 	if (no_active_callbacks)
 	{
@@ -5535,7 +5364,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 	//Individual::s_any_individual_fitness_scaling_set_ = false;
 }
 
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 // WF only:
 // Clear all parental haplosomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
 // BCH 10/15/2024: This is now only enabled as a debugging setting; clearing haplosomes is no longer necessary.
@@ -5805,13 +5634,13 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 						if (new_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 						{
 							haplosome->mutruns_ = haplosome->run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 							EIDOS_BZERO(haplosome->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 						}
 						else
 						{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 							haplosome->mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
 #else
 							haplosome->mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));
@@ -5826,10 +5655,10 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 	}
 	
 	// make a map to keep track of which mutation runs split into which new runs
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	robin_hood::unordered_flat_map<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> split_map;
     //typedef robin_hood::pair<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> SLiM_SPLIT_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	std::unordered_map<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> split_map;
     //typedef std::pair<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> SLiM_SPLIT_PAIR;
 #endif
@@ -5951,10 +5780,10 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 struct slim_pair_hash {
 	template <class T1, class T2>
 	std::size_t operator () (const std::pair<T1,T2> &p) const {
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 		auto h1 = robin_hood::hash<T1>{}(p.first);
 		auto h2 = robin_hood::hash<T2>{}(p.second);
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 		auto h1 = std::hash<T1>{}(p.first);
 		auto h2 = std::hash<T2>{}(p.second);
 #endif
@@ -6016,13 +5845,13 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 						if (new_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 						{
 							haplosome->mutruns_ = haplosome->run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 							EIDOS_BZERO(haplosome->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 						}
 						else
 						{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 							haplosome->mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
 #else
 							haplosome->mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));
@@ -6037,10 +5866,10 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 	}
 	
 	// make a map to keep track of which mutation runs join into which new runs
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 	robin_hood::unordered_flat_map<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *, slim_pair_hash> join_map;
     //typedef robin_hood::pair<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *> SLiM_JOIN_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 	std::unordered_map<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *, slim_pair_hash> join_map;
     //typedef std::pair<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *> SLiM_JOIN_PAIR;
 #endif
@@ -7639,7 +7468,7 @@ void Population::RemoveAllFixedMutations(void)
 					// a substitution object was already created by removeMutations() at the user's request;
 					// the refcount is zero because the mutation was removed in script, but it was fixed/substituted
 					// this code path is similar to the fixation code path below, but does not create a Substitution
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 					std::cout << "Mutation fixed by script, already substituted: " << mutation << std::endl;
 #endif
 					
@@ -7662,7 +7491,7 @@ void Population::RemoveAllFixedMutations(void)
 				}
 				else
 				{
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 					std::cout << "Mutation unreferenced, will remove: " << mutation << std::endl;
 #endif
 					
@@ -7682,7 +7511,7 @@ void Population::RemoveAllFixedMutations(void)
 			{
 				if (mutation->mutation_type_ptr_->convert_to_substitution_)
 				{
-#if DEBUG_MUTATIONS
+#if DEBUG_MUTATIONS()
 					std::cout << "Mutation fixed, will substitute: " << mutation << std::endl;
 #endif
 					

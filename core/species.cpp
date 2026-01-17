@@ -52,7 +52,7 @@
 #include <ctime>
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 #endif
 
@@ -440,6 +440,581 @@ void Species::_NoteNonNeutralMutation(const Mutation *p_mut)
 		}
 	}
 }
+
+void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutationEffect_callbacks)
+{
+	// There is nothing to validate, in no-genetics models.
+	if (!HasGenetics())
+		return;
+	
+	// First, figure out how we are going to handle MutationRun nonneutral mutation caches; see mutation_run.h.
+	// We need to assess the state of callbacks for each mutation type, and then depending upon that compared to
+	// the state from the previous generation, invalidate nonneutral caches or allow them to persist.
+	
+	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
+	const std::vector<Trait *> &traits = Traits();
+	TraitCalculationRegime last_trait_calculation_regime = current_trait_calculation_regime_;
+	TraitCalculationRegime new_trait_calculation_regime = TraitCalculationRegime::kUndefined;
+	
+	// First, we want to save off the old values of our flags that govern nonneutral caching
+	for (auto muttype_iter : mut_types)
+	{
+		MutationType *muttype = muttype_iter.second;
+		
+		muttype->previous_is_pure_neutral_now_ = muttype->is_pure_neutral_now_;
+		muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
+		muttype->previous_subject_to_non_neutral_callback_ = muttype->subject_to_non_neutral_callback_;
+	}
+	
+	// Initially, every mutation type is assumed to be uninfluenced by callbacks, and thus pure neutral
+	// if all mutations of that type are intrinsically neutral (i.e., have an effect of 0.0)
+	for (auto muttype_iter : mut_types)
+	{
+		MutationType *muttype = muttype_iter.second;
+		
+		muttype->is_pure_neutral_now_ = muttype->muttype_all_neutral_mutations_;
+		muttype->subject_to_mutationEffect_callback_ = false;
+		muttype->subject_to_non_neutral_callback_ = false;
+	}
+	
+	// Similarly, every trait is assumed to be uninfluenced by callbacks, and thus pure neutral if all
+	// mutations' effects are intrinsically neutral for that trait (i.e., have an effect of 0.0)
+	for (Trait *trait : traits)
+	{
+		trait->is_pure_neutral_now = trait->trait_all_neutral_mutations_;
+		trait->subject_to_mutationEffect_callback_ = false;
+		trait->subject_to_non_neutral_callback_ = false;
+	}
+	
+	if (mutationEffect_callbacks.size() == 0)
+	{
+		// This regime is "no active callbacks, so you don't have to look at the mutation type at all, it doesn't
+		// matter; just look at the mutations themselves to determine which go into the non-neutral cache".
+		// This avoids the work of looking at the mutation type, and also allows the cache to be more precise
+		// since determinations are made per-mutation rather than per-mutation-type.
+		new_trait_calculation_regime = TraitCalculationRegime::kNoActiveCallbacks;
+	}
+	else
+	{
+		// Assess how muttypes are being influenced by mutationEffect() callbacks
+		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+		{
+			MutationType *callback_mut_type = nullptr;
+			bool makes_neutral = _CallbackMakesMutationTypeNeutral(mutationEffect_callback, callback_mut_type);
+			
+			// a callback might be defined for a muttype not in use, in which case callback_mut_type is nullptr
+			if (!callback_mut_type)
+				continue;
+			
+			if (makes_neutral)
+			{
+				// the callback makes the mutation type completely neutral, in all subpops; this does not
+				// entirely override a previous non-neutral callback, because that might have side effects
+				// on aspects of the model of than the mutation effect, but effect is guaranteed neutral now
+				callback_mut_type->is_pure_neutral_now_ = true;
+				callback_mut_type->subject_to_mutationEffect_callback_ = true;
+			}
+			else
+			{
+				// the callback has an effect that is something other than globally neutral, so the callback
+				// will have to be called, and it will override anything else going on, including previous
+				// callbacks in the callback chain (but might be overriden by a later callback in the chain)
+				callback_mut_type->is_pure_neutral_now_ = false;
+				callback_mut_type->subject_to_mutationEffect_callback_ = true;
+				callback_mut_type->subject_to_non_neutral_callback_ = true;
+			}
+		}
+		
+		// And assess how traits are being influenced by mutationEffect() callbacks
+		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+		{
+			Trait *callback_trait = nullptr;
+			bool makes_neutral = _CallbackMakesTraitNeutral(mutationEffect_callback, callback_trait);
+			
+			// callbacks are always specific to one mutation type, so unless there is only one mutation type
+			// defined, we can't easily infer the the trait has been made entirely neutral; we can just infer
+			// that it might make a previously neutral trait non-neutral.
+			if (mut_types.size() == 1)
+			{
+				if (callback_trait)
+				{
+					callback_trait->subject_to_mutationEffect_callback_ = true;
+					callback_trait->subject_to_non_neutral_callback_ = !makes_neutral;
+					callback_trait->is_pure_neutral_now = makes_neutral;
+				}
+				else
+				{
+					// if no callback trait is defined for the callback, it affects all traits
+					for (Trait *affectedTrait : traits)
+					{
+						affectedTrait->subject_to_mutationEffect_callback_ = true;
+						affectedTrait->subject_to_non_neutral_callback_ = !makes_neutral;
+						affectedTrait->is_pure_neutral_now = makes_neutral;
+					}
+				}
+			}
+			else if (!makes_neutral)
+			{
+				// with more than one muttype, callbacks only make traits non-neutral; we don't try to track the
+				// possibility that multiple callbacks might together render a trait neutral again
+				if (callback_trait)
+				{
+					callback_trait->subject_to_mutationEffect_callback_ = true;
+					callback_trait->subject_to_non_neutral_callback_ = true;
+					callback_trait->is_pure_neutral_now = false;
+				}
+				else
+				{
+					// if no callback trait is defined for the callback, it affects all traits
+					for (Trait *affectedTrait : traits)
+					{
+						affectedTrait->subject_to_mutationEffect_callback_ = true;
+						affectedTrait->subject_to_non_neutral_callback_ = true;
+						affectedTrait->is_pure_neutral_now = false;
+					}
+				}
+			}
+		}
+		
+		// Now we would like to know if there is any callback that we actually need to call; if every callback
+		// is a global-neutral callback, we can skip calling all callbacks completely, but if there exists a
+		// non-global-neutral callback (even overriden by another callback later in the chain), we have to call
+		// that since it could have side effects
+		bool all_active_callbacks_are_global_neutral_effects = true;
+		
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (muttype->subject_to_non_neutral_callback_)
+			{
+				all_active_callbacks_are_global_neutral_effects = false;
+				break;
+			}
+		}
+		
+		if (all_active_callbacks_are_global_neutral_effects)
+		{
+			// This regime is "we can skip all callbacks, since they are all global-neutral on some or all mutation
+			// types".  We still have to be aware that those global-neutral callbacks exist; we cannot simply
+			// consult mutation effects, because those are sometimes overridden. But we can assume that if
+			// subject_to_mutationEffect_callback_ is set for a mutation type, all mutations of that type are
+			// neutral, because the callback in question is global-neutral. When that flag is not set, we consult
+			// the mutation itself to decide whether it goes into the non-neutral cache.
+			new_trait_calculation_regime = TraitCalculationRegime::kAllNeutralCallbacks;
+		}
+		else
+		{
+			// We have at least one active callback that is not a global constant-effect callback, so there
+			// is at least one muttype that is influenced by a non-global-neutral callback.  We will need to
+			// take that into account.  So we cannot assume that if subject_to_mutationEffect_callback_ is
+			// set that mutation type is pure neutral; instead, we then have to additionally consult the
+			// subject_to_non_neutral_callback_ flag.  If that is set, we have to call the non-global-neutral
+			// callback; if it is not set, it is subject to a callback that is not non-neutral, thus it is
+			// neutral, thus the mutation type is pure neutral.  If subject_to_mutationEffect_callback_ is not
+			// set, that mutation type has no callback, and so we can again consult the mutation itself.
+			// This regime is thus "we can't skip all callbacks, since some are non-global-neutral, so we have
+			// to do an extra check and potentially actually call a callback."
+			new_trait_calculation_regime = TraitCalculationRegime::kNonNeutralCallbacks;
+			
+			for (auto muttype_iter : mut_types)
+				(muttype_iter.second)->subject_to_mutationEffect_callback_ = false;
+			
+			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+			{
+				slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+				
+				if (mutation_type_id != -1)
+				{
+					MutationType *found_muttype = MutationTypeWithID(mutation_type_id);
+					
+					if (found_muttype)
+						found_muttype->subject_to_mutationEffect_callback_ = true;
+				}
+			}
+		}
+	}
+	
+	// If we have no non-global-neutral callbacks, we can potentially know with certainty that the model is
+	// completely neutral, either because all mutations are intrinsically neutral and there are no callbacks,
+	// or because all mutation types with non-neutral mutations are made neutral by global-neutral callbacks
+	// and there are no other callbacks present (even overridden).  We detect that special-case situation here.
+	// This regime is thus "all mutations are effectively neutral; genetics can be skipped."
+	if ((new_trait_calculation_regime == TraitCalculationRegime::kNoActiveCallbacks) ||
+		(new_trait_calculation_regime == TraitCalculationRegime::kAllNeutralCallbacks))
+	{
+		bool all_muttypes_are_pure_neutral = true;
+		
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (!muttype->is_pure_neutral_now_)
+			{
+				all_muttypes_are_pure_neutral = false;
+				break;
+			}
+		}
+		
+		if (all_muttypes_are_pure_neutral)
+			new_trait_calculation_regime = TraitCalculationRegime::kPureNeutral;
+	}
+	
+	if (new_trait_calculation_regime == TraitCalculationRegime::kUndefined)
+		EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) nonneutral regime was not decided." << EidosTerminate();
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations() old regime " << current_trait_calculation_regime_ << ", new regime " << new_trait_calculation_regime << std::endl;
+#endif
+	
+	// Move forward to the regime we just chose; we will consult this next time around to detect a regime change
+	current_trait_calculation_regime_ = new_trait_calculation_regime;
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	ValidateNonNeutralCaches(last_trait_calculation_regime);
+#endif
+}
+
+bool Species::_CallbackMakesMutationTypeNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref)
+{
+	// This method checks whether a mutationEffect() callback makes the mutation type that it refers to neutral.
+	// The callback has to apply globally: to all subpopulations, and to all traits.  We could try to piece the
+	// effects of multiple callbacks together to see whether, in concert, they make a mutation type neutral, but
+	// that gets a lot more complicated and I think it would apply to few, if any, real-world models.
+	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+	
+#if DEBUG
+	if (mutation_type_id == -1)
+		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesMutationTypeNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
+#endif
+	
+	bool makes_neutral = false;		// we consider it non-neutral if it doesn't apply to all subpops and traits
+	
+	if ((mutationEffect_callback->subpopulation_id_ == -1) && (mutationEffect_callback->trait_index_ == -1))
+	{
+		const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+		
+		if (compound_statement_node->cached_return_value_)
+		{
+			// The script is a constant expression such as "{ return 1.1; }"
+			EidosValue *result = compound_statement_node->cached_return_value_.get();
+			
+			if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+			{
+				if (result->FloatData()[0] == 1.0)
+				{
+					// the callback returns 1.0; this makes the muttype neutral if all traits are multiplicative
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kAdditive) {
+							makes_neutral = false;
+							break;
+						}
+				}
+				else if (result->FloatData()[0] == 0.0)
+				{
+					// the callback returns 0.0; this makes the muttype neutral if all traits are additive
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kMultiplicative) {
+							makes_neutral = false;
+							break;
+						}
+				}
+			}
+			else if (result->Type() == EidosValueType::kValueNULL)
+			{
+				// the callback returns NULL; this makes the muttype neutral in all cases
+				makes_neutral = true;
+			}
+		}
+	}
+	
+	// find the callback's mutation type; this could be nullptr, if the referenced muttype has not been defined
+	mut_type_ptr_ref = MutationTypeWithID(mutation_type_id);
+	
+	return makes_neutral;
+}
+	
+bool Species::_CallbackMakesTraitNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref)
+{
+	// This method checks whether a mutationEffect() callback makes the trait that it refers to neutral.
+	// The callback has to apply globally to all subpopulations (but not necessarily to all traits).
+	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+	
+#if DEBUG
+	if (mutation_type_id == -1)
+		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesTraitNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
+#endif
+	
+	bool makes_neutral = false;		// we consider it non-neutral if it doesn't apply to all subpops
+	
+	if (mutationEffect_callback->subpopulation_id_ == -1)
+	{
+		const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+		
+		if (compound_statement_node->cached_return_value_)
+		{
+			// The script is a constant expression such as "{ return 1.1; }"
+			EidosValue *result = compound_statement_node->cached_return_value_.get();
+			
+			if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+			{
+				if (result->FloatData()[0] == 1.0)
+				{
+					// the callback returns 1.0; this makes the muttype neutral if all traits are multiplicative
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kAdditive) {
+							makes_neutral = false;
+							break;
+						}
+				}
+				else if (result->FloatData()[0] == 0.0)
+				{
+					// the callback returns 0.0; this makes the muttype neutral if all traits are additive
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kMultiplicative) {
+							makes_neutral = false;
+							break;
+						}
+				}
+			}
+			else if (result->Type() == EidosValueType::kValueNULL)
+			{
+				// the callback returns NULL; this makes the muttype neutral in all cases
+				makes_neutral = true;
+			}
+		}
+	}
+	
+	// find the callback's trait; this could be nullptr, if the referenced muttype has not been defined
+	slim_trait_index_t trait_index = mutationEffect_callback->trait_index_;
+	
+	if (trait_index == -1)
+		trait_ptr_ref = nullptr;
+	else
+		trait_ptr_ref = traits_[trait_index];
+	
+	return makes_neutral;
+}
+
+#if SLIM_USE_NONNEUTRAL_CACHES()
+void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime)
+{
+	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
+	
+	// The final caching policy is a combination of the global policy represented by non_neutral_cache_policy
+	// and the status of each mutation type as represented by the muttype's subject_to_mutationEffect_callback_
+	// and is_pure_neutral_now_ flags (the latter being relevant only for some nonneutral cache policy values).
+	// At this point we need to determine: have we changed final caching policies, compared to the previous tick?
+	// If so, we will need to throw out all existing non-neutral caches and recache from scratch, because the
+	// very criteria upon which the existing caches were built has changed.  See mutation_run.h.
+	if (current_trait_calculation_regime_ != last_trait_calculation_regime)
+	{
+		// Changing from one regime to another demands a full recache, by definition.
+		all_nonneutral_caches_invalid_ = true;
+	}
+	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kPureNeutral)
+	{
+		// This regime is "all mutations are effectively neutral; genetics can be skipped".
+		// MutationType flags therefore don't matter; whatever the situation might be, we're skipping it all.
+	}
+	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kNoActiveCallbacks)
+	{
+		// This regime is "no active callbacks, so you don't have to look at the mutation type at all, it doesn't
+		// matter; just look at the mutations themselves to determine which go into the non-neutral cache".
+		// MutationType flags therefore don't matter.  If mutations changed, that invalidated those runs.
+	}
+	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kAllNeutralCallbacks)
+	{
+		// This regime is "we can skip all callbacks, since they are all global-neutral on some or all mutation
+		// types".  The *same* mutation types need to be made global-neutral as last time, however, for us to
+		// carry over any non-neutral caches.  We therefore have to check subject_to_mutationEffect_callback_.
+		bool callback_state_identical = true;
+		
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
+			{
+				callback_state_identical = false;
+				break;
+			}
+		}
+		
+		if (!callback_state_identical)
+			all_nonneutral_caches_invalid_ = true;
+	}
+	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kNonNeutralCallbacks)
+	{
+		// This regime is "we can't skip all callbacks, since some are non-global-neutral, so we have to do an
+		// extra check and potentially actually call a callback."  Here, subject_to_mutationEffect_callback_
+		// and subject_to_non_neutral_callback_ both have to be the same for us to carry over nonneutral caches.
+		bool callback_state_identical = true;
+		
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
+				callback_state_identical = false;
+			if (muttype->subject_to_non_neutral_callback_ != muttype->previous_subject_to_non_neutral_callback_)
+				callback_state_identical = false;
+		}
+		
+		if (!callback_state_identical)
+			all_nonneutral_caches_invalid_ = true;
+	}
+	
+	// Now we do the actual validation of caches, under the newly chosen caching regime
+#if (SLIMPROFILING == 1)
+			// PROFILING
+	int64_t recached_count = 0;
+#endif
+	
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		bool all_nonneutral_caches_invalid_for_chromosome = all_nonneutral_caches_invalid_;
+		TraitCalculationRegime trait_calculation_regime_for_chromosome = current_trait_calculation_regime_;
+		
+		if (DoingAnyMutationRunExperiments()) chromosome->StartMutationRunExperimentClock();
+		
+		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
+		
+		// FIXME PARALLEL this should be parallelized, one thread per context
+		for (int mutrun_context_index = 0; mutrun_context_index < mutrun_context_count; ++mutrun_context_index)
+		{
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(mutrun_context_index);
+			MutationRunPool &mutrun_pool = mutrun_context.in_use_pool_;
+			
+			int64_t (Species::*_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED)(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr) = nullptr;
+			
+			if (all_nonneutral_caches_invalid_for_chromosome) {
+				switch (trait_calculation_regime_for_chromosome) {
+					case TraitCalculationRegime::kPureNeutral:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral>; break;
+					case TraitCalculationRegime::kNoActiveCallbacks:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks>; break;
+					case TraitCalculationRegime::kAllNeutralCallbacks:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks>; break;
+					case TraitCalculationRegime::kNonNeutralCallbacks:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks>; break;
+					default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+				}
+			} else {
+				switch (trait_calculation_regime_for_chromosome) {
+					case TraitCalculationRegime::kPureNeutral:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral>; break;
+					case TraitCalculationRegime::kNoActiveCallbacks:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks>; break;
+					case TraitCalculationRegime::kAllNeutralCallbacks:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks>; break;
+					case TraitCalculationRegime::kNonNeutralCallbacks:
+						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks>; break;
+					default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+				}
+			}
+			
+			__attribute__ ((unused)) int64_t this_recached_count = (this->*(_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED))(mutrun_pool, mut_block_ptr);
+			
+#if (SLIMPROFILING == 1)
+			// PROFILING
+			recached_count += this_recached_count;
+#endif
+		}
+		
+		if (DoingAnyMutationRunExperiments()) chromosome->StopMutationRunExperimentClock("ValidateNonNeutralCaches()");
+	}
+	
+	all_nonneutral_caches_invalid_ = false;
+	
+#if (SLIMPROFILING == 1)
+#warning do something with recached_count here; see old recached_run_ flag code
+#endif
+}
+
+template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime>
+int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr)
+{
+	// This applies the specified nonneutral cache regime to all mutation runs in p_mutrun_pool.  It's templated
+	// for efficiency, which might be overkill right now, but I do expect the code complexity here to increase.
+	size_t mutrun_count = p_mutrun_pool.size();
+	const MutationRun **mutrun_pointers = p_mutrun_pool.data();
+	
+	if (f_all_caches_for_pool_invalid)
+	{
+		for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+		{
+			const MutationRun *mutrun = mutrun_pointers[mutrun_index];
+			
+			switch (f_nonneutral_cache_regime)
+			{
+				case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(); break;
+				case TraitCalculationRegime::kNoActiveCallbacks:		mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
+				case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
+				case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
+				default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
+			}
+		}
+		
+#if (SLIMPROFILING == 1)
+		return mutrun_count;
+#endif
+	}
+	else
+	{
+#if (SLIMPROFILING == 1)
+		int64_t recached_count = 0;
+#endif
+		for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+		{
+			const MutationRun *mutrun = mutrun_pointers[mutrun_index];
+			
+			if (mutrun->nonneutral_cache_invalid())
+			{
+				switch (f_nonneutral_cache_regime)
+				{
+					case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(); break;
+					case TraitCalculationRegime::kNoActiveCallbacks:		mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
+					case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
+					case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
+					default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
+				}
+				
+#if (SLIMPROFILING == 1)
+				recached_count++;
+#endif
+			}
+		}
+#if (SLIMPROFILING == 1)
+		return recached_count;
+#endif
+	}
+	
+	return 0;	// when not profiling, we don't count the number of mutation runs recached
+}
+
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks>(MutationRunPool &, Mutation *);
+
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+
 
 // Chromosome management
 #pragma mark -
@@ -1484,9 +2059,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): a Mutations section must follow each Chromosome line." << EidosTerminate();
 		
 		// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 		robin_hood::unordered_flat_map<slim_polymorphismid_t,MutationIndex> mutations;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 		std::unordered_map<slim_polymorphismid_t,MutationIndex> mutations;
 #endif
 		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
@@ -3304,7 +3879,7 @@ void Species::WF_SwitchToChildGeneration(void)
 	// BCH 10/15/2024: I realized that clearing the haplosomes is no longer needed at all; we can
 	// just remove our requirement that the haplosomes be cleared, and overwrite the stale pointers
 	// when we reuse a haplosome.  I am relegating haplosome clearing to a debugging flag.
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	population_.ClearParentalHaplosomes();
 #endif
 }
@@ -4651,7 +5226,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 	if (shuffle_buf_borrowed_)
 		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer already borrowed." << EidosTerminate();
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// guarantee allocation of a buffer, even with a requested size of 0, so we have a place to put our overrun barriers
 	if ((p_buffer_size > shuffle_buf_capacity_) || !shuffle_buffer_)
 #else
@@ -4661,7 +5236,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		if (shuffle_buffer_)
 			free(shuffle_buffer_);
 		shuffle_buf_capacity_ = p_buffer_size * 2;		// double capacity so we reallocate less often
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 		// room for an extra value at the start and end
 		shuffle_buffer_ = (slim_popsize_t *)malloc((shuffle_buf_capacity_ + 2) * sizeof(slim_popsize_t));
 #else
@@ -4673,7 +5248,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 			EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): allocation failed (requested size " << p_buffer_size << " entries, allocation size " << (shuffle_buf_capacity_ * sizeof(slim_popsize_t)) << " bytes); you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// put flag values in to detect an overrun
 	slim_popsize_t *buffer_contents = shuffle_buffer_ + 1;
 	
@@ -4716,7 +5291,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		}
 	}
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// check for correct setup of flag values; entries 1:shuffle_buf_size_ are used
 	if (shuffle_buffer_[0] != (slim_popsize_t)0xDEADD00D)
 		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer overrun at start." << EidosTerminate();
@@ -4733,7 +5308,7 @@ void Species::ReturnShuffleBuffer(void)
 	if (!shuffle_buf_borrowed_)
 		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer was not borrowed." << EidosTerminate();
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// check for correct setup of flag values; entries 1:shuffle_buf_size_ are used
 	if (shuffle_buffer_[0] != (slim_popsize_t)0xDEADD00D)
 		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer overrun at start." << EidosTerminate();
@@ -4746,7 +5321,7 @@ void Species::ReturnShuffleBuffer(void)
 
 #if (SLIMPROFILING == 1)
 // PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 void Species::CollectMutationProfileInfo(void)
 {
 	// maintain our history of the nonneutral regime
@@ -5394,10 +5969,10 @@ void Species::SimplifyAllTreeSequences(void)
 	// I think; otherwise we could just throw the remembered nodes and extant individuals into `samples`
 	// with no lookup table complication.
 	{
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
 		//typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 		std::unordered_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
 		//typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
 #endif
@@ -8579,9 +9154,9 @@ void Species::__CheckPopulationMetadata(TreeSeqInfo &p_treeseq)
 }
 
 // We need a reverse hash to construct the remapped population table
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 typedef robin_hood::unordered_flat_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 typedef std::unordered_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
 #endif
 
