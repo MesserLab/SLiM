@@ -96,13 +96,12 @@ typedef struct MutationRunContext {
 // Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
 #define SLIM_USE_NONNEUTRAL_CACHES()	1
 
-#warning FIXME MULTITRAIT turn on profiling of non-neutral caches eventually
 #if SLIM_USE_NONNEUTRAL_CACHES() && (SLIMPROFILING == 1)
 // PROFILING: this flag should be 1 to profile the use of non-neutral caches.  It's a separate flag to
 // separate out the profiling ramifications of non-neutral caches from all the rest of that code.
 //
 // Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
-#define SLIM_PROFILE_NONNEUTRAL_CACHES() 0	// FIXME MULTITRAIT: should be 1
+#define SLIM_PROFILE_NONNEUTRAL_CACHES() 1
 #else
 #define SLIM_PROFILE_NONNEUTRAL_CACHES() 0
 #endif	// SLIM_USE_NONNEUTRAL_CACHES() && (SLIMPROFILING == 1)
@@ -869,19 +868,12 @@ public:
 
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	// PROFILING
-	// FIXME MULTITRAIT: I think maybe this gets absorbed into Species::ValidateNonNeutralCaches()?
-	inline __attribute__((always_inline)) void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count, int64_t *p_recached_count) const
+	inline __attribute__((always_inline)) void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count) const
 	{
 		*p_mutation_count += mutation_count_;
 		
 		if (nonneutral_mutations_count_ != -1)
 			*p_nonneutral_count += nonneutral_mutations_count_;
-		
-		if (recached_run_)
-		{
-			(*p_recached_count)++;
-			recached_run_ = false;
-		}
 	}
 #endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 	

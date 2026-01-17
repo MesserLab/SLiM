@@ -742,13 +742,6 @@ bool Species::_CallbackMakesTraitNeutral(SLiMEidosBlock *mutationEffect_callback
 {
 	// This method checks whether a mutationEffect() callback makes the trait that it refers to neutral.
 	// The callback has to apply globally to all subpopulations (but not necessarily to all traits).
-	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
-	
-#if DEBUG
-	if (mutation_type_id == -1)
-		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesTraitNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
-#endif
-	
 	bool makes_neutral = false;		// we consider it non-neutral if it doesn't apply to all subpops
 	
 	if (mutationEffect_callback->subpopulation_id_ == -1)
@@ -874,11 +867,6 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 	}
 	
 	// Now we do the actual validation of caches, under the newly chosen caching regime
-#if (SLIMPROFILING == 1)
-			// PROFILING
-	int64_t recached_count = 0;
-#endif
-	
 	MutationBlock *mutation_block = mutation_block_;
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
@@ -886,6 +874,11 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 	{
 		bool all_nonneutral_caches_invalid_for_chromosome = all_nonneutral_caches_invalid_;
 		TraitCalculationRegime trait_calculation_regime_for_chromosome = current_trait_calculation_regime_;
+		
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
+		// PROFILING
+		int64_t recached_count = 0;
+#endif
 		
 		if (DoingAnyMutationRunExperiments()) chromosome->StartMutationRunExperimentClock();
 		
@@ -927,20 +920,20 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 			
 			__attribute__ ((unused)) int64_t this_recached_count = (this->*(_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED))(mutrun_pool, mut_block_ptr);
 			
-#if (SLIMPROFILING == 1)
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 			// PROFILING
 			recached_count += this_recached_count;
 #endif
 		}
 		
 		if (DoingAnyMutationRunExperiments()) chromosome->StopMutationRunExperimentClock("ValidateNonNeutralCaches()");
+		
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
+		chromosome->profile_mutrun_nonneutral_recache_total_ += recached_count;
+#endif
 	}
 	
 	all_nonneutral_caches_invalid_ = false;
-	
-#if (SLIMPROFILING == 1)
-#warning do something with recached_count here; see old recached_run_ flag code
-#endif
 }
 
 template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime>
@@ -5325,7 +5318,7 @@ void Species::ReturnShuffleBuffer(void)
 void Species::CollectMutationProfileInfo(void)
 {
 	// maintain our history of the nonneutral regime
-	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
+	profile_trait_calculation_regime_history_.emplace_back(current_trait_calculation_regime_);
 	
 	// track the maximum number of mutations in existence at one time
 	int registry_size;
@@ -5375,8 +5368,7 @@ void Species::CollectMutationProfileInfo(void)
 							
 							// tally the total and nonneutral mutations
 							mutrun->tally_nonneutral_mutations(&chromosome->profile_mutation_total_usage_,
-															   &chromosome->profile_nonneutral_mutation_total_,
-															   &chromosome->profile_mutrun_nonneutral_recache_total_);
+															   &chromosome->profile_nonneutral_mutation_total_);
 						}
 					}
 				}

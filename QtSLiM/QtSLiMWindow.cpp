@@ -4190,27 +4190,31 @@ void QtSLiMWindow::displayProfileResults(void)
         }
         
         {
-            int64_t regime_tallies[3];
-            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
+            int64_t regime_tallies[4];
+            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_trait_calculation_regime_history_.size());
             
-            for (int regime = 0; regime < 3; ++regime)
+            for (int regime = 0; regime < 4; ++regime)
                 regime_tallies[regime] = 0;
             
-            for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-                if ((regime >= 1) && (regime <= 3))
-                    regime_tallies[regime - 1]++;
+            for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
+            {
+                int regime_int = (int)regime;
+                
+                if ((regime_int >= 0) && (regime_int <= 3))
+                    regime_tallies[regime_int]++;
                 else
                     regime_tallies_total--;
+            }
             
-            for (int regime = 0; regime < 3; ++regime)
+            for (int regime = 0; regime < 4; ++regime)
             {
                 tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
+                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime).arg(regime == 0 ? "all mutations effectively neutral" : (regime == 1 ? "no mutationEffect() callbacks" : (regime == 2 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present"))), optima13_d);
             }
             
             tc.insertText(" \n", optima8_d);
         }
-		
+        
         tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
         

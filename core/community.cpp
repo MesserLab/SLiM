@@ -3549,7 +3549,7 @@ void Community::StartProfiling(void)
 	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
 	for (Species *focal_species : all_species_)
 	{
-		focal_species->profile_nonneutral_regime_history_.clear();
+		focal_species->profile_trait_calculation_regime_history_.clear();
 		focal_species->profile_max_mutation_index_ = 0;
 		
 		for (Chromosome *focal_chromosome : focal_species->Chromosomes())
