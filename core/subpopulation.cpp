@@ -2248,19 +2248,29 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 	Subpopulation &parent2_subpop = *p_parent2->subpopulation_;
 	
 #if DEBUG
+	// Check template flags
+	if (f_mutrunexps != species_.DoingAnyMutationRunExperiments())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): (internal error) f_mutrunexps flag is incorrect." << EidosTerminate();
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	IndividualSex parent1_sex = p_parent1->sex_;
 	IndividualSex parent2_sex = p_parent2->sex_;
 	
 	if ((sex_enabled_ && (parent1_sex != IndividualSex::kFemale)) || (!sex_enabled_ && (parent1_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((sex_enabled_ && (parent2_sex != IndividualSex::kMale)) || (!sex_enabled_ && (parent2_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((p_parent1->index_ == -1) || (p_parent2->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -2308,7 +2318,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -2506,7 +2516,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 			{
-				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
 				break;
 			}
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
@@ -2592,38 +2602,38 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 	return individual;
 }
 
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, false, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, false, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, true, false>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, true, true>(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, true, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, false, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, false, true>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, true, false>(Individual *, Individual *, IndividualSex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, true, true>(Individual *, Individual *, IndividualSex);
 
 template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
@@ -2631,16 +2641,26 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
 	
 #if DEBUG
+	// Check template flags
+	if (f_mutrunexps != species_.DoingAnyMutationRunExperiments())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): (internal error) f_mutrunexps flag is incorrect." << EidosTerminate();
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	IndividualSex parent_sex = p_parent->sex_;
 	
 	if (parent_sex != IndividualSex::kHermaphrodite)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): parent must be hermaphroditic." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): parent must be hermaphroditic." << EidosTerminate();
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): addSelfed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): addSelfed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -2682,7 +2702,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -2721,7 +2741,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 			{
-				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualSelfed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
 				break;
 			}
 			case ChromosomeType::kX_XSexChromosome:
@@ -2731,7 +2751,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 			case ChromosomeType::kFL_HaploidFemaleLine:
 			case ChromosomeType::kML_HaploidMaleLine:
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualEmpty): (internal error) sex-specific chromosome type not supported for selfing." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualEmpty): (internal error) sex-specific chromosome type not supported for selfing." << EidosTerminate();
 				break;
 		}
 		
@@ -2789,38 +2809,38 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	return individual;
 }
 
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, true, true>(Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, true, true>(Individual *);
 
 template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
@@ -2829,12 +2849,22 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
 	
 #if DEBUG
+	// Check template flags
+	if (f_mutrunexps != species_.DoingAnyMutationRunExperiments())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): (internal error) f_mutrunexps flag is incorrect." << EidosTerminate();
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCloned): addCloned() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): addCloned() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -2873,7 +2903,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -2978,38 +3008,38 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	return individual;
 }
 
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, true, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, false, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, false, true>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, false>(Individual *p_parent);
-template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, true>(Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, true, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, false, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, false, true>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, false>(Individual *);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, true>(Individual *);
 
 Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
 {
@@ -3036,7 +3066,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualEmpty): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualEmpty): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		chromosome->StartMutationRunExperimentClock();
@@ -3254,24 +3284,36 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
 	
 #if DEBUG
+	// Check template flags
+	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
+	
+	if (f_mutrunexps != mutrun_exp_timing_per_individual)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): (internal error) f_mutrunexps flag is incorrect." << EidosTerminate();
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	Subpopulation &parent2_subpop = *p_parent2->subpopulation_;
 	
 	if (&parent1_subpop != &parent2_subpop)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
 	
 	IndividualSex parent1_sex = p_parent1->sex_;
 	IndividualSex parent2_sex = p_parent2->sex_;
 	
 	if ((sex_enabled_ && (parent1_sex != IndividualSex::kFemale)) || (!sex_enabled_ && (parent1_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((sex_enabled_ && (parent2_sex != IndividualSex::kMale)) || (!sex_enabled_ && (parent2_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((p_parent1->index_ == -1) || (p_parent2->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
@@ -3314,7 +3356,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -3529,7 +3571,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 			{
-				EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
 				break;
 			}
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
@@ -3620,63 +3662,71 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<false, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
 
 // this more limited templated variant assumes there is one chromosome, the chromosome type is "A", and f_mutrunexps=F and f_callbacks=F
 template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
 bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, __attribute__ ((unused)) IndividualSex p_child_sex)
 {
 #if DEBUG
+	// Check template flags
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
 	Subpopulation &parent2_subpop = *p_parent2->subpopulation_;
 	
 	if (&parent1_subpop != &parent2_subpop)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
 	
 	IndividualSex parent1_sex = p_parent1->sex_;
 	IndividualSex parent2_sex = p_parent2->sex_;
 	
 	if ((sex_enabled_ && (parent1_sex != IndividualSex::kFemale)) || (!sex_enabled_ && (parent1_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((sex_enabled_ && (parent2_sex != IndividualSex::kMale)) || (!sex_enabled_ && (parent2_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((p_parent1->index_ == -1) || (p_parent2->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_A): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Record the offspring
@@ -3731,39 +3781,47 @@ bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, slim_pe
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<false, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_A<true, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
 
 // this more limited templated variant assumes there is one chromosome, the chromosome type is "H", and f_mutrunexps=F and f_callbacks=F
 template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
 bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, __attribute__ ((unused)) IndividualSex p_child_sex)
 {
 #if DEBUG
+	// Check template flags
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
 	Subpopulation &parent2_subpop = *p_parent2->subpopulation_;
 	
 	if (&parent1_subpop != &parent2_subpop)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
 	
 	IndividualSex parent1_sex = p_parent1->sex_;
 	IndividualSex parent2_sex = p_parent2->sex_;
 	
 	if ((sex_enabled_ && (parent1_sex != IndividualSex::kFemale)) || (!sex_enabled_ && (parent1_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((sex_enabled_ && (parent2_sex != IndividualSex::kMale)) || (!sex_enabled_ && (parent2_sex != IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
 	if ((p_parent1->index_ == -1) || (p_parent2->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed_1CH): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCrossed_1CH_H): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Record the offspring
@@ -3807,14 +3865,14 @@ bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, slim_pe
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<false, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, false, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, false, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, true, false>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
+template bool Subpopulation::MungeIndividualCrossed_1CH_H<true, true, true>(Individual *, slim_pedigreeid_t, Individual *, Individual *, IndividualSex);
 
 template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
@@ -3822,16 +3880,28 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
 	
 #if DEBUG
+	// Check template flags
+	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
+	
+	if (f_mutrunexps != mutrun_exp_timing_per_individual)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): (internal error) f_mutrunexps flag is incorrect." << EidosTerminate();
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	IndividualSex parent_sex = p_parent->sex_;
 	
 	if (parent_sex != IndividualSex::kHermaphrodite)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): parent must be hermaphroditic." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): parent must be hermaphroditic." << EidosTerminate();
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): selfing requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): selfing requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -3874,7 +3944,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -3917,7 +3987,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 			{
-				EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
 				break;
 			}
 			case ChromosomeType::kX_XSexChromosome:
@@ -3927,7 +3997,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 			case ChromosomeType::kFL_HaploidFemaleLine:
 			case ChromosomeType::kML_HaploidMaleLine:
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-				EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): (internal error) sex-specific chromosome type not supported for selfing." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualSelfed): (internal error) sex-specific chromosome type not supported for selfing." << EidosTerminate();
 				break;
 		}
 		
@@ -3989,38 +4059,38 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<false, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualSelfed<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
 
 template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
@@ -4029,14 +4099,26 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
 	
 #if DEBUG
+	// Check template flags
+	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
+	
+	if (f_mutrunexps != mutrun_exp_timing_per_individual)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) f_mutrunexps flag is incorrect." << EidosTerminate();
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	if (individual->sex_ != parent_sex)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
@@ -4077,7 +4159,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -4280,54 +4362,62 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualCloned<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<false, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
 
 template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
 bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
 {
 #if DEBUG
+	// Check template flags
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned_1CH_A): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned_1CH_A): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned_1CH_A): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	IndividualSex parent_sex = p_parent->sex_;
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
 	
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	if (individual->sex_ != parent_sex)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Record the offspring
@@ -4353,7 +4443,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_ped
 	
 #if DEBUG
 	if (!species_.HasGenetics())
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 	
 	// Determine what kind of haplosomes to make for this chromosome
@@ -4391,30 +4481,38 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, slim_ped
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualCloned_1CH_A<false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_A<true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_A<true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
 
 template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
 bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
 {
 #if DEBUG
+	// Check template flags
+	if (f_pedigree_rec != species_.PedigreesEnabled())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned_1CH_H): (internal error) f_pedigree_rec flag is incorrect." << EidosTerminate();
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned_1CH_H): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	if (f_spatial != (species_.SpatialDimensionality() >= 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned_1CH_H): (internal error) f_spatial flag is incorrect." << EidosTerminate();
+	
 	IndividualSex parent_sex = p_parent->sex_;
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
 	
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	if (individual->sex_ != parent_sex)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Record the offspring
@@ -4440,7 +4538,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_ped
 	
 #if DEBUG
 	if (!species_.HasGenetics())
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 	
 	Haplosome *haplosome1;
@@ -4463,14 +4561,14 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, slim_ped
 	return true;
 }
 
-template bool Subpopulation::MungeIndividualCloned_1CH_H<false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-template bool Subpopulation::MungeIndividualCloned_1CH_H<true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<false, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<false, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<false, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<false, true, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<true, false, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<true, false, true>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<true, true, false>(Individual *, slim_pedigreeid_t, Individual *);
+template bool Subpopulation::MungeIndividualCloned_1CH_H<true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
 
 // nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)

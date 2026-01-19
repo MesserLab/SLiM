@@ -2912,6 +2912,12 @@ template <const bool f_treeseq, const bool f_callbacks>
 void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #if DEBUG
+	// Check template flags
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	
+	// f_callbacks is sometimes over-broad, for complicated reasons, so we don't check it here
+	
 	// This method is designed to run in parallel, but only if no callbacks are enabled
 	if (p_recombination_callbacks || p_mutation_callbacks)
 		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeCrossed(): recombination and mutation callbacks are not allowed when executing in parallel");
@@ -3765,16 +3771,22 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 		DoHeteroduplexRepair(heteroduplex, breakpoints_ptr, breakpoints_count, parent_haplosome_1, parent_haplosome_2, &p_child_haplosome);
 }
 
-template void Population::HaplosomeCrossed<false, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeCrossed<false, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeCrossed<true, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeCrossed<true, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCrossed<false, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCrossed<false, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCrossed<true, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCrossed<true, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
 
 // generate a child haplosome from parental haplosomes, clonally with mutation
 template <const bool f_treeseq, const bool f_callbacks>
 void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #if DEBUG
+	// Check template flags
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCloned): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	
+	// f_callbacks is sometimes over-broad, for complicated reasons, so we don't check it here
+	
 	// This method is designed to run in parallel, but only if no callbacks are enabled
 	if (p_mutation_callbacks)
 		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeCloned(): mutation callbacks are not allowed when executing in parallel");
@@ -4035,19 +4047,25 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	}
 }
 
-template void Population::HaplosomeCloned<false, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeCloned<false, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeCloned<true, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeCloned<true, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCloned<false, false>(Chromosome &, Haplosome &, Haplosome *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCloned<false, true>(Chromosome &, Haplosome &, Haplosome *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCloned<true, false>(Chromosome &, Haplosome &, Haplosome *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCloned<true, true>(Chromosome &, Haplosome &, Haplosome *, std::vector<SLiMEidosBlock*> *);
 
 // generate a child haplosome from parental haplosomes, with recombination and mutation, and user-specified breakpoints
 template <const bool f_treeseq, const bool f_callbacks>
 void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #if DEBUG
+	// Check template flags
+	if (f_treeseq != species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeRecombined): (internal error) f_treeseq flag is incorrect." << EidosTerminate();
+	
+	// f_callbacks is sometimes over-broad, for complicated reasons, so we don't check it here
+	
 	// This method is designed to run in parallel, but only if no callbacks are enabled
 	if (p_mutation_callbacks)
-		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeRecombined(): recombination and mutation callbacks are not allowed when executing in parallel");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeRecombined(): mutation callbacks are not allowed when executing in parallel");
 	
 	if (p_breakpoints.size() == 0)
 		EIDOS_TERMINATION << "ERROR (Population::HaplosomeRecombined): (internal error) Called with an empty breakpoint array." << EidosTerminate();
@@ -4700,10 +4718,10 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 #endif
 }
 
-template void Population::HaplosomeRecombined<false, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeRecombined<false, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeRecombined<true, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-template void Population::HaplosomeRecombined<true, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeRecombined<false, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<slim_position_t> &, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeRecombined<false, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<slim_position_t> &, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeRecombined<true, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<slim_position_t> &, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeRecombined<true, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<slim_position_t> &, std::vector<SLiMEidosBlock*> *);
 
 void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, slim_position_t *p_breakpoints, int p_breakpoints_count, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome)
 {

@@ -1102,8 +1102,11 @@ template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime
 int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, std::vector<slim_trait_index_t> &pure_independent_dominance_traits)
 {
 #if DEBUG
+	// Check template flags
+	if (f_nonneutral_cache_regime != current_trait_calculation_regime_)
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_nonneutral_cache_regime is incorrect." << EidosTerminate();
 	if (f_independent_dominance_present != (pure_independent_dominance_traits.size() > 0))
-		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present incorrect." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present is incorrect." << EidosTerminate();
 #endif
 	
 	// This applies the specified nonneutral cache regime to all mutation runs in p_mutrun_pool, producing
@@ -4100,7 +4103,7 @@ void Species::nonWF_GenerateOffspring(void)
 	// note this optimization depends upon the fact that none of these flags can change during one reproduction() stage!
 	bool pedigrees_enabled = PedigreesEnabled();
 	bool recording_tree_sequence = RecordingTreeSequence();
-	bool has_reproduction_callbacks = ((reproduction_callbacks.size() > 0) || (modify_child_callbacks.size() > 0) || (recombination_callbacks.size() > 0) || (mutation_callbacks.size() > 0));
+	bool has_callbacks = ((reproduction_callbacks.size() > 0) || (modify_child_callbacks.size() > 0) || (recombination_callbacks.size() > 0) || (mutation_callbacks.size() > 0));
 	bool is_spatial = (SpatialDimensionality() >= 1);
 	
 	if (DoingAnyMutationRunExperiments())
@@ -4109,7 +4112,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
+				if (has_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
 				{
 					if (is_spatial)
 					{
@@ -4142,7 +4145,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4178,7 +4181,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4211,7 +4214,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4250,7 +4253,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4283,7 +4286,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4319,7 +4322,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4352,7 +4355,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -4389,7 +4392,7 @@ void Species::nonWF_GenerateOffspring(void)
 	// similarly, choose templated variants for the HaplosomeCrossed()/HaplosomeCloned()/HaplosomeRecombined() methods of Population
 	if (recording_tree_sequence)
 	{
-		if (has_reproduction_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
+		if (has_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
 		{
 			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
 			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
@@ -4404,7 +4407,7 @@ void Species::nonWF_GenerateOffspring(void)
 	}
 	else
 	{
-		if (has_reproduction_callbacks)
+		if (has_callbacks)
 		{
 			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
 			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;

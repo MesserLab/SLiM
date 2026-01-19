@@ -6543,15 +6543,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	
 	// Next we cache method pointers for haploid and diploid chromosomes, which we will use throughout.  These
 	// are templated for efficiency, so we have to choose the correct template.  That depends on the subpopulation
-	// since each subpopulation might have a different set of mutationEffect() callbacks.  Note the template
-	// for _IncorporateEffects_Haploid() (which handles both haploid and hemizygous cases):
-	//
-	//    template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-	//
-	// and the template for _IncorporateEffects_Diploid() (which handles the non-hemizygous diploid case):
-	//
-	//    template <                         const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-	//
+	// since each subpopulation might have a different set of mutationEffect() callbacks.
 	if (has_active_callbacks)
 	{
 		// If we have any active callbacks, we have to account for all callbacks (active or not), since	// FIXME MULTITRAIT this is not true any more!
@@ -7149,14 +7141,6 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			// Cache method pointers for haploid and diploid chromosomes for this trait.  These are templated
 			// for efficiency, so we have to choose the correct template.  That depends on whether the trait is
 			// additive or multiplicative; it could potentially also depend on per-trait callbacks (FIXME MULTITRAIT).
-			// Note the template for _IncorporateEffects_Haploid() (which handles both haploid and hemizygous cases):
-			//
-			//    template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-			//
-			// and the template for _IncorporateEffects_Diploid() (which handles the non-hemizygous diploid case):
-			//
-			//    template <                         const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
-			//
 			void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 			void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 			void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
@@ -7398,6 +7382,17 @@ template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_call
 void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
+	// Check template flags
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
+	
+	size_t callback_count = p_mutationEffect_callbacks.size();
+	
+	if (f_callbacks != (callback_count > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_callbacks flag is incorrect." << EidosTerminate();
+	if (f_singlecallback != (callback_count == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_singlecallback flag is incorrect." << EidosTerminate();
+	
 	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
 	if (haplosome->IsNull())
 		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) null haplosome." << EidosTerminate();
@@ -7501,6 +7496,17 @@ template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singl
 void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
+	// Check template flags
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
+	
+	size_t callback_count = p_mutationEffect_callbacks.size();
+	
+	if (f_callbacks != (callback_count > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_callbacks flag is incorrect." << EidosTerminate();
+	if (f_singlecallback != (callback_count == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_singlecallback flag is incorrect." << EidosTerminate();
+	
 	// This method assumes that haplosome1 and haplosome2 are not null; the caller needs to guarantee this
 	if (haplosome1->IsNull() || haplosome2->IsNull())
 		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) null haplosome." << EidosTerminate();
