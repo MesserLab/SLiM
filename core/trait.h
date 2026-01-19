@@ -89,12 +89,23 @@ public:
 	
 	// Optimization flags set up by Species::PrepareForTraitCalculations() and valid only subsequent to that call.
 	
-	// If set, it indicates that the trait is currently completely neutral, including callbacks – either because
+	// If set, this flag indicates that the trait is currently completely neutral, including callbacks - either
 	// because trait_all_neutral_mutations_ is set and the trait cannot be influenced by any callbacks in the
 	// current subpopulation / tick, or because an active callback actually sets this trait to be neutral in
 	// this subpopulation / tick.  Traits for which this flag is set can be safely elided from trait calculations
 	// except for the baseline offset and individual offset.
-	mutable bool is_pure_neutral_now;
+	mutable bool is_pure_neutral_now_;
+	
+	// If set, this flag indicates that the trait currently exhibits independent dominance for all mutations,
+	// including the effects of callbacks - because trait_all_mutations_independent_dominance_ is set and the
+	// trait cannot be influenced by ANY callbacks in the current subpopulation / tick.  The point is that the
+	// intrinsic effects of all mutations in the non-neutral cache on the trait must be reliable.  (Even global-
+	// neutral callbacks turn off this optimization, because independent-dominance cached values are calculated
+	// based upon the mutations in the non-neutral cache, and even mutations made globally neutral for a given
+	// trait may be kept in the non-neutral cache for other reasons, such as effects on other traits.)  Traits
+	// for which this flag is set can be calculated more efficiently, with cached per-mutation-run values.  We
+	// avoid setting this flag to true when is_pure_neutral_now_ is true; being pure neutral takes precedence.
+	mutable bool is_pure_independent_dominance_now_;
 	
 	// If set, subject_to_mutationEffect_callback_ indicates that the trait is influenced by a mutationEffect
 	// callback in at least one subpop.  Traits with this flag set are subject to a callback, and so the effect

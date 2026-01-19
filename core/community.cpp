@@ -3505,8 +3505,10 @@ void Community::StartProfiling(void)
 	
 	// call this first, purely for its side effect of emptying out any pending profile counts
 	// note that the accumulators governed by this method get zeroed out down below
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	for (Species *focal_species : all_species_)
 		focal_species->CollectMutationProfileInfo();
+#endif
 	
 	// zero out profile counts for cycle stages
 	for (int i = 0; i < 9; ++i)

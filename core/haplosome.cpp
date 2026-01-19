@@ -43,8 +43,9 @@
 #pragma mark -
 
 // Static class variables in support of Haplosome's bulk operation optimization; see Haplosome::WillModifyRunForBulkOperation()
-int64_t Haplosome::s_bulk_operation_id_ = 0;
-slim_mutrun_index_t Haplosome::s_bulk_operation_mutrun_index_ = -1;
+bool Haplosome::s_bulk_operation_in_progress_ = false;
+slim_operation_id_t Haplosome::s_bulk_operation_id_;
+slim_mutrun_index_t Haplosome::s_bulk_operation_mutrun_index_;
 SLiMBulkOperationHashTable Haplosome::s_bulk_operation_runs_;
 
 
@@ -122,11 +123,11 @@ MutationRun *Haplosome::WillModifyRun_UNSHARED(slim_mutrun_index_t p_run_index, 
 	}
 }
 
-void Haplosome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+void Haplosome::BulkOperationStart(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::BulkOperationStart(): s_bulk_operation_id_");
 	
-	if (s_bulk_operation_id_ != 0)
+	if (s_bulk_operation_in_progress_)
 	{
 		//EIDOS_TERMINATION << "ERROR (Haplosome::BulkOperationStart): (internal error) unmatched bulk operation start." << EidosTerminate();
 		
@@ -140,14 +141,17 @@ void Haplosome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p
 		Haplosome::BulkOperationEnd(s_bulk_operation_id_, s_bulk_operation_mutrun_index_);
 	}
 	
+	s_bulk_operation_in_progress_ = true;
 	s_bulk_operation_id_ = p_operation_id;
 	s_bulk_operation_mutrun_index_ = p_mutrun_index;
 }
 
-MutationRun *Haplosome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
+MutationRun *Haplosome::WillModifyRunForBulkOperation(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
 	
+	if (!s_bulk_operation_in_progress_)
+		EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRunForBulkOperation): (internal error) called with no bulk operation in progress." << EidosTerminate();
 	if (p_mutrun_index != s_bulk_operation_mutrun_index_)
 		EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
 	if (p_mutrun_index >= mutrun_count_)
@@ -198,15 +202,14 @@ MutationRun *Haplosome::WillModifyRunForBulkOperation(int64_t p_operation_id, sl
 #endif
 }
 
-void Haplosome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+void Haplosome::BulkOperationEnd(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::BulkOperationEnd(): s_bulk_operation_id_");
 	
-	if ((p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
+	if (s_bulk_operation_in_progress_ && (p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
 	{
 		s_bulk_operation_runs_.clear();
-		s_bulk_operation_id_ = 0;
-		s_bulk_operation_mutrun_index_ = -1;
+		s_bulk_operation_in_progress_ = false;
 	}
 	else
 	{
@@ -214,7 +217,7 @@ void Haplosome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_m
 	}
 }
 
-void Haplosome::TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
+void Haplosome::TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, slim_operation_id_t p_operation_id)
 {
 #if DEBUG
 	if (mutrun_count_ == 0)
@@ -2547,7 +2550,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 			continue;
 		
 		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-		int64_t operation_id = MutationRun::GetNextOperationID();
+		slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 		
 		Haplosome::BulkOperationStart(operation_id, mutrun_index);
 		
@@ -2912,7 +2915,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	for (slim_mutrun_index_t mutrun_index : mutrun_indexes)
 	{
-		int64_t operation_id = MutationRun::GetNextOperationID();
+		slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 		std::vector<MutationIndex> mutations_to_add;
 		
 		// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
@@ -4553,7 +4556,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				continue;
 			
 			// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-			int64_t operation_id = MutationRun::GetNextOperationID();
+			slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 			
 			Haplosome::BulkOperationStart(operation_id, mutrun_index);
 			

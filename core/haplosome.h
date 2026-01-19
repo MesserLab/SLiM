@@ -134,7 +134,8 @@ private:
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all haplosomes with the same initial MutationRun (since
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).  Note this is shared by all species.
-	static int64_t s_bulk_operation_id_;
+	static bool s_bulk_operation_in_progress_;
+	static slim_operation_id_t s_bulk_operation_id_;
 	static slim_mutrun_index_t s_bulk_operation_mutrun_index_;
 	static SLiMBulkOperationHashTable s_bulk_operation_runs_;
 	
@@ -281,12 +282,12 @@ public:
 	// nothing about the operation being performed; it just plays around with MutationRun pointers, recognizing when the runs are
 	// identical.  The first call for a new operation ID will always return a pointer, and the caller will then perform the operation;
 	// subsequent calls for haplosomes with the same starting MutationRun will substitute the same final MutationRun and return nullptr.
-	static void BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
-	MutationRun *WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context);
-	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	static void BulkOperationStart(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	MutationRun *WillModifyRunForBulkOperation(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context);
+	static void BulkOperationEnd(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	
 	// Remove all mutations in p_haplosome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
-	inline __attribute__((always_inline)) void RemoveFixedMutations(Mutation *p_mut_block_ptr, int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+	inline __attribute__((always_inline)) void RemoveFixedMutations(Mutation *p_mut_block_ptr, slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
@@ -302,7 +303,7 @@ public:
 	}
 	
 	// TallyHaplosomeReferences_Checkback() counts up the total MutationRun references, using their usage counts, as a checkback
-	void TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
+	void TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, slim_operation_id_t p_operation_id);
 	
 	inline __attribute__((always_inline)) int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{

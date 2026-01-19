@@ -455,15 +455,20 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	const std::vector<Trait *> &traits = Traits();
 	TraitCalculationRegime last_trait_calculation_regime = current_trait_calculation_regime_;
 	TraitCalculationRegime new_trait_calculation_regime = TraitCalculationRegime::kUndefined;
+	std::vector<slim_trait_index_t> pure_independent_dominance_traits;
 	
-	// First, we want to save off the old values of our flags that govern nonneutral caching
-	for (auto muttype_iter : mut_types)
+	// First, save off the old values of flags that influence nonneutral caching.  We don't do this if we're
+	// starting afresh; we will recache completely anyway, and we need to avoid reading uninitialized values.
+	if (last_trait_calculation_regime != TraitCalculationRegime::kUndefined)
 	{
-		MutationType *muttype = muttype_iter.second;
-		
-		muttype->previous_is_pure_neutral_now_ = muttype->is_pure_neutral_now_;
-		muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
-		muttype->previous_subject_to_non_neutral_callback_ = muttype->subject_to_non_neutral_callback_;
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			muttype->previous_is_pure_neutral_now_ = muttype->is_pure_neutral_now_;
+			muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
+			muttype->previous_subject_to_non_neutral_callback_ = muttype->subject_to_non_neutral_callback_;
+		}
 	}
 	
 	// Initially, every mutation type is assumed to be uninfluenced by callbacks, and thus pure neutral
@@ -478,10 +483,14 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	}
 	
 	// Similarly, every trait is assumed to be uninfluenced by callbacks, and thus pure neutral if all
-	// mutations' effects are intrinsically neutral for that trait (i.e., have an effect of 0.0)
+	// mutations' effects are intrinsically neutral for that trait (i.e., have an effect of 0.0).  For
+	// traits we also determine pure independent dominance; similarly, every trait is assumed to be
+	// uninfluenced by callbacks, and thus pure independent dominance if all mutations' effects exhibit
+	// pure independent dominance for that trait (i.e., have a dominance coefficient of NAN).
 	for (Trait *trait : traits)
 	{
-		trait->is_pure_neutral_now = trait->trait_all_neutral_mutations_;
+		trait->is_pure_neutral_now_ = trait->trait_all_neutral_mutations_;
+		trait->is_pure_independent_dominance_now_ = trait->trait_all_mutations_independent_dominance_ && !trait->trait_all_neutral_mutations_;
 		trait->subject_to_mutationEffect_callback_ = false;
 		trait->subject_to_non_neutral_callback_ = false;
 	}
@@ -532,15 +541,26 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			bool makes_neutral = _CallbackMakesTraitNeutral(mutationEffect_callback, callback_trait);
 			
 			// callbacks are always specific to one mutation type, so unless there is only one mutation type
-			// defined, we can't easily infer the the trait has been made entirely neutral; we can just infer
+			// defined, we can't easily infer that the trait has been made entirely neutral; we can just infer
 			// that it might make a previously neutral trait non-neutral.
+			
+			// note that ANY callback that applies to a given trait turns off pure-independent-dominance,
+			// even if the callback is neutral; this is because the independent-dominance mechanism is
+			// based on the nonneutral mutation buffer, without the involvement of callbacks, so even a
+			// neutral or global-neutral callback causes incorrect independent dominance values to be cached.
+			// we could instead leave is_pure_independent_dominance_now_ unaffected here, and turn off the
+			// independent dominance mechanism when actually using the cached values if any callback is
+			// present; that would work, but then we'd often spend time making the independent dominance
+			// cache and then not using it at all; ideally we'd be smarter about this.  FIXME MULTICHROM
+			
 			if (mut_types.size() == 1)
 			{
 				if (callback_trait)
 				{
 					callback_trait->subject_to_mutationEffect_callback_ = true;
 					callback_trait->subject_to_non_neutral_callback_ = !makes_neutral;
-					callback_trait->is_pure_neutral_now = makes_neutral;
+					callback_trait->is_pure_neutral_now_ = makes_neutral;
+					callback_trait->is_pure_independent_dominance_now_ = false;
 				}
 				else
 				{
@@ -549,19 +569,19 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 					{
 						affectedTrait->subject_to_mutationEffect_callback_ = true;
 						affectedTrait->subject_to_non_neutral_callback_ = !makes_neutral;
-						affectedTrait->is_pure_neutral_now = makes_neutral;
+						affectedTrait->is_pure_neutral_now_ = makes_neutral;
+						affectedTrait->is_pure_independent_dominance_now_ = false;
 					}
 				}
 			}
 			else if (!makes_neutral)
 			{
-				// with more than one muttype, callbacks only make traits non-neutral; we don't try to track the
-				// possibility that multiple callbacks might together render a trait neutral again
 				if (callback_trait)
 				{
 					callback_trait->subject_to_mutationEffect_callback_ = true;
 					callback_trait->subject_to_non_neutral_callback_ = true;
-					callback_trait->is_pure_neutral_now = false;
+					callback_trait->is_pure_neutral_now_ = false;
+					callback_trait->is_pure_independent_dominance_now_ = false;
 				}
 				else
 				{
@@ -570,8 +590,24 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 					{
 						affectedTrait->subject_to_mutationEffect_callback_ = true;
 						affectedTrait->subject_to_non_neutral_callback_ = true;
-						affectedTrait->is_pure_neutral_now = false;
+						affectedTrait->is_pure_neutral_now_ = false;
+						affectedTrait->is_pure_independent_dominance_now_ = false;
 					}
+				}
+			}
+			else	// if (makes_neutral)
+			{
+				// with more than one muttype, callbacks only make traits non-neutral; we don't try to track the
+				// possibility that multiple callbacks might together render a trait neutral again.  as above,
+				// a callback never changes a non-independent-dominance trait into an independent-dominance trait.
+				if (callback_trait)
+				{
+					callback_trait->is_pure_independent_dominance_now_ = false;
+				}
+				else
+				{
+					for (Trait *affectedTrait : traits)
+						affectedTrait->is_pure_independent_dominance_now_ = false;
 				}
 			}
 		}
@@ -663,6 +699,20 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	if (new_trait_calculation_regime == TraitCalculationRegime::kUndefined)
 		EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) nonneutral regime was not decided." << EidosTerminate();
 	
+	if (new_trait_calculation_regime != TraitCalculationRegime::kPureNeutral)
+	{
+		// Having determined which traits, if any, exhibit pure independent dominance, we make a vector of them.
+		// This does not affect which mutations are placed into the non-neutral cache, because mutations may be
+		// non-neutral and non-independent-dominance for other traits, and because we need the non-neutral cache
+		// for the hemizygous case anyway.  It does mean that mutations in the non-neutral cache will additionally
+		// be summarized for their independent-dominance effects, after the non-neutral cache itself is built.
+		// We do not do this if we are in the "pure neutral" regime, since genetic calculations are not needed.
+		// Similarly, we do not do it for any traits that are themselves "pure neutral".
+		for (Trait *trait : traits)
+			if (trait->is_pure_independent_dominance_now_)
+				pure_independent_dominance_traits.push_back(trait->Index());
+	}
+	
 #if DEBUG_TRAIT_DEMAND()
 	std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations() old regime " << current_trait_calculation_regime_ << ", new regime " << new_trait_calculation_regime << std::endl;
 #endif
@@ -671,7 +721,21 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	current_trait_calculation_regime_ = new_trait_calculation_regime;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	ValidateNonNeutralCaches(last_trait_calculation_regime);
+#if DEBUG_TRAIT_DEMAND()
+	if (pure_independent_dominance_traits.size())
+	{
+		std::cout << "# " << community_.Tick() << " +++ making independent dominance caches for traits {";
+		for (slim_trait_index_t trait_index : pure_independent_dominance_traits)
+			std::cout << " " << Traits()[trait_index]->Name();
+		std::cout << " }" << std::endl;
+	}
+	else
+	{
+		std::cout << "# " << community_.Tick() << " +++ making independent dominance caches for NO traits" << std::endl;
+	}
+#endif
+	
+	_ValidateNonNeutralCaches(last_trait_calculation_regime, pure_independent_dominance_traits);
 #endif
 }
 
@@ -798,7 +862,7 @@ bool Species::_CallbackMakesTraitNeutral(SLiMEidosBlock *mutationEffect_callback
 }
 
 #if SLIM_USE_NONNEUTRAL_CACHES()
-void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime)
+void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime, std::vector<slim_trait_index_t> &pure_independent_dominance_traits)
 {
 	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
 	
@@ -810,7 +874,8 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 	// very criteria upon which the existing caches were built has changed.  See mutation_run.h.
 	if (current_trait_calculation_regime_ != last_trait_calculation_regime)
 	{
-		// Changing from one regime to another demands a full recache, by definition.
+		// Changing from one regime to another demands a full recache, by definition.  This implies that if
+		// last_trait_calculation_regime is TraitCalculationRegime::kUndefined we always recache.
 		all_nonneutral_caches_invalid_ = true;
 	}
 	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kPureNeutral)
@@ -872,8 +937,16 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 	
 	for (Chromosome *chromosome : chromosomes_)
 	{
+		// FIXME MULTITRAIT: right now these optimization flags are the same across all chromosomes, but they could potentially be calculated per-chromosome
 		bool all_nonneutral_caches_invalid_for_chromosome = all_nonneutral_caches_invalid_;
 		TraitCalculationRegime trait_calculation_regime_for_chromosome = current_trait_calculation_regime_;
+		bool independent_dominance_present_for_chromosome = pure_independent_dominance_traits.size();
+		bool f_haploid_chromosome = true;
+		
+		if ((chromosome->Type() == ChromosomeType::kA_DiploidAutosome) ||
+			(chromosome->Type() == ChromosomeType::kX_XSexChromosome) ||
+			(chromosome->Type() == ChromosomeType::kZ_ZSexChromosome))
+			f_haploid_chromosome = false;
 		
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 		// PROFILING
@@ -890,35 +963,124 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(mutrun_context_index);
 			MutationRunPool &mutrun_pool = mutrun_context.in_use_pool_;
 			
-			int64_t (Species::*_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED)(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr) = nullptr;
+			int64_t (Species::*_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED)(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &) = nullptr;
 			
-			if (all_nonneutral_caches_invalid_for_chromosome) {
-				switch (trait_calculation_regime_for_chromosome) {
-					case TraitCalculationRegime::kPureNeutral:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral>; break;
-					case TraitCalculationRegime::kNoActiveCallbacks:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks>; break;
-					case TraitCalculationRegime::kAllNeutralCallbacks:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks>; break;
-					case TraitCalculationRegime::kNonNeutralCallbacks:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks>; break;
-					default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+			if (f_haploid_chromosome)
+			{
+				if (independent_dominance_present_for_chromosome)
+				{
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, true>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, true>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, true, true>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, true>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, true>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, true>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, true, true>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, true>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
+				} else {
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, true>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, true>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, false, true>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, true>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, true>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, true>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, false, true>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, true>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
 				}
-			} else {
-				switch (trait_calculation_regime_for_chromosome) {
-					case TraitCalculationRegime::kPureNeutral:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral>; break;
-					case TraitCalculationRegime::kNoActiveCallbacks:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks>; break;
-					case TraitCalculationRegime::kAllNeutralCallbacks:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks>; break;
-					case TraitCalculationRegime::kNonNeutralCallbacks:
-						_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks>; break;
-					default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+			}
+			else
+			{
+				if (independent_dominance_present_for_chromosome)
+				{
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, false>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, true, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, false>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, true, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
+				} else {
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, false>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, false, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, false>; break;
+							case TraitCalculationRegime::kAllNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, false, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
 				}
 			}
 			
-			__attribute__ ((unused)) int64_t this_recached_count = (this->*(_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED))(mutrun_pool, mut_block_ptr);
+			__attribute__ ((unused)) int64_t this_recached_count = (this->*(_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED))(mutrun_pool, mut_block_ptr, pure_independent_dominance_traits);
 			
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 			// PROFILING
@@ -936,75 +1098,111 @@ void Species::ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcula
 	all_nonneutral_caches_invalid_ = false;
 }
 
-template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime>
-int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr)
+template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime, const bool f_independent_dominance_present, const bool f_haploid_chromosome>
+int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, std::vector<slim_trait_index_t> &pure_independent_dominance_traits)
 {
-	// This applies the specified nonneutral cache regime to all mutation runs in p_mutrun_pool.  It's templated
-	// for efficiency, which might be overkill right now, but I do expect the code complexity here to increase.
+#if DEBUG
+	if (f_independent_dominance_present != (pure_independent_dominance_traits.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present incorrect." << EidosTerminate();
+#endif
+	
+	// This applies the specified nonneutral cache regime to all mutation runs in p_mutrun_pool, producing
+	// nonneutral mutation caches and then optionally computing cached independent dominance summaries.
 	size_t mutrun_count = p_mutrun_pool.size();
 	const MutationRun **mutrun_pointers = p_mutrun_pool.data();
+	slim_trait_index_t species_trait_count = TraitCount();
 	
-	if (f_all_caches_for_pool_invalid)
+#if (SLIMPROFILING == 1)
+	int64_t recached_count;
+	
+	if (!f_all_caches_for_pool_invalid)
+		recached_count = 0;
+#endif
+	
+	for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 	{
-		for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+		const MutationRun *mutrun = mutrun_pointers[mutrun_index];
+		
+		if (f_all_caches_for_pool_invalid || mutrun->nonneutral_cache_invalid())
 		{
-			const MutationRun *mutrun = mutrun_pointers[mutrun_index];
-			
 			switch (f_nonneutral_cache_regime)
 			{
-				case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(); break;
-				case TraitCalculationRegime::kNoActiveCallbacks:		mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
-				case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
-				case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
+				case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(species_trait_count); break;
+				case TraitCalculationRegime::kNoActiveCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr, species_trait_count); break;
+				case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr, species_trait_count); break;
+				case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr, species_trait_count); break;
 				default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
 			}
-		}
-		
-#if (SLIMPROFILING == 1)
-		return mutrun_count;
-#endif
-	}
-	else
-	{
-#if (SLIMPROFILING == 1)
-		int64_t recached_count = 0;
-#endif
-		for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
-		{
-			const MutationRun *mutrun = mutrun_pointers[mutrun_index];
 			
-			if (mutrun->nonneutral_cache_invalid())
-			{
-				switch (f_nonneutral_cache_regime)
-				{
-					case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(); break;
-					case TraitCalculationRegime::kNoActiveCallbacks:		mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr); break;
-					case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr); break;
-					case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr); break;
-					default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
-				}
-				
 #if (SLIMPROFILING == 1)
+			if (!f_all_caches_for_pool_invalid)
 				recached_count++;
 #endif
+			
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+			if (f_independent_dominance_present)
+			{
+				// Now we calculate cached values for pure independent dominance traits.  Note that the existence of these traits does not change
+				// our non-neutral caching behavior in any way; this mechanism simply piggybacks on top of the non-neutral mutation buffer.  For
+				// independent dominance traits, the values we cache here will be used to calculate individual trait values in most cases (but not
+				// for individuals that are hemizygous for the mutation run; hemizygous mutations have a different dominance and are not cached here).
+				// We do this caching immediately after non-neutral caching for each mutrun, in the hopes of getting some memory locality benefits.
+				for (slim_trait_index_t independent_dominance_trait_index : pure_independent_dominance_traits)
+				{
+					Trait *independent_dominance_trait = traits_[independent_dominance_trait_index];
+					
+					if (independent_dominance_trait->Type() == TraitType::kAdditive)
+						mutrun->validate_independent_dominance_cache_for_trait<true, f_haploid_chromosome>(independent_dominance_trait_index, mutation_block_);
+					else
+						mutrun->validate_independent_dominance_cache_for_trait<false, f_haploid_chromosome>(independent_dominance_trait_index, mutation_block_);
+				}
 			}
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 		}
+	}
+	
 #if (SLIMPROFILING == 1)
+	if (f_all_caches_for_pool_invalid)
+		return mutrun_count;
+	else
 		return recached_count;
 #endif
-	}
 	
 	return 0;	// when not profiling, we don't count the number of mutation runs recached
 }
 
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks>(MutationRunPool &, Mutation *);
-template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks>(MutationRunPool &, Mutation *);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
+template int64_t Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, std::vector<slim_trait_index_t> &);
 
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 
@@ -5091,7 +5289,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					{
 						mutrun_objectCount++;
 						mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
-						mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
+						mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches(TraitCount());
 					}
 				}
 			}
@@ -5118,7 +5316,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					{
 						mutrun_unusedCount++;
 						mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
-						mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+						mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches(TraitCount());
 					}
 				}
 			}
@@ -5327,7 +5525,7 @@ void Species::CollectMutationProfileInfo(void)
 	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
 	// tally per-chromosome information
-	int64_t operation_id = MutationRun::GetNextOperationID();
+	slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 	
 	for (Chromosome *chromosome : Chromosomes())
 	{

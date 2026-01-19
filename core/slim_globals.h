@@ -125,6 +125,7 @@ typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; ov
 typedef int64_t slim_haplosomeid_t;		// identifiers for pedigreed haplosomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef int32_t slim_trait_index_t;		// indices for traits; we are limited to 256 traits by SLIM_MAX_TRAITS at present, so this is plenty of room
+typedef uint32_t slim_operation_id_t;	// used for MutationRun's operation_id_, as a unique identifier of a given task being worked upon
 typedef float slim_effect_t;			// storage of trait effects (e.g., selection coefficients) in memory-tight classes; also dominance coefficients
 typedef float slim_fitness_t;			// storage of fitness effects (e.g., fitnessScaling values) and final individual fitness values
 

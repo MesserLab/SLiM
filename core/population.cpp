@@ -5441,7 +5441,7 @@ void Population::UniqueMutationRuns(void)
 	std::clock_t begin = std::clock();
 #endif
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
-	int64_t operation_id = MutationRun::GetNextOperationID();
+	slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	size_t chromosome_count = chromosomes.size();
 	
@@ -6110,7 +6110,7 @@ void Population::AssessMutationRuns(void)
 			slim_position_t mutrun_length = 0;
 			int64_t mutation_total = 0;
 			
-			int64_t operation_id = MutationRun::GetNextOperationID();
+			slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
@@ -7616,7 +7616,7 @@ void Population::RemoveAllFixedMutations(void)
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
 		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
-		int64_t operation_id = MutationRun::GetNextOperationID();
+		slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{

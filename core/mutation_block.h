@@ -67,9 +67,9 @@ public:
 	void IncreaseMutationBlockCapacity(void);
 	void ZeroRefcountBlock(MutationRun &p_mutation_registry);
 	
-	inline __attribute__((always_inline)) Mutation *MutationForIndex(MutationIndex p_index) const { return mutation_buffer_ + p_index; }
-	inline __attribute__((always_inline)) slim_refcount_t RefcountForIndex(MutationIndex p_index) const { return refcount_buffer_[p_index]; }
-	inline __attribute__((always_inline)) MutationTraitInfo *TraitInfoForIndex(MutationIndex p_index) const { return trait_info_buffer_ + (p_index * trait_count_); }
+	inline __attribute__((always_inline)) Mutation *MutationForIndex(MutationIndex p_mutation_index) const { return mutation_buffer_ + p_mutation_index; }
+	inline __attribute__((always_inline)) slim_refcount_t RefcountForIndex(MutationIndex p_mutation_index) const { return refcount_buffer_[p_mutation_index]; }
+	inline __attribute__((always_inline)) MutationTraitInfo *TraitInfoForIndex(MutationIndex p_mutation_index) const { return trait_info_buffer_ + (p_mutation_index * trait_count_); }
 	
 	inline __attribute__((always_inline)) MutationTraitInfo *TraitInfoForMutation(const Mutation *p_mutation) const
 	{

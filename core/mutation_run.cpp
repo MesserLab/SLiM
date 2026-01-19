@@ -26,7 +26,7 @@
 
 
 // For doing bulk operations across all MutationRun objects; see header
-int64_t MutationRun::sOperationID = 0;
+slim_operation_id_t MutationRun::sOperationID = 0;
 
 
 std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_type)
@@ -61,8 +61,14 @@ MutationRun::~MutationRun(void)
 	free(mutations_);
 	
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	if (nonneutral_mutations_)
-		free(nonneutral_mutations_);
+	if (nonneutral_cache_)
+	{
+		free(nonneutral_cache_);
+		
+#if DEBUG
+		nonneutral_cache_ = nullptr;
+#endif
+	}
 #endif
 }
 
@@ -358,7 +364,8 @@ void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 		
 #if SLIM_USE_NONNEUTRAL_CACHES()
 		// invalidate the nonneutral mutation cache
-		nonneutral_mutations_count_ = -1;
+		if (nonneutral_cache_)
+			nonneutral_cache_->count_ = -1;
 #endif
 	}
 }
@@ -459,34 +466,53 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 
 #if SLIM_USE_NONNEUTRAL_CACHES()
 
-void MutationRun::cache_nonneutral_mutations_REGIME_0(void) const
+void MutationRun::cache_nonneutral_mutations_REGIME_0(slim_trait_index_t species_trait_count) const
 {
 	//
 	//	Regime 0 means there are no genetic effects at all, so we can simply empty the non-neutral cache.
+	//	FIXME MULTITRAIT: we want to avoid allocating the nonneutral cache at all, here, if it is not allocated yet
 	//
-	zero_out_nonneutral_buffer();
+	zero_out_nonneutral_cache(species_trait_count);
 }
 
-void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr) const
+void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const
 {
 	//
 	//	Regime 1 means there are no active mutationEffect() callbacks at all, so neutrality can be assessed
 	//	simply by looking at whether the mutation itself is neutral.  The mutation type is irrelevant.
 	//
-	zero_out_nonneutral_buffer();
+	zero_out_nonneutral_cache(species_trait_count);
 	
 	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+	// because access to the nonneutral mutation buffer is complex and slow, we manage it internally here
+	MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+	int32_t buffer_capacity = nonneutral_cache_->capacity_;
+	int32_t buffer_count = nonneutral_cache_->count_;
+	
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
 		MutationIndex mutindex = mutations_[bufindex];
 		Mutation *mutptr = p_mut_block_ptr + mutindex;
 		
 		if (!mutptr->is_neutral_for_all_traits_)
-			add_to_nonneutral_buffer(mutindex);
+		{
+			if (buffer_count == buffer_capacity)
+			{
+				// expand the buffer and re-fetch our local information about it
+				expand_nonneutral_buffer(species_trait_count);
+				mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+				buffer_capacity = nonneutral_cache_->capacity_;
+			}
+			
+			*(mutation_buffer + buffer_count) = mutindex;
+			++buffer_count;
+		}
 	}
+	
+	nonneutral_cache_->count_ = buffer_count;
 }
 
-void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr) const
+void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const
 {
 	//
 	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
@@ -495,9 +521,14 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr)
 	//	of MutationType; if it is set, the mutation is neutral because the callback is known to be
 	//	global-neutral.  Otherwise, the mutation's neutral flag is reliable.
 	//
-	zero_out_nonneutral_buffer();
+	zero_out_nonneutral_cache(species_trait_count);
 	
 	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+	// because access to the nonneutral mutation buffer is complex and slow, we manage it internally here
+	MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+	int32_t buffer_capacity = nonneutral_cache_->capacity_;
+	int32_t buffer_count = nonneutral_cache_->count_;
+	
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
 		MutationIndex mutindex = mutations_[bufindex];
@@ -507,11 +538,24 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr)
 		// I expect many mutations would fail the first test (thus short-circuiting), whereas
 		// few would fail the second test (i.e. actually be neutral) in a model in this regime.
 		if ((!mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_) && !mutptr->is_neutral_for_all_traits_)
-			add_to_nonneutral_buffer(mutindex);
+		{
+			if (buffer_count == buffer_capacity)
+			{
+				// expand the buffer and re-fetch our local information about it
+				expand_nonneutral_buffer(species_trait_count);
+				mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+				buffer_capacity = nonneutral_cache_->capacity_;
+			}
+			
+			*(mutation_buffer + buffer_count) = mutindex;
+			++buffer_count;
+		}
 	}
+	
+	nonneutral_cache_->count_ = buffer_count;
 }
 
-void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr) const
+void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const
 {
 	//
 	//	Regime 3 means that there are active mutationEffect() callbacks beyond the constant neutral global
@@ -523,9 +567,14 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr)
 	//	is false, we know the mutation is rendered neutral by a global-neutral callback.  And if the test
 	//	of subject_to_mutationEffect_callback_ was false, the mutation's neutral flag is reliable.
 	//
-	zero_out_nonneutral_buffer();
+	zero_out_nonneutral_cache(species_trait_count);
 	
 	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
+	// because access to the nonneutral mutation buffer is complex and slow, we manage it internally here
+	MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+	int32_t buffer_capacity = nonneutral_cache_->capacity_;
+	int32_t buffer_count = nonneutral_cache_->count_;
+	
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
 		MutationIndex mutindex = mutations_[bufindex];
@@ -535,27 +584,90 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr)
 		if (muttypeptr->subject_to_mutationEffect_callback_)
 		{
 			if (muttypeptr->subject_to_non_neutral_callback_)
-				add_to_nonneutral_buffer(mutindex);
+			{
+				if (buffer_count == buffer_capacity)
+				{
+					// expand the buffer and re-fetch our local information about it
+					expand_nonneutral_buffer(species_trait_count);
+					mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+					buffer_capacity = nonneutral_cache_->capacity_;
+				}
+				
+				*(mutation_buffer + buffer_count) = mutindex;
+				++buffer_count;
+			}
 		}
 		else
 		{
 			if (!mutptr->is_neutral_for_all_traits_)
-				add_to_nonneutral_buffer(mutindex);
+			{
+				if (buffer_count == buffer_capacity)
+				{
+					// expand the buffer and re-fetch our local information about it
+					expand_nonneutral_buffer(species_trait_count);
+					mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+					buffer_capacity = nonneutral_cache_->capacity_;
+				}
+				
+				*(mutation_buffer + buffer_count) = mutindex;
+				++buffer_count;
+			}
 		}
 	}
+	
+	nonneutral_cache_->count_ = buffer_count;
 }
 
 void MutationRun::check_nonneutral_mutation_cache() const
 {
-	if (!nonneutral_mutations_)
+	// FIXME MULTITRAIT: I plan to relax the requirement that the nonneutral cache be allocated, but for now it is required
+	if (!nonneutral_cache_)
 		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
-	if (nonneutral_mutations_count_ == -1)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
-	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+	
+	if (nonneutral_cache_)
+	{
+		if (nonneutral_cache_->count_ == -1)
+			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
+		if (nonneutral_cache_->count_ > nonneutral_cache_->capacity_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+	}
 }
 
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+
+template <const bool f_is_additive_trait, const bool f_haploid_chromosome>
+void MutationRun::validate_independent_dominance_cache_for_trait(slim_trait_index_t trait_index, MutationBlock *mutation_block) const
+{
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (f_is_additive_trait ? 0.0 : 1.0);	// start with neutrality
+	
+	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
+	{
+		MutationIndex mutindex = mutations_[bufindex];
+		slim_effect_t independent_dominance_effect;
+		
+		if (f_haploid_chromosome)
+			independent_dominance_effect = mutation_block->TraitInfoForIndex(mutindex)[trait_index].homozygous_effect_;
+		else
+			independent_dominance_effect = mutation_block->TraitInfoForIndex(mutindex)[trait_index].heterozygous_effect_;
+		
+		if (f_is_additive_trait)
+			effect_accumulator += (double)independent_dominance_effect;
+		else
+			effect_accumulator *= (double)independent_dominance_effect;
+	}
+	
+	nonneutral_cache_->independent_dominance_cache_[trait_index] = (slim_effect_t)effect_accumulator;
+}
+
+template void MutationRun::validate_independent_dominance_cache_for_trait<false, false>(slim_trait_index_t, MutationBlock *) const;
+template void MutationRun::validate_independent_dominance_cache_for_trait<false, true>(slim_trait_index_t, MutationBlock *) const;
+template void MutationRun::validate_independent_dominance_cache_for_trait<true, false>(slim_trait_index_t, MutationBlock *) const;
+template void MutationRun::validate_independent_dominance_cache_for_trait<true, true>(slim_trait_index_t, MutationBlock *) const;
+
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
+
 
 // Shorthand for clear(), then copy_from_run(p_mutations_to_set), then insert_sorted_mutation() on every
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
@@ -666,13 +778,14 @@ size_t MutationRun::MemoryUsageForMutationIndexBuffers(void) const
 	return mutation_capacity_ * sizeof(MutationIndex);
 }
 
-size_t MutationRun::MemoryUsageForNonneutralCaches(void) const
+size_t MutationRun::MemoryUsageForNonneutralCaches(slim_trait_index_t trait_count) const
 {
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	return nonneutral_mutation_capacity_ * sizeof(MutationIndex);
-#else
-	return 0;
+	if (nonneutral_cache_)
+		return nonneutral_cache_->capacity_ * sizeof(MutationIndex) + sizeof(NonNeutralCache) + trait_count * sizeof(slim_effect_t);
 #endif
+	
+	return 0;
 }
 
 

@@ -417,6 +417,13 @@ public:
 	template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	template <const bool f_additiveTrait>
+	void _IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index);
+#endif
+#endif
+	
 	// Debugging checkback for phenotype calculation; this is very slow, and does not use the non-neutral cache
 	slim_effect_t _CheckPhenotypeForTrait(slim_trait_index_t trait_index);
 	

@@ -474,17 +474,21 @@ public:
 #endif
 	}
 	
+	// PrepareForTraitCalculations() is the funnel method to be called before using trait values, for example to
+	// calculate individual fitness.  It determines the trait calculation regime (see TraitCalculationRegime),
+	// invalidates caches as needed, then validates nonneutral and independent dominance caches as needed.  It is
+	// called by demandPhenotype(), demandPhenotypeForIndividuals(), and RecalculateFitness().
 	void PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutationEffect_callbacks);
 	bool _CallbackMakesMutationTypeNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref);
 	bool _CallbackMakesTraitNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref);
 	
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	// Validates the MutationRun non-neutral caches across the species.  This must be called immediately before nonneutral cache use, every time.
-	// Note that it does not call mutationEffect() callbacks; it just needs to examine them to determine the status of each MutationType.
-	void ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime);
+	// Validates the MutationRun nonneutral caches across the species.  Called by PrepareForTraitCalculations().
+	void _ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime, std::vector<slim_trait_index_t> &pure_independent_dominance_traits);
 	
-	template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime>
-	int64_t _ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr);
+	// Validates nonneutral caches for mutation runs in one MutationRunPool.  Called by _ValidateNonNeutralCaches().
+	template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime, const bool f_independent_dominance_present, const bool f_haploid_chromosome>
+	int64_t _ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, std::vector<slim_trait_index_t> &pure_independent_dominance_traits);
 #endif
 	
 	// Chromosome configuration and access
