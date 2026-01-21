@@ -1778,10 +1778,9 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 	else
 		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): setEffectForTrait() requires that effect be (a) NULL, requesting an effect value drawn from the mutation's mutation type for each trait, (b) singleton, providing one effect value for all traits, (c) equal in length to the number of traits in the species, providing one effect value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one effect value per trait per mutation." << EidosTerminate();
 	
-#if DEBUG
+	// Check for problems; for setEffectForTrait(), it is easier to do sanity checks afterwards than up front
 	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 		mutations_buffer[mutation_index]->SelfConsistencyCheck(" after setEffectForTrait()");
-#endif
 	
 	return gStaticEidosValueVOID;
 }
@@ -2006,10 +2005,9 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 	else
 		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that dominance be (a) NULL, requesting the default" << ((p_method_id == gID_setDominanceForTrait) ? " " : " hemizygous ") << "dominance coefficient from the mutation's mutation type for each trait, (b) singleton, providing one dominance value for all traits, (c) equal in length to the number of traits in the species, providing one dominance value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one dominance value per trait per mutation." << EidosTerminate();
 	
-#if DEBUG
+	// Check for problems; for setEffectForTrait(), it is easier to do sanity checks afterwards than up front
 	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 		mutations_buffer[mutation_index]->SelfConsistencyCheck(std::string(" after ") + method_name);
-#endif
 	
 	return gStaticEidosValueVOID;
 }
