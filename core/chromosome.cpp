@@ -3753,7 +3753,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 Chromosome_Class *gSLiM_Chromosome_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -3761,7 +3761,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,										true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

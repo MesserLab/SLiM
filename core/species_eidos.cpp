@@ -1671,8 +1671,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		if (trait->Name() == name)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
 	
-	if (Eidos_string_hasSuffix(name, "Effect") || Eidos_string_hasSuffix(name, "Dominance") || Eidos_string_hasSuffix(name, "Hemizygous"))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not end in 'Effect', 'Dominance', or 'Hemizygous' to avoid naming conflicts and general confusion." << EidosTerminate();
+	if (Eidos_string_hasSuffix(name, "Effect") || Eidos_string_hasSuffix(name, "Dominance") || Eidos_string_hasSuffix(name, "Hemizygous") || Eidos_string_hasSuffix(name, "Offset"))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not end in 'Effect', 'Dominance', 'Hemizygous', or 'Offset' to avoid naming conflicts and general confusion." << EidosTerminate();
 	
 	if (name == "NULL")
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow a trait name of 'NULL', to avoid naming conflicts and general confusion." << EidosTerminate();
@@ -1759,6 +1759,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	EidosGlobalStringID traitEffect_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Effect");
 	EidosGlobalStringID traitDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Dominance");
 	EidosGlobalStringID traitHemizygousDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "HemizygousDominance");
+	EidosGlobalStringID traitOffset_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Offset");
 	
 	{
 		// add a Species <trait-name> property that returns the trait object
@@ -1803,6 +1804,29 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 												 MarkAsDynamicWithOwner("Trait")->
 												 DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_VALUE)->
 												 DeclareAcceleratedSet(Individual::SetProperty_Accelerated_TRAIT_VALUE));
+			
+			gSLiM_Individual_Class->AddSignatureForProperty(signature);
+		}
+	}
+	
+	{
+		// add an Individual <trait-name>Offset property that returns the individual offset for the trait in an individual
+		const EidosPropertySignature *existing_signature = gSLiM_Individual_Class->SignatureForProperty(traitOffset_stringID);
+		
+		if (existing_signature)
+		{
+			if (!existing_signature->IsDynamicWithOwner("Trait") ||
+				(existing_signature->value_mask_ != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) ||
+				(existing_signature->read_only_ == true))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() needs to register the trait name as a property in the Individual class, but the name '" << name << "' conflicts with an existing property on Individual.  A different name must be used for this trait." << EidosTerminate();
+		}
+		else
+		{
+			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Offset", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+												 MarkAsDynamicWithOwner("Trait")->
+												 DeclareAcceleratedGet(Individual::GetProperty_Accelerated_TRAIT_OFFSET)->
+												 DeclareAcceleratedSet(Individual::SetProperty_Accelerated_TRAIT_OFFSET));
 			
 			gSLiM_Individual_Class->AddSignatureForProperty(signature);
 		}
@@ -4808,7 +4832,7 @@ EidosValue_SP Species::ExecuteMethod__debug(EidosGlobalStringID p_method_id, con
 Species_Class *gSLiM_Species_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Species_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -4816,7 +4840,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Species_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));

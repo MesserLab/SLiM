@@ -201,7 +201,12 @@ public:
 		return nullptr;
 	}
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	// Getting class information about supported properties, methods, and functions.  Right now getting a mutable
+	// version of this information is only supported for properties, since we need to add dynamic properties to
+	// classes; the same could be done for methods and functions, but there is no need for it at present.
+	const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const;
+	
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const;
 	

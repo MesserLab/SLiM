@@ -1067,6 +1067,8 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.baselineOffset, 186.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.baselineOffset = 12.5; if (!identical(T_height.baselineOffset, 12.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.baselineOffset = 17.25; if (!identical(T_weight.baselineOffset, 17.25)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.baselineOffset = NAN; }", "requires a finite value", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.baselineOffset = INF; }", "requires a finite value", __LINE__);
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.directFitnessEffect, F)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.directFitnessEffect, F)) stop(); }");
@@ -1078,11 +1080,15 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetMean, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; if (!identical(T_height.individualOffsetMean, 3.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; if (!identical(T_weight.individualOffsetMean, 2.5)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetMean = NAN; }", "requires a finite value", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetMean = INF; }", "requires a finite value", __LINE__);
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetSD, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetSD, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetSD = 3.5; if (!identical(T_height.individualOffsetSD, 3.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetSD = 2.5; if (!identical(T_weight.individualOffsetSD, 2.5)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetSD = NAN; }", "requires a finite value", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetSD = INF; }", "requires a finite value", __LINE__);
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.name, 'height')) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.name, 'weight')) stop(); }");
@@ -1111,6 +1117,10 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(0,1), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(NULL), 1:10 + 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1.0:10)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(c(1,0), 1:10 + 0.5); if (!identical(p1.individuals.offsetForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, NAN); }", "offset values to be finite", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, c(1,NAN,3,NAN,5)); }", "offset values to be finite", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, INF); }", "offset values to be finite", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, c(1,INF,3,INF,5)); }", "offset values to be finite", __LINE__);
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(3.5, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(2.5, 5))) stop(); }");
@@ -1128,20 +1138,37 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(0,1), 1:10 + 0.5); if (!identical(p1.individuals.phenotypeForTrait(NULL), 1:10 + 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(1,0), 1:10); if (!identical(p1.individuals.phenotypeForTrait(c(1,0)), 1.0:10)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(c(1,0), 1:10 + 0.5); if (!identical(p1.individuals.phenotypeForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(0, NAN); p1.individuals.setPhenotypeForTrait(1, 4.5); if (!identical(p1.individuals.phenotypeForTrait(NULL), rep(c(NAN, 4.5), 5))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setPhenotypeForTrait(0, INF); }", "phenotypes to be finite or NAN", __LINE__);
 		
-		// species trait property access
+		// Species <trait-name> property access
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.height, sim.traitsWithNames('height'))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(sim.weight, sim.traitsWithNames('weight'))) stop(); }");
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.height = sim.traitsWithNames('height'); }", "new value for read-only property", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.weight = sim.traitsWithNames('weight'); }", "new value for read-only property", __LINE__);
 		
-		// individual trait property access
+		// Individual <trait-name> property access
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.height, rep(NAN, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.weight, rep(NAN, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = 10.0; if (!identical(p1.individuals.height, rep(10.0, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 10.0; if (!identical(p1.individuals.weight, rep(10.0, 5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = 10.0:14; if (!identical(p1.individuals.height, 10.0:14)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.weight = 11.0:15; if (!identical(p1.individuals.weight, 11.0:15)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = NAN; if (!identical(p1.individuals.height, rep(NAN, 5))) stop(); }");								// NAN means uncalculated; you can set that
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.height = c(10.0,NAN,12,NAN,14); if (!identical(p1.individuals.height, c(10.0,NAN,12,NAN,14))) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height = INF; }", "required to be finite or NAN", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.height = c(10.0,INF,12,INF,14); }", "required to be finite or NAN", __LINE__);
+		
+		// Individual <trait-name>Offset property access
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.heightOffset, rep(1.0, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(p1.individuals.weightOffset, rep(0.0, 5))) stop(); }");
+		
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.heightOffset = 3.0; p1.individuals.weightOffset = 4.5; if (!identical(p1.individuals.offsetForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { p1.individuals.heightOffset = 1.0:5 * 2 - 1; p1.individuals.weightOffset = 1.0:5 * 2; if (!identical(p1.individuals.offsetForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.heightOffset = NAN; }", "required to be a finite value (not INF or NAN)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.heightOffset = c(1,NAN,3,NAN,5); }", "required to be a finite value (not INF or NAN)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.heightOffset = INF; }", "required to be a finite value (not INF or NAN)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.heightOffset = c(1,INF,3,INF,5); }", "required to be a finite value (not INF or NAN)", __LINE__);
 		
 		// Mutation effectForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(0), 0.0)) stop(); }");
@@ -1157,6 +1184,10 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10); if (!identical(mut.effectForTrait(c(1,0)), 1.0:10)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.effectForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, NAN); }", "non-finite after setEffectForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, c(1,NAN,3,NAN,5)); }", "non-finite after setEffectForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, INF); }", "non-finite after setEffectForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, c(1,INF,3,INF,5)); }", "non-finite after setEffectForTrait()", __LINE__);
 		
 		// Mutation dominanceForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(0), 0.5)) stop(); }");
@@ -1172,6 +1203,9 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10); if (!identical(mut.dominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.dominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		// NAN for dominance means independent dominance, so it is legal; tested below
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(0, INF); }", "infinite after setDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setDominanceForTrait(0, c(1,INF,3,INF,5)); }", "infinite after setDominanceForTrait()", __LINE__);
 		
 		// MutationType defaultDominanceForTrait() and setDefaultDominanceForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultDominanceForTrait(0), 0.5)) stop(); } 5 late() { }");
@@ -1183,6 +1217,9 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(0,1), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(0,1)), c(0.25, 1.0))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(1,0), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(1,0)), c(0.25, 1.0))) stop(); }");
 		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(c(1,0), c(0.25, 1.0)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(c(0,1)), c(0.25, 1.0))) stop(); }");
+		// NAN for dominance means independent dominance, so it is legal; tested below
+		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(0, INF); }", "infinite after setDefaultDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultDominanceForTrait(NULL, c(0.25, INF)); }", "infinite after setDefaultDominanceForTrait()", __LINE__);
 		
 		// Mutation hemizygousDominanceForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(0), 1.0)) stop(); }");
@@ -1198,6 +1235,11 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(NULL), 1:10 + 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(1,0), 1:10); if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), 1.0:10)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		// hemizygous dominance cannot be NAN, since independent dominance has no meaning for it
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, NAN); }", "non-finite after setHemizygousDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, c(1,NAN,3,NAN,5)); }", "non-finite after setHemizygousDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, INF); }", "non-finite after setHemizygousDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, c(1,INF,3,INF,5)); }", "non-finite after setHemizygousDominanceForTrait()", __LINE__);
 		
 		// MutationType defaultHemizygousDominanceForTrait() and setDefaultHemizygousDominanceForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(0), 1.0)) stop(); } 5 late() { }");
@@ -1209,6 +1251,11 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(0,1), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), c(0.25, 0.5))) stop(); }");
 		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		// hemizygous dominance cannot be NAN, since independent dominance has no meaning for it
+		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, NAN); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, NAN)); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, INF); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, INF)); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
 		
 		// Substitution effectForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(0), 0.0)) stop(); }");
@@ -1230,18 +1277,25 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightEffect, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = 0.25; if (!identical(mut.heightEffect, 0.25)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightEffect = 0.25; if (!identical(mut.weightEffect, 0.25)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = NAN; }", "required to be a finite value (not INF or NAN)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = INF; }", "required to be a finite value (not INF or NAN)", __LINE__);
 		
 		// Mutation <trait-name>Dominance property
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightDominance, 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightDominance, 0.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightDominance = 0.25; if (!identical(mut.heightDominance, 0.25)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightDominance = 0.25; if (!identical(mut.weightDominance, 0.25)) stop(); }");
+		// NAN for dominance means independent dominance, so it is legal; tested below
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightDominance = INF; }", "required to be finite or NAN", __LINE__);
 		
 		// Mutation <trait-name>HemizygousDominance property
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightHemizygousDominance, 1.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightHemizygousDominance, 1.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = 0.25; if (!identical(mut.heightHemizygousDominance, 0.25)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightHemizygousDominance = 0.25; if (!identical(mut.weightHemizygousDominance, 0.25)) stop(); }");
+		// hemizygous dominance cannot be NAN, since independent dominance has no meaning for it
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = NAN; }", "required to be finite or NAN", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = INF; }", "required to be finite or NAN", __LINE__);
 		
 		// Substitution <trait-name>Effect property
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightEffect, 0.0)) stop(); }");

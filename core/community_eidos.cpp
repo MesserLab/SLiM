@@ -1397,7 +1397,7 @@ EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, co
 Community_Class *gSLiM_Community_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Community_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1405,7 +1405,7 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Community_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allGenomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allInteractionTypes,	true,	kEidosValueMaskObject, gSLiM_InteractionType_Class)));

@@ -1453,7 +1453,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	// still want to let the species know that a mutation type has changed, though.
 	species_.AutogenerationConfigurationChanged();
 	
-	SelfConsistencyCheck(" in setDefaultDominanceForTrait()");
+	SelfConsistencyCheck(" after setDefaultDominanceForTrait()");
 	
 	return gStaticEidosValueVOID;
 }
@@ -1503,7 +1503,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 	// still want to let the species know that a mutation type has changed, though.
 	species_.AutogenerationConfigurationChanged();
 	
-	SelfConsistencyCheck(" in setDefaultHemizygousDominanceForTrait()");
+	SelfConsistencyCheck(" after setDefaultHemizygousDominanceForTrait()");
 	
 	return gStaticEidosValueVOID;
 }
@@ -1555,7 +1555,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 MutationType_Class *gSLiM_MutationType_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1563,7 +1563,7 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("MutationType_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_convertToSubstitution));

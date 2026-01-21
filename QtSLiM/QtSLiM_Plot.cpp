@@ -1866,7 +1866,7 @@ const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) cons
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
         
         properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_title, true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
         

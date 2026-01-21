@@ -11641,7 +11641,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 Subpopulation_Class *gSLiM_Subpopulation_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -11649,7 +11649,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,								true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));

@@ -362,7 +362,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 EidosImage_Class *gEidosImage_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -370,7 +370,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosImage_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_width,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_height,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

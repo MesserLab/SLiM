@@ -2937,6 +2937,17 @@ The species to which the target object belongs.\
 \f4\fs20  method provides an alternative way to access phenotype values.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 Offset <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the individual offset for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 offsetForTrait()
+\f4\fs20  method provides an alternative way to access individual offsets.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 age \cf2 \expnd0\expndtw0\kerning0
 <\'96>\cf0 \kerning1\expnd0\expndtw0  (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -3908,7 +3919,14 @@ This method replaces the deprecated method
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Offsets for a given target individual will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  Note that the offset for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .  Also see 
+\f3\fs18 setOffsetForTrait()
+\f4\fs20  for changing individual offset values.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0objectTags\'a0=\'a0F])\
@@ -4120,7 +4138,13 @@ Output is generally done in a
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Phenotypes for a given target individual will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  Note that the phenotype for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .  Also see 
+\f3\fs18 setPhenotypeForTrait()
+\f4\fs20  for changing individual phenotypes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(object<Mutation>)readIndividualsFromVCF(string$\'a0filePath, [Nio<MutationType>$\'a0mutationType\'a0=\'a0NULL])\
@@ -4300,7 +4324,12 @@ See also
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Note that the offset for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .\
 The parameter 
 \f3\fs18 offset
 \f4\fs20  must follow one of four patterns.  In the first pattern, 
@@ -4344,7 +4373,11 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Note that the phenotype for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .\
 The parameter 
 \f3\fs18 phenotype
 \f4\fs20  must follow one of three patterns.  In the first pattern, 

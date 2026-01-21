@@ -240,7 +240,7 @@ EidosValue_SP Trait::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, cons
 
 Trait_Class *gSLiM_Trait_Class = nullptr;
 
-const std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -248,7 +248,7 @@ const std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties(void) con
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Trait_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineOffset,							false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_directFitnessEffect,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));

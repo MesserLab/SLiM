@@ -377,6 +377,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_haplosomes(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_haplosomesNonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
 	static void SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
@@ -395,6 +396,7 @@ public:
 	static void SetProperty_Accelerated_color(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	static void SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	static void SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
 	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentHaplosomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
@@ -445,7 +447,7 @@ public:
 	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
 	inline Individual_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;

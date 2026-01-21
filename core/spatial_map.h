@@ -200,7 +200,7 @@ public:
 	SpatialMap_Class& operator=(const SpatialMap_Class&) = delete;	// no copying
 	inline SpatialMap_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };

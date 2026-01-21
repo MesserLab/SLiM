@@ -3176,7 +3176,7 @@ static EidosValue_SP SLiM_Instantiate_SpatialMap(const std::vector<EidosValue_SP
 SpatialMap_Class *gSLiM_SpatialMap_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *SpatialMap_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *SpatialMap_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -3184,7 +3184,7 @@ const std::vector<EidosPropertySignature_CSP> *SpatialMap_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("SpatialMap_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_gridDimensions,			true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_interpolate,			false,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));

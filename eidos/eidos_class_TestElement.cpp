@@ -197,7 +197,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 EidosTestElement_Class *gEidosTestElement_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -205,7 +205,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Propertie
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElement_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(EidosTestElement::GetProperty_Accelerated__yolk)->DeclareAcceleratedSet(EidosTestElement::SetProperty_Accelerated__yolk));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class)));
@@ -341,7 +341,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElementNRR(const std::vector<Eid
 EidosTestElementNRR_Class *gEidosTestElementNRR_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -349,7 +349,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Proper
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElementNRR_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		

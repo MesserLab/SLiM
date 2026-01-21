@@ -530,12 +530,14 @@ void EidosClass::RaiseForDispatchUninitialized(void) const
 void EidosClass::AddSignatureForProperty(EidosPropertySignature_CSP p_property_signature)
 {
 #if DEBUG
-		if (!dispatches_cached_)
-			RaiseForDispatchUninitialized();
+	if (!dispatches_cached_)
+		RaiseForDispatchUninitialized();
 #endif
 	
 	EidosGlobalStringID property_id = p_property_signature->property_id_;
+	std::string property_name = p_property_signature->property_name_;
 	
+	// We need to add the property to the class's property dispatch table
 	if (property_id < (EidosGlobalStringID)property_signatures_dispatch_capacity_)
 	{
 		// The property id fits into our existing dispatch table, so we can just fill it in.
@@ -561,9 +563,37 @@ void EidosClass::AddSignatureForProperty(EidosPropertySignature_CSP p_property_s
 		
 		property_signatures_dispatch_[property_id] = p_property_signature;
 	}
+	
+	// We also need to add it to the vector of property signatures kept by the class.  We do this by
+	// simply calling Properties(), which returns a pointer to its internally allocated static vector
+	// of properties, and then modifying that vector.  This is a pretty weird thing to do, and it is
+	// not as general as it ought to be; if we add a property to a superclass, it is not added to the
+	// vector of properties kept by a subclass, in the present design.  But it will work for now.
+	// FIXME a more general design would be for each class to keep a mutable vector of its own properties,
+	// and then have an EidosClass method that walks up the superclass chain, assembles and uniques a
+	// vector of all methods, and sorts and returns that as a const vector, re-done on request every time.
+	// The Properties() method is no longer a bottleneck for much, so something like that would be maybe ok.
+	std::vector<EidosPropertySignature_CSP> *properties = Properties_MUTABLE();
+	
+	if (std::find_if(properties->begin(), properties->end(),
+		[property_name](EidosPropertySignature_CSP property_signature) {
+			return (property_signature->property_name_ == property_name);
+		}) == properties->end())
+	{
+		properties->push_back(p_property_signature);
+		
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 }
 
 const std::vector<EidosPropertySignature_CSP> *EidosClass::Properties(void) const
+{
+	// This just gets the mutable properties vector and returns it as a const properties vector instead.
+	// This is the accessor used by everything except adding dynamic properties to classes.
+	return Properties_MUTABLE();
+}
+
+std::vector<EidosPropertySignature_CSP> *EidosClass::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	

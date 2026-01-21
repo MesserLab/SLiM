@@ -460,7 +460,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 GenomicElementType_Class *gSLiM_GenomicElementType_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -468,7 +468,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Propert
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("GenomicElementType_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));

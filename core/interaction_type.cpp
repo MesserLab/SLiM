@@ -6508,7 +6508,7 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 InteractionType_Class *gSLiM_InteractionType_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -6516,7 +6516,7 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));

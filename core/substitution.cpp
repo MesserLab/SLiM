@@ -892,7 +892,7 @@ EidosValue_SP Substitution::ExecuteMethod_isIndependentDominanceForTrait(EidosGl
 Substitution_Class *gSLiM_Substitution_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -900,7 +900,7 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Substitution_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));

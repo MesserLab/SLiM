@@ -147,6 +147,7 @@ multitrait branch:
 	add a new return option for mutationEffect() callbacks: NULL now indicates neutrality for the focal trait, meaning either 1.0 (multiplicative) or 0.0 (additive)
 	re-enable non-neutral caching (but without independent dominance optimizations, so far)
 	add calculation and use of independent dominance caches, per trait
+	add a dynamic property to Individual for accessing individual offsets, <trait-name>Offset
 
 
 version 5.1 (Eidos version 4.1):

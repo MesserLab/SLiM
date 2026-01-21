@@ -218,7 +218,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 GenomicElement_Class *gSLiM_GenomicElement_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -226,7 +226,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties(
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("GenomicElement_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_genomicElementType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_startPosition));

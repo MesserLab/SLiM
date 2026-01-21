@@ -305,7 +305,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) c
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back(static_cast<EidosPropertySignature *>((new EidosPropertySignature(gStr_pid, true,	kEidosValueMaskInt | kEidosValueMaskSingleton))));
 		

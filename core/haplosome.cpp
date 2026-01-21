@@ -2237,7 +2237,7 @@ size_t Haplosome::MemoryUsageForMutrunBuffers(void)
 Haplosome_Class *gSLiM_Haplosome_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -2245,7 +2245,7 @@ const std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties(void)
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Haplosome_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeSubposition,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_chromosomeSubposition));

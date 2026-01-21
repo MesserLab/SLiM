@@ -1197,7 +1197,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					slim_effect_t new_effect = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
 					if (!std::isfinite(new_effect))
-						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
 					
 					SetEffect(trait, traitInfoRec, new_effect);
 #if DEBUG
@@ -1225,7 +1225,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
 					if (!std::isfinite(new_dominance))
-						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
 					
 					SetHemizygousDominance(trait, traitInfoRec, new_dominance);
 #if DEBUG
@@ -1253,7 +1253,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					slim_effect_t new_dominance = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
 					if (std::isinf(new_dominance))
-						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << new_dominance << " is required to be finite or NAN." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
 					
 					SetDominance(trait, traitInfoRec, new_dominance);
 #if DEBUG
@@ -1517,7 +1517,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 Mutation_Class *gSLiM_Mutation_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1525,7 +1525,7 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Mutation_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
@@ -1792,7 +1792,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	const char *method_name = (p_method_id == gID_setDominanceForTrait) ? "setDominanceForTrait" : "setHemizygousDominanceForTrait"; 
+	const char *method_name = (p_method_id == gID_setDominanceForTrait) ? "setDominanceForTrait()" : "setHemizygousDominanceForTrait()"; 
 	
 	EidosValue *trait_value = p_arguments[0].get();
 	EidosValue *dominance_value = p_arguments[1].get();

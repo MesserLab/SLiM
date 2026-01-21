@@ -1777,15 +1777,29 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			// all others, including gID_none
 		default:
 		{
-			// Here we implement a special behavior: you can do individual.<trait-name> to access a trait value directly.
+			// Here we implement a special behavior: you can do individual.<trait-name> or individual.<trait-name>Offset
+			// to access an individual's trait value or trait offset directly.
 			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
 			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = subpopulation_->species_;
 			Trait *trait = species.TraitFromStringID(p_property_id);
 			
-			if (trait)
+			if (trait)				// ACCELERATED
 			{
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[trait->Index()].phenotype_));
+			}
+			else
+			{
+				const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+				
+				if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Offset"))
+				{
+					std::string trait_name = property_string.substr(0, property_string.length() - 6);
+					trait = species.TraitFromName(trait_name);
+					
+					if (trait)
+						return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[trait->Index()].offset_));
+				}
 			}
 			
 			return super::GetProperty(p_property_id);
@@ -2619,6 +2633,7 @@ EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosGlobalStr
 EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
 #pragma unused (p_property_id)
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
@@ -2626,6 +2641,10 @@ EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID 
 	if (species)
 	{
 		Trait *trait = species->TraitFromStringID(p_property_id);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+		
 		slim_trait_index_t trait_index = trait->Index();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -2641,10 +2660,61 @@ EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID 
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			const Individual *value = individuals_buffer[value_index];
-			Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+			Species &value_species = value->subpopulation_->species_;
+			Trait *trait = value_species.TraitFromStringID(p_property_id);
+			
+			if (!trait)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+			
 			slim_trait_index_t trait_index = trait->Index();
 			
 			float_result->set_float_no_check((double)value->trait_info_[trait_index].phenotype_, value_index);
+		}
+	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+	std::string trait_name = property_string.substr(0, property_string.length() - 6);
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	
+	if (species)
+	{
+		Trait *trait = species->TraitFromName(trait_name);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+		
+		slim_trait_index_t trait_index = trait->Index();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			
+			float_result->set_float_no_check((double)value->trait_info_[trait_index].offset_, value_index);
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			Species &value_species = value->subpopulation_->species_;
+			Trait *trait = value_species.TraitFromName(trait_name);
+			
+			if (!trait)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+			
+			slim_trait_index_t trait_index = trait->Index();
+			
+			float_result->set_float_no_check((double)value->trait_info_[trait_index].offset_, value_index);
 		}
 	}
 	
@@ -2770,16 +2840,39 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			// all others, including gID_none
 		default:
 		{
-			// Here we implement a special behavior: you can do individual.<trait-name> to access a trait value directly.
+			// Here we implement a special behavior: you can do individual.<trait-name> or individual.<trait-name>Offset
+			// to access an individual's trait value or trait offset directly.
 			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
 			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = subpopulation_->species_;
 			Trait *trait = species.TraitFromStringID(p_property_id);
+			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 			
 			if (trait)				// ACCELERATED
 			{
-				trait_info_[trait->Index()].phenotype_ = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+				slim_effect_t new_phenotype = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+				
+				if (std::isinf(new_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+				
+				trait_info_[trait->Index()].phenotype_ = new_phenotype;
 				return;
+			}
+			else if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Offset"))		// ACCELERATED
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					slim_effect_t new_offset = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					
+					if (!std::isfinite(new_offset))
+						EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
+					
+					trait_info_[trait->Index()].offset_ = new_offset;
+					return;
+				}
 			}
 			
 			return super::SetProperty(p_property_id, p_value);
@@ -3192,21 +3285,29 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
 	const double *source_data = p_source.FloatData();
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 	
 	if (species)
 	{	
 		Trait *trait = species->TraitFromStringID(p_property_id);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+		
 		slim_trait_index_t trait_index = trait->Index();
 		
 		if (p_source_size == 1)
 		{
-			slim_effect_t source_value = (slim_effect_t)source_data[0];
+			slim_effect_t new_phenotype = (slim_effect_t)source_data[0];
+			
+			if (std::isinf(new_phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
 			
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
 				const Individual *value = individuals_buffer[value_index];
 				
-				value->trait_info_[trait_index].phenotype_ = source_value;
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
 			}
 		}
 		else
@@ -3214,8 +3315,12 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
 				const Individual *value = individuals_buffer[value_index];
+				slim_effect_t new_phenotype = (slim_effect_t)source_data[value_index];
 				
-				value->trait_info_[trait_index].phenotype_ = (slim_effect_t)source_data[value_index];
+				if (std::isinf(new_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+				
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
 			}
 		}
 	}
@@ -3224,15 +3329,23 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 		// with a mixed-species target, the species and trait have to be looked up for each individual
 		if (p_source_size == 1)
 		{
-			slim_effect_t source_value = (slim_effect_t)source_data[0];
+			slim_effect_t new_phenotype = (slim_effect_t)source_data[0];
+			
+			if (std::isinf(new_phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
 			
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
 				const Individual *value = individuals_buffer[value_index];
-				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+				Species &value_species = value->subpopulation_->species_;
+				Trait *trait = value_species.TraitFromStringID(p_property_id);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+				
 				slim_trait_index_t trait_index = trait->Index();
 				
-				value->trait_info_[trait_index].phenotype_ = source_value;
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
 			}
 		}
 		else
@@ -3240,10 +3353,112 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
 				const Individual *value = individuals_buffer[value_index];
-				Trait *trait = value->subpopulation_->species_.TraitFromStringID(p_property_id);
+				Species &value_species = value->subpopulation_->species_;
+				Trait *trait = value_species.TraitFromStringID(p_property_id);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+				
+				slim_trait_index_t trait_index = trait->Index();
+				slim_effect_t new_phenotype = (slim_effect_t)source_data[value_index];
+				
+				if (std::isinf(new_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+				
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
+			}
+		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+#pragma unused (p_property_id)
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+	std::string trait_name = property_string.substr(0, property_string.length() - 6);
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	const double *source_data = p_source.FloatData();
+	
+	if (species)
+	{	
+		Trait *trait = species->TraitFromName(trait_name);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+		
+		slim_trait_index_t trait_index = trait->Index();
+		
+		if (p_source_size == 1)
+		{
+			slim_effect_t new_offset = (slim_effect_t)source_data[0];
+			
+			if (!std::isfinite(new_offset))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				slim_effect_t new_offset = (slim_effect_t)source_data[value_index];
+				
+				if (!std::isfinite(new_offset))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
+			}
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		if (p_source_size == 1)
+		{
+			slim_effect_t new_offset = (slim_effect_t)source_data[0];
+			
+			if (!std::isfinite(new_offset))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Species &value_species = value->subpopulation_->species_;
+				Trait *trait = value_species.TraitFromName(trait_name);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+				
 				slim_trait_index_t trait_index = trait->Index();
 				
-				value->trait_info_[trait_index].phenotype_ = (slim_effect_t)source_data[value_index];
+				value->trait_info_[trait_index].offset_ = new_offset;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Species &value_species = value->subpopulation_->species_;
+				Trait *trait = value_species.TraitFromName(trait_name);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+				
+				slim_trait_index_t trait_index = trait->Index();
+				slim_effect_t new_offset = (slim_effect_t)source_data[value_index];
+				
+				if (!std::isfinite(new_offset))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
 			}
 		}
 	}
@@ -4302,7 +4517,7 @@ EidosValue_SP Individual::ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStrin
 Individual_Class *gSLiM_Individual_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -4310,7 +4525,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Individual_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -4479,6 +4694,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		// pattern 2: setting a single offset value across one or more traits in one or more individuals
 		slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
 		
+		if (!std::isfinite(offset))
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
@@ -4501,6 +4719,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		{
 			Trait *trait = species->Traits()[trait_index];
 			slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
+			
+			if (!std::isfinite(offset))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 			
 			// effects for multiplicative traits are clamped to a minimum of 0.0
 			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
@@ -4589,6 +4810,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					{
 						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
 						
+						if (!std::isfinite(offset))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+						
 						// effects for multiplicative traits are clamped to a minimum of 0.0
 						if (offset < (slim_effect_t)0.0)
 							offset = 0.0;
@@ -4601,6 +4825,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
 						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						
+						if (!std::isfinite(offset))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 					}
@@ -4616,6 +4843,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					{
 						Trait *trait = species->Traits()[trait_index];
 						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						
+						if (!std::isfinite(offset))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 						
 						// effects for multiplicative traits are clamped to a minimum of 0.0
 						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
@@ -4665,6 +4895,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 		// pattern 1: setting a single phenotype value across one or more traits in one or more individuals
 		slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(0, nullptr));
 		
+		if (std::isinf(phenotype))
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+		
 		if (trait_count == 1)
 		{
 			// optimized case for one trait
@@ -4692,6 +4925,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(phenotype_index++, nullptr));
+			
+			if (std::isinf(phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
@@ -4740,7 +4976,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_float++));
+				{
+					slim_effect_t phenotype = static_cast<slim_effect_t>(*(phenotypes_float++));
+					
+					if (std::isinf(phenotype))
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+					
+					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = phenotype;
+				}
 			}
 			else
 			{
@@ -4749,7 +4992,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 					Individual *ind = individuals_buffer[individual_index];
 					
 					for (slim_trait_index_t trait_index : trait_indices)
-						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_float++));
+					{
+						slim_effect_t phenotype = static_cast<slim_effect_t>(*(phenotypes_float++));
+						
+						if (std::isinf(phenotype))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+						
+						ind->trait_info_[trait_index].phenotype_ = phenotype;
+					}
 				}
 			}
 		}

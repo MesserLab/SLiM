@@ -1135,7 +1135,7 @@ EidosValue_SP LogFile::ExecuteMethod_setValue(EidosGlobalStringID p_method_id, c
 LogFile_Class *gSLiM_LogFile_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1143,7 +1143,7 @@ const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) c
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("LogFile_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_filePath,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logInterval,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

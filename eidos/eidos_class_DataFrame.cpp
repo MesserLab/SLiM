@@ -1264,7 +1264,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 
 EidosDataFrame_Class *gEidosDataFrame_Class = nullptr;
 
-const std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1272,7 +1272,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties(
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosDataFrame_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_colNames,			true,	kEidosValueMaskString)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_dim,				true,	kEidosValueMaskInt)));
