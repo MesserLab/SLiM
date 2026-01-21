@@ -299,7 +299,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_plotWithTitle(EidosGlobalStringID p_method_
 SLiMgui_Class *gSLiM_SLiMgui_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	

@@ -1860,7 +1860,7 @@ EidosValue_SP Plot::ExecuteMethod_write(EidosGlobalStringID p_method_id, const s
 Plot_Class *gSLiM_Plot_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
