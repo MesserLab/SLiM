@@ -163,6 +163,7 @@ multitrait branch:
 		addNewMutation() parameter "effect" -> "effectSize"
 		setEffectSizeForTrait() parameter "effect" -> "effectSize"
 		MutationType's loggedData() parameter "effect" -> "effectSize" and lots of related fallout for loggedData() and logMutationData(), logged_effect_, running_effect_, etc.
+	for initializeMutationType() and initializeMutationTypeNuc(), change the "dominanceCoeff" parameter to "defaultDominance"
 
 
 version 5.1 (Eidos version 4.1):

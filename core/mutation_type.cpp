@@ -58,9 +58,9 @@ std::ostream& operator<<(std::ostream& p_out, DESType p_DES_type)
 #pragma mark -
 
 #ifdef SLIMGUI
-MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index) :
+MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index) :
 #else
-MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings) :
+MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
 	species_(p_species), mutation_type_id_(p_mutation_type_id), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id)
@@ -81,7 +81,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	if ((p_DES_parameters.size() == 0) && (p_DES_strings.size() == 0))
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << EidosTerminate();
 	// intentionally no bounds checks for DES parameters; the count of DES parameters is checked prior to construction
-	// intentionally no bounds check for dominance_coeff_
+	// intentionally no bounds check for p_default_dominance
 	
 	// determine whether this mutation type has a neutral DES
 	// note that we do not set species_all_neutral_mutations_ = false here; we wait until this muttype is used
@@ -95,7 +95,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	// set up DE entries for all traits; every trait is initialized identically, from the parameters given
 	EffectSizeDistributionInfo DES_info;
 	
-	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);	// note this can be NAN now, representing independent dominance
+	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_default_dominance);	// note this can be NAN now, representing independent dominance
 	DES_info.default_hemizygous_dominance_coeff_ = 1.0;
 	DES_info.DES_type_ = p_DES_type;
 	DES_info.DES_parameters_ = p_DES_parameters;

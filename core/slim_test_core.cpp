@@ -44,7 +44,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, 1.001); stop(); }", "bias must be between -1.0 and 1.0", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", "must be 0.0 in non-nucleotide-based models", __LINE__);
 	
-	// Test (object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
+	// Test (object<MutationType>$)initializeMutationType(is$ id, numeric$ defaultDominance, string$ distributionType, ...)
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeMutationType(1, 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType(-1, 0.5, 'f', 0.0); stop(); }", "identifier value is out of range", __LINE__);

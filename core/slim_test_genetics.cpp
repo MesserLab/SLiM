@@ -1313,7 +1313,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	// Test independent dominance and new Mutation and MutationType APIs
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5); if (m1.defaultDominanceForTrait(0) == 0.5) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN); if (isNAN(m1.defaultDominanceForTrait(0))) stop(); }");
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', INF); }", "requires dominanceCoeff to be finite", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', INF); }", "requires defaultDominance to be finite", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(0, NAN); if (isNAN(m1.defaultDominanceForTrait(0))) stop(); }");
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(0, INF); }", "default dominance is infinite", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultHemizygousDominanceForTrait(0, NAN); }", "hemizygous dominance is non-finite", __LINE__);

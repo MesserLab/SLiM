@@ -870,7 +870,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, \cf2 [Ns$\'a0distributionType\'a0=\'a0NULL]\cf0 , ...)
+\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0\cf2 defaultDominance\cf0 , \cf2 [Ns$\'a0distributionType\'a0=\'a0NULL]\cf0 , ...)
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -888,7 +888,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f1\fs18 m5
 \f2\fs20 , is immediately available; the return value also provides the new object.\
 The 
-\f1\fs18 dominanceCoeff
+\f1\fs18 defaultDominance
 \f2\fs20  parameter supplies the default dominance coefficient for the mutation type, for all traits; 
 \f1\fs18 0.0
 \f2\fs20  produces no dominance, 
@@ -896,7 +896,7 @@ The
 \f2\fs20  complete dominance, and values greater than 
 \f1\fs18 1.0
 \f2\fs20 , overdominance.  A 
-\f1\fs18 dominanceCoeff
+\f1\fs18 defaultDominance
 \f2\fs20  value of 
 \f1\fs18 NAN
 \f2\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type, for all traits; see the class 
@@ -989,7 +989,8 @@ Note that by default in WF models, all mutations of a given mutation type will b
 \f2\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0dominanceCoeff, \kerning1\expnd0\expndtw0 [Ns$\'a0distributionType\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0\kerning1\expnd0\expndtw0 defaultDominance\expnd0\expndtw0\kerning0
+, \kerning1\expnd0\expndtw0 [Ns$\'a0distributionType\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
 , ...)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 

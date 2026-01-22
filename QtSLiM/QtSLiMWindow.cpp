@@ -2146,6 +2146,14 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     // the above autofix is imperfect; if the user is assigning into hemizygousDominanceCoeff, it really needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
     
+	if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationType()") &&
+			(selectionString == "dominanceCoeff"))
+		return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationType() has been renamed to `defaultDominance`.", terminationMessage);
+	
+	if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationTypeNuc()") &&
+			(selectionString == "dominanceCoeff"))
+		return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationTypeNuc() has been renamed to `defaultDominance`.", terminationMessage);
+	
     if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
             (selectionString == "distributionType"))
         return offerAndExecuteAutofix(selection, "effectSizeDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectSizeDistributionTypeForTrait()`.", terminationMessage);

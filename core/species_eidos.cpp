@@ -600,8 +600,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	return symbol_entry.second;
 }
 
-//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, [Ns$ distributionType = NULL], ...)
-//	*********************	(object<MutationType>$)initializeMutationTypeNuc(is$ id, numeric$ dominanceCoeff, [Ns$ distributionType = NULL], ...)
+//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ defaultDominance, [Ns$ distributionType = NULL], ...)
+//	*********************	(object<MutationType>$)initializeMutationTypeNuc(is$ id, numeric$ defaultDominance, [Ns$ distributionType = NULL], ...)
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -618,7 +618,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): initializeMutationTypeNuc() may be only be called in nucleotide-based models." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
-	EidosValue *dominanceCoeff_value = p_arguments[1].get();
+	EidosValue *defaultDominance_value = p_arguments[1].get();
 	EidosValue *distributionType_value = p_arguments[2].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -629,10 +629,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		defaultDistribution = true;
 	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
-	double dominance_coeff = dominanceCoeff_value->NumericAtIndex_NOCAST(0, nullptr);
+	double default_dominance = defaultDominance_value->NumericAtIndex_NOCAST(0, nullptr);
 	
-	if (!std::isfinite(dominance_coeff) && !std::isnan(dominance_coeff))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() requires dominanceCoeff to be finite, or NAN to represent independent dominance." << EidosTerminate();
+	if (!std::isfinite(default_dominance) && !std::isnan(default_dominance))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() requires defaultDominance to be finite, or NAN to represent independent dominance." << EidosTerminate();
 	
 	std::string DES_type_string = (defaultDistribution ? "f" : distributionType_value->StringAtIndex_NOCAST(0, nullptr));
 	
@@ -660,9 +660,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	
 #ifdef SLIMGUI
 	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, DES_type, DES_parameters, DES_strings, num_mutation_type_inits_);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, default_dominance, nucleotide_based, DES_type, DES_parameters, DES_strings, num_mutation_type_inits_);
 #else
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, DES_type, DES_parameters, DES_strings);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, default_dominance, nucleotide_based, DES_type, DES_parameters, DES_strings);
 #endif
 	
 	mutation_types_.emplace(map_identifier, new_mutation_type);
@@ -684,7 +684,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		}
 		else
 		{
-			output_stream << p_function_name << "(" << map_identifier << ", " << dominance_coeff;
+			output_stream << p_function_name << "(" << map_identifier << ", " << default_dominance;
 			
 			if (defaultDistribution)
 			{

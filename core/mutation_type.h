@@ -221,9 +221,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index);
+	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index);
 #else
-	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings);
+	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings);
 #endif
 	~MutationType(void);
 	
