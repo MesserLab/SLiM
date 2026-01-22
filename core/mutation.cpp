@@ -62,7 +62,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	slim_trait_index_t trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
 	
-	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
+	// Below basically does the work of calling SetEffectSize() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
 	
 	is_neutral_for_all_traits_ = true;					// will be set to false below as needed
@@ -80,15 +80,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		
 		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
 		// for now we use the values passed in for trait 0, and make other traits neutral
-		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
+		slim_effect_t effect_size = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
 		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
 		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
 		
-		traitInfoRec->effect_size_ = effect;
+		traitInfoRec->effect_size_ = effect_size;
 		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
 		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 		
-		if (effect != (slim_effect_t)0.0)
+		if (effect_size != (slim_effect_t)0.0)
 		{
 			is_neutral_for_all_traits_ = false;
 			
@@ -105,15 +105,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect);
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);
 			}
 			else	// (traitType == TraitType::kAdditive)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect);
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect_size);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);
 			}
 		}
 		else	// (effect == 0.0)
@@ -172,7 +172,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	slim_trait_index_t trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
 	
-	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
+	// Below basically does the work of calling SetEffectSize() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
 	
 	is_neutral_for_all_traits_ = true;					// will be set to false below as needed
@@ -221,15 +221,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			Trait *trait = traits[trait_index];
 			TraitType traitType = trait->Type();
 			
-			slim_effect_t effect = mutation_type_ptr_->DrawEffectForTrait(trait_index);
+			slim_effect_t effect_size = mutation_type_ptr_->DrawEffectSizeForTrait(trait_index);
 			slim_effect_t dominance = mutation_type_ptr_->DefaultDominanceForTrait(trait_index);	// can be NAN
 			slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
 			
-			traitInfoRec->effect_size_ = effect;
+			traitInfoRec->effect_size_ = effect_size;
 			traitInfoRec->dominance_coeff_UNSAFE_ = dominance;	// can be NAN
 			traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 			
-			if (effect != (slim_effect_t)0.0)
+			if (effect_size != (slim_effect_t)0.0)
 			{
 				is_neutral_for_all_traits_ = false;
 				
@@ -246,15 +246,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				
 				if (traitType == TraitType::kMultiplicative)
 				{
-					traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect);
-					traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect);
-					traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect);
+					traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);
+					traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
+					traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);
 				}
 				else	// (traitType == TraitType::kAdditive)
 				{
-					traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect);
-					traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect);
-					traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect);
+					traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect_size);
+					traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
+					traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);
 				}
 			}
 			else	// (effect == 0.0)
@@ -310,7 +310,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	slim_trait_index_t trait_count = mutation_block->trait_count_;
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
 	
-	// Below basically does the work of calling SetEffect() and SetDominance(), more efficiently since
+	// Below basically does the work of calling SetEffectSize() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
 	
 	is_neutral_for_all_traits_ = true;		// will be set to false below as needed
@@ -328,15 +328,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		
 		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
 		// for now we use the values passed in for trait 0, and make other traits neutral
-		slim_effect_t effect = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
+		slim_effect_t effect_size = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
 		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
 		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
 		
-		traitInfoRec->effect_size_ = effect;
+		traitInfoRec->effect_size_ = effect_size;
 		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
 		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
 		
-		if (effect != (slim_effect_t)0.0)
+		if (effect_size != (slim_effect_t)0.0)
 		{
 			is_neutral_for_all_traits_ = false;
 			
@@ -353,15 +353,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect);
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);
 			}
 			else	// (traitType == TraitType::kAdditive)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect);
+				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect_size);
+				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);
 			}
 		}
 		else	// (effect == 0.0)
@@ -570,7 +570,7 @@ slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait) const
 }
 
 // This should be called whenever a mutation effect is changed; it handles the necessary recaching
-void Mutation::SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect)
+void Mutation::SetEffectSize(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect)
 {
 	slim_effect_t old_effect = traitInfoRec->effect_size_;
 	
@@ -752,7 +752,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_position:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
-		case gID_effect:
+		case gID_effectSize:
 		{
 			// This is not accelerated, because it's a bit tricky; each mutation could belong to a different species,
 			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
@@ -771,9 +771,9 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				
 				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
-					slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
+					slim_effect_t effect_size = mut_trait_info[trait_index].effect_size_;
 					
-					float_result->push_float_no_check((double)effect);
+					float_result->push_float_no_check((double)effect_size);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -885,16 +885,16 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			// Here we implement a special behavior: you can do mutation.<trait-name>Effect, mutation.<trait-name>Dominance,
+			// Here we implement a special behavior: you can do mutation.<trait-name>EffectSize, mutation.<trait-name>Dominance,
 			// and mutation.<trait-name>HemizygousDominance to access a trait's values directly.
 			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
 			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = mutation_type_ptr_->species_;
 			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 			
-			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
+			if ((property_string.length() > 10) && Eidos_string_hasSuffix(property_string, "EffectSize"))
 			{
-				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				std::string trait_name = property_string.substr(0, property_string.length() - 10);
 				Trait *trait = species.TraitFromName(trait_name);
 				
 				if (trait)
@@ -1168,7 +1168,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			
 		default:
 		{
-			// Here we implement a special behavior: you can do mutation.<trait-name>Effect, mutation.<trait-name>Dominance,
+			// Here we implement a special behavior: you can do mutation.<trait-name>EffectSize, mutation.<trait-name>Dominance,
 			// and mutation.<trait-name>HemizygousDominance to access a trait's values directly.
 			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
 			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
@@ -1178,9 +1178,9 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 			Community &community = species.community_;
 			
-			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
+			if ((property_string.length() > 10) && Eidos_string_hasSuffix(property_string, "EffectSize"))
 			{
-				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				std::string trait_name = property_string.substr(0, property_string.length() - 10);
 				Trait *trait = species.TraitFromName(trait_name);
 				
 				if (trait)
@@ -1199,7 +1199,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 					if (!std::isfinite(new_effect))
 						EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
 					
-					SetEffect(trait, traitInfoRec, new_effect);
+					SetEffectSize(trait, traitInfoRec, new_effect);
 #if DEBUG
 					SelfConsistencyCheck(" after setting " + property_string);
 #endif
@@ -1311,7 +1311,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 {
 	switch (p_method_id)
 	{
-		case gID_effectForTrait:				return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectSizeForTrait:			return ExecuteMethod_effectSizeForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_dominanceForTrait:				return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_hemizygousDominanceForTrait:	return ExecuteMethod_hemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_isIndependentDominanceForTrait:	return ExecuteMethod_isIndependentDominanceForTrait(p_method_id, p_arguments, p_interpreter);
@@ -1320,9 +1320,9 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	}
 }
 
-//	*********************	- (float)effectForTrait([Niso<Trait> trait = NULL])
+//	*********************	- (float)effectSizeForTrait([Niso<Trait> trait = NULL])
 //
-EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Mutation::ExecuteMethod_effectSizeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
@@ -1330,7 +1330,7 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
 	std::vector<slim_trait_index_t> trait_indices;
-	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectForTrait");
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectSizeForTrait");
 	
 	// get the trait info for this mutation
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
@@ -1339,9 +1339,9 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 	if (trait_indices.size() == 1)
 	{
 		slim_trait_index_t trait_index = trait_indices[0];
-		slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
+		slim_effect_t effect_size = mut_trait_info[trait_index].effect_size_;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect_size));
 	}
 	else
 	{
@@ -1349,9 +1349,9 @@ EidosValue_SP Mutation::ExecuteMethod_effectForTrait(EidosGlobalStringID p_metho
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			slim_effect_t effect = mut_trait_info[trait_index].effect_size_;
+			slim_effect_t effect_size = mut_trait_info[trait_index].effect_size_;
 			
-			float_result->push_float_no_check((double)effect);
+			float_result->push_float_no_check((double)effect_size);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -1537,7 +1537,7 @@ std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties_MUTABLE(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotideValue));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_originTick));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_position));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effectSize,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,	true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_subpopID)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_subpopID));
@@ -1559,11 +1559,11 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectSizeForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_isIndependentDominanceForTrait, kEidosValueMaskLogical))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setEffectForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("effect", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setEffectSizeForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("effectSize", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setHemizygousDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("dominance", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
@@ -1578,7 +1578,7 @@ EidosValue_SP Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id
 {
 	switch (p_method_id)
 	{
-		case gID_setEffectForTrait:					return ExecuteMethod_setEffectForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setEffectSizeForTrait:				return ExecuteMethod_setEffectSizeForTrait(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_setDominanceForTrait:
 		case gID_setHemizygousDominanceForTrait:	return ExecuteMethod_setDominanceForTrait(p_method_id, p_target, p_arguments, p_interpreter);
 		default:
@@ -1586,16 +1586,16 @@ EidosValue_SP Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id
 	}
 }
 
-//	*********************	+ (void)setEffectForTrait([Niso<Trait> trait = NULL], [Nif effect = NULL])
+//	*********************	+ (void)setEffectSizeForTrait([Niso<Trait> trait = NULL], [Nif effectSize = NULL])
 //
-EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Mutation_Class::ExecuteMethod_setEffectSizeForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
-	EidosValue *effect_value = p_arguments[1].get();
+	EidosValue *effectSize_value = p_arguments[1].get();
 	
 	int mutations_count = p_target->Count();
-	int effect_count = effect_value->Count();
+	int effectSize_count = effectSize_value->Count();
 	
 	if (mutations_count == 0)
 		return gStaticEidosValueVOID;
@@ -1606,7 +1606,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 	Species *species = Community::SpeciesForMutations(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): setEffectForTrait() requires that all mutations belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectSizeForTrait): setEffectSizeForTrait() requires that all mutations belong to the same species." << EidosTerminate();
 	
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	const std::vector<Trait *> &traits = species->Traits();
@@ -1616,16 +1616,16 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (species->InsideTraitOrFitnessCalculation())
-		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): mutation effects may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectSizeForTrait): mutation effects may not be changed within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
 	if (species->Active() && ((community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
-		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): mutation effects may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectSizeForTrait): mutation effects may not be changed during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
-	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectForTrait");
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectSizeForTrait");
 	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
-	if (effect_value->Type() == EidosValueType::kValueNULL)
+	if (effectSize_value->Type() == EidosValueType::kValueNULL)
 	{
 		// pattern 1: drawing a default effect value for each trait in one or more mutations
 		for (slim_trait_index_t trait_index : trait_indices)
@@ -1636,16 +1636,16 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 				MutationType *muttype = mut->mutation_type_ptr_;
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-				slim_effect_t effect = (slim_effect_t)muttype->DrawEffectForTrait(trait_index);
+				slim_effect_t effect_size = (slim_effect_t)muttype->DrawEffectSizeForTrait(trait_index);
 				
-				mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+				mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 			}
 		}
 	}
-	else if (effect_count == 1)
+	else if (effectSize_count == 1)
 	{
 		// pattern 2: setting a single effect value across one or more traits in one or more mutations
-		slim_effect_t effect = static_cast<slim_effect_t>(effect_value->NumericAtIndex_NOCAST(0, nullptr));
+		slim_effect_t effect_size = static_cast<slim_effect_t>(effectSize_value->NumericAtIndex_NOCAST(0, nullptr));
 		
 		if (trait_count == 1)
 		{
@@ -1658,7 +1658,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 				
-				mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+				mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 			}
 		}
 		else
@@ -1672,19 +1672,19 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 				{
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 					
-					mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+					mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 				}
 			}
 		}
 	}
-	else if (effect_count == trait_count)
+	else if (effectSize_count == trait_count)
 	{
 		// pattern 3: setting one effect value per trait, in one or more mutations
 		int effect_index = 0;
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			slim_effect_t effect = static_cast<slim_effect_t>(effect_value->NumericAtIndex_NOCAST(effect_index++, nullptr));
+			slim_effect_t effect_size = static_cast<slim_effect_t>(effectSize_value->NumericAtIndex_NOCAST(effect_index++, nullptr));
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 			{
@@ -1692,18 +1692,18 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 				MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
 				
-				mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+				mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 			}
 		}
 	}
-	else if (effect_count == trait_count * mutations_count)
+	else if (effectSize_count == trait_count * mutations_count)
 	{
 		// pattern 4: setting different effect values for each trait in each mutation; in this case,
 		// all effects for the specified traits in a given mutation are given consecutively
-		if (effect_value->Type() == EidosValueType::kValueInt)
+		if (effectSize_value->Type() == EidosValueType::kValueInt)
 		{
 			// integer effect values
-			const int64_t *effects_int = effect_value->IntData();
+			const int64_t *effect_sizes_int = effectSize_value->IntData();
 			
 			if (trait_count == 1)
 			{
@@ -1715,9 +1715,9 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 					Mutation *mut = mutations_buffer[mutation_index];
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-					slim_effect_t effect = static_cast<slim_effect_t>(*(effects_int++));
+					slim_effect_t effect_size = static_cast<slim_effect_t>(*(effect_sizes_int++));
 					
-					mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+					mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 				}
 			}
 			else
@@ -1730,9 +1730,9 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-						slim_effect_t effect = static_cast<slim_effect_t>(*(effects_int++));
+						slim_effect_t effect_size = static_cast<slim_effect_t>(*(effect_sizes_int++));
 						
-						mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+						mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 					}
 				}
 			}
@@ -1740,7 +1740,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 		else
 		{
 			// float effect values
-			const double *effects_float = effect_value->FloatData();
+			const double *effect_sizes_float = effectSize_value->FloatData();
 			
 			if (trait_count == 1)
 			{
@@ -1752,9 +1752,9 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 					Mutation *mut = mutations_buffer[mutation_index];
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 					MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-					slim_effect_t effect = static_cast<slim_effect_t>(*(effects_float++));
+					slim_effect_t effect_size = static_cast<slim_effect_t>(*(effect_sizes_float++));
 					
-					mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+					mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 				}
 			}
 			else
@@ -1767,20 +1767,20 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setEffectForTrait(EidosGlobalStringI
 					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-						slim_effect_t effect = static_cast<slim_effect_t>(*(effects_float++));
+						slim_effect_t effect_size = static_cast<slim_effect_t>(*(effect_sizes_float++));
 						
-						mut->SetEffect(traits[trait_index], traitInfoRec, effect);
+						mut->SetEffectSize(traits[trait_index], traitInfoRec, effect_size);
 					}
 				}
 			}
 		}
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectForTrait): setEffectForTrait() requires that effect be (a) NULL, requesting an effect value drawn from the mutation's mutation type for each trait, (b) singleton, providing one effect value for all traits, (c) equal in length to the number of traits in the species, providing one effect value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one effect value per trait per mutation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_setEffectSizeForTrait): setEffectSizeForTrait() requires that effect be (a) NULL, requesting an effect value drawn from the mutation's mutation type for each trait, (b) singleton, providing one effect value for all traits, (c) equal in length to the number of traits in the species, providing one effect value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one effect value per trait per mutation." << EidosTerminate();
 	
-	// Check for problems; for setEffectForTrait(), it is easier to do sanity checks afterwards than up front
+	// Check for problems; for setEffectSizeForTrait(), it is easier to do sanity checks afterwards than up front
 	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
-		mutations_buffer[mutation_index]->SelfConsistencyCheck(" after setEffectForTrait()");
+		mutations_buffer[mutation_index]->SelfConsistencyCheck(" after setEffectSizeForTrait()");
 	
 	return gStaticEidosValueVOID;
 }
@@ -2005,7 +2005,7 @@ EidosValue_SP Mutation_Class::ExecuteMethod_setDominanceForTrait(EidosGlobalStri
 	else
 		EIDOS_TERMINATION << "ERROR (Mutation_Class::ExecuteMethod_" << method_name << "): " << method_name << "() requires that dominance be (a) NULL, requesting the default" << ((p_method_id == gID_setDominanceForTrait) ? " " : " hemizygous ") << "dominance coefficient from the mutation's mutation type for each trait, (b) singleton, providing one dominance value for all traits, (c) equal in length to the number of traits in the species, providing one dominance value per trait, or (d) equal in length to the number of traits times the number of target mutations, providing one dominance value per trait per mutation." << EidosTerminate();
 	
-	// Check for problems; for setEffectForTrait(), it is easier to do sanity checks afterwards than up front
+	// Check for problems; for set[Hemizygous]DominanceForTrait(), it is easier to do sanity checks afterwards than up front
 	for (int mutation_index = 0; mutation_index < mutations_count; ++mutation_index)
 		mutations_buffer[mutation_index]->SelfConsistencyCheck(std::string(" after ") + method_name);
 	

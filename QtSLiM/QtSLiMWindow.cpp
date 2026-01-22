@@ -2148,37 +2148,37 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
             (selectionString == "distributionType"))
-        return offerAndExecuteAutofix(selection, "effectDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectDistributionTypeForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectSizeDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectSizeDistributionTypeForTrait()`.", terminationMessage);
     
     if (terminationMessage.contains("property distributionParams is not defined for object element type MutationType") &&
             (selectionString == "distributionParams"))
-        return offerAndExecuteAutofix(selection, "effectDistributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `effectDistributionParamsForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectSizeDistributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `effectSizeDistributionParamsForTrait()`.", terminationMessage);
     
     if ((afterSelection1String == "(") &&
             terminationMessage.contains("method setDistribution() is not defined on object element type MutationType") &&
             (selectionPlus1AfterString == "setDistribution("))
-        return offerAndExecuteAutofix(selectionPlus1After, "setEffectDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setEffectDistributionForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectSizeDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setEffectSizeDistributionForTrait()`.", terminationMessage);
     
     if (terminationMessage.contains("method drawSelectionCoefficient() is not defined on object element type MutationType") &&
             (selectionString == "drawSelectionCoefficient"))
-        return offerAndExecuteAutofix(selection, "drawEffectForTrait", "The `drawSelectionCoefficient()` method of MutationType has become the method `drawEffectForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "drawEffectSizeForTrait", "The `drawSelectionCoefficient()` method of MutationType has become the method `drawEffectSizeForTrait()`.", terminationMessage);
     
     if ((afterSelection1String == "(") &&
             terminationMessage.contains("method setSelectionCoeff() is not defined on object element type Mutation") &&
             (selectionPlus1AfterString == "setSelectionCoeff("))
-        return offerAndExecuteAutofix(selectionPlus1After, "setEffectForTrait(NULL, ", "The `setSelectionCoeff()` method of Mutation has become the method `setEffectForTrait()`.", terminationMessage);
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectSizeForTrait(NULL, ", "The `setSelectionCoeff()` method of Mutation has become the method `setEffectSizeForTrait()`.", terminationMessage);
     
     if (terminationMessage.contains("property selectionCoeff is not defined for object element type Mutation") &&
             (selectionString == "selectionCoeff"))
-        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Mutation has become the property `effect`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectSize", "The `selectionCoeff` property of Mutation has become the property `effectSize`.", terminationMessage);
     
     if (terminationMessage.contains("property selectionCoeff is not defined for object element type Substitution") &&
             (selectionString == "selectionCoeff"))
-        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` property of Substitution has become the property `effect`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectSize", "The `selectionCoeff` property of Substitution has become the property `effectSize`.", terminationMessage);
     
     if (terminationMessage.contains("unrecognized named argument 'selectionCoeff' to addNewMutation()") &&
             (selectionString == "selectionCoeff"))
-        return offerAndExecuteAutofix(selection, "effect", "The `selectionCoeff` parameter to addNewMutation() has been renamed to `effect`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "effectSize", "The `selectionCoeff` parameter to addNewMutation() has been renamed to `effectSize`.", terminationMessage);
     
     return false;
 }

@@ -182,7 +182,7 @@ public:
 	slim_effect_t RealizedDominanceForTrait(Trait *p_trait) const;
 	
 	// These should be called whenever a mutation effect/dominance is changed; they handle the necessary recaching
-	void SetEffect(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
+	void SetEffectSize(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_effect);
 	void SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
 	void SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, slim_effect_t p_new_dominance);
 	
@@ -195,7 +195,7 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	EidosValue_SP ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_effectSizeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_dominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_hemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_isIndependentDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -249,7 +249,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
-	EidosValue_SP ExecuteMethod_setEffectForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_setEffectSizeForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };

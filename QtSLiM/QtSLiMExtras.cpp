@@ -625,7 +625,7 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, typeLength);
     typeCursor.setCharFormat(typeAttrs);
     
-    // BCH 1/7/2025: For dynamic properties with a name like "<trait-name>Effect", italicize the portion in the <>
+    // BCH 1/7/2025: For dynamic properties with a name like "<trait-name>EffectSize", italicize the portion in the <>
     if (Eidos_string_hasPrefix(property_signature->property_name_, "<"))
     {
         size_t end_position = property_signature->property_name_.find_first_of('>');

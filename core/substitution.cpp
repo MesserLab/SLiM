@@ -360,7 +360,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
-		case gID_effect:
+		case gID_effectSize:
 		{
 			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
 			// and thus be associated with a different number of traits.  It isn't expected that this will be a hot path.
@@ -377,9 +377,9 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				
 				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 				{
-					slim_effect_t effect = trait_info_[trait_index].effect_size_;
+					slim_effect_t effect_size = trait_info_[trait_index].effect_size_;
 					
-					float_result->push_float_no_check((double)effect);
+					float_result->push_float_no_check((double)effect_size);
 				}
 				
 				return EidosValue_SP(float_result);
@@ -493,16 +493,16 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			// Here we implement a special behavior: you can do substitution.<trait-name>Effect, substitution.<trait-name>Dominance,
+			// Here we implement a special behavior: you can do substitution.<trait-name>EffectSize, substitution.<trait-name>Dominance,
 			// and substitution.<trait-name>HemizygousDominance to access a trait's values directly.
 			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
 			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
 			Species &species = mutation_type_ptr_->species_;
 			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 			
-			if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Effect"))
+			if ((property_string.length() > 10) && Eidos_string_hasSuffix(property_string, "EffectSize"))
 			{
-				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				std::string trait_name = property_string.substr(0, property_string.length() - 10);
 				Trait *trait = species.TraitFromName(trait_name);
 				
 				if (trait)
@@ -734,7 +734,7 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		case gID_effectForTrait:				return ExecuteMethod_effectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectSizeForTrait:			return ExecuteMethod_effectSizeForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_dominanceForTrait:				return ExecuteMethod_dominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_hemizygousDominanceForTrait:	return ExecuteMethod_hemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_isIndependentDominanceForTrait:	return ExecuteMethod_isIndependentDominanceForTrait(p_method_id, p_arguments, p_interpreter);
@@ -742,9 +742,9 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	}
 }
 
-//	*********************	- (float)effectForTrait([Niso<Trait> trait = NULL])
+//	*********************	- (float)effectSizeForTrait([Niso<Trait> trait = NULL])
 //
-EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Substitution::ExecuteMethod_effectSizeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
@@ -752,14 +752,14 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 	// get the trait indices, with bounds-checking
 	Species &species = mutation_type_ptr_->species_;
 	std::vector<slim_trait_index_t> trait_indices;
-	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectForTrait");
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectSizeForTrait");
 	
 	if (trait_indices.size() == 1)
 	{
 		slim_trait_index_t trait_index = trait_indices[0];
-		slim_effect_t effect = trait_info_[trait_index].effect_size_;
+		slim_effect_t effect_size = trait_info_[trait_index].effect_size_;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)effect_size));
 	}
 	else
 	{
@@ -767,9 +767,9 @@ EidosValue_SP Substitution::ExecuteMethod_effectForTrait(EidosGlobalStringID p_m
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			slim_effect_t effect = trait_info_[trait_index].effect_size_;
+			slim_effect_t effect_size = trait_info_[trait_index].effect_size_;
 			
-			float_result->push_float_no_check((double)effect);
+			float_result->push_float_no_check((double)effect_size);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -907,7 +907,7 @@ std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties_MUTABLE(
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNeutral,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isNeutral));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effect,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effectSize,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,	true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
@@ -933,7 +933,7 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectSizeForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_dominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_isIndependentDominanceForTrait, kEidosValueMaskLogical))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));

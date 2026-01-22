@@ -126,7 +126,7 @@ typedef int64_t slim_haplosomeid_t;		// identifiers for pedigreed haplosomes; no
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef int32_t slim_trait_index_t;		// indices for traits; we are limited to 256 traits by SLIM_MAX_TRAITS at present, so this is plenty of room
 typedef uint32_t slim_operation_id_t;	// used for MutationRun's operation_id_, as a unique identifier of a given task being worked upon
-typedef float slim_effect_t;			// storage of trait effects (e.g., selection coefficients) in memory-tight classes; also dominance coefficients
+typedef float slim_effect_t;			// storage of mutation effect sizes, trait effects, and dominance coefficients in memory-tight classes
 typedef float slim_fitness_t;			// storage of fitness effects (e.g., fitnessScaling values) and final individual fitness values
 
 #define SLIM_MAX_TICK			(1000000000L)	// ticks range from 0 (init time) to this; SLIM_MAX_TICK + 1 is an "infinite" marker value
@@ -864,8 +864,8 @@ extern const std::string &gStr_subpopID;
 extern const std::string &gStr_convertToSubstitution;
 extern const std::string &gStr_defaultDominanceForTrait;
 extern const std::string &gStr_defaultHemizygousDominanceForTrait;
-extern const std::string &gStr_effectDistributionTypeForTrait;
-extern const std::string &gStr_effectDistributionParamsForTrait;
+extern const std::string &gStr_effectSizeDistributionTypeForTrait;
+extern const std::string &gStr_effectSizeDistributionParamsForTrait;
 extern const std::string &gStr_dominance;
 extern const std::string &gStr_hemizygousDominance;
 extern const std::string &gStr_mutationStackGroup;
@@ -991,20 +991,20 @@ extern const std::string &gStr_removeMutations;
 extern const std::string &gStr_setGenomicElementType;
 extern const std::string &gStr_setMutationFractions;
 extern const std::string &gStr_setMutationMatrix;
-extern const std::string &gStr_effectForTrait;
+extern const std::string &gStr_effectSizeForTrait;
 extern const std::string &gStr_dominanceForTrait;
 extern const std::string &gStr_hemizygousDominanceForTrait;
 extern const std::string &gStr_isIndependentDominanceForTrait;
-extern const std::string &gStr_setEffectForTrait;
+extern const std::string &gStr_setEffectSizeForTrait;
 extern const std::string &gStr_setDominanceForTrait;
 extern const std::string &gStr_setHemizygousDominanceForTrait;
 extern const std::string &gStr_setMutationType;
-extern const std::string &gStr_drawEffectForTrait;
+extern const std::string &gStr_drawEffectSizeForTrait;
 extern const std::string &gStr_loggedData;
 extern const std::string &gStr_logMutationData;
 extern const std::string &gStr_setDefaultDominanceForTrait;
 extern const std::string &gStr_setDefaultHemizygousDominanceForTrait;
-extern const std::string &gStr_setEffectDistributionForTrait;
+extern const std::string &gStr_setEffectSizeDistributionForTrait;
 extern const std::string &gStr_addPatternForClone;
 extern const std::string &gStr_addPatternForCross;
 extern const std::string &gStr_addPatternForNull;
@@ -1156,6 +1156,7 @@ extern const std::string &gStr_parent2;
 extern const std::string &gStr_mut;
 extern const std::string &gStr_trait;
 extern const std::string &gStr_effect;
+extern const std::string &gStr_effectSize;
 extern const std::string &gStr_homozygous;
 extern const std::string &gStr_breakpoints;
 extern const std::string &gStr_receiver;
@@ -1358,8 +1359,8 @@ enum _SLiMGlobalStringID : int {
 	gID_convertToSubstitution,
 	gID_defaultDominanceForTrait,
 	gID_defaultHemizygousDominanceForTrait,
-	gID_effectDistributionTypeForTrait,
-	gID_effectDistributionParamsForTrait,
+	gID_effectSizeDistributionTypeForTrait,
+	gID_effectSizeDistributionParamsForTrait,
 	gID_dominance,
 	gID_hemizygousDominance,
 	gID_mutationStackGroup,
@@ -1485,20 +1486,20 @@ enum _SLiMGlobalStringID : int {
 	gID_setGenomicElementType,
 	gID_setMutationFractions,
 	gID_setMutationMatrix,
-	gID_effectForTrait,
+	gID_effectSizeForTrait,
 	gID_dominanceForTrait,
 	gID_hemizygousDominanceForTrait,
 	gID_isIndependentDominanceForTrait,
-	gID_setEffectForTrait,
+	gID_setEffectSizeForTrait,
 	gID_setDominanceForTrait,
 	gID_setHemizygousDominanceForTrait,
 	gID_setMutationType,
-	gID_drawEffectForTrait,
+	gID_drawEffectSizeForTrait,
 	gID_loggedData,
 	gID_logMutationData,
 	gID_setDefaultDominanceForTrait,
 	gID_setDefaultHemizygousDominanceForTrait,
-	gID_setEffectDistributionForTrait,
+	gID_setEffectSizeDistributionForTrait,
 	gID_addPatternForClone,
 	gID_addPatternForCross,
 	gID_addPatternForNull,
@@ -1650,6 +1651,7 @@ enum _SLiMGlobalStringID : int {
 	gID_mut,
 	gID_trait,
 	gID_effect,
+	gID_effectSize,
 	gID_homozygous,
 	gID_breakpoints,
 	gID_receiver,

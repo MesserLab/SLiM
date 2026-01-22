@@ -648,7 +648,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	{
 		// The default distribution is a fixed effect of 0.0, and ellipsis arguments may not be supplied
 		if (p_arguments.size() != 3)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): with distributionType of NULL, ellipsis arguments may not be supplied to " << p_function_name << "(); the distribution of effect sizes is already completely specified." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): with distributionType of NULL, ellipsis arguments may not be supplied to " << p_function_name << "(); the distribution of effect size is already completely specified." << EidosTerminate();
 		
 		DES_type = DESType::kFixed;
 		DES_parameters.push_back(0.0);
@@ -1671,8 +1671,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		if (trait->Name() == name)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
 	
-	if (Eidos_string_hasSuffix(name, "Effect") || Eidos_string_hasSuffix(name, "Dominance") || Eidos_string_hasSuffix(name, "Hemizygous") || Eidos_string_hasSuffix(name, "Offset"))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not end in 'Effect', 'Dominance', 'Hemizygous', or 'Offset' to avoid naming conflicts and general confusion." << EidosTerminate();
+	if (Eidos_string_hasSuffix(name, "EffectSize") || Eidos_string_hasSuffix(name, "Dominance") || Eidos_string_hasSuffix(name, "Hemizygous") || Eidos_string_hasSuffix(name, "Offset"))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not end in 'EffectSize', 'Dominance', 'Hemizygous', or 'Offset' to avoid naming conflicts and general confusion." << EidosTerminate();
 	
 	if (name == "NULL")
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow a trait name of 'NULL', to avoid naming conflicts and general confusion." << EidosTerminate();
@@ -1756,7 +1756,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	// SLiMgui the traits from one model will show up in a different model running at the same time, and
 	// registered trait properties will not go away when you recycle.  I'm ok with that.
 	EidosGlobalStringID trait_stringID = EidosStringRegistry::GlobalStringIDForString(name);
-	EidosGlobalStringID traitEffect_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Effect");
+	EidosGlobalStringID traitEffectSize_stringID = EidosStringRegistry::GlobalStringIDForString(name + "EffectSize");
 	EidosGlobalStringID traitDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Dominance");
 	EidosGlobalStringID traitHemizygousDominance_stringID = EidosStringRegistry::GlobalStringIDForString(name + "HemizygousDominance");
 	EidosGlobalStringID traitOffset_stringID = EidosStringRegistry::GlobalStringIDForString(name + "Offset");
@@ -1833,8 +1833,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add a Mutation <trait-name>Effect property that returns the effect size for the trait in a mutation
-		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitEffect_stringID);
+		// add a Mutation <trait-name>EffectSize property that returns the effect size for the trait in a mutation
+		const EidosPropertySignature *existing_signature = gSLiM_Mutation_Class->SignatureForProperty(traitEffectSize_stringID);
 		
 		if (existing_signature)
 		{
@@ -1846,7 +1846,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		else
 		{
 			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
-			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Effect", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "EffectSize", false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
 												 MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Mutation_Class->AddSignatureForProperty(signature);
@@ -1896,8 +1896,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	}
 	
 	{
-		// add a Substitution <trait-name>Effect property that returns the effect size for the trait in a substitution
-		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitEffect_stringID);
+		// add a Substitution <trait-name>EffectSize property that returns the effect size for the trait in a substitution
+		const EidosPropertySignature *existing_signature = gSLiM_Substitution_Class->SignatureForProperty(traitEffectSize_stringID);
 		
 		if (existing_signature)
 		{
@@ -1909,7 +1909,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		else
 		{
 			// ALSO MAINTAIN: SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(), which also tracks this
-			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "Effect", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
+			EidosPropertySignature_CSP signature((new EidosPropertySignature(name + "EffectSize", true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->
 												 MarkAsDynamicWithOwner("Trait"));
 			
 			gSLiM_Substitution_Class->AddSignatureForProperty(signature);

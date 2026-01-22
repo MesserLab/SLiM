@@ -887,8 +887,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20  to specify an ID of 5).  The global symbol for the new mutation type, such as 
 \f1\fs18 m5
 \f2\fs20 , is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 dominanceCoeff
 \f2\fs20  parameter supplies the default dominance coefficient for the mutation type, for all traits; 
 \f1\fs18 0.0
@@ -909,11 +908,10 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , but the 
 \f1\fs18 setDefaultHemizygousDominanceForTrait()
 \f2\fs20  method can configure it subsequently if desired.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 distributionType
 \f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
-\f1\fs18 setEffectDistributionForTrait()
+\f1\fs18 setEffectSizeDistributionForTrait()
 \f2\fs20  method if desired.  The 
 \f1\fs18 distributionType
 \f2\fs20  parameter may be 
@@ -960,7 +958,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f1\fs18 distributionType
 \f2\fs20  is 
 \f1\fs18 NULL
-\f2\fs20  (the default), a fixed effect of 
+\f2\fs20  (the default), a fixed effect size of 
 \f1\fs18 0.0
 \f2\fs20  is used, representing a neutral DES; this is equivalent to type 
 \f1\fs18 "f"
@@ -969,8 +967,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20  is assumed and must not be supplied.  See the 
 \f1\fs18 MutationType
 \f2\fs20  class documentation for discussion of the various DESs and their uses.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1351,7 +1348,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1431,7 +1427,6 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3045,7 +3040,7 @@ This function assumes that mutations of type
 \f1\fs18 mutType
 \f2\fs20  encode their effect size upon the quantitative trait in their 
 \f1\fs18 effect
-\f2\fs20  property, as is fairly standard in SLiM.  The implementation of 
+\f2\fs20  property, as is standard in SLiM.  The implementation of 
 \f1\fs18 calcVA()
 \f2\fs20 , which is viewable with 
 \f1\fs18 functionSource()

@@ -855,7 +855,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
             
             if (callName.startsWith('<'))
             {
-                // BCH 1/7/2026: This case is hit for dynamic properties, which are present in the doc with names like <trait-name>Effect.  We don't want to
+                // BCH 1/7/2026: This case is hit for dynamic properties, which are present in the doc with names like <trait-name>EffectSize.  We don't want to
                 // check for a match, we just want to accept the property as it is.  We do want to reformat it, though; we make a temporary signature for that.
                 std::string property_name(callName.toStdString());
                 bool property_read_only = true;
@@ -1021,7 +1021,7 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
                     }
 				}
                 
-                // BCH 1/7/2026: Remove dynamic properties like "<trait-name>Effect" from the excess documentation list; they are not expected to have a match
+                // BCH 1/7/2026: Remove dynamic properties like "<trait-name>EffectSize" from the excess documentation list; they are not expected to have a match
                 static const QRegularExpression nonDynamicProperties("^[^<]");
                 docProperties = docProperties.filter(nonDynamicProperties);
                 

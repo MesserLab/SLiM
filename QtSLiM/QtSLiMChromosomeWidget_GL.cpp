@@ -261,7 +261,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 		for (auto mutationTypeIter : mut_types)
 		{
 			MutationType *mut_type = mutationTypeIter.second;
-            EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
 			
 			if (mut_type->mutation_type_displayed_)
 			{

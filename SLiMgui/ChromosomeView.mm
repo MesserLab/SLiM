@@ -709,7 +709,7 @@ static const int spaceBetweenChromosomes = 5;
 			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
-				EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+				EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
 				
 				// We optimize fixed-DES mutation types only, and those using a fixed color set by the user
 				if ((DES_info.DES_type_ == DESType::kFixed) || mut_type_fixed_color)

@@ -39,8 +39,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.convertToSubstitution == T) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.mutationStackGroup == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.mutationStackPolicy == 's') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectDistributionParamsForTrait() == 0.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectDistributionTypeForTrait() == 'f') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectSizeDistributionParamsForTrait() == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.effectSizeDistributionTypeForTrait() == 'f') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.defaultDominanceForTrait() == 0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.defaultHemizygousDominanceForTrait() == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (m1.id == 1) stop(); }", __LINE__);
@@ -74,78 +74,78 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(NULL, 0.3); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(0, 0.3); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultHemizygousDominanceForTrait(sim.traits, 0.3); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (m1.effectDistributionTypeForTrait() == 'f' & m1.effectDistributionParamsForTrait() == 2.2) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'g' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3); if (m1.effectDistributionTypeForTrait() == 'e' & m1.effectDistributionParamsForTrait() == -3) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'n' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'p' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); if (m1.effectDistributionTypeForTrait() == 'w' & identical(m1.effectDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'return 1;'); if (m1.effectDistributionTypeForTrait() == 's' & identical(m1.effectDistributionParamsForTrait(), 'return 1;')) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'x', 1.5); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 3); stop(); }", "must be of type string", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 3.1); stop(); }", "must be of type string", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', T); stop(); }", "must be of type string", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'f', 2.2); if (m1.effectSizeDistributionTypeForTrait() == 'f' & m1.effectSizeDistributionParamsForTrait() == 2.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, 7.5); if (m1.effectSizeDistributionTypeForTrait() == 'g' & identical(m1.effectSizeDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'e', -3); if (m1.effectSizeDistributionTypeForTrait() == 'e' & m1.effectSizeDistributionParamsForTrait() == -3) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, 7.5); if (m1.effectSizeDistributionTypeForTrait() == 'n' & identical(m1.effectSizeDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, 7.5); if (m1.effectSizeDistributionTypeForTrait() == 'p' & identical(m1.effectSizeDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, 7.5); if (m1.effectSizeDistributionTypeForTrait() == 'w' & identical(m1.effectSizeDistributionParamsForTrait(), c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 'return 1;'); if (m1.effectSizeDistributionTypeForTrait() == 's' & identical(m1.effectSizeDistributionParamsForTrait(), 'return 1;')) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'x', 1.5); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'e', 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 3); stop(); }", "must be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'f', '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'e', '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 3.1); stop(); }", "must be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'f', T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'e', T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', T); stop(); }", "must be of type string", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, -1.0); }", "must have a shape parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, -1.0); }", "must have a standard deviation parameter >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 0.0); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, -1.0); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 0.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', -1.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, -7.5); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, -1.0); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, -1.0); }", "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, 0.0); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, -1.0); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 0.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', -1.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, -7.5); }", "must have a shape parameter > 0", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'return foo;'); } 100 early() { stop(); }", "undefined identifier foo", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 'return foo;'); } 100 early() { stop(); }", "undefined identifier foo", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DES callback script", __LINE__, false);
 	
-	// Test MutationType - (float)drawEffectForTrait([integer$ n = 1])
+	// Test MutationType - (float)drawEffectSizeForTrait([integer$ n = 1])
 	// the parameters here are chosen so that these tests should fail extremely rarely
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (abs(m1.drawEffectForTrait() - 2.2) < 1e-6) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'f', 2.2); if (all(abs(m1.drawEffectForTrait(NULL, 10) - rep(2.2, 10)) < 1e-6)) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'g', 3.1, 7.5); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 3.1) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3.0); m1.drawEffectForTrait(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'e', -3.0); if (abs(mean(m1.drawEffectForTrait(NULL, 30000)) + 3.0) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 0.5); m1.drawEffectForTrait(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'n', 3.1, 0.5); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 3.1) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'p', 3.1, 0.01); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 3.1) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); m1.drawEffectForTrait(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 'w', 3.1, 7.5); if (abs(mean(m1.drawEffectForTrait(NULL, 2000)) - 2.910106) < 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); m1.drawEffectForTrait(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); if (abs(mean(m1.drawEffectForTrait(NULL, 5000)) - 2.0) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'f', 2.2); if (abs(m1.drawEffectSizeForTrait() - 2.2) < 1e-6) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'f', 2.2); if (all(abs(m1.drawEffectSizeForTrait(NULL, 10) - rep(2.2, 10)) < 1e-6)) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, 7.5); m1.drawEffectSizeForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'g', 3.1, 7.5); if (abs(mean(m1.drawEffectSizeForTrait(NULL, 5000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'e', -3.0); m1.drawEffectSizeForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'e', -3.0); if (abs(mean(m1.drawEffectSizeForTrait(NULL, 30000)) + 3.0) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, 0.5); m1.drawEffectSizeForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'n', 3.1, 0.5); if (abs(mean(m1.drawEffectSizeForTrait(NULL, 2000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, 7.5); m1.drawEffectSizeForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'p', 3.1, 0.01); if (abs(mean(m1.drawEffectSizeForTrait(NULL, 2000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, 7.5); m1.drawEffectSizeForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 'w', 3.1, 7.5); if (abs(mean(m1.drawEffectSizeForTrait(NULL, 2000)) - 2.910106) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); m1.drawEffectSizeForTrait(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setEffectSizeDistributionForTrait(NULL, 's', 'rbinom(1, 4, 0.5);'); if (abs(mean(m1.drawEffectSizeForTrait(NULL, 5000)) - 2.0) < 0.1) stop(); }", __LINE__);
 	
 	// test mutation data recording with logMutationData() and loggedData()
 	std::string data_recording =
@@ -701,12 +701,12 @@ void _RunMutationTests(void)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.mutationType == m1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if ((mut.originTick >= 1) & (mut.originTick < 10)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if ((mut.position >= 0) & (mut.position < 100000)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.effect == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.effectSize == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; if (mut.subpopID == 1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.mutationType = m1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.originTick = 1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.position = 0; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.effect = 0.1; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.effectSize = 0.1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.subpopID = 237; if (mut.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; c(mut,mut).tag; }", "before being set", __LINE__);
@@ -732,13 +732,13 @@ void _RunSubstitutionTests(void)
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.mutationType == m1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.originTick > 0 & sub.originTick <= 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.position >= 0 & sub.position <= 99999) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { if (sum(sim.substitutions.effect == 500.0) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { if (sum(sim.substitutions.effectSize == 500.0) == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; if (sub.subpopID == 1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.fixationTick = 10; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.mutationType = m1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.originTick = 10; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.position = 99999; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.effect = 50.0; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.effectSize = 50.0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "50 early() { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 }
 
@@ -787,7 +787,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(1, 5000, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(1, 5000, -1); stop(); }", "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [Nio<Subpopulation> originSubpop])
+	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effectSize, integer position, [Nio<Subpopulation> originSubpop])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, p1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, 1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
@@ -827,7 +827,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewDrawnMutation(1, 5000, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewDrawnMutation(1, 5000, -1); stop(); }", "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
+	// Test Haplosome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effectSize, integer position, [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000, p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.haplosomes.addNewMutation(m1, 0.1, 5000); stop(); }", __LINE__);
@@ -1170,24 +1170,24 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.heightOffset = INF; }", "required to be a finite value (not INF or NAN)", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.heightOffset = c(1,INF,3,INF,5); }", "required to be a finite value (not INF or NAN)", __LINE__);
 		
-		// Mutation effectForTrait()
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(0), 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(1), 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectForTrait(NULL), c(0.0, 0.0))) stop(); }");
+		// Mutation effectSizeForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectSizeForTrait(0), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectSizeForTrait(1), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.effectSizeForTrait(NULL), c(0.0, 0.0))) stop(); }");
 		
-		// Mutation setEffectForTrait()
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, 3); mut.setEffectForTrait(1, 4.5); if (!identical(mut.effectForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, 1:5 * 2 - 1); mut.setEffectForTrait(1, 1:5 * 2); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(NULL, 1:10); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(NULL, 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10); if (!identical(mut.effectForTrait(NULL), 1.0:10)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.effectForTrait(NULL), 1:10 + 0.5)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10); if (!identical(mut.effectForTrait(c(1,0)), 1.0:10)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.effectForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
-		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, NAN); }", "non-finite after setEffectForTrait()", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, c(1,NAN,3,NAN,5)); }", "non-finite after setEffectForTrait()", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, INF); }", "non-finite after setEffectForTrait()", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectForTrait(0, c(1,INF,3,INF,5)); }", "non-finite after setEffectForTrait()", __LINE__);
+		// Mutation setEffectSizeForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(0, 3); mut.setEffectSizeForTrait(1, 4.5); if (!identical(mut.effectSizeForTrait(NULL), rep(c(3, 4.5), 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(0, 1:5 * 2 - 1); mut.setEffectSizeForTrait(1, 1:5 * 2); if (!identical(mut.effectSizeForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(NULL, 1:10); if (!identical(mut.effectSizeForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(NULL, 1:10 + 0.5); if (!identical(mut.effectSizeForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(c(0,1), 1:10); if (!identical(mut.effectSizeForTrait(NULL), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(c(0,1), 1:10 + 0.5); if (!identical(mut.effectSizeForTrait(NULL), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(c(1,0), 1:10); if (!identical(mut.effectSizeForTrait(c(1,0)), 1.0:10)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(c(1,0), 1:10 + 0.5); if (!identical(mut.effectSizeForTrait(c(1,0)), 1:10 + 0.5)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(0, NAN); }", "non-finite after setEffectSizeForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(0, c(1,NAN,3,NAN,5)); }", "non-finite after setEffectSizeForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(0, INF); }", "non-finite after setEffectSizeForTrait()", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setEffectSizeForTrait(0, c(1,INF,3,INF,5)); }", "non-finite after setEffectSizeForTrait()", __LINE__);
 		
 		// Mutation dominanceForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.dominanceForTrait(0), 0.5)) stop(); }");
@@ -1257,10 +1257,10 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, INF); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, INF)); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
 		
-		// Substitution effectForTrait()
-		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(0), 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(1), 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectForTrait(NULL), c(0.0, 0.0))) stop(); }");
+		// Substitution effectSizeForTrait()
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectSizeForTrait(0), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectSizeForTrait(1), 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.effectSizeForTrait(NULL), c(0.0, 0.0))) stop(); }");
 		
 		// Substitution dominanceForTrait()
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.dominanceForTrait(0), 0.5)) stop(); }");
@@ -1272,13 +1272,13 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(1), 1.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.hemizygousDominanceForTrait(NULL), c(1.0, 1.0))) stop(); }");
 		
-		// Mutation <trait-name>Effect property
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightEffect, 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightEffect, 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = 0.25; if (!identical(mut.heightEffect, 0.25)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightEffect = 0.25; if (!identical(mut.weightEffect, 0.25)) stop(); }");
-		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = NAN; }", "required to be a finite value (not INF or NAN)", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffect = INF; }", "required to be a finite value (not INF or NAN)", __LINE__);
+		// Mutation <trait-name>EffectSize property
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightEffectSize, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.weightEffectSize, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffectSize = 0.25; if (!identical(mut.heightEffectSize, 0.25)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.weightEffectSize = 0.25; if (!identical(mut.weightEffectSize, 0.25)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffectSize = NAN; }", "required to be a finite value (not INF or NAN)", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightEffectSize = INF; }", "required to be a finite value (not INF or NAN)", __LINE__);
 		
 		// Mutation <trait-name>Dominance property
 		SLiMAssertScriptSuccess(mt_base_p1 + "5 late() { mut = sim.mutations[0]; if (!identical(mut.heightDominance, 0.5)) stop(); }");
@@ -1297,9 +1297,9 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = NAN; }", "required to be finite or NAN", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0]; mut.heightHemizygousDominance = INF; }", "required to be finite or NAN", __LINE__);
 		
-		// Substitution <trait-name>Effect property
-		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightEffect, 0.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightEffect, 0.0)) stop(); }");
+		// Substitution <trait-name>EffectSize property
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightEffectSize, 0.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.weightEffectSize, 0.0)) stop(); }");
 		
 		// Substitution <trait-name>Dominance property
 		SLiMAssertScriptSuccess(mt_base_p1 + "200 late() { sub = sim.substitutions[0]; if (!identical(sub.heightDominance, 0.5)) stop(); }");
@@ -1337,19 +1337,19 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.isNeutral == T)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.isIndependentDominanceForTrait(0) == F)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.dominance == 0.5)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.effect == 0.0)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0);" + middle + "if (all(muts.effectSize == 0.0)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (all(muts.isNeutral == F)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (all(muts.isIndependentDominanceForTrait(0) == F)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (all(muts.dominance == 0.5)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (allClose(muts.effect, 0.0001)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "if (allClose(muts.effectSize, 0.0001)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.isNeutral == T)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.isIndependentDominanceForTrait(0) == T)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.dominance == 0.5)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.effect == 0.0)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0);" + middle + "if (all(muts.effectSize == 0.0)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (all(muts.isNeutral == F)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (all(muts.isIndependentDominanceForTrait(0) == T)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (allClose(muts.dominance, 0.4999875)) stop(); }");		// h = (sqrt(1+s)-1)/s
-	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (allClose(muts.effect, 0.0001)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (allClose(muts.effectSize, 0.0001)) stop(); }");
 	
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.setDominanceForTrait(0, 0.5); if (all(muts.dominance == 0.5)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.dominance == 0.5)) stop(); }");
@@ -1427,7 +1427,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		}
 		1:10 early() {
 			f1 = p1.individuals.cachedFitness;
-			f2 = sapply(p1.individuals, "muts = applyValue.haplosomes.mutations; product(1.0 + muts.effect * muts.dominance);");
+			f2 = sapply(p1.individuals, "muts = applyValue.haplosomes.mutations; product(1.0 + muts.effectSize * muts.dominance);");
 			if (!allClose(f1, f2))
 				stop();
 		}
@@ -1728,14 +1728,14 @@ initialize() {
 	initializeMutationType("m1", 0.4, "f", 0.0);                                  // neutral for all traits
 	
 	initializeMutationType("m2", 0.4, "e", 0.001);                                // beneficial for the popgen traits
-	m2.setEffectDistributionForTrait(c(n1T, n2T), "f", 0.0);                 		// neutral DES for the neutral traits
-	m2.setEffectDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);         // unbiased normal DES for the additive traits
+	m2.setEffectSizeDistributionForTrait(c(n1T, n2T), "f", 0.0);                  // neutral DES for the neutral traits
+	m2.setEffectSizeDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);     // unbiased normal DES for the additive traits
 	
 	initializeMutationType("m3", 0.4, "g", -0.001, 1.0);                          // deleterious for the popgen traits
-	m3.setEffectDistributionForTrait(c(n1T, n2T), "f", 0.0);                 		// neutral DES for the neutral traits
-	m3.setEffectDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);         // unbiased normal DES for the additive traits
+	m3.setEffectSizeDistributionForTrait(c(n1T, n2T), "f", 0.0);                  // neutral DES for the neutral traits
+	m3.setEffectSizeDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);     // unbiased normal DES for the additive traits
 	
-	c(m2,m3).setEffectDistributionForTrait(n3T, "n", -5.0, 0.5);                  // very biased and wide DES for n3T
+	c(m2,m3).setEffectSizeDistributionForTrait(n3T, "n", -5.0, 0.5);              // very biased and wide DES for n3T
 	
 	// set up independent dominance for popgen2T and quant2T; note that setting this for m1 should be unnecessary (it is neutral)
 	c(m1,m2,m3).setDefaultDominanceForTrait(c(popgen2T, quant2T), NAN);

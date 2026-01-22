@@ -4419,7 +4419,7 @@
 				std::advance(mutTypeIter, rowIndex);
 				slim_objectid_t mutTypeID = mutTypeIter->first;
 				MutationType *mutationType = mutTypeIter->second;
-				EffectDistributionInfo &DES_info = mutationType->effect_distributions_[0];	// FIXME MULTITRAIT
+				EffectSizeDistributionInfo &DES_info = mutationType->effect_size_distributions_[0];	// FIXME MULTITRAIT
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{

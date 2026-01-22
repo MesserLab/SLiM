@@ -555,7 +555,7 @@ void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *c
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
-		EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+		EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
 		
 		sample_size = (DES_info.DES_type_ == DESType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
@@ -570,7 +570,7 @@ void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *c
 		
 		Eidos_RNG_State *slim_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 		
-		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawEffectForTrait()
+		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawEffectSizeForTrait()
 		
 		//std::clock_t start = std::clock();
 		
@@ -578,7 +578,7 @@ void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *c
 		{
 			for (int sample_count = 0; sample_count < sample_size; ++sample_count)
 			{
-				double draw = mut_type->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+				double draw = mut_type->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 				
 				draws.emplace_back(draw);
 				

@@ -69,7 +69,7 @@ multitrait branch:
 		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
 		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
 		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
-		transition MutationType's internals to keep a separate DE for each trait using a new EffectDistributionInfo struct
+		transition MutationType's internals to keep a separate DE for each trait using a new EffectSizeDistributionInfo struct
 		added C++ all_neutral_DES_ and all_neutral_mutations_ flags to represent whether (a) all of the effects of a given mutation type are neutral, and (b) all mutations of that type are actually neutral
 		make initializeMutationType()'s DES set up the DES for all traits (then separately configurable with setEffectDistributionForTrait())
 	add support in Individual for the individual's offset for each trait
@@ -148,6 +148,21 @@ multitrait branch:
 	re-enable non-neutral caching (but without independent dominance optimizations, so far)
 	add calculation and use of independent dominance caches, per trait
 	add a dynamic property to Individual for accessing individual offsets, <trait-name>Offset
+	renaming of Mutation's term "effect" to "effectSize" to disambiguate with the "effect" of a mutation (e.g., mutationEffect() callbacks):
+		Mutation property <trait-name>Effect -> <trait-name>EffectSize
+		Mutation property effect -> effectSize
+		Mutation effectForTrait() method -> effectSizeForTrait()
+		Mutation setEffectForTrait() method -> setEffectSizeForTrait()
+		MutationType drawEffectForTrait() method -> drawEffectSizeForTrait()
+		MutationType effectDistributionParamsForTrait() method -> effectSizeDistributionParamsForTrait()
+		MutationType effectDistributionTypeForTrait() method -> effectSizeDistributionTypeForTrait()
+		MutationType setEffectDistributionForTrait() method -> setEffectSizeDistributionTypeForTrait()
+		Substitution <trait-name>Effect property -> <trait-name>EffectSize
+		Substitution effect property -> effectSize
+		Substitution effectForTrait() method -> effectSizeForTrait()
+		addNewMutation() parameter "effect" -> "effectSize"
+		setEffectSizeForTrait() parameter "effect" -> "effectSize"
+		MutationType's loggedData() parameter "effect" -> "effectSize" and lots of related fallout for loggedData() and logMutationData(), logged_effect_, running_effect_, etc.
 
 
 version 5.1 (Eidos version 4.1):

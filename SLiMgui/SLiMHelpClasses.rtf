@@ -1733,9 +1733,9 @@ Note that in nonWF models that use tree-sequence recording, mutations cannot be 
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
+\f4\fs20  to \'93tag\'94 the mutations that you create (see section 26.10.1).  The effect sizes of the mutations are drawn from the distributions of effect size of their mutation types; 
 \f3\fs18 addNewMutation()
-\f4\fs20  may be used instead if you wish to specify selection coefficients.  All of the target haplosomes must be associated with the same 
+\f4\fs20  may be used instead if you wish to specify effect sizes.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object, since each new mutation is added to all of the target haplosomes.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -1811,7 +1811,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20 ), to prevent the possibility of inconsistencies in the recorded tree sequence.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0effect, integer\'a0position, [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0effectSize, integer\'a0position, [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
 , [Nis\'a0nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -1823,7 +1823,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  object or by 
 \f3\fs18 integer
 \f4\fs20  identifier), 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20 , 
 \f3\fs18 position
 \f4\fs20 , 
@@ -2137,7 +2137,7 @@ See the
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -positionsOfMutationsOfType()
-\f4\fs20 ; and if you are aiming for a sum of the effects of matching 
+\f4\fs20 ; and if you are aiming for a sum of the effect sizes of matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -sumOfMutationsOfType()
@@ -2719,7 +2719,7 @@ The optional parameter
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the sum of the effects of all mutations that are of the type specified by 
+\f4\fs20 \cf2 Returns the sum of the effect sizes of all mutations that are of the type specified by 
 \f3\fs18 mutType
 \f4\fs20 , out of all of the mutations in the haplosome, for the trait specified by 
 \f3\fs18 trait
@@ -4557,7 +4557,7 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the sum of the effects of all mutations that are of the type specified by 
+\f4\fs20 \cf2 Returns the sum of the effect sizes of all mutations that are of the type specified by 
 \f3\fs18 mutType
 \f4\fs20 , out of all of the mutations in the haplosomes of the individual, for the trait specified by 
 \f3\fs18 trait
@@ -6205,17 +6205,17 @@ You can get the
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
-\f3\i0 Effect \expnd0\expndtw0\kerning0
+\f3\i0 EffectSize \expnd0\expndtw0\kerning0
 <\'96>\kerning1\expnd0\expndtw0  (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 This dynamic property provides the effect size of the mutation for the trait named 
 \f2\i\fs18 <trait-name>
 \f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20  property and the 
-\f3\fs18 effectForTrait()
-\f4\fs20  method provide alternative ways to access effect values.\
+\f3\fs18 effectSizeForTrait()
+\f4\fs20  method provide alternative ways to access effect sizes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -6266,7 +6266,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 NAN
 \f4\fs20 ; instead, it provides the dominance value that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance value (see 
 \f3\fs18 isIndependentDominanceForTrait()
-\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect, and may change if the effect changes.  The class 
+\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if the effect size changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
 Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
@@ -6280,28 +6280,28 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 effect => (float)\
+\f3\fs18 \cf2 effectSize => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The effect size(s) of the mutation, drawn from the distribution of effect sizes of its 
+\f4\fs20 \cf2 The effect size(s) of the mutation, drawn from the distribution of effect size of its 
 \f3\fs18 MutationType
 \f4\fs20 .  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
-\f3\fs18 effectForTrait()
+\f3\fs18 effectSizeForTrait()
 \f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
 \f3\fs18 height
 \f4\fs20 , for example, then 
 \f3\fs18 Mutation
 \f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightEffect
-\f4\fs20  to access the effect for that trait.  The effect size of a mutation can be changed with the 
-\f3\fs18 setEffectForTrait()
+\f3\fs18 heightEffectSize
+\f4\fs20  to access the effect size for that trait.  The effect sizes of a mutation can be changed with the 
+\f3\fs18 setEffectSizeForTrait()
 \f4\fs20  method.\
 Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s effect size to some number 
 \f3\fs18 x
 \f4\fs20 , 
-\f3\fs18 mut.effect==x
+\f3\fs18 mut.effectSize==x
 \f4\fs20  may be 
 \f3\fs18 F
 \f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
@@ -6358,7 +6358,7 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \cf2 T
 \f4\fs20  if the mutation is neutral, 
 \f3\fs18 F
-\f4\fs20  otherwise.  For a mutation to be considered neutral, it must have an effect of exactly 
+\f4\fs20  otherwise.  For a mutation to be considered neutral, it must have an effect size of exactly 
 \f3\fs18 0.0
 \f4\fs20  for all traits; its mutation type and dominance are irrelevant to this determination.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6500,12 +6500,12 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 NAN
 \f4\fs20 ; instead, it returns the dominance value that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance value (see 
 \f3\fs18 isIndependentDominanceForTrait()
-\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect, and may change if that effect changes.  The class 
+\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if that effect size changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the mutation\'92s effect size for the trait(s) specified by 
@@ -6522,7 +6522,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effects for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effect sizes for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6618,10 +6618,10 @@ A dominance value of
 \f4\fs20 .  A given mutation may be configured to exhibit independent dominance for some traits and not for others; a mixed configuration is allowed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)setEffectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effect\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(void)setEffectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effectSize\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Sets the mutation\'92s effect(s) for the trait(s) specified by 
+\f4\fs20 \cf2 Sets the mutation\'92s effect size(s) for the trait(s) specified by 
 \f3\fs18 trait
 \f4\fs20 .  The traits can be specified as 
 \f3\fs18 integer
@@ -6633,22 +6633,22 @@ A dominance value of
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
 The parameter 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20  must follow one of four patterns.  In the first pattern, 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20 ; this draws the effect for each of the specified traits from the corresponding distribution of effect sizes from the mutation type of the mutation in each target mutation.  (Note that mutation offsets are automatically drawn from these distributions when a mutation is created; this re-draws new effect values.)  In the second pattern, 
-\f3\fs18 effect
-\f4\fs20  is a singleton value; this sets the given effect for each of the specified traits in each target mutation.  In the third pattern, 
-\f3\fs18 effect
-\f4\fs20  is of length equal to the number of specified traits; this sets the effect for each of the specified traits to the corresponding effect value in each target mutation.  In the fourth pattern, 
-\f3\fs18 effect
+\f4\fs20 ; this draws the effect size for each of the specified traits from the corresponding distribution of effect size for the mutation type of the mutation in each target mutation.  (Note that mutation effect sizes are automatically drawn from these distributions when a mutation is created; this re-draws new effect sizes.)  In the second pattern, 
+\f3\fs18 effectSize
+\f4\fs20  is a singleton value; this sets the given effect size for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 effectSize
+\f4\fs20  is of length equal to the number of specified traits; this sets the effect size for each of the specified traits to the corresponding effect size in each target mutation.  In the fourth pattern, 
+\f3\fs18 effectSize
 \f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
-\f3\fs18 effect
-\f4\fs20  to provide a different effect value for each trait in each mutation, using consecutive values from 
-\f3\fs18 effect
-\f4\fs20  to set the effect for each of the specified traits in one mutation before moving to the next mutation.\
+\f3\fs18 effectSize
+\f4\fs20  to provide a different effect size for each trait in each mutation, using consecutive values from 
+\f3\fs18 effectSize
+\f4\fs20  to set the effect size for each of the specified traits in one mutation before moving to the next mutation.\
 Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
@@ -6698,8 +6698,8 @@ The parameter
 \f3\fs18 integer
 \f4\fs20  identifier or a 
 \f3\fs18 MutationType
-\f4\fs20  object).  The effects and dominance coefficients of existing mutations are not changed, since those are properties of the mutation objects themselves; they can be changed explicitly using the 
-\f3\fs18 setEffectForTrait()
+\f4\fs20  object).  The effect sizes and dominance coefficients of existing mutations are not changed, since those are properties of the mutation objects themselves; they can be changed explicitly using the 
+\f3\fs18 setEffectSizeForTrait()
 \f4\fs20  and 
 \f3\fs18 setDominanceForTrait()
 \f4\fs20  methods of 
@@ -6939,7 +6939,7 @@ If a default dominance coefficient of
 \f3\fs18 Mutation
 \f4\fs20  method 
 \f3\fs18 dominanceForTrait()
-\f4\fs20  regarding obtaining the realized dominance coefficient used in a particular mutation, given that mutation\'92s effect for the trait.\
+\f4\fs20  regarding obtaining the realized dominance coefficient used in a particular mutation, given that mutation\'92s effect size for the trait.\
 Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
 \f3\fs18 1.0
 \f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
@@ -6978,12 +6978,12 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
+\f3\fs18 \cf2 \'96\'a0(float)drawEffectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Draws and returns a vector of 
 \f3\fs18 n
-\f4\fs20  mutation effects using the distribution of effects for the specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f4\fs20  mutation effect sizes using the distribution of effect size for the specified trait or traits, for the target mutation type.  The traits can be specified as 
 \f3\fs18 integer
 \f4\fs20  indices or 
 \f3\fs18 string
@@ -6993,15 +6993,15 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species.  See the 
 \f3\fs18 MutationType
-\f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effects is of type 
+\f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effect size is of type 
 \f3\fs18 "s"
-\f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effects.\
+\f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effect size.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(fs)effectDistributionParamsForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(fs)effectSizeDistributionParamsForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the parameters that configure the distribution of effects for the specified trait or traits.  The traits can be specified as 
+\f4\fs20 \cf2 Returns the parameters that configure the distribution of effect size for the specified trait or traits.  The traits can be specified as 
 \f3\fs18 integer
 \f4\fs20  indices or 
 \f3\fs18 string
@@ -7018,10 +7018,10 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  for all other DES types.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string)effectDistributionTypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(string)effectSizeDistributionTypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the type of distribution of effects for the specified trait or traits.  The traits can be specified as 
+\f4\fs20 \cf2 Returns the type of the distribution of effect size for the specified trait or traits.  The traits can be specified as 
 \f3\fs18 integer
 \f4\fs20  indices or 
 \f3\fs18 string
@@ -7048,7 +7048,7 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  class documentation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(io<DataFrame>$)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effect\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(io<DataFrame>$)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effectSize\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns mutation data produced by the mutation type\'92s logging facility, as configured by 
@@ -7083,7 +7083,7 @@ The remaining flags control which columns of data should be returned (for
 \f4\fs20  object will be returned with named columns of values (or means, or standard deviations) for each specified data column.  The 
 \f3\fs18 trait
 \f4\fs20  property specifies which the traits for which values should be returned, with respect to the 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20 , 
 \f3\fs18 dominance
 \f4\fs20 , and 
@@ -7101,7 +7101,7 @@ The remaining flags control which columns of data should be returned (for
 \f4\fs20  class documentation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)logMutationData(logical$\'a0enable, [logical$\'a0autogeneratedOnly\'a0=\'a0T], [logical$\'a0meanOnly\'a0=\'a0F], [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effect\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(void)logMutationData(logical$\'a0enable, [logical$\'a0autogeneratedOnly\'a0=\'a0T], [logical$\'a0meanOnly\'a0=\'a0F], [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effectSize\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Starts or ends logging of data about new mutations belonging to the target mutation type.  If 
@@ -7188,7 +7188,7 @@ Last come parameters that control the logging of trait-associated data for the n
 \f4\fs20  objects; 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species.  For each specified trait, the 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20  parameter controls logging of the effect size, the 
 \f3\fs18 dominance
 \f4\fs20  parameter controls the dominance, and the 
@@ -7198,7 +7198,7 @@ Last come parameters that control the logging of trait-associated data for the n
 \f4\fs20  and 
 \f3\fs18 weight
 \f4\fs20  are specified, and the 
-\f3\fs18 effect=T
+\f3\fs18 effectSize=T
 \f4\fs20  and 
 \f3\fs18 dominance=T
 \f4\fs20  flags are specified, then columns 
@@ -7266,10 +7266,10 @@ As for
 \f4\fs20  is used for each corresponding trait).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setEffectDistributionForTrait(Niso<Trait>\'a0trait, string$\'a0distributionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(void)setEffectSizeDistributionForTrait(Niso<Trait>\'a0trait, string$\'a0distributionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Set the distribution of effects for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f4\fs20 \cf2 Set the distribution of effect size for a specified trait or traits, for the target mutation type.  The traits can be specified as 
 \f3\fs18 integer
 \f4\fs20  indices or 
 \f3\fs18 string
@@ -7286,27 +7286,27 @@ The
 \f3\fs18 ...
 \f4\fs20  should supply a 
 \f3\fs18 numeric$
-\f4\fs20  fixed selection coefficient; 
+\f4\fs20  fixed effect size; 
 \f3\fs18 "e"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient for the exponential distribution; 
+\f4\fs20  mean effect size for the exponential distribution; 
 \f3\fs18 "g"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient and a 
+\f4\fs20  mean effect size and a 
 \f3\fs18 numeric$
 \f4\fs20  alpha shape parameter for a gamma distribution; 
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient and a 
+\f4\fs20  mean effect size and a 
 \f3\fs18 numeric$
 \f4\fs20  sigma (standard deviation) parameter for a normal distribution; 
 \f3\fs18 "p"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient and a 
+\f4\fs20  mean effect size and a 
 \f3\fs18 numeric$
 \f4\fs20  scale parameter for a Laplace distribution; 
 \f3\fs18 "w"
@@ -7322,7 +7322,7 @@ The
 \f3\fs18 string$
 \f4\fs20  Eidos script parameter.  See the 
 \f3\fs18 MutationType
-\f4\fs20  class documentation for discussion of these distributions and their uses.  The distribution of effects for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
+\f4\fs20  class documentation for discussion of these distributions and their uses.  The distribution of effect size for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.12  Class Plot\
@@ -14662,16 +14662,16 @@ Note that this method is only for use in nonWF models, in which migration is man
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
-\f3\i0 Effect => (float$)\
+\f3\i0 EffectSize => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 This dynamic property provides the effect size of the substitution for the trait named 
 \f2\i\fs18 <trait-name>
 \f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
-\f3\fs18 effect
+\f3\fs18 effectSize
 \f4\fs20  property and the 
-\f3\fs18 effectForTrait()
-\f4\fs20  method provide alternative ways to access effect values.\
+\f3\fs18 effectSizeForTrait()
+\f4\fs20  method provide alternative ways to access effect sizes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -14709,18 +14709,18 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  to access the dominance for that trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 effect => (float)\
+\f3\fs18 \cf2 effectSize => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The selection coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
-\f3\fs18 effectForTrait()
+\f4\fs20 \cf2 The effect size(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 effectSizeForTrait()
 \f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
 \f3\fs18 height
 \f4\fs20 , for example, then 
 \f3\fs18 Substitution
 \f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightEffect
-\f4\fs20  to access the effect for that trait.\
+\f3\fs18 heightEffectSize
+\f4\fs20  to access the effect size for that trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 hemizygousDominance => (float)\
@@ -14869,7 +14869,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f5\fs22 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(float)effectForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the substitution\'92s effect size for the trait(s) specified by 
@@ -14886,7 +14886,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effects for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effect sizes for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

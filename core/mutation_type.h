@@ -20,7 +20,7 @@
 /*
  
  The class MutationType represents a type of mutation defined in the input file, such as a synonymous mutation or an adaptive mutation.
- A particular mutation type is defined by its distribution of effect sizes (DES) and its dominance coefficient.  Once a mutation type
+ A particular mutation type is defined by its distribution of effect size (DES) and its dominance coefficient.  Once a mutation type
  is defined, a draw from its DES can be generated to determine the selection coefficient of a particular mutation of that type.
  
  */
@@ -48,7 +48,7 @@ class MutationType_Class;
 extern MutationType_Class *gSLiM_MutationType_Class;
 
 
-// This enumeration represents a type of distribution of effect sizes (DES) that a mutation type can draw from
+// This enumeration represents a type of distribution of effect size (DES) that a mutation type can draw from
 enum class DESType : char {
 	kFixed = 0,
 	kGamma,
@@ -62,9 +62,9 @@ enum class DESType : char {
 std::ostream& operator<<(std::ostream& p_out, DESType p_DES_type);
 
 
-// This struct holds information about a distribution of effects (including dominance) for one trait.
+// This struct holds information about a distribution of effect size (including dominance) for one trait.
 // MutationEffect then keeps a vector of these structs, one for each trait.
-typedef struct _EffectDistributionInfo {
+typedef struct _EffectSizeDistributionInfo {
 	slim_effect_t default_dominance_coeff_;				// the default dominance coefficient (h) inherited by mutations of this type
 	slim_effect_t default_hemizygous_dominance_coeff_;	// the default dominance coefficient (h) used when one haplosome is null
 	
@@ -72,12 +72,12 @@ typedef struct _EffectDistributionInfo {
 	std::vector<double> DES_parameters_;				// DES parameters, of type double (originally float or integer type)
 	std::vector<std::string> DES_strings_;				// DES parameters, of type std::string (originally string type)
 	mutable EidosScript *cached_DES_script_ = nullptr;	// used by DES type 's' to hold a cached script for the DES
-} EffectDistributionInfo;
+} EffectSizeDistributionInfo;
 
 // This struct holds per-trait information about mutations, for our mutation data logging facility
 typedef struct _TraitEffectLog {
-	double running_effect_, running_dominance_, running_hemizygous_dominance_;
-	slim_effect_t *logged_effect_ = nullptr;
+	double running_effect_size_, running_dominance_, running_hemizygous_dominance_;
+	slim_effect_t *logged_effect_size_ = nullptr;
 	slim_effect_t *logged_dominance_ = nullptr;
 	slim_effect_t *logged_hemizygous_dominance_ = nullptr;
 } TraitEffectLog;
@@ -100,7 +100,7 @@ private:
 	bool log_meanOnly_;
 	
 	bool log_id_, log_mutationTypeID_, log_chromosomeID_, log_position_, log_nucleotideValue_, log_originTick_,
-	log_subpopID_, log_tag_, log_effect_, log_dominance_, log_hemizygousDominance_;
+		log_subpopID_, log_tag_, log_effectSize_, log_dominance_, log_hemizygousDominance_;
 	
 	size_t log_size_ = 0;		// number of entries logged
 	size_t log_capacity_ = 0;	// number of entries allocated
@@ -125,9 +125,9 @@ private:
 	
 public:
 	
-	// a mutation type is specified by the distribution of effects (DE) and the default dominance coefficient
+	// a mutation type is specified by the distribution of effect size (DES) and the default dominance coefficient
 	//
-	// DE options:  f: fixed (s) 
+	// DES options:  f: fixed (s) 
 	//              e: exponential (mean s)
 	//              g: gamma distribution (mean s,shape)
 	//
@@ -139,7 +139,7 @@ public:
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
-	std::vector<EffectDistributionInfo> effect_distributions_;	// DESs for each trait in the species
+	std::vector<EffectSizeDistributionInfo> effect_size_distributions_;		// DESs for each trait in the species
 	
 	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
 	
@@ -242,19 +242,19 @@ public:
 	
 	slim_effect_t DefaultDominanceForTrait(slim_trait_index_t p_trait_index) const
 	{
-		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
+		const EffectSizeDistributionInfo &DES_info = effect_size_distributions_[p_trait_index];
 		
 		return DES_info.default_dominance_coeff_;
 	}
 	
 	slim_effect_t DefaultHemizygousDominanceForTrait(slim_trait_index_t p_trait_index) const
 	{
-		const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
+		const EffectSizeDistributionInfo &DES_info = effect_size_distributions_[p_trait_index];
 		
 		return DES_info.default_hemizygous_dominance_coeff_;
 	}
 	
-	slim_effect_t DrawEffectForTrait(slim_trait_index_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
+	slim_effect_t DrawEffectSizeForTrait(slim_trait_index_t p_trait_index) const;				// draw a selection coefficient from the DE for a trait
 	
 	
 	//
@@ -271,14 +271,14 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_defaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_defaultHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_effectDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_effectDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_drawEffectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_effectSizeDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_effectSizeDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_drawEffectSizeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_loggedData(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_logMutationData(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setDefaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setDefaultHemizygousDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_setEffectDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setEffectSizeDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);

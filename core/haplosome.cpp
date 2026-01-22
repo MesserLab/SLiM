@@ -2273,7 +2273,7 @@ const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) cons
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("effect")->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));	// FIXME MULTITRAIT
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("effectSize")->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));	// FIXME MULTITRAIT
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_containsMutations));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType));
@@ -2616,7 +2616,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 }
 
 //	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
-//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effect, integer position, [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
+//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric effectSize, integer position, [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
 //
 EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -2627,7 +2627,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 #endif
 	
 	EidosValue *arg_muttype = p_arguments[0].get();
-	EidosValue *arg_effect = (p_method_id == gID_addNewDrawnMutation ? nullptr : p_arguments[1].get());
+	EidosValue *arg_effectSize = (p_method_id == gID_addNewDrawnMutation ? nullptr : p_arguments[1].get());
 	EidosValue *arg_position = (p_method_id == gID_addNewDrawnMutation ? p_arguments[1].get() : p_arguments[2].get());
 	EidosValue *arg_origin_subpop = (p_method_id == gID_addNewDrawnMutation ? p_arguments[2].get() : p_arguments[3].get());
 	EidosValue *arg_nucleotide = (p_method_id == gID_addNewDrawnMutation ? p_arguments[3].get() : p_arguments[4].get());
@@ -2739,7 +2739,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	// position and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
 	int muttype_count = arg_muttype->Count();
-	int effect_count = (arg_effect ? arg_effect->Count() : 0);
+	int effectSize_count = (arg_effectSize ? arg_effectSize->Count() : 0);
 	int position_count = arg_position->Count();
 	int origin_subpop_count = arg_origin_subpop->Count();
 	int nucleotide_count = arg_nucleotide->Count();
@@ -2749,14 +2749,14 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	if (arg_nucleotide->Type() == EidosValueType::kValueNULL)
 		nucleotide_count = 1;
 	
-	int count_to_add = std::max({muttype_count, effect_count, position_count, origin_subpop_count, nucleotide_count});
+	int count_to_add = std::max({muttype_count, effectSize_count, position_count, origin_subpop_count, nucleotide_count});
 	
 	if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
-		(arg_effect && (effect_count != 1) && (effect_count != count_to_add)) ||
+		(arg_effectSize && (effectSize_count != 1) && (effectSize_count != count_to_add)) ||
 		((position_count != 1) && (position_count != count_to_add)) ||
 		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
 		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "effect, " : "") << "position, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originSubpop and nucleotide." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "effectSize, " : "") << "position, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originSubpop and nucleotide." << EidosTerminate();
 	
 	EidosValue_Object_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	
@@ -2867,7 +2867,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	// for the singleton case for each of the parameters, get all the info
 	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 	
-	slim_effect_t singleton_selection_coeff = (arg_effect ? (slim_effect_t)arg_effect->NumericAtIndex_NOCAST(0, nullptr) : (slim_effect_t)0.0);
+	slim_effect_t singleton_selection_coeff = (arg_effectSize ? (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(0, nullptr) : (slim_effect_t)0.0);
 	
 	slim_position_t singleton_position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex_NOCAST(0, nullptr));
 	
@@ -2965,15 +2965,15 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				{
 					slim_effect_t selection_coeff = singleton_selection_coeff;
 					
-					if (effect_count != 1)
+					if (effectSize_count != 1)
 					{
-						if (arg_effect)
-							selection_coeff = (slim_effect_t)arg_effect->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
+						if (arg_effectSize)
+							selection_coeff = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
 						else
-							selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+							selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 					}
 					
-					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now... and hemizygous dominance...
+					// FIXME MULTITRAIT: This needs to pass in a whole vector of effect sizes and dominance coefficients now... and hemizygous dominance...
 					// FIXME MULTITRAIT this code will also now need to handle the independent dominance case
 					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);
 				}
@@ -3450,7 +3450,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	for (int mut_index = 0; mut_index < segsites; ++mut_index)
 	{
 		slim_position_t position = positions[mut_index];
-		slim_effect_t selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+		slim_effect_t selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 		slim_objectid_t subpop_index = -1;
 		slim_tick_t origin_tick = community.Tick();
 		int8_t nucleotide = -1;
@@ -3468,7 +3468,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		
 		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 		
-		// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now... and hemizygous dominance...
+		// FIXME MULTITRAIT: This needs to pass in a whole vector of effect sizes and dominance coefficients now... and hemizygous dominance...
 		// FIXME MULTITRAIT this code will also now need to handle the independent dominance case
 		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);
 		
@@ -3786,7 +3786,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 		// parse/validate the INFO fields that we recognize
 		std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 		std::vector<slim_mutationid_t> info_mutids;
-		std::vector<slim_effect_t> info_effects;
+		std::vector<slim_effect_t> info_effect_sizes;
 		std::vector<slim_effect_t> info_domcoeffs;
 		std::vector<slim_objectid_t> info_poporigin;
 		std::vector<slim_tick_t> info_tickorigin;
@@ -3824,7 +3824,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
 				
 				for (std::string &value_substr : value_substrs)
-					info_effects.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+					info_effect_sizes.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 			}
 			else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
 			{
@@ -3878,7 +3878,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			
 			if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
-			if ((info_effects.size() != 0) && (info_effects.size() != alt_allele_count))
+			if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count))
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
 			if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
@@ -4026,10 +4026,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			// get the selection coefficient from S, or draw one from the mutation type
 			slim_effect_t selection_coeff;
 			
-			if (info_effects.size() > 0)
-				selection_coeff = info_effects[alt_allele_index];
+			if (info_effect_sizes.size() > 0)
+				selection_coeff = info_effect_sizes[alt_allele_index];
 			else
-				selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
+				selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectSizeForTrait(0));	// FIXME MULTITRAIT
 			
 			// get the subpop index from PO, or set to -1; no bounds checking on this
 			slim_objectid_t subpop_index = -1;

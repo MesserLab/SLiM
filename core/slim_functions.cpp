@@ -705,7 +705,7 @@ R"V0G0N({
 	else
 		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
-	muts = muts[muts.effect < 0.0];
+	muts = muts[muts.effectSize < 0.0];
 	
 	// get frequencies and focus on those that are in the haplosomes
 	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
@@ -716,7 +716,7 @@ R"V0G0N({
 	
 	// fetch selection coefficients; note that we use the negation of
 	// SLiM's selection coefficient, following Morton et al. 1956's usage
-	s = -muts.effect;
+	s = -muts.effectSize;
 	
 	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
 	// than lethal (this can happen when drawing from a gamma distribution)

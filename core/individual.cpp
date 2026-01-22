@@ -5509,7 +5509,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			// parse/validate the INFO fields that we recognize
 			std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 			std::vector<slim_mutationid_t> info_mutids;
-			std::vector<slim_effect_t> info_effects;
+			std::vector<slim_effect_t> info_effect_sizes;
 			std::vector<slim_effect_t> info_domcoeffs;
 			std::vector<slim_objectid_t> info_poporigin;
 			std::vector<slim_tick_t> info_tickorigin;
@@ -5547,7 +5547,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
 					
 					for (std::string &value_substr : value_substrs)
-						info_effects.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+						info_effect_sizes.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 				}
 				else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
 				{
@@ -5601,7 +5601,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				
 				if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
-				if ((info_effects.size() != 0) && (info_effects.size() != alt_allele_count))
+				if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
 				if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
@@ -5646,10 +5646,10 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				// get the selection coefficient from S, or draw one from the mutation type
 				slim_effect_t selection_coeff;
 				
-				if (info_effects.size() > 0)
-					selection_coeff = info_effects[alt_allele_index];
+				if (info_effect_sizes.size() > 0)
+					selection_coeff = info_effect_sizes[alt_allele_index];
 				else
-					selection_coeff = mutation_type_ptr->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+					selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;

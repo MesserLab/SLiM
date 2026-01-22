@@ -93,7 +93,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	muttype_all_neutral_mutations_ = all_neutral_DES_;
 	
 	// set up DE entries for all traits; every trait is initialized identically, from the parameters given
-	EffectDistributionInfo DES_info;
+	EffectSizeDistributionInfo DES_info;
 	
 	DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(p_dominance_coeff);	// note this can be NAN now, representing independent dominance
 	DES_info.default_hemizygous_dominance_coeff_ = 1.0;
@@ -102,7 +102,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	DES_info.DES_strings_ = p_DES_strings;
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); trait_index++)
-		effect_distributions_.push_back(DES_info);
+		effect_size_distributions_.push_back(DES_info);
 	
 	// Nucleotide-based mutations use a special stacking group, -1, and always use stacking policy "l"
 	if (p_nuc_based)
@@ -117,7 +117,7 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 
 MutationType::~MutationType(void)
 {
-	for (EffectDistributionInfo &des_info : effect_distributions_)
+	for (EffectSizeDistributionInfo &des_info : effect_size_distributions_)
 	{
 		delete des_info.cached_DES_script_;
 		des_info.cached_DES_script_ = nullptr;
@@ -149,7 +149,7 @@ void MutationType::FreeLoggingInfo(void)
 	
 	for (TraitEffectLog &trait_effect_log : logged_traits_)
 	{
-		if (trait_effect_log.logged_effect_)				{ free(trait_effect_log.logged_effect_);				trait_effect_log.logged_effect_ = nullptr; }
+		if (trait_effect_log.logged_effect_size_)			{ free(trait_effect_log.logged_effect_size_);			trait_effect_log.logged_effect_size_ = nullptr; }
 		if (trait_effect_log.logged_dominance_)				{ free(trait_effect_log.logged_dominance_);				trait_effect_log.logged_dominance_ = nullptr; }
 		if (trait_effect_log.logged_hemizygous_dominance_)	{ free(trait_effect_log.logged_hemizygous_dominance_);	trait_effect_log.logged_hemizygous_dominance_ = nullptr; }
 	}
@@ -188,7 +188,7 @@ void MutationType::_LogMutationInfo(Mutation *p_mut)
 		{
 			TraitEffectLog &trait_log = logged_traits_[trait_index];
 			
-			if (log_effect_)				trait_log.logged_effect_ = (slim_effect_t *)realloc(trait_log.logged_effect_, log_capacity_ * sizeof(slim_effect_t));
+			if (log_effectSize_)			trait_log.logged_effect_size_ = (slim_effect_t *)realloc(trait_log.logged_effect_size_, log_capacity_ * sizeof(slim_effect_t));
 			if (log_dominance_)				trait_log.logged_dominance_ = (slim_effect_t *)realloc(trait_log.logged_dominance_, log_capacity_ * sizeof(slim_effect_t));
 			if (log_hemizygousDominance_)	trait_log.logged_hemizygous_dominance_ = (slim_effect_t *)realloc(trait_log.logged_hemizygous_dominance_, log_capacity_ * sizeof(slim_effect_t));
 		}
@@ -241,10 +241,10 @@ void MutationType::_LogMutationInfo(Mutation *p_mut)
 		TraitEffectLog &trait_log = logged_traits_[trait_index];
 		MutationTraitInfo &mut_trait_info = species_.SpeciesMutationBlock()->TraitInfoForMutation(p_mut)[trait_index];
 		
-		if (log_effect_) {
-			slim_effect_t effect = mut_trait_info.effect_size_;
-			trait_log.running_effect_ += (double)effect;
-			if (!log_meanOnly_)		trait_log.logged_effect_[log_size_] = effect;
+		if (log_effectSize_) {
+			slim_effect_t effect_size = mut_trait_info.effect_size_;
+			trait_log.running_effect_size_ += (double)effect_size;
+			if (!log_meanOnly_)		trait_log.logged_effect_size_[log_size_] = effect_size;
 		}
 		if (log_dominance_) {
 			slim_effect_t dominance = p_mut->RealizedDominanceForTrait(species_.Traits()[trait_index]);
@@ -378,12 +378,12 @@ void MutationType::SelfConsistencyCheck(const std::string &p_message_end)
 	// unlike SelfConsistencyCheck() for Mutation and Substitution, where the mutation block necessarily exists
 	const std::vector<Trait *> &traits = species_.Traits();
 	
-	if (effect_distributions_.size() != traits.size())
-		EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): (internal error) effect_distributions_ size does not match traits.size()" << p_message_end << "." << EidosTerminate();
+	if (effect_size_distributions_.size() != traits.size())
+		EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): (internal error) effect_size_distributions_ size does not match traits.size()" << p_message_end << "." << EidosTerminate();
 	
-	if (effect_distributions_.size() > 0)
+	if (effect_size_distributions_.size() > 0)
 	{
-		for (EffectDistributionInfo &des_info : effect_distributions_)
+		for (EffectSizeDistributionInfo &des_info : effect_size_distributions_)
 		{
 			if (std::isinf(des_info.default_dominance_coeff_))	// NAN allowed
 				EIDOS_TERMINATION << "ERROR (MutationType::SelfConsistencyCheck): mutation type default dominance is infinite" << p_message_end << "." << EidosTerminate();
@@ -394,9 +394,9 @@ void MutationType::SelfConsistencyCheck(const std::string &p_message_end)
 	}
 }
 
-slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index) const
+slim_effect_t MutationType::DrawEffectSizeForTrait(slim_trait_index_t p_trait_index) const
 {
-	const EffectDistributionInfo &DES_info = effect_distributions_[p_trait_index];
+	const EffectSizeDistributionInfo &DES_info = effect_size_distributions_[p_trait_index];
 	
 	// BCH 11/11/2022: Note that EIDOS_GSL_RNG(omp_get_thread_num()) can take a little bit of time when running
 	// parallel.  We don't want to pass the RNG in, though, because that would slow down the single-threaded
@@ -444,9 +444,9 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 #ifdef DEBUG_LOCKS_ENABLED
 			// When running multi-threaded, this code is not re-entrant because it runs an Eidos interpreter.  We use
 			// EidosDebugLock to enforce that.  In addition, it can raise, so the caller must be prepared for that.
-			static EidosDebugLock DrawEffectForTrait_InterpreterLock("DrawEffectForTrait_InterpreterLock");
+			static EidosDebugLock DrawEffectSizeForTrait_InterpreterLock("DrawEffectSizeForTrait_InterpreterLock");
 			
-			DrawEffectForTrait_InterpreterLock.start_critical(0);
+			DrawEffectSizeForTrait_InterpreterLock.start_critical(0);
 #endif
 			
 			double sel_coeff;
@@ -476,17 +476,17 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 					if (gEidosTerminateThrows)
 					{
 						gEidosErrorContext = error_context_save;
-						TranslateErrorContextToUserScript("DrawEffectForTrait()");
+						TranslateErrorContextToUserScript("DrawEffectSizeForTrait()");
 					}
 					
 					delete DES_info.cached_DES_script_;
 					DES_info.cached_DES_script_ = nullptr;
 					
 #ifdef DEBUG_LOCKS_ENABLED
-					DrawEffectForTrait_InterpreterLock.end_critical();
+					DrawEffectSizeForTrait_InterpreterLock.end_critical();
 #endif
 					
-					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): tokenize/parse error in type 's' DES callback script." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectSizeForTrait): tokenize/parse error in type 's' DES callback script." << EidosTerminate(nullptr);
 				}
 			}
 			
@@ -514,7 +514,7 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 				else if ((result_type == EidosValueType::kValueInt) && (result_count == 1))
 					sel_coeff = result->IntData()[0];
 				else
-					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): type 's' DES callbacks must provide a singleton float or integer return value." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectSizeForTrait): type 's' DES callbacks must provide a singleton float or integer return value." << EidosTerminate(nullptr);
 			}
 			catch (...)
 			{
@@ -529,12 +529,12 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 					if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
 					{
 						gEidosErrorContext = error_context_save;
-						TranslateErrorContextToUserScript("DrawEffectForTrait()");
+						TranslateErrorContextToUserScript("DrawEffectSizeForTrait()");
 					}
 				}
 				
 #ifdef DEBUG_LOCKS_ENABLED
-				DrawEffectForTrait_InterpreterLock.end_critical();
+				DrawEffectSizeForTrait_InterpreterLock.end_critical();
 #endif
 				
 				throw;
@@ -544,13 +544,13 @@ slim_effect_t MutationType::DrawEffectForTrait(slim_trait_index_t p_trait_index)
 			gEidosErrorContext = error_context_save;
 			
 #ifdef DEBUG_LOCKS_ENABLED
-			DrawEffectForTrait_InterpreterLock.end_critical();
+			DrawEffectSizeForTrait_InterpreterLock.end_critical();
 #endif
 			
 			return static_cast<slim_effect_t>(sel_coeff);
 		}
 	}
-	EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectForTrait): (internal error) unexpected DES_type_ value." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectSizeForTrait): (internal error) unexpected DES_type_ value." << EidosTerminate();
 }
 
 // This is unused except by debugging code and in the debugger itself
@@ -829,14 +829,14 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	{
 		case gID_defaultDominanceForTrait:				return ExecuteMethod_defaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_defaultHemizygousDominanceForTrait:	return ExecuteMethod_defaultHemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_effectDistributionTypeForTrait:		return ExecuteMethod_effectDistributionTypeForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_effectDistributionParamsForTrait:		return ExecuteMethod_effectDistributionParamsForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_drawEffectForTrait:					return ExecuteMethod_drawEffectForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectSizeDistributionTypeForTrait:	return ExecuteMethod_effectSizeDistributionTypeForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_effectSizeDistributionParamsForTrait:	return ExecuteMethod_effectSizeDistributionParamsForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_drawEffectSizeForTrait:				return ExecuteMethod_drawEffectSizeForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_loggedData:							return ExecuteMethod_loggedData(p_method_id, p_arguments, p_interpreter);
 		case gID_logMutationData:						return ExecuteMethod_logMutationData(p_method_id, p_arguments, p_interpreter);
 		case gID_setDefaultDominanceForTrait:			return ExecuteMethod_setDefaultDominanceForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_setDefaultHemizygousDominanceForTrait:	return ExecuteMethod_setDefaultHemizygousDominanceForTrait(p_method_id, p_arguments, p_interpreter);
-		case gID_setEffectDistributionForTrait:			return ExecuteMethod_setEffectDistributionForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_setEffectSizeDistributionForTrait:		return ExecuteMethod_setEffectSizeDistributionForTrait(p_method_id, p_arguments, p_interpreter);
 		default:										return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -897,16 +897,16 @@ EidosValue_SP MutationType::ExecuteMethod_defaultHemizygousDominanceForTrait(Eid
 	}
 }
 
-//	*********************	- (fs)effectDistributionParamsForTrait([Niso<Trait> trait = NULL])
+//	*********************	- (fs)effectSizeDistributionParamsForTrait([Niso<Trait> trait = NULL])
 //
-EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_effectSizeDistributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectDistributionParamsForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectSizeDistributionParamsForTrait");
 	
 	// decide whether doing floats or strings; must be the same for all
 	bool is_float = false;
@@ -914,7 +914,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	
 	for (slim_trait_index_t trait_index : trait_indices)
 	{
-		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+		EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 		
 		if (DES_info.DES_parameters_.size() > 0)
 			is_float = true;
@@ -923,7 +923,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	}
 	
 	if (is_float && is_string)
-		EIDOS_TERMINATION << "ERROR (ExecuteMethod_effectDistributionParamsForTrait): effectDistributionParamsForTrait() requires all specified traits to have either float or string parameters (not a mixture) for their distributions of effects." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ExecuteMethod_effectSizeDistributionParamsForTrait): effectSizeDistributionParamsForTrait() requires all specified traits to have either float or string parameters (not a mixture) for their distributions of effects." << EidosTerminate(nullptr);
 	
 	if (is_float)
 	{
@@ -931,7 +931,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 			
 			for (double param : DES_info.DES_parameters_)
 				float_result->push_float(param);
@@ -945,7 +945,7 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 			
 			for (const std::string &param : DES_info.DES_strings_)
 				string_result->PushString(param);
@@ -955,23 +955,23 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionParamsForTrait(Eidos
 	}
 }
 
-//	*********************	- (string$)effectDistributionTypeForTrait([Niso<Trait> trait = NULL])
+//	*********************	- (string$)effectSizeDistributionTypeForTrait([Niso<Trait> trait = NULL])
 //
-EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_effectSizeDistributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectDistributionTypeForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "effectSizeDistributionTypeForTrait");
 	
 	// assemble the result
 	EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 	
 	for (slim_trait_index_t trait_index : trait_indices)
 	{
-		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+		EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 		
 		switch (DES_info.DES_type_)
 		{
@@ -989,9 +989,9 @@ EidosValue_SP MutationType::ExecuteMethod_effectDistributionTypeForTrait(EidosGl
 	return EidosValue_SP(string_result);
 }
 
-//	*********************	- (float)drawEffectForTrait([Niso<Trait> trait = NULL], [integer$ n = 1])
+//	*********************	- (float)drawEffectSizeForTrait([Niso<Trait> trait = NULL], [integer$ n = 1])
 //
-EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_drawEffectSizeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_SP result_SP(nullptr);
@@ -1000,19 +1000,19 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "drawEffectForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "drawEffectSizeForTrait");
 	
 	// get the number of effects to draw
 	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (ExecuteMethod_drawEffectForTrait): drawEffectForTrait() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ExecuteMethod_drawEffectSizeForTrait): drawEffectSizeForTrait() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	
 	if ((trait_indices.size() == 1) && (num_draws == 1))
 	{
 		slim_trait_index_t trait_index = trait_indices[0];
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DrawEffectForTrait(trait_index)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)DrawEffectSizeForTrait(trait_index)));
 	}
 	else
 	{
@@ -1021,7 +1021,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 		// draw_index is the outer loop, so that we get num_draws sets of (one draw per trait)
 		for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			for (slim_trait_index_t trait_index : trait_indices)
-				float_result->push_float_no_check((double)DrawEffectForTrait(trait_index));
+				float_result->push_float_no_check((double)DrawEffectSizeForTrait(trait_index));
 		
 		return EidosValue_SP(float_result);
 	}
@@ -1029,7 +1029,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawEffectForTrait(EidosGlobalStringID
 
 //	*********************	- (io<DataFrame>)loggedData(string$ kind, [logical$ id = F], [logical$ mutationTypeID = F], [logical$ chromosomeID = F], [logical$ position = F],
 //														[logical$ nucleotideValue = F], [logical$ originTick = F], [logical$ subpopID = F], [logical$ tag = F],
-//														[Niso<Trait> trait = NULL], [l$ effect = F], [l$ dominance = F], [l$ hemizygousDominance = F])
+//														[Niso<Trait> trait = NULL], [l$ effectSize = F], [l$ dominance = F], [l$ hemizygousDominance = F])
 //
 EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1044,7 +1044,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	EidosValue *subpopID_value = p_arguments[7].get();
 	EidosValue *tag_value = p_arguments[8].get();
 	EidosValue *trait_value = p_arguments[9].get();
-	EidosValue *effect_value = p_arguments[10].get();
+	EidosValue *effectSize_value = p_arguments[10].get();
 	EidosValue *dominance_value = p_arguments[11].get();
 	EidosValue *hemizygousDominance_value = p_arguments[12].get();
 	
@@ -1103,7 +1103,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	bool get_originTick = originTick_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool get_subpopID = subpopID_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool get_tag = tag_value->LogicalAtIndex_NOCAST(0, nullptr);
-	bool get_effect = effect_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool get_effectSize = effectSize_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool get_dominance = dominance_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool get_hemizygousDominance = hemizygousDominance_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
@@ -1111,7 +1111,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	// user can either use the default signature and get everything that was logged, OR pass flag=T to get the
 	// ones they want without having to pass F for others)
 	if (!get_id && !get_mutationTypeID && !get_chromosomeID && !get_position && !get_nucleotideValue &&
-		!get_originTick && !get_subpopID && !get_tag && !get_effect && !get_dominance && !get_hemizygousDominance)
+		!get_originTick && !get_subpopID && !get_tag && !get_effectSize && !get_dominance && !get_hemizygousDominance)
 	{
 		get_id					= log_id_;
 		get_mutationTypeID		= log_mutationTypeID_;
@@ -1121,7 +1121,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		get_originTick			= log_originTick_;
 		get_subpopID			= log_subpopID_;
 		get_tag					= log_tag_;
-		get_effect				= log_effect_;
+		get_effectSize			= log_effectSize_;
 		get_dominance			= log_dominance_;
 		get_hemizygousDominance	= log_hemizygousDominance_;
 	}
@@ -1135,7 +1135,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	if (!log_originTick_)			get_originTick = false;
 	if (!log_subpopID_)				get_subpopID = false;
 	if (!log_tag_)					get_tag = false;
-	if (!log_effect_)				get_effect = false;
+	if (!log_effectSize_)			get_effectSize = false;
 	if (!log_dominance_)			get_dominance = false;
 	if (!log_hemizygousDominance_)	get_hemizygousDominance = false;
 	
@@ -1257,15 +1257,15 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		TraitEffectLog &trait_log = logged_traits_[trait_index];
 		const std::string &trait_name = species_.Traits()[trait_index]->Name();
 		
-		if (get_effect)
+		if (get_effectSize)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_effect_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_effect_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_effect_size_ / log_size_) : gStaticEidosValue_FloatNAN.get();
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_effect_size_, log_size_));
 			else /* kind == KindEnum::kValues */ {
 				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
 				double *column_data = column->FloatData_Mutable();
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
-					column_data[log_index] = (double)trait_log.logged_effect_[log_index];
+					column_data[log_index] = (double)trait_log.logged_effect_size_[log_index];
 			}
 			dataframe->SetKeyValue_StringKeys(trait_name + "Effect", EidosValue_SP(column));
 		}
@@ -1305,7 +1305,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 
 //	*********************	- (void)logMutationData(logical$ enable, [logical$ autogeneratedOnly = T], [logical$ meanOnly = F], [logical$ id = F], [logical$ mutationTypeID = F],
 //													[logical$ chromosomeID = F], [logical$ position = F], [logical$ nucleotideValue = F], [logical$ originTick = F],
-//													[logical$ subpopID = F], [logical$ tag = F], [Niso<Trait> trait = NULL], [logical$ effect = F], [logical$ dominance = F],
+//													[logical$ subpopID = F], [logical$ tag = F], [Niso<Trait> trait = NULL], [logical$ effectSize = F], [logical$ dominance = F],
 //													[logical$ hemizygousDominance = F])
 //
 EidosValue_SP MutationType::ExecuteMethod_logMutationData(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1323,7 +1323,7 @@ EidosValue_SP MutationType::ExecuteMethod_logMutationData(EidosGlobalStringID p_
 	EidosValue *subpopID_value = p_arguments[9].get();
 	EidosValue *tag_value = p_arguments[10].get();
 	EidosValue *trait_value = p_arguments[11].get();
-	EidosValue *effect_value = p_arguments[12].get();
+	EidosValue *effectSize_value = p_arguments[12].get();
 	EidosValue *dominance_value = p_arguments[13].get();
 	EidosValue *hemizygousDominance_value = p_arguments[14].get();
 	
@@ -1364,13 +1364,13 @@ EidosValue_SP MutationType::ExecuteMethod_logMutationData(EidosGlobalStringID p_
 	log_originTick_ = originTick_value->LogicalAtIndex_NOCAST(0, nullptr);
 	log_subpopID_ = subpopID_value->LogicalAtIndex_NOCAST(0, nullptr);
 	log_tag_ = tag_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_effect_ = effect_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_effectSize_ = effectSize_value->LogicalAtIndex_NOCAST(0, nullptr);
 	log_dominance_ = dominance_value->LogicalAtIndex_NOCAST(0, nullptr);
 	log_hemizygousDominance_ = hemizygousDominance_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (log_nucleotideValue_ && !species_.IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_logMutationData): logging of nucleotide data is only supported in nucleotide-based models." << EidosTerminate(nullptr);
-	if ((logged_trait_indices.size() == 0) && (log_effect_ || log_dominance_ || log_hemizygousDominance_))
+	if ((logged_trait_indices.size() == 0) && (log_effectSize_ || log_dominance_ || log_hemizygousDominance_))
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_logMutationData): logging of effect, dominance, and hemizygous dominance is enabled, but no traits to log were specified." << EidosTerminate(nullptr);
 	
 	// allocate log pointers and running sums
@@ -1398,7 +1398,7 @@ EidosValue_SP MutationType::ExecuteMethod_logMutationData(EidosGlobalStringID p_
 			{
 				TraitEffectLog &trait_effect_log = logged_traits_[trait_index];
 				
-				if (log_effect_)				{ trait_effect_log.running_effect_ = 0.0;				trait_effect_log.logged_effect_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
+				if (log_effectSize_)			{ trait_effect_log.running_effect_size_ = 0.0;			trait_effect_log.logged_effect_size_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
 				if (log_dominance_)				{ trait_effect_log.running_dominance_ = 0.0;			trait_effect_log.logged_dominance_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
 				if (log_hemizygousDominance_)	{ trait_effect_log.running_hemizygous_dominance_ = 0.0;	trait_effect_log.logged_hemizygous_dominance_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
 			}
@@ -1428,7 +1428,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 			
 			DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
 		}
@@ -1438,7 +1438,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 		for (int dominance_index = 0; dominance_index < dominance_count; dominance_index++)
 		{
 			slim_trait_index_t trait_index = trait_indices[dominance_index];
-			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
 			
 			DES_info.default_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
@@ -1478,7 +1478,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 			
 			DES_info.default_hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
 		}
@@ -1488,7 +1488,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 		for (int dominance_index = 0; dominance_index < dominance_count; dominance_index++)
 		{
 			slim_trait_index_t trait_index = trait_indices[dominance_index];
-			EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+			EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 			double dominance = dominance_value->FloatAtIndex_NOCAST(dominance_index, nullptr);
 			
 			DES_info.default_hemizygous_dominance_coeff_ = static_cast<slim_effect_t>(dominance);		// intentionally no bounds check
@@ -1508,9 +1508,9 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)setEffectDistributionForTrait(Niso<Trait> trait, string$ distributionType, ...)
+//	*********************	- (void)setEffectSizeDistributionForTrait(Niso<Trait> trait, string$ distributionType, ...)
 //
-EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_setEffectSizeDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *trait_value = p_arguments[0].get();
@@ -1519,7 +1519,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;
-	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectDistributionForTrait");
+	species_.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setEffectSizeDistributionForTrait");
 	
 	// Parse the DES type and parameters, and do various sanity checks
 	DESType DES_type;
@@ -1531,7 +1531,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectDistributionForTrait(EidosGlo
 	// Everything seems to be in order, so replace our distribution info (in each specified trait) with the new info
 	for (slim_trait_index_t trait_index : trait_indices)
 	{
-		EffectDistributionInfo &DES_info = effect_distributions_[trait_index];
+		EffectSizeDistributionInfo &DES_info = effect_size_distributions_[trait_index];
 		
 		DES_info.DES_type_ = DES_type;
 		DES_info.DES_parameters_ = DES_parameters;
@@ -1593,9 +1593,9 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultHemizygousDominanceForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionParamsForTrait, kEidosValueMaskFloat | kEidosValueMaskString))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectDistributionTypeForTrait, kEidosValueMaskString))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawEffectForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddInt_OS("n", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectSizeDistributionParamsForTrait, kEidosValueMaskFloat | kEidosValueMaskString))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_effectSizeDistributionTypeForTrait, kEidosValueMaskString))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawEffectSizeForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddInt_OS("n", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_N(gStr_trait, gSLiM_Trait_Class)->AddFloat("dominance"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_loggedData, kEidosValueMaskInt | kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))
 							  ->AddString_S("kind")
@@ -1608,7 +1608,7 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 							  ->AddLogical_OS("subpopID", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("tag", gStaticEidosValue_LogicalF)
 							  ->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)
-							  ->AddLogical_OS("effect", gStaticEidosValue_LogicalF)
+							  ->AddLogical_OS("effectSize", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("dominance", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("hemizygousDominance", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logMutationData, kEidosValueMaskVOID))
@@ -1624,11 +1624,11 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 							  ->AddLogical_OS("subpopID", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("tag", gStaticEidosValue_LogicalF)
 							  ->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)
-							  ->AddLogical_OS("effect", gStaticEidosValue_LogicalF)
+							  ->AddLogical_OS("effectSize", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("dominance", gStaticEidosValue_LogicalF)
 							  ->AddLogical_OS("hemizygousDominance", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDefaultHemizygousDominanceForTrait, kEidosValueMaskVOID))->AddIntStringObject_N(gStr_trait, gSLiM_Trait_Class)->AddFloat("dominance"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setEffectDistributionForTrait, kEidosValueMaskVOID))->AddIntStringObject_N(gStr_trait, gSLiM_Trait_Class)->AddString_S("distributionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setEffectSizeDistributionForTrait, kEidosValueMaskVOID))->AddIntStringObject_N(gStr_trait, gSLiM_Trait_Class)->AddString_S("distributionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

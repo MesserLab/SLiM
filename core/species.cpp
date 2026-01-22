@@ -234,7 +234,7 @@ void Species::AutogenerationConfigurationChanged(void)
 		// recalculate whether the mutation type's effect distributions are all neutral
 		mutation_type_ptr->all_neutral_DES_ = true;
 		
-		for (EffectDistributionInfo &DES_info : mutation_type_ptr->effect_distributions_)
+		for (EffectSizeDistributionInfo &DES_info : mutation_type_ptr->effect_size_distributions_)
 		{
 			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
 				mutation_type_ptr->all_neutral_DES_ = false;
@@ -280,7 +280,7 @@ void Species::AutogenerationConfigurationChanged(void)
 				for (Trait *trait : traits_)
 				{
 					slim_trait_index_t trait_index = trait->Index();
-					EffectDistributionInfo &DES_info = mutation_type_ptr->effect_distributions_[trait_index];
+					EffectSizeDistributionInfo &DES_info = mutation_type_ptr->effect_size_distributions_[trait_index];
 					
 					if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
 					{
@@ -310,7 +310,7 @@ void Species::CheckOptimizationFlags(void)
 	{
 		MutationType *mutation_type_ptr = mut_type_iter.second;
 		
-		for (EffectDistributionInfo &DES_info : mutation_type_ptr->effect_distributions_)
+		for (EffectSizeDistributionInfo &DES_info : mutation_type_ptr->effect_size_distributions_)
 		{
 			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
 				if (mutation_type_ptr->all_neutral_DES_ != false)
@@ -344,7 +344,7 @@ void Species::CheckOptimizationFlags(void)
 				for (Trait *trait : traits_)
 				{
 					slim_trait_index_t trait_index = trait->Index();
-					EffectDistributionInfo &DES_info = mutation_type_ptr->effect_distributions_[trait_index];
+					EffectSizeDistributionInfo &DES_info = mutation_type_ptr->effect_size_distributions_[trait_index];
 					
 					if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
 					{

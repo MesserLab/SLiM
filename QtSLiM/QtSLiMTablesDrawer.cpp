@@ -87,7 +87,7 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
-		EffectDistributionInfo &DES_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+		EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
         
 		sample_size = (DES_info.DES_type_ == DESType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
@@ -100,7 +100,7 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 		
 		_Eidos_SetOneRNGSeed(local_rng, 10);		// arbitrary seed, but the same seed every time
 		
-		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap in our local RNG for DrawEffectForTrait()
+		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap in our local RNG for DrawEffectSizeForTrait()
 		
 		//std::clock_t start = std::clock();
 		
@@ -108,7 +108,7 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 		{
 			for (size_t sample_count = 0; sample_count < sample_size; ++sample_count)
 			{
-				double draw = mut_type->DrawEffectForTrait(0);	// FIXME MULTITRAIT
+				double draw = mut_type->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 				
 				draws.emplace_back(draw);
 				
@@ -541,7 +541,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             std::advance(mutTypeIter, p_index.row());
             slim_objectid_t mutTypeID = mutTypeIter->first;
             MutationType *mutationType = mutTypeIter->second;
-            EffectDistributionInfo &DES_info = mutationType->effect_distributions_[0];	// FIXME MULTITRAIT
+			EffectSizeDistributionInfo &DES_info = mutationType->effect_size_distributions_[0];	// FIXME MULTITRAIT
             
             if (p_index.column() == 0)
             {
@@ -677,7 +677,7 @@ QVariant QtSLiMMutTypeTableModel::headerData(int section,
         {
         case 0: return QVariant("the ID for the mutation type");
         case 1: return QVariant("the dominance coefficient");
-        case 2: return QVariant("the distribution of effect sizes");
+        case 2: return QVariant("the distribution of effect size");
         case 3: return QVariant("the DES parameters");
         default: return QVariant("");
         }
