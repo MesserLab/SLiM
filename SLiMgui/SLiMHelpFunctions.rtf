@@ -908,7 +908,8 @@ The
 \f2\fs20 , but the 
 \f1\fs18 setDefaultHemizygousDominanceForTrait()
 \f2\fs20  method can configure it subsequently if desired.\
-The 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 distributionType
 \f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
 \f1\fs18 setEffectSizeDistributionForTrait()
@@ -920,27 +921,27 @@ The
 \f1\fs18 ...
 \f2\fs20  should supply a 
 \f1\fs18 numeric$
-\f2\fs20  fixed selection coefficient; 
+\f2\fs20  fixed effect size; 
 \f1\fs18 "e"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient for an exponential distribution; 
+\f2\fs20  mean effect size for an exponential distribution; 
 \f1\fs18 "g"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f2\fs20  mean effect size and a 
 \f1\fs18 numeric$
 \f2\fs20  alpha shape parameter for a gamma distribution; 
 \f1\fs18 "n"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f2\fs20  mean effect size and a 
 \f1\fs18 numeric$
 \f2\fs20  sigma (standard deviation) parameter for a normal distribution; 
 \f1\fs18 "p"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f2\fs20  mean effect size and a 
 \f1\fs18 numeric$
 \f2\fs20  scale parameter for a Laplace distribution; 
 \f1\fs18 "w"
@@ -967,7 +968,8 @@ The
 \f2\fs20  is assumed and must not be supplied.  See the 
 \f1\fs18 MutationType
 \f2\fs20  class documentation for discussion of the various DESs and their uses.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 

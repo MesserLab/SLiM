@@ -1774,7 +1774,7 @@ In non-nucleotide-based models,
 \f3\fs18 2
 \f4\fs20 , T=
 \f3\fs18 3
-\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its effect size is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Beginning in SLiM 2.5 this method is vectorized, so all of these parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.\
 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
@@ -1846,7 +1846,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f3\fs18 originSubpop
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The 
 \f3\fs18 addNewDrawnMutation()
-\f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.  All of the target haplosomes must be associated with the same 
+\f4\fs20  method may be used instead if you wish effect sizes to be drawn from the mutation types of the mutations.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object, since each new mutation is added to all of the target haplosomes.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -1885,7 +1885,7 @@ In non-nucleotide-based models,
 \f3\fs18 2
 \f4\fs20 , T=
 \f3\fs18 3
-\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its effect size is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
@@ -2467,7 +2467,7 @@ readHaplosomesFromMS\kerning1\expnd0\expndtw0 ()
 \f4\fs20  is returned.\
 Each mutation is created at the position specified in the file, using the mutation type given by 
 \f3\fs18 mutationType
-\f4\fs20 .  Positions are expected to be in [0,1], and are scaled to the length of the chromosome by multiplying by the last valid base position of the chromosome (i.e., one less than the chromosome length).  Selection coefficients are drawn from the mutation type.  The population of origin for each mutation is set to 
+\f4\fs20 .  Positions are expected to be in [0,1], and are scaled to the length of the chromosome by multiplying by the last valid base position of the chromosome (i.e., one less than the chromosome length).  Effect sizes are drawn from the mutation type.  The population of origin for each mutation is set to 
 \f3\fs18 -1
 \f4\fs20 , and the tick of origin is set to the current tick.  In a nucleotide-based model, if 
 \f3\fs18 mutationType
@@ -2560,7 +2560,7 @@ The
 \f3\fs18 MID
 \f4\fs20  will be used if no mutation IDs have been used in the simulation so far; if any have been used, it is difficult for SLiM to guarantee that there are no conflicts, so a warning will be emitted and the 
 \f3\fs18 MID
-\f4\fs20  values will be ignored.  If selection coefficients are not supplied with the 
+\f4\fs20  values will be ignored.  If effect sizes are not supplied with the 
 \f3\fs18 S
 \f4\fs20  subfield, they will be drawn from the mutation type used for the mutation.  If a population of origin is not supplied with the 
 \f3\fs18 PO
@@ -6247,16 +6247,19 @@ You can get the
 \f3\fs18 MutationType
 \f4\fs20 .  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 dominanceForTrait()
-\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
-\f3\fs18 height
-\f4\fs20 , for example, then 
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  is defined on 
 \f3\fs18 Mutation
-\f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightDominance
-\f4\fs20  to access the dominance for that trait.  The dominance coefficient(s) of a mutation can be changed with the 
+\f4\fs20  for each trait in the species, providing direct access to the dominance of a mutation for a specific trait.  The dominance coefficient(s) of a mutation can be changed with the 
 \f3\fs18 setDominanceForTrait()
-\f4\fs20  method.\
-If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
+\f4\fs20  method, or through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  property.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
 \f3\fs18 initializeMutationType()
@@ -6283,20 +6286,23 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f3\fs18 \cf2 effectSize => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The effect size(s) of the mutation, drawn from the distribution of effect size of its 
+\f4\fs20 \cf2 The effect size(s) of the mutation, initially drawn from the distribution of effect size of its 
 \f3\fs18 MutationType
 \f4\fs20 .  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 effectSizeForTrait()
-\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
-\f3\fs18 height
-\f4\fs20 , for example, then 
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  is defined on 
 \f3\fs18 Mutation
-\f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightEffectSize
-\f4\fs20  to access the effect size for that trait.  The effect sizes of a mutation can be changed with the 
+\f4\fs20  for each trait in the species, providing direct access to the effect size of a mutation for a specific trait.  The effect sizes of a mutation can be changed with the 
 \f3\fs18 setEffectSizeForTrait()
-\f4\fs20  method.\
-Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\f4\fs20  method, or through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  property.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s effect size to some number 
 \f3\fs18 x
@@ -6314,16 +6320,17 @@ Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM 
 \f3\fs18 MutationType
 \f4\fs20 .  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 hemizygousDominanceForTrait()
-\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
-\f3\fs18 height
-\f4\fs20 , for example, then 
-\f3\fs18 Mutation
-\f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightHemizygousDominance
-\f4\fs20  to access the hemizygous dominance for that trait.  The hemizygous dominance coefficient(s) of a mutation can be changed with the 
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  is defined for each trait in the model, providing direct access to the hemizygous dominance of a mutation for a specific trait.  The coefficient(s) for a mutation can be changed with the 
 \f3\fs18 setHemizygousDominanceForTrait()
-\f4\fs20  method.\
-Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\f4\fs20  method, or through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  property.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s hemizygous dominance coefficient to some number 
 \f3\fs18 x
@@ -6489,7 +6496,12 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  See also the 
+\f3\fs18 dominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 Dominance
+\f4\fs20  properties.\
 If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
@@ -6524,7 +6536,12 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effect sizes for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  See also the 
+\f3\fs18 effectSize
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 EffectSize
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6545,7 +6562,12 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  See also the 
+\f3\fs18 hemizygousDominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 HemizygousDominance
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6587,7 +6609,10 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  See also the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  property, which can be used to set the dominance of a mutation for a trait.\
 The parameter 
 \f3\fs18 dominance
 \f4\fs20  must follow one of four patterns.  In the first pattern, 
@@ -6631,7 +6656,10 @@ A dominance value of
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  See also the 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  property, which can be used to set the effect size of a mutation for a trait.\
 The parameter 
 \f3\fs18 effectSize
 \f4\fs20  must follow one of four patterns.  In the first pattern, 
@@ -6669,7 +6697,10 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 Trait
 \f4\fs20  objects; 
 \f3\fs18 NULL
-\f4\fs20  represents all of the traits in the species, in the order in which they were defined.\
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  See also the 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  property, which can be used to set the hemizygous dominance of a mutation for a trait.\
 The parameter 
 \f3\fs18 dominance
 \f4\fs20  must follow one of four patterns.  In the first pattern, 
@@ -6725,7 +6756,7 @@ In nucleotide-based models, a restriction applies: nucleotide-based mutations ma
 \f3\fs18 color
 \f4\fs20  is the empty string, 
 \f3\fs18 ""
-\f4\fs20 , SLiMgui\'92s default (selection-coefficient\'96based) color scheme is used; this is the default for new 
+\f4\fs20 , SLiMgui\'92s default (effect-size\'96based) color scheme is used; this is the default for new 
 \f3\fs18 MutationType
 \f4\fs20  objects.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6743,7 +6774,7 @@ In nucleotide-based models, a restriction applies: nucleotide-based mutations ma
 \f3\fs18 colorSubstitution
 \f4\fs20  is the empty string, 
 \f3\fs18 ""
-\f4\fs20 , SLiMgui\'92s default (selection-coefficient\'96based) color scheme is used; this is the default for new 
+\f4\fs20 , SLiMgui\'92s default (effect-size\'96based) color scheme is used; this is the default for new 
 \f3\fs18 MutationType
 \f4\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6940,9 +6971,9 @@ If a default dominance coefficient of
 \f4\fs20  method 
 \f3\fs18 dominanceForTrait()
 \f4\fs20  regarding obtaining the realized dominance coefficient used in a particular mutation, given that mutation\'92s effect size for the trait.\
-Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
+Note that dominance coefficients are not bounded.  For multiplicative traits, dominance coefficient greater than 
 \f3\fs18 1.0
-\f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
+\f4\fs20  may be used to achieve an overdominance effect.  By making the effect size very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
 Also note that dominance coefficients have a quirk: they are stored internally in SLiM as a single-precision 
 \f3\fs18 float
 \f4\fs20 , not the double-precision 
@@ -6968,9 +6999,6 @@ Also note that dominance coefficients have a quirk: they are stored internally i
 \f4\fs20  method 
 \f3\fs18 setHemizygousDominanceForTrait()
 \f4\fs20 .\
-Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
-\f3\fs18 1.0
-\f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
 Also note that dominance coefficients have a quirk: they are stored internally in SLiM as a single-precision 
 \f3\fs18 float
 \f4\fs20 , not the double-precision 
@@ -9681,7 +9709,15 @@ The spatial periodicity of the simulation for this species, as specified in
 
 \f4\fs20 \cf2 The 
 \f3\fs18 Trait
-\f4\fs20  objects defined in the species.  These are guaranteed to be in sorted order by their index (i.e., by the order in which they were defined).\
+\f4\fs20  objects defined in the species.  These are guaranteed to be in sorted order by their index (i.e., by the order in which they were defined).  The 
+\f3\fs18 traitsWithIndices()
+\f4\fs20  and 
+\f3\fs18 traitsWithNames()
+\f4\fs20  methods and the 
+\f3\fs18 <trait-name>
+\f4\fs20  property are also useful for obtaining particular 
+\f3\fs18 Trait
+\f4\fs20  objects from the species.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.16.2  
@@ -11489,7 +11525,11 @@ This method is shorthand for getting the
 \f3\fs18 indices
 \f4\fs20  does not correspond to a trait in the target species, an error will be raised.  See also 
 \f3\fs18 traitsWithNames()
-\f4\fs20 .\
+\f4\fs20 , and the 
+\f3\fs18 traits
+\f4\fs20  and 
+\f3\fs18 <trait-name>
+\f4\fs20  properties.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Trait>)traitsWithNames(string\'a0names)\
@@ -11503,7 +11543,11 @@ This method is shorthand for getting the
 \f3\fs18 names
 \f4\fs20  does not correspond to a trait in the target species, an error will be raised.  See also 
 \f3\fs18 traitsWithIndices()
-\f4\fs20 .\
+\f4\fs20 , and the 
+\f3\fs18 traits
+\f4\fs20  and 
+\f3\fs18 <trait-name>
+\f4\fs20  properties.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -14700,13 +14744,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 
 \f4\fs20 \cf2 The dominance coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 dominanceForTrait()
-\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
-\f3\fs18 height
-\f4\fs20 , for example, then 
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  is defined on 
 \f3\fs18 Substitution
-\f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightDominance
-\f4\fs20  to access the dominance for that trait.\
+\f4\fs20  for each trait in the model, providing direct access to the dominance of a substitution for a specific trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 effectSize => (float)\
@@ -14714,13 +14757,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 
 \f4\fs20 \cf2 The effect size(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 effectSizeForTrait()
-\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
-\f3\fs18 height
-\f4\fs20 , for example, then 
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  is defined on 
 \f3\fs18 Substitution
-\f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightEffectSize
-\f4\fs20  to access the effect size for that trait.\
+\f4\fs20  for each trait in the model, providing direct access to the effect size of a substitution for a specific trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 hemizygousDominance => (float)\
@@ -14728,13 +14770,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 
 \f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
 \f3\fs18 hemizygousDominanceForTrait()
-\f4\fs20  method.  Also note that dynamic properties are defined for each trait in the model; if there is a trait named 
-\f3\fs18 height
-\f4\fs20 , for example, then 
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  is defined on 
 \f3\fs18 Substitution
-\f4\fs20  objects will have a dynamic property named 
-\f3\fs18 heightHemizygousDominance
-\f4\fs20  to access the dominance for that trait.\
+\f4\fs20  for each trait in the model, providing direct access to the hemizygous dominance of a substitution for a specific trait.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 id => (integer$)\
@@ -14865,7 +14906,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .
+\f4\fs20 .  See also the 
+\f3\fs18 dominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 Dominance
+\f4\fs20  properties.
 \f5\fs22 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -14888,7 +14934,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effect sizes for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  See also the 
+\f3\fs18 effectSize
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 EffectSize
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -14909,7 +14960,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 NULL
 \f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
 \f3\fs18 trait
-\f4\fs20 .\
+\f4\fs20 .  See also the 
+\f3\fs18 hemizygousDominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 HemizygousDominance
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
