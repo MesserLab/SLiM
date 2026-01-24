@@ -11,8 +11,8 @@
 #include "species.h"
 
 
-Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
-	index_(-1), name_(p_name), type_(p_type),
+Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
+	index_(-1), name_(p_name), type_(p_type), logistic_post_(p_logistic_post),
 	individualOffsetMean_(p_individualOffsetMean), individualOffsetSD_(p_individualOffsetSD),
 	directFitnessEffect_(p_directFitnessEffect), community_(p_species.community_), species_(p_species)
 {
@@ -23,6 +23,9 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, sl
 		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetMean requires a finite value (not NAN or INF)." << EidosTerminate();
 	if (!std::isfinite(individualOffsetSD_) || (individualOffsetSD_ < 0.0))
 		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetSD requires a nonnegative finite value (not NAN or INF)." << EidosTerminate();
+	
+	if (p_logistic_post && (type_ != TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) logistic post-transformation is only supported for additive traits." << EidosTerminate();
 	
 	// effects for multiplicative traits clip at 0.0
 	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < (slim_effect_t)0.0))
@@ -48,7 +51,7 @@ void Trait::_RecacheIndividualOffsetDistribution(void)
 		}
 		else
 		{
-			// other traits use a normal distribution, so the mean is the mean
+			// additive and logistic traits use a normal distribution, so the mean is the mean
 			individualOffsetFixedValue_ = static_cast<slim_effect_t>(individualOffsetMean_);
 		}
 	}
@@ -89,7 +92,7 @@ slim_effect_t Trait::_DrawIndividualOffset(void) const
 	}
 	else
 	{
-		// other traits use a normal distribution, so the mean is the mean
+		// additive and logistic traits use a normal distribution, so the mean is the mean
 		double normal_draw = gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_;
 		
 		return static_cast<slim_effect_t>(normal_draw);
@@ -118,6 +121,7 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			static EidosValue_SP static_type_string_multiplicative;
 			static EidosValue_SP static_type_string_additive;
+			static EidosValue_SP static_type_string_logistic;
 			
 			// FIXME PARALLEL static string allocation like this should be done at startup, before we go multithreaded; this should not need a critical section
 			// search for "static EidosValue_SP" and fix all of them
@@ -127,13 +131,14 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					static_type_string_multiplicative = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_multiplicative));
 					static_type_string_additive = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_additive));
+					static_type_string_logistic = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_logistic));
 				}
 			}
 			
 			switch (type_)
 			{
 				case TraitType::kMultiplicative:		return static_type_string_multiplicative;
-				case TraitType::kAdditive:				return static_type_string_additive;
+				case TraitType::kAdditive:				return (logistic_post_ ? static_type_string_logistic : static_type_string_additive);
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}

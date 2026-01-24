@@ -1680,13 +1680,25 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	// type
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
 	TraitType type;
+	bool logistic_post;
 	
 	if ((type_string == gStr_multiplicative) || (type_string == "m"))
+	{
 		type = TraitType::kMultiplicative;
+		logistic_post = false;
+	}
 	else if ((type_string == gStr_additive) || (type_string == "a"))
+	{
 		type = TraitType::kAdditive;
+		logistic_post = false;
+	}
+	else if ((type_string == gStr_logistic) || (type_string == "l"))
+	{
+		type = TraitType::kAdditive;
+		logistic_post = true;
+	}
 	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'm'), or 'additive' (or 'a')." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'm'), 'additive' (or 'a'), or 'logistic' (or 'l')." << EidosTerminate();
 	
 	// baselineOffset
 	slim_effect_t baselineOffset;
@@ -1727,7 +1739,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	bool directFitnessEffect = directFitnessEffect_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Set up the new trait object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Trait *trait = new Trait(*this, name, type, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect);
+	Trait *trait = new Trait(*this, name, type, logistic_post, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect);
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
 	
 	// Add it to our registry; AddTrait() takes its retain count

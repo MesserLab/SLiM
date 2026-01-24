@@ -6481,7 +6481,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 
 \f4\fs20 \cf2 Returns the mutation\'92s dominance coefficient for the trait(s) specified by 
 \f3\fs18 trait
-\f4\fs20 ; for both multiplicative traits and additive traits this is the dominance coefficient 
+\f4\fs20 ; for all trait types this is used as the dominance coefficient 
 \f1\i h
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
@@ -6521,7 +6521,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f3\fs18 trait
 \f4\fs20 ; for multiplicative traits, this is typically the selection coefficient 
 \f1\i s
-\f4\i0 , whereas for additive traits it is typically the additive effect size 
+\f4\i0 , whereas for additive and logistic traits it is typically the additive effect size 
 \f1\i a
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
@@ -6546,7 +6546,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 
 \f4\fs20 \cf2 Returns the mutation\'92s hemizygous dominance coefficient for the trait(s) specified by 
 \f3\fs18 trait
-\f4\fs20 ; for both multiplicative traits and additive traits this is the hemizygous dominance coefficient 
+\f4\fs20 ; for all trait types this is used as the hemizygous dominance coefficient 
 \f1\i h
 \f4\i0\fs13\fsmilli6667 \sub hemi
 \fs20 \nosupersub .  The traits can be specified as 
@@ -7227,11 +7227,11 @@ Last come parameters that control the logging of trait-associated data for the n
 \f4\fs20  and 
 \f3\fs18 dominance=T
 \f4\fs20  flags are specified, then columns 
-\f3\fs18 heightEffect
+\f3\fs18 heightEffectSize
 \f4\fs20 , 
 \f3\fs18 heightDominance
 \f4\fs20 , 
-\f3\fs18 weightEffect
+\f3\fs18 weightEffectSize
 \f4\fs20 , and 
 \f3\fs18 weightDominance
 \f4\fs20  will be added, in that order.\
@@ -14891,7 +14891,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 
 \f4\fs20 \cf2 Returns the substitution\'92s dominance coefficient for the trait(s) specified by 
 \f3\fs18 trait
-\f4\fs20 , carried over from the original mutation object.  For both multiplicative traits and additive traits this is the dominance coefficient 
+\f4\fs20 , carried over from the original mutation object.  For all trait types this is used as the dominance coefficient 
 \f1\i h
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
@@ -14919,7 +14919,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 trait
 \f4\fs20 , carried over from the original mutation object.  For multiplicative traits, this is typically the selection coefficient 
 \f1\i s
-\f4\i0 , whereas for additive traits it is typically the additive effect size 
+\f4\i0 , whereas for additive and logistic traits it is typically the additive effect size 
 \f1\i a
 \f4\i0 .  The traits can be specified as 
 \f3\fs18 integer
@@ -14944,7 +14944,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 
 \f4\fs20 \cf2 Returns the substitution\'92s hemizygous dominance coefficient for the trait(s) specified by 
 \f3\fs18 trait
-\f4\fs20 , carried over from the original mutation object.  For both multiplicative traits and additive traits this is the hemizygous dominance coefficient 
+\f4\fs20 , carried over from the original mutation object.  For all trait types this is used as the hemizygous dominance coefficient 
 \f1\i h
 \f4\i0\fs13\fsmilli6667 \sub hemi
 \fs20 \nosupersub .  The traits can be specified as 
@@ -15002,7 +15002,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\i0\fs18 \cf2 baselineOffset <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
+\f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
 Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
@@ -15039,7 +15039,7 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 exp()
 \f4\fs20  before use, so in effect a lognormal distribution is used, and 
 \f3\fs18 individualOffsetMean
-\f4\fs20  is the mean of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f4\fs20  is the mean of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
 \f3\fs18 individualOffsetSD
 \f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -15053,7 +15053,7 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 exp()
 \f4\fs20  before use, so in effect a lognormal distribution is used, and 
 \f3\fs18 individualOffsetSD
-\f4\fs20  is the standard deviation of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f4\fs20  is the standard deviation of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
 \f3\fs18 individualOffsetMean
 \f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -15095,8 +15095,10 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 string
 \f4\fs20 .  In the present design, this will be either 
 \f3\fs18 "multiplicative"
-\f4\fs20  or 
+\f4\fs20 , 
 \f3\fs18 "additive"
+\f4\fs20 , or 
+\f3\fs18 "logistic"
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 

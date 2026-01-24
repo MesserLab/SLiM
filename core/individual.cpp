@@ -6695,13 +6695,33 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 			
 			if (traitType == TraitType::kAdditive)
 			{
-				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				if (trait->HasLogisticPostTransform())
 				{
-					Individual *ind = individuals_buffer[individual_index];
-					IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
-					
-					if (f_force_recalc || std::isnan(trait_info.phenotype_))
-						trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+					//  logistic trait, post-process calculated values
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+						if (f_force_recalc || std::isnan(trait_info.phenotype_))
+						{
+							double additive_result = (double)(trait_baseline_offset + trait_info.offset_);
+							
+							trait_info.phenotype_ = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(- static_cast<double>(additive_result))));
+						}
+					}
+				}
+				else
+				{
+					// regular additive trait
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+						if (f_force_recalc || std::isnan(trait_info.phenotype_))
+							trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+					}
 				}
 			}
 			else	// (traitType == TraitType::kMultiplicative)
@@ -7195,6 +7215,31 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		haplosome_index += chromosome->IntrinsicPloidy();
 	}
 	
+	// post-transformation for logistic traits; this has to be done after we finish processing
+	// all traits for all chromosomes, since the outer loop above is over chromosomes
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		
+		if (trait->HasLogisticPostTransform())
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+					continue;
+				
+				slim_effect_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
+				double additive_result = (double)phenotype_ref;
+				
+				if (std::isfinite(additive_result))
+					phenotype_ref = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(-additive_result)));
+			}
+		}
+	}	
+	
 	// clear out each subpopulation's per-trait caches that we set up above; these are only for our private use
 	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 	{
@@ -7592,6 +7637,31 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		
 		haplosome_index += chromosome->IntrinsicPloidy();
 	}
+	
+	// post-transformation for logistic traits; this has to be done after we finish processing
+	// all traits for all chromosomes, since the outer loop above is over chromosomes
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		
+		if (trait->HasLogisticPostTransform())
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+					continue;
+				
+				slim_effect_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
+				double additive_result = (double)phenotype_ref;
+				
+				if (std::isfinite(additive_result))
+					phenotype_ref = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(-additive_result)));
+			}
+		}
+	}	
 	
 #if DEBUG
 	// Do a check of all computed results, against the same things computed by brute force.  This will
@@ -8237,8 +8307,14 @@ slim_effect_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index
 		haplosome_index += chromosome->IntrinsicPloidy();
 	}
 	
-	// finally, restore our saved phenotype so we don't modify the official individual state
+	// get the calculated trait value back out
 	trait_value = trait_info.phenotype_;
+	
+	// post-process logistic trait values
+	if (trait->HasLogisticPostTransform())
+		trait_value = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(- static_cast<double>(trait_value))));
+	
+	// finally, restore our saved phenotype so we don't modify the official individual state
 	trait_info.phenotype_ = saved_phenotype;
 	
 	return trait_value;

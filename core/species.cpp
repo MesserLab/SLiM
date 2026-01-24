@@ -1454,7 +1454,13 @@ void Species::MakeImplicitTrait(void)
 	// Mirroring SLiM versions prior to multi-trait support, the implicit trait is a multiplicative trait with
 	// no baselines (1.0, since it is multiplicative) and a direct effect from phenotype on fitness.
 	std::string trait_name = name_ + "T";
-	Trait *trait = new Trait(*this, trait_name, TraitType::kMultiplicative, 1.0, 0.0, 0.0, true);
+	Trait *trait = new Trait(*this, trait_name,
+							 /* p_type */					TraitType::kMultiplicative,
+							 /* p_logistic_post */			false,
+							 /* p_baselineOffset */			1.0,
+							 /* p_individualOffsetMean */	0.0,
+							 /* p_individualOffsetSD */		0.0,
+							 /* directFitnessEffect */		true);
 	
 	// Add it to our registry; AddTrait() takes its retain count
 	AddTrait(trait);

@@ -588,15 +588,13 @@ enum class SLiMCycleStage
 
 std::string StringForSLiMCycleStage(SLiMCycleStage p_stage);
 
-// This enumeration represents the type of a trait: multiplicative or additive.
+// This enumeration represents the type of a trait: multiplicative or additive.  Note that at the Eidos API level
+// we also support logistic traits, but that is not considered a trait type internally; it is implemented as a
+// post-transformation of an additive trait, and controlled by a separate flag in Trait.
 enum class TraitType : uint8_t {
 	kMultiplicative = 0,
 	kAdditive
 };
-
-std::string StringForTraitType(TraitType p_trait_type);
-TraitType TraitTypeForString(std::string type);				// raises if no match
-std::ostream& operator<<(std::ostream& p_out, TraitType p_trait_type);
 
 // This enumeration represents the type of a chromosome.  Note that the sex of an individual cannot always be inferred
 // from chromosomal state, and the user is allowed to play games with null haplosomes; the chromosomes follow the sex
@@ -1236,6 +1234,7 @@ extern const std::string &gStr_context;
 
 extern const std::string gStr_additive;	// these trait type strings are not registered, no need
 extern const std::string gStr_multiplicative;
+extern const std::string gStr_logistic;
 extern const std::string gStr_A;	// these nucleotide strings are not registered, no need
 extern const std::string gStr_C;
 extern const std::string gStr_G;

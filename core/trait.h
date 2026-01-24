@@ -56,7 +56,11 @@ private:
 	
 	slim_trait_index_t index_;								// the index of this trait within its species
 	std::string name_;										// the user-visible name of this trait
-	TraitType type_;										// multiplicative or additive
+	
+	// Trait type: at the user level, multiplicative / additive / logistic, but logistic is treated
+	// internally here as additive with a logistic post-transformation controlled by a separate flag.
+	TraitType type_;
+	bool logistic_post_;
 	
 	// baseline offset, added to the trait value of every individual
 	slim_effect_t baselineOffset_;
@@ -123,13 +127,14 @@ public:
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor
 	
-	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
+	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
 	~Trait(void);
 	
-	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const	{ return index_; }
+	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const		{ return index_; }
 	inline __attribute__((always_inline)) void SetIndex(slim_trait_index_t p_index)	{ index_ = p_index; }	// only from AddTrait()
-	inline __attribute__((always_inline)) TraitType Type(void) const			{ return type_; }
-	inline __attribute__((always_inline)) const std::string &Name(void) const	{ return name_; }
+	inline __attribute__((always_inline)) TraitType Type(void) const				{ return type_; }
+	inline __attribute__((always_inline)) bool HasLogisticPostTransform(void) const	{ return logistic_post_; }
+	inline __attribute__((always_inline)) const std::string &Name(void) const		{ return name_; }
 	
 	slim_effect_t BaselineOffset(void) const { return baselineOffset_; };
 	

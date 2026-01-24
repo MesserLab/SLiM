@@ -544,7 +544,7 @@ slim_effect_t Mutation::RealizedDominanceForTrait(Trait *p_trait) const
 		// NAN indicates independent dominance and needs to be handled specially here
 		if (p_trait->Type() == TraitType::kAdditive)
 		{
-			// for additive traits independent dominance is always 0.5
+			// for additive and logistic traits independent dominance is always 0.5
 			return 0.5;
 		}
 		else
