@@ -1267,7 +1267,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 				for (size_t log_index = 0; log_index < log_size_; log_index++)
 					column_data[log_index] = (double)trait_log.logged_effect_size_[log_index];
 			}
-			dataframe->SetKeyValue_StringKeys(trait_name + "Effect", EidosValue_SP(column));
+			dataframe->SetKeyValue_StringKeys(trait_name + "EffectSize", EidosValue_SP(column));
 		}
 		
 		if (get_dominance)
