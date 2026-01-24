@@ -908,8 +908,7 @@ The
 \f2\fs20 , but the 
 \f1\fs18 setDefaultHemizygousDominanceForTrait()
 \f2\fs20  method can configure it subsequently if desired.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 distributionType
 \f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
 \f1\fs18 setEffectSizeDistributionForTrait()
@@ -1351,6 +1350,7 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1430,6 +1430,7 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1548,9 +1549,9 @@ The
 \f2\fs20 , if the trait value should be the result of multiplying effects together (as in a typical population-genetics model), or 
 \f1\fs18 "additive"
 \f2\fs20 , if the trait value should be the result of adding effects together (as in a typical quantitative-genetics model).  The shorter versions 
-\f1\fs18 "mul"
+\f1\fs18 "m"
 \f2\fs20  and 
-\f1\fs18 "add"
+\f1\fs18 "a"
 \f2\fs20  are also allowed.\
 The 
 \f1\fs18 baselineOffset

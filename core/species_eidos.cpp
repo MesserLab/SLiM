@@ -1681,9 +1681,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
 	TraitType type;
 	
-	if ((type_string == gStr_multiplicative) || (type_string == "mul"))
+	if ((type_string == gStr_multiplicative) || (type_string == "m"))
 		type = TraitType::kMultiplicative;
-	else if ((type_string == gStr_additive) || (type_string == "add"))
+	else if ((type_string == gStr_additive) || (type_string == "a"))
 		type = TraitType::kAdditive;
 	else
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'mul'), or 'additive' ('add')." << EidosTerminate();

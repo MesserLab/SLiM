@@ -1709,15 +1709,15 @@ initialize() {
 	initializeSex();
 	
 	// multiplicative traits
-	popgen1T = initializeTrait("popgen1T", "mul", 1.01, 1.0, 0.01, directFitnessEffect=T);  // will have a mix of dominance
-	popgen2T = initializeTrait("popgen2T", "mul", 1.01, 1.0, 0.01, directFitnessEffect=T);  // will be independent dominance
-	n1T = initializeTrait("n1T", "mul", NULL, NULL, NULL, directFitnessEffect=T);           // neutral with direct effect
-	n2T = initializeTrait("n2T", "mul", NULL, NULL, NULL, directFitnessEffect=F);           // neutral with no direct effect
+	popgen1T = initializeTrait("popgen1T", "m", 1.01, 1.0, 0.01, directFitnessEffect=T);  // will have a mix of dominance
+	popgen2T = initializeTrait("popgen2T", "m", 1.01, 1.0, 0.01, directFitnessEffect=T);  // will be independent dominance
+	n1T = initializeTrait("n1T", "m", NULL, NULL, NULL, directFitnessEffect=T);           // neutral with direct effect
+	n2T = initializeTrait("n2T", "m", NULL, NULL, NULL, directFitnessEffect=F);           // neutral with no direct effect
 	
 	// additive traits
-	quant1T = initializeTrait("quant1T", "add", I1, 0.0, 0.01, directFitnessEffect=F);      // will have a mix of dominance
-	quant2T = initializeTrait("quant2T", "add", I2, 0.0, 0.01, directFitnessEffect=F);      // will be independent dominance
-	n3T = initializeTrait("n3T", "add", NULL, NULL, NULL, directFitnessEffect=F);           // non-neutral with no direct effect
+	quant1T = initializeTrait("quant1T", "a", I1, 0.0, 0.01, directFitnessEffect=F);      // will have a mix of dominance
+	quant2T = initializeTrait("quant2T", "a", I2, 0.0, 0.01, directFitnessEffect=F);      // will be independent dominance
+	n3T = initializeTrait("n3T", "a", NULL, NULL, NULL, directFitnessEffect=F);           // non-neutral with no direct effect
 	
 	// quant1T / quant2T will be demanded in script; popgen1T / popgen2T / n1T will be demanded because they have direct effects
 	// calculation of popgen2T and quant2T should be extremely efficient since they are independent dominance
