@@ -1628,7 +1628,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [f$ individualOffsetMean = 0.0], [f$ individualOffsetSD = 0.0], [l$ directFitnessEffect = F])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1686,7 +1686,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	else if ((type_string == gStr_additive) || (type_string == "a"))
 		type = TraitType::kAdditive;
 	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'mul'), or 'additive' ('add')." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'm'), or 'additive' (or 'a')." << EidosTerminate();
 	
 	// baselineOffset
 	slim_effect_t baselineOffset;
@@ -1711,31 +1711,17 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_effect_t)0.0))
 		baselineOffset = (slim_effect_t)0.0;
 	
-	// check that the default distribution is used or not used, in its entirety
-	if (individualOffsetMean_value->Type() != individualOffsetSD_value->Type())
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that both individual offset parameters be NULL (to use the default distribution) or be non-NULL (to specify a distribution)." << EidosTerminate();
-	
 	// individualOffsetMean
-	double individualOffsetMean;
-	
-	if (individualOffsetMean_value->Type() == EidosValueType::kValueNULL)
-		individualOffsetMean = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
-	else
-		individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);
+	double individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if (!std::isfinite(individualOffsetMean))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetMean to be a finite value (not NAN or INF)." << EidosTerminate();
 	
 	// individualOffsetSD
-	double individualOffsetSD;
+	double individualOffsetSD = individualOffsetSD_value->FloatAtIndex_NOCAST(0, nullptr);
 	
-	if (individualOffsetSD_value->Type() == EidosValueType::kValueNULL)
-		individualOffsetSD = 0.0;
-	else
-		individualOffsetSD = individualOffsetSD_value->FloatAtIndex_NOCAST(0, nullptr);
-	
-	if (!std::isfinite(individualOffsetSD))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetSD to be a finite value (not NAN or INF)." << EidosTerminate();
+	if ((!std::isfinite(individualOffsetSD)) || (individualOffsetSD < 0.0))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetSD to be a nonnegative finite value (not NAN or INF)." << EidosTerminate();
 	
 	// directFitnessEffect
 	bool directFitnessEffect = directFitnessEffect_value->LogicalAtIndex_NOCAST(0, nullptr);

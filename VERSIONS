@@ -164,6 +164,7 @@ multitrait branch:
 		setEffectSizeForTrait() parameter "effect" -> "effectSize"
 		MutationType's loggedData() parameter "effect" -> "effectSize" and lots of related fallout for loggedData() and logMutationData(), logged_effect_, running_effect_, etc.
 	for initializeMutationType() and initializeMutationTypeNuc(), change the "dominanceCoeff" parameter to "defaultDominance"
+	switch over to using a lognormal distribution for the default individual offset distribution for multiplicative traits
 
 
 version 5.1 (Eidos version 4.1):

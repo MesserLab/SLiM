@@ -21,8 +21,8 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, sl
 		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property baselineOffset requires a finite value (not NAN or INF)." << EidosTerminate();
 	if (!std::isfinite(individualOffsetMean_))
 		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetMean requires a finite value (not NAN or INF)." << EidosTerminate();
-	if (!std::isfinite(individualOffsetSD_))
-		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetSD requires a finite value (not NAN or INF)." << EidosTerminate();
+	if (!std::isfinite(individualOffsetSD_) || (individualOffsetSD_ < 0.0))
+		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) property individualOffsetSD requires a nonnegative finite value (not NAN or INF)." << EidosTerminate();
 	
 	// effects for multiplicative traits clip at 0.0
 	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < (slim_effect_t)0.0))
@@ -40,13 +40,17 @@ void Trait::_RecacheIndividualOffsetDistribution(void)
 	{
 		individualOffsetFixed_ = true;
 		
-		// effects for multiplicative traits clip at 0.0
-		slim_effect_t offset = static_cast<slim_effect_t>(individualOffsetMean_);
-		
-		if ((type_ == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
-			individualOffsetFixedValue_ = 0.0;
+		if (type_ == TraitType::kMultiplicative)
+		{
+			// multiplicative traits use an exp() transformation to get a lognormal distribution
+			// (effects for multiplicative traits also clip at 0.0, but exp() guarantees that anyway)
+			individualOffsetFixedValue_ = static_cast<slim_effect_t>(std::exp(individualOffsetMean_));
+		}
 		else
-			individualOffsetFixedValue_ = offset;
+		{
+			// other traits use a normal distribution, so the mean is the mean
+			individualOffsetFixedValue_ = static_cast<slim_effect_t>(individualOffsetMean_);
+		}
 	}
 	else
 	{
@@ -75,13 +79,21 @@ slim_effect_t Trait::_DrawIndividualOffset(void) const
 	// note the individualOffsetSD_ == 0 case was already handled by DrawIndividualOffset()
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
-	slim_effect_t offset = static_cast<slim_effect_t>(gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_);
-	
-	// effects for multiplicative traits clip at 0.0
-	if ((type_ == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
-		offset = 0.0;
-	
-	return offset;
+	if (type_ == TraitType::kMultiplicative)
+	{
+		// multiplicative traits use an exp() transformation to get a lognormal distribution
+		// (effects for multiplicative traits also clip at 0.0, but exp() guarantees that anyway)
+		double normal_draw = gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_;
+		
+		return static_cast<slim_effect_t>(std::exp(normal_draw));
+	}
+	else
+	{
+		// other traits use a normal distribution, so the mean is the mean
+		double normal_draw = gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_;
+		
+		return static_cast<slim_effect_t>(normal_draw);
+	}
 }
 
 EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
@@ -201,8 +213,8 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 		{
 			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
-			if (!std::isfinite(value))
-				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property individualOffsetSD requires a finite value (not NAN or INF)." << EidosTerminate();
+			if (!std::isfinite(value) || (value < 0.0))
+				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property individualOffsetSD requires a nonnegative finite value (not NAN or INF)." << EidosTerminate();
 			
 			individualOffsetSD_ = value;
 			_RecacheIndividualOffsetDistribution();

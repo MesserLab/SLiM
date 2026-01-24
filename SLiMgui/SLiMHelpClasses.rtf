@@ -6258,8 +6258,7 @@ You can get the
 \f2\i\fs18 <trait-name>
 \f3\i0 Dominance
 \f4\fs20  property.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
+If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
 \f3\fs18 NAN
 \f4\fs20 , as discussed in 
 \f3\fs18 initializeMutationType()
@@ -6301,8 +6300,7 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f2\i\fs18 <trait-name>
 \f3\i0 EffectSize
 \f4\fs20  property.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s effect size to some number 
 \f3\fs18 x
@@ -6329,8 +6327,7 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f2\i\fs18 <trait-name>
 \f3\i0 HemizygousDominance
 \f4\fs20  property.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
 \f3\fs18 mut
 \f4\fs20 \'92s hemizygous dominance coefficient to some number 
 \f3\fs18 x
@@ -15036,7 +15033,13 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 \cf2 individualOffsetMean <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The mean for the normal distribution from which individual offsets are drawn.  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f4\fs20 \cf2 The mean for the normal distribution from which individual offsets are drawn.  (As described in 
+\f3\fs18 initializeTrait()
+\f4\fs20 , for multiplicative traits the drawn values are transformed with 
+\f3\fs18 exp()
+\f4\fs20  before use, so in effect a lognormal distribution is used, and 
+\f3\fs18 individualOffsetMean
+\f4\fs20  is the mean of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
 \f3\fs18 individualOffsetSD
 \f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -15044,7 +15047,13 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 \cf2 individualOffsetSD <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The standard deviation for the normal distribution from which individual offsets are drawn.  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f4\fs20 \cf2 The standard deviation for the normal distribution from which individual offsets are drawn.  (As described in 
+\f3\fs18 initializeTrait()
+\f4\fs20 , for multiplicative traits the drawn values are transformed with 
+\f3\fs18 exp()
+\f4\fs20  before use, so in effect a lognormal distribution is used, and 
+\f3\fs18 individualOffsetSD
+\f4\fs20  is the standard deviation of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
 \f3\fs18 individualOffsetMean
 \f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

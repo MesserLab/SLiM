@@ -1318,19 +1318,19 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(0, INF); }", "default dominance is infinite", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultHemizygousDominanceForTrait(0, NAN); }", "hemizygous dominance is non-finite", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5); m1.setDefaultHemizygousDominanceForTrait(0, INF); }", "hemizygous dominance is non-finite", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); if (m1.defaultDominanceForTrait('A') == 0.5) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); if (isNAN(m1.defaultDominanceForTrait('A'))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); if (identical(m1.defaultDominanceForTrait(), c(0.5,0.5))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); if (identical(m1.defaultDominanceForTrait(), c(NAN,NAN))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(), c(0.25, 0.75))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('B','A'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(), c(0.75, 0.25))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('B','A'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(c('B','A')), c(0.25, 0.75))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(NAN, NAN)); if (identical(m1.defaultDominanceForTrait(), c(NAN, NAN))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A'), NAN); if (identical(m1.defaultDominanceForTrait(), c(NAN, 0.5))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, NAN)); if (identical(m1.defaultDominanceForTrait(), c(0.5, NAN))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, 0.5)); if (identical(m1.defaultDominanceForTrait(), c(0.5, 0.5))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A'), 0.5); if (identical(m1.defaultDominanceForTrait(), c(0.5, NAN))) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'mul'); initializeTrait('B', 'mul'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, NAN)); if (identical(m1.defaultDominanceForTrait(), c(0.5, NAN))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); if (m1.defaultDominanceForTrait('A') == 0.5) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', NAN); if (isNAN(m1.defaultDominanceForTrait('A'))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); if (identical(m1.defaultDominanceForTrait(), c(0.5,0.5))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', NAN); if (identical(m1.defaultDominanceForTrait(), c(NAN,NAN))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(), c(0.25, 0.75))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('B','A'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(), c(0.75, 0.25))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('B','A'), c(0.25, 0.75)); if (identical(m1.defaultDominanceForTrait(c('B','A')), c(0.25, 0.75))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(NAN, NAN)); if (identical(m1.defaultDominanceForTrait(), c(NAN, NAN))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A'), NAN); if (identical(m1.defaultDominanceForTrait(), c(NAN, 0.5))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', 0.5); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, NAN)); if (identical(m1.defaultDominanceForTrait(), c(0.5, NAN))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, 0.5)); if (identical(m1.defaultDominanceForTrait(), c(0.5, 0.5))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A'), 0.5); if (identical(m1.defaultDominanceForTrait(), c(0.5, NAN))) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('A', 'm'); initializeTrait('B', 'm'); initializeMutationType('m1', NAN); m1.setDefaultDominanceForTrait(c('A','B'), c(0.5, NAN)); if (identical(m1.defaultDominanceForTrait(), c(0.5, NAN))) stop(); }");
 	
 	std::string middle = " initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeMutationRate(1e-4); } 1 late() { sim.addSubpop('p1', 10); } 2 late() { muts = sim.mutations; ";
 	
@@ -1352,11 +1352,11 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "if (allClose(muts.effectSize, 0.0001)) stop(); }");
 	
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.setDominanceForTrait(0, 0.5); if (all(muts.dominance == 0.5)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.dominance == 0.5)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.heightDominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'm'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.dominance == 0.5)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'm'); initializeMutationType('m1', NAN, 'f', 0.0001);" + middle + "muts.heightDominance = 0.5; if (all(muts.heightDominance == 0.5)) stop(); }");
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.setDominanceForTrait(0, NAN); if (allClose(muts.dominance, 0.4999875)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.dominance, 0.4999875)) stop(); }");
-	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'mul'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.heightDominance, 0.4999875)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'm'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.dominance, 0.4999875)) stop(); }");
+	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'm'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.heightDominance, 0.4999875)) stop(); }");
 	
 	// Test the new Individual cachedFitness property and crosscheck it against the Subpopulation cachedFitness() method
 	std::string cachedFitness1 =	// neutral but with fitnessScaling
