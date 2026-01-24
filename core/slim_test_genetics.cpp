@@ -1038,10 +1038,8 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=NAN); }", "baselineOffset to be a finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=INF, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NAN, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
-		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=INF); }", "individualOffsetSD to be a finite value", __LINE__);
-		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=NAN); }", "individualOffsetSD to be a finite value", __LINE__);
-		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=2.0, individualOffsetSD=NULL); }", "individual offset parameters be", __LINE__);
-		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NULL, individualOffsetSD=2.0); }", "individual offset parameters be", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=INF); }", "individualOffsetSD to be a nonnegative finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=NAN); }", "individualOffsetSD to be a nonnegative finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeTrait('height', 'multiplicative'); }", "already been implicitly defined", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative'); initializeMutationType('m1', 0.5, 'f', 0.0); initializeTrait('weight', 'multiplicative'); }", "before a mutation type is created", __LINE__);
 		SLiMAssertScriptRaise("initialize() { for (i in 1:257) initializeTrait('height' + i, 'multiplicative'); }", "maximum number of traits", __LINE__);
@@ -1076,7 +1074,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.index, 0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.index, 1)) stop(); }");
 		
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetMean, 1.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.individualOffsetMean, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetMean, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; if (!identical(T_height.individualOffsetMean, 3.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; if (!identical(T_weight.individualOffsetMean, 2.5)) stop(); }");
@@ -1087,8 +1085,8 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.individualOffsetSD, 0.0)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetSD = 3.5; if (!identical(T_height.individualOffsetSD, 3.5)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetSD = 2.5; if (!identical(T_weight.individualOffsetSD, 2.5)) stop(); }");
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetSD = NAN; }", "requires a finite value", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetSD = INF; }", "requires a finite value", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetSD = NAN; }", "requires a nonnegative finite value", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.individualOffsetSD = INF; }", "requires a nonnegative finite value", __LINE__);
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.name, 'height')) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.name, 'weight')) stop(); }");
@@ -1122,7 +1120,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, INF); }", "offset values to be finite", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { p1.individuals.setOffsetForTrait(0, c(1,INF,3,INF,5)); }", "offset values to be finite", __LINE__);
 		
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_height), rep(3.5, 5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.individualOffsetMean = 3.5; } 2 late() { if (!allClose(p1.individuals.offsetForTrait(T_height), rep(exp(3.5), 5))) stop(); }");	// note exp() post-transform
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.individualOffsetMean = 2.5; } 2 late() { if (!identical(p1.individuals.offsetForTrait(T_weight), rep(2.5, 5))) stop(); }");
 		
 		// individual phenotype
@@ -1709,15 +1707,15 @@ initialize() {
 	initializeSex();
 	
 	// multiplicative traits
-	popgen1T = initializeTrait("popgen1T", "m", 1.01, 1.0, 0.01, directFitnessEffect=T);  // will have a mix of dominance
-	popgen2T = initializeTrait("popgen2T", "m", 1.01, 1.0, 0.01, directFitnessEffect=T);  // will be independent dominance
-	n1T = initializeTrait("n1T", "m", NULL, NULL, NULL, directFitnessEffect=T);           // neutral with direct effect
-	n2T = initializeTrait("n2T", "m", NULL, NULL, NULL, directFitnessEffect=F);           // neutral with no direct effect
+	popgen1T = initializeTrait("popgen1T", "m", 1.01, 0.0, 0.01, directFitnessEffect=T);  // will have a mix of dominance
+	popgen2T = initializeTrait("popgen2T", "m", 1.01, 0.0, 0.01, directFitnessEffect=T);  // will be independent dominance
+	n1T = initializeTrait("n1T", "m", directFitnessEffect=T);           // neutral with direct effect
+	n2T = initializeTrait("n2T", "m", directFitnessEffect=F);           // neutral with no direct effect
 	
 	// additive traits
 	quant1T = initializeTrait("quant1T", "a", I1, 0.0, 0.01, directFitnessEffect=F);      // will have a mix of dominance
 	quant2T = initializeTrait("quant2T", "a", I2, 0.0, 0.01, directFitnessEffect=F);      // will be independent dominance
-	n3T = initializeTrait("n3T", "a", NULL, NULL, NULL, directFitnessEffect=F);           // non-neutral with no direct effect
+	n3T = initializeTrait("n3T", "a", directFitnessEffect=F);           // non-neutral with no direct effect
 	
 	// quant1T / quant2T will be demanded in script; popgen1T / popgen2T / n1T will be demanded because they have direct effects
 	// calculation of popgen2T and quant2T should be extremely efficient since they are independent dominance
