@@ -1368,7 +1368,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 			
 #ifdef SLIMGUI
 			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
-				parent_individuals_[individual_index]->cached_unscaled_fitness_ = (slim_effect_t)constant_unscaled_fitness_value;
+				parent_individuals_[individual_index]->cached_unscaled_fitness_ = (slim_fitness_t)constant_unscaled_fitness_value;
 #endif
 		}
 		else	// (model_type_ == SLiMModelType::kModelTypeNonWF)
@@ -1381,10 +1381,10 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 				Individual *ind = parent_individuals_[individual_index];
 				
 #ifdef SLIMGUI
-				ind->cached_unscaled_fitness_ = (slim_effect_t)constant_unscaled_fitness_value;
+				ind->cached_unscaled_fitness_ = (slim_fitness_t)constant_unscaled_fitness_value;
 #endif
 					
-				ind->cached_fitness_UNSAFE_ = (slim_effect_t)constant_fitness_value;
+				ind->cached_fitness_UNSAFE_ = (slim_fitness_t)constant_fitness_value;
 			}
 		}
 	}
@@ -1418,7 +1418,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 		// then loop over individuals and pull together the relevant phenotype values, fitnessEffect() callbacks,
 		// subpopulation fitnessScaling, and individual fitnessScaling to produce final individual fitness values;
 		// we choose our _CalculateFitnessAfterDemand() template based upon flags and execute it to calculate fitness values
-		bool f_has_subpop_fitnessScaling = (subpop_fitness_scaling != 1.0f);
+		bool f_has_subpop_fitnessScaling = (subpop_fitness_scaling != (slim_fitness_t)1.0);
 		bool f_has_ind_fitnessScaling = Individual::s_any_individual_fitness_scaling_set_;
 		bool f_has_fitnessEffect_callbacks = (p_subpop_fitnessEffect_callbacks.size() > 0);
 		bool f_has_trait_direct_effects = (p_direct_effect_trait_indices.size() > 0);
@@ -1514,12 +1514,12 @@ void Subpopulation::_CalculateFitnessAfterDemand(std::vector<SLiMEidosBlock*> &p
 				
 				if (f_single_trait)
 				{
-					fitness *= trait_info[single_trait_index].phenotype_;
+					fitness *= (slim_fitness_t)trait_info[single_trait_index].phenotype_;
 				}
 				else
 				{
 					for (slim_trait_index_t trait_index : p_direct_effect_trait_indices)
-						fitness *= trait_info[trait_index].phenotype_;		// >= 0.0 for multiplicative traits
+						fitness *= (slim_fitness_t)trait_info[trait_index].phenotype_;		// >= 0.0 for multiplicative traits
 				}
 			}
 			
@@ -2296,7 +2296,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 	}
 	
 	// Create the offspring and record it
-	Individual *individual = NewSubpopIndividual(/* index */ -1, p_child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (p_parent1->age_ + (float)p_parent2->age_) / 2.0F);
+	Individual *individual = NewSubpopIndividual(/* index */ -1, p_child_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), /* p_mean_parent_age */ (p_parent1->age_ + (float)p_parent2->age_) / 2.0F);
 	
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
@@ -2680,7 +2680,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	}
 	
 	// Create the offspring and record it
-	Individual *individual = NewSubpopIndividual(/* index */ -1, IndividualSex::kHermaphrodite, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ p_parent->age_);
+	Individual *individual = NewSubpopIndividual(/* index */ -1, IndividualSex::kHermaphrodite, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), /* p_mean_parent_age */ p_parent->age_);
 	
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
@@ -2881,7 +2881,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	}
 	
 	// Create the offspring and record it
-	Individual *individual = NewSubpopIndividual(/* index */ -1, parent_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ p_parent->age_);
+	Individual *individual = NewSubpopIndividual(/* index */ -1, parent_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), /* p_mean_parent_age */ p_parent->age_);
 	
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
@@ -5522,7 +5522,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p
 	{
 		slim_fitness_t source_value = (slim_fitness_t)p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
-		if ((source_value < 0.0f) || std::isnan(source_value))
+		if ((source_value < (slim_fitness_t)0.0) || std::isnan(source_value))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -5536,7 +5536,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p
 		{
 			slim_fitness_t source_value = (slim_fitness_t)source_data[value_index];
 			
-			if ((source_value < 0.0f) || std::isnan(source_value))
+			if ((source_value < (slim_fitness_t)0.0) || std::isnan(source_value))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
 			((Subpopulation *)(p_values[value_index]))->subpop_fitness_scaling_ = source_value;
@@ -6090,7 +6090,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		Individual *individual = GenerateIndividualEmpty(/* index */ -1,
 														 /* sex */ child_sex,
 														 /* age */ 0,
-														 /* fitness */ NAN,
+														 /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(),
 														 /* mean_parent_age */ 0.0F,
 														 /* haplosome1_null */ haplosome1_null,
 														 /* haplosome2_null */ haplosome2_null,
@@ -6545,7 +6545,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			child_sex = (Eidos_RandomBool(rng_state) ? IndividualSex::kMale : IndividualSex::kFemale);
 		
 		// Make the new individual as a candidate; we make its haplosomes in the pass 2 loop below
-		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
+		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), mean_parent_age);
 		slim_pedigreeid_t pid = 0;
 		
 		if (pedigrees_enabled)
@@ -7355,7 +7355,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		// but HaplosomeRecombined() now handles that for us since it is shared functionality.
 		
 		// Make the new individual as a candidate
-		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
+		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), mean_parent_age);
 		Haplosome *haplosome1 = haplosome1_null ? chromosome->NewHaplosome_NULL(individual, 0) : chromosome->NewHaplosome_NONNULL(individual, 0);
 		Haplosome *haplosome2 = nullptr;
 		

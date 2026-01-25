@@ -534,7 +534,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 								old_last_valid_history_index = history_record.history_length_ - 1;
 							
 							for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
-								history[entry_index] = NAN;
+								history[entry_index] = std::numeric_limits<double>::quiet_NaN();
 						}
 					}
 					

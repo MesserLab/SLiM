@@ -67,10 +67,11 @@ inline slim_pedigreeid_t SLiM_GetNextPedigreeID_Block(int p_block_size)
 
 // This struct contains all information for a single trait in a single individual.  In a multitrait
 // model, each individual has a pointer to a buffer of these records, providing per-trait information.
+// BCH 1/24/2026: This now contains two doubles, for better precision; the error with float was large.
 typedef struct _IndividualTraitInfo
 {
-	slim_effect_t phenotype_;	// the phenotypic value for a trait
-	slim_effect_t offset_;		// the individual offset combined in to produce a trait value
+	slim_phenotype_t phenotype_;	// the phenotypic value for a trait
+	slim_trait_offset_t offset_;	// the individual offset combined in to produce a trait value
 } IndividualTraitInfo;
 
 class Individual : public EidosDictionaryUnretained
@@ -143,8 +144,7 @@ public:
 	slim_usertag_t tag_value_;			// a user-defined tag value of integer type
 	double tagF_value_;					// a user-defined tag value of float type
 	
-	// FIXME MULTITRAIT: We should also have a typedef for trait indices, and it should be int32_t, again for speed/size; get rid of int64_t for this
-	slim_fitness_t fitness_scaling_ = 1.0f;		// the fitnessScaling property value
+	slim_fitness_t fitness_scaling_ = (slim_fitness_t)1.0;		// the fitnessScaling property value
 	slim_fitness_t cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
 												// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
 												// this value in constant-fitness models; that flag must be checked before using this cached value
@@ -427,7 +427,7 @@ public:
 #endif
 	
 	// Debugging checkback for phenotype calculation; this is very slow, and does not use the non-neutral cache
-	slim_effect_t _CheckPhenotypeForTrait(slim_trait_index_t trait_index);
+	slim_phenotype_t _CheckPhenotypeForTrait(slim_trait_index_t trait_index);
 	
 	void _Check_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	void _Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);

@@ -126,8 +126,10 @@ typedef int64_t slim_haplosomeid_t;		// identifiers for pedigreed haplosomes; no
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef int32_t slim_trait_index_t;		// indices for traits; we are limited to 256 traits by SLIM_MAX_TRAITS at present, so this is plenty of room
 typedef uint32_t slim_operation_id_t;	// used for MutationRun's operation_id_, as a unique identifier of a given task being worked upon
-typedef float slim_effect_t;			// storage of mutation effect sizes, trait effects, and dominance coefficients in memory-tight classes
-typedef float slim_fitness_t;			// storage of fitness effects (e.g., fitnessScaling values) and final individual fitness values
+typedef float slim_effect_t;			// storage of mutation effect sizes (and dominance coefficients), float for memory-tight classes
+typedef double slim_trait_offset_t;		// storage of baseline offsets and individual offsets
+typedef double slim_phenotype_t;		// storage of trait values (phenotypes), trait effects, and individual phenotypes for traits
+typedef double slim_fitness_t;			// storage of fitness effects (e.g., fitnessScaling values) and final individual fitness values
 
 #define SLIM_MAX_TICK			(1000000000L)	// ticks range from 0 (init time) to this; SLIM_MAX_TICK + 1 is an "infinite" marker value
 #define SLIM_MAX_BASE_POSITION	(1000000000000000L)	// base positions in the chromosome can range from 0 to 1e15; see above

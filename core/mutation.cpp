@@ -105,15 +105,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);
+				traitInfoRec->homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + effect_size);
+				traitInfoRec->heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + hemizygous_dominance * effect_size);
 			}
 			else	// (traitType == TraitType::kAdditive)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect_size);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);
+				traitInfoRec->homozygous_effect_ = ((slim_effect_t)2.0 * effect_size);
+				traitInfoRec->heterozygous_effect_ = ((slim_effect_t)2.0 * realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = ((slim_effect_t)2.0 * hemizygous_dominance * effect_size);
 			}
 		}
 		else	// (effect == 0.0)
@@ -246,15 +246,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 				
 				if (traitType == TraitType::kMultiplicative)
 				{
-					traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);
-					traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
-					traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);
+					traitInfoRec->homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + effect_size);
+					traitInfoRec->heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * effect_size);
+					traitInfoRec->hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + hemizygous_dominance * effect_size);
 				}
 				else	// (traitType == TraitType::kAdditive)
 				{
-					traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect_size);
-					traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
-					traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);
+					traitInfoRec->homozygous_effect_ = ((slim_effect_t)2.0 * effect_size);
+					traitInfoRec->heterozygous_effect_ = ((slim_effect_t)2.0 * realized_dominance * effect_size);
+					traitInfoRec->hemizygous_effect_ = ((slim_effect_t)2.0 * hemizygous_dominance * effect_size);
 				}
 			}
 			else	// (effect == 0.0)
@@ -353,15 +353,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 			
 			if (traitType == TraitType::kMultiplicative)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);
+				traitInfoRec->homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + effect_size);
+				traitInfoRec->heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + hemizygous_dominance * effect_size);
 			}
 			else	// (traitType == TraitType::kAdditive)
 			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * effect_size);
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);
+				traitInfoRec->homozygous_effect_ = ((slim_effect_t)2.0 * effect_size);
+				traitInfoRec->heterozygous_effect_ = ((slim_effect_t)2.0 * realized_dominance * effect_size);
+				traitInfoRec->hemizygous_effect_ = ((slim_effect_t)2.0 * hemizygous_dominance * effect_size);
 			}
 		}
 		else	// (effect == 0.0)
@@ -482,15 +482,15 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end) const
 		
 		if (trait->Type() == TraitType::kAdditive)
 		{
-			correct_homozygous_effect = (slim_effect_t)(2.0f * effect_size);										// 2a
-			correct_heterozygous_effect = (slim_effect_t)(2.0f * dominance * effect_size);							// 2ha
-			correct_hemizygous_effect = (slim_effect_t)(2.0f * hemizygous_dominance * effect_size);					// 2ha (using h_hemi)
+			correct_homozygous_effect = ((slim_effect_t)2.0 * effect_size);										// 2a
+			correct_heterozygous_effect = ((slim_effect_t)2.0 * dominance * effect_size);							// 2ha
+			correct_hemizygous_effect = ((slim_effect_t)2.0 * hemizygous_dominance * effect_size);					// 2ha (using h_hemi)
 		}
 		else
 		{
-			correct_homozygous_effect = (slim_effect_t)std::max(0.0f, 1.0f + effect_size);							// 1 + s
-			correct_heterozygous_effect = (slim_effect_t)std::max(0.0f, 1.0f + dominance * effect_size);			// 1 + hs
-			correct_hemizygous_effect = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * effect_size);	// 1 + hs (using h_hemi)
+			correct_homozygous_effect = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + effect_size);							// 1 + s
+			correct_heterozygous_effect = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + dominance * effect_size);			// 1 + hs
+			correct_hemizygous_effect = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + hemizygous_dominance * effect_size);	// 1 + hs (using h_hemi)
 		}
 		
 		if (correct_homozygous_effect != traitInfoRec.homozygous_effect_)
@@ -592,16 +592,16 @@ void Mutation::SetEffectSize(Trait *p_trait, MutationTraitInfo *traitInfoRec, sl
 			// is admittedly a philosophical issue here; if a multiplicative trait represented simply some abstract
 			// trait with no direct connection to fitness, then maybe clamping here would not make sense?  But even
 			// then, negative effects don't really seem to me to make sense there, so I think this is good.
-			traitInfoRec->homozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + p_new_effect);							// 1 + s
-			traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * p_new_effect);	// 1 + hs
-			traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + hemizygous_dominance * p_new_effect);	// 1 + hs (using h_hemi)
+			traitInfoRec->homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + p_new_effect);							// 1 + s
+			traitInfoRec->heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * p_new_effect);	// 1 + hs
+			traitInfoRec->hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + hemizygous_dominance * p_new_effect);	// 1 + hs (using h_hemi)
 		}
 		else	// (p_trait->Type() == TraitType::kAdditive)
 		{
 			// For additive traits, the baseline of the trait is arbitrary and there is no cutoff.
-			traitInfoRec->homozygous_effect_ = (slim_effect_t)(2.0f * p_new_effect);										// 2a
-			traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * p_new_effect);					// 2ha
-			traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * hemizygous_dominance * p_new_effect);					// 2ha (using h_hemi)
+			traitInfoRec->homozygous_effect_ = ((slim_effect_t)2.0 * p_new_effect);										// 2a
+			traitInfoRec->heterozygous_effect_ = ((slim_effect_t)2.0 * realized_dominance * p_new_effect);					// 2ha
+			traitInfoRec->hemizygous_effect_ = ((slim_effect_t)2.0 * hemizygous_dominance * p_new_effect);					// 2ha (using h_hemi)
 		}
 	}
 	else	// p_new_effect == 0.0; therefore, old_effect != 0.0
@@ -644,11 +644,11 @@ void Mutation::SetDominance(Trait *p_trait, MutationTraitInfo *traitInfoRec, sli
 	
 	if (p_trait->Type() == TraitType::kMultiplicative)
 	{
-		traitInfoRec->heterozygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + realized_dominance * effect_size);
+		traitInfoRec->heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * effect_size);
 	}
 	else	// (p_trait->Type() == TraitType::kAdditive)
 	{
-		traitInfoRec->heterozygous_effect_ = (slim_effect_t)(2.0f * realized_dominance * effect_size);
+		traitInfoRec->heterozygous_effect_ = ((slim_effect_t)2.0 * realized_dominance * effect_size);
 	}
 	
 	EvaluateFlags();
@@ -667,11 +667,11 @@ void Mutation::SetHemizygousDominance(Trait *p_trait, MutationTraitInfo *traitIn
 	
 	if (p_trait->Type() == TraitType::kMultiplicative)
 	{
-		traitInfoRec->hemizygous_effect_ = (slim_effect_t)std::max(0.0f, 1.0f + p_new_dominance * traitInfoRec->effect_size_);
+		traitInfoRec->hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + p_new_dominance * traitInfoRec->effect_size_);
 	}
 	else	// (p_trait->Type() == TraitType::kAdditive)
 	{
-		traitInfoRec->hemizygous_effect_ = (slim_effect_t)(2.0f * p_new_dominance * traitInfoRec->effect_size_);
+		traitInfoRec->hemizygous_effect_ = ((slim_effect_t)2.0 * p_new_dominance * traitInfoRec->effect_size_);
 	}
 	
 	// No need for this here; hemizygous dominance does not affect our flags

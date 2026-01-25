@@ -63,7 +63,7 @@ private:
 	bool logistic_post_;
 	
 	// baseline offset, added to the trait value of every individual
-	slim_effect_t baselineOffset_;
+	slim_trait_offset_t baselineOffset_;
 	
 	// default individual offset distribution parameters, used to generate per-individual offsets
 	double individualOffsetMean_;
@@ -72,7 +72,7 @@ private:
 	// an optimization for the individual offset distribution, caching a fixed offset value if individualOffsetSD_
 	// is 0.0; note that the cached fixed value here includes the exp() transform for multiplicative traits
 	bool individualOffsetFixed_;							// true if individualOffsetSD_ == 0.0
-	slim_effect_t individualOffsetFixedValue_;				// pre-calculated and pre-cast for speed
+	slim_trait_offset_t individualOffsetFixedValue_;		// pre-calculated and pre-cast for speed
 	
 	// if true, the calculated trait value is used directly as a fitness effect, automatically
 	// this mimics the previous behavior of SLiM, for multiplicative traits
@@ -127,7 +127,7 @@ public:
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor
 	
-	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
+	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
 	~Trait(void);
 	
 	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const		{ return index_; }
@@ -136,11 +136,11 @@ public:
 	inline __attribute__((always_inline)) bool HasLogisticPostTransform(void) const	{ return logistic_post_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const		{ return name_; }
 	
-	slim_effect_t BaselineOffset(void) const { return baselineOffset_; };
+	slim_trait_offset_t BaselineOffset(void) const { return baselineOffset_; };
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_
-	slim_effect_t _DrawIndividualOffset(void) const;		// draws from the distribution defined by individualOffsetMean_ and individualOffsetSD_
-	inline __attribute__((always_inline)) slim_effect_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
+	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetMean_ and individualOffsetSD_
+	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
 	
 	inline __attribute__((always_inline)) bool HasDirectFitnessEffect(void) const { return directFitnessEffect_; }
 	

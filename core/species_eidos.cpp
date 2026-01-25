@@ -1701,11 +1701,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'm'), 'additive' (or 'a'), or 'logistic' (or 'l')." << EidosTerminate();
 	
 	// baselineOffset
-	slim_effect_t baselineOffset;
+	slim_trait_offset_t baselineOffset;
 	
 	if (baselineOffset_value->Type() == EidosValueType::kValueNULL)
 	{
-		baselineOffset = (slim_effect_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+		baselineOffset = (slim_trait_offset_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
 	}
 	else
 	{
@@ -1714,14 +1714,14 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		if (!std::isfinite(baselineOffset_double))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be a finite value (not NAN or INF)." << EidosTerminate();
 		
-		baselineOffset = (slim_effect_t)baselineOffset_double;	// this can round to infinity
+		baselineOffset = (slim_trait_offset_t)baselineOffset_double;	// this can round to infinity
 		
 		if (!std::isfinite(baselineOffset))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be representable as a finite single-precision floating-point number; the value given rounded to infinity." << EidosTerminate();
 	}
 	
-	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_effect_t)0.0))
-		baselineOffset = (slim_effect_t)0.0;
+	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_trait_offset_t)0.0))
+		baselineOffset = (slim_trait_offset_t)0.0;
 	
 	// individualOffsetMean
 	double individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);
@@ -1961,7 +1961,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "initializeTrait(name='" << name << "', type='" << type_string << "'";
-		if (baselineOffset != (slim_effect_t)0.0)
+		if (baselineOffset != (slim_trait_offset_t)0.0)
 			output_stream << ", baselineOffset=" << baselineOffset << "";
 		if (individualOffsetMean != 0.0)
 			output_stream << ", individualOffsetMean=" << individualOffsetMean << "";

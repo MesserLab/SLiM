@@ -145,7 +145,7 @@ void Individual::_InitializePerTraitInformation(void)
 #endif
 		
 		trait_info_ = &trait_info_0_;
-		trait_info_0_.phenotype_ = std::numeric_limits<slim_effect_t>::quiet_NaN();					// "uncalculated"
+		trait_info_0_.phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();					// "uncalculated"
 		trait_info_0_.offset_ = traits[0]->DrawIndividualOffset();
 	}
 	else if (trait_count == 0)
@@ -178,7 +178,7 @@ void Individual::_InitializePerTraitInformation(void)
 		
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
-			trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_effect_t>::quiet_NaN();	// "uncalculated"
+			trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();	// "uncalculated"
 			trait_info_[trait_index].offset_ = traits[trait_index]->DrawIndividualOffset();
 		}
 	}
@@ -2809,7 +2809,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			fitness_scaling_ = (slim_fitness_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 			Individual::s_any_individual_fitness_scaling_set_ = true;
 			
-			if ((fitness_scaling_ < 0.0f) || (std::isnan(fitness_scaling_)))
+			if ((fitness_scaling_ < (slim_fitness_t)0.0) || (std::isnan(fitness_scaling_)))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
 			return;
@@ -2850,7 +2850,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			if (trait)				// ACCELERATED
 			{
-				slim_effect_t new_phenotype = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+				slim_phenotype_t new_phenotype = (slim_phenotype_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 				
 				if (std::isinf(new_phenotype))
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
@@ -2865,7 +2865,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 				
 				if (trait)
 				{
-					slim_effect_t new_offset = (slim_effect_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					slim_trait_offset_t new_offset = (slim_trait_offset_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 					
 					if (!std::isfinite(new_offset))
 						EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
@@ -3298,7 +3298,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 		
 		if (p_source_size == 1)
 		{
-			slim_effect_t new_phenotype = (slim_effect_t)source_data[0];
+			slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[0];
 			
 			if (std::isinf(new_phenotype))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
@@ -3315,7 +3315,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
 				const Individual *value = individuals_buffer[value_index];
-				slim_effect_t new_phenotype = (slim_effect_t)source_data[value_index];
+				slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[value_index];
 				
 				if (std::isinf(new_phenotype))
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
@@ -3329,7 +3329,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 		// with a mixed-species target, the species and trait have to be looked up for each individual
 		if (p_source_size == 1)
 		{
-			slim_effect_t new_phenotype = (slim_effect_t)source_data[0];
+			slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[0];
 			
 			if (std::isinf(new_phenotype))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
@@ -3360,7 +3360,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
 				
 				slim_trait_index_t trait_index = trait->Index();
-				slim_effect_t new_phenotype = (slim_effect_t)source_data[value_index];
+				slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[value_index];
 				
 				if (std::isinf(new_phenotype))
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
@@ -3391,7 +3391,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 		
 		if (p_source_size == 1)
 		{
-			slim_effect_t new_offset = (slim_effect_t)source_data[0];
+			slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[0];
 			
 			if (!std::isfinite(new_offset))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
@@ -3408,7 +3408,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
 				const Individual *value = individuals_buffer[value_index];
-				slim_effect_t new_offset = (slim_effect_t)source_data[value_index];
+				slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[value_index];
 				
 				if (!std::isfinite(new_offset))
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
@@ -3422,7 +3422,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 		// with a mixed-species target, the species and trait have to be looked up for each individual
 		if (p_source_size == 1)
 		{
-			slim_effect_t new_offset = (slim_effect_t)source_data[0];
+			slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[0];
 			
 			if (!std::isfinite(new_offset))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
@@ -3453,7 +3453,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
 				
 				slim_trait_index_t trait_index = trait->Index();
-				slim_effect_t new_offset = (slim_effect_t)source_data[value_index];
+				slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[value_index];
 				
 				if (!std::isfinite(new_offset))
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
@@ -3669,7 +3669,7 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 	if (trait_indices.size() == 1)
 	{
 		slim_trait_index_t trait_index = trait_indices[0];
-		slim_effect_t offset = trait_info_[trait_index].offset_;
+		slim_trait_offset_t offset = trait_info_[trait_index].offset_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)offset));
 	}
@@ -3679,7 +3679,7 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			slim_effect_t offset = trait_info_[trait_index].offset_;
+			slim_trait_offset_t offset = trait_info_[trait_index].offset_;
 			
 			float_result->push_float_no_check((double)offset);
 		}
@@ -3704,7 +3704,7 @@ EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_
 	if (trait_indices.size() == 1)
 	{
 		slim_trait_index_t trait_index = trait_indices[0];
-		slim_effect_t phenotype = trait_info_[trait_index].phenotype_;
+		slim_phenotype_t phenotype = trait_info_[trait_index].phenotype_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)phenotype));
 	}
@@ -3714,7 +3714,7 @@ EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			slim_effect_t phenotype = trait_info_[trait_index].phenotype_;
+			slim_phenotype_t phenotype = trait_info_[trait_index].phenotype_;
 			
 			float_result->push_float_no_check((double)phenotype);
 		}
@@ -4669,11 +4669,11 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					Individual *ind = individuals_buffer[individual_index];
 					
-					slim_effect_t offset = trait->DrawIndividualOffset();
+					slim_trait_offset_t offset = trait->DrawIndividualOffset();
 					
 					// effects for multiplicative traits are clamped to a minimum of 0.0
-					if (offset < (slim_effect_t)0.0)
-						offset = 0.0;
+					if (offset < (slim_trait_offset_t)0.0)
+						offset = (slim_trait_offset_t)0.0;
 					
 					ind->trait_info_[trait_index].offset_ = offset;
 				}
@@ -4692,7 +4692,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 	else if (offset_count == 1)
 	{
 		// pattern 2: setting a single offset value across one or more traits in one or more individuals
-		slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
+		slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
 		
 		if (!std::isfinite(offset))
 			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
@@ -4700,11 +4700,11 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
-			slim_effect_t offset_for_trait = offset;
+			slim_trait_offset_t offset_for_trait = offset;
 			
 			// effects for multiplicative traits are clamped to a minimum of 0.0
-			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
-				offset = 0.0;
+			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+				offset = (slim_trait_offset_t)0.0;
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset_for_trait;
@@ -4718,14 +4718,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
 			Trait *trait = species->Traits()[trait_index];
-			slim_effect_t offset = static_cast<slim_effect_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
+			slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
 			
 			if (!std::isfinite(offset))
 				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 			
 			// effects for multiplicative traits are clamped to a minimum of 0.0
-			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
-				offset = 0.0;
+			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+				offset = (slim_trait_offset_t)0.0;
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
@@ -4754,11 +4754,11 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
-						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
 						
 						// effects for multiplicative traits are clamped to a minimum of 0.0
-						if (offset < (slim_effect_t)0.0)
-							offset = 0.0;
+						if (offset < (slim_trait_offset_t)0.0)
+							offset = (slim_trait_offset_t)0.0;
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 					}
@@ -4767,7 +4767,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
-						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 					}
@@ -4782,11 +4782,11 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						Trait *trait = species->Traits()[trait_index];
-						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_int++));
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
 						
 						// effects for multiplicative traits are clamped to a minimum of 0.0
-						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
-							offset = 0.0;
+						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+							offset = (slim_trait_offset_t)0.0;
 						
 						ind->trait_info_[trait_index].offset_ = offset;
 					}
@@ -4808,14 +4808,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
-						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_float++));
 						
 						if (!std::isfinite(offset))
 							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 						
 						// effects for multiplicative traits are clamped to a minimum of 0.0
-						if (offset < (slim_effect_t)0.0)
-							offset = 0.0;
+						if (offset < (slim_trait_offset_t)0.0)
+							offset = (slim_trait_offset_t)0.0;
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 					}
@@ -4824,7 +4824,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				{
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
-						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_float++));
 						
 						if (!std::isfinite(offset))
 							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
@@ -4842,14 +4842,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					for (slim_trait_index_t trait_index : trait_indices)
 					{
 						Trait *trait = species->Traits()[trait_index];
-						slim_effect_t offset = static_cast<slim_effect_t>(*(offsets_float++));
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_float++));
 						
 						if (!std::isfinite(offset))
 							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 						
 						// effects for multiplicative traits are clamped to a minimum of 0.0
-						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_effect_t)0.0))
-							offset = 0.0;
+						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+							offset = (slim_trait_offset_t)0.0;
 						
 						ind->trait_info_[trait_index].offset_ = offset;
 					}
@@ -4893,7 +4893,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 	if (phenotype_count == 1)
 	{
 		// pattern 1: setting a single phenotype value across one or more traits in one or more individuals
-		slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(0, nullptr));
+		slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(phenotype_value->NumericAtIndex_NOCAST(0, nullptr));
 		
 		if (std::isinf(phenotype))
 			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
@@ -4924,7 +4924,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 		
 		for (slim_trait_index_t trait_index : trait_indices)
 		{
-			slim_effect_t phenotype = static_cast<slim_effect_t>(phenotype_value->NumericAtIndex_NOCAST(phenotype_index++, nullptr));
+			slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(phenotype_value->NumericAtIndex_NOCAST(phenotype_index++, nullptr));
 			
 			if (std::isinf(phenotype))
 				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
@@ -4952,7 +4952,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 				slim_trait_index_t trait_index = trait_indices[0];
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_int++));
+					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_phenotype_t>(*(phenotypes_int++));
 			}
 			else
 			{
@@ -4961,7 +4961,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 					Individual *ind = individuals_buffer[individual_index];
 					
 					for (slim_trait_index_t trait_index : trait_indices)
-						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_effect_t>(*(phenotypes_int++));
+						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_phenotype_t>(*(phenotypes_int++));
 				}
 			}
 		}
@@ -4977,7 +4977,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 				
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				{
-					slim_effect_t phenotype = static_cast<slim_effect_t>(*(phenotypes_float++));
+					slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(*(phenotypes_float++));
 					
 					if (std::isinf(phenotype))
 						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
@@ -4993,7 +4993,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 					
 					for (slim_trait_index_t trait_index : trait_indices)
 					{
-						slim_effect_t phenotype = static_cast<slim_effect_t>(*(phenotypes_float++));
+						slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(*(phenotypes_float++));
 						
 						if (std::isinf(phenotype))
 							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
@@ -6691,7 +6691,7 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 		if (trait->is_pure_neutral_now_)
 		{
 			TraitType traitType = trait->Type();
-			slim_effect_t trait_baseline_offset = trait->BaselineOffset();
+			slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
 			
 			if (traitType == TraitType::kAdditive)
 			{
@@ -6707,7 +6707,7 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 						{
 							double additive_result = (double)(trait_baseline_offset + trait_info.offset_);
 							
-							trait_info.phenotype_ = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(- static_cast<double>(additive_result))));
+							trait_info.phenotype_ = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(- static_cast<double>(additive_result))));
 						}
 					}
 				}
@@ -6720,7 +6720,7 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
 						
 						if (f_force_recalc || std::isnan(trait_info.phenotype_))
-							trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+							trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
 					}
 				}
 			}
@@ -6732,7 +6732,7 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 					IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
 					
 					if (f_force_recalc || std::isnan(trait_info.phenotype_))
-						trait_info.phenotype_ = trait_baseline_offset * trait_info.offset_;
+						trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
 				}
 			}
 			
@@ -6960,7 +6960,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 		Trait *trait = species->Traits()[trait_index];
 		TraitType traitType = trait->Type();
-		slim_effect_t trait_baseline_offset = trait->BaselineOffset();
+		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
 		
 #if DEBUG_TRAIT_DEMAND()
 		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << traitType << ") has baseline offset " << trait_baseline_offset << std::endl;
@@ -6979,12 +6979,12 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7002,12 +7002,12 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = trait_baseline_offset * trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = trait_baseline_offset * trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7231,11 +7231,11 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
 					continue;
 				
-				slim_effect_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
+				slim_phenotype_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
 				double additive_result = (double)phenotype_ref;
 				
 				if (std::isfinite(additive_result))
-					phenotype_ref = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(-additive_result)));
+					phenotype_ref = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(-additive_result)));
 			}
 		}
 	}	
@@ -7271,14 +7271,14 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
 				continue;
 			
-			slim_effect_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
-			slim_effect_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
 			
 			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
 			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
 			// calculations, so I use a larger threshold here of 1e-5; we'll see how this does in practice.
 			// The goal is not to check for exact equality, but to find bugs that make calculations incorrect.
-			if (std::abs(calculated_phenotype - check_phenotype) > (slim_effect_t)1e-5)
+			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-5)
 				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
@@ -7340,7 +7340,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 		Trait *trait = species->Traits()[trait_index];
 		TraitType traitType = trait->Type();
-		slim_effect_t trait_baseline_offset = trait->BaselineOffset();
+		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
 		
 #if DEBUG_TRAIT_DEMAND()
 		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << traitType << ") has baseline offset " << trait_baseline_offset << std::endl;
@@ -7359,12 +7359,12 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = trait_baseline_offset + trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7382,12 +7382,12 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = trait_baseline_offset * trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = trait_baseline_offset * trait_info.offset_;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7654,11 +7654,11 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
 					continue;
 				
-				slim_effect_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
+				slim_phenotype_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
 				double additive_result = (double)phenotype_ref;
 				
 				if (std::isfinite(additive_result))
-					phenotype_ref = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(-additive_result)));
+					phenotype_ref = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(-additive_result)));
 			}
 		}
 	}	
@@ -7677,14 +7677,14 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
 				continue;
 			
-			slim_effect_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
-			slim_effect_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
 			
 			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
 			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
 			// calculations, so I use a larger threshold here of 1e-5; we'll see how this does in practice.
 			// The goal is not to check for exact equality, but to find bugs that make calculations incorrect.
-			if (std::abs(calculated_phenotype - check_phenotype) > (slim_effect_t)1e-5)
+			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-5)
 				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
@@ -7793,7 +7793,7 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 		}
 	}
 	
-	trait_info_[trait_index].phenotype_ = (slim_effect_t)effect_accumulator;
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
 template void Individual::_IncorporateEffects_Haploid<false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
@@ -8171,7 +8171,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 		}
 	}
 	
-	trait_info_[trait_index].phenotype_ = (slim_effect_t)effect_accumulator;
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
 template void Individual::_IncorporateEffects_Diploid<false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
@@ -8209,7 +8209,7 @@ void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, 
 			effect_accumulator *= (double)mutrun->independent_dominance_cache_for_trait(trait_index);
 	}
 	
-	trait_info_[trait_index].phenotype_ = (slim_effect_t)effect_accumulator;
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
 template void Individual::_IncorporateEffects_IndependentDominance<false>(Haplosome *, slim_trait_index_t);
@@ -8221,7 +8221,7 @@ template void Individual::_IncorporateEffects_IndependentDominance<true>(Haploso
 
 // the rest of the code below is for checking the correctness of the calculations performed by the code above
 
-slim_effect_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index)
+slim_phenotype_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index)
 {
 	Subpopulation *subpop = subpopulation_;
 	Species &species = subpop->species_;
@@ -8229,18 +8229,18 @@ slim_effect_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index
 	Trait *trait = species.Traits()[trait_index];
 	TraitType traitType = trait->Type();
 	int haplosome_index = 0;
-	slim_effect_t trait_value = trait->BaselineOffset();
+	slim_trait_offset_t trait_offsets = trait->BaselineOffset();
 	IndividualTraitInfo &trait_info = trait_info_[trait_index];
 	
 	if (traitType == TraitType::kAdditive)
-		trait_value += trait_info.offset_;
+		trait_offsets += trait_info.offset_;
 	else // (traitType == TraitType::kMultiplicative)
-		trait_value *= trait_info.offset_;
+		trait_offsets *= trait_info.offset_;
 	
 	// because the low-level functions are designed to combine their effects into our phenotype,
 	// we save the phenotype value here and restore it at the end so we leave it untouched
-	slim_effect_t saved_phenotype = trait_info.phenotype_;
-	trait_info.phenotype_ = trait_value;
+	slim_phenotype_t saved_phenotype = trait_info.phenotype_;
+	trait_info.phenotype_ = (slim_phenotype_t)trait_offsets;
 	
 	// determine the versions of _IncorporateEffects_X() we will use; note that we use special
 	// variants that do not use the non-neutral caches, since that is what we want to check!
@@ -8308,11 +8308,11 @@ slim_effect_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index
 	}
 	
 	// get the calculated trait value back out
-	trait_value = trait_info.phenotype_;
+	slim_phenotype_t trait_value = trait_info.phenotype_;
 	
 	// post-process logistic trait values
 	if (trait->HasLogisticPostTransform())
-		trait_value = static_cast<slim_effect_t>(1.0 / (1.0 + std::exp(- static_cast<double>(trait_value))));
+		trait_value = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(- static_cast<double>(trait_value))));
 	
 	// finally, restore our saved phenotype so we don't modify the official individual state
 	trait_info.phenotype_ = saved_phenotype;
@@ -8411,7 +8411,7 @@ void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *
 			effect_accumulator *= mutrun_effect_accumulator;
 	}
 	
-	trait_info_[trait_index].phenotype_ = (slim_effect_t)effect_accumulator;
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
 void Individual::_Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
@@ -8485,7 +8485,7 @@ void Individual::_Check_IncorporateEffects_Hemizygous(Species *species, Haplosom
 		}
 	}
 	
-	trait_info_[trait_index].phenotype_ = (slim_effect_t)effect_accumulator;
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
 void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
@@ -8850,7 +8850,7 @@ void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *
 			effect_accumulator *= mutrun_effect_accumulator;
 	}
 	
-	trait_info_[trait_index].phenotype_ = (slim_effect_t)effect_accumulator;
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
 

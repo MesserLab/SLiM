@@ -11,7 +11,7 @@
 #include "species.h"
 
 
-Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_effect_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
+Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
 	index_(-1), name_(p_name), type_(p_type), logistic_post_(p_logistic_post),
 	individualOffsetMean_(p_individualOffsetMean), individualOffsetSD_(p_individualOffsetSD),
 	directFitnessEffect_(p_directFitnessEffect), community_(p_species.community_), species_(p_species)
@@ -28,7 +28,7 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bo
 		EIDOS_TERMINATION << "ERROR (Trait::SetProperty): (internal error) logistic post-transformation is only supported for additive traits." << EidosTerminate();
 	
 	// effects for multiplicative traits clip at 0.0
-	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < (slim_effect_t)0.0))
+	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < (slim_trait_offset_t)0.0))
 		baselineOffset_ = 0.0;
 	else
 		baselineOffset_ = p_baselineOffset;
@@ -47,12 +47,12 @@ void Trait::_RecacheIndividualOffsetDistribution(void)
 		{
 			// multiplicative traits use an exp() transformation to get a lognormal distribution
 			// (effects for multiplicative traits also clip at 0.0, but exp() guarantees that anyway)
-			individualOffsetFixedValue_ = static_cast<slim_effect_t>(std::exp(individualOffsetMean_));
+			individualOffsetFixedValue_ = static_cast<slim_trait_offset_t>(std::exp(individualOffsetMean_));
 		}
 		else
 		{
 			// additive and logistic traits use a normal distribution, so the mean is the mean
-			individualOffsetFixedValue_ = static_cast<slim_effect_t>(individualOffsetMean_);
+			individualOffsetFixedValue_ = static_cast<slim_trait_offset_t>(individualOffsetMean_);
 		}
 	}
 	else
@@ -76,7 +76,7 @@ void Trait::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ClassNameForDisplay() << "<" << name_ << ">";
 }
 
-slim_effect_t Trait::_DrawIndividualOffset(void) const
+slim_trait_offset_t Trait::_DrawIndividualOffset(void) const
 {
 	// draws from a normal distribution defined by individualOffsetMean_ and individualOffsetSD_
 	// note the individualOffsetSD_ == 0 case was already handled by DrawIndividualOffset()
@@ -88,14 +88,14 @@ slim_effect_t Trait::_DrawIndividualOffset(void) const
 		// (effects for multiplicative traits also clip at 0.0, but exp() guarantees that anyway)
 		double normal_draw = gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_;
 		
-		return static_cast<slim_effect_t>(std::exp(normal_draw));
+		return static_cast<slim_trait_offset_t>(std::exp(normal_draw));
 	}
 	else
 	{
 		// additive and logistic traits use a normal distribution, so the mean is the mean
 		double normal_draw = gsl_ran_gaussian(rng, individualOffsetSD_) + individualOffsetMean_;
 		
-		return static_cast<slim_effect_t>(normal_draw);
+		return static_cast<slim_trait_offset_t>(normal_draw);
 	}
 }
 
@@ -190,9 +190,9 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			
 			// effects for multiplicative traits clip at 0.0
 			if ((type_ == TraitType::kMultiplicative) && (value < 0.0))
-				baselineOffset_ = 0.0;
+				baselineOffset_ = (slim_trait_offset_t)0.0;
 			else
-				baselineOffset_ = (slim_effect_t)value;
+				baselineOffset_ = (slim_trait_offset_t)value;
 			
 			return;
 		}
