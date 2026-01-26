@@ -39,7 +39,7 @@ development head (in the master branch):
 	fix #602, (float)rdirichlet(integer$ n, numeric alpha) function to Eidos for Dirichlet distribution draws
 	fix #610, distribution draws behave inconsistently with out-of-range parameters
 		rlnorm() accepted SD < 0 and returned a value; it should error, as rnorm() does (R returns NAN in the SD < 0 case, but erroring is more consistent with Eidos policies)
-		rexp() returned zero for a rate of 0, and returned non-zero values for rate < 0; R returns NAN; I decided that these cases should also error, consistent with Eidos policies
+		rexp() returned values for rate < 0; this should also error, consistent with Eidos policies
 
 
 multitrait branch:

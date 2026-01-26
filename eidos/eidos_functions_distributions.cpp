@@ -1230,8 +1230,8 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 	{
 		double mu0 = arg_mu->NumericAtIndex_NOCAST(0, nullptr);
 		
-		if (mu0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu > 0.0 (" << EidosStringForFloat(mu0) << " supplied)." << EidosTerminate(nullptr);
+		if (mu0 < 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu >= 0.0 (" << EidosStringForFloat(mu0) << " supplied)." << EidosTerminate(nullptr);
 		
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
 		result_SP = EidosValue_SP(float_result);
@@ -1262,7 +1262,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 			{
 				double mu = arg_mu->NumericAtIndex_NOCAST((int)draw_index, nullptr);
 				
-				if (mu <= 0.0)
+				if (mu < 0.0)
 				{
 					saw_error = true;
 					continue;
@@ -1273,7 +1273,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 		}
 		
 		if (saw_error)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu > 0.0." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu >= 0.0." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;

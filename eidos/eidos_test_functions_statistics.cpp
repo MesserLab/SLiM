@@ -852,10 +852,10 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_LV("setSeed(2); abs(rexp(3, 100000) - c(28842.1, 31355.3, 102831.0)) < 0.1;", {true, true, true});
 	EidosAssertScriptSuccess_LV("setSeed(3); abs(rexp(3, c(10, 100, 1000)) - c(3.65665, 1.5667, 948.946)) < 0.1;", {true, true, true});
 	EidosAssertScriptRaise("rexp(-1);", 0, "requires n to be");
-	EidosAssertScriptRaise("rexp(2, -0.001);", 0, "requires mu > 0.0");
-	EidosAssertScriptRaise("rexp(2, 0);", 0, "requires mu > 0.0");
-	EidosAssertScriptRaise("rexp(2, c(1.0, -0.001));", 0, "requires mu > 0.0");
-	EidosAssertScriptRaise("rexp(2, c(1.0, 0));", 0, "requires mu > 0.0");
+	EidosAssertScriptSuccess_F("rexp(1, 0);", 0.0);
+	EidosAssertScriptSuccess_FV("rexp(2, 0);", {0.0, 0.0});
+	EidosAssertScriptRaise("rexp(2, -0.001);", 0, "requires mu >= 0.0");
+	EidosAssertScriptRaise("rexp(2, c(1.0, -0.001));", 0, "requires mu >= 0.0");
 	EidosAssertScriptRaise("rexp(3, c(10, 5));", 0, "requires mu to be");
 	EidosAssertScriptSuccess("rexp(1, NAN);", gStaticEidosValue_FloatNAN);
 	
