@@ -1229,6 +1229,10 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 	if (mu_singleton)
 	{
 		double mu0 = arg_mu->NumericAtIndex_NOCAST(0, nullptr);
+		
+		if (mu0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu > 0.0 (" << EidosStringForFloat(mu0) << " supplied)." << EidosTerminate(nullptr);
+		
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -1246,9 +1250,10 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(float_result);
+		bool saw_error = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_REXP_2);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, arg_mu) if(num_draws >= EIDOS_OMPMIN_REXP_2) num_threads(thread_count)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, arg_mu) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_REXP_2) num_threads(thread_count)
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 				
@@ -1257,9 +1262,18 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 			{
 				double mu = arg_mu->NumericAtIndex_NOCAST((int)draw_index, nullptr);
 				
+				if (mu <= 0.0)
+				{
+					saw_error = true;
+					continue;
+				}
+				
 				float_result->set_float_no_check(gsl_ran_exponential(rng_gsl, mu), draw_index);
 			}
 		}
+		
+		if (saw_error)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu > 0.0." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -1541,6 +1555,10 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_a
 	
 	double meanlog0 = (arg_meanlog_count ? arg_meanlog->NumericAtIndex_NOCAST(0, nullptr) : 0.0);
 	double sdlog0 = (arg_sdlog_count ? arg_sdlog->NumericAtIndex_NOCAST(0, nullptr) : 1.0);
+	
+	if (sdlog_singleton && (sdlog0 < 0.0))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires sd >= 0.0 (" << EidosStringForFloat(sdlog0) << " supplied)." << EidosTerminate(nullptr);
+	
 	gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (meanlog_singleton && sdlog_singleton)
@@ -1560,6 +1578,9 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_a
 		{
 			double meanlog = (meanlog_singleton ? meanlog0 : arg_meanlog->NumericAtIndex_NOCAST(draw_index, nullptr));
 			double sdlog = (sdlog_singleton ? sdlog0 : arg_sdlog->NumericAtIndex_NOCAST(draw_index, nullptr));
+			
+			if (sdlog < 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires sd >= 0.0 (" << EidosStringForFloat(sdlog0) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_lognormal(rng_gsl, meanlog, sdlog), draw_index);
 		}

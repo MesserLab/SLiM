@@ -852,6 +852,10 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_LV("setSeed(2); abs(rexp(3, 100000) - c(28842.1, 31355.3, 102831.0)) < 0.1;", {true, true, true});
 	EidosAssertScriptSuccess_LV("setSeed(3); abs(rexp(3, c(10, 100, 1000)) - c(3.65665, 1.5667, 948.946)) < 0.1;", {true, true, true});
 	EidosAssertScriptRaise("rexp(-1);", 0, "requires n to be");
+	EidosAssertScriptRaise("rexp(2, -0.001);", 0, "requires mu > 0.0");
+	EidosAssertScriptRaise("rexp(2, 0);", 0, "requires mu > 0.0");
+	EidosAssertScriptRaise("rexp(2, c(1.0, -0.001));", 0, "requires mu > 0.0");
+	EidosAssertScriptRaise("rexp(2, c(1.0, 0));", 0, "requires mu > 0.0");
 	EidosAssertScriptRaise("rexp(3, c(10, 5));", 0, "requires mu to be");
 	EidosAssertScriptSuccess("rexp(1, NAN);", gStaticEidosValue_FloatNAN);
 	
@@ -932,6 +936,10 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_LV("abs(rlnorm(3, c(1,1,1), 0) - E) < 0.000001;", {true, true, true});
 	EidosAssertScriptSuccess_LV("abs(rlnorm(3, 1, c(0,0,0)) - E) < 0.000001;", {true, true, true});
 	EidosAssertScriptRaise("rlnorm(-1);", 0, "requires n to be");
+	EidosAssertScriptRaise("rlnorm(1, 0, -1);", 0, "requires sd >= 0.0");
+	EidosAssertScriptRaise("rlnorm(2, c(0,0), -1);", 0, "requires sd >= 0.0");
+	EidosAssertScriptRaise("rlnorm(2, 0, c(-1, -1));", 0, "requires sd >= 0.0");
+	EidosAssertScriptRaise("rlnorm(2, c(0,0), c(-1, -1));", 0, "requires sd >= 0.0");
 	EidosAssertScriptRaise("rlnorm(2, c(-10, 10, 1), 100.0);", 0, "requires meanlog to be");
 	EidosAssertScriptRaise("rlnorm(2, 10.0, c(0.1, 10, 1));", 0, "requires sdlog to be");
 	EidosAssertScriptSuccess("rlnorm(1, NAN, 100);", gStaticEidosValue_FloatNAN);
