@@ -3800,6 +3800,40 @@ void Species::RunInitializeCallbacks(void)
 		}
 	}
 	
+	// Defining an additive (or logistic) trait with a default dominance of 0.5 for the trait for all mutation types indicates that
+	// the trait is probably intended to have independent-dominance effects but has just not been configured in that manner, which
+	// will result in lower performance; this is probably a mistake that is worth calling to the user's attention.
+	if (!has_implicit_trait_)
+	{
+		for (const Trait *trait : traits_)
+		{
+			if (trait->Type() == TraitType::kAdditive)
+			{
+				slim_trait_index_t trait_index = trait->Index();
+				bool all_muttypes_intermediate_dominance = true;
+				
+				for (auto mut_type_iter : mutation_types_)
+				{
+					MutationType *muttype = mut_type_iter.second;
+					
+					// mutation types with a neutral DES for the trait don't matter for this determination
+					if (muttype->effect_size_distributions_[trait_index].DES_type_ == DESType::kFixed)
+						if (muttype->effect_size_distributions_[trait_index].DES_parameters_[0] == 0.0)
+							continue;
+					
+					if (muttype->DefaultDominanceForTrait(trait_index) != (slim_effect_t)0.5)
+					{
+						all_muttypes_intermediate_dominance = false;
+						break;
+					}
+				}
+				
+				if (all_muttypes_intermediate_dominance && !gEidosSuppressWarnings)
+					SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): trait '" << trait->Name() << "' is " << (trait->HasLogisticPostTransform() ? "logistic" : "additive") << ", and every non-neutral mutation type has a default dominance of 0.5 for this trait.  This suggests that the effects of mutations will exhibit independent dominance for trait '" << trait->Name() << "', but the trait is not configured to exhibit independent dominance; this may result in significantly reduced performance.  Using NAN as the default dominance for this trait, for every non-neutral mutation type, would configure the trait to exhibit independent dominance, likely providing a performance improvement with no change in the behavior of the model." << std::endl;
+			}
+		}
+	}
+	
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
