@@ -807,6 +807,20 @@ std::vector<EidosPropertySignature_CSP> EidosClass::Properties_TYPE_INTERPRETER(
 	
 	std::sort(properties.begin(), properties.end(), CompareEidosPropertySignatures);
 	
+	// We got properties from two places: the built-in properties of the class, and dynamic property
+	// signatures.  Dynamic properties actually end up in both places sometimes: they get added to the
+	// class itself (if execution has proceeded to the point where that happens), AND they get added
+	// to the list of dynamic properties (by the type interpreter, which can do this even if execution
+	// has not reached the point where the property actually exists yet).  This is good -- it means
+	// that we know about the signature in two different ways that are valid at different places and
+	// times.  But it also means that we can contain duplicates at this point, so we need to unique.
+	// The uniquing needs to be done by name; the duplicates are different signature objects.
+	auto unique_end_iter = std::unique(properties.begin(), properties.end(),
+	[](const EidosPropertySignature_CSP& a, const EidosPropertySignature_CSP& b) {
+		return a->property_name_ == b->property_name_;
+	});
+	properties.resize(std::distance(properties.begin(), unique_end_iter));
+	
 	return properties;
 }
 
