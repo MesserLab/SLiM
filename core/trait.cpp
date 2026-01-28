@@ -11,10 +11,11 @@
 #include "species.h"
 
 
-Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect) :
+Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect, bool p_baselineAccumulation) :
 	index_(-1), name_(p_name), type_(p_type), logistic_post_(p_logistic_post),
 	individualOffsetMean_(p_individualOffsetMean), individualOffsetSD_(p_individualOffsetSD),
-	directFitnessEffect_(p_directFitnessEffect), community_(p_species.community_), species_(p_species)
+	directFitnessEffect_(p_directFitnessEffect), baselineAccumulation_(p_baselineAccumulation),
+	community_(p_species.community_), species_(p_species)
 {
 	// offsets must always be finite
 	if (!std::isfinite(p_baselineOffset))
@@ -105,6 +106,14 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_baselineAccumulation:
+		{
+			return (baselineAccumulation_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
+		case gID_directFitnessEffect:
+		{
+			return (directFitnessEffect_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
 		case gID_index:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(index_));
@@ -148,10 +157,6 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)baselineOffset_));
 		}
-		case gID_directFitnessEffect:
-		{
-			return (directFitnessEffect_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		}
 		case gID_individualOffsetMean:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(individualOffsetMean_));
@@ -194,13 +199,6 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			else
 				baselineOffset_ = (slim_trait_offset_t)value;
 			
-			return;
-		}
-		case gID_directFitnessEffect:
-		{
-			bool value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
-			
-			directFitnessEffect_ = value;
 			return;
 		}
 		case gID_individualOffsetMean:
@@ -267,6 +265,7 @@ std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties_MUTABLE(void) c
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineAccumulation,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineOffset,							false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_directFitnessEffect,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,									true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

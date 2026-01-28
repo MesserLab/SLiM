@@ -1460,7 +1460,8 @@ void Species::MakeImplicitTrait(void)
 							 /* p_baselineOffset */			1.0,
 							 /* p_individualOffsetMean */	0.0,
 							 /* p_individualOffsetSD */		0.0,
-							 /* directFitnessEffect */		true);
+							 /* directFitnessEffect */		true,
+							 /* baselineAccumulation */		false);
 	
 	// Add it to our registry; AddTrait() takes its retain count
 	AddTrait(trait);
@@ -1603,6 +1604,44 @@ void Species::GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &tra
 		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): (internal error) unexpected type for parameter trait." << EidosTerminate();
+	}
+}
+
+void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution)
+{
+	// When a new substitution object is created from a mutation, this method is called to do "baseline offset
+	// accumulation", the moving of the effect of the mutation from the mutation itself (which is no longer
+	// segregating) into the baseline offsets of traits.  This is enabled by default for all traits created
+	// with initializeTrait(), but disabled for the default trait for backward compatibility.  This is not
+	// terribly lightweight, since we have to loop through all the traits, but substitution is not very common
+	// so it is not worth trying to optimize with summary flags etc.
+	for (Trait *trait : traits_)
+	{
+		if (trait->HasBaselineAccumulation())
+		{
+			slim_trait_index_t trait_index = trait->Index();
+			SubstitutionTraitInfo &trait_info = p_substitution->trait_info_[trait_index];
+			
+			if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
+				EIDOS_TERMINATION << "ERROR (Species::DoBaselineAccumulationForSubstitution): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
+			
+			slim_effect_t effect_size = trait_info.effect_size_;
+			
+			if (trait->Type() == TraitType::kMultiplicative)
+			{
+				// the homozygous effect is 1+s for multiplicative traits
+				slim_trait_offset_t homozygous_effect = 1.0 + (slim_trait_offset_t)effect_size;
+				
+				trait->SetBaselineOffset(trait->BaselineOffset() * homozygous_effect);
+			}
+			else
+			{
+				// the homozygous effect is 2a for additive and logistic traits
+				slim_trait_offset_t homozygous_effect = (slim_trait_offset_t)effect_size + (slim_trait_offset_t)effect_size;
+				
+				trait->SetBaselineOffset(trait->BaselineOffset() + homozygous_effect);
+			}
+		}
 	}
 }
 
@@ -3395,6 +3434,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new substitution
+			// BCH 1/26/2026: note that this does NOT do baseline accumulation, because it is assumed that the
+			// baseline offset recorded in the file already contains such effects as needed; FIXME MULTITRAIT
 			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
 			
 			// read its tag, if requested
@@ -3732,6 +3773,30 @@ void Species::RunInitializeCallbacks(void)
 			
 			if (using_neutral_muttype && !gEidosSuppressWarnings)
 				SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined and used; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
+		}
+	}
+	
+	// Defining all traits with baseline accumulation indicates a desire to have substitution occur, with mutational effects accumulated into
+	// baseline offset values, in at least some cases.  If convertToSubstitution is F for all mutation types, indicating a desire that no
+	// mutation be substitution, a mistake has probably been made that is worth calling to the user's attention.
+	if (!has_implicit_trait_)
+	{
+		bool all_traits_baseline_accumulate = true;
+		
+		for (const Trait *trait : traits_)
+			if (!trait->HasBaselineAccumulation())
+				all_traits_baseline_accumulate = false;
+		
+		if (all_traits_baseline_accumulate)
+		{
+			bool no_traits_substitute = true;
+			
+			for (auto mut_type_iter : mutation_types_)
+				if (mut_type_iter.second->convert_to_substitution_)
+					no_traits_substitute = false;
+			
+			if (no_traits_substitute && !gEidosSuppressWarnings)
+				SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): all traits are set with baselineAccumulate=T, but there is no mutation type with convertToSubstitution=T, so substitution will probably never occur; this typically indicates a mistake -- either baseline accumulation should be turned off for clarity, or convertToSubstitution should be turned on for at least one mutation type so that substitution occurs in at least some cases.  This typically happens when an older SLiM model is converted from using the default trait to explicitly calling initializeTrait()." << std::endl;
 		}
 	}
 	
@@ -10952,6 +11017,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
+			// BCH 1/26/2026: note that this does NOT do baseline accumulation, because it is assumed that the
+			// baseline offset recorded in the file already contains such effects as needed; FIXME MULTITRAIT
 			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
 			// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);	// FIXME MULTITRAIT

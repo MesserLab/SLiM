@@ -7682,6 +7682,7 @@ void Population::RemoveAllFixedMutations(void)
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				Substitution *sub = new Substitution(*mut_to_remove, tick);
 				
+				species_.DoBaselineAccumulationForSubstitution(sub);
 				treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
 				substitutions_.emplace_back(sub);
 			}
@@ -7694,6 +7695,7 @@ void Population::RemoveAllFixedMutations(void)
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				Substitution *sub = new Substitution(*mut_to_remove, tick);
 				
+				species_.DoBaselineAccumulationForSubstitution(sub);
 				substitutions_.emplace_back(sub);
 			}
 		}
@@ -8299,6 +8301,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			int8_t nucleotide = substitution_ptr->nucleotide_;
 			
 			// Write a tag indicating we are starting a new substitution
+			// FIXME MULTITRAIT: we need to write the baseline offset into the file header, so that
+			// baseline accumulation is preserved correctly across a round-trip
 			int32_t substitution_start_tag = 0xFFFF0003;
 			
 			p_out.write(reinterpret_cast<char *>(&substitution_start_tag), sizeof substitution_start_tag);

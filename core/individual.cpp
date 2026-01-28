@@ -6681,6 +6681,11 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 	// necessary, for each individual, and the pure neutral trait is then removed from the trait indices so it
 	// takes no further effort downstream.  This saves a calculation pass through the mutation list for the trait.
 	
+	// BCH 1/26/2026: Note that if the baseline offset is neutral and we know that all individual offsets are
+	// zero, we don't really need to assign trait values here, as long as we skip using them elsewhere.  That
+	// seems architecturally complex, and the savings would probably be small since there are only two reads and
+	// one write per individual here; the amount of work that could be avoided doesn't really seem large.
+	
 	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();
 	
 	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)

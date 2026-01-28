@@ -163,7 +163,8 @@ public:
 	
 	// Per-trait information: trait offsets, trait values.  If the species has 0 traits, the pointer is
 	// nullptr; if 1 trait, it points to trait_info_0_ for memory locality and to avoid mallocs; if 2+
-	// trait, it points to an OWNED malloced buffer.
+	// trait, it points to an OWNED malloced buffer.  BCH 1/26/2026: optimizing the case where we have
+	// a single trait and trait_info_ thus points to trait_info_0_ does not seem worthwhile at this time.
 	IndividualTraitInfo trait_info_0_;
 	IndividualTraitInfo *trait_info_;
 	

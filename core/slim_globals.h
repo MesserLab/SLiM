@@ -802,6 +802,7 @@ extern const std::string &gStr_initializeSLiMModelType;
 extern const std::string &gStr_initializeInteractionType;
 
 //extern const std::string &gStr_type;		now gEidosStr_type
+extern const std::string &gStr_baselineAccumulation;
 extern const std::string &gStr_baselineOffset;
 extern const std::string &gStr_individualOffsetMean;
 extern const std::string &gStr_individualOffsetSD;
@@ -1298,6 +1299,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
 	
+	gID_baselineAccumulation,
 	gID_baselineOffset,
 	gID_individualOffsetMean,
 	gID_individualOffsetSD,

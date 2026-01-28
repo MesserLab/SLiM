@@ -14999,7 +14999,31 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 baselineOffset <\'96> (float$)\
+\f3\i0\fs18 \cf2 baselineAccumulation => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 logical
+\f4\fs20  flag indicating whether the trait accumulates the effects of substitutions into its baseline offset or not.  This governs what happens when a mutation that has fixed is converted into a Substitution object, as controlled by 
+\f3\fs18 MutationType
+\f4\fs20 \'92s 
+\f3\fs18 convertToSubstitution
+\f4\fs20  property.  If 
+\f3\fs18 baselineAccumulation
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the effect of the substituted mutation on this trait is combined (additively or multiplicatively) into the baseline offset of this trait, such that the mutation\'92s effect continues to be present in the simulation even though it has been substituted.  If 
+\f3\fs18 F
+\f4\fs20 , this does not occur and so the effect of the substituted mutation on this trait will no longer be present (unless it is handled in script in some way).  This flag is controlled by the 
+\f3\fs18 baselineAccumulation
+\f4\fs20  parameter to 
+\f3\fs18 initializeTrait()
+\f4\fs20 ; for the default trait, it is always 
+\f3\fs18 F
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 baselineOffset <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
@@ -15019,7 +15043,13 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f3\fs18 T
 \f4\fs20 , the trait value for an individual is used as a fitness effect for that individual, implying that the trait should be considered a fitness component.  If 
 \f3\fs18 F
-\f4\fs20 , the trait value is not used directly as a fitness effect; in script, one might compute a fitness effect from the trait value (using a \'93fitness function\'94), or the trait might have other effects that are not obviously related to fitness at all.\
+\f4\fs20 , the trait value is not used directly as a fitness effect; in script, one might compute a fitness effect from the trait value (using a \'93fitness function\'94), or the trait might have other effects that are not obviously related to fitness at all.  This flag is controlled by the 
+\f3\fs18 defaultFitnessEffect
+\f4\fs20  parameter to 
+\f3\fs18 initializeTrait()
+\f4\fs20 ; for the default trait, it is always 
+\f3\fs18 T
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 index => (integer$)\

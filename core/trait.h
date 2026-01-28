@@ -78,6 +78,9 @@ private:
 	// this mimics the previous behavior of SLiM, for multiplicative traits
 	bool directFitnessEffect_;
 	
+	// if true, mutation effects are combined into the baseline offset when the mutation is substituted
+	bool baselineAccumulation_;
+	
 public:
 	
 	Community &community_;
@@ -127,7 +130,7 @@ public:
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor
 	
-	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool directFitnessEffect);
+	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect, bool p_baselineAccumulation);
 	~Trait(void);
 	
 	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const		{ return index_; }
@@ -136,13 +139,15 @@ public:
 	inline __attribute__((always_inline)) bool HasLogisticPostTransform(void) const	{ return logistic_post_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const		{ return name_; }
 	
-	slim_trait_offset_t BaselineOffset(void) const { return baselineOffset_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t BaselineOffset(void) const { return baselineOffset_; };
+	inline __attribute__((always_inline)) void SetBaselineOffset(slim_trait_offset_t p_baseline) { baselineOffset_ = p_baseline; };
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_
 	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetMean_ and individualOffsetSD_
 	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
 	
 	inline __attribute__((always_inline)) bool HasDirectFitnessEffect(void) const { return directFitnessEffect_; }
+	inline __attribute__((always_inline)) bool HasBaselineAccumulation(void) const { return baselineAccumulation_; }
 	
 	
 	//

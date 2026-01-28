@@ -4465,6 +4465,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				Mutation *mut = mutations_data[value_index];
 				Substitution *sub = new Substitution(*mut, tick);
 				
+				species->DoBaselineAccumulationForSubstitution(sub);
+				
 				// TREE SEQUENCE RECORDING
 				// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 				// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states

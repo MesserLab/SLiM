@@ -529,6 +529,8 @@ public:
 	slim_trait_index_t GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name);											// with a singleton EidosValue
 	void GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name);
 	
+	void DoBaselineAccumulationForSubstitution(Substitution *p_substitution);
+	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	void DeleteAllMutationRuns(void);												// for cleanup

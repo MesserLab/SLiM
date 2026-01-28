@@ -1628,7 +1628,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [f$ individualOffsetMean = 0.0], [f$ individualOffsetSD = 0.0], [l$ directFitnessEffect = F])
+//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [f$ individualOffsetMean = 0.0], [f$ individualOffsetSD = 0.0], [l$ directFitnessEffect = F], [logical$ baselineAccumulation = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1657,6 +1657,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	EidosValue *individualOffsetMean_value = p_arguments[3].get();
 	EidosValue *individualOffsetSD_value = p_arguments[4].get();
 	EidosValue *directFitnessEffect_value = p_arguments[5].get();
+	EidosValue *baselineAccumulation_value = p_arguments[6].get();
 	
 	// name
 	std::string name = name_value->StringAtIndex_NOCAST(0, nullptr);
@@ -1738,8 +1739,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	// directFitnessEffect
 	bool directFitnessEffect = directFitnessEffect_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
+	// baselineAccumulation
+	bool baselineAccumulation = baselineAccumulation_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
 	// Set up the new trait object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Trait *trait = new Trait(*this, name, type, logistic_post, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect);
+	Trait *trait = new Trait(*this, name, type, logistic_post, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect, baselineAccumulation);
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
 	
 	// Add it to our registry; AddTrait() takes its retain count

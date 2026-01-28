@@ -1495,7 +1495,7 @@ The
 \f2\fs20 , SLiMgui will choose a default color.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [float$\'a0individualOffsetMean\'a0=\'a00.0], [float$\'a0individualOffsetSD\'a0=\'a00.0], [logical$\'a0directFitnessEffect\'a0=\'a0F])\
+\f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [float$\'a0individualOffsetMean\'a0=\'a00.0], [float$\'a0individualOffsetSD\'a0=\'a00.0], [logical$\'a0directFitnessEffect\'a0=\'a0F], [logical$\'a0baselineAccumulation\'a0=\'a0T])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calling this function, added in SLiM 5.2, configures a phenotypic trait in the species being initialized.  The new 
@@ -1540,8 +1540,7 @@ The
 \f2\fs20  object to be referenced simply as 
 \f1\fs18 height
 \f2\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 type
 \f2\fs20  parameter gives the type of trait to be created, as a 
 \f1\fs18 string
@@ -1583,8 +1582,7 @@ The
 \f2\fs20  property, both on class 
 \f1\fs18 Individual
 \f2\fs20 , so you are not limited to this built-in mechanism for drawing individual offsets; it is just provided for convenience.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Finally, the 
+The 
 \f1\fs18 directFitnessEffect
 \f2\fs20  parameter specifies whether the final calculated trait value for an individual should be used directly as a fitness effect for that individual.  This will typically be 
 \f1\fs18 T
@@ -1597,6 +1595,32 @@ The
 \f2\fs20  in quantitative-genetics models where the sum of all mutation effects is a trait value that is then translated into a fitness effect through a fitness function.  It would also be 
 \f1\fs18 F
 \f2\fs20  for any trait that affects an aspect of the individual other than fitness \'96 dispersal distance, for example, or aggression.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Finally, the 
+\f1\fs18 baselineAccumulation
+\f2\fs20  parameter specifies the behavior of the trait when fixed mutations are turned into 
+\f1\fs18 Substitution
+\f2\fs20  objects (see section 1.5.2).  If 
+\f1\fs18 baselineAccumulation
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , no special action is taken upon substitution, and so the effect of the substituted mutation will no longer be present; this was the behavior of SLiM prior to SLiM 5.2, and remains the behavior of the default trait for backward compatibility.  If 
+\f1\fs18 baselineAccumulation
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 , the effect of the substituted mutation will be combined (multiplicatively or additively, according to the trait type) into the trait\'92s baseline offset.  As a result, the trait values of individuals should not change across a substitution, because the effect that used to come from the mutation will now come from the baseline offset.  (If a 
+\f1\fs18 mutationEffect()
+\f2\fs20  callback used to modify that effect, however, that modification will no longer occur, since 
+\f1\fs18 mutationEffect()
+\f2\fs20  callbacks are not called for substitutions; in this case, it might be desirable to prevent substitution with 
+\f1\fs18 MutationType
+\f2\fs20 \'92s 
+\f1\fs18 convertToSubstitution
+\f2\fs20  property.)  Allowing baseline accumulation is usually desirable; it allows substitution to occur safely even in nonWF models (if 
+\f1\fs18 convertToSubstitution
+\f2\fs20  is set to 
+\f1\fs18 T
+\f2\fs20 ), which can make such models more efficient.\
 The use of the 
 \f1\fs18 initializeTrait()
 \f2\fs20  function is optional.  If it is not called, a new 
@@ -1609,6 +1633,10 @@ The use of the
 \f1\fs18 directFitnessEffect
 \f2\fs20 , which is 
 \f1\fs18 T
+\f2\fs20  for the default trait, and 
+\f1\fs18 baselineAccumulation
+\f2\fs20 , which is 
+\f1\fs18 F
 \f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 5.2.  The creation of the default trait occurs as a side effect of the first call to 
 \f1\fs18 initializeMutationType()
 \f2\fs20 , if 

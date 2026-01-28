@@ -1707,17 +1707,20 @@ initialize() {
 	initializeSex();
 	
 	// multiplicative traits
-	popgen1T = initializeTrait("popgen1T", "m", 1.01, 0.0, 0.01, directFitnessEffect=T);  // will have a mix of dominance
-	popgen2T = initializeTrait("popgen2T", "m", 1.01, 0.0, 0.01, directFitnessEffect=T);  // will be independent dominance
-	n1T = initializeTrait("n1T", "m", directFitnessEffect=T);           // neutral with direct effect
-	n2T = initializeTrait("n2T", "m", directFitnessEffect=F);           // neutral with no direct effect
+	popgen1T = initializeTrait("popgen1T", "m", 1.0, 0.0, 0.01, directFitnessEffect=T);       // will have a mix of dominance
+	popgen2T = initializeTrait("popgen2T", "m", 1.0, 0.0, 0.01, directFitnessEffect=T);       // will be independent dominance
+	n1T = initializeTrait("n1T", "m", directFitnessEffect=T);                                 // neutral with direct effect
+	n2T = initializeTrait("n2T", "m", directFitnessEffect=F);                                 // neutral with no direct effect
 	
 	// additive traits
-	quant1T = initializeTrait("quant1T", "a", I1, 0.0, 0.01, directFitnessEffect=F);      // will have a mix of dominance
-	quant2T = initializeTrait("quant2T", "a", I2, 0.0, 0.01, directFitnessEffect=F);      // will be independent dominance
-	n3T = initializeTrait("n3T", "a", directFitnessEffect=F);           // non-neutral with no direct effect
+	quant1T = initializeTrait("quant1T", "a", I1, 0.0, 0.01, directFitnessEffect=F);          // will have a mix of dominance
+	quant2T = initializeTrait("quant2T", "a", I2, 0.0, 0.01, directFitnessEffect=F);          // will be independent dominance
+	n3T = initializeTrait("n3T", "a", directFitnessEffect=F, baselineAccumulation=F);         // non-neutral with no direct effect
 	
-	// quant1T / quant2T will be demanded in script; popgen1T / popgen2T / n1T will be demanded because they have direct effects
+	// logistic trait
+	logistic1T = initializeTrait("logistic1T", "l", 0.0, 0.01, 0.01, directFitnessEffect=T);  // will have a mix of dominance
+	
+	// quant1T / quant2T will be demanded in script; popgen1T / popgen2T / n1T / logistic1T are direct-effect and generate demand
 	// calculation of popgen2T and quant2T should be extremely efficient since they are independent dominance
 	// calculation of n1T should be omitted entirely; SLiM should detect that it is neutral, and not even set phenotype values
 	// n2T and n3T should not be demanded, and should thus never be calculated by SLiM, which we can check in script
@@ -1725,24 +1728,26 @@ initialize() {
 	// mutation types
 	initializeMutationType("m1", 0.4, "f", 0.0);                                  // neutral for all traits
 	
-	initializeMutationType("m2", 0.4, "e", 0.001);                                // beneficial for the popgen traits
+	initializeMutationType("m2", 0.4, "e", 0.05);                                 // beneficial for the popgen traits
 	m2.setEffectSizeDistributionForTrait(c(n1T, n2T), "f", 0.0);                  // neutral DES for the neutral traits
 	m2.setEffectSizeDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);     // unbiased normal DES for the additive traits
+	m2.setEffectSizeDistributionForTrait(c(logistic1T), "n", -0.05, 0.1);         // biased, wide normal DES for the logistic trait
 	
-	initializeMutationType("m3", 0.4, "g", -0.001, 1.0);                          // deleterious for the popgen traits
+	initializeMutationType("m3", 0.4, "g", -0.05, 1.0);                           // deleterious for the popgen traits
 	m3.setEffectSizeDistributionForTrait(c(n1T, n2T), "f", 0.0);                  // neutral DES for the neutral traits
 	m3.setEffectSizeDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);     // unbiased normal DES for the additive traits
+	m3.setEffectSizeDistributionForTrait(c(logistic1T), "n", -0.05, 0.1);         // biased, wide normal DES for the logistic trait
 	
 	c(m2,m3).setEffectSizeDistributionForTrait(n3T, "n", -5.0, 0.5);              // very biased and wide DES for n3T
 	
-	// set up independent dominance for popgen2T and quant2T; note that setting this for m1 should be unnecessary (it is neutral)
-	c(m1,m2,m3).setDefaultDominanceForTrait(c(popgen2T, quant2T), NAN);
+	// set up independent dominance for popgen2T and quant2T; note that setting this for m1 is unnecessary (it is neutral)
+	c(m2,m3).setDefaultDominanceForTrait(c(popgen2T, quant2T), NAN);
 	
-	// prevent converting to substitutions for m2 and m3; once shifting the baseline offset is supported, this will not be needed
-	c(m2,m3).convertToSubstitution = F;
+	// log information about m2 and m3 mutations, for comparison of initial versus final distributions of trait metrics
+	c(m2,m3).logMutationData(T, trait=NULL, effectSize=T, dominance=T);
 	
 	initializeGenomicElementType("g1", m1, 1.0);          // neutral
-	initializeGenomicElementType("g2", 1:3, c(2, 1, 1));  // mixture
+	initializeGenomicElementType("g2", 1:3, c(3, 1, 2));  // mixture
 	
 	ids = 1:5;
 	symbols = c(1, 2, "X", "Y", "MT");
@@ -1763,16 +1768,20 @@ initialize() {
 	}
 }
 
-// set random dominance effects for the popgen1T and quant1T traits
-// other effects are generated as specified by the mutation type DES
 mutation(m2) {
+	// set random dominance effects for the popgen1T and quant1T and logistic1TDominance traits
+	// other effects are generated as specified by the mutation type DES
 	mut.popgen1TDominance = runif(1);
 	mut.quant1TDominance = runif(1);
+	mut.logistic1TDominance = runif(1);
 	return T;
 }
 mutation(m3) {
+	// set random dominance effects for the popgen1T and quant1T and logistic1TDominance traits
+	// other effects are generated as specified by the mutation type DES
 	mut.popgen1TDominance = runif(1);
 	mut.quant1TDominance = runif(1);
+	mut.logistic1TDominance = runif(1);
 	return T;
 }
 
@@ -1780,24 +1789,77 @@ mutation(m3) {
 	sim.addSubpop("p1", 20);
 }
 
+// tick 7: m2 mutations are completely neutral, m3 are normal
+// tick 8: m2 is completely neutral, m3 is neutral for popgen1T and popgen2T, and QTL demand and selection are off
+// tick 9: m3 mutations are neutral for popgen1T only
+
+7:8 mutationEffect(m2)
+{
+	return NULL;	// make neutral
+}
+8:9 mutationEffect(m3, NULL, "popgen1T")
+{
+	return NULL;	// make neutral
+}
+8 mutationEffect(m3, NULL, "popgen2T")
+{
+	return NULL;	// make neutral
+}
+
 1: late() {
+	// make tick 8 neutral
+	if (sim.cycle == 8)
+		return;
+	
+	// stabilizing selection on quant1T and quant2T, before fitness calculation takes place
 	inds = sim.subpopulations.individuals;
-	sim.demandPhenotype(NULL, c(sim.quant1T, sim.quant2T));
-	fitnessEffect_q1 = dnorm(inds.quant1T, OPT1, SD1) / dnorm(0.0, 0.0, SD1);
-	fitnessEffect_q2 = dnorm(inds.quant2T, OPT2, SD2) / dnorm(0.0, 0.0, SD2);
+	
+	if (community.tick % 2 == 0)
+		sim.demandPhenotype(NULL, c(sim.quant1T, sim.quant2T));	// the fast way
+	else
+		sim.subpopulations.individuals.demandPhenotypeForIndividuals(c(sim.quant1T, sim.quant2T));	// the slow way
+	
+	phenotypes_q1 = inds.quant1T;
+	phenotypes_q2 = inds.quant2T;
+	
+	fitnessEffect_q1 = dnorm(phenotypes_q1, OPT1, SD1) / dnorm(0.0, 0.0, SD1);
+	fitnessEffect_q2 = dnorm(phenotypes_q2, OPT2, SD2) / dnorm(0.0, 0.0, SD2);
+	
 	inds.fitnessScaling = fitnessEffect_q1 * fitnessEffect_q2;
 }
 
 2: first() {
 	inds = sim.subpopulations.individuals;
 	
-	// check that traits that do not require calculation remain uncalculated
-	//if (!all(isNAN(inds.n1T))) stop("n1T was calculated unnecessarily");	// the smarts for this are not yet implemented!
+	// check that traits were calculated correctly, or left uncalculated as appropriate
+	if (!all(inds.n1T == inds.offsetForTrait("n1T"))) stop("n1T was calculated incorrectly");
 	if (!all(isNAN(inds.n2T))) stop("n2T was calculated unnecessarily");
 	if (!all(isNAN(inds.n3T))) stop("n3T was calculated unnecessarily");
+	if (!all(!isNAN(inds.logistic1T))) stop("logistic1T is NAN");
+	if (!all((inds.logistic1T >= 0.0) & (inds.logistic1T <= 1.0))) stop("logistic1T is out of range");
+	
+	// check baseline accumulation, which in on for all traits except n3T
+	// each substitution shifts the baseline by 1+s (multiplicatively) or 2a (additively)
+	p1t_subs = product(1 + sim.substitutions.popgen1TEffectSize);
+	p2t_subs = product(1 + sim.substitutions.popgen2TEffectSize);
+	n1t_subs = product(1 + sim.substitutions.n1TEffectSize);
+	n2t_subs = product(1 + sim.substitutions.n2TEffectSize);
+	q1t_subs = sum(2 * sim.substitutions.quant1TEffectSize);
+	q2t_subs = sum(2 * sim.substitutions.quant2TEffectSize);
+	//n3t_subs = sum(2 * sim.substitutions.n3TEffectSize);
+	l1t_subs = sum(2 * sim.substitutions.logistic1TEffectSize);
+	
+	if (!isClose(p1t_subs * 1.0, sim.popgen1T.baselineOffset)) stop("popgen1T baseline is wrong");
+	if (!isClose(p2t_subs * 1.0, sim.popgen2T.baselineOffset)) stop("popgen2T baseline is wrong");
+	if (!isClose(n1t_subs * 1.0, sim.n1T.baselineOffset)) stop("n1T baseline is wrong");
+	if (!isClose(n2t_subs * 1.0, sim.n2T.baselineOffset)) stop("n2T baseline is wrong");
+	if (!isClose(q1t_subs + I1, sim.quant1T.baselineOffset)) stop("quant1T baseline is wrong");
+	if (!isClose(q2t_subs + I2, sim.quant2T.baselineOffset)) stop("quant2T baseline is wrong");
+	if (!(sim.n3T.baselineOffset == 0.0)) stop("n3T baseline is wrong");
+	if (!isClose(l1t_subs + 0.0, sim.logistic1T.baselineOffset)) stop("logistic1T baseline is wrong");
 }
 
-50 late() { }
+100 late() { }
 	)V0G0N";
 	
 	SLiMAssertScriptSuccess(complex_multi_1);
