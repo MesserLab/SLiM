@@ -15027,7 +15027,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
-Note that for multiplicative traits, all effects are clamped to a minimum of 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
+\f3\fs18 individualOffsetMean
+\f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
 \f3\fs18 Trait
@@ -15072,6 +15077,22 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f4\fs20  is the mean of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
 \f3\fs18 individualOffsetSD
 \f4\fs20  property.\
+The individual offset distribution provided by 
+\f3\fs18 Trait
+\f4\fs20  does not need to be used; if you want to set up individual offsets in your own way, simply set 
+\f3\fs18 individualOffsetSD
+\f4\fs20  to 
+\f3\fs18 0.0
+\f4\fs20  (so SLiM doesn\'92t waste time drawing values that won\'92t be used), and set the individual offset value for each new individual yourself.  Note also that changing 
+\f3\fs18 individualOffsetMean
+\f4\fs20  does not change the individual offsets of existing individuals, since that would not always be desirable; you can set new offsets on individuals yourself if you wish.  See the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property and 
+\f3\fs18 setOffsetForTrait()
+\f4\fs20  method of 
+\f3\fs18 Individual
+\f4\fs20  regarding setting individual offset values.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 individualOffsetSD <\'96> (float$)\
@@ -15086,6 +15107,22 @@ Note that for multiplicative traits, all effects are clamped to a minimum of
 \f4\fs20  is the standard deviation of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
 \f3\fs18 individualOffsetMean
 \f4\fs20  property.\
+The individual offset distribution provided by 
+\f3\fs18 Trait
+\f4\fs20  does not need to be used; if you want to set up individual offsets in your own way, simply set 
+\f3\fs18 individualOffsetSD
+\f4\fs20  to 
+\f3\fs18 0.0
+\f4\fs20  (so SLiM doesn\'92t waste time drawing values that won\'92t be used), and set the individual offset value for each new individual yourself.  Note also that changing 
+\f3\fs18 individualOffsetMean
+\f4\fs20  does not change the individual offsets of existing individuals, since that would not always be desirable; you can set new offsets on individuals yourself if you wish.  See the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property and 
+\f3\fs18 setOffsetForTrait()
+\f4\fs20  method of 
+\f3\fs18 Individual
+\f4\fs20  regarding setting individual offset values.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 name => (string$)\
