@@ -345,18 +345,18 @@ private:
 	
 	// This struct represents the entire non-neutral cache, which can't entirely be described with a C struct due
 	// to variable-length elements.  First are the capacity and count for the nonneutral mutation buffer.  Then
-	// come slim_effect_t entries, one per trait in the species, for the independent-dominance cache values for
-	// all of the mutations in the mutation run.  After that is the nonneutral mutation buffer itself: a vector
+	// come slim_effect_t entries, one per trait in the species for which we have an independent-dominance cache
+	// (which is not the same as the number of traits).  After that is the nonneutral mutation buffer: a vector
 	// of MutationIndex for all of the mutations in the nonneutral cache.  This structure should be considered
 	// very private, and be accessed directly only in a few key places inside MutationRun.  Note that MutationRun
-	// doesn't know the number of traits, and so it doesn't know the layout of this struct!  In APIs where the
-	// layout of this struct needs to be known, a species_trait_count value is passed in from outside.  This is
-	// kind of weird, but it avoids wasting a ton of storage (and time) on duplicated information.
+	// doesn't know the number of traits with independent-dominance caches, and so it doesn't know the layout of
+	// this struct!  In APIs where the layout of this struct needs to be known, an inddom_cache_count value is
+	// passed in from outside.  This is kind of weird, but it is very memory-efficient, which is key here.
 	typedef struct _NonNeutralCache {
 		mutable int32_t nonneutral_capacity_;			// the capacity of the nonneutral mutation buffer
 		mutable int32_t nonneutral_count_;				// the number of entries currently used; -1 indicates an invalid cache
-		slim_effect_t independent_dominance_cache_[];	// one independent-dominance summary per trait in the species
-		// the non-neutral MutationIndex buffer begins after the last per-trait entry in independent_dominance_cache_
+		slim_effect_t independent_dominance_cache_[];	// one independent-dominance summary per inddom_cache_count
+		// the non-neutral MutationIndex buffer begins after the last entry in independent_dominance_cache_
 	} NonNeutralCache;
 	
 	mutable NonNeutralCache *nonneutral_cache_ = nullptr;	// OWNED POINTER: the contents of the nonneutal buffer, or nullptr
@@ -831,18 +831,18 @@ public:
 	// note this method does NOT check external invalidation flags!  it tells you only if the mutrun itself knows it is invalid!
 	inline __attribute__((always_inline)) bool nonneutral_cache_invalid(void) const { return (!nonneutral_cache_ || (nonneutral_cache_->nonneutral_count_ == -1)); }
 	
-	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(slim_trait_index_t species_trait_count) const
+	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(IndDomCacheIndex inddom_cache_count) const
 	{
-		return (MutationIndex *)(nonneutral_cache_->independent_dominance_cache_ + species_trait_count);
+		return (MutationIndex *)(nonneutral_cache_->independent_dominance_cache_ + static_cast<slim_trait_index_t>(inddom_cache_count));
 	}
 	
-	inline __attribute__((always_inline)) void zero_out_nonneutral_cache(slim_trait_index_t species_trait_count) const
+	inline __attribute__((always_inline)) void zero_out_nonneutral_cache(IndDomCacheIndex inddom_cache_count) const
 	{
 		if (!nonneutral_cache_)
 		{
 			// If we don't have a cache allocated yet, create a buffer with space for all the cache components
 			size_t total_size = sizeof(NonNeutralCache) +
-								species_trait_count * sizeof(slim_effect_t) + 
+								static_cast<slim_trait_index_t>(inddom_cache_count) * sizeof(slim_effect_t) + 
 								SLIM_MUTRUN_INITIAL_CAPACITY * sizeof(MutationIndex);
 			
 			nonneutral_cache_ = (NonNeutralCache *)malloc(total_size);
@@ -856,7 +856,7 @@ public:
 		nonneutral_cache_->nonneutral_count_ = 0;
 	}
 	
-	inline __attribute__((always_inline)) void expand_nonneutral_buffer(slim_trait_index_t species_trait_count) const
+	inline __attribute__((always_inline)) void expand_nonneutral_buffer(IndDomCacheIndex inddom_cache_count) const
 	{
 #ifdef __clang_analyzer__
 		assert(nonneutral_cache_->capacity_ > 0);
@@ -871,7 +871,7 @@ public:
 			nonneutral_cache_->nonneutral_capacity_ += 32;
 		
 		size_t total_size = sizeof(NonNeutralCache) +
-							species_trait_count * sizeof(slim_effect_t) + 
+							static_cast<slim_trait_index_t>(inddom_cache_count) * sizeof(slim_effect_t) + 
 							nonneutral_cache_->nonneutral_capacity_ * sizeof(MutationIndex);
 		
 		nonneutral_cache_ = (NonNeutralCache *)realloc(nonneutral_cache_, total_size);
@@ -879,14 +879,14 @@ public:
 			EIDOS_TERMINATION << "ERROR (MutationRun::expand_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 	
-	void cache_nonneutral_mutations_REGIME_0(slim_trait_index_t species_trait_count) const;
-	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const;
-	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const;
-	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const;
+	void cache_nonneutral_mutations_REGIME_0(IndDomCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
 	
 	void check_nonneutral_mutation_cache() const;
 	
-	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, slim_trait_index_t species_trait_count) const
+	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, IndDomCacheIndex inddom_cache_count) const
 	{
 #if DEBUG
 		// All nonneutral caches must be validated ahead of time; see Species::ValidateNonNeutralCaches()
@@ -894,7 +894,7 @@ public:
 #endif
 		
 		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
-		MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
+		MutationIndex *mutation_buffer = nonneutral_mutation_buffer(inddom_cache_count);
 		
 		*p_mutptr_iter = mutation_buffer;
 		*p_mutptr_max = mutation_buffer + nonneutral_cache_->nonneutral_count_;
@@ -919,11 +919,11 @@ public:
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 	
 	template <const bool f_additive_trait, const bool f_haploid_chromosome>
-	void validate_independent_dominance_cache_for_trait(slim_trait_index_t trait_index, MutationBlock *mutation_block) const;
+	void validate_independent_dominance_cache_for_trait(slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index, MutationBlock *mutation_block) const;
 	
-	inline __attribute__((always_inline)) slim_effect_t independent_dominance_cache_for_trait(slim_trait_index_t trait_index) const
+	inline __attribute__((always_inline)) slim_effect_t independent_dominance_cache_for_cache_index(IndDomCacheIndex inddom_cache_index) const
 	{
-		return nonneutral_cache_->independent_dominance_cache_[trait_index];
+		return nonneutral_cache_->independent_dominance_cache_[static_cast<slim_trait_index_t>(inddom_cache_index)];
 	}
 	
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()

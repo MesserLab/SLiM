@@ -263,7 +263,11 @@ void Species::AutogenerationConfigurationChanged(void)
 		for (Trait *trait : traits_)
 		{
 			trait->trait_all_neutral_mutations_ = true;
-			trait->trait_all_mutations_independent_dominance_ = true;
+			
+			// We longer allow this to get reset back to true, even when the registry is empty.  The reason is
+			// that this flag now needs to be "sticky", to reflect the decision made in RunInitializeCallbacks()
+			// as to which traits will receive independent-dominance caches.  That decision is final.
+			//trait->trait_all_mutations_independent_dominance_ = true;
 		}
 	}
 	
@@ -1099,7 +1103,7 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 }
 
 template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime, const bool f_independent_dominance_present, const bool f_haploid_chromosome>
-int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, std::vector<slim_trait_index_t> &pure_independent_dominance_traits)
+int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, __attribute__ ((unused)) std::vector<slim_trait_index_t> &pure_independent_dominance_traits)
 {
 #if DEBUG
 	// Check template flags
@@ -1113,7 +1117,6 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 	// nonneutral mutation caches and then optionally computing cached independent dominance summaries.
 	size_t mutrun_count = p_mutrun_pool.size();
 	const MutationRun **mutrun_pointers = p_mutrun_pool.data();
-	slim_trait_index_t species_trait_count = TraitCount();
 	
 #if (SLIMPROFILING == 1)
 	int64_t recached_count;
@@ -1130,10 +1133,10 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 		{
 			switch (f_nonneutral_cache_regime)
 			{
-				case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(species_trait_count); break;
-				case TraitCalculationRegime::kNoActiveCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr, species_trait_count); break;
-				case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr, species_trait_count); break;
-				case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr, species_trait_count); break;
+				case TraitCalculationRegime::kPureNeutral:			mutrun->cache_nonneutral_mutations_REGIME_0(IndependentDominanceCacheCount()); break;
+				case TraitCalculationRegime::kNoActiveCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_1(p_mut_block_ptr, IndependentDominanceCacheCount()); break;
+				case TraitCalculationRegime::kAllNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_2(p_mut_block_ptr, IndependentDominanceCacheCount()); break;
+				case TraitCalculationRegime::kNonNeutralCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_3(p_mut_block_ptr, IndependentDominanceCacheCount()); break;
 				default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
 			}
 			
@@ -1153,11 +1156,12 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 				for (slim_trait_index_t independent_dominance_trait_index : pure_independent_dominance_traits)
 				{
 					Trait *independent_dominance_trait = traits_[independent_dominance_trait_index];
+					IndDomCacheIndex inddom_cache_index = IndependentDominanceCacheIndexForTraitIndex(independent_dominance_trait_index);
 					
 					if (independent_dominance_trait->Type() == TraitType::kAdditive)
-						mutrun->validate_independent_dominance_cache_for_trait<true, f_haploid_chromosome>(independent_dominance_trait_index, mutation_block_);
+						mutrun->validate_independent_dominance_cache_for_trait<true, f_haploid_chromosome>(independent_dominance_trait_index, inddom_cache_index, mutation_block_);
 					else
-						mutrun->validate_independent_dominance_cache_for_trait<false, f_haploid_chromosome>(independent_dominance_trait_index, mutation_block_);
+						mutrun->validate_independent_dominance_cache_for_trait<false, f_haploid_chromosome>(independent_dominance_trait_index, inddom_cache_index, mutation_block_);
 				}
 			}
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
@@ -3842,10 +3846,67 @@ void Species::RunInitializeCallbacks(void)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << chromosome->last_position_ + 1 << " base" << (chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome->ancestral_seq_buffer_->size() << " base" << (chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
 	
-	// notify the species that the mutation autogeneration configuration has changed; rather than
-	// calling this for each change during initialize(), we call it once here at the end; note
-	// that this design means that the flags managed by this method will be incorrect until here
+	// Notify the species that the mutation autogeneration configuration has changed; rather than
+	// calling this for each change during initialize(), we call it once here at the end.  Note
+	// that this design means that the flags managed by this method will be incorrect until here.
 	AutogenerationConfigurationChanged();
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	// Now we assess which traits we will turn on independent dominance for, based upon the configuration
+	// of things at the end of initialize() callbacks.  This decision is made just once, right now, and
+	// takes effect for the entire run.  If we decide not to turn on the cache for a given traits, we can
+	// avoid allocating extra memory per mutation run for it.  We decide this per trait, and so we also
+	// need a mapping from trait index to index into MutationRun's independent dominance cache array, and
+	// a total count of the number of traits for which independent dominance caches are being kept.  Note
+	// that making a wrong decision here is not catastrophic; if we decide yes and the cache never gets
+	// used, it's wasted memory but otherwise harmless, and if we decide no but it turns out independent
+	// dominance does get used for a given trait, we just don't get the optimization for that trait.
+	for (Trait *trait : traits_)
+	{
+		// First of all, the trait must be configured for independent dominance for all non-neutral muttypes.
+		if (!trait->trait_all_mutations_independent_dominance_)
+		{
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "### initialize(): trait '" << trait->Name() << "' is not eligible for independent-dominance caching (not configured for independent dominance)" << std::endl;
+#endif
+			inddom_cache_indices_.push_back(static_cast<IndDomCacheIndex>(-1));		// "the trait at this index has no inddom cache"
+			continue;
+		}
+		
+		// The trait_all_mutations_independent_dominance_ flag indicates that all *non-neutral* mutations
+		// for the trait are set up for independent dominance.  But if the trait is set up to be entirely
+		// neutral, trait_all_mutations_independent_dominance_ will be true and yet we need no cached values
+		// for it; so we check that here as an additional condition.
+		if (trait->trait_all_neutral_mutations_)
+		{
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "### initialize(): trait '" << trait->Name() << "' is not eligible for independent-dominance caching (all muttypes have a neutral DES for it)" << std::endl;
+#endif
+			inddom_cache_indices_.push_back(static_cast<IndDomCacheIndex>(-1));		// "the trait at this index has no inddom cache"
+			continue;
+		}
+		
+		// This trait will have space allocated for a independent-dominance cache in each MutationRun.
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "### initialize(): trait '" << trait->Name() << "' IS ELIGIBLE for independent-dominance caching" << std::endl;
+#endif
+		inddom_cache_indices_.push_back(inddom_cache_count_);
+		inddom_cache_count_ = static_cast<IndDomCacheIndex>(static_cast<slim_trait_index_t>(inddom_cache_count_) + 1);
+	}
+	
+	std::cout << "### initialize(): " << static_cast<slim_trait_index_t>(inddom_cache_count_) << " traits will receive independent-dominance cache space";
+	if (static_cast<slim_trait_index_t>(inddom_cache_count_) > 0)
+	{
+		std::cout << " : { ";
+		for (Trait *trait : traits_)
+			if (static_cast<slim_trait_index_t>(inddom_cache_indices_[trait->Index()]) != -1)
+				std::cout << trait->Name() << " ";
+		std::cout << "}";
+	}
+	std::cout << std::endl;
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
 	// always start at cycle 1, regardless of what the starting tick value might be
 	SetCycle(1);

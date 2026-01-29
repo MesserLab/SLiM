@@ -232,6 +232,17 @@ private:
 	TRAIT_NAME_HASH trait_from_name;					// NOT OWNED; get a trait from a trait name quickly
 	TRAIT_STRID_HASH trait_from_string_id;				// NOT OWNED; get a trait from a string ID quickly
 	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	// Species is in charge of which traits receive independent-dominance caches and which don't, a determination
+	// made in RunInitializeCallbacks() and never revisited (since nonneutral caches are then configured).
+	// We keep track of the number of traits being cached (the number of cache slots kept by MutationRun), and
+	// a mapping from trait value to the index into MutationRun's vector of cache values.
+	IndDomCacheIndex inddom_cache_count_ = static_cast<IndDomCacheIndex>(0);
+	std::vector<IndDomCacheIndex> inddom_cache_indices_;
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+	
 	bool mutation_stack_policy_changed_ = true;										// when set, the stacking policy settings need to be checked for consistency
 	
 	// SEX ONLY: sex-related instance variables
@@ -489,7 +500,21 @@ public:
 	// Validates nonneutral caches for mutation runs in one MutationRunPool.  Called by _ValidateNonNeutralCaches().
 	template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime, const bool f_independent_dominance_present, const bool f_haploid_chromosome>
 	int64_t _ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, std::vector<slim_trait_index_t> &pure_independent_dominance_traits);
+	
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	inline __attribute__((always_inline)) IndDomCacheIndex IndependentDominanceCacheCount(void) const { return inddom_cache_count_; }
+	inline __attribute__((always_inline)) IndDomCacheIndex IndependentDominanceCacheIndexForTraitIndex(slim_trait_index_t trait_index) {
+		IndDomCacheIndex inddom_cache_index = inddom_cache_indices_[trait_index];
+#if DEBUG
+		if (inddom_cache_index == static_cast<IndDomCacheIndex>(-1))
+			EIDOS_TERMINATION << "ERROR (Species::IndependentDominanceCacheIndexForTraitIndex): (internal error) no independent dominance cache for trait." << EidosTerminate();
 #endif
+		return inddom_cache_index;
+	}
+#else	// !SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	inline __attribute__((always_inline)) slim_trait_index_t IndependentDominanceCacheCount(void) const { return 0; }
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
 	// Chromosome configuration and access
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }

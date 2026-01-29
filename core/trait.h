@@ -91,11 +91,11 @@ public:
 	
 	// OPTIMIZATION FLAGS
 	
-	// this is set to false if any mutation has a non-neutral effect on this trait
+	// This is set to false if any mutation has a non-neutral effect on this trait.
 	mutable bool trait_all_neutral_mutations_ = true;
 	
-	// this is set to false if any mutation has a non-neutral effect on this trait that
-	// is not designated as "independent dominance"; neutral effects don't matter
+	// This is set to false if any mutation has a non-neutral effect on this trait that is not designated as
+	// "independent dominance"; neutral effects don't matter.  This flag is "sticky" at false, permanently.
 	mutable bool trait_all_mutations_independent_dominance_ = true;
 	
 	// Optimization flags set up by Species::PrepareForTraitCalculations() and valid only subsequent to that call.
@@ -138,6 +138,7 @@ public:
 	inline __attribute__((always_inline)) TraitType Type(void) const				{ return type_; }
 	inline __attribute__((always_inline)) bool HasLogisticPostTransform(void) const	{ return logistic_post_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const		{ return name_; }
+	std::string UserVisibleType(void) const;
 	
 	inline __attribute__((always_inline)) slim_trait_offset_t BaselineOffset(void) const { return baselineOffset_; };
 	inline __attribute__((always_inline)) void SetBaselineOffset(slim_trait_offset_t p_baseline) { baselineOffset_ = p_baseline; };

@@ -169,6 +169,7 @@ multitrait branch:
 	switch over to using a lognormal distribution for the default individual offset distribution for multiplicative traits
 	add a third trait type, "logistic" or "l", for modeling traits that represent a probability such as a disease risk
 	add initializeTrait() parameter [logical$ baselineAccumulation = T] to control, on a per-trait bases, the accumulation of the effects of fixed (substituted) mutations into baseline offsets
+	keep independent dominance caches in MutationRun only for traits that appear to actually be set up for independent dominance
 
 
 version 5.1 (Eidos version 4.1):

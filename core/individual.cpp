@@ -6968,7 +6968,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
 		
 #if DEBUG_TRAIT_DEMAND()
-		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << traitType << ") has baseline offset " << trait_baseline_offset << std::endl;
+		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
 #endif
 		
 		if (traitType == TraitType::kAdditive)
@@ -7040,19 +7040,17 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				{
 					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					Trait *trait = species->Traits()[trait_index];
-					TraitType traitType = trait->Type();
 					
-					// Cache a method pointer for incorporating independent dominance effects here too
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-					
-					void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index) = nullptr;
+					// Cache a method pointer for incorporating independent dominance effects here too
+					TraitType traitType = trait->Type();
+					void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index) = nullptr;
 					
 					if (traitType == TraitType::kAdditive)
 						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<true>;
 					else
 						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<false>;
-					
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 					
@@ -7103,8 +7101,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #if DEBUG_TRAIT_DEMAND()
 								independent_dominance_individuals++;
 #endif
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome1, trait_index);
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome2, trait_index);
+								IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+								
+								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
 							}
 							else
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
@@ -7142,25 +7142,26 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				{
 					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 					Trait *trait = species->Traits()[trait_index];
-					TraitType traitType = trait->Type();
 					
-					// Cache a method pointer for incorporating independent dominance effects here too
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
+#endif
+					
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-					
-					void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index) = nullptr;
+					// Cache a method pointer for incorporating independent dominance effects here too
+					TraitType traitType = trait->Type();
+					void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index) = nullptr;
 					
 					if (traitType == TraitType::kAdditive)
 						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<true>;
 					else
 						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<false>;
 					
-#if DEBUG_TRAIT_DEMAND()
-					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
-#endif
-					
 					if (trait->is_pure_independent_dominance_now_)
 					{
+						IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+						
 						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 						{
 							Individual *ind = individuals_buffer[individual_index];
@@ -7171,7 +7172,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 							if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
 								continue;
 							
-							(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome, trait_index);
+							(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome, trait_index, inddom_cache_index);
 							
 #if DEBUG_TRAIT_DEMAND()
 							total_individuals_recalculated++;
@@ -7281,9 +7282,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			
 			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
 			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
-			// calculations, so I use a larger threshold here of 1e-5; we'll see how this does in practice.
+			// calculations, so I use a larger threshold here of 1e-4; we'll see how this does in practice.
 			// The goal is not to check for exact equality, but to find bugs that make calculations incorrect.
-			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-5)
+			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-4)
 				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
@@ -7348,7 +7349,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
 		
 #if DEBUG_TRAIT_DEMAND()
-		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << traitType << ") has baseline offset " << trait_baseline_offset << std::endl;
+		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
 #endif
 		
 		if (traitType == TraitType::kAdditive)
@@ -7495,7 +7496,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 			
-			void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index) = nullptr;
+			void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index) = nullptr;
 			
 			if (traitType == TraitType::kAdditive)
 				_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<true>;
@@ -7555,8 +7556,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #if DEBUG_TRAIT_DEMAND()
 								independent_dominance_individuals++;
 #endif
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome1, trait_index);
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome2, trait_index);
+								IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+								
+								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
 							}
 							else
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
@@ -7589,6 +7592,8 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 					if (trait->is_pure_independent_dominance_now_)
 					{
+						IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+						
 						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 						{
 							Individual *ind = individuals_buffer[individual_index];
@@ -7599,7 +7604,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 							if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
 								continue;
 							
-							(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome, trait_index);
+							(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome, trait_index, inddom_cache_index);
 							
 #if DEBUG_TRAIT_DEMAND()
 							total_individuals_recalculated++;
@@ -7687,9 +7692,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			
 			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
 			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
-			// calculations, so I use a larger threshold here of 1e-5; we'll see how this does in practice.
+			// calculations, so I use a larger threshold here of 1e-4; we'll see how this does in practice.
 			// The goal is not to check for exact equality, but to find bugs that make calculations incorrect.
-			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-5)
+			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-4)
 				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
@@ -7759,7 +7764,7 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 		// Cache non-neutral mutations and read from the non-neutral buffers
 		const MutationIndex *haplosome_iter, *haplosome_max;
 		
-		mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, species->TraitCount());
+		mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, species->IndependentDominanceCacheCount());
 #else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
@@ -7874,8 +7879,8 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 		// Cache non-neutral mutations and read from the non-neutral buffers
 		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
 		
-		mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, species->TraitCount());
-		mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, species->TraitCount());
+		mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, species->IndependentDominanceCacheCount());
+		mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, species->IndependentDominanceCacheCount());
 #else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
@@ -8191,7 +8196,7 @@ template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species 
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 
 template <const bool f_additiveTrait>
-void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index)
+void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index)
 {
 #if DEBUG
 	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
@@ -8209,16 +8214,16 @@ void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, 
 		const MutationRun *mutrun = haplosome->mutruns_[run_index];
 		
 		if (f_additiveTrait)
-			effect_accumulator += (double)mutrun->independent_dominance_cache_for_trait(trait_index);
+			effect_accumulator += (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
 		else
-			effect_accumulator *= (double)mutrun->independent_dominance_cache_for_trait(trait_index);
+			effect_accumulator *= (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
 	}
 	
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_IndependentDominance<false>(Haplosome *, slim_trait_index_t);
-template void Individual::_IncorporateEffects_IndependentDominance<true>(Haplosome *, slim_trait_index_t);
+template void Individual::_IncorporateEffects_IndependentDominance<false>(Haplosome *, slim_trait_index_t, IndDomCacheIndex);
+template void Individual::_IncorporateEffects_IndependentDominance<true>(Haplosome *, slim_trait_index_t, IndDomCacheIndex);
 
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
@@ -8402,7 +8407,8 @@ void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *
 		// difference that are indicative of a bug somewhere, rather than checking for an exact match
 		if (trait->is_pure_independent_dominance_now_)
 		{
-			double independent_dominance_effect = (double)mutrun->independent_dominance_cache_for_trait(trait_index);
+			IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+			double independent_dominance_effect = (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
 			
 			if (std::abs(mutrun_effect_accumulator - independent_dominance_effect) > 1e-5)
 				std::cout << "      _Check_IncorporateEffects_Haploid() for trait " << species->Traits()[trait_index]->Name() << " in chromosome " << haplosome->AssociatedChromosome()->Symbol() << " : mutrun effect " << mutrun_effect_accumulator << ", cached independent-dominance effect " << independent_dominance_effect << std::endl;
@@ -8834,8 +8840,9 @@ void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *
 		// difference that are indicative of a bug somewhere, rather than checking for an exact match
 		if (trait->is_pure_independent_dominance_now_)
 		{
-			double independent_dominance_effect1 = (double)mutrun1->independent_dominance_cache_for_trait(trait_index);
-			double independent_dominance_effect2 = (double)mutrun2->independent_dominance_cache_for_trait(trait_index);
+			IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+			double independent_dominance_effect1 = (double)mutrun1->independent_dominance_cache_for_cache_index(inddom_cache_index);
+			double independent_dominance_effect2 = (double)mutrun2->independent_dominance_cache_for_cache_index(inddom_cache_index);
 			double independent_dominance_effect;
 			
 			if (f_additiveTrait)

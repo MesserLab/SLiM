@@ -662,6 +662,10 @@ enum class BoundaryCondition : char {
 	kPeriodic
 };
 
+// The enum class is used to isolate independent dominance cache indices from other trait indices,
+// producing a compile error whenever one is used in place of the other; they are easy to mix up!
+enum class IndDomCacheIndex : slim_trait_index_t {};
+
 
 // *******************************************************************************************************************
 //

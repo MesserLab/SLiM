@@ -67,6 +67,16 @@ Trait::~Trait(void)
 	//EIDOS_ERRSTREAM << "Trait::~Trait" << std::endl;
 }
 
+std::string Trait::UserVisibleType(void) const
+{
+	if (HasLogisticPostTransform())
+		return "logistic";
+	else if (Type() == TraitType::kAdditive)
+		return "additive";
+	else
+		return "multiplicative";
+}
+
 const EidosClass *Trait::Class(void) const
 {
 	return gSLiM_Trait_Class;

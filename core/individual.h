@@ -423,7 +423,7 @@ public:
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 	template <const bool f_additiveTrait>
-	void _IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index);
+	void _IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index);
 #endif
 #endif
 	
