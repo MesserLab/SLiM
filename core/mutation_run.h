@@ -906,8 +906,8 @@ public:
 	{
 		*p_mutation_count += mutation_count_;
 		
-		if (nonneutral_cache_->count_ != -1)
-			*p_nonneutral_count += nonneutral_cache_->count_;
+		if (nonneutral_cache_->nonneutral_count_ != -1)
+			*p_nonneutral_count += nonneutral_cache_->nonneutral_count_;
 	}
 #endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 	
