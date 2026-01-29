@@ -365,7 +365,7 @@ void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 #if SLIM_USE_NONNEUTRAL_CACHES()
 		// invalidate the nonneutral mutation cache
 		if (nonneutral_cache_)
-			nonneutral_cache_->count_ = -1;
+			nonneutral_cache_->nonneutral_count_ = -1;
 #endif
 	}
 }
@@ -486,8 +486,8 @@ void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr,
 	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
 	// because access to the nonneutral mutation buffer is complex and slow, we manage it internally here
 	MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-	int32_t buffer_capacity = nonneutral_cache_->capacity_;
-	int32_t buffer_count = nonneutral_cache_->count_;
+	int32_t buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
+	int32_t buffer_count = nonneutral_cache_->nonneutral_count_;
 	
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
@@ -501,7 +501,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr,
 				// expand the buffer and re-fetch our local information about it
 				expand_nonneutral_buffer(species_trait_count);
 				mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-				buffer_capacity = nonneutral_cache_->capacity_;
+				buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
 			}
 			
 			*(mutation_buffer + buffer_count) = mutindex;
@@ -509,7 +509,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr,
 		}
 	}
 	
-	nonneutral_cache_->count_ = buffer_count;
+	nonneutral_cache_->nonneutral_count_ = buffer_count;
 }
 
 void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const
@@ -526,8 +526,8 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr,
 	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
 	// because access to the nonneutral mutation buffer is complex and slow, we manage it internally here
 	MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-	int32_t buffer_capacity = nonneutral_cache_->capacity_;
-	int32_t buffer_count = nonneutral_cache_->count_;
+	int32_t buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
+	int32_t buffer_count = nonneutral_cache_->nonneutral_count_;
 	
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
@@ -544,7 +544,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr,
 				// expand the buffer and re-fetch our local information about it
 				expand_nonneutral_buffer(species_trait_count);
 				mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-				buffer_capacity = nonneutral_cache_->capacity_;
+				buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
 			}
 			
 			*(mutation_buffer + buffer_count) = mutindex;
@@ -552,7 +552,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr,
 		}
 	}
 	
-	nonneutral_cache_->count_ = buffer_count;
+	nonneutral_cache_->nonneutral_count_ = buffer_count;
 }
 
 void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr, slim_trait_index_t species_trait_count) const
@@ -572,8 +572,8 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 	// loop through mutations and copy the non-neutral ones into our buffer, resizing as needed
 	// because access to the nonneutral mutation buffer is complex and slow, we manage it internally here
 	MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-	int32_t buffer_capacity = nonneutral_cache_->capacity_;
-	int32_t buffer_count = nonneutral_cache_->count_;
+	int32_t buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
+	int32_t buffer_count = nonneutral_cache_->nonneutral_count_;
 	
 	for (int32_t bufindex = 0; bufindex < mutation_count_; ++bufindex)
 	{
@@ -590,7 +590,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 					// expand the buffer and re-fetch our local information about it
 					expand_nonneutral_buffer(species_trait_count);
 					mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-					buffer_capacity = nonneutral_cache_->capacity_;
+					buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
 				}
 				
 				*(mutation_buffer + buffer_count) = mutindex;
@@ -606,7 +606,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 					// expand the buffer and re-fetch our local information about it
 					expand_nonneutral_buffer(species_trait_count);
 					mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
-					buffer_capacity = nonneutral_cache_->capacity_;
+					buffer_capacity = nonneutral_cache_->nonneutral_capacity_;
 				}
 				
 				*(mutation_buffer + buffer_count) = mutindex;
@@ -615,7 +615,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 		}
 	}
 	
-	nonneutral_cache_->count_ = buffer_count;
+	nonneutral_cache_->nonneutral_count_ = buffer_count;
 }
 
 void MutationRun::check_nonneutral_mutation_cache() const
@@ -626,9 +626,9 @@ void MutationRun::check_nonneutral_mutation_cache() const
 	
 	if (nonneutral_cache_)
 	{
-		if (nonneutral_cache_->count_ == -1)
+		if (nonneutral_cache_->nonneutral_count_ == -1)
 			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
-		if (nonneutral_cache_->count_ > nonneutral_cache_->capacity_)
+		if (nonneutral_cache_->nonneutral_count_ > nonneutral_cache_->nonneutral_capacity_)
 			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
 	}
 }
@@ -782,7 +782,7 @@ size_t MutationRun::MemoryUsageForNonneutralCaches(slim_trait_index_t trait_coun
 {
 #if SLIM_USE_NONNEUTRAL_CACHES()
 	if (nonneutral_cache_)
-		return nonneutral_cache_->capacity_ * sizeof(MutationIndex) + sizeof(NonNeutralCache) + trait_count * sizeof(slim_effect_t);
+		return nonneutral_cache_->nonneutral_capacity_ * sizeof(MutationIndex) + sizeof(NonNeutralCache) + trait_count * sizeof(slim_effect_t);
 #endif
 	
 	return 0;

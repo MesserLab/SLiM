@@ -353,8 +353,8 @@ private:
 	// layout of this struct needs to be known, a species_trait_count value is passed in from outside.  This is
 	// kind of weird, but it avoids wasting a ton of storage (and time) on duplicated information.
 	typedef struct _NonNeutralCache {
-		mutable int32_t capacity_;						// the capacity of the nonneutral mutation buffer
-		mutable int32_t count_;							// the number of entries currently used; -1 indicates an invalid cache
+		mutable int32_t nonneutral_capacity_;			// the capacity of the nonneutral mutation buffer
+		mutable int32_t nonneutral_count_;				// the number of entries currently used; -1 indicates an invalid cache
 		slim_effect_t independent_dominance_cache_[];	// one independent-dominance summary per trait in the species
 		// the non-neutral MutationIndex buffer begins after the last per-trait entry in independent_dominance_cache_
 	} NonNeutralCache;
@@ -473,7 +473,7 @@ public:
 		
 #if SLIM_USE_NONNEUTRAL_CACHES()
 		if (freed_run->nonneutral_cache_)
-			freed_run->nonneutral_cache_->count_ = -1;		// mark the non-neutral mutation cache as invalid
+			freed_run->nonneutral_cache_->nonneutral_count_ = -1;		// mark the non-neutral mutation cache as invalid
 #endif
 		
 		// add our new run to the free pool
@@ -545,7 +545,7 @@ public:
 	inline __attribute__((always_inline)) void will_modify_run(void) {
 #if SLIM_USE_NONNEUTRAL_CACHES()
 		if (nonneutral_cache_)
-			nonneutral_cache_->count_ = -1;		// invalidate the nonneutral cache since the run is changing
+			nonneutral_cache_->nonneutral_count_ = -1;		// invalidate the nonneutral cache since the run is changing
 #endif
 	}
 	
@@ -829,7 +829,7 @@ public:
 #if SLIM_USE_NONNEUTRAL_CACHES()
 	
 	// note this method does NOT check external invalidation flags!  it tells you only if the mutrun itself knows it is invalid!
-	inline __attribute__((always_inline)) bool nonneutral_cache_invalid(void) const { return (!nonneutral_cache_ || (nonneutral_cache_->count_ == -1)); }
+	inline __attribute__((always_inline)) bool nonneutral_cache_invalid(void) const { return (!nonneutral_cache_ || (nonneutral_cache_->nonneutral_count_ == -1)); }
 	
 	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(slim_trait_index_t species_trait_count) const
 	{
@@ -849,11 +849,11 @@ public:
 			if (!nonneutral_cache_)
 				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_cache): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
-			nonneutral_cache_->capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+			nonneutral_cache_->nonneutral_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
 		}
 		
 		// empty out the current buffer contents
-		nonneutral_cache_->count_ = 0;
+		nonneutral_cache_->nonneutral_count_ = 0;
 	}
 	
 	inline __attribute__((always_inline)) void expand_nonneutral_buffer(slim_trait_index_t species_trait_count) const
@@ -865,14 +865,14 @@ public:
 		// we don't just double ad infinitum, because we don't want to use an inordinate amount of memory
 		// adding only 32 capacity at a time is a bit slow, but once we've grown to the high-water size
 		// we should stabilize and not have to realloc any more, so perhaps it's worthwhile...
-		if (nonneutral_cache_->capacity_ < 128)
-			nonneutral_cache_->capacity_ <<= 1;		// double the number of mutations we can hold
+		if (nonneutral_cache_->nonneutral_capacity_ < 128)
+			nonneutral_cache_->nonneutral_capacity_ <<= 1;		// double the number of mutations we can hold
 		else
-			nonneutral_cache_->capacity_ += 32;
+			nonneutral_cache_->nonneutral_capacity_ += 32;
 		
 		size_t total_size = sizeof(NonNeutralCache) +
 							species_trait_count * sizeof(slim_effect_t) + 
-							nonneutral_cache_->capacity_ * sizeof(MutationIndex);
+							nonneutral_cache_->nonneutral_capacity_ * sizeof(MutationIndex);
 		
 		nonneutral_cache_ = (NonNeutralCache *)realloc(nonneutral_cache_, total_size);
 		if (!nonneutral_cache_)
@@ -897,7 +897,7 @@ public:
 		MutationIndex *mutation_buffer = nonneutral_mutation_buffer(species_trait_count);
 		
 		*p_mutptr_iter = mutation_buffer;
-		*p_mutptr_max = mutation_buffer + nonneutral_cache_->count_;
+		*p_mutptr_max = mutation_buffer + nonneutral_cache_->nonneutral_count_;
 	}
 
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
