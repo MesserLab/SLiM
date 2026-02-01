@@ -1324,47 +1324,129 @@ slim_refcount_t Subpopulation::NullHaplosomeCount(void)
 // calls UpdateFitness() on each subpopulation.  This method expresses demand for the traits in question, and
 // then produces fitness values by factoring in fitnessEffect() callbacks and fitnessScaling values.  It stores
 // the fitness values in the appropriate places to prepare for their later use.
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation)
+void Subpopulation::UpdateFitness(const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks, const std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, const std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation)
 {
-	// Determine whether we are in a "pure neutral" case where we don't need to calculate individual fitness
-	// because all individuals have neutral fitness.  The simplest case where this is true is if there are no
+	if (p_direct_effect_trait_indices.size() > 0)
+	{
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "# " << community_.Tick() << " --- UpdateFitness() called with direct-fitness-effect traits {";
+		for (slim_trait_index_t trait_index : p_direct_effect_trait_indices)
+			std::cout << " " << species_.Traits()[trait_index]->Name();
+		std::cout << " } in subpop p" << subpopulation_id_  << ", forceRecalc == " << (p_force_trait_recalculation ? "T" : "F") << std::endl;
+#endif
+	}
+	else
+	{
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding NO traits in subpop p" << subpopulation_id_ << std::endl;
+#endif
+	}
+	
+	// Determine whether we're in a "super-pure-neutral" case where we don't need to calculate individual fitness
+	// because all individuals have a constant fitness.  The obvious case where this is true is if there are no
 	// traits with a direct fitness effect, no non-neutral subpopulation or individual fitnessScaling effects,
 	// and no active mutationEffect() or fitnessEffect() callbacks.  There are more subtle ways it can be true
-	// also: active callbacks are OK as long as they return a constant, neutral value; and traits with a direct
+	// also: active callbacks are OK as long as they return a constant, neutral value.  Any fitnessScaling value
+	// for the subpopulation is actually fine since it produces a constant effect.  Also, traits with a direct
 	// fitness effect are OK as long as either (a) all mutations have a neutral effect upon that particular trait,
 	// or (b) the trait value doesn't matter because it is overridden by an active mutationEffect() callback
-	// with a constant, neutral value.  We evaluate this for each subpopulation because different subpopulations
-	// can have different active callbacks, and because the callbacks in other subpopulations might active or
+	// with a constant, neutral value -- but in either case, baseline and individual offsets must also be constant
+	// for all traits for this to apply.  We evaluate this for each subpopulation because different subpopulations
+	// can have different active callbacks, and because the callbacks in other subpopulations might activate or
 	// deactivate the callbacks in this subpopulation; we therefore need to figure it out right here at this
-	// moment.  Even if we decide that we are not "pure neutral", we might deduce that a particular trait with a
-	// direct fitness effect is not relevant to fitness in this subpopulation, for the above reasons; in that
-	// case, we still want to remove it from the set of traits that we demand and evaluate, for efficiency.  And
-	// we might decide that a given trait is relevant to fitness, but has a constant effect for all individuals;
-	// we then want to remove that trait, but factor that constant effect in.
+	// moment.  Even if we decide that we are not "super-pure-neutral", we might deduce that a particular trait
+	// with a direct fitness effect is not relevant to fitness in this subpopulation, for the above reasons; in
+	// that case, we still want to remove it from the set of traits that we demand and evaluate, for efficiency.
+	// We might also decide that a given trait is relevant to fitness, with a non-neutral direct fitness effect,
+	// but has a constant effect for every individual; we again want to remove that trait from the set of traits
+	// that we demand and evaluate, but we need to factor that constant effect in.
 	slim_fitness_t subpop_fitness_scaling = (slim_fitness_t)subpop_fitness_scaling_;	// guaranteed >= 0.0
-	bool has_constant_fitness = true;
+	slim_fitness_t constant_fitness_effects = subpop_fitness_scaling;	// including all constant fitness effects
 #ifdef SLIMGUI
 	double constant_unscaled_fitness_value = 1.0;						// without subpopulation fitnessScaling
 #endif
-	double constant_fitness_value = (double)subpop_fitness_scaling;		// with all fitness effects incorporated
 	
-	if (true)
-		has_constant_fitness = false;	// for now, assume this is false since we don't know
+	// We make a private copy of p_direct_effect_trait_indices here, so we can remove constant-effect traits.
+	std::vector<slim_trait_index_t> direct_effect_trait_indices = p_direct_effect_trait_indices;
+	
+	// We assume constant fitness until proven otherwise -- which is what we are about to determine.
+	bool has_constant_fitness = true;
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)direct_effect_trait_indices.size();
+	
+	for (slim_trait_index_t trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t direct_effect_trait_index = direct_effect_trait_indices[trait_indices_index];
+		Trait *direct_effect_trait = species_.Traits()[direct_effect_trait_index];
+		
+#if DEBUG
+		if (!direct_effect_trait->HasDirectFitnessEffect())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): (internal error) direct-fitness trait does not, in fact, have a direct fitness effect." << EidosTerminate(nullptr);
+#endif
+		
+		// First of all, being pure neutral is required for a trait to be constant-fitness-effect.
+		if (!direct_effect_trait->is_pure_neutral_now_)
+		{
+			has_constant_fitness = false;
+			continue;				// other traits might be removable, even if we're not "super-pure-neutral"
+		}
+		
+		// Second, all individuals must have the same individual offset value.  We check that based upon two
+		// things: one, if an offset has ever been set in script or the offset distribution has ever changed,
+		// then we assume it is not true; and two, if the offset distribution has a non-zero standard deviation,
+		// we assume it is not true.  This is conservative; it could be that the script changes offset values
+		// for everyone, but to the same constant value (particularly within a single subpopulation), but we
+		// don't detect that; the trait will not be seen as super-pure-neutral in that case.
+		if (direct_effect_trait->IndividualOffsetEverChanged() ||
+			(direct_effect_trait->IndividualOffsetDistributionSD() != 0.0))
+		{
+			has_constant_fitness = false;
+			continue;				// other traits might be removable, even if we're not "super-pure-neutral"
+		}
+		
+		// This trait satisfies all of the "super-pure-neutral" constraints, so it has a constant fitness effect,
+		// calculated here, based on the baseline offset and constant individual offset of the trait.
+		slim_fitness_t trait_constant_effect = direct_effect_trait->BaselineOffset();
+		slim_trait_offset_t constant_offset_value = direct_effect_trait->DrawIndividualOffset();	// this will return the fixed individual offset, including the exp() transform if it is a multiplicative trait
+		
+		if (direct_effect_trait->Type() == TraitType::kMultiplicative)
+			trait_constant_effect *= constant_offset_value;
+		else
+			trait_constant_effect += constant_offset_value;
+		
+		// We are removing this super-pure-neutral trait from processing, so we incorporate its fitness effect.
+		constant_fitness_effects *= trait_constant_effect;
+		
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "# " << community_.Tick() << " --- UpdateFitness() removed super-pure-neutral trait '" << direct_effect_trait->Name() << "' with constant fitness effect " << trait_constant_effect << std::endl;
+#endif
+		
+		// Remove the element at index demanded_trait_indices_index, decrement the count, and do this index again.
+		// Note that this modifies the vector of demanded trait indices supplied by the caller; this is by design.
+		direct_effect_trait_indices.erase(direct_effect_trait_indices.begin() + trait_indices_index);
+		trait_indices_count--;
+		trait_indices_index--;
+	}
+	
+	// If there are fitnessEffect() callbacks, we need to evaluate fitness.  This would not be true if the
+	// callbacks were all constant-effect -- but why would one write a constant-effect fitnessEffect() callback?
+	if (p_subpop_fitnessEffect_callbacks.size() > 0)
+		has_constant_fitness = false;
 	
 	if (has_constant_fitness)
 	{
-		// we know this subpopulation has effectively constant fitness; we therefore don't express demand for
-		// any traits, which means trait may keep NAN values even if the traits have a direct fitness effect
-#if DEBUG_TRAIT_DEMAND()
-		std::cout << "# " << community_.Tick() << " --- UpdateFitness() determined constant fitness of " << constant_fitness_value << std::endl;
-#endif
+		// We know this subpopulation has effectively constant fitness; we therefore don't express demand for
+		// any traits, which means traits may keep NAN values even if the traits have a direct fitness effect.
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
-			// in WF models we can take advantage of constant fitness to completely remove individual-level
-			// fitness bookkeeping with the individual_cached_fitness_OVERRIDE_ mechanism
+			// In WF models we can take advantage of constant fitness to completely remove individual-level
+			// fitness bookkeeping with the individual_cached_fitness_OVERRIDE_ mechanism.
 			individual_cached_fitness_OVERRIDE_ = true;
-			individual_cached_fitness_OVERRIDE_value_ = constant_fitness_value;
+			individual_cached_fitness_OVERRIDE_value_ = constant_fitness_effects;
+			
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << community_.Tick() << " --- UpdateFitness() determined a constant fitness of " << constant_fitness_effects << "; setting individual_cached_fitness_OVERRIDE_value_ for subpop p" << subpopulation_id_ << std::endl;
+#endif
 			
 #ifdef SLIMGUI
 			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
@@ -1373,8 +1455,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 		}
 		else	// (model_type_ == SLiMModelType::kModelTypeNonWF)
 		{
-			// in nonWF models we are required to fill in the per-individual fitness values, but do little else
+			// In nonWF models we are required to fill in the per-individual fitness values, but do little else.
 			individual_cached_fitness_OVERRIDE_ = false;
+			
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << community_.Tick() << " --- UpdateFitness() determined a constant fitness of " << constant_fitness_effects << "; setting cached_fitness_UNSAFE_ for all individuals in subpop p" << subpopulation_id_ << std::endl;
+#endif
 			
 			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 			{
@@ -1384,48 +1470,50 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 				ind->cached_unscaled_fitness_ = (slim_fitness_t)constant_unscaled_fitness_value;
 #endif
 					
-				ind->cached_fitness_UNSAFE_ = (slim_fitness_t)constant_fitness_value;
+				ind->cached_fitness_UNSAFE_ = (slim_fitness_t)constant_fitness_effects;
 			}
 		}
 	}
 	else
 	{
-		// we cannot override individual cached fitness values; individuals are not all neutral fitness
+		// We cannot override individual cached fitness values; individuals are not all constant fitness.
 		individual_cached_fitness_OVERRIDE_ = false;
 		
-		// demand phenotypes for all the relevant traits
-		if (p_direct_effect_trait_indices.size())
+		// Demand phenotypes for all the relevant traits.
+		if (trait_indices_count > 0)
 		{
 #if DEBUG_TRAIT_DEMAND()
-				std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding traits {";
-				for (slim_trait_index_t trait_index : p_direct_effect_trait_indices)
-					std::cout << " " << species_.Traits()[trait_index]->Name();
-				std::cout << " } in subpop p" << subpopulation_id_  << ", forceRecalc == " << (p_force_trait_recalculation ? "T" : "F") << std::endl;
+			std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding traits {";
+			for (slim_trait_index_t trait_index : direct_effect_trait_indices)
+				std::cout << " " << species_.Traits()[trait_index]->Name();
+			std::cout << " } in subpop p" << subpopulation_id_  << ", forceRecalc == " << (p_force_trait_recalculation ? "T" : "F") << std::endl;
 #endif
 			
 			if (p_force_trait_recalculation)
-				Individual_Class::DemandPhenotype_SUBPOP<true>(&species_, this, p_direct_effect_trait_indices, p_subpop_mutationEffect_callbacks);
+				Individual_Class::DemandPhenotype_SUBPOP<true>(&species_, this, direct_effect_trait_indices, p_subpop_mutationEffect_callbacks);
 			else
-				Individual_Class::DemandPhenotype_SUBPOP<false>(&species_, this, p_direct_effect_trait_indices, p_subpop_mutationEffect_callbacks);
+				Individual_Class::DemandPhenotype_SUBPOP<false>(&species_, this, direct_effect_trait_indices, p_subpop_mutationEffect_callbacks);
 		}
 		else
 		{
+			// Note that we can have demand for zero traits and still have work to do here, because of
+			// fitnessEffect() callbacks and subpopulation fitnessScaling and constant traits
 #if DEBUG_TRAIT_DEMAND()
-				std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding NO traits in subpop p" << subpopulation_id_ << std::endl;
+			std::cout << "# " << community_.Tick() << " --- UpdateFitness() demanding NO traits in subpop p" << subpopulation_id_ << std::endl;
 #endif
 		}
 		
-		// then loop over individuals and pull together the relevant phenotype values, fitnessEffect() callbacks,
-		// subpopulation fitnessScaling, and individual fitnessScaling to produce final individual fitness values;
-		// we choose our _CalculateFitnessAfterDemand() template based upon flags and execute it to calculate fitness values
-		bool f_has_subpop_fitnessScaling = (subpop_fitness_scaling != (slim_fitness_t)1.0);
+		// Then loop over individuals and pull together the relevant phenotype values, fitnessEffect() callbacks,
+		// subpopulation fitnessScaling, and individual fitnessScaling to produce final individual fitness values.
+		// We choose a _CalculateFitnessAfterDemand() template here, then execute it to calculate fitness values.
+		bool f_has_constant_effects = (constant_fitness_effects != (slim_fitness_t)1.0);
 		bool f_has_ind_fitnessScaling = Individual::s_any_individual_fitness_scaling_set_;
 		bool f_has_fitnessEffect_callbacks = (p_subpop_fitnessEffect_callbacks.size() > 0);
-		bool f_has_trait_direct_effects = (p_direct_effect_trait_indices.size() > 0);
-		bool f_single_trait = (p_direct_effect_trait_indices.size() == 1);
-		void (Subpopulation::*_CalculateFitnessAfterDemand_TEMPLATED)(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices) = nullptr;
+		bool f_has_trait_direct_effects = (trait_indices_count > 0);
+		bool f_single_trait = (trait_indices_count == 1);
+		void (Subpopulation::*_CalculateFitnessAfterDemand_TEMPLATED)(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t) = nullptr;
 		
-		if (f_has_subpop_fitnessScaling)
+		if (f_has_constant_effects)
 		{
 			if (f_has_ind_fitnessScaling) {
 				if (f_has_fitnessEffect_callbacks) {
@@ -1480,22 +1568,21 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutatio
 			}
 		}
 		
-		(this->*(_CalculateFitnessAfterDemand_TEMPLATED))(p_subpop_fitnessEffect_callbacks, p_direct_effect_trait_indices);
+		(this->*(_CalculateFitnessAfterDemand_TEMPLATED))(p_subpop_fitnessEffect_callbacks, direct_effect_trait_indices, constant_fitness_effects);
 	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		UpdateWFFitnessBuffers();
 }
 
-template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
-void Subpopulation::_CalculateFitnessAfterDemand(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices)
+template<const bool f_has_constant_effects, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
+void Subpopulation::_CalculateFitnessAfterDemand(const std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, const std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, slim_fitness_t p_constant_effects)
 {
 	// manage the shuffle buffer; this is not quite as fast as templatizing this flag, but it's simpler, and it
 	// only adds overhead when fitnessEffect() callbacks are present, otherwise it get optimized out completely
 	const bool f_has_shuffle_buffer = (f_has_fitnessEffect_callbacks && species_.RandomizingCallbackOrder());
 	slim_popsize_t *shuffle_buf = (f_has_shuffle_buffer ? species_.BorrowShuffleBuffer(parent_subpop_size_) : nullptr);
 	
-	slim_fitness_t subpop_fitness_scaling = (f_has_subpop_fitnessScaling ? (slim_fitness_t)subpop_fitness_scaling_ : (slim_fitness_t)0.0);	// guaranteed >= 0.0
 	slim_trait_index_t single_trait_index = (f_has_trait_effects && f_single_trait ? p_direct_effect_trait_indices[0] : 0);
 	
 	for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
@@ -1527,22 +1614,26 @@ void Subpopulation::_CalculateFitnessAfterDemand(std::vector<SLiMEidosBlock*> &p
 			{
 				// fitness is > 0.0, so continue calculating
 				
+				// Note that we do not need to call fitnessEffect() callbacks in other branches; we explicitly
+				// document that they are not necessarily called if the fitness is already determined to be 0.0.
 				if (f_has_fitnessEffect_callbacks)
 					fitness *= (slim_fitness_t)ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, ind);			// guaranteed >= 0.0
 				
 #ifdef SLIMGUI
+				// Note that SLiMgui's unscaled fitness now excludes all constant fitness effects passed in,
+				// not just the subpopulation fitnessScaling value.  This is a very minor policy change.
 				ind->cached_unscaled_fitness_ = fitness;
 #endif
 				
-				if (f_has_subpop_fitnessScaling)
-					fitness *= subpop_fitness_scaling;
+				if (f_has_constant_effects)
+					fitness *= p_constant_effects;
 				
 				ind->cached_fitness_UNSAFE_ = fitness;
 			}
 			else
 			{
 				// with additive traits, fitness could be < 0.0 (and gets clipped to 0.0); otherwise it is 0.0
-				// we're already fitness 0.0, so we can skip multiplying in subpop_fitness_scaling
+				// we're already fitness 0.0, so we can skip p_constant_effects and fitnessEffect() callbacks
 #ifdef SLIMGUI
 				ind->cached_unscaled_fitness_ = 0.0;
 #endif
@@ -1563,30 +1654,30 @@ void Subpopulation::_CalculateFitnessAfterDemand(std::vector<SLiMEidosBlock*> &p
 		species_.ReturnShuffleBuffer();
 }
 
-template void Subpopulation::_CalculateFitnessAfterDemand<false, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<false, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, false, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, false, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, false, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, false, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, false, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, false, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, true, false, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, true, false, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, true, false, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, true, true, false, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, true, true, true, false>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
-template void Subpopulation::_CalculateFitnessAfterDemand<true, true, true, true, true>(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, false, false, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, false, false, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, false, false, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, false, true, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, false, true, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, false, true, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, true, false, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, true, false, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, true, false, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, true, true, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, true, true, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<false, true, true, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, false, false, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, false, false, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, false, false, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, false, true, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, false, true, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, false, true, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, true, false, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, true, false, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, true, false, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, true, true, false, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, true, true, true, false>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
+template void Subpopulation::_CalculateFitnessAfterDemand<true, true, true, true, true>(const std::vector<SLiMEidosBlock*> &, const std::vector<slim_trait_index_t> &, slim_fitness_t);
 
 // WF only:
 void Subpopulation::UpdateWFFitnessBuffers(void)
@@ -1959,7 +2050,7 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 	return p_effect;
 }
 
-slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual)
+slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(const std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyFitnessEffectCallbacks(): running Eidos callback");
 	
@@ -4571,7 +4662,7 @@ template bool Subpopulation::MungeIndividualCloned_1CH_H<true, true, false>(Indi
 template bool Subpopulation::MungeIndividualCloned_1CH_H<true, true, true>(Individual *, slim_pedigreeid_t, Individual *);
 
 // nonWF only:
-void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
+void Subpopulation::ApplyReproductionCallbacks(const std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyReproductionCallbacks(): running Eidos callback");
 	
@@ -4786,7 +4877,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 }
 
 // nonWF only:
-bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, slim_fitness_t p_fitness, double p_draw, bool p_surviving)
+bool Subpopulation::ApplySurvivalCallbacks(const std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, slim_fitness_t p_fitness, double p_draw, bool p_surviving)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplySurvivalCallbacks(): running Eidos callback");
 	
@@ -4942,7 +5033,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	return p_surviving;
 }
 
-void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
+void Subpopulation::ViabilitySurvival(const std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ViabilitySurvival(): usage of statics, probably many other issues");
 	

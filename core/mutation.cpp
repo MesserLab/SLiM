@@ -184,8 +184,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	if (mutation_type_ptr_->all_neutral_DES_)
 	{
-		// The DES of the mutation type is pure neutral, so we don't need to do any draws; we can short-circuit
-		// most of the work here and just set up neutral effects for all of the traits.
+		// The DES of the mutation type is neutral, so we don't need to do any draws; we can
+		// skip most of the work here and just set up neutral effects for all of the traits.
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
 			MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
@@ -212,9 +212,10 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	}
 	else
 	{
-		// The DES of the mutation type is not pure neutral.  Note that species.species_all_neutral_mutations_ might still be true
-		// at this point; the mutation type for this mutation might not be used by any genomic element type,
-		// because we might be getting called by addNewDrawnMutation() for a type that is otherwise unused.
+		// The DES of the mutation type is not neutral.  Note that species.species_all_neutral_mutations_
+		// might still be true at this point; the mutation type for this mutation might not be used by any
+		// genomic element type, because we might be getting called by addNewDrawnMutation() for a type that
+		// is otherwise unused.
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 		{
 			MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;

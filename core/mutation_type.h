@@ -197,19 +197,25 @@ public:
 	// because muttype_all_neutral_mutations_ is set and the mutation type cannot be influenced by any callbacks
 	// in the current subpopulation / tick, or because an active callback actually sets this mutation type to be
 	// neutral in this subpopulation / tick.  Mutation types for which this flag is set can be safely elided from
-	// trait calculations altogether.  If this flag is set for all muttypes, chromosome-based trait calculations
-	// will be skipped altogether for this tick.
+	// trait calculations altogether (although the baseline and individual offsets for the trait still matter).
+	// If this flag is set for all muttypes, genetics-based trait calculations will be skipped altogether.
 	mutable bool is_pure_neutral_now_;
 	mutable bool previous_is_pure_neutral_now_;
 	
 	// If set, subject_to_mutationEffect_callback_ indicates that the muttype is influenced by a mutationEffect
-	// callback in at least one subpop.  Mutation types with this flag set are subject to a callback, and so the
-	// effect of mutations of that type cannot be consulted reliably; the callback needs to be considered.
+	// callback in at least one subpop.  The effect of mutations of this type cannot be consulted reliably; the
+	// callback needs to be considered.  But this does not necessarily means that the callback actually needs to
+	// be called, since it might be global-neutral.  We avoid setting this flag at all if the callback can be
+	// ignored: if (1) it sets neutrality, and the mutation type is known to already be neutral; or (2) it is
+	// specific to a subpopulation or mutation type that does not currently exist in the simulation.
 	mutable bool subject_to_mutationEffect_callback_;
 	mutable bool previous_subject_to_mutationEffect_callback_;
 	
-	mutable bool subject_to_non_neutral_callback_;
-	mutable bool previous_subject_to_non_neutral_callback_;
+	// If set, subject_to_non_global_neutral_callback_ indicates that the muttype is influenced by a callback
+	// in at least one subpop that is something other than a global-neutral callback, and thus needs to be
+	// called because it potentially changes values for mutations of this type in a way that can't be predicted.
+	mutable bool subject_to_non_global_neutral_callback_;
+	mutable bool previous_subject_to_non_global_neutral_callback_;
 	
 	
 #ifdef SLIMGUI

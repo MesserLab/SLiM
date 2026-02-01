@@ -6810,7 +6810,7 @@ In WF models this property is
 \f4\fs20  callbacks might also necessitate the disabling of substitution for a given mutation type; this is an important consideration to keep in mind.\
 In contrast, for nonWF models this property is 
 \f3\fs18 F
-\f4\fs20  by default, because even mutations with no epistatis or other indirect fitness effects will continue to influence the survival probabilities of individuals.  For nonWF models, only neutral mutation types with no epistasis or other side effects can safely be converted to substitutions upon fixation.  When such a pure-neutral mutation type is defined in a nonWF model, this property should be set to 
+\f4\fs20  by default, because even mutations with no epistatis or other indirect fitness effects will continue to influence the survival probabilities of individuals.  For nonWF models, only neutral mutation types with no epistasis or other side effects can safely be converted to substitutions upon fixation.  When such a completely neutral mutation type is defined in a nonWF model, this property should be set to 
 \f3\fs18 T
 \f4\fs20  to tell SLiM that substitution is allowed; this may have very large positive effects on performance, so it is important to remember when modeling background neutral mutations.\
 SLiM consults this flag at the end of each tick when deciding whether to substitute each fixed mutation.  If this flag is 
@@ -15027,12 +15027,10 @@ Note that this method is only for use in nonWF models, in which migration is man
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
+This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
 \f3\fs18 individualOffsetMean
 \f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
+Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
 \f3\fs18 Trait

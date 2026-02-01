@@ -380,18 +380,18 @@ public:
 	void CheckIndividualIntegrity(void);
 	
 	// this is called by Population::RecalculateFitness(); first it expresses demand for traits that have direct fitness effects, then it recalculates fitness values
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
+	void UpdateFitness(const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks, const std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, const std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);
 	
 	// this is called only by UpdateFitness(), and calculates fitness values given that trait values have already been demanded/calculated
-	template<const bool f_has_subpop_fitnessScaling, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
-	void _CalculateFitnessAfterDemand(std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, std::vector<slim_trait_index_t> &p_direct_effect_trait_indices);
+	template<const bool f_has_constant_effects, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
+	void _CalculateFitnessAfterDemand(const std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, const std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, double p_constant_effects);
 	
 	// WF only: this updates the WF model fitness buffers after UpdateFitness() has completed, preparing to draw parents according to relative fitness
 	void UpdateWFFitnessBuffers(void);
 	
 	// applying mutationEffect() and fitnessEffect() callbacks during trait/fitness calculation
 	slim_effect_t ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, Trait *p_trait, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
-	slim_fitness_t ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual);
+	slim_fitness_t ApplyFitnessEffectCallbacks(const std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual);
 	
 	// generate newly allocated offspring individuals from parent individuals; these methods loop over
 	// chromosomes/haplosomes, and are templated for speed, providing a set of optimized variants
@@ -436,11 +436,11 @@ public:
 	void SwapChildAndParentHaplosomes(void);															// switch to the next generation by swapping; the children become the parents
 
 	// nonWF only:
-	void ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index);
+	void ApplyReproductionCallbacks(const std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index);
 	void ReproduceSubpopulation(void);
 	void MergeReproductionOffspring(void);
-	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, slim_fitness_t p_fitness, double p_draw, bool p_surviving);
-	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
+	bool ApplySurvivalCallbacks(const std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, slim_fitness_t p_fitness, double p_draw, bool p_surviving);
+	void ViabilitySurvival(const std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
 	
 	static IndividualSex _ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, bool p_sex_enabled, const char *p_caller_name);

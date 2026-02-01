@@ -578,7 +578,15 @@ More than one
 \f3\fs18 fitnessEffect()
 \f2\fs22  callback may be defined to operate in the same tick.  Each such callback will provide an independent fitness effect for the focal individual; the results of each 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callback will be multiplied in to the individual\'92s fitness.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.\
+\f2\fs22  callback will be multiplied in to the individual\'92s fitness.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.  Note that if SLiM can determine, from other fitness effects in the model, that the fitness of an individual is 
+\f3\fs18 0.0
+\f2\fs22 , it may skip calling 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks for that individual (since the callback would not be able to change the fitness value of the individual \'96 zero multiplied by anything is still zero).  It is therefore not a good idea to rely upon 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks always being called, or to rely upon side effects caused by a 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback.\
 Beginning in SLiM 3.0, it is also possible to set the 
 \f3\fs18 fitnessScaling
 \f2\fs22  property on a subpopulation to scale the fitness values of every individual in the subpopulation by the same constant amount, or to set the 

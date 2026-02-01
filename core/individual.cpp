@@ -2871,6 +2871,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 						EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
 					
 					trait_info_[trait->Index()].offset_ = new_offset;
+					trait->IndividualOffsetChanged();
 					return;
 				}
 			}
@@ -3416,6 +3417,8 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 				value->trait_info_[trait_index].offset_ = new_offset;
 			}
 		}
+		
+		trait->IndividualOffsetChanged();
 	}
 	else
 	{
@@ -3439,6 +3442,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 				slim_trait_index_t trait_index = trait->Index();
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
+				trait->IndividualOffsetChanged();
 			}
 		}
 		else
@@ -3459,6 +3463,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
+				trait->IndividualOffsetChanged();
 			}
 		}
 	}
@@ -4687,6 +4692,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					ind->trait_info_[trait_index].offset_ = trait->DrawIndividualOffset();
 				}
 			}
+			
+			// trait->IndividualOffsetChanged();	// the new value is drawn from the offset distribution, so we don't set this flag
 		}
 	}
 	else if (offset_count == 1)
@@ -4708,6 +4715,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset_for_trait;
+				
+			trait->IndividualOffsetChanged();
 		}
 	}
 	else if (offset_count == trait_count)
@@ -4733,6 +4742,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				
 				ind->trait_info_[trait_index].offset_ = offset;
 			}
+			
+			trait->IndividualOffsetChanged();
 		}
 	}
 	else if (offset_count == trait_count * individuals_count)
@@ -4772,6 +4783,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 					}
 				}
+				
+				trait->IndividualOffsetChanged();
 			}
 			else
 			{
@@ -4789,6 +4802,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 							offset = (slim_trait_offset_t)0.0;
 						
 						ind->trait_info_[trait_index].offset_ = offset;
+						trait->IndividualOffsetChanged();
 					}
 				}
 			}
@@ -4832,6 +4846,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
 					}
 				}
+				
+				trait->IndividualOffsetChanged();
 			}
 			else
 			{
@@ -4852,6 +4868,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 							offset = (slim_trait_offset_t)0.0;
 						
 						ind->trait_info_[trait_index].offset_ = offset;
+						trait->IndividualOffsetChanged();
 					}
 				}
 			}
@@ -6672,7 +6689,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals(Eido
 }
 
 template <const bool f_force_recalc>
-void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices)
+void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &demanded_trait_indices)
 {
 	// Given a vector of trait indices, this scans through them looking for "pure neutral" traits -- traits that
 	// are known to be neutral even considering the effect of mutationEffect() callbacks, and for which there are
@@ -6686,11 +6703,11 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 	// seems architecturally complex, and the savings would probably be small since there are only two reads and
 	// one write per individual here; the amount of work that could be avoided doesn't really seem large.
 	
-	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();
+	slim_trait_index_t demanded_trait_indices_count = (slim_trait_index_t)demanded_trait_indices.size();
 	
-	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	for (int demanded_trait_indices_index = 0; demanded_trait_indices_index < demanded_trait_indices_count; demanded_trait_indices_index++)
 	{
-		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		slim_trait_index_t trait_index = demanded_trait_indices[demanded_trait_indices_index];
 		Trait *trait = species->Traits()[trait_index];
 		
 		if (trait->is_pure_neutral_now_)
@@ -6741,13 +6758,16 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 				}
 			}
 			
-			// remove the element at index trait_indices_index, decrement the count, and do this index again
-			trait_indices.erase(trait_indices.begin() + trait_indices_index);
-			trait_indices_count--;
-			trait_indices_index--;
+			// Remove the element at the current index, decrement the count, and do this index again.
+			// NOTE: this modifies the vector of demanded trait indices supplied by the caller; this is by design!
+			// It would not be correct to remove this pure-neutral trait from fitness calculations, since its
+			// baseline and individual offsets might still be relevant, but we can remove it from demand.
+			demanded_trait_indices.erase(demanded_trait_indices.begin() + demanded_trait_indices_index);
+			demanded_trait_indices_count--;
+			demanded_trait_indices_index--;
 			
 #if DEBUG_TRAIT_DEMAND()
-			std::cout << "# " << species->community_.Tick() << " --- _HandleAndRemovePureNeutralTraits() resolved demand for trait '" << trait->Name() << "' because it is known to be neutral" << std::endl;
+			std::cout << "# " << species->community_.Tick() << " --- _HandleDemandForPureNeutralTraits() resolved demand for trait '" << trait->Name() << "' because it is known to be pure-neutral" << std::endl;
 #endif
 		}
 	}
@@ -6755,7 +6775,7 @@ void Individual_Class::_HandleAndRemovePureNeutralTraits(Species *species, Indiv
 
 // This version of DemandPhenotype is called for a vector of individuals.  This is called by the Individual method demandPhenotypeForIndividuals().
 template <const bool f_force_recalc>
-void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &mutationEffect_callbacks)
+void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &mutationEffect_callbacks)
 {
 	// Given a vector of individuals that are all guaranteed to belong to the provided species, and a vector of
 	// trait indices guaranteed to be of length 1 or longer, this method loops over the chromosomes of the
@@ -6812,9 +6832,13 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	// involving any non-neutral callbacks that need to be called for side effects -- then we want to handle
 	// the trait up front here and remove it from the vector of trait indices, for efficiency downstream.
 	// A "pure neutral" trait has phenotypes determined purely by baseline offset and individual offset.
-	_HandleAndRemovePureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	// Because this modifies the vector of trait indices, we make a private copy of it here; we do not want
+	// to modify the caller's vector of trait indices, because handled traits are still relevant for fitness.
+	std::vector<slim_trait_index_t> trait_indices = p_trait_indices;
 	
-	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleAndRemovePureNeutralTraits()!
+	_HandleDemandForPureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleDemandForPureNeutralTraits()!
 	
 	// Next we cache method pointers for haploid and diploid chromosomes, which we will use throughout.  These
 	// are templated for efficiency, so we have to choose the correct template.  That depends on the subpopulation
@@ -7291,14 +7315,14 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #endif
 }
 
-template void Individual_Class::DemandPhenotype_INDIVIDUALS<false>(Species *, Individual **, int, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
-template void Individual_Class::DemandPhenotype_INDIVIDUALS<true>(Species *, Individual **, int, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_INDIVIDUALS<false>(Species *, Individual **, int, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_INDIVIDUALS<true>(Species *, Individual **, int, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
 
 
 // This version of DemandPhenotype is called for a whole subpopulation.  This allows for greater efficiency than the individual-level version of this method.
 // This is called by the Subpopulation method demandPhenotype(), and by SLiM's internal fitness calculation code for traits with a direct effect on fitness.
 template <const bool f_force_recalc>
-void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks)
+void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks)
 {
 	// FIXME MULTITRAIT: think about shuffling the order in which individuals are handled, in this code path
 	
@@ -7322,9 +7346,13 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	// involving any non-neutral callbacks that need to be called for side effects -- then we want to handle
 	// the trait up front here and remove it from the vector of trait indices, for efficiency downstream.
 	// A "pure neutral" trait has phenotypes determined purely by baseline offset and individual offset.
-	_HandleAndRemovePureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	// Because this modifies the vector of trait indices, we make a private copy of it here; we do not want
+	// to modify the caller's vector of trait indices, because handled traits are still relevant for fitness.
+	std::vector<slim_trait_index_t> trait_indices = p_trait_indices;
 	
-	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleAndRemovePureNeutralTraits()!
+	_HandleDemandForPureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleDemandForPureNeutralTraits()!
 	
 	// For a given individual, for a given trait, we have to make a decision as to whether we will recalculate or not.  That decision gets made
 	// once and then holds across all chromosomes for the individual.  But we're looping over chromosomes at the topmost level, so we have a
@@ -7701,8 +7729,8 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #endif
 }
 
-template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *, Subpopulation *, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
-template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *, Subpopulation *, std::vector<slim_trait_index_t> &, std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *, Subpopulation *, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *, Subpopulation *, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
 
 
 // Low-level method to calculate a phenotype for one individual, for one haploid (or hemizygous) chromosome,

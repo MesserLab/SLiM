@@ -33,11 +33,11 @@ std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_typ
 {
 	switch (p_trait_type)
 	{
-		case TraitCalculationRegime::kUndefined:			p_out << "kUndefined";				break;
-		case TraitCalculationRegime::kPureNeutral:			p_out << "kPureNeutral";			break;
-		case TraitCalculationRegime::kNoActiveCallbacks:	p_out << "kNoActiveCallbacks";		break;
-		case TraitCalculationRegime::kAllNeutralCallbacks:	p_out << "kAllNeutralCallbacks";	break;
-		case TraitCalculationRegime::kNonNeutralCallbacks:	p_out << "kNonNeutralCallbacks";	break;
+		case TraitCalculationRegime::kUndefined:					p_out << "kUndefined";				break;
+		case TraitCalculationRegime::kPureNeutral:					p_out << "kPureNeutral";			break;
+		case TraitCalculationRegime::kNoActiveCallbacks:			p_out << "kNoActiveCallbacks";		break;
+		case TraitCalculationRegime::kAllGlobalNeutralCallbacks:	p_out << "kAllGlobalNeutralCallbacks";	break;
+		case TraitCalculationRegime::kNonNeutralCallbacks:			p_out << "kNonNeutralCallbacks";	break;
 	}
 	
 	return p_out;
@@ -469,10 +469,20 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 void MutationRun::cache_nonneutral_mutations_REGIME_0(IndDomCacheIndex inddom_cache_count) const
 {
 	//
-	//	Regime 0 means there are no genetic effects at all, so we can simply empty the non-neutral cache.
-	//	FIXME MULTITRAIT: we want to avoid allocating the nonneutral cache at all, here, if it is not allocated yet
+	//	Regime 0 means there are no genetic effects at all, even considering callbacks, so we can simply empty
+	//	the non-neutral cache; this is often called "pure-neutral" in SLiM's code.  Note that this means that
+	//	the genetics (including callbacks) are neutral for the trait; it does NOT mean that the trait is neutral
+	//	for the individual, particularly since baseline and individual offsets are still included in the trait
+	//	calculations.  In this regime, if the nonneutral cache is unallocated, we leave it unallocated; there is
+	//	no need for it.  If it is allocated, we empty it but leave it allocated; this state means that the model
+	//	has been non-pure-neutral in the past, and so it might return to being non-pure-neutral in the future,
+	//	so we want to avoid alloc/free thrash.  This will not always be the right choice; we could decrease our
+	//	memory footprint by freeing the buffers here, which would be a win if we stay pure-neutral for a long
+	//	time.  But I think having somewhat higher memory usage is preferable to the possibility of massive alloc
+	//	thrash in models that, for example, have mostly empty genomes with occasional sweeps -- perhaps a common
+	//	mode for tree-sequence recording models!
 	//
-	zero_out_nonneutral_cache(inddom_cache_count);
+	zero_out_nonneutral_cache_NOALLOC();
 }
 
 void MutationRun::cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const
@@ -561,9 +571,9 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 	//	Regime 3 means that there are active mutationEffect() callbacks beyond the constant neutral global
 	//	callbacks of regime 2 -- but those non-global-neutral callbacks might not affect the mutation.  So
 	//	we first consult subject_to_mutationEffect_callback_ to find out if a callback of any kind affects
-	//	the mutation.  If that is true, then we consult subject_to_non_neutral_callback_; if that is true,
-	//	the mutation is affected by a nonneutral callback, which must be called even if it is overridden
-	//	by a global-neutral callback since it might have side effects.  If subject_to_non_neutral_callback_
+	//	the mutation.  If that is true, then we consult subject_to_non_global_neutral_callback_; if that is
+	//	true, the mutation is affected by a nonneutral callback, which must be called even if it is overridden
+	//	by a global-neutral callback (it might have side effects).  If subject_to_non_global_neutral_callback_
 	//	is false, we know the mutation is rendered neutral by a global-neutral callback.  And if the test
 	//	of subject_to_mutationEffect_callback_ was false, the mutation's neutral flag is reliable.
 	//
@@ -583,7 +593,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 		
 		if (muttypeptr->subject_to_mutationEffect_callback_)
 		{
-			if (muttypeptr->subject_to_non_neutral_callback_)
+			if (muttypeptr->subject_to_non_global_neutral_callback_)
 			{
 				if (buffer_count == buffer_capacity)
 				{

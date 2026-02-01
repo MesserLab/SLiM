@@ -66,13 +66,17 @@ private:
 	slim_trait_offset_t baselineOffset_;
 	
 	// default individual offset distribution parameters, used to generate per-individual offsets
-	double individualOffsetMean_;
-	double individualOffsetSD_;
+	double individualOffsetDistributionMean_;
+	double individualOffsetDistributionSD_;
 	
 	// an optimization for the individual offset distribution, caching a fixed offset value if individualOffsetSD_
 	// is 0.0; note that the cached fixed value here includes the exp() transform for multiplicative traits
-	bool individualOffsetFixed_;							// true if individualOffsetSD_ == 0.0
-	slim_trait_offset_t individualOffsetFixedValue_;		// pre-calculated and pre-cast for speed
+	bool individualOffsetDistributionFixed_;						// true if individualOffsetSD_ == 0.0
+	slim_trait_offset_t individualOffsetDistributionFixedValue_;	// pre-calculated and pre-cast for speed
+	
+	// this flag tracks whether every individual has an offset drawn from the trait's current offset distribution;
+	// it starts false, and is set true if the script overrides an offset, or if the offset distribution changes
+	bool individualOffsetEverOverridden_ = false;
 	
 	// if true, the calculated trait value is used directly as a fitness effect, automatically
 	// this mimics the previous behavior of SLiM, for multiplicative traits
@@ -104,7 +108,7 @@ public:
 	// because trait_all_neutral_mutations_ is set and the trait cannot be influenced by any callbacks in the
 	// current subpopulation / tick, or because an active callback actually sets this trait to be neutral in
 	// this subpopulation / tick.  Traits for which this flag is set can be safely elided from trait calculations
-	// except for the baseline offset and individual offset.
+	// except for their baseline offset and individual offsets.
 	mutable bool is_pure_neutral_now_;
 	
 	// If set, this flag indicates that the trait currently exhibits independent dominance for all mutations,
@@ -115,7 +119,7 @@ public:
 	// based upon the mutations in the non-neutral cache, and even mutations made globally neutral for a given
 	// trait may be kept in the non-neutral cache for other reasons, such as effects on other traits.)  Traits
 	// for which this flag is set can be calculated more efficiently, with cached per-mutation-run values.  We
-	// avoid setting this flag to true when is_pure_neutral_now_ is true; being pure neutral takes precedence.
+	// avoid setting this flag to true when is_pure_neutral_now_ is true; being pure-neutral takes precedence.
 	mutable bool is_pure_independent_dominance_now_;
 	
 	// If set, subject_to_mutationEffect_callback_ indicates that the trait is influenced by a mutationEffect
@@ -123,14 +127,16 @@ public:
 	// effect of mutations on that trait cannot be consulted reliably; the callback needs to be considered.
 	mutable bool subject_to_mutationEffect_callback_;
 	
-	mutable bool subject_to_non_neutral_callback_;
+	// If a trait is subject to a nonneutral callback, it needs to be evaluated even if a later constant-effect
+	// callback overrides the nonneutral callback, because the nonneutral callback might have side effects.
+	mutable bool subject_to_non_global_neutral_callback_;
 	
 	
 	Trait(const Trait&) = delete;									// no copying
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor
 	
-	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetMean, double p_individualOffsetSD, bool p_directFitnessEffect, bool p_baselineAccumulation);
+	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetDistributionMean, double p_individualOffsetDistributionSD, bool p_directFitnessEffect, bool p_baselineAccumulation);
 	~Trait(void);
 	
 	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const		{ return index_; }
@@ -143,9 +149,13 @@ public:
 	inline __attribute__((always_inline)) slim_trait_offset_t BaselineOffset(void) const { return baselineOffset_; };
 	inline __attribute__((always_inline)) void SetBaselineOffset(slim_trait_offset_t p_baseline) { baselineOffset_ = p_baseline; };
 	
-	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetFixed_ and individualOffsetFixedValue_
-	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetMean_ and individualOffsetSD_
-	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetFixed_) ? individualOffsetFixedValue_ : _DrawIndividualOffset(); }
+	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetDistributionFixed_ and individualOffsetDistributionFixedValue_
+	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetDistributionMean_ and individualOffsetDistributionSD_
+	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetDistributionFixed_) ? individualOffsetDistributionFixedValue_ : _DrawIndividualOffset(); }
+	//inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionMean(void) const { return individualOffsetDistributionMean_; }		// a bit dangerous because of the exp() post-transform; probably nobody should use this
+	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionSD(void) const { return individualOffsetDistributionSD_; }
+	inline __attribute__((always_inline)) void IndividualOffsetChanged(void) { individualOffsetEverOverridden_ = true; }
+	inline __attribute__((always_inline)) bool IndividualOffsetEverChanged(void) { return individualOffsetEverOverridden_; }
 	
 	inline __attribute__((always_inline)) bool HasDirectFitnessEffect(void) const { return directFitnessEffect_; }
 	inline __attribute__((always_inline)) bool HasBaselineAccumulation(void) const { return baselineAccumulation_; }

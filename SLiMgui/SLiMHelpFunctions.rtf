@@ -1574,7 +1574,13 @@ The
 \f1\fs18 individualOffsetSD
 \f2\fs20  parameters together define a normal distribution from which individual offsets are drawn to provide what is often called \'93environmental variance\'94 or \'93developmental noise\'94.  For additive traits, these drawn values are used directly as individual offsets; for multiplicative traits, they are transformed with 
 \f1\fs18 exp()
-\f2\fs20  before use (or alternatively, one could instead say that the values are drawn from a lognormal distribution with the given mean and standard deviation specified on the log scale); and for logistic traits, they are used directly as individual offsets for the underlying additive trait.  The default values for these parameters provide a zero-width individual offset distribution that produces no effect.  Note that individual offsets can be set on individuals with 
+\f2\fs20  before use (or alternatively, one could instead say that the values are drawn from a lognormal distribution with the given mean and standard deviation specified on the log scale); and for logistic traits, they are used directly as individual offsets for the underlying additive trait.  The default values for these parameters provide a zero-width individual offset distribution that produces no effect; for additive and logistic traits, the resulting effect is 
+\f1\fs18 0.0
+\f2\fs20 , whereas for multiplicative traits it is 
+\f1\fs18 1.0
+\f2\fs20  due to the 
+\f1\fs18 exp()
+\f2\fs20  transform.  Note that individual offsets can be set on individuals with 
 \f1\fs18 setOffsetForTrait()
 \f2\fs20  or the 
 \f6\i\fs18 <trait-name>
@@ -1595,8 +1601,7 @@ The
 \f2\fs20  in quantitative-genetics models where the sum of all mutation effects is a trait value that is then translated into a fitness effect through a fitness function.  It would also be 
 \f1\fs18 F
 \f2\fs20  for any trait that affects an aspect of the individual other than fitness \'96 dispersal distance, for example, or aggression.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Finally, the 
+Finally, the 
 \f1\fs18 baselineAccumulation
 \f2\fs20  parameter specifies the behavior of the trait when fixed mutations are turned into 
 \f1\fs18 Substitution

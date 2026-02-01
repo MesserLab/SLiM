@@ -698,24 +698,28 @@
 				
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-					std::string &&connector_string = propertySignature->PropertySymbol();
-					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
 					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
-					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
-					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
 					
-					if (docIndex != NSNotFound)
+					if (![propertyNameString hasPrefix:@"_"])
 					{
-						// If the property is defined in this class doc, consider it documented
-						[docProperties removeObjectAtIndex:docIndex];
-					}
-					else
-					{
-						// If the property is not defined in this class doc, then that is an error unless it is a superclass property
-						bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+						std::string &&connector_string = propertySignature->PropertySymbol();
+						NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
+						NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
+						NSUInteger docIndex = [docProperties indexOfObject:propertyString];
 						
-						if (!isSuperclassProperty)
-							NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						if (docIndex != NSNotFound)
+						{
+							// If the property is defined in this class doc, consider it documented
+							[docProperties removeObjectAtIndex:docIndex];
+						}
+						else
+						{
+							// If the property is not defined in this class doc, then that is an error unless it is a superclass property
+							bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+							
+							if (!isSuperclassProperty)
+								NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						}
 					}
 				}
 				

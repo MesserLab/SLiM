@@ -1001,24 +1001,28 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
                 
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-                    const std::string &&connector_string = propertySignature->PropertySymbol();
-                    const std::string &property_name_string = propertySignature->property_name_;
-                    QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
-                    int docIndex = docProperties.indexOf(property_string);
-                    
-                    if (docIndex != -1)
-                    {
-                        // If the property is defined in this class doc, consider it documented
-                        docProperties.removeAt(docIndex);
-                    }
-                    else
-                    {
-                        // If the property is not defined in this class doc, then that is an error unless it is a superclass property
-                        bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+					const std::string &property_name_string = propertySignature->property_name_;
 					
-                        if (!isSuperclassProperty)
-                            qDebug() << "*** no documentation found for class " << className << " property " << property_string;
-                    }
+					if ((property_name_string.length() == 0) || (property_name_string[0] != '_'))
+					{
+						const std::string &&connector_string = propertySignature->PropertySymbol();
+						QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
+						int docIndex = docProperties.indexOf(property_string);
+						
+						if (docIndex != -1)
+						{
+							// If the property is defined in this class doc, consider it documented
+							docProperties.removeAt(docIndex);
+						}
+						else
+						{
+							// If the property is not defined in this class doc, then that is an error unless it is a superclass property
+							bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+							
+							if (!isSuperclassProperty)
+								qDebug() << "*** no documentation found for class " << className << " property " << property_string;
+						}
+					}
 				}
                 
                 // BCH 1/7/2026: Remove dynamic properties like "<trait-name>EffectSize" from the excess documentation list; they are not expected to have a match

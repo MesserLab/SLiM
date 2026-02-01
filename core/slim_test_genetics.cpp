@@ -1688,14 +1688,259 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(test_zygosity4);
 	
+	// =========================================================================================================
+	//
+	// Below is a set of test models that will (hopefully) exercise all the different code paths for trait
+	// evaluation -- callbacks, different DES combinations, neutral and non-neutral, etc.  These models are
+	// intended both to test themselves to some extent, especially in DEBUG builds using internal properties
+	// for diagnostics, and also to be tested by _CheckPhenotypeForTrait()'s cross-checks in DEBUG builds.
+	//
+	// =========================================================================================================
 	
-	// Complex multi-trait, multi-chrom models that will (hopefully) exercise all the different code paths for
-	// phenotype evaluation -- callbacks, different DES combinations, neutral and non-neutral, etc.
-	// The intention here is that these models don't test themselves; they are stochastic and there is no
-	// expectation regarding their outcome.  Instead, _CheckPhenotypeForTrait() cross-checks them under DEBUG.
+	// a completely neutral model using the default trait (no initializeTrait() call)
+	// - fitness values should be 1.0 for all individuals
+	// - the trait should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
+	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	std::string multitrait_DEFAULT_NEUTRAL =
+		R"V0G0N(
+// multitrait_DEFAULT_NEUTRAL
+initialize() {
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 50); }
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (!isNAN(ind_t1))
+			stop("t1 value mismatch (NAN expected): " + ind_t1);
+		if (ind_fitness != 1.0)
+			stop("fitness mismatch (1.0 expected): " + ind_fitness);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all neutral genetics");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
 	
-	std::string complex_multi_1 =	// this is an abbreviated version of test script complex_multi_test_1.slim
-	R"V0G0N(
+	SLiMAssertScriptSuccess(multitrait_DEFAULT_NEUTRAL);
+	
+	// a completely neutral model using the default trait (no initializeTrait() call), with a subpopulation
+	// fitnessScaling value and several tricky mutationEffect() callbacks to obfuscate inference.
+	// - fitness values should be 1.0 for all individuals
+	// - the trait should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
+	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	std::string multitrait_DEFAULT_NEUTRAL_OBFUSCATED =
+		R"V0G0N(
+// multitrait_DEFAULT_NEUTRAL_OBFUSCATED
+initialize() {
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 50); }
+late() { p1.fitnessScaling = 1.25; }
+mutationEffect(m1) { return NULL; }
+mutationEffect(m1) { return 1.0; }
+mutationEffect(m1, p1) { return 1.0; }
+mutationEffect(m1, p2) { return effect; }   // considered non-neutral, but subpop nonexistent
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (!isNAN(ind_t1))
+			stop("t1 value mismatch (NAN expected): " + ind_t1);
+		if (ind_fitness != 1.25)
+			stop("fitness mismatch (1.25 expected): " + ind_fitness);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all neutral genetics");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_DEFAULT_NEUTRAL_OBFUSCATED);
+	
+	// a quick test model for what happens if a non-neutral muttype is defined but not used in a neutral model
+	// the goal was to provoke a conflict between muttype and trait ideas of whether the model is neutral
+	std::string multitrait_DEFAULT_NEUTRAL_NNMUTTYPE =
+		R"V0G0N(
+// multitrait_DEFAULT_NEUTRAL_NNMUTTYPE
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.1);   // nonneutral
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g2", m2, 1.0);   // nonneutral but unused
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 50); }
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_DEFAULT_NEUTRAL_NNMUTTYPE);
+	
+	// a completely neutral model with constant baseline and individual offsets, with direct fitness effects
+	// - fitness values should be 1.0 for all individuals
+	// - traits should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
+	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	std::string multitrait_COMPLETE_NEUTRAL =
+		R"V0G0N(
+// multitrait_COMPLETE_NEUTRAL
+initialize() {
+	defineConstant("t1", initializeTrait("t1", "a", 1.0, directFitnessEffect=T));
+	defineConstant("t2", initializeTrait("t2", "m", directFitnessEffect=T));
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 50); }
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.t1;
+		ind_t2 = ind.t2;
+		ind_fitness = ind.cachedFitness;
+		
+		if (!isNAN(ind_t1))
+			stop("t1 value mismatch (NAN expected): " + ind_t1);
+		if (!isNAN(ind_t2))
+			stop("t2 value mismatch (NAN expected): " + ind_t2);
+		if (ind_fitness != 1.0)
+			stop("fitness mismatch (1.0 expected): " + ind_fitness);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all neutral genetics");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_COMPLETE_NEUTRAL);
+	
+	// two traits, both genetically neutral but with non-zero fitness effects
+	// the additive trait is NOT configured for independent dominance
+	// - fitness values should be predictable from baseline offsets
+	// - traits should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
+	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	std::string multitrait_NEUTRAL_GENETICS =
+		R"V0G0N(
+// multitrait_NEUTRAL_GENETICS
+initialize() {
+	defineConstant("t1", initializeTrait("t1", "a", 1.01, directFitnessEffect=T));
+	defineConstant("t2", initializeTrait("t2", "m", 1.01, directFitnessEffect=T));
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 50); }
+late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fitnessScaling); }
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_fitness = ind.cachedFitness;
+		expected_fitness = t1.baselineOffset * t2.baselineOffset * lastFitnessScaling;
+		
+		if (!isNAN(ind.t1))
+			stop("t1 value mismatch (NAN expected): " + ind.t1);
+		if (!isNAN(ind.t2))
+			stop("t2 value mismatch (NAN expected): " + ind.t2);
+		if (!isClose(ind_fitness, expected_fitness))
+			stop("fitness mismatch: " + ind_fitness + ", " + expected_fitness);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all neutral genetics");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_NEUTRAL_GENETICS);
+	
+	
+	// two traits, both genetically neutral but with non-zero fitness effects and non-uniform offsets
+	// the additive trait is NOT configured for independent dominance
+	// - fitness values should be predictable from baseline/individual offsets
+	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	std::string multitrait_NEUTRAL_GENETICS_WITH_OFFSETS =
+		R"V0G0N(
+// multitrait_NEUTRAL_GENETICS_WITH_OFFSETS
+initialize() {
+	defineConstant("t1", initializeTrait("t1", "a", 1.01, 0.0, 0.01, directFitnessEffect=T));
+	defineConstant("t2", initializeTrait("t2", "m", 1.01, 0.0, 0.01, directFitnessEffect=T));
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 50); }
+late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fitnessScaling); }
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.t1;
+		ind_t2 = ind.t2;
+		ind_fitness = ind.cachedFitness;
+		expected_t1 = t1.baselineOffset + ind.t1Offset;
+		expected_t2 = t2.baselineOffset * ind.t2Offset;
+		expected_fitness = ind_t1 * ind_t2 * lastFitnessScaling;
+		
+		if (!isClose(ind_t1, expected_t1))
+			stop("t1 value mismatch: " + ind_t1 + ", " + expected_t1);
+		if (!isClose(ind_t2, expected_t2))
+			stop("t2 value mismatch: " + ind_t2 + ", " + expected_t2);
+		if (!isClose(ind_fitness, expected_fitness))
+			stop("fitness mismatch: " + ind_fitness + ", " + expected_fitness);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all neutral genetics");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_NEUTRAL_GENETICS_WITH_OFFSETS);
+	
+	
+	// This is a particularly complex multitrait model intended to test many different things at once,
+	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
+	// This is an abbreviated version of test script complex_multi_test_1.slim
+	std::string multitrait_COMPLEX_1 =
+		R"V0G0N(
+// multitrait_COMPLEX_1
 initialize() {
 	defineConstant("I1", 5.0);
 	defineConstant("I2", -5.0);
@@ -1762,7 +2007,7 @@ initialize() {
 		initializeRecombinationRate(1e-8);
 		
 		if (id == 1)
-			initializeGenomicElement(g1);  // autosome 1 is pure neutral, using only m1
+			initializeGenomicElement(g1);  // autosome 1 is pure-neutral, using only m1
 		else
 			initializeGenomicElement(g2);  // autosome 2 is a mix, using m1 / m2 / m3
 	}
@@ -1832,9 +2077,9 @@ mutation(m3) {
 	inds = sim.subpopulations.individuals;
 	
 	// check that traits were calculated correctly, or left uncalculated as appropriate
-	if (!all(inds.n1T == inds.offsetForTrait("n1T"))) stop("n1T was calculated incorrectly");
-	if (!all(isNAN(inds.n2T))) stop("n2T was calculated unnecessarily");
-	if (!all(isNAN(inds.n3T))) stop("n3T was calculated unnecessarily");
+	if (!all(isNAN(inds.n1T))) stop("n1T was calculated unnecessarily (super-pure-neutral trait)");
+	if (!all(isNAN(inds.n2T))) stop("n2T was calculated unnecessarily (no direct fitness effect)");
+	if (!all(isNAN(inds.n3T))) stop("n3T was calculated unnecessarily (no direct fitness effect)");
 	if (!all(!isNAN(inds.logistic1T))) stop("logistic1T is NAN");
 	if (!all((inds.logistic1T >= 0.0) & (inds.logistic1T <= 1.0))) stop("logistic1T is out of range");
 	
@@ -1860,9 +2105,9 @@ mutation(m3) {
 }
 
 100 late() { }
-	)V0G0N";
+		)V0G0N";
 	
-	SLiMAssertScriptSuccess(complex_multi_1);
+	SLiMAssertScriptSuccess(multitrait_COMPLEX_1);
 	
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }

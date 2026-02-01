@@ -403,12 +403,19 @@ public:
 	
 	bool has_recalculated_fitness_ = false;		// set to true when recalculateFitness() is called, so we know fitness values are valid
 	
-	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
-	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DES, or (d) a mutation's selection coefficient is
-	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
-	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.  BCH 12 January 2018: Also, note that this flag
-	// is unaffected by the fitness_scaling_ properties on Subpopulation and Individual, which are taken into account even when this flag is set.
+	// optimization of the neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
+	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DES, or (d) a mutation's effect size is changed
+	// changed to non-neutral.  The flag is set back to true only with an empty mutation registry; we do not sweep the registry to check and reset this flag.  Note that
+	// simply defining a non-neutral mutation type does NOT clear this flag; we want only be influenced by mutation types that are actually in use.  This flag does NOT
+	// factor in mutationEffect() callbacks; to conclude that the simulation is actually pure-neutral, those have to be considered also.
 	bool species_all_neutral_mutations_ = true;										// optimization flag
+	
+	// optimization of the non-neutral case; this is set to false if (a) a neutral mutation is added by the user, (b) a genomic element type is configured to use
+	// a neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a neutral DES, or (d) a mutation's effect size is changed
+	// changed to neutral.  The flag is set back to true only with an empty mutation registry; we do not sweep the registry to check and reset this flag.  Note that
+	// simply defining a neutral mutation type does NOT clear this flag; we want only be influenced by mutation types that are actually in use.  This flag does NOT
+	// factor in mutationEffect() callbacks; to conclude that the simulation is actually pure-non-neutral, those have to be considered also.
+	bool species_no_neutral_mutations_ = true;										// optimization flag
 	
 	// this flag tracks whether a type 's' mutation type has ever been seen; we just set it to true if we see one, we never set it back to false again, for simplicity
 	// this switches to a less optimized case when evolving in WF models, if a type 's' DES could be present, since that can open up various cans of worms
@@ -469,29 +476,18 @@ public:
 		}
 	}
 	
-	void _NoteNonNeutralMutation(const Mutation *p_mut);
-	inline __attribute__((always_inline)) void NoteChangedMutation(const Mutation *p_mut)
-	{
-		// NoteChangedMutation() should be called whenever a mutation is added/changed in a way that is not
-		// driven by SLiM's auto-generation configuration (i.e., GenomicElementType and MutationType).  The
-		// characteristics of this kind of mutation are not known, so they have to be examined closely.
-		if (!p_mut->is_neutral_for_all_traits_)
-			_NoteNonNeutralMutation(p_mut);
-		
-		// This needs to be done in the neutral case too; for example, a non-neutral mutation might
-		// have been changed into a neutral mutation, which invalidates our non-neutral caches
-#if SLIM_USE_NONNEUTRAL_CACHES()
-		p_mut->mutation_type_ptr_->species_.all_nonneutral_caches_invalid_ = true;				// nonneutral mutation caches need revalidation; // FIXME MULTITRAIT should have per chromosome or even narrower flags
-#endif
-	}
+	// This must be called whenever a mutation changes state for any reason, to keep optimization flags correct.
+	void NoteChangedMutation(const Mutation *p_mut);
 	
 	// PrepareForTraitCalculations() is the funnel method to be called before using trait values, for example to
 	// calculate individual fitness.  It determines the trait calculation regime (see TraitCalculationRegime),
 	// invalidates caches as needed, then validates nonneutral and independent dominance caches as needed.  It is
 	// called by demandPhenotype(), demandPhenotypeForIndividuals(), and RecalculateFitness().
 	void PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutationEffect_callbacks);
-	bool _CallbackMakesMutationTypeNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref);
-	bool _CallbackMakesTraitNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref);
+	bool _CallbackMakesMutationTypeGloballyNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref);
+	bool _CallbackMakesMutationTypeNonNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref);
+	bool _CallbackMakesTraitGloballyNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref, MutationType *&mut_type_ptr_ref);
+	bool _CallbackMakesTraitNonNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref, MutationType *&mut_type_ptr_ref);
 	
 #if SLIM_USE_NONNEUTRAL_CACHES()
 	// Validates the MutationRun nonneutral caches across the species.  Called by PrepareForTraitCalculations().

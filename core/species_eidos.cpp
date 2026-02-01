@@ -2367,6 +2367,57 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
+		
+			// internal, not user-visible, used for unit tests; most are only available in DEBUG builds
+		case gID__debugBuild:
+		{
+			// This property has value T in a DEBUG build, F otherwise.
+#if DEBUG
+			return gStaticEidosValue_LogicalT;
+#else
+			return gStaticEidosValue_LogicalF;
+#endif
+		}
+#if DEBUG
+		case gID__allocatedNonneutralCacheCount:
+		{
+			// This property provides a count of the number of nonneutral caches that have been allocated
+			int64_t allocated_count = 0;
+			
+			for (Chromosome *chromosome : chromosomes_)
+			{
+				int context_count = chromosome->ChromosomeMutationRunContextCount();
+				
+				for (int context_index = 0; context_index < context_count; ++context_index)
+				{
+					MutationRunContext &context = chromosome->ChromosomeMutationRunContextForThread(context_index);
+					MutationRunPool in_use_pool = context.in_use_pool_;
+					MutationRunPool freed_pool = context.freed_pool_;
+					
+					for (const MutationRun *mutrun : in_use_pool)
+						if (mutrun->nonneutral_cache_ != nullptr)
+							allocated_count++;
+					
+					for (const MutationRun *mutrun : freed_pool)
+						if (mutrun->nonneutral_cache_ != nullptr)
+							allocated_count++;
+				}
+			}
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(allocated_count));
+		}
+		case gID__traitCalculationRegimeName:
+		{
+			switch (current_trait_calculation_regime_)
+			{
+				case TraitCalculationRegime::kUndefined:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kUndefined"));
+				case TraitCalculationRegime::kPureNeutral:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kPureNeutral"));
+				case TraitCalculationRegime::kNoActiveCallbacks:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kNoActiveCallbacks"));
+				case TraitCalculationRegime::kAllGlobalNeutralCallbacks:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kAllGlobalNeutralCallbacks"));
+				case TraitCalculationRegime::kNonNeutralCallbacks:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kNonNeutralCallbacks"));
+			}
+		}
+#endif
 			
 			// all others, including gID_none
 		default:
@@ -4866,6 +4917,13 @@ std::vector<EidosPropertySignature_CSP> *Species_Class::Properties_MUTABLE(void)
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_traits,					true,	kEidosValueMaskObject, gSLiM_Trait_Class)));
 		
+		// internal properties, not user-visible
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__debugBuild,			true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
+#if DEBUG
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralCacheCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__traitCalculationRegimeName,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+#endif
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -4921,6 +4979,8 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL)->AddLogical_OS("overwriteDirectory", gStaticEidosValue_LogicalF));
+		
+		// internal methods, not user-visible
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr__debug, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

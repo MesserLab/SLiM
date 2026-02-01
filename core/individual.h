@@ -462,17 +462,23 @@ public:
 	
 	EidosValue_SP ExecuteMethod_demandPhenotypeForIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	
+	// As the name suggests, this detects "pure-neutral" traits where the combination of the genetics of the
+	// trait and callbacks affecting the trait together guarantee that all genetic effects on the trait are
+	// neutral and no callbacks actually need to be called; and in such cases, it handles the trait itself and
+	// removes it from the vector of traits experiencing demand.  Note that this still needs to factor in the
+	// baseline and individual offsets for the trait, which can be non-neutral even in the "pure-neutral" case.
+	// BEWARE: this can modify the vector demanded_trait_indices that is passed in to it!
 	template <const bool f_force_recalc>
-	static void _HandleAndRemovePureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices);
+	static void _HandleDemandForPureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &demanded_trait_indices);
 	
 	// phenotype demand for all traits for a vector of target individuals, across all chromosomes
 	// if f_force_recalc is true all values are recalculated; if false, only NAN trait values are recalculated
 	// see also the methods class _IncorporateEffects_X() methods in class Individual, called by this method
 	template <const bool f_force_recalc>
-	static void DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &mutationEffect_callbacks);
+	static void DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &mutationEffect_callbacks);
 	
 	template <const bool f_force_recalc>
-	static void DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, std::vector<slim_trait_index_t> &trait_indices, std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks);
+	static void DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks);
 };
 
 

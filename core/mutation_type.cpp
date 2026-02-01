@@ -84,8 +84,8 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	// intentionally no bounds check for p_default_dominance
 	
 	// determine whether this mutation type has a neutral DES
-	// note that we do not set species_all_neutral_mutations_ = false here; we wait until this muttype is used
-	// see Species::ExecuteContextFunction_initializeGenomicElementType() and similar spots for that logic
+	// note that we do not change species_all_neutral_mutations_ or species_no_neutral_mutations_ here; we wait
+	// until this muttype is used (see Species::ExecuteContextFunction_initializeGenomicElementType() etc.)
 	all_neutral_DES_ = ((p_DES_type == DESType::kFixed) && (p_DES_parameters[0] == 0.0));
 	
 	// initially, whether a mutation type has any neutral mutations is inherited from whether it has a neutral DES

@@ -121,11 +121,11 @@ typedef struct MutationRunContext {
 // callbacks present, whether independent dominance is being used, and other factors.  This affects the way
 // that non-neutral caches for MutationRun are constructed, and can be used in other ways as well.
 enum class TraitCalculationRegime : int8_t {
-	kUndefined = -1,		// used for the initial state
-	kPureNeutral = 0,		// all mutations are effectively neutral; genetics can be skipped
-	kNoActiveCallbacks,		// no active callbacks, so you don't have to look at the mutation type at all
-	kAllNeutralCallbacks,	// we can skip actually calling all callbacks, since they are all global-neutral
-	kNonNeutralCallbacks,	// we can't skip calling all callbacks, since some are non-global-neutral
+	kUndefined = -1,			// used for the initial state
+	kPureNeutral = 0,			// all mutations are effectively neutral, including callbacks; genetics can be skipped, but offsets still matter
+	kNoActiveCallbacks,			// no active callbacks, so you don't have to look at the mutation type at all
+	kAllGlobalNeutralCallbacks,	// we can skip actually calling all callbacks, since they are all global-neutral
+	kNonNeutralCallbacks,		// we can't skip calling all callbacks, since some are non-global-neutral
 };
 
 std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_type);
@@ -321,28 +321,6 @@ private:
 	// for independent dominance are not used; instead the effects are calculated from the non-neutral mutation
 	// buffer directly, to get the correct hemizygous effects.  FIXME MULTITRAIT: Maybe we can be smarter here...
 	
-	// BCH 1/19/2025: PLANNED CHANGES:
-	//
-	//	- I need to figure out what it means for nonneutral_cache_ to be nullptr.  There are three useful meanings
-	//		for this that I see: (a) the non-neutral cache is simply uninitialized/invalid, and will be allocated
-	//		when it is time to set it up; (b) the non-neutral cache is in a valid state representing the fact that
-	//		there are no nonneutral mutations; the cache is simply empty, equivalent to count_ == 0; or (c) the
-	//		non-neutral cache is in a valid state representing the fact that ALL mutations are nonneutral, and so
-	//		the non-neutral cache would contain identical data to the main mutation buffer for the mutation run.
-	//		Independent dominance interacts with this; for (c) we would probably really want to have an allocated
-	//		NonNeutralCache struct, but with zero capacity and zero mutations, with a special flag set somewhere
-	//		so we know that this means state (c).  With the above planned change we should have space to add such
-	//		a flag, or we could use a special capacity value of -1 or something if we need to wedge it in.  For
-	//		(a) and (b) maybe both can share the state.  Prior to non-neutral cache validation, a nullptr value
-	//		can represent either state.  After non-neutral cache validation, all caches have been validated and
-	//		so state (a) will no longer exist; we will allocate a NonNeutralCache struct for every mutation run
-	//		UNLESS we determine that we are in state (b), in which case we leave it unallocated to represent (b).
-	//		This determination will be made again each time we validate; if the model stays neutral the pointer
-	//		will remain nullptr.  If, at any point, the validation process determines non-neutrality allocation
-	//		will occur.  If the model goes back to being neutral, deallocation will not be done; the allocated
-	//		state is "sticky" to avoid allocation thrash, since we don't expect a non-neutral model to revert to
-	//		neutrality permanently.
-	
 	// This struct represents the entire non-neutral cache, which can't entirely be described with a C struct due
 	// to variable-length elements.  First are the capacity and count for the nonneutral mutation buffer.  Then
 	// come slim_effect_t entries, one per trait in the species for which we have an independent-dominance cache
@@ -359,7 +337,47 @@ private:
 		// the non-neutral MutationIndex buffer begins after the last entry in independent_dominance_cache_
 	} NonNeutralCache;
 	
-	mutable NonNeutralCache *nonneutral_cache_ = nullptr;	// OWNED POINTER: the contents of the nonneutal buffer, or nullptr
+	// The nonneutral_cache_ pointer below can be nullptr for any of three reasons:
+	//
+	//	(a) The non-neutral cache is simply uninitialized/invalid, and will be allocated when it is time to set
+	//		it up.  This is the reason if none of the below reasons is applicable.  This state is equivalent to
+	//		being allocated and having a nonneutral_count_ == -1.
+	//
+	//	(b) The non-neutral cache is in a valid state representing the fact that there are no nonneutral mutations;
+	//		the cache is simply empty, equivalent to being allocated and having nonneutral_count_ == 0.  This
+	//		occurs when a model has been "pure-neutral" since the beginning (or since this mutation run was
+	//		created); it is managed by cache_nonneutral_mutations_REGIME_0(), which handles the trait calculation
+	//		regime for pure-neutral models.  The marker for being in this state is being in regime kPureNeutral,
+	//		but in general no special checks for nullptr should be needed here; if the species is pure-neutral,
+	//		nobody should be looking at the non-neutral cache anyway.
+	//
+	//	(c) The non-neutral cache is in a valid state representing the fact that ALL mutations are nonneutral,
+	//		AND no traits are candidates for independent dominance.  In this case, there is no need for the
+	//		nonneutral cache to be allocated; we will just use our main mutation buffer instead.  The marker
+	//		for being in this state is the species_no_neutral_mutations_ flag of Species AND the count of			// FIXME MULTITRAIT no, the marker should be being in a specific regime
+	//		independent-dominance cache slots provided by IndependentDominanceCacheCount() being zero, but in
+	//		many places in the code this is the ONLY reason that nonneutral_cache_ will be nullptr legally; in
+	//		those places, these preconditions will only be checked in DEBUG.
+	//
+	// In addition to the above, there is one weird case where the nonneutral_cache_ pointer is allocated but
+	// is in an unusual state.  This occurs when ALL mutations are nonneutral, but case (c) above is not true
+	// because at least one trait is a candidate for independent dominance (i.e., has an inddom cache slot).
+	// In this case we do not want to set up the non-neutral mutation buffer, because it would be identical to
+	// our main mutation buffer, but we do want to allocate the non-neutral cache because we need a place to
+	// put our inddom caches.  In this special state, nonneutral_count_ is set to the same count as the main
+	// buffer, but nonneutral_capacity_ is set to zero.  This would normally be a nonsensical state, so we use
+	// it as a special marker to indicate that the main mutation buffer should be used.								// FIXME MULTITRAIT no, the marker should be being in a specific regime
+	//
+	// Note that the nonneutral cache is validated during trait calculation, and should remain valid thereafter
+	// unless marked as invalid by having nonneutral_count_ set to -1.  Since mutation runs are usually immutable,
+	// their caches tend to stay valid.  However, if a mutation run does get modified that invalidates its
+	// nonneutral cache; and if the state of a mutation itself changes in a way that would necessitate a recache,
+	// that should be handled by the chromosome and the species.
+	// FIXME MULTITRAIT: this invalidation mechanism needs to be done/checked.
+	// FIXME MULTITRAIT: Also, there need to be checks in place that demonstrate that nonneutral caches are not
+	// re-made unnecessarily, but are instead carried over except when they get invalidated.
+	// 
+	mutable NonNeutralCache *nonneutral_cache_ = nullptr;	// OWNED POINTER: the contents of the nonneutal cache
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
@@ -856,6 +874,14 @@ public:
 		nonneutral_cache_->nonneutral_count_ = 0;
 	}
 	
+	inline __attribute__((always_inline)) void zero_out_nonneutral_cache_NOALLOC(void) const
+	{
+		// This variant of zero_out_nonneutral_cache() empties an existing buffer, but does not allocate a new
+		// buffer if one does not already exist.  See cache_nonneutral_mutations_REGIME_0() for comments.
+		if (nonneutral_cache_)
+			nonneutral_cache_->nonneutral_count_ = 0;
+	}
+	
 	inline __attribute__((always_inline)) void expand_nonneutral_buffer(IndDomCacheIndex inddom_cache_count) const
 	{
 #ifdef __clang_analyzer__
@@ -933,6 +959,11 @@ public:
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutationIndexBuffers(void) const;
 	size_t MemoryUsageForNonneutralCaches(slim_trait_index_t trait_count) const;
+	
+#if DEBUG
+	// Friends who are allowed to poke around inside MutationRun, but only in DEBUG builds
+	friend class Species;
+#endif
 };
 
 // We need MutationType below, but we can't include it at top because it requires MutationRun to be defined...
