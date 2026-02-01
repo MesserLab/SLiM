@@ -807,8 +807,34 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 // Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
-// Approximate equality of two floating-point numbers, within a ratio tolerance of 1.0001
-bool Eidos_ApproximatelyEqual(double a, double b);
+// Approximate equality of two floating-point numbers, following the isClose() method's heuristics
+inline __attribute__((always_inline)) bool Eidos_IsClose(double xv, double yv, double rtol = 1.0e-05, double atol = 1.0e-08, bool equalNAN = false)
+{
+	if (std::isfinite(xv) && std::isfinite(yv))
+	{
+		// if xv and yv are finite, they are "close" if absolute(xv - yv) <= (atol + rtol * absolute(yv))
+		// note that this mirrors the behavior of the numpy function isclose(), which this is based upon;
+		// it is documented at https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
+		// Note that Python's built-in math.isclose() has a different criterion, and different defaults;
+		// see https://docs.python.org/3/library/math.html#math.isclose.
+		bool close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
+		
+		return close;
+	}
+	else
+	{
+		// if xv and yv are infinite, they are "close" if and only if they have the same sign
+		if (std::isinf(xv) && std::isinf(yv))
+			return (std::signbit(xv) == std::signbit(yv));
+		
+		// if xv and yv are NAN, they are "close" if and only if the equalNAN flag is true
+		if (std::isnan(xv) && std::isnan(yv))
+			return equalNAN;
+		
+		// all other cases involving INF and/or NAN are not "close"
+		return false;
+	}
+}
 
 // Split a std::string into a vector of substrings separated by a given delimiter
 std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim);

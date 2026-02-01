@@ -1176,24 +1176,10 @@ EidosValue_SP Eidos_ExecuteFunction_allClose(const std::vector<EidosValue_SP> &p
 		{
 			double xv = (x_count == 1) ? xv_singleton : x_data[value_index];
 			double yv = (y_count == 1) ? yv_singleton : y_data[value_index];
+			bool close = Eidos_IsClose(xv, yv, rtol, atol, equalNAN);
 			
-			if (std::isfinite(xv) && std::isfinite(yv))
-			{
-				if (std::abs(xv - yv) <= atol + rtol * std::abs(yv))
-					continue;
-			}
-			else if (std::isinf(xv) && std::isinf(yv))
-			{
-				if (std::signbit(xv) == std::signbit(yv))
-					continue;
-			}
-			else if (std::isnan(xv) && std::isnan(yv))
-			{
-				if (equalNAN)
-					continue;
-			}
-			
-			return gStaticEidosValue_LogicalF;
+			if (!close)
+				return gStaticEidosValue_LogicalF;
 		}
 	}
 	else
@@ -1799,30 +1785,7 @@ EidosValue_SP Eidos_ExecuteFunction_isClose(const std::vector<EidosValue_SP> &p_
 			double xv = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			double yv = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			
-			if (std::isfinite(xv) && std::isfinite(yv))
-			{
-				// if xv and yv are finite, they are "close" if absolute(xv - yv) <= (atol + rtol * absolute(yv))
-				// note that this mirrors the behavior of the numpy function isclose(), which this is based upon;
-				// it is documented at https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
-				// Note that Python's built-in math.isclose() has a different criterion, and different defaults;
-				// see https://docs.python.org/3/library/math.html#math.isclose.
-				bool close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
-				
-				return (close ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-			}
-			else
-			{
-				// if xv and yv are infinite, they are "close" if and only if they have the same sign
-				if (std::isinf(xv) && std::isinf(yv))
-					return ((std::signbit(xv) == std::signbit(yv)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-				
-				// if xv and yv are NAN, they are "close" if and only if the equalNAN flag is true
-				if (std::isnan(xv) && std::isnan(yv))
-					return (equalNAN ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-				
-				// all other cases involving INF and/or NAN are not "close"
-				return gStaticEidosValue_LogicalF;
-			}
+			return (Eidos_IsClose(xv, yv, rtol, atol, equalNAN) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
 		else
 		{
@@ -1838,16 +1801,7 @@ EidosValue_SP Eidos_ExecuteFunction_isClose(const std::vector<EidosValue_SP> &p_
 			{
 				double xv = (x_count == 1) ? xv_singleton : x_data[value_index];
 				double yv = (y_count == 1) ? yv_singleton : y_data[value_index];
-				bool close;
-				
-				if (std::isfinite(xv) && std::isfinite(yv))
-					close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
-				else if (std::isinf(xv) && std::isinf(yv))
-					close = (std::signbit(xv) == std::signbit(yv));
-				else if (std::isnan(xv) && std::isnan(yv))
-					close = equalNAN;
-				else
-					close = false;
+				bool close = Eidos_IsClose(xv, yv, rtol, atol, equalNAN);
 				
 				logical_result->set_logical_no_check(close, value_index);
 			}
