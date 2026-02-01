@@ -1240,15 +1240,16 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, c(1,INF,3,INF,5)); }", "non-finite after setHemizygousDominanceForTrait()", __LINE__);
 		
 		// MutationType defaultHemizygousDominanceForTrait() and setDefaultHemizygousDominanceForTrait()
+		// note that `m1.convertToSubstitution = F` is needed in some cases, because baseline accumulation will raise an error if substitution occurs with a hemizygous dominance coefficient != 1.0
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(0), 1.0)) stop(); } 5 late() { }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(1), 1.0)) stop(); } 5 late() { }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(c(0,1)), c(1.0, 1.0))) stop(); } 5 late() { }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.5, 1.0))) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(1, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(1.0, 0.5))) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.25, 0.5))) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(0,1), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), c(0.25, 0.5))) stop(); }");
-		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.convertToSubstitution = F; m1.setDefaultHemizygousDominanceForTrait(0, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.5, 1.0))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.convertToSubstitution = F; m1.setDefaultHemizygousDominanceForTrait(1, 0.5); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(1.0, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.convertToSubstitution = F; m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(NULL), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.convertToSubstitution = F; m1.setDefaultHemizygousDominanceForTrait(c(0,1), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { m1.convertToSubstitution = F; m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(1,0)), c(0.25, 0.5))) stop(); }");
+		SLiMAssertScriptStop(mt_base_p1 + "initialize() { m1.convertToSubstitution = F; m1.setDefaultHemizygousDominanceForTrait(c(1,0), c(0.25, 0.5)); } 5 late() { mut = sim.mutations[0]; if (!identical(mut.hemizygousDominanceForTrait(c(0,1)), c(0.25, 0.5))) stop(); }");
 		// hemizygous dominance cannot be NAN, since independent dominance has no meaning for it
 		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(0, NAN); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
 		SLiMAssertScriptRaise(mt_base_p1 + "initialize() { m1.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, NAN)); }", "non-finite after setDefaultHemizygousDominanceForTrait()", __LINE__);
