@@ -7304,11 +7304,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
 			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
 			
-			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
-			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
-			// calculations, so I use a larger threshold here of 1e-4; we'll see how this does in practice.
-			// The goal is not to check for exact equality, but to find bugs that make calculations incorrect.
-			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-4)
+			// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
+			// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
+			// We use a relatively high absolute tolerance here because some calculations are single-precision.
+			if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
 				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
@@ -7718,11 +7717,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
 			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
 			
-			// BCH 1/9/2026: for single-precision floats, the smallest representable difference from 1 is about
-			// 1.192e-7 (machine epsilon), or 2^-23, but numerical error will build up over multiple trait
-			// calculations, so I use a larger threshold here of 1e-4; we'll see how this does in practice.
-			// The goal is not to check for exact equality, but to find bugs that make calculations incorrect.
-			if (std::abs(calculated_phenotype - check_phenotype) > (slim_phenotype_t)1e-4)
+			// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
+			// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
+			// We use a relatively high absolute tolerance here because some calculations are single-precision.
+			if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
 				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
