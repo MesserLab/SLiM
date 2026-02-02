@@ -1065,11 +1065,12 @@ extern const std::string &gStr_treeSeqCoalesced;
 extern const std::string &gStr_treeSeqSimplify;
 extern const std::string &gStr_treeSeqRememberIndividuals;
 extern const std::string &gStr_treeSeqOutput;
-extern const std::string &gStr__debug;								// internal API
-extern const std::string &gStr__debugBuild;							// internal API
+extern const std::string &gStr__debug;										// internal API
+extern const std::string &gStr__debugBuild;									// internal API
 #if DEBUG
-extern const std::string &gStr__allocatedNonneutralCacheCount;		// internal API
-extern const std::string &gStr__traitCalculationRegimeName;			// internal API
+extern const std::string &gStr__allocatedNonneutralCacheCount;				// internal API
+extern const std::string &gStr__allocatedNonneutralMutationBufferCount;		// internal API
+extern const std::string &gStr__traitCalculationRegimeName;					// internal API
 #endif
 extern const std::string &gStr_setMigrationRates;
 extern const std::string &gStr_deviatePositions;
@@ -1567,11 +1568,12 @@ enum _SLiMGlobalStringID : int {
 	gID_treeSeqSimplify,
 	gID_treeSeqRememberIndividuals,
 	gID_treeSeqOutput,
-	gID__debug,									// internal API
-	gID__debugBuild,							// internal API
+	gID__debug,											// internal API
+	gID__debugBuild,									// internal API
 #if DEBUG
-	gID__allocatedNonneutralCacheCount,			// internal API
-	gID__traitCalculationRegimeName,			// internal API
+	gID__allocatedNonneutralCacheCount,					// internal API
+	gID__allocatedNonneutralMutationBufferCount,		// internal API
+	gID__traitCalculationRegimeName,					// internal API
 #endif
 	gID_setMigrationRates,
 	gID_deviatePositions,

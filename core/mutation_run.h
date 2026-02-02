@@ -86,8 +86,12 @@ typedef struct MutationRunContext {
 
 // Initial capacity for new MutationRun objects; this is a balance between high memory usage for simulations that don't have
 // many mutations, versus excessive reallocs for other simulations before they get up to equilibrium.  Set by guessing.
-#define SLIM_MUTRUN_INITIAL_CAPACITY	16
+#define SLIM_MUTRUN_INITIAL_CAPACITY	(16)
 
+// This is a marker value used in the nonneutral_count_ field of NonNeutralCache, as an indicator that the nonneutral mutation
+// buffer has not been made, and the main mutation buffer should be used instead (because all mutations are nonneutral).  This
+// value is intended to cause a crash if it is ever used as an actual count; it needs to be detected and handled.
+#define SLIM_MUTRUN_USE_MAIN_BUFFER		(-2000000000)
 
 // If defined as 1, MutationRun will keep a side cache of the non-neutral mutations occuring inside it.  This can greatly accelerate
 // fitness calculations, but does consume additional memory, and is not always advantageous.  Define to 0 to disable this feature.
@@ -121,15 +125,17 @@ typedef struct MutationRunContext {
 // callbacks present, whether independent dominance is being used, and other factors.  This affects the way
 // that non-neutral caches for MutationRun are constructed, and can be used in other ways as well.
 enum class TraitCalculationRegime : int8_t {
-	kUndefined = -1,			// used for the initial state
-	kPureNeutral = 0,			// all mutations are effectively neutral, including callbacks; genetics can be skipped, but offsets still matter
-	kNoActiveCallbacks,			// no active callbacks, so you don't have to look at the mutation type at all
-	kAllGlobalNeutralCallbacks,	// we can skip actually calling all callbacks, since they are all global-neutral
-	kNonNeutralCallbacks,		// we can't skip calling all callbacks, since some are non-global-neutral
+	kUndefined = -1,				// used for the initial state
+	kPureNeutral = 0,				// all mutations are effectively neutral, including callbacks; genetics can be skipped, but offsets matter
+	kNoActiveCallbacks,				// no active callbacks, so you don't have to look at the mutation type at all
+	kAllGlobalNeutralCallbacks,		// we can skip actually calling all callbacks, since they are all global-neutral
+	kNonNeutralCallbacks,			// we can't skip calling all callbacks, since some are non-global-neutral
+	kAllNonNeutralNoIndDomCaches,	// virtually all mutations are nonneutral (no nonneutral buffers needed), and inddom caches aren't needed
+	kAllNonNeutralWithIndDomCaches,	// virtually all mutations are nonneutral (no nonneutral buffers needed), but inddom caches are needed
 };
 
-std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_type);
-
+std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_regime);
+std::string RegimeDescription(TraitCalculationRegime p_regime);
 
 class MutationRun
 {
@@ -353,20 +359,18 @@ private:
 	//
 	//	(c) The non-neutral cache is in a valid state representing the fact that ALL mutations are nonneutral,
 	//		AND no traits are candidates for independent dominance.  In this case, there is no need for the
-	//		nonneutral cache to be allocated; we will just use our main mutation buffer instead.  The marker
-	//		for being in this state is the species_no_neutral_mutations_ flag of Species AND the count of			// FIXME MULTITRAIT no, the marker should be being in a specific regime
-	//		independent-dominance cache slots provided by IndependentDominanceCacheCount() being zero, but in
-	//		many places in the code this is the ONLY reason that nonneutral_cache_ will be nullptr legally; in
-	//		those places, these preconditions will only be checked in DEBUG.
+	//		nonneutral cache to be allocated; we will just use our main mutation buffer instead.  One marker
+	//		for being in this state is the TraitCalculationRegime value kAllNonNeutralNoIndDomCaches.  It can
+	//		be detected in MutationRun because nonneutral_count_ will be set to SLIM_MUTRUN_USE_MAIN_BUFFER, if
+	//		the nonneutral cache is allocated; if it is not allocated, the user of the MutationRun must know
+	//		from the TraitCalculationRegime.
 	//
-	// In addition to the above, there is one weird case where the nonneutral_cache_ pointer is allocated but
-	// is in an unusual state.  This occurs when ALL mutations are nonneutral, but case (c) above is not true
-	// because at least one trait is a candidate for independent dominance (i.e., has an inddom cache slot).
-	// In this case we do not want to set up the non-neutral mutation buffer, because it would be identical to
-	// our main mutation buffer, but we do want to allocate the non-neutral cache because we need a place to
-	// put our inddom caches.  In this special state, nonneutral_count_ is set to the same count as the main
-	// buffer, but nonneutral_capacity_ is set to zero.  This would normally be a nonsensical state, so we use
-	// it as a special marker to indicate that the main mutation buffer should be used.								// FIXME MULTITRAIT no, the marker should be being in a specific regime
+	// In addition to the above, if ALL mutations are nonneutral, but case (c) above is not true because at least
+	// one trait is a candidate for independent dominance (i.e., has an inddom cache slot).  This is handled in
+	// a similar way to case (c).  In this case, the TraitCalculationRegime is kAllNonNeutralWithIndDomCaches,
+	// and the nonneutral cache is guaranteed to be allocated (to provide space for the inddom caches), so the
+	// nonneutral_count_ will always be visible as SLIM_MUTRUN_USE_MAIN_BUFFER (but in general the user of the
+	// MutationRun knows anyway; the marker value is mostly for DEBUG checks and such).
 	//
 	// Note that the nonneutral cache is validated during trait calculation, and should remain valid thereafter
 	// unless marked as invalid by having nonneutral_count_ set to -1.  Since mutation runs are usually immutable,
@@ -847,10 +851,18 @@ public:
 #if SLIM_USE_NONNEUTRAL_CACHES()
 	
 	// note this method does NOT check external invalidation flags!  it tells you only if the mutrun itself knows it is invalid!
+	// NOTE: there are cases where the nonneutral cache is valid but unallocated; this method is not smart enough
+	// to diagnose them, but in those cases, the caller should not be trying to use the nonneutral cache anyway.
 	inline __attribute__((always_inline)) bool nonneutral_cache_invalid(void) const { return (!nonneutral_cache_ || (nonneutral_cache_->nonneutral_count_ == -1)); }
 	
 	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(IndDomCacheIndex inddom_cache_count) const
 	{
+#if DEBUG
+		if (!nonneutral_cache_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::nonneutral_mutation_buffer): nonneutral_mutation_buffer called with an unallocated nonneutral cache." << EidosTerminate(nullptr);
+		if (nonneutral_cache_->nonneutral_count_ < 0)
+			EIDOS_TERMINATION << "ERROR (MutationRun::nonneutral_mutation_buffer): nonneutral_mutation_buffer called with an invalid nonneutral cache (nonneutral_count_ == " << nonneutral_cache_->nonneutral_count_ << ")." << EidosTerminate(nullptr);
+#endif
 		return (MutationIndex *)(nonneutral_cache_->independent_dominance_cache_ + static_cast<slim_trait_index_t>(inddom_cache_count));
 	}
 	
@@ -882,6 +894,28 @@ public:
 			nonneutral_cache_->nonneutral_count_ = 0;
 	}
 	
+	inline __attribute__((always_inline)) void zero_out_nonneutral_cache_ZEROSIZE(IndDomCacheIndex inddom_cache_count) const
+	{
+		// This variant of zero_out_nonneutral_cache() empties an existing buffer, and allocates a new cache if
+		// it has not yet been allocated; but it allocates zero extra space for the nonneutral mutation buffer.
+		// See cache_nonneutral_mutations_REGIME_5() for comments.
+		if (!nonneutral_cache_)
+		{
+			// If we don't have a cache allocated yet, create a buffer with space for all the cache components
+			size_t total_size = sizeof(NonNeutralCache) +
+								static_cast<slim_trait_index_t>(inddom_cache_count) * sizeof(slim_effect_t);
+			
+			nonneutral_cache_ = (NonNeutralCache *)malloc(total_size);
+			if (!nonneutral_cache_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_cache_ZEROSIZE): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			nonneutral_cache_->nonneutral_capacity_ = 0;
+		}
+		
+		// empty out the current buffer contents
+		nonneutral_cache_->nonneutral_count_ = 0;
+	}
+	
 	inline __attribute__((always_inline)) void expand_nonneutral_buffer(IndDomCacheIndex inddom_cache_count) const
 	{
 #ifdef __clang_analyzer__
@@ -891,7 +925,10 @@ public:
 		// we don't just double ad infinitum, because we don't want to use an inordinate amount of memory
 		// adding only 32 capacity at a time is a bit slow, but once we've grown to the high-water size
 		// we should stabilize and not have to realloc any more, so perhaps it's worthwhile...
-		if (nonneutral_cache_->nonneutral_capacity_ < 128)
+		// BCH 2/1/2026: Note that nonneutral_capacity_ can now be zero; see zero_out_nonneutral_cache_ZEROSIZE()
+		if (nonneutral_cache_->nonneutral_capacity_ == 0)
+			nonneutral_cache_->nonneutral_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+		else if (nonneutral_cache_->nonneutral_capacity_ < 128)
 			nonneutral_cache_->nonneutral_capacity_ <<= 1;		// double the number of mutations we can hold
 		else
 			nonneutral_cache_->nonneutral_capacity_ += 32;
@@ -905,15 +942,21 @@ public:
 			EIDOS_TERMINATION << "ERROR (MutationRun::expand_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 	
-	void cache_nonneutral_mutations_REGIME_0(IndDomCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_0(void) const;
 	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
 	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
 	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_4(void) const;
+	void cache_nonneutral_mutations_REGIME_5(IndDomCacheIndex inddom_cache_count) const;
 	
 	void check_nonneutral_mutation_cache() const;
+	void check_nonneutral_mutation_cache_MAIN() const;
 	
 	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, IndDomCacheIndex inddom_cache_count) const
 	{
+		// In Individual::_IncorporateEffects_Haploid() and Individual::_IncorporateEffects_Diploid(), we just need
+		// to query the species trait-calculation regime and call the correct variant of this method to use the
+		// nonneutral mutation buffer or the main mutation buffer.  Those are the only two places this is called.
 #if DEBUG
 		// All nonneutral caches must be validated ahead of time; see Species::ValidateNonNeutralCaches()
 		check_nonneutral_mutation_cache();
@@ -925,15 +968,33 @@ public:
 		*p_mutptr_iter = mutation_buffer;
 		*p_mutptr_max = mutation_buffer + nonneutral_cache_->nonneutral_count_;
 	}
-
+	
+	inline __attribute__((always_inline)) void beginend_nonneutral_pointers_MAIN(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max) const
+	{
+		// This substitute for beginend_nonneutral_pointers() returns pointers to the main mutation buffer
+		// instead.  This is used when in the kAllNonNeutralNoIndDomCaches or kAllNonNeutralWithIndDomCaches
+		// trait calculation regimes, which do not construct the nonneutral mutation buffers.
+#if DEBUG
+		// All nonneutral caches must be validated ahead of time; see Species::ValidateNonNeutralCaches()
+		check_nonneutral_mutation_cache_MAIN();
+#endif
+		
+		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
+		*p_mutptr_iter = mutations_;
+		*p_mutptr_max = mutations_ + mutation_count_;
+	}
+	
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	// PROFILING
 	inline __attribute__((always_inline)) void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count) const
 	{
 		*p_mutation_count += mutation_count_;
 		
-		if (nonneutral_cache_->nonneutral_count_ != -1)
-			*p_nonneutral_count += nonneutral_cache_->nonneutral_count_;
+		if (nonneutral_cache_)
+		{
+			if (nonneutral_cache_->nonneutral_count_ >= 0)
+				*p_nonneutral_count += nonneutral_cache_->nonneutral_count_;
+		}
 	}
 #endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 	

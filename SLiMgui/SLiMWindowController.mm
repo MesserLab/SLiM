@@ -1992,26 +1992,26 @@
 		}
 		
 		{
-			int64_t regime_tallies[4];
+			int64_t regime_tallies[6];
 			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_.size();
 			
-			for (int regime = 0; regime < 4; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 				regime_tallies[regime] = 0;
 			
 			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
 			{
 				int regime_int = (int)regime;
 				
-				if ((regime_int >= 0) && (regime_int <= 3))
+				if ((regime_int >= 0) && (regime_int <= 5))
 					regime_tallies[regime_int]++;
 				else
 					regime_tallies_total--;
 			}
 			
-			for (int regime = 0; regime < 4; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 			{
 				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime, (regime == 0 ? @"all mutations effectively neutral" : (regime == 1 ? @"no mutationEffect() callbacks" : (regime == 2 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present")))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime, [NSString stringWithUTF8String:RegimeDescription((TraitCalculationRegime)regime).c_str()]] attributes:optima13_d];
 			}
 			
 			[content eidosAppendString:@"\n" attributes:optima8_d];

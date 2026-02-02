@@ -1458,6 +1458,7 @@ const std::string &gStr__debug = EidosRegisteredString("_debug", gID__debug);
 const std::string &gStr__debugBuild = EidosRegisteredString("_debugBuild", gID__debugBuild);
 #if DEBUG
 const std::string &gStr__allocatedNonneutralCacheCount = EidosRegisteredString("_allocatedNonneutralCacheCount", gID__allocatedNonneutralCacheCount);
+const std::string &gStr__allocatedNonneutralMutationBufferCount = EidosRegisteredString("_allocatedNonneutralMutationBufferCount", gID__allocatedNonneutralMutationBufferCount);
 const std::string &gStr__traitCalculationRegimeName = EidosRegisteredString("_traitCalculationRegimeName", gID__traitCalculationRegimeName);
 #endif
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);
@@ -2498,17 +2499,17 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		}
 		
 		{
-			int64_t regime_tallies[4];
+			int64_t regime_tallies[6];
 			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_.size();
 			
-			for (int regime = 0; regime < 4; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 				regime_tallies[regime] = 0;
 			
 			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
 			{
 				int regime_int = (int)regime;
 				
-				if ((regime_int >= 0) && (regime_int <= 3))
+				if ((regime_int >= 0) && (regime_int <= 5))
 					regime_tallies[regime_int]++;
 				else
 					regime_tallies_total--;
@@ -2517,12 +2518,12 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 			fout << "<p>";
 			bool first_line = true;
 			
-			for (int regime = 0; regime < 4; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 			{
 				if (!first_line)
 					fout << "<BR>\n";
 				snprintf(buf, 256, "%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0);
-				fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : regime " << regime << " (" << (regime == 0 ? "all mutations effectively neutral" : (regime == 1 ? "no mutationEffect() callbacks" : (regime == 2 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present"))) << ")";
+				fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : regime " << regime << " (" << RegimeDescription((TraitCalculationRegime)regime) << ")";
 				first_line = false;
 			}
 			

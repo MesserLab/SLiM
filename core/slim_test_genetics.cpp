@@ -1936,6 +1936,84 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 	SLiMAssertScriptSuccess(multitrait_NEUTRAL_GENETICS_WITH_OFFSETS);
 	
 	
+	// default trait, with a nonneutral DES so all mutations are nonneutral; independent dominance is not used
+	// - fitness values are unpredictable and not tested
+	// - this model should not allocate any non-neutral caches, and should be in the kAllNonNeutralNoIndDomCaches regime
+	std::string multitrait_ALL_NONNEUTRAL_NO_INDDOM =
+		R"V0G0N(
+// multitrait_ALL_NONNEUTRAL_NO_INDDOM
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (isNAN(ind_t1))
+			stop("t1 value mismatch (NAN not expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all nonneutral genetics");
+		if (sim._traitCalculationRegimeName != "kAllNonNeutralNoIndDomCaches")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_NO_INDDOM);
+	
+	
+	// default trait, with a nonneutral DES so all mutations are nonneutral; independent dominance is used
+	// - fitness values are unpredictable and not tested
+	// - this model should not allocate any non-neutral caches, and should be in the kAllNonNeutralWithIndDomCaches regime
+	std::string multitrait_ALL_NONNEUTRAL_INDDOM =
+		R"V0G0N(
+// multitrait_ALL_NONNEUTRAL_INDDOM
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", NAN, "e", 0.01);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (isNAN(ind_t1))
+			stop("t1 value mismatch (NAN not expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount == 0)
+			stop("nonneutral caches were unallocated despite independent dominance");
+		if (sim._allocatedNonneutralMutationBufferCount > 0)
+			stop("nonneutral mutation buffers were in use despite all nonneutral genetics");
+		if (sim._traitCalculationRegimeName != "kAllNonNeutralWithIndDomCaches")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_INDDOM);
+	
+	
 	// This is a particularly complex multitrait model intended to test many different things at once,
 	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
 	// This is an abbreviated version of test script complex_multi_test_1.slim

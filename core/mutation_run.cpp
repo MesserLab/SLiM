@@ -29,18 +29,34 @@
 slim_operation_id_t MutationRun::sOperationID = 0;
 
 
-std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_trait_type)
+std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_regime)
 {
-	switch (p_trait_type)
+	switch (p_regime)
 	{
-		case TraitCalculationRegime::kUndefined:					p_out << "kUndefined";				break;
-		case TraitCalculationRegime::kPureNeutral:					p_out << "kPureNeutral";			break;
-		case TraitCalculationRegime::kNoActiveCallbacks:			p_out << "kNoActiveCallbacks";		break;
-		case TraitCalculationRegime::kAllGlobalNeutralCallbacks:	p_out << "kAllGlobalNeutralCallbacks";	break;
-		case TraitCalculationRegime::kNonNeutralCallbacks:			p_out << "kNonNeutralCallbacks";	break;
+		case TraitCalculationRegime::kUndefined:						p_out << "kUndefined";						break;
+		case TraitCalculationRegime::kPureNeutral:						p_out << "kPureNeutral";					break;
+		case TraitCalculationRegime::kNoActiveCallbacks:				p_out << "kNoActiveCallbacks";				break;
+		case TraitCalculationRegime::kAllGlobalNeutralCallbacks:		p_out << "kAllGlobalNeutralCallbacks";		break;
+		case TraitCalculationRegime::kNonNeutralCallbacks:				p_out << "kNonNeutralCallbacks";			break;
+		case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:		p_out << "kAllNonNeutralNoIndDomCaches";	break;
+		case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:	p_out << "kAllNonNeutralWithIndDomCaches";	break;
 	}
 	
 	return p_out;
+}
+
+std::string RegimeDescription(TraitCalculationRegime p_regime)
+{
+	switch (p_regime)
+	{
+		case TraitCalculationRegime::kUndefined:						return "*** undefined ***";
+		case TraitCalculationRegime::kPureNeutral:						return "all mutations effectively neutral";
+		case TraitCalculationRegime::kNoActiveCallbacks:				return "no mutationEffect() callbacks";
+		case TraitCalculationRegime::kAllGlobalNeutralCallbacks:		return "constant neutral mutationEffect() callbacks only";
+		case TraitCalculationRegime::kNonNeutralCallbacks:				return "unpredictable mutationEffect() callbacks present";
+		case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:		return "most/all mutations nonneutral; no independent dominance";
+		case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:	return "most/all mutations nonneutral; independent dominance";
+	}
 }
 
 
@@ -466,7 +482,7 @@ void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_hal
 
 #if SLIM_USE_NONNEUTRAL_CACHES()
 
-void MutationRun::cache_nonneutral_mutations_REGIME_0(IndDomCacheIndex inddom_cache_count) const
+void MutationRun::cache_nonneutral_mutations_REGIME_0(void) const
 {
 	//
 	//	Regime 0 means there are no genetic effects at all, even considering callbacks, so we can simply empty
@@ -628,18 +644,73 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr,
 	nonneutral_cache_->nonneutral_count_ = buffer_count;
 }
 
+void MutationRun::cache_nonneutral_mutations_REGIME_4(void) const
+{
+	//
+	//	Regime 4 means that all mutations are deemed putatively nonneutral, and so we will not set up nonneutral
+	//	mutation buffers at all, since they'd just be a complete copy of the main mutation buffers; instead, we
+	//	will simply use the main mutation buffers for trait calculations.  In addition, in regime 4 there is no
+	//	need for independent-dominance caches, so we actually don't need nonneutral caches at all.  If they are
+	//	allocated we'll leave them allocated, to avoid thrash, but if they're not, we won't create them.  This
+	//	is actually the same as regime 0, in practice, but is distinguished from it for conceptual clarity.
+	//
+	zero_out_nonneutral_cache_NOALLOC();
+	
+	// mark the nonneutral cache with a special value that indicates this state.  It has to be a special count
+	// value; the capacity can't be messed with, since it might be a leftover from a previous use of the cache.
+	// The marker value used is intended to be likely to produce a crash if it is ever used as a count.
+	if (nonneutral_cache_)
+		nonneutral_cache_->nonneutral_count_ = SLIM_MUTRUN_USE_MAIN_BUFFER;
+}
+
+void MutationRun::cache_nonneutral_mutations_REGIME_5(IndDomCacheIndex inddom_cache_count) const
+{
+	//
+	//	Regime 5 means that all mutations are deemed putatively nonneutral, and so we will not set up nonneutral
+	//	mutation buffers at all, since they'd just be a complete copy of the main mutation buffers; instead, we
+	//	will simply use the main mutation buffers for trait calculations.  In regime 5 there is a need for the
+	//	independent-dominance caches, however, so we will allocate nonneutral caches, but we won't allocate any
+	//	space at all for the nonneutral mutation buffers (unlike other regimes, which provide a minimum block
+	//	size as a starter).
+	//
+	zero_out_nonneutral_cache_ZEROSIZE(inddom_cache_count);
+	
+	// mark the nonneutral cache with a special value that indicates this state.  It has to be a special count
+	// value; the capacity can't be messed with, since it might be a leftover from a previous use of the cache.
+	// The marker value used is intended to be likely to produce a crash if it is ever used as a count.
+	if (nonneutral_cache_)
+		nonneutral_cache_->nonneutral_count_ = SLIM_MUTRUN_USE_MAIN_BUFFER;
+}
+
 void MutationRun::check_nonneutral_mutation_cache() const
 {
-	// FIXME MULTITRAIT: I plan to relax the requirement that the nonneutral cache be allocated, but for now it is required
+	// This is called by beginend_nonneutral_pointers() to verify that the nonneutral cache is in a valid state
+	// to be accessed.  There are valid cache states with nullptr for nonneutral_cache_, but those states should
+	// never be accessed by beginend_nonneutral_pointers(), so they are considered an error here.
 	if (!nonneutral_cache_)
 		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
 	
+	if (nonneutral_cache_->nonneutral_count_ == -1)
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
+	if (nonneutral_cache_->nonneutral_count_ < 0)
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) invalid nonneutral_count_ " << nonneutral_cache_->nonneutral_count_ << "." << EidosTerminate();
+	if (nonneutral_cache_->nonneutral_count_ > nonneutral_cache_->nonneutral_capacity_)
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+}
+
+void MutationRun::check_nonneutral_mutation_cache_MAIN() const
+{
+	// This alternate version of check_nonneutral_mutation_cache() is called when in train calculation regime
+	// kAllNonNeutralNoIndDomCaches or kAllNonNeutralWithIndDomCaches, which do not construct the nonneutral
+	// mutation buffers.  We check for validity of the nonneutral cache given that we are in that state.
 	if (nonneutral_cache_)
 	{
 		if (nonneutral_cache_->nonneutral_count_ == -1)
-			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
-		if (nonneutral_cache_->nonneutral_count_ > nonneutral_cache_->nonneutral_capacity_)
-			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_MAIN): (internal error) unvalidated cache." << EidosTerminate();
+		if (nonneutral_cache_->nonneutral_count_ != SLIM_MUTRUN_USE_MAIN_BUFFER)
+			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_MAIN): (internal error) invalid nonneutral_count_ " << nonneutral_cache_->nonneutral_count_ << " (should be SLIM_MUTRUN_USE_MAIN_BUFFER)." << EidosTerminate();
+		if (mutation_count_ > mutation_capacity_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_MAIN): (internal error) cache size exceeds cache capacity." << EidosTerminate();
 	}
 }
 

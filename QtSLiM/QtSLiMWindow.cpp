@@ -2146,11 +2146,11 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     // the above autofix is imperfect; if the user is assigning into hemizygousDominanceCoeff, it really needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
     
-	if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationType()") &&
-			(selectionString == "dominanceCoeff"))
-		return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationType() has been renamed to `defaultDominance`.", terminationMessage);
-	
-	if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationTypeNuc()") &&
+    if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationType()") &&
+            (selectionString == "dominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationType() has been renamed to `defaultDominance`.", terminationMessage);
+    
+    if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationTypeNuc()") &&
 			(selectionString == "dominanceCoeff"))
 		return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationTypeNuc() has been renamed to `defaultDominance`.", terminationMessage);
 	
@@ -4198,26 +4198,26 @@ void QtSLiMWindow::displayProfileResults(void)
         }
         
         {
-            int64_t regime_tallies[4];
+            int64_t regime_tallies[6];
             int64_t regime_tallies_total = static_cast<int>(focal_species->profile_trait_calculation_regime_history_.size());
             
-            for (int regime = 0; regime < 4; ++regime)
+            for (int regime = 0; regime < 6; ++regime)
                 regime_tallies[regime] = 0;
             
             for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
             {
                 int regime_int = (int)regime;
                 
-                if ((regime_int >= 0) && (regime_int <= 3))
+                if ((regime_int >= 0) && (regime_int <= 5))
                     regime_tallies[regime_int]++;
                 else
                     regime_tallies_total--;
             }
             
-            for (int regime = 0; regime < 4; ++regime)
+            for (int regime = 0; regime < 6; ++regime)
             {
                 tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime).arg(regime == 0 ? "all mutations effectively neutral" : (regime == 1 ? "no mutationEffect() callbacks" : (regime == 2 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present"))), optima13_d);
+                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime).arg(QString::fromStdString(RegimeDescription((TraitCalculationRegime)regime))), optima13_d);
             }
             
             tc.insertText(" \n", optima8_d);

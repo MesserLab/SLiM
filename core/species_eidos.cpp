@@ -2406,15 +2406,47 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(allocated_count));
 		}
+		case gID__allocatedNonneutralMutationBufferCount:
+		{
+			// This property provides a count of nonneutral mutation buffers that are allocated and in use
+			// This is different from allocatedNonneutralCacheCount in that a nonneutral cache can be allocated,
+			// for use by inddom caching, but have no nonneutral mutation buffer (the SLIM_MUTRUN_USE_MAIN_BUFFER
+			// case); also, the cache could be allocated but invalid, also not counted here
+			int64_t allocated_count = 0;
+			
+			for (Chromosome *chromosome : chromosomes_)
+			{
+				int context_count = chromosome->ChromosomeMutationRunContextCount();
+				
+				for (int context_index = 0; context_index < context_count; ++context_index)
+				{
+					MutationRunContext &context = chromosome->ChromosomeMutationRunContextForThread(context_index);
+					MutationRunPool in_use_pool = context.in_use_pool_;
+					MutationRunPool freed_pool = context.freed_pool_;
+					
+					for (const MutationRun *mutrun : in_use_pool)
+						if ((mutrun->nonneutral_cache_ != nullptr) && (mutrun->nonneutral_cache_->nonneutral_count_ >= 0))
+							allocated_count++;
+					
+					for (const MutationRun *mutrun : freed_pool)
+						if ((mutrun->nonneutral_cache_ != nullptr) && (mutrun->nonneutral_cache_->nonneutral_count_ >= 0))
+							allocated_count++;
+				}
+			}
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(allocated_count));
+		}
 		case gID__traitCalculationRegimeName:
 		{
 			switch (current_trait_calculation_regime_)
 			{
-				case TraitCalculationRegime::kUndefined:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kUndefined"));
-				case TraitCalculationRegime::kPureNeutral:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kPureNeutral"));
-				case TraitCalculationRegime::kNoActiveCallbacks:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kNoActiveCallbacks"));
-				case TraitCalculationRegime::kAllGlobalNeutralCallbacks:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kAllGlobalNeutralCallbacks"));
-				case TraitCalculationRegime::kNonNeutralCallbacks:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kNonNeutralCallbacks"));
+				case TraitCalculationRegime::kUndefined:						return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kUndefined"));
+				case TraitCalculationRegime::kPureNeutral:						return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kPureNeutral"));
+				case TraitCalculationRegime::kNoActiveCallbacks:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kNoActiveCallbacks"));
+				case TraitCalculationRegime::kAllGlobalNeutralCallbacks:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kAllGlobalNeutralCallbacks"));
+				case TraitCalculationRegime::kNonNeutralCallbacks:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kNonNeutralCallbacks"));
+				case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kAllNonNeutralNoIndDomCaches"));
+				case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("kAllNonNeutralWithIndDomCaches"));
 			}
 		}
 #endif
@@ -4920,8 +4952,9 @@ std::vector<EidosPropertySignature_CSP> *Species_Class::Properties_MUTABLE(void)
 		// internal properties, not user-visible
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__debugBuild,			true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 #if DEBUG
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralCacheCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__traitCalculationRegimeName,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralCacheCount,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralMutationBufferCount,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__traitCalculationRegimeName,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 #endif
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);

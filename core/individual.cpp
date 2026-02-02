@@ -6840,6 +6840,14 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	
 	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleDemandForPureNeutralTraits()!
 	
+	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	bool use_nonneutral_caches = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								  (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+#else
+	bool use_nonneutral_caches = false;
+#endif
+	
 	// Next we cache method pointers for haploid and diploid chromosomes, which we will use throughout.  These
 	// are templated for efficiency, so we have to choose the correct template.  That depends on the subpopulation
 	// since each subpopulation might have a different set of mutationEffect() callbacks.
@@ -6886,49 +6894,69 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				
 				// cache a pointer to the correct implementation of IncorporateEffects_X() for the subpopulation
 				// this varies by subpopulation because of the different callbacks that might be present
-				if (!mutationEffect_callbacks_exist)
-				{
-					if (traitType == TraitType::kAdditive)
-					{
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false>;
-						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false>;
+				if (!use_nonneutral_caches) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, false>;
+						}
 					}
-					else
-					{
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, false, false>;
-						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false>;
-					}
-				}
-				else if (single_mutationEffect_callback)
-				{
-					if (traitType == TraitType::kAdditive)
-					{
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, true, true>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true>;
-						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true>;
-					}
-					else
-					{
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, true, true>;
-						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true>;
-					}
-				}
-				else
-				{
-					if (traitType == TraitType::kAdditive)
-					{
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, true, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false>;
-						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false>;
-					}
-					else
-					{
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, true, false>;
-						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false>;
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, false>;
+						}
 					}
 				}
 			}
@@ -6953,17 +6981,26 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				auto &IncorporateEffects_Diploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED;
 				
 				// cache a pointer to the correct implementation of IncorporateEffects_X() for the subpopulation, given no callbacks
-				if (traitType == TraitType::kAdditive)
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, false, false>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false>;
-				}
-				else
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, false, false>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false>;
+				if (!use_nonneutral_caches) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
+					}
+				} else {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
+					}
 				}
 			}
 		}
@@ -7427,6 +7464,14 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		}
 	}
 	
+	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	bool use_nonneutral_caches = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								  (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+#else
+	bool use_nonneutral_caches = false;
+#endif
+	
 	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
 	// so that each one can do a single timing for mutrun experiments.
@@ -7473,49 +7518,69 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 			void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 			
-			if (!mutationEffect_callbacks_exist)
-			{
-				if (traitType == TraitType::kAdditive)
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, false, false>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false>;
+			if (!use_nonneutral_caches) {
+				if (!mutationEffect_callbacks_exist) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
+					}
+				} else if (single_mutationEffect_callback) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, true>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, true>;
+					}
+				} else {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, false>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, false>;
+					}
 				}
-				else
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, false, false>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false>;
-				}
-			}
-			else if (single_mutationEffect_callback)
-			{
-				if (traitType == TraitType::kAdditive)
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, true, true>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true>;
-				}
-				else
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, true, true>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true>;
-				}
-			}
-			else
-			{
-				if (traitType == TraitType::kAdditive)
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, true, true, false>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false>;
-				}
-				else
-				{
-					IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false>;
-					IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, false, true, false>;
-					IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false>;
+			} else {
+				if (!mutationEffect_callbacks_exist) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
+					}
+				} else if (single_mutationEffect_callback) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, true>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, true>;
+					}
+				} else {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, false>;
+					} else {
+						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, false>;
+					}
 				}
 			}
 			
@@ -7734,11 +7799,21 @@ template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *, Subpopul
 // Low-level method to calculate a phenotype for one individual, for one haploid (or hemizygous) chromosome,
 // for one trait.  This will put the result of the calculation into the individual's phenotype information.
 // This is called by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
-template <const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+template <const bool f_use_nonneutral_cache, const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
 	// Check template flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	bool use_nonneutral_cache = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+#else
+	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
+#endif
+	
+	if (f_use_nonneutral_cache != use_nonneutral_cache)
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_use_nonneutral_cache flag is incorrect." << EidosTerminate();
+	
 	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
 		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
 	
@@ -7778,6 +7853,7 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	const int32_t mutrun_count = haplosome->mutrun_count_;
+	const IndDomCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
 	
 	// do internal math using double to avoid numerical error
 	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
@@ -7790,7 +7866,10 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 		// Cache non-neutral mutations and read from the non-neutral buffers
 		const MutationIndex *haplosome_iter, *haplosome_max;
 		
-		mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, species->IndependentDominanceCacheCount());
+		if (f_use_nonneutral_cache)
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, inddom_cache_count);
+		else
+			mutrun->beginend_nonneutral_pointers_MAIN(&haplosome_iter, &haplosome_max);
 #else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
@@ -7832,27 +7911,49 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Haploid<false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<false, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<true, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
 
 // Low-level method to calculate a phenotype for one individual, for one diploid chromosome, for one trait.
 // This will put the result of the calculation into the individual's phenotype information.  This is called
 // by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
-template <const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+template <const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
 	// Check template flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	bool use_nonneutral_cache = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+#else
+	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
+#endif
+	
+	if (f_use_nonneutral_cache != use_nonneutral_cache)
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_use_nonneutral_cache flag is incorrect." << EidosTerminate();
+	
 	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
 		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
 	
@@ -7892,6 +7993,7 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	const int32_t mutrun_count = haplosome1->mutrun_count_;
+	const IndDomCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
 	
 	// do internal math using double to avoid numerical error
 	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
@@ -7905,8 +8007,13 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 		// Cache non-neutral mutations and read from the non-neutral buffers
 		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
 		
-		mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, species->IndependentDominanceCacheCount());
-		mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, species->IndependentDominanceCacheCount());
+		if (f_use_nonneutral_cache) {
+			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, inddom_cache_count);
+			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, inddom_cache_count);
+		} else {
+			mutrun1->beginend_nonneutral_pointers_MAIN(&haplosome1_iter, &haplosome1_max);
+			mutrun2->beginend_nonneutral_pointers_MAIN(&haplosome2_iter, &haplosome2_max);
+		}
 #else
 		// Read directly from the MutationRun buffers
 		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
@@ -8210,12 +8317,18 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Diploid<false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Diploid<false, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Diploid<false, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Diploid<true, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Diploid<true, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Diploid<true, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, false, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, false, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
 
 
 #if SLIM_USE_NONNEUTRAL_CACHES()
