@@ -136,130 +136,134 @@ MutationType::~MutationType(void)
 
 void MutationType::FreeLoggingInfo(void)
 {
-	if (logged_id_)				{ free(logged_id_);				logged_id_ = nullptr; }
-	if (logged_muttype_id_)		{ free(logged_muttype_id_);		logged_muttype_id_ = nullptr; }
-	if (logged_chromosome_id_)	{ free(logged_chromosome_id_);	logged_chromosome_id_ = nullptr; }
-	if (logged_position_)		{ free(logged_position_);		logged_position_ = nullptr; }
-	if (logged_nucleotide_)		{ free(logged_nucleotide_);		logged_nucleotide_ = nullptr; }
-	if (logged_origin_tick_)	{ free(logged_origin_tick_);	logged_origin_tick_ = nullptr; }
-	if (logged_subpop_id_)		{ free(logged_subpop_id_);		logged_subpop_id_ = nullptr; }
-	if (logged_tag_)			{ free(logged_tag_);			logged_tag_ = nullptr; }
+	if (log_info_.logged_id_)				{ free(log_info_.logged_id_);				log_info_.logged_id_ = nullptr; }
+	if (log_info_.logged_muttype_id_)		{ free(log_info_.logged_muttype_id_);		log_info_.logged_muttype_id_ = nullptr; }
+	if (log_info_.logged_chromosome_id_)	{ free(log_info_.logged_chromosome_id_);	log_info_.logged_chromosome_id_ = nullptr; }
+	if (log_info_.logged_position_)			{ free(log_info_.logged_position_);			log_info_.logged_position_ = nullptr; }
+	if (log_info_.logged_nucleotide_)		{ free(log_info_.logged_nucleotide_);		log_info_.logged_nucleotide_ = nullptr; }
+	if (log_info_.logged_origin_tick_)		{ free(log_info_.logged_origin_tick_);		log_info_.logged_origin_tick_ = nullptr; }
+	if (log_info_.logged_subpop_id_)		{ free(log_info_.logged_subpop_id_);		log_info_.logged_subpop_id_ = nullptr; }
+	if (log_info_.logged_tag_)				{ free(log_info_.logged_tag_);				log_info_.logged_tag_ = nullptr; }
 	
-	logged_trait_indices.resize(0);
+	log_info_.logged_trait_indices.resize(0);
 	
-	for (TraitEffectLog &trait_effect_log : logged_traits_)
+	for (TraitEffectLog &trait_effect_log : log_info_.logged_traits_)
 	{
 		if (trait_effect_log.logged_effect_size_)			{ free(trait_effect_log.logged_effect_size_);			trait_effect_log.logged_effect_size_ = nullptr; }
 		if (trait_effect_log.logged_dominance_)				{ free(trait_effect_log.logged_dominance_);				trait_effect_log.logged_dominance_ = nullptr; }
 		if (trait_effect_log.logged_hemizygous_dominance_)	{ free(trait_effect_log.logged_hemizygous_dominance_);	trait_effect_log.logged_hemizygous_dominance_ = nullptr; }
 	}
 	
-	logged_traits_.resize(0);
+	log_info_.logged_traits_.resize(0);
 	
-	mutation_logging_on_ = false;
+	log_info_.mutation_logging_on_ = false;
 }
 
 void MutationType::_LogMutationInfo(Mutation *p_mut)
 {
 #if DEBUG
-	if (!mutation_logging_on_)
+	if (!log_info_.mutation_logging_on_)
 		EIDOS_TERMINATION << "ERROR (MutationType::_LogMutationInfo): (internal error) called when mutation logging is not enabled." << EidosTerminate();
 #endif
 	
 	// check for an illegal property access
-	if (log_tag_ && (p_mut->tag_value_ == SLIM_TAG_UNSET_VALUE))
+	if (log_info_.log_tag_ && (p_mut->tag_value_ == SLIM_TAG_UNSET_VALUE))
 		EIDOS_TERMINATION << "ERROR (MutationType::_LogMutationInfo): property tag accessed on mutation before being set (logging of mutation tag values is enabled, but the tag value of the mutation being logged has not been set)." << EidosTerminate();
 	
 	// increase capacity if needed
-	if (!log_meanOnly_ && (log_size_ == log_capacity_))
+	size_t log_size = log_info_.log_size_;
+	
+	if (!log_info_.log_meanOnly_ && (log_size == log_info_.log_capacity_))
 	{
-		log_capacity_ <<= 1;
+		log_info_.log_capacity_ <<= 1;
 		
-		if (logged_id_)				logged_id_ = (slim_mutationid_t *)realloc(logged_id_, log_capacity_ * sizeof(slim_mutationid_t));
-		if (logged_muttype_id_)		logged_muttype_id_ = (slim_objectid_t *)realloc(logged_muttype_id_, log_capacity_ * sizeof(slim_objectid_t));
-		if (logged_chromosome_id_)	logged_chromosome_id_ = (int64_t *)realloc(logged_chromosome_id_, log_capacity_ * sizeof(int64_t));
-		if (logged_position_)		logged_position_ = (slim_position_t *)realloc(logged_position_, log_capacity_ * sizeof(slim_position_t));
-		if (logged_nucleotide_)		logged_nucleotide_ = (int8_t *)realloc(logged_nucleotide_, log_capacity_ * sizeof(int8_t));
-		if (logged_origin_tick_)	logged_origin_tick_ = (slim_tick_t *)realloc(logged_origin_tick_, log_capacity_ * sizeof(slim_tick_t));
-		if (logged_subpop_id_)		logged_subpop_id_ = (slim_objectid_t *)realloc(logged_subpop_id_, log_capacity_ * sizeof(slim_objectid_t));
-		if (logged_tag_)			logged_tag_ = (slim_usertag_t *)realloc(logged_tag_, log_capacity_ * sizeof(slim_usertag_t));
+		size_t capacity = log_info_.log_capacity_;
 		
-		for (slim_trait_index_t trait_index : logged_trait_indices)
+		if (log_info_.logged_id_)				log_info_.logged_id_ = (slim_mutationid_t *)realloc(log_info_.logged_id_, capacity * sizeof(slim_mutationid_t));
+		if (log_info_.logged_muttype_id_)		log_info_.logged_muttype_id_ = (slim_objectid_t *)realloc(log_info_.logged_muttype_id_, capacity * sizeof(slim_objectid_t));
+		if (log_info_.logged_chromosome_id_)	log_info_.logged_chromosome_id_ = (int64_t *)realloc(log_info_.logged_chromosome_id_, capacity * sizeof(int64_t));
+		if (log_info_.logged_position_)		log_info_.logged_position_ = (slim_position_t *)realloc(log_info_.logged_position_, capacity * sizeof(slim_position_t));
+		if (log_info_.logged_nucleotide_)		log_info_.logged_nucleotide_ = (int8_t *)realloc(log_info_.logged_nucleotide_, capacity * sizeof(int8_t));
+		if (log_info_.logged_origin_tick_)	log_info_.logged_origin_tick_ = (slim_tick_t *)realloc(log_info_.logged_origin_tick_, capacity * sizeof(slim_tick_t));
+		if (log_info_.logged_subpop_id_)		log_info_.logged_subpop_id_ = (slim_objectid_t *)realloc(log_info_.logged_subpop_id_, capacity * sizeof(slim_objectid_t));
+		if (log_info_.logged_tag_)			log_info_.logged_tag_ = (slim_usertag_t *)realloc(log_info_.logged_tag_, capacity * sizeof(slim_usertag_t));
+		
+		for (slim_trait_index_t trait_index : log_info_.logged_trait_indices)
 		{
-			TraitEffectLog &trait_log = logged_traits_[trait_index];
+			TraitEffectLog &trait_log = log_info_.logged_traits_[trait_index];
 			
-			if (log_effectSize_)			trait_log.logged_effect_size_ = (slim_effect_t *)realloc(trait_log.logged_effect_size_, log_capacity_ * sizeof(slim_effect_t));
-			if (log_dominance_)				trait_log.logged_dominance_ = (slim_effect_t *)realloc(trait_log.logged_dominance_, log_capacity_ * sizeof(slim_effect_t));
-			if (log_hemizygousDominance_)	trait_log.logged_hemizygous_dominance_ = (slim_effect_t *)realloc(trait_log.logged_hemizygous_dominance_, log_capacity_ * sizeof(slim_effect_t));
+			if (log_info_.log_effectSize_)			trait_log.logged_effect_size_ = (slim_effect_t *)realloc(trait_log.logged_effect_size_, capacity * sizeof(slim_effect_t));
+			if (log_info_.log_dominance_)			trait_log.logged_dominance_ = (slim_effect_t *)realloc(trait_log.logged_dominance_, capacity * sizeof(slim_effect_t));
+			if (log_info_.log_hemizygousDominance_)	trait_log.logged_hemizygous_dominance_ = (slim_effect_t *)realloc(trait_log.logged_hemizygous_dominance_, capacity * sizeof(slim_effect_t));
 		}
 	}
 	
 	// update logged data -- running sums and, if !log_meanOnly_, also our logging buffers
-	if (log_id_) {
+	if (log_info_.log_id_) {
 		slim_mutationid_t id = p_mut->mutation_id_;
-		running_id_ += p_mut->mutation_id_;
-		if (!log_meanOnly_)		logged_id_[log_size_] = id;
+		log_info_.running_id_ += p_mut->mutation_id_;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_id_[log_size] = id;
 	}
-	if (log_mutationTypeID_) {
+	if (log_info_.log_mutationTypeID_) {
 		slim_objectid_t muttypeID = p_mut->mutation_type_ptr_->mutation_type_id_;
-		running_muttype_id_ += muttypeID;
-		if (!log_meanOnly_)		logged_muttype_id_[log_size_] = muttypeID;
+		log_info_.running_muttype_id_ += muttypeID;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_muttype_id_[log_size] = muttypeID;
 	}
-	if (log_chromosomeID_) {
+	if (log_info_.log_chromosomeID_) {
 		int64_t chromosomeID = species_.Chromosomes()[p_mut->chromosome_index_]->ID();
-		running_chromosome_id_ += chromosomeID;
-		if (!log_meanOnly_)		logged_chromosome_id_[log_size_] = chromosomeID;
+		log_info_.running_chromosome_id_ += chromosomeID;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_chromosome_id_[log_size] = chromosomeID;
 	}
-	if (log_position_) {
+	if (log_info_.log_position_) {
 		slim_position_t position = p_mut->position_;
-		running_position_ += position;
-		if (!log_meanOnly_)		logged_position_[log_size_] = position;
+		log_info_.running_position_ += position;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_position_[log_size] = position;
 	}
-	if (log_nucleotideValue_) {
+	if (log_info_.log_nucleotideValue_) {
 		int8_t nucleotide = p_mut->nucleotide_;
-		running_nucleotide_ += nucleotide;
-		if (!log_meanOnly_)		logged_nucleotide_[log_size_] = nucleotide;
+		log_info_.running_nucleotide_ += nucleotide;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_nucleotide_[log_size] = nucleotide;
 	}
-	if (log_originTick_) {
+	if (log_info_.log_originTick_) {
 		slim_tick_t originTick = p_mut->origin_tick_;
-		running_origin_tick_ += originTick;
-		if (!log_meanOnly_)		logged_origin_tick_[log_size_] = originTick;
+		log_info_.running_origin_tick_ += originTick;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_origin_tick_[log_size] = originTick;
 	}
-	if (log_subpopID_) {
+	if (log_info_.log_subpopID_) {
 		slim_objectid_t subpopID = p_mut->subpop_index_;
-		running_subpop_id_ += subpopID;
-		if (!log_meanOnly_)		logged_subpop_id_[log_size_] = subpopID;
+		log_info_.running_subpop_id_ += subpopID;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_subpop_id_[log_size] = subpopID;
 	}
-	if (log_tag_) {
+	if (log_info_.log_tag_) {
 		slim_usertag_t tag = p_mut->tag_value_;
-		running_tag_ += tag;
-		if (!log_meanOnly_)		logged_tag_[log_size_] = tag;
+		log_info_.running_tag_ += tag;
+		if (!log_info_.log_meanOnly_)		log_info_.logged_tag_[log_size] = tag;
 	}
 	
-	for (slim_trait_index_t trait_index : logged_trait_indices)
+	for (slim_trait_index_t trait_index : log_info_.logged_trait_indices)
 	{
-		TraitEffectLog &trait_log = logged_traits_[trait_index];
+		TraitEffectLog &trait_log = log_info_.logged_traits_[trait_index];
 		MutationTraitInfo &mut_trait_info = species_.SpeciesMutationBlock()->TraitInfoForMutation(p_mut)[trait_index];
 		
-		if (log_effectSize_) {
+		if (log_info_.log_effectSize_) {
 			slim_effect_t effect_size = mut_trait_info.effect_size_;
 			trait_log.running_effect_size_ += (double)effect_size;
-			if (!log_meanOnly_)		trait_log.logged_effect_size_[log_size_] = effect_size;
+			if (!log_info_.log_meanOnly_)		trait_log.logged_effect_size_[log_size] = effect_size;
 		}
-		if (log_dominance_) {
+		if (log_info_.log_dominance_) {
 			slim_effect_t dominance = p_mut->RealizedDominanceForTrait(species_.Traits()[trait_index]);
 			trait_log.running_dominance_ += (double)dominance;
-			if (!log_meanOnly_)		trait_log.logged_dominance_[log_size_] = dominance;
+			if (!log_info_.log_meanOnly_)		trait_log.logged_dominance_[log_size] = dominance;
 		}
-		if (log_hemizygousDominance_) {
+		if (log_info_.log_hemizygousDominance_) {
 			slim_effect_t hemizygousDominance = mut_trait_info.hemizygous_dominance_coeff_;
 			trait_log.running_hemizygous_dominance_ += (double)hemizygousDominance;
-			if (!log_meanOnly_)		trait_log.logged_hemizygous_dominance_[log_size_] = hemizygousDominance;
+			if (!log_info_.log_meanOnly_)		trait_log.logged_hemizygous_dominance_[log_size] = hemizygousDominance;
 		}
 	}
 	
 	// finally, record that we have added one entry
-	log_size_++;
+	log_info_.log_size_++;
 }
 
 void MutationType::ParseDESParameters(std::string &p_DES_type_string, const EidosValue_SP *const p_arguments, int p_argument_count, DESType *p_DES_type, std::vector<double> *p_DES_parameters, std::vector<std::string> *p_DES_strings)
@@ -1048,7 +1052,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	EidosValue *dominance_value = p_arguments[11].get();
 	EidosValue *hemizygousDominance_value = p_arguments[12].get();
 	
-	if (!mutation_logging_on_)
+	if (!log_info_.mutation_logging_on_)
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_loggedData): mutation logging is not currently enabled, so logged data cannot be fetched." << EidosTerminate(nullptr);
 	
 	// kind
@@ -1070,13 +1074,13 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	else
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_loggedData): loggedData() requires that kind be 'count', 'mean', 'sd', or 'values'." << EidosTerminate(nullptr);
 	
-	if (log_meanOnly_ && (kind != KindEnum::kMean))
+	if (log_info_.log_meanOnly_ && (kind != KindEnum::kMean))
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_loggedData): loggedData() can only return means (kind='mean'), since meanOnly=T was set in logMutationData()." << EidosTerminate(nullptr);
 	
 	if (kind == KindEnum::kCount)
 	{
 		// for "count" the remaining flags are ignored; we just return the singleton count of mutations recorded
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int((int64_t)log_size_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int((int64_t)log_info_.log_size_));
 	}
 	
 	// trait
@@ -1088,7 +1092,7 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	
 	for (slim_trait_index_t trait_index : trait_indices)
 	{
-		if (std::find(logged_trait_indices.begin(), logged_trait_indices.end(), trait_index) == logged_trait_indices.end())
+		if (std::find(log_info_.logged_trait_indices.begin(), log_info_.logged_trait_indices.end(), trait_index) == log_info_.logged_trait_indices.end())
 			continue;
 		
 		get_trait_indices.push_back(trait_index);
@@ -1113,31 +1117,31 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	if (!get_id && !get_mutationTypeID && !get_chromosomeID && !get_position && !get_nucleotideValue &&
 		!get_originTick && !get_subpopID && !get_tag && !get_effectSize && !get_dominance && !get_hemizygousDominance)
 	{
-		get_id					= log_id_;
-		get_mutationTypeID		= log_mutationTypeID_;
-		get_chromosomeID		= log_chromosomeID_;
-		get_position			= log_position_;
-		get_nucleotideValue		= log_nucleotideValue_;
-		get_originTick			= log_originTick_;
-		get_subpopID			= log_subpopID_;
-		get_tag					= log_tag_;
-		get_effectSize			= log_effectSize_;
-		get_dominance			= log_dominance_;
-		get_hemizygousDominance	= log_hemizygousDominance_;
+		get_id					= log_info_.log_id_;
+		get_mutationTypeID		= log_info_.log_mutationTypeID_;
+		get_chromosomeID		= log_info_.log_chromosomeID_;
+		get_position			= log_info_.log_position_;
+		get_nucleotideValue		= log_info_.log_nucleotideValue_;
+		get_originTick			= log_info_.log_originTick_;
+		get_subpopID			= log_info_.log_subpopID_;
+		get_tag					= log_info_.log_tag_;
+		get_effectSize			= log_info_.log_effectSize_;
+		get_dominance			= log_info_.log_dominance_;
+		get_hemizygousDominance	= log_info_.log_hemizygousDominance_;
 	}
 	
 	// then narrow down to the flags that were actually logged, silently skipping those that weren't
-	if (!log_id_)					get_id = false;
-	if (!log_mutationTypeID_)		get_mutationTypeID = false;
-	if (!log_chromosomeID_)			get_chromosomeID = false;
-	if (!log_position_)				get_position = false;
-	if (!log_nucleotideValue_)		get_nucleotideValue = false;
-	if (!log_originTick_)			get_originTick = false;
-	if (!log_subpopID_)				get_subpopID = false;
-	if (!log_tag_)					get_tag = false;
-	if (!log_effectSize_)			get_effectSize = false;
-	if (!log_dominance_)			get_dominance = false;
-	if (!log_hemizygousDominance_)	get_hemizygousDominance = false;
+	if (!log_info_.log_id_)						get_id = false;
+	if (!log_info_.log_mutationTypeID_)			get_mutationTypeID = false;
+	if (!log_info_.log_chromosomeID_)			get_chromosomeID = false;
+	if (!log_info_.log_position_)				get_position = false;
+	if (!log_info_.log_nucleotideValue_)		get_nucleotideValue = false;
+	if (!log_info_.log_originTick_)				get_originTick = false;
+	if (!log_info_.log_subpopID_)				get_subpopID = false;
+	if (!log_info_.log_tag_)					get_tag = false;
+	if (!log_info_.log_effectSize_)				get_effectSize = false;
+	if (!log_info_.log_dominance_)				get_dominance = false;
+	if (!log_info_.log_hemizygousDominance_)	get_hemizygousDominance = false;
 	
 	// we need to construct a DataFrame object; set it up
 	EidosDataFrame *dataframe = new EidosDataFrame();
@@ -1146,125 +1150,127 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 	dataframe->Release();	// dataframe is now retained by result_SP, so we can release it
 	
 	// now generate columns into dataframe as requested
+	size_t log_size = log_info_.log_size_;
+	EidosValue_Float *EidosValue_NAN = gStaticEidosValue_FloatNAN.get();
 	EidosValue *column;
 	
 	if (get_id)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_id_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_id_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_id_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_id_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("id", EidosValue_SP(column));
 	}
 	
 	if (get_mutationTypeID)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_muttype_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_muttype_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_muttype_id_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_muttype_id_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_muttype_id_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_muttype_id_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("mutationTypeID", EidosValue_SP(column));
 	}
 	
 	if (get_chromosomeID)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_chromosome_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_chromosome_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_chromosome_id_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_chromosome_id_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_chromosome_id_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_chromosome_id_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("chromosomeID", EidosValue_SP(column));
 	}
 	
 	if (get_position)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_position_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_position_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_position_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_position_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_position_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_position_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("position", EidosValue_SP(column));
 	}
 	
 	if (get_nucleotideValue)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_nucleotide_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_nucleotide_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_nucleotide_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_nucleotide_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_nucleotide_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_nucleotide_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("nucleotideValue", EidosValue_SP(column));
 	}
 	
 	if (get_originTick)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_origin_tick_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_origin_tick_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_origin_tick_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_origin_tick_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_origin_tick_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_origin_tick_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("originTick", EidosValue_SP(column));
 	}
 	
 	if (get_subpopID)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_subpop_id_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_subpop_id_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_subpop_id_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_subpop_id_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_subpop_id_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_subpop_id_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("subpopID", EidosValue_SP(column));
 	}
 	
 	if (get_tag)
 	{
-		if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(running_tag_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(logged_tag_, log_size_));
+		if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log_info_.running_tag_ / log_size) : EidosValue_NAN;
+		else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(log_info_.logged_tag_, log_size));
 		else /* kind == KindEnum::kValues */ {
-			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size_);
+			column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(log_size);
 			int64_t *column_data = column->IntData_Mutable();
-			for (size_t log_index = 0; log_index < log_size_; log_index++)
-				column_data[log_index] = logged_tag_[log_index];
+			for (size_t log_index = 0; log_index < log_size; log_index++)
+				column_data[log_index] = log_info_.logged_tag_[log_index];
 		}
 		dataframe->SetKeyValue_StringKeys("tag", EidosValue_SP(column));
 	}
 	
 	for (slim_trait_index_t trait_index : get_trait_indices)
 	{
-		TraitEffectLog &trait_log = logged_traits_[trait_index];
+		TraitEffectLog &trait_log = log_info_.logged_traits_[trait_index];
 		const std::string &trait_name = species_.Traits()[trait_index]->Name();
 		
 		if (get_effectSize)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_effect_size_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_effect_size_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_effect_size_ / log_size) : EidosValue_NAN;
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_effect_size_, log_size));
 			else /* kind == KindEnum::kValues */ {
-				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
+				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size);
 				double *column_data = column->FloatData_Mutable();
-				for (size_t log_index = 0; log_index < log_size_; log_index++)
+				for (size_t log_index = 0; log_index < log_size; log_index++)
 					column_data[log_index] = (double)trait_log.logged_effect_size_[log_index];
 			}
 			dataframe->SetKeyValue_StringKeys(trait_name + "EffectSize", EidosValue_SP(column));
@@ -1272,12 +1278,12 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		
 		if (get_dominance)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_dominance_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_dominance_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_dominance_ / log_size) : EidosValue_NAN;
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_dominance_, log_size));
 			else /* kind == KindEnum::kValues */ {
-				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
+				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size);
 				double *column_data = column->FloatData_Mutable();
-				for (size_t log_index = 0; log_index < log_size_; log_index++)
+				for (size_t log_index = 0; log_index < log_size; log_index++)
 					column_data[log_index] = (double)trait_log.logged_dominance_[log_index];
 			}
 			dataframe->SetKeyValue_StringKeys(trait_name + "Dominance", EidosValue_SP(column));
@@ -1285,12 +1291,12 @@ EidosValue_SP MutationType::ExecuteMethod_loggedData(EidosGlobalStringID p_metho
 		
 		if (get_hemizygousDominance)
 		{
-			if (kind == KindEnum::kMean)			column = (log_size_ > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_hemizygous_dominance_ / log_size_) : gStaticEidosValue_FloatNAN.get();
-			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_hemizygous_dominance_, log_size_));
+			if (kind == KindEnum::kMean)			column = (log_size > 0) ? new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trait_log.running_hemizygous_dominance_ / log_size) : EidosValue_NAN;
+			else if (kind == KindEnum::kSD)			column = new (gEidosValuePool->AllocateChunk()) EidosValue_Float(Eidos_StandardDeviation(trait_log.logged_hemizygous_dominance_, log_size));
 			else /* kind == KindEnum::kValues */ {
-				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size_);
+				column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(log_size);
 				double *column_data = column->FloatData_Mutable();
-				for (size_t log_index = 0; log_index < log_size_; log_index++)
+				for (size_t log_index = 0; log_index < log_size; log_index++)
 					column_data[log_index] = (double)trait_log.logged_hemizygous_dominance_[log_index];
 			}
 			dataframe->SetKeyValue_StringKeys(trait_name + "HemizygousDominance", EidosValue_SP(column));
@@ -1331,10 +1337,10 @@ EidosValue_SP MutationType::ExecuteMethod_logMutationData(EidosGlobalStringID p_
 	
 	if (!f_enable)
 	{
-		if (!mutation_logging_on_)
+		if (!log_info_.mutation_logging_on_)
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_logMutationData): mutation logging is not currently enabled, so disabling logging is not permitted." << EidosTerminate(nullptr);
 		
-		mutation_logging_on_ = false;
+		log_info_.mutation_logging_on_ = false;
 		
 		// note we don't deallocate any existing logs; we want the user to be able to continue accessing logs after stopping.
 		
@@ -1342,65 +1348,68 @@ EidosValue_SP MutationType::ExecuteMethod_logMutationData(EidosGlobalStringID p_
 	}
 	
 	// from here on enable == T, and we are configuring the new logging we are to begin
-	if (mutation_logging_on_)
+	if (log_info_.mutation_logging_on_)
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_logMutationData): mutation logging is already enabled; modification of logging settings is not permitted (but you can disable logging with enable=F and then restart logging with new settings)." << EidosTerminate(nullptr);
 	
 	FreeLoggingInfo();				// free any existing logging info
 	
-	mutation_logging_on_ = true;	// then turn logging on and set up new info
+	log_info_.mutation_logging_on_ = true;	// then turn logging on and set up new info
 	
 	// trait
-	species_.GetTraitIndicesFromEidosValue(logged_trait_indices, trait_value, "logMutationData");
+	species_.GetTraitIndicesFromEidosValue(log_info_.logged_trait_indices, trait_value, "logMutationData");
 	
 	// all other logical flags
-	log_autogeneratedOnly_ = autogeneratedOnly_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_meanOnly_ = meanOnly_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_autogeneratedOnly_ = autogeneratedOnly_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_meanOnly_ = meanOnly_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
-	log_id_ = id_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_mutationTypeID_ = mutationTypeID_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_chromosomeID_ = chromosomeID_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_position_ = position_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_nucleotideValue_ = nucleotideValue_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_originTick_ = originTick_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_subpopID_ = subpopID_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_tag_ = tag_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_effectSize_ = effectSize_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_dominance_ = dominance_value->LogicalAtIndex_NOCAST(0, nullptr);
-	log_hemizygousDominance_ = hemizygousDominance_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_id_ = id_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_mutationTypeID_ = mutationTypeID_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_chromosomeID_ = chromosomeID_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_position_ = position_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_nucleotideValue_ = nucleotideValue_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_originTick_ = originTick_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_subpopID_ = subpopID_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_tag_ = tag_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_effectSize_ = effectSize_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_dominance_ = dominance_value->LogicalAtIndex_NOCAST(0, nullptr);
+	log_info_.log_hemizygousDominance_ = hemizygousDominance_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
-	if (log_nucleotideValue_ && !species_.IsNucleotideBased())
+	if (log_info_.log_nucleotideValue_ && !species_.IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_logMutationData): logging of nucleotide data is only supported in nucleotide-based models." << EidosTerminate(nullptr);
-	if ((logged_trait_indices.size() == 0) && (log_effectSize_ || log_dominance_ || log_hemizygousDominance_))
+	if ((log_info_.logged_trait_indices.size() == 0) &&
+		(log_info_.log_effectSize_ || log_info_.log_dominance_ || log_info_.log_hemizygousDominance_))
 		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_logMutationData): logging of effect, dominance, and hemizygous dominance is enabled, but no traits to log were specified." << EidosTerminate(nullptr);
 	
 	// allocate log pointers and running sums
-	log_size_ = 0;
-	log_capacity_ = 0;
+	log_info_.log_size_ = 0;
+	log_info_.log_capacity_ = 0;
 	
-	if (!log_meanOnly_)
+	if (!log_info_.log_meanOnly_)
 	{
-		log_capacity_ = 1024;	// initial capacity
+		log_info_.log_capacity_ = 1024;	// initial capacity
 		
-		if (log_id_)				{ running_id_ = 0.0;			logged_id_ = (slim_mutationid_t *)malloc(log_capacity_ * sizeof(slim_mutationid_t)); }
-		if (log_mutationTypeID_)	{ running_muttype_id_ = 0.0;	logged_muttype_id_ = (slim_objectid_t *)malloc(log_capacity_ * sizeof(slim_objectid_t)); }
-		if (log_chromosomeID_)		{ running_chromosome_id_ = 0.0;	logged_chromosome_id_ = (int64_t *)malloc(log_capacity_ * sizeof(int64_t)); }
-		if (log_position_)			{ running_position_ = 0.0;		logged_position_ = (slim_position_t *)malloc(log_capacity_ * sizeof(slim_position_t)); }
-		if (log_nucleotideValue_)	{ running_nucleotide_ = 0.0;	logged_nucleotide_ = (int8_t *)malloc(log_capacity_ * sizeof(int8_t)); }
-		if (log_originTick_)		{ running_origin_tick_ = 0.0;	logged_origin_tick_ = (slim_tick_t *)malloc(log_capacity_ * sizeof(slim_tick_t)); }
-		if (log_subpopID_)			{ running_subpop_id_ = 0.0;		logged_subpop_id_ = (slim_objectid_t *)malloc(log_capacity_ * sizeof(slim_objectid_t)); }
-		if (log_tag_)				{ running_tag_ = 0.0;			logged_tag_ = (slim_usertag_t *)malloc(log_capacity_ * sizeof(slim_usertag_t)); }
+		size_t capacity = log_info_.log_capacity_;
 		
-		if (logged_trait_indices.size())
+		if (log_info_.log_id_)				{ log_info_.running_id_ = 0.0;				log_info_.logged_id_ = (slim_mutationid_t *)malloc(capacity * sizeof(slim_mutationid_t)); }
+		if (log_info_.log_mutationTypeID_)	{ log_info_.running_muttype_id_ = 0.0;		log_info_.logged_muttype_id_ = (slim_objectid_t *)malloc(capacity * sizeof(slim_objectid_t)); }
+		if (log_info_.log_chromosomeID_)	{ log_info_.running_chromosome_id_ = 0.0;	log_info_.logged_chromosome_id_ = (int64_t *)malloc(capacity * sizeof(int64_t)); }
+		if (log_info_.log_position_)		{ log_info_.running_position_ = 0.0;		log_info_.logged_position_ = (slim_position_t *)malloc(capacity * sizeof(slim_position_t)); }
+		if (log_info_.log_nucleotideValue_)	{ log_info_.running_nucleotide_ = 0.0;		log_info_.logged_nucleotide_ = (int8_t *)malloc(capacity * sizeof(int8_t)); }
+		if (log_info_.log_originTick_)		{ log_info_.running_origin_tick_ = 0.0;		log_info_.logged_origin_tick_ = (slim_tick_t *)malloc(capacity * sizeof(slim_tick_t)); }
+		if (log_info_.log_subpopID_)		{ log_info_.running_subpop_id_ = 0.0;		log_info_.logged_subpop_id_ = (slim_objectid_t *)malloc(capacity * sizeof(slim_objectid_t)); }
+		if (log_info_.log_tag_)				{ log_info_.running_tag_ = 0.0;				log_info_.logged_tag_ = (slim_usertag_t *)malloc(capacity * sizeof(slim_usertag_t)); }
+		
+		if (log_info_.logged_trait_indices.size())
 		{
-			logged_traits_.resize(species_.TraitCount());	// note we have an entry for each trait in the species, but it may be that not all entries are used; that depends on logged_trait_indices
+			log_info_.logged_traits_.resize(species_.TraitCount());	// note we have an entry for each trait in the species, but it may be that not all entries are used; that depends on logged_trait_indices
 			
-			for (slim_trait_index_t trait_index : logged_trait_indices)
+			for (slim_trait_index_t trait_index : log_info_.logged_trait_indices)
 			{
-				TraitEffectLog &trait_effect_log = logged_traits_[trait_index];
+				TraitEffectLog &trait_effect_log = log_info_.logged_traits_[trait_index];
 				
-				if (log_effectSize_)			{ trait_effect_log.running_effect_size_ = 0.0;			trait_effect_log.logged_effect_size_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
-				if (log_dominance_)				{ trait_effect_log.running_dominance_ = 0.0;			trait_effect_log.logged_dominance_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
-				if (log_hemizygousDominance_)	{ trait_effect_log.running_hemizygous_dominance_ = 0.0;	trait_effect_log.logged_hemizygous_dominance_ = (slim_effect_t *)malloc(log_capacity_ * sizeof(slim_effect_t)); }
+				if (log_info_.log_effectSize_)			{ trait_effect_log.running_effect_size_ = 0.0;			trait_effect_log.logged_effect_size_ = (slim_effect_t *)malloc(capacity * sizeof(slim_effect_t)); }
+				if (log_info_.log_dominance_)			{ trait_effect_log.running_dominance_ = 0.0;			trait_effect_log.logged_dominance_ = (slim_effect_t *)malloc(capacity * sizeof(slim_effect_t)); }
+				if (log_info_.log_hemizygousDominance_)	{ trait_effect_log.running_hemizygous_dominance_ = 0.0;	trait_effect_log.logged_hemizygous_dominance_ = (slim_effect_t *)malloc(capacity * sizeof(slim_effect_t)); }
 			}
 		}
 	}
