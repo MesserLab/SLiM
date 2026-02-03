@@ -57,18 +57,11 @@ std::ostream& operator<<(std::ostream& p_out, DESType p_DES_type)
 #pragma mark MutationType
 #pragma mark -
 
-#ifdef SLIMGUI
 MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index) :
-#else
-MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings) :
-#endif
-self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id)
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
+	species_(p_species), mutation_type_id_(p_mutation_type_id), mutation_type_index_(p_mutation_type_index), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
-#endif
-#ifdef SLIMGUI
-	, mutation_type_index_(p_mutation_type_index)
 #endif
 {
 	// self_symbol_ is always a constant, but can't be marked as such on construction

@@ -611,97 +611,84 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			}
 		}
 		
-		// And assess how traits are being influenced by mutationEffect() callbacks
-		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+		// And assess how traits are being influenced by mutationEffect() callbacks.  We do this one trait at a
+		// time, so that we can focus on that trait and try to draw the strongest possible inference about it.
+		for (Trait *trait : traits_)
 		{
-			MutationType *callback_mut_type = nullptr;
-			Trait *callback_trait = nullptr;
-			bool makes_globally_neutral = _CallbackMakesTraitGloballyNeutral(mutationEffect_callback, callback_trait, callback_mut_type);
+			std::vector<bool> trait_pure_neutral_for_muttype;
 			
-			// a callback might be defined for a muttype or subpop not in use, in which case we skip it
-			if (!callback_mut_type)
-				continue;
+			trait_pure_neutral_for_muttype.resize(mut_types.size());
 			
-			// callbacks are always specific to one mutation type, so unless there is only one mutation type
-			// defined, we can't easily infer that the trait has been made entirely neutral; we can just infer
-			// that it might make a previously neutral trait non-neutral.
+			// at the outset, take the effect of each mutation type of the trait as simply being whether it is
+			// pure neutral across the board; this misses out on per-trait effects, so this could be refined
+			// if we had per-trait information from the mutation type, but we don't currently track that.
 			
-			// note that ANY callback that applies to a given trait turns off pure-independent-dominance,
-			// even if the callback is neutral; this is because the independent-dominance mechanism is
-			// based on the nonneutral mutation buffer, without the involvement of callbacks, so even a
-			// neutral or global-neutral callback causes incorrect independent dominance values to be cached.
-			// we could instead leave is_pure_independent_dominance_now_ unaffected here, and turn off the
-			// independent dominance mechanism when actually using the cached values if any callback is
-			// present; that would work, but then we'd often spend time making the independent dominance
-			// cache and then not using it at all; ideally we'd be smarter about this.  FIXME MULTICHROM
-			
-			if (makes_globally_neutral)
+			if (trait->trait_all_neutral_mutations_)
 			{
-				if (mut_types.size() == 1)
-				{
-					// with just one mutation type, we can infer that the callback affects every mutation type,
-					// so we can draw a broader inference about the callback's effect on the model
-					for (Trait *affectedTrait : traits)
-					{
-						if (callback_trait && (affectedTrait != callback_trait))
-							continue;
-						
-						// if the trait is already pure neutral, a callback making it neutral is redundant
-						if (!affectedTrait->is_pure_neutral_now_)
-						{
-							affectedTrait->subject_to_mutationEffect_callback_ = true;
-							affectedTrait->subject_to_non_global_neutral_callback_ = false;
-							affectedTrait->is_pure_neutral_now_ = true;
-							affectedTrait->is_pure_independent_dominance_now_ = false;
-						}
-					}
-				}
-				else
-				{
-					// with more than one muttype, callbacks only make traits non-neutral; we don't try to track the
-					// possibility that multiple callbacks might together render a trait neutral again.  as above,
-					// a callback never changes a non-independent-dominance trait into an independent-dominance trait.
-					for (Trait *affectedTrait : traits)
-					{
-						if (callback_trait && (affectedTrait != callback_trait))
-							continue;
-						
-						// if the trait is already pure neutral, a callback making it neutral is redundant
-						if (!affectedTrait->is_pure_neutral_now_)
-						{
-							affectedTrait->subject_to_mutationEffect_callback_ = true;
-							affectedTrait->is_pure_independent_dominance_now_ = false;
-						}
-					}
-				}
+				// if we know that all mutations are neutral for the trait, we can infer that every muttype is
+				// neutral for the trait (without the effects of callbacks, which we assess below)
+				for (auto muttype_iter : mut_types)
+					trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_] = true;
 			}
-			else	// if (!makes_globally_neutral)
+			else
 			{
-				bool makes_non_neutral = _CallbackMakesTraitNonNeutral(mutationEffect_callback, callback_trait, callback_mut_type);
+				// otherwise, we can take the effect of each mutation type of the trait as simply being whether
+				// it is pure neutral across the board; this misses out on per-trait effects, so this could be
+				// refined if we had per-trait information from the mutation type, but we don't have that.
+				for (auto muttype_iter : mut_types)
+					trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_] = muttype_iter.second->is_pure_neutral_now_;
+			}
+			
+			// that is our assessment based on mutations alone; now we examine callbacks for their effect
+			
+			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+			{
+				MutationType *callback_mut_type = nullptr;
+				Trait *callback_trait = nullptr;
+				bool makes_globally_neutral = _CallbackMakesTraitGloballyNeutral(mutationEffect_callback, callback_trait, callback_mut_type);
 				
-				if (makes_non_neutral)
+				// a callback might be defined for a muttype or subpop not in use, in which case we skip it
+				if (!callback_mut_type)
+					continue;
+				
+				// note that ANY callback that applies to a given trait turns off pure-independent-dominance,
+				// even if the callback is neutral; this is because the independent-dominance mechanism is
+				// based on the nonneutral mutation buffer, without the involvement of callbacks, so even a
+				// neutral or global-neutral callback causes incorrect independent dominance values to be cached.
+				// we could instead leave is_pure_independent_dominance_now_ unaffected here, and turn off the
+				// independent dominance mechanism when actually using the cached values if any callback is
+				// present; that would work, but then we'd often spend time making the independent dominance
+				// cache and then not using it at all; ideally we'd be smarter about this.  FIXME MULTICHROM
+				trait->is_pure_independent_dominance_now_ = false;
+				
+				// we're handling one focal trait at a time here; if the callback doesn't apply to it, move on
+				// if callback_trait is nullptr, that means it applies to all traits, so it applies to this one
+				if (callback_trait && (callback_trait != trait))
+					continue;
+				
+				int muttype_index = callback_mut_type->mutation_type_index_;
+				
+				if (makes_globally_neutral)
 				{
-					// the callback is non-neutral, so it has to be called, with non-neutral effects
-					for (Trait *affectedTrait : traits)
-					{
-						if (callback_trait && (affectedTrait != callback_trait))
-							continue;
-						
-						affectedTrait->subject_to_mutationEffect_callback_ = true;
-						affectedTrait->subject_to_non_global_neutral_callback_ = true;
-						affectedTrait->is_pure_neutral_now_ = false;
-						affectedTrait->is_pure_independent_dominance_now_ = false;
-					}
+					// if the trait is already pure neutral, a callback making it neutral is redundant
+					if (!trait_pure_neutral_for_muttype[muttype_index])
+						trait->subject_to_mutationEffect_callback_ = true;
 				}
 				else
 				{
-					// the callback is neutral, just not global-neutral; so it might need to be called
-					for (Trait *affectedTrait : traits)
+					bool makes_non_neutral = _CallbackMakesTraitNonNeutral(mutationEffect_callback, callback_trait, callback_mut_type);
+					
+					if (makes_non_neutral)
 					{
-						if (callback_trait && (affectedTrait != callback_trait))
-							continue;
+						// the callback is non-neutral, so it has to be called, with non-neutral effects
+						trait->subject_to_mutationEffect_callback_ = true;
+						trait->subject_to_non_global_neutral_callback_ = true;
 						
-						if (affectedTrait->is_pure_neutral_now_)
+						trait_pure_neutral_for_muttype[muttype_index] = false;					}
+					else
+					{
+						// the callback is neutral, just not global-neutral; so it might need to be called
+						if (trait_pure_neutral_for_muttype[muttype_index])
 						{
 							// the trait is pure-neutral, so the callback is redundant and can be ignored;
 							// all it does is set mutations to neutral that are already neutral
@@ -710,12 +697,28 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 						{
 							// the trait is not pure-neutral, so we have to consider the callback "nonneutral"
 							// because it potentially modifies the existing effects of mutations
-							affectedTrait->subject_to_mutationEffect_callback_ = true;
-							affectedTrait->subject_to_non_global_neutral_callback_ = true;
-							affectedTrait->is_pure_independent_dominance_now_ = false;
+							trait->subject_to_mutationEffect_callback_ = true;
+							trait->subject_to_non_global_neutral_callback_ = true;
 						}
 					}
 				}
+			}
+			
+			// now we can draw an inference about whether this trait is pure neutral or not
+			bool pure_neutral_for_all_muttypes = true;
+			
+			for (auto muttype_iter : mut_types)
+				if (!trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_])
+					pure_neutral_for_all_muttypes = false;
+			
+			if (pure_neutral_for_all_muttypes)
+			{
+				trait->subject_to_non_global_neutral_callback_ = false;
+				trait->is_pure_neutral_now_ = true;
+			}
+			else
+			{
+				trait->is_pure_neutral_now_ = false;
 			}
 		}
 		
@@ -800,21 +803,29 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			}
 		}
 		
-#if DEBUG
-		// Crosscheck to see whether mutation types and traits agree about whether the species is pure-neutral.
-		// It is not clear to me whether this crosscheck should always pass, in the present design.
+		bool all_traits_are_pure_neutral = true;
+		
+		for (Trait *trait : traits)
 		{
-			bool all_traits_pure_neutral = true;
-			
-			for (Trait *trait : traits)
-				all_traits_pure_neutral &= trait->is_pure_neutral_now_;
-			
-			if (all_muttypes_are_pure_neutral != all_traits_pure_neutral)
-				EIDOS_TERMINATION << "ERROR (Species::PrepareForTraitCalculations): (internal error) mutation types and traits disagree as to whether the species is pure neutral (mutation types say " << (all_muttypes_are_pure_neutral ? "YES" : "NO") << ", traits say " << (all_traits_pure_neutral ? "YES" : "NO") << ")." << EidosTerminate();
+			if (!trait->is_pure_neutral_now_)
+			{
+				all_traits_are_pure_neutral = false;
+				break;
+			}
 		}
+		
+		// Crosscheck to see whether mutation types and traits agree about whether the species is pure-neutral.
+		// A disagreement on this point is not necessarily a problem; the inferences are made differently.
+		// We will infer pure neutrality if either inference chain tells us we can; assuming there is not an
+		// error above, neither inference chain should conclude pure neutrality incorrectly, but one or the
+		// other might eb more powerful in a given circumstance, and so might not be able to draw the inference.
+		// Still, these mismatches point to places where our inferences could perhaps be improved, so we log.
+#if DEBUG_TRAIT_DEMAND()
+		if (all_muttypes_are_pure_neutral != all_traits_are_pure_neutral)
+			std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations(): NOTE: mutation types and traits disagree as to whether the species is pure neutral (muttypes say " << (all_muttypes_are_pure_neutral ? "YES" : "NO") << ", traits say " << (all_traits_are_pure_neutral ? "YES" : "NO") << ").";
 #endif
 		
-		if (all_muttypes_are_pure_neutral)
+		if (all_muttypes_are_pure_neutral || all_traits_are_pure_neutral)
 			new_trait_calculation_regime = TraitCalculationRegime::kPureNeutral;
 	}
 	

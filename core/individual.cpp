@@ -7345,7 +7345,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
 			// We use a relatively high absolute tolerance here because some calculations are single-precision.
 			if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
-				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed in tick " << species->community_.Tick() << " for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
 #endif
@@ -7786,7 +7786,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
 			// We use a relatively high absolute tolerance here because some calculations are single-precision.
 			if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
-				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed in tick " << species->community_.Tick() << " for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
 		}
 	}
 #endif

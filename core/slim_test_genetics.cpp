@@ -1689,6 +1689,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(test_zygosity4);
 	
+	
 	// =========================================================================================================
 	//
 	// Below is a set of test models that will (hopefully) exercise all the different code paths for trait
@@ -1736,6 +1737,7 @@ initialize() {
 	
 	SLiMAssertScriptSuccess(multitrait_DEFAULT_NEUTRAL);
 	
+	
 	// a completely neutral model using the default trait (no initializeTrait() call), with a subpopulation
 	// fitnessScaling value and several tricky mutationEffect() callbacks to obfuscate inference.
 	// - fitness values should be 1.0 for all individuals
@@ -1780,6 +1782,7 @@ mutationEffect(m1, p2) { return effect; }   // considered non-neutral, but subpo
 	
 	SLiMAssertScriptSuccess(multitrait_DEFAULT_NEUTRAL_OBFUSCATED);
 	
+	
 	// a quick test model for what happens if a non-neutral muttype is defined but not used in a neutral model
 	// the goal was to provoke a conflict between muttype and trait ideas of whether the model is neutral
 	std::string multitrait_DEFAULT_NEUTRAL_NNMUTTYPE =
@@ -1799,6 +1802,7 @@ initialize() {
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_DEFAULT_NEUTRAL_NNMUTTYPE);
+	
 	
 	// a completely neutral model with constant baseline and individual offsets, with direct fitness effects
 	// - fitness values should be 1.0 for all individuals
@@ -1842,6 +1846,7 @@ initialize() {
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_COMPLETE_NEUTRAL);
+	
 	
 	// two traits, both genetically neutral but with non-zero fitness effects
 	// the additive trait is NOT configured for independent dominance
@@ -2012,6 +2017,53 @@ initialize() {
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_INDDOM);
+	
+	
+	// this is a SLiM 5.1-style quantitative trait model using sumOfMutationsOfType()
+	// - fitness values are unpredictable and not tested
+	// - the default trait should be inferred to be pure neutral, since the callback makes it neutral
+	// - the default trait's phenotypes should never be calculated, since they are never demanded
+	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	std::string multitrait_OLD_STYLE_QUANTITATIVE =
+		R"V0G0N(
+// multitrait_OLD_STYLE_QUANTITATIVE
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);       // neutral
+	initializeMutationType("m2", 0.5, "n", 0.0, 0.5);  // QTLs
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1);
+	initializeGenomicElementType("g2", m2, 1);
+	initializeGenomicElement(g1, 0, 20000);
+	initializeGenomicElement(g2, 20001, 30000);
+	initializeGenomicElement(g1, 30001, 99999);
+	initializeRecombinationRate(1e-8);
+}
+mutationEffect(m2) { return 1.0; }
+1 early() { sim.addSubpop("p1", 100); }
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		
+		if (!isNAN(ind_t1))
+			stop("t1 value mismatch (NAN expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite no demand");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+1:2000 late() {
+	inds = sim.subpopulations.individuals;
+	phenotypes = inds.sumOfMutationsOfType(m2);
+	inds.fitnessScaling = 1.5 - (phenotypes - 10.0)^2 * 0.005;
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_OLD_STYLE_QUANTITATIVE);
 	
 	
 	// This is a particularly complex multitrait model intended to test many different things at once,

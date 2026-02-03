@@ -143,6 +143,8 @@ public:
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
+	int mutation_type_index_;					// a zero-based index for this mutation type, used to bin data by mutation type
+	
 	std::vector<EffectSizeDistributionInfo> effect_size_distributions_;		// DESs for each trait in the species
 	
 	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
@@ -223,18 +225,13 @@ public:
 	
 	
 #ifdef SLIMGUI
-	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
 	bool mutation_type_displayed_;				// a flag used by SLiMgui to indicate whether this mutation type is being displayed in the chromosome view
 #endif
 	
 	MutationType(const MutationType&) = delete;					// no copying
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
-#ifdef SLIMGUI
 	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings, int p_mutation_type_index);
-#else
-	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_default_dominance, bool p_nuc_based, DESType p_DES_type, std::vector<double> p_DES_parameters, std::vector<std::string> p_DES_strings);
-#endif
 	~MutationType(void);
 	
 	// mutation data logging
