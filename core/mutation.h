@@ -75,6 +75,22 @@ typedef struct _MutationTraitInfo
 	slim_effect_t homozygous_effect_;		// a cached value for 1 + s, clamped to 0.0 minimum;  OR for 2a
 	slim_effect_t heterozygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha
 	slim_effect_t hemizygous_effect_;		// a cached value for 1 + hs, clamped to 0.0 minimum; OR for 2ha (h = h_hemi)
+	
+	// BCH 2/3/2026: There is a lot of redundancy in the information above, because the three effects are calculated
+	// from the three DES-ish values.  It would be really nice to cut down on the memory footprint here, because
+	// Mutation state is often a major fraction of total memory usage.  So I tried an experiment just now, removing
+	// effect_size_ and hemizygous_dominance_coeff_ from this struct and back-calculating them from the calculated
+	// effects (effect_size_, for example, would be homozygous_effect_ - 1.0 for multiplicative traits, or for
+	// additive traits, homozygous_effect_ * 0.5).  That decreased the memory usage by one-third, which is pretty
+	// good; but it was a failed experiment for two main reasons.  (1) The way that effects get clipped to a minimum
+	// of 0.0 for multiplicative traits made it impossible to correctly recover the original effect size when that
+	// happened.  (2) Numerical error caused problems as well; for example, the back-calculated effect size might
+	// be exactly 0.0 but the original was just close to zero, making the mutation look neutral when it wasn't.
+	// I'm not sure that these issues would have caused any real problems for typical simulations, since the effects
+	// are the important thing, not the original values, in fact.  But this screwed up consistency checks like crazy,
+	// made lots of self-tests that used to be exact require allClose() instead, and so forth; it felt like it was
+	// just fuzzing things out too much to be worth the benefit.  It seemed like a great idea at the time, so I'm
+	// putting this comment here for posterity, to record that this idea is problematic at best.
 } MutationTraitInfo;
 
 typedef enum {
