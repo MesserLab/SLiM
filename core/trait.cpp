@@ -3,7 +3,8 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/25/25.
-//  Copyright © 2025 Messer Lab, http://messerlab.org/software/. All rights reserved.
+//  Copyright (c) 2025-2026 Benjamin C. Haller.  All rights reserved.
+//	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
 #include "trait.h"
