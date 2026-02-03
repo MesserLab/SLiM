@@ -658,12 +658,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		MutationType::ParseDESParameters(DES_type_string, p_arguments.data() + 3, (int)p_arguments.size() - 3, &DES_type, &DES_parameters, &DES_strings);
 	}
 	
-#ifdef SLIMGUI
-	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
+	// each new mutation type gets a unique zero-based index, used to categorize mutations
 	MutationType *new_mutation_type = new MutationType(*this, map_identifier, default_dominance, nucleotide_based, DES_type, DES_parameters, DES_strings, num_mutation_type_inits_);
-#else
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, default_dominance, nucleotide_based, DES_type, DES_parameters, DES_strings);
-#endif
 	
 	mutation_types_.emplace(map_identifier, new_mutation_type);
 	

@@ -8472,7 +8472,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 {
 	int ret = 0;
 	time_t timer;
-	size_t timestamp_size = 64;
+	const size_t timestamp_size = 64;
 	char buffer[timestamp_size];
 	struct tm* tm_info;
 	// NOTE: since file version 0.5, we do *not* read information
