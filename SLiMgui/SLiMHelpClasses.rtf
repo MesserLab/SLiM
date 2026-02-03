@@ -6201,7 +6201,7 @@ You can get the
 \f3\fs18 dominance
 \f4\fs20  property and the 
 \f3\fs18 dominanceForTrait()
-\f4\fs20  method provide alternative ways to access dominance values.\
+\f4\fs20  method provide alternative ways to access dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -6215,7 +6215,7 @@ You can get the
 \f3\fs18 effectSize
 \f4\fs20  property and the 
 \f3\fs18 effectSizeForTrait()
-\f4\fs20  method provide alternative ways to access effect sizes.\
+\f4\fs20  method provide alternative ways to access effect sizes.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -6229,7 +6229,7 @@ You can get the
 \f3\fs18 hemizygousDominance
 \f4\fs20  property and the 
 \f3\fs18 hemizygousDominanceForTrait()
-\f4\fs20  method provide alternative ways to access hemizygous dominance values.\
+\f4\fs20  method provide alternative ways to access hemizygous dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
@@ -6271,15 +6271,8 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if the effect size changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
-Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
-\f3\fs18 mut
-\f4\fs20 \'92s dominance coefficient to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 mut.dominance==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 effectSize => (float)\
@@ -6300,15 +6293,8 @@ Note that dominance coefficients in SLiM have a quirk: they are stored internall
 \f2\i\fs18 <trait-name>
 \f3\i0 EffectSize
 \f4\fs20  property.\
-Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
-\f3\fs18 mut
-\f4\fs20 \'92s effect size to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 mut.effectSize==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 hemizygousDominance => (float)\
@@ -6327,15 +6313,8 @@ Note that effect sizes in SLiM have a quirk: they are stored internally in SLiM 
 \f2\i\fs18 <trait-name>
 \f3\i0 HemizygousDominance
 \f4\fs20  property.\
-Note that dominance coefficients in SLiM have a quirk: they are stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
-\f3\fs18 mut
-\f4\fs20 \'92s hemizygous dominance coefficient to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 mut.hemizygousDominance==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 id => (integer$)\
@@ -6512,6 +6491,8 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if that effect size changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6539,6 +6520,8 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f2\i\fs18 <trait-value>
 \f3\i0 EffectSize
 \f4\fs20  properties.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6565,6 +6548,8 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f2\i\fs18 <trait-value>
 \f3\i0 HemizygousDominance
 \f4\fs20  properties.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -14699,7 +14684,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 dominance
 \f4\fs20  property and the 
 \f3\fs18 dominanceForTrait()
-\f4\fs20  method provide alternative ways to access dominance values.\
+\f4\fs20  method provide alternative ways to access dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -14712,7 +14697,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 effectSize
 \f4\fs20  property and the 
 \f3\fs18 effectSizeForTrait()
-\f4\fs20  method provide alternative ways to access effect sizes.\
+\f4\fs20  method provide alternative ways to access effect sizes.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -14725,7 +14710,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\fs18 hemizygousDominance
 \f4\fs20  property and the 
 \f3\fs18 hemizygousDominanceForTrait()
-\f4\fs20  method provide alternative ways to access hemizygous dominance values.\
+\f4\fs20  method provide alternative ways to access hemizygous dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
@@ -14747,6 +14732,8 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  is defined on 
 \f3\fs18 Substitution
 \f4\fs20  for each trait in the model, providing direct access to the dominance of a substitution for a specific trait.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 effectSize => (float)\
@@ -14760,6 +14747,8 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  is defined on 
 \f3\fs18 Substitution
 \f4\fs20  for each trait in the model, providing direct access to the effect size of a substitution for a specific trait.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 hemizygousDominance => (float)\
@@ -14773,6 +14762,8 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  is defined on 
 \f3\fs18 Substitution
 \f4\fs20  for each trait in the model, providing direct access to the hemizygous dominance of a substitution for a specific trait.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 id => (integer$)\
@@ -14910,6 +14901,9 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\i0 Dominance
 \f4\fs20  properties.
 \f5\fs22 \cf0 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -14937,6 +14931,8 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f2\i\fs18 <trait-value>
 \f3\i0 EffectSize
 \f4\fs20  properties.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -14963,6 +14959,8 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f2\i\fs18 <trait-value>
 \f3\i0 HemizygousDominance
 \f4\fs20  properties.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
