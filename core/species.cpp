@@ -231,7 +231,9 @@ void Species::AutogenerationConfigurationChanged(void)
 	{
 		MutationType *mutation_type_ptr = mut_type_iter.second;
 		
-		// recalculate whether the mutation type's effect distributions are all neutral
+		// recalculate whether the mutation type's effect distributions are all neutral; note that we assess
+		// the DES of the mutation type here, but we don't change muttype_all_neutral_mutations_ unless the
+		// mutation type is actually in use, which we assess below
 		mutation_type_ptr->all_neutral_DES_ = true;
 		
 		for (EffectSizeDistributionInfo &DES_info : mutation_type_ptr->effect_size_distributions_)
@@ -242,24 +244,23 @@ void Species::AutogenerationConfigurationChanged(void)
 			if (DES_info.DES_type_ == DESType::kScript)
 				type_s_DESs_present_ = true;
 		}
-		
-		// recalculate whether the mutation type has any non-neutral mutations associated with it
-		// normally this flag is sticky, because non-neutral mutations could exist even if all_neutral_DES_
-		// is true, but if there are no mutations segregating we can reset this flag and recover neutrality
-		if (registry_count == 0)
-			mutation_type_ptr->muttype_all_neutral_mutations_ = true;
-		
-		if (!mutation_type_ptr->all_neutral_DES_)
-			mutation_type_ptr->muttype_all_neutral_mutations_ = false;
 	}
 	
-	// Then we loop through the GETypes and determine whether there are mutation types in use by a GEType
-	// that are non-neutral, and if so, set the appropriate optimization flags.  Normally these flags are
-	// sticky, but if there are no segregating mutations we can reset them and recover our initial state.
+	// Normally our optimization flags for whether neutral and nonneutral mutations are present are sticky,
+	// because we don't want to scan through the mutation registry to check whether we can reset them (and
+	// even if all mutation type DESs are all-neutral, nonneutral mutations could still exist in various
+	// ways); but if there are no segregating mutations we can reset them and recover our initial state.
 	if (registry_count == 0)
 	{
 		species_all_neutral_mutations_ = true;
 		species_no_neutral_mutations_ = true;
+		
+		for (auto mut_type_iter : mutation_types_)
+		{
+			MutationType *mutation_type_ptr = mut_type_iter.second;
+			
+			mutation_type_ptr->muttype_all_neutral_mutations_ = true;
+		}
 		
 		for (Trait *trait : traits_)
 		{
@@ -272,6 +273,12 @@ void Species::AutogenerationConfigurationChanged(void)
 		}
 	}
 	
+	// Then we loop through the GETypes and determine whether there are mutation types in use by a GEType
+	// that are non-neutral, and if so, set the appropriate optimization flags.  Note that we assume here
+	// that if a mutation type is in use by a GEType, mutations of that type will be created; but that is
+	// not really true (the GEType might not be used anywhere, or the mutation rate might be 0.0, or all
+	// new mutations of that type might be rejected...).  Also, this logic could be done per-chromosome
+	// for greater accuracy.  FIXME MULTITRAIT
 	for (auto ge_type_iter : genomic_element_types_)
 	{
 		GenomicElementType *ge_type_ptr = ge_type_iter.second;
@@ -284,6 +291,8 @@ void Species::AutogenerationConfigurationChanged(void)
 			}
 			else	// !mutation_type_ptr->all_neutral_DES_
 			{
+				mutation_type_ptr->muttype_all_neutral_mutations_ = false;
+				
 				species_all_neutral_mutations_ = false;
 				
 				for (Trait *trait : traits_)
@@ -329,13 +338,6 @@ void Species::CheckOptimizationFlags(void)
 				if (type_s_DESs_present_ != true)
 					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) type_s_DESs_present_ is incorrect (a DES uses type 's')." << EidosTerminate();
 		}
-		
-		// recalculate whether the mutation type has any non-neutral mutations associated with it
-		// normally this flag is sticky, because non-neutral mutations could exist even if all_neutral_DES_
-		// is true, but if there are no mutations segregating we can reset this flag and recover neutrality
-		if (!mutation_type_ptr->all_neutral_DES_)
-			if (mutation_type_ptr->muttype_all_neutral_mutations_ != false)
-				EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect (the mutation type DES is non-neutral)." << EidosTerminate();
 	}
 	
 	// Then check that mutation types used by genomic element types have the correct effect on flags
@@ -352,6 +354,9 @@ void Species::CheckOptimizationFlags(void)
 			}
 			else	// !mutation_type_ptr->all_neutral_DES_
 			{
+				if (mutation_type_ptr->muttype_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect (a DES of the mutation type is non-neutral)." << EidosTerminate();
+				
 				if (species_all_neutral_mutations_ != false)
 					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect (a non-neutral mutation type is in use)." << EidosTerminate();
 				
@@ -510,7 +515,8 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	
 #if DEBUG
 	// Crosscheck to see whether mutation types and traits agree about whether all mutations are neutral.
-	// It is not clear to me whether this crosscheck should always pass, in the present design.
+	// I think the two should agree in all cases, because the logic for setting their flags is parallel
+	// in AutogenerationConfigurationChanged() and NoteChangedMutation().
 	{
 		bool all_muttypes_all_neutral_mutations = true;
 		bool all_traits_all_neutral_mutations = true;
