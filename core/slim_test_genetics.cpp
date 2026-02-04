@@ -2059,7 +2059,7 @@ mutationEffect(m2) { return 1.0; }
 1:2000 late() {
 	inds = sim.subpopulations.individuals;
 	phenotypes = inds.sumOfMutationsOfType(m2);
-	inds.fitnessScaling = 1.5 - (phenotypes - 10.0)^2 * 0.005;
+	inds.fitnessScaling = max(0.0, 1.5 - (phenotypes - 10.0)^2 * 0.005);
 }
 		)V0G0N";
 	
