@@ -217,12 +217,13 @@ Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) 
 	return nullptr;
 }
 
-void Species::AutogenerationConfigurationChanged(void)
+void Species::RecalculateOptimizationFlags(bool p_sweep_registry /* = false */)
 {
 	// This is called when a GenomicElementType / MutationType is changed, including at the end of initialize()
 	// callbacks.  It runs through the autogeneration configuration for the species and sets optimization flags.
+	// If p_sweep_registry == true, it does a sweep through the whole mutation registry for greater accuracy.
 	int registry_count = 0;
-	population_.MutationRegistry(&registry_count);
+	const MutationIndex *registry_iter = population_.MutationRegistry(&registry_count);
 	
 	// First we loop through all the mutation types (whether in use by a GEType or not) and validate them
 	type_s_DESs_present_ = false;
@@ -246,11 +247,18 @@ void Species::AutogenerationConfigurationChanged(void)
 		}
 	}
 	
+#if DEBUG_TRAIT_DEMAND()
+	// If we manage to infer a species-wide change in state, we want to log about that at the end
+	bool previous_species_all_neutral_mutations = species_all_neutral_mutations_;
+	bool previous_species_no_neutral_mutations = species_no_neutral_mutations_;
+#endif
+	
 	// Normally our optimization flags for whether neutral and nonneutral mutations are present are sticky,
 	// because we don't want to scan through the mutation registry to check whether we can reset them (and
 	// even if all mutation type DESs are all-neutral, nonneutral mutations could still exist in various
 	// ways); but if there are no segregating mutations we can reset them and recover our initial state.
-	if (registry_count == 0)
+	// If p_sweep_registry == true we reset in the same way, and sweep the registry at the end.
+	if ((registry_count == 0) || p_sweep_registry)
 	{
 		species_all_neutral_mutations_ = true;
 		species_no_neutral_mutations_ = true;
@@ -312,6 +320,42 @@ void Species::AutogenerationConfigurationChanged(void)
 		}
 	}
 	
+	// Now sweep the registry, if requested; this lets us diagnose our state more accurately
+	if (p_sweep_registry && (registry_count > 0))
+	{
+		MutationBlock *mutation_block = mutation_block_;
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+			
+			if (mut->is_neutral_for_all_traits_)
+			{
+				species_no_neutral_mutations_ = false;
+			}
+			else	// !mut->is_neutral_for_all_traits_
+			{
+				species_all_neutral_mutations_ = false;
+				mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+				
+				MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(mut);
+				
+				for (Trait *trait : traits_)
+					if (mut_trait_info[trait->Index()].effect_size_ != (slim_effect_t)0.0)
+						trait->trait_all_neutral_mutations_ = false;
+			}
+		}
+	}
+	
+#if DEBUG_TRAIT_DEMAND()
+	// If we manage to infer a species-wide change in state, we want to log about that at the end
+	if (species_all_neutral_mutations_ && !previous_species_all_neutral_mutations)
+		std::cout << "# " << community_.Tick() << " %%%%%%%%%%%%%%%%%%%% RecalculateOptimizationFlags() drew a new inference that the species has all neutral mutations." << std::endl;
+	if (species_no_neutral_mutations_ && !previous_species_no_neutral_mutations)
+		std::cout << "# " << community_.Tick() << " %%%%%%%%%%%%%%%%%%%% RecalculateOptimizationFlags() drew a new inference that the species has all nonneutral mutations." << std::endl;
+#endif
+	
 	// These flags cause a refresh of the user interface in SLiMgui.  We don't know for sure here that these
 	// flags need to be set, but assuming it simplifies our design and the impact should be minimal.
 	community_.mutation_types_changed_ = true;
@@ -320,7 +364,7 @@ void Species::AutogenerationConfigurationChanged(void)
 
 void Species::CheckOptimizationFlags(void)
 {
-	// This is called to check that the various optimization flags set by AutogenerationConfigurationChanged()
+	// This is called to check that the various optimization flags set by RecalculateOptimizationFlags()
 	// are in the correct state; incorrect results will be produced if the optimization flags are wrong!
 	
 	// First check that all mutation types are tracked correctly
@@ -380,7 +424,7 @@ void Species::CheckOptimizationFlags(void)
 	}
 	
 	// Finally, check that all mutations in the registry are compatible with the flag settings.  Note that this
-	// state is taken care of by NoteChangedMutation(), not by AutogenerationConfigurationChanged().
+	// state is taken care of by NoteChangedMutation(), not by RecalculateOptimizationFlags().
 	int registry_count = 0;
 	const MutationIndex *registry_iter = population_.MutationRegistry(&registry_count);
 	
@@ -516,7 +560,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 #if DEBUG
 	// Crosscheck to see whether mutation types and traits agree about whether all mutations are neutral.
 	// I think the two should agree in all cases, because the logic for setting their flags is parallel
-	// in AutogenerationConfigurationChanged() and NoteChangedMutation().
+	// in RecalculateOptimizationFlags() and NoteChangedMutation().
 	{
 		bool all_muttypes_all_neutral_mutations = true;
 		bool all_traits_all_neutral_mutations = true;
@@ -4337,7 +4381,7 @@ void Species::RunInitializeCallbacks(void)
 	// Notify the species that the mutation autogeneration configuration has changed; rather than
 	// calling this for each change during initialize(), we call it once here at the end.  Note
 	// that this design means that the flags managed by this method will be incorrect until here.
-	AutogenerationConfigurationChanged();
+	RecalculateOptimizationFlags();
 	
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
@@ -4519,16 +4563,31 @@ bool Species::HasDoneAnyInitialization(void)
 void Species::PrepareForCycle(void)
 {
 	// Called by Community at the very start of each cycle, whether WF or nonWF (but not before initialize() callbacks)
+	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-		// Optimization; see mutation_type.h for an explanation of what this counter is used for
-		if (population_.any_muttype_call_count_used_)
-		{
-			for (auto muttype_iter : mutation_types_)
-				(muttype_iter.second)->muttype_registry_call_count_ = 0;
-			
-			population_.any_muttype_call_count_used_ = false;
-		}
+	// Optimization; see mutation_type.h for an explanation of what this counter is used for
+	if (population_.any_muttype_call_count_used_)
+	{
+		for (auto muttype_iter : mutation_types_)
+			(muttype_iter.second)->muttype_registry_call_count_ = 0;
+		
+		population_.any_muttype_call_count_used_ = false;
+	}
 #endif
+	
+	// Every once in a while, we do a sweep through the whole mutation registry to see whether we have reverted
+	// back to pure neutral or similar transitions; this could be fairly expensive, so we don't do it every tick.
+	// Even for a pretty big model, though, this takes about one one-hundredth of a second, so not a big deal.
+	if (community_.Tick() % 10 == 0)
+	{
+		//std::clock_t begin_cpu = std::clock();
+		
+		RecalculateOptimizationFlags(/* p_sweep_registry */ true);
+		
+		//std::clock_t end_cpu = std::clock();
+		//double cpu_time_secs = static_cast<double>(end_cpu - begin_cpu) / CLOCKS_PER_SEC;
+		//SLIM_ERRSTREAM << "// ********** CPU time for RecalculateOptimizationFlags(): " << cpu_time_secs << std::endl;
+	}
 	
 	// zero out clock accumulators for mutation run experiments; we will add to these as we do work later
 	for (Chromosome *chromosome : chromosomes_)

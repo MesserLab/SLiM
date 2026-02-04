@@ -346,7 +346,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			
 			// let the species know that our configuration has changed
-			species_.AutogenerationConfigurationChanged();
+			species_.RecalculateOptimizationFlags();
 			
 			return;
 		}
@@ -428,7 +428,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	InitializeDraws();
 	
 	// Notify interested parties of the change
-	species_.AutogenerationConfigurationChanged();
+	species_.RecalculateOptimizationFlags();
 	
 	return gStaticEidosValueVOID;
 }

@@ -1233,6 +1233,13 @@ Subpopulation::~Subpopulation(void)
 	if (cached_parental_fitness_)
 		free(cached_parental_fitness_);
 	
+#if DEBUG
+	lookup_parent_ = nullptr;
+	lookup_female_parent_ = nullptr;
+	lookup_male_parent_ = nullptr;
+	cached_parental_fitness_ = nullptr;
+#endif
+	
 	if (mate_choice_weights_)
 		mate_choice_weights_.reset();
 	
@@ -1704,7 +1711,10 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 		// up the cached_parental_fitness_ buffer either; it is only used to set up the GSL's discrete preproc
 		// machinery.  So we can actually free that buffer to decrease memory footprint, in this code path.
 		if (cached_parental_fitness_)
+		{
 			free(cached_parental_fitness_);
+			cached_parental_fitness_ = nullptr;
+		}
 		
 		cached_fitness_size_ = 0;
 		cached_fitness_capacity_ = 0;

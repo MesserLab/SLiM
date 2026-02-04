@@ -2066,6 +2066,69 @@ mutationEffect(m2) { return 1.0; }
 	SLiMAssertScriptSuccess(multitrait_OLD_STYLE_QUANTITATIVE);
 	
 	
+	// this is a simple 2-muttype model that starts out neutral, switches to nonneutral, then switches back
+	// - fitness values are unpredictable and not tested
+	// - the default trait is initially pure neutral, then changes to a non-neutral DES, then back
+	// - the default trait's phenotypes should initially be uncalculated, then switch, then back
+	// - this model should initially not allocate any non-neutral caches, then switch, then back
+	// - it should start in the kPureNeutral regime, then switch to kNoActiveCallbacks, then back
+	std::string multitrait_REVERT_TO_NEUTRAL =
+		R"V0G0N(
+// multitrait_REVERT_TO_NEUTRAL
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0).color = "yellow";
+	initializeMutationType("m2", 0.5, "f", 0.5).color = "red";
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e7 - 1);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2:10 first() {
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite no demand");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+10 early() {
+	g1.setMutationFractions(c(m1, m2), c(1, 0.1));
+}
+11:100 first() {
+	// we stay in the kNoActiveCallbacks regime for while; we're not generating new nonneutral
+	// mutations after tick 19, but nonneutral mutations are probably still segregating for a while
+	// but eventually we should revert back, when we do a check for segregating nonneutral mutations
+	if (sim.countOfMutationsOfType(m2) == 0)
+		return;
+	// if m2 mutations exist, we should be in kNoActiveCallbacks now
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount == 0)
+			stop("nonneutral caches were unallocated despite need for them");
+		if (sim._traitCalculationRegimeName != "kNoActiveCallbacks")
+			stop("unexpected trait calculation regime");
+	}
+}
+20 early() {
+	g1.setMutationFractions(m1, 1);
+}
+301 first() {
+	// by this point we should have reverted back to kPureNeutral, assuming all the m2 mutations fixed
+	// if m2 mutations do not exist, we should be in kPureNeutral now
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralMutationBufferSize != 0)
+			stop("nonneutral caches were non-empty despite no demand");
+		if (sim._traitCalculationRegimeName != "kPureNeutral")
+			stop("unexpected trait calculation regime");
+	}
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_REVERT_TO_NEUTRAL);
+	
+	
 	// This is a particularly complex multitrait model intended to test many different things at once,
 	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
 	// This is an abbreviated version of test script complex_multi_test_1.slim

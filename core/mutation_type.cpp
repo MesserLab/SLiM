@@ -1453,7 +1453,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultDominanceForTrait(EidosGloba
 	// effects of all mutations using this type become invalid; it is now just the *default* coefficient,
 	// and changing it does not change the state of mutations that have already derived from it.  We do
 	// still want to let the species know that a mutation type has changed, though.
-	species_.AutogenerationConfigurationChanged();
+	species_.RecalculateOptimizationFlags();
 	
 	SelfConsistencyCheck(" after setDefaultDominanceForTrait()");
 	
@@ -1503,7 +1503,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDefaultHemizygousDominanceForTrait(
 	// effects of all mutations using this type become invalid; it is now just the *default* coefficient,
 	// and changing it does not change the state of mutations that have already derived from it.  We do
 	// still want to let the species know that a mutation type has changed, though.
-	species_.AutogenerationConfigurationChanged();
+	species_.RecalculateOptimizationFlags();
 	
 	SelfConsistencyCheck(" after setDefaultHemizygousDominanceForTrait()");
 	
@@ -1541,7 +1541,7 @@ EidosValue_SP MutationType::ExecuteMethod_setEffectSizeDistributionForTrait(Eido
 	}
 	
 	// notify the species that we have changed
-	species_.AutogenerationConfigurationChanged();
+	species_.RecalculateOptimizationFlags();
 	
 	return gStaticEidosValueVOID;
 }

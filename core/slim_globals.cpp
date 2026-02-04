@@ -1459,6 +1459,7 @@ const std::string &gStr__debugBuild = EidosRegisteredString("_debugBuild", gID__
 #if DEBUG
 const std::string &gStr__allocatedNonneutralCacheCount = EidosRegisteredString("_allocatedNonneutralCacheCount", gID__allocatedNonneutralCacheCount);
 const std::string &gStr__allocatedNonneutralMutationBufferCount = EidosRegisteredString("_allocatedNonneutralMutationBufferCount", gID__allocatedNonneutralMutationBufferCount);
+const std::string &gStr__allocatedNonneutralMutationBufferSize = EidosRegisteredString("_allocatedNonneutralMutationBufferSize", gID__allocatedNonneutralMutationBufferSize);
 const std::string &gStr__traitCalculationRegimeName = EidosRegisteredString("_traitCalculationRegimeName", gID__traitCalculationRegimeName);
 #endif
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);

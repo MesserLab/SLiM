@@ -171,6 +171,7 @@ multitrait branch:
 	add initializeTrait() parameter [logical$ baselineAccumulation = T] to control, on a per-trait bases, the accumulation of the effects of fixed (substituted) mutations into baseline offsets
 	keep independent dominance caches in MutationRun only for traits that appear to actually be set up for independent dominance
 	add targeted trait calculation optimizations for cases where (a) ALL mutations are neutral, or (b) NO mutations are neutral, both disabling the use of non-neutral caches
+	add an optimization allowing SLiM to revert back to "all muts are neutral" or "no muts are neutral" to regain top performance
 
 
 version 5.1 (Eidos version 4.1):
