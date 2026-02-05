@@ -7325,8 +7325,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	}
 	
 #if DEBUG
-	// Do a check of all computed results, against the same things computed by brute force.  This will
-	// probably be quite expensive, so probably I can't leave it enabled all the time even in DEBUG.
+	// Do a check of all computed results, against the same values computed by brute force.
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
 		Individual *ind = individuals_buffer[individual_index];
@@ -7339,6 +7338,11 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				continue;
 			
 			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			
+			// If the individual's trait value is NAN after calculation, that's an error.
+			if (isnan(calculated_phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype is NAN after calculation, for trait '" << species->Traits()[trait_index]->Name() << "'." << EidosTerminate();
+			
 			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
 			
 			// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
@@ -7766,8 +7770,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	}	
 	
 #if DEBUG
-	// Do a check of all computed results, against the same things computed by brute force.  This will
-	// probably be quite expensive, so probably I can't leave it enabled all the time even in DEBUG.
+	// Do a check of all computed results, against the same values computed by brute force.
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
 		Individual *ind = individuals_buffer[individual_index];
@@ -7780,6 +7783,11 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				continue;
 			
 			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			
+			// If the individual's trait value is NAN after calculation, that's an error.
+			if (isnan(calculated_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype is NAN after calculation, for trait '" << species->Traits()[trait_index]->Name() << "'." << EidosTerminate();
+			
 			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
 			
 			// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
