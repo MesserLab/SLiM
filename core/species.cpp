@@ -1671,7 +1671,7 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 			
 #if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
 			// we count a mutrun as "recached" if it ends up allocated, with its nonneutral mutation buffer in use
-			if (mutrun->nonneutral_cache_ && (mutrun->nonneutral_cache_->nonneutral_count_ >= 0))
+			if (mutrun->nonneutral_cache_in_use())
 				recached_count++;
 #endif
 			

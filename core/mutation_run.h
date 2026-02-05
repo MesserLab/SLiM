@@ -855,6 +855,8 @@ public:
 	// to diagnose them, but in those cases, the caller should not be trying to use the nonneutral cache anyway.
 	inline __attribute__((always_inline)) bool nonneutral_cache_invalid(void) const { return (!nonneutral_cache_ || (nonneutral_cache_->nonneutral_count_ == -1)); }
 	
+	inline __attribute__((always_inline)) bool nonneutral_cache_in_use(void) const { return (nonneutral_cache_ && (nonneutral_cache_->nonneutral_count_ >= 0)); }
+	
 	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(IndDomCacheIndex inddom_cache_count) const
 	{
 #if DEBUG
