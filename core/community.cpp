@@ -2905,6 +2905,13 @@ bool Community::_RunOneTickWF(void)
 				executing_species_ = nullptr;
 			}
 		
+#if DEBUG
+		// now that fitness calculations are done, do a crosscheck of all trait values
+		// this is disabled by a global flag while we are running some self-tests
+		for (Species *species : all_species_)
+			species->CrosscheckAllTraitValues();
+#endif
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
@@ -3207,6 +3214,12 @@ bool Community::_RunOneTickNonWF(void)
 				
 				executing_species_ = nullptr;
 			}
+		
+#if DEBUG
+		// now that fitness calculations are done, do a crosscheck of all trait values
+		for (Species *species : all_species_)
+			species->CrosscheckAllTraitValues();
+#endif
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();

@@ -2129,6 +2129,335 @@ initialize() {
 	SLiMAssertScriptSuccess(multitrait_REVERT_TO_NEUTRAL);
 	
 	
+	// this script tests invalidation of trait values when addNewDrawnMutation() is called
+	// - trait values in individuals whose haplotypes changed should be invalidated
+	// - trait values in other individuals should be unaffected
+	std::string multitrait_INVALIDATE_1 =
+		R"V0G0N(
+// multitrait_INVALIDATE_1
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	target = sample(p1.haplosomes, 1);
+	target_ind = target.individual;
+	others = p1.subsetIndividuals(exclude=target_ind);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values unexpected prior to adding mutation");
+	target.addNewDrawnMutation(m1, 5000);
+	for (ind in others)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values changed in unaffected individuals");
+	if (!identical(target_ind.phenotypeForTrait(), c(NAN, NAN)))
+		stop("adding mutation did not invalidate trait values");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_1);
+	
+	
+	// this script tests invalidation of trait values when addNewMutation() is called
+	// - trait values in individuals whose haplotypes changed should be invalidated
+	// - trait values in other individuals should be unaffected
+	std::string multitrait_INVALIDATE_2 =
+		R"V0G0N(
+// multitrait_INVALIDATE_2
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	target = sample(p1.haplosomes, 1);
+	target_ind = target.individual;
+	others = p1.subsetIndividuals(exclude=target_ind);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values unexpected prior to adding mutation");
+	target.addNewMutation(m1, 0.01, 5000);
+	for (ind in others)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values changed in unaffected individuals");
+	if (!identical(target_ind.phenotypeForTrait(), c(NAN, NAN)))
+		stop("adding mutation did not invalidate trait values");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_2);
+	
+	
+	// this script tests invalidation of trait values when addMutations() is called
+	// - trait values in individuals whose haplotypes changed should be invalidated
+	// - trait values in other individuals should be unaffected
+	std::string multitrait_INVALIDATE_3 =
+		R"V0G0N(
+// multitrait_INVALIDATE_3
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	target = sample(p1.haplosomes, 1);
+	target_ind = target.individual;
+	others = p1.subsetIndividuals(exclude=target_ind);
+	mut = target.addNewDrawnMutation(m1, 5000);
+	
+	for (ind in others)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values unexpected prior to adding mutation");
+	target2 = others[0];
+	target2.haplosomes[0].addMutations(mut);
+	if (!identical(target2.phenotypeForTrait(), c(NAN, NAN)))
+		stop("adding mutation did not invalidate trait values");
+	others2 = others[others != target2];
+	for (ind in others2)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values changed in unaffected individuals");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_3);
+	
+	
+	// this script tests invalidation of trait values when removeMutations() is called
+	// - trait values in individuals whose haplotypes changed should be invalidated
+	// - trait values in other individuals should be unaffected
+	std::string multitrait_INVALIDATE_4 =
+		R"V0G0N(
+// multitrait_INVALIDATE_4
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	target_haplosomes = sample(p1.haplosomes, 5, replace=F);
+	target_inds = unique(target_haplosomes.individual, preserveOrder=F);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values unexpected prior to adding mutation");
+	mut = target_haplosomes.addNewMutation(m1, 0.01, 5000);
+	for (ind in target_inds)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
+			stop("adding mutation did not invalidate trait values");
+	target_inds.demandPhenotypeForIndividuals();
+	for (ind in target_inds)
+		if (isNAN(ind.mul1T) | isNAN(ind.mul2T))
+			stop("demanding phenotypes did not validate trait values after addition");
+	target_haplosomes.removeMutations(mut);
+	for (ind in target_inds)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
+			stop("removing mutation did not invalidate trait values");
+	target_inds.demandPhenotypeForIndividuals();
+	for (ind in target_inds)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, 1.0)))
+			stop("demanding phenotypes did not validate trait values after removal");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_4);
+	
+	
+	// this script tests invalidation of trait values when individual offsets are changed
+	// - trait values in individuals whose offsets changed should be invalidated
+	// - trait values in other individuals should be unaffected
+	std::string multitrait_INVALIDATE_5 =
+		R"V0G0N(
+// multitrait_INVALIDATE_5
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	target_inds = sample(p1.individuals, 5, replace=F);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values unexpected prior to demand");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, 1.0)))
+			stop("trait values unexpected after demand");
+	target_inds[0].mul1TOffset = 1.25;
+	target_inds[1:4].mul1TOffset = 1.25;
+	for (ind in target_inds)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, 1.0)))
+			stop("trait values unexpected after setting mul1TOffset");
+	target_inds[0:3].setOffsetForTrait("mul2T", 1.5);
+	target_inds[4].setOffsetForTrait("mul2T", 1.5);
+	for (ind in target_inds)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
+			stop("trait values unexpected after setting mul1TOffset");
+	target_inds.demandPhenotypeForIndividuals();
+	for (ind in target_inds)
+		if (isNAN(ind.mul1T) | isNAN(ind.mul2T) | (ind.mul1T != 1.25) | (ind.mul2T != 1.5))
+			stop("trait values unexpected after setting mul1TOffset");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_5);
+	
+	
+	// this script tests invalidation of trait values when baseline offsets are changed
+	// - trait values in all individuals should be invalidated
+	std::string multitrait_INVALIDATE_6 =
+		R"V0G0N(
+// multitrait_INVALIDATE_6
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
+			stop("trait values unexpected prior to demand");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, 1.0)))
+			stop("trait values unexpected after demand");
+	sim.mul1T.baselineOffset = 1.5;
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, 1.0)))
+			stop("trait values unexpected after mul1T baselineOffset change");
+	sim.mul2T.baselineOffset = 1.25;
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
+			stop("trait values unexpected after mul2T baselineOffset change");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.5, 1.25)))
+			stop("trait values unexpected after demand");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_6);
+	
+	
+	// this script tests invalidation of trait values when mutation properties are changed
+	// - trait values in all individuals should be invalidated after each change
+	std::string multitrait_INVALIDATE_7 =
+		R"V0G0N(
+// multitrait_INVALIDATE_7
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeMutationType("m2", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2 early() {
+	target = sample(p1.haplosomes, 1);
+	target_ind = target.individual;
+	mut = target.addNewMutation(m1, 0.0, 5000);
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(1.0, 1.0)))
+			stop("trait values unexpected after demand");
+	mut.mul1TEffectSize = 1.1;
+	for (ind in p1.individuals)
+		if (!identical(ind.phenotypeForTrait(), c(NAN, 1.0)))
+			stop("trait values unexpected after setting mul1TEffectSize");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (isNAN(ind.mul1T) | isNAN(ind.mul2T))
+			stop("trait values unexpected after demand");
+	mut.mul2TDominance = 0.6;
+	for (ind in p1.individuals)
+		if (isNAN(ind.mul1T) | !isNAN(ind.mul2T))
+			stop("trait values unexpected after setting mul2TDominance");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (isNAN(ind.mul1T) | isNAN(ind.mul2T))
+			stop("trait values unexpected after demand");
+	mut.mul1THemizygousDominance = 0.4;
+	for (ind in p1.individuals)
+		if (!isNAN(ind.mul1T) | isNAN(ind.mul2T))
+			stop("trait values unexpected after setting mul1THemizygousDominance");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (isNAN(ind.mul1T) | isNAN(ind.mul2T))
+			stop("trait values unexpected after demand");
+	mut.setMutationType(m2);
+	for (ind in p1.individuals)
+		if (!isNAN(ind.mul1T) | !isNAN(ind.mul2T))
+			stop("trait values unexpected after setMutationType()");
+	sim.demandPhenotype(NULL);
+	for (ind in p1.individuals)
+		if (isNAN(ind.mul1T) | isNAN(ind.mul2T))
+			stop("trait values unexpected after demand");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_7);
+	
+	
 	// This is a particularly complex multitrait model intended to test many different things at once,
 	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
 	// This is an abbreviated version of test script complex_multi_test_1.slim

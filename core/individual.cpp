@@ -2856,6 +2856,9 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
 				
 				trait_info_[trait->Index()].phenotype_ = new_phenotype;
+				
+				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+				species.PhenotypeChangedDirectly();
 				return;
 			}
 			else if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Offset"))		// ACCELERATED
@@ -2872,6 +2875,9 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 					
 					trait_info_[trait->Index()].offset_ = new_offset;
 					trait->IndividualOffsetChanged();
+					
+					// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+					trait_info_[trait->Index()].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					return;
 				}
 			}
@@ -3290,6 +3296,9 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 	
 	if (species)
 	{	
+		// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+		species->PhenotypeChangedDirectly();
+		
 		Trait *trait = species->TraitFromStringID(p_property_id);
 		
 		if (!trait)
@@ -3339,6 +3348,10 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			{
 				const Individual *value = individuals_buffer[value_index];
 				Species &value_species = value->subpopulation_->species_;
+				
+				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+				value_species.PhenotypeChangedDirectly();
+				
 				Trait *trait = value_species.TraitFromStringID(p_property_id);
 				
 				if (!trait)
@@ -3355,6 +3368,10 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			{
 				const Individual *value = individuals_buffer[value_index];
 				Species &value_species = value->subpopulation_->species_;
+				
+				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+				value_species.PhenotypeChangedDirectly();
+				
 				Trait *trait = value_species.TraitFromStringID(p_property_id);
 				
 				if (!trait)
@@ -3402,6 +3419,9 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 				const Individual *value = individuals_buffer[value_index];
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 			}
 		}
 		else
@@ -3415,6 +3435,9 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 			}
 		}
 		
@@ -3443,6 +3466,9 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
 				trait->IndividualOffsetChanged();
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 			}
 		}
 		else
@@ -3464,6 +3490,9 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
 				trait->IndividualOffsetChanged();
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 			}
 		}
 	}
@@ -4681,6 +4710,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 						offset = (slim_trait_offset_t)0.0;
 					
 					ind->trait_info_[trait_index].offset_ = offset;
+					
+					// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+					ind->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 				}
 			}
 			else
@@ -4690,6 +4722,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 					Individual *ind = individuals_buffer[individual_index];
 					
 					ind->trait_info_[trait_index].offset_ = trait->DrawIndividualOffset();
+					
+					// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+					ind->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 				}
 			}
 			
@@ -4714,8 +4749,13 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				offset = (slim_trait_offset_t)0.0;
 			
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
 				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset_for_trait;
 				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+			}
+			
 			trait->IndividualOffsetChanged();
 		}
 	}
@@ -4741,6 +4781,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 				Individual *ind = individuals_buffer[individual_index];
 				
 				ind->trait_info_[trait_index].offset_ = offset;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				ind->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 			}
 			
 			trait->IndividualOffsetChanged();
@@ -4772,6 +4815,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 							offset = (slim_trait_offset_t)0.0;
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					}
 				}
 				else
@@ -4781,6 +4827,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					}
 				}
 				
@@ -4803,6 +4852,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 						
 						ind->trait_info_[trait_index].offset_ = offset;
 						trait->IndividualOffsetChanged();
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						ind->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					}
 				}
 			}
@@ -4832,6 +4884,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 							offset = (slim_trait_offset_t)0.0;
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					}
 				}
 				else
@@ -4844,6 +4899,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
 						
 						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					}
 				}
 				
@@ -4869,6 +4927,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStrin
 						
 						ind->trait_info_[trait_index].offset_ = offset;
 						trait->IndividualOffsetChanged();
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						ind->trait_info_[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 					}
 				}
 			}
@@ -4901,6 +4962,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalSt
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+	species->PhenotypeChangedDirectly();
 	
 	// get the trait indices, with bounds-checking
 	std::vector<slim_trait_index_t> trait_indices;

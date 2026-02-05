@@ -2612,6 +2612,19 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 		}
 	}
 	
+	// TRAIT INVALIDATION: all trait values are invalidated, in each owning individual
+	slim_trait_index_t trait_count = species->TraitCount();
+	
+	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+	{
+		Haplosome *target_haplosome = targets[haplosome_index];
+		Individual *target_individual = target_haplosome->OwningIndividual();
+		IndividualTraitInfo *trait_info = target_individual->trait_info_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+			trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+	}
+	
 	return gStaticEidosValueVOID;
 }
 
@@ -3038,6 +3051,19 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		
 		// invalidate cached mutation refcounts; refcounts have changed
 		pop.InvalidateMutationReferencesCache();
+	}
+	
+	// TRAIT INVALIDATION: all trait values are invalidated, in each owning individual
+	slim_trait_index_t trait_count = species->TraitCount();
+	
+	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+	{
+		Haplosome *target_haplosome = targets[haplosome_index];
+		Individual *target_individual = target_haplosome->OwningIndividual();
+		IndividualTraitInfo *trait_info = target_individual->trait_info_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+			trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 	}
 	
 	return retval;
@@ -4650,6 +4676,21 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(mut_block_ptr, position));
 			}
 		}
+	}
+	
+	// TRAIT INVALIDATION: all trait values are invalidated, in each owning individual
+	// FIXME MULTITRAIT: This is overkill; we can avoid invalidating individuals that didn't possess the mutation,
+	// and we can avoid invalidating traits with baseline accumulation if substitution was done by the removal.
+	slim_trait_index_t trait_count = species->TraitCount();
+	
+	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+	{
+		Haplosome *target_haplosome = targets_data[haplosome_index];
+		Individual *target_individual = target_haplosome->OwningIndividual();
+		IndividualTraitInfo *trait_info = target_individual->trait_info_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+			trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 	}
 	
 	// TIMING RESTRICTION

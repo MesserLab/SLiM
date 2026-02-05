@@ -10,6 +10,8 @@
 #include "trait.h"
 #include "community.h"
 #include "species.h"
+#include "subpopulation.h"
+#include "individual.h"
 
 
 Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetDistributionMean, double p_individualOffsetDistributionSD, bool p_directFitnessEffect, bool p_baselineAccumulation) :
@@ -86,6 +88,25 @@ const EidosClass *Trait::Class(void) const
 void Trait::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassNameForDisplay() << "<" << name_ << ">";
+}
+
+void Trait::InvalidateTraitValuesForAllIndividuals(void)
+{
+	// At first glance, it would be nice for this to be done via a flag on Trait instead.  The tricky thing about
+	// that is that the flag might get set (invalidating everyone) and then the trait values of just a subset of
+	// individuals might get validated.  The trait values of all remaining individuals would then need to be set
+	// to NAN to preserve their invalidation; but managing that in general seems tricky.  Let's keep it simple.
+	for (auto subpop_iter : species_.population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		
+		for (Individual *individual : subpop->parent_individuals_)
+		{
+			IndividualTraitInfo *trait_info = individual->trait_info_;
+			
+			trait_info[Index()].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+		}
+	}
 }
 
 slim_trait_offset_t Trait::_DrawIndividualOffset(void) const
@@ -210,6 +231,8 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			else
 				baselineOffset_ = (slim_trait_offset_t)value;
 			
+			// TRAIT INVALIDATION: the trait value for this trait is invalidated in all individuals
+			InvalidateTraitValuesForAllIndividuals();
 			return;
 		}
 		case gID_individualOffsetMean:

@@ -1690,7 +1690,12 @@ individual => (object<Individual>$)\
 \f4\fs20  must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object; attempting to add a mutation to a haplosome associated with a different chromosome will raise an error.\
-Calling this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
@@ -1733,7 +1738,7 @@ Note that in nonWF models that use tree-sequence recording, mutations cannot be 
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create (see section 26.10.1).  The effect sizes of the mutations are drawn from the distributions of effect size of their mutation types; 
+\f4\fs20  to \'93tag\'94 the mutations that you create.  The effect sizes of the mutations are drawn from the distributions of effect size of their mutation types; 
 \f3\fs18 addNewMutation()
 \f4\fs20  may be used instead if you wish to specify effect sizes.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
@@ -1798,6 +1803,10 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \cf2 Before SLiM 4, this method also took a 
 \f3\fs18 originGeneration
 \f4\fs20  parameter.  This was deprecated (the origin generation was then required to be equal to the current generation, for internal consistency), and was removed in SLiM 4.\
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Calling this will normally affect the fitness values calculated at the end of the current tick (but not sooner); if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
@@ -1908,6 +1917,10 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \cf2 Before SLiM 4, this method also took a 
 \f3\fs18 originGeneration
 \f4\fs20  parameter.  This was deprecated (the origin generation was then required to be equal to the current generation, for internal consistency), and was removed in SLiM 4.\
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Calling this will normally affect the fitness values calculated at the end of the current tick (but not sooner); if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
@@ -2675,6 +2688,10 @@ A call of
 \f4\fs20  must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object; attempting to remove a mutation from a haplosome associated with a different chromosome will raise an error.\
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Removing mutations will normally affect the fitness values calculated at the end of the current tick; if you want current fitness values to be affected, you can call the 
@@ -2946,6 +2963,10 @@ The species to which the target object belongs.\
 \f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
 \f3\fs18 offsetForTrait()
 \f4\fs20  method provides an alternative way to access individual offsets.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait in the target individuals, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 age \cf2 \expnd0\expndtw0\kerning0
@@ -4351,7 +4372,12 @@ The parameter
 \f4\fs20  to provide a different offset value for each trait in each individual, using consecutive values from 
 \f3\fs18 offset
 \f4\fs20  to set the offset for each of the specified traits in one individual before moving to the next individual.\
-Note that for multiplicative traits, all effects are clamped to a minimum of 
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified traits in the target individuals, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
 \f3\fs18 Trait
@@ -6202,6 +6228,10 @@ You can get the
 \f4\fs20  property and the 
 \f3\fs18 dominanceForTrait()
 \f4\fs20  method provide alternative ways to access dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -6216,6 +6246,10 @@ You can get the
 \f4\fs20  property and the 
 \f3\fs18 effectSizeForTrait()
 \f4\fs20  method provide alternative ways to access effect sizes.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i\fs18 \cf2 <trait-name>
@@ -6230,6 +6264,10 @@ You can get the
 \f4\fs20  property and the 
 \f3\fs18 hemizygousDominanceForTrait()
 \f4\fs20  method provide alternative ways to access hemizygous dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
@@ -6271,8 +6309,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if the effect size changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 effectSize => (float)\
@@ -6293,8 +6330,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f2\i\fs18 <trait-name>
 \f3\i0 EffectSize
 \f4\fs20  property.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 hemizygousDominance => (float)\
@@ -6313,8 +6349,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f2\i\fs18 <trait-name>
 \f3\i0 HemizygousDominance
 \f4\fs20  property.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 id => (integer$)\
@@ -6491,8 +6526,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if that effect size changes.  The class 
 \f3\fs18 Trait
 \f4\fs20  documentation provides further discussion of independent dominance.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6520,8 +6554,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f2\i\fs18 <trait-value>
 \f3\i0 EffectSize
 \f4\fs20  properties.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6548,8 +6581,7 @@ If the target mutation has been configured to exhibit independent dominance for 
 \f2\i\fs18 <trait-value>
 \f3\i0 HemizygousDominance
 \f4\fs20  properties.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -6623,6 +6655,10 @@ A dominance value of
 \f4\fs20  or 
 \f3\fs18 setDefaultDominanceForTrait()
 \f4\fs20 .  A given mutation may be configured to exhibit independent dominance for some traits and not for others; a mixed configuration is allowed.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)setEffectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effectSize\'a0=\'a0NULL])\
@@ -6659,7 +6695,12 @@ The parameter
 \f4\fs20  to provide a different effect size for each trait in each mutation, using consecutive values from 
 \f3\fs18 effectSize
 \f4\fs20  to set the effect size for each of the specified traits in one mutation before moving to the next mutation.\
-Note that for multiplicative traits, all effects are clamped to a minimum of 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
 \f3\fs18 Trait
@@ -6700,6 +6741,10 @@ The parameter
 \f4\fs20  to provide a different hemizygous dominance coefficient for each trait in each mutation, using consecutive values from 
 \f3\fs18 dominance
 \f4\fs20  to set the hemizygous dominance for each of the specified traits in one mutation before moving to the next mutation.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)\
@@ -6719,6 +6764,10 @@ The parameter
 \f3\fs18 Mutation
 \f4\fs20  if so desired.\
 In nucleotide-based models, a restriction applies: nucleotide-based mutations may not be changed to a non-nucleotide-based mutation type, and non-nucleotide-based mutations may not be changed to a nucleotide-based mutation type.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.11  Class MutationType\
@@ -14732,8 +14781,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  is defined on 
 \f3\fs18 Substitution
 \f4\fs20  for each trait in the model, providing direct access to the dominance of a substitution for a specific trait.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 effectSize => (float)\
@@ -14747,8 +14795,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  is defined on 
 \f3\fs18 Substitution
 \f4\fs20  for each trait in the model, providing direct access to the effect size of a substitution for a specific trait.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 hemizygousDominance => (float)\
@@ -14762,8 +14809,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f4\fs20  is defined on 
 \f3\fs18 Substitution
 \f4\fs20  for each trait in the model, providing direct access to the hemizygous dominance of a substitution for a specific trait.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 id => (integer$)\
@@ -14901,7 +14947,6 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3\i0 Dominance
 \f4\fs20  properties.
 \f5\fs22 \cf0 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -14931,8 +14976,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f2\i\fs18 <trait-value>
 \f3\i0 EffectSize
 \f4\fs20  properties.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -14959,8 +15003,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f2\i\fs18 <trait-value>
 \f3\i0 HemizygousDominance
 \f4\fs20  properties.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
@@ -15028,7 +15071,12 @@ Note that this method is only for use in nonWF models, in which migration is man
 This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
 \f3\fs18 individualOffsetMean
 \f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
-Note that for multiplicative traits, all effects are clamped to a minimum of 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
 \f3\fs18 0.0
 \f4\fs20  as documented in the 
 \f3\fs18 Trait

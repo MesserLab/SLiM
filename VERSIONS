@@ -172,6 +172,13 @@ multitrait branch:
 	keep independent dominance caches in MutationRun only for traits that appear to actually be set up for independent dominance
 	add targeted trait calculation optimizations for cases where (a) ALL mutations are neutral, or (b) NO mutations are neutral, both disabling the use of non-neutral caches
 	add an optimization allowing SLiM to revert back to "all muts are neutral" or "no muts are neutral" to regain top performance
+	add invalidation of cached trait values (with associated documentation changes):
+		for addNewMutation() and addNewDrawnMutation() (invalidating all trait values, for the individuals involved)
+		for addMutations() (invalidating all trait values, for the individuals involved)
+		for removeMutations() (invalidating all trait values, for the individuals involved)
+		for changes to individual offsets (invalidating the trait values involved, for the individuals involved)
+		for changes to baseline offsets (invalidating the trait values involved, for all individuals) -- except for baseline accumulation at substitution
+		for changes to the effect size, dominance, hemizygous dominance, or mutation type of mutations (invalidating the trait values involved, for all individuals)
 
 
 version 5.1 (Eidos version 4.1):
