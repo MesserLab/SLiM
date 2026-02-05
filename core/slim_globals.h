@@ -1069,8 +1069,9 @@ extern const std::string &gStr__debug;										// internal API
 extern const std::string &gStr__debugBuild;									// internal API
 #if DEBUG
 extern const std::string &gStr__allocatedNonneutralCacheCount;				// internal API
-extern const std::string &gStr__allocatedNonneutralMutationBufferCount;		// internal API
-extern const std::string &gStr__allocatedNonneutralMutationBufferSize;		// internal API
+extern const std::string &gStr__inUseNonneutralMutationBufferCount;			// internal API
+extern const std::string &gStr__inUseNonneutralMutationBufferSize;			// internal API
+extern const std::string &gStr__invalidNonneutralMutationBufferCount;		// internal API
 extern const std::string &gStr__traitCalculationRegimeName;					// internal API
 #endif
 extern const std::string &gStr_setMigrationRates;
@@ -1573,8 +1574,9 @@ enum _SLiMGlobalStringID : int {
 	gID__debugBuild,									// internal API
 #if DEBUG
 	gID__allocatedNonneutralCacheCount,					// internal API
-	gID__allocatedNonneutralMutationBufferCount,		// internal API
-	gID__allocatedNonneutralMutationBufferSize,			// internal API
+	gID__inUseNonneutralMutationBufferCount,			// internal API
+	gID__inUseNonneutralMutationBufferSize,				// internal API
+	gID__invalidNonneutralMutationBufferCount,			// internal API
 	gID__traitCalculationRegimeName,					// internal API
 #endif
 	gID_setMigrationRates,

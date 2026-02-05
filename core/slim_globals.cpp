@@ -1458,8 +1458,9 @@ const std::string &gStr__debug = EidosRegisteredString("_debug", gID__debug);
 const std::string &gStr__debugBuild = EidosRegisteredString("_debugBuild", gID__debugBuild);
 #if DEBUG
 const std::string &gStr__allocatedNonneutralCacheCount = EidosRegisteredString("_allocatedNonneutralCacheCount", gID__allocatedNonneutralCacheCount);
-const std::string &gStr__allocatedNonneutralMutationBufferCount = EidosRegisteredString("_allocatedNonneutralMutationBufferCount", gID__allocatedNonneutralMutationBufferCount);
-const std::string &gStr__allocatedNonneutralMutationBufferSize = EidosRegisteredString("_allocatedNonneutralMutationBufferSize", gID__allocatedNonneutralMutationBufferSize);
+const std::string &gStr__inUseNonneutralMutationBufferCount = EidosRegisteredString("_inUseNonneutralMutationBufferCount", gID__inUseNonneutralMutationBufferCount);
+const std::string &gStr__inUseNonneutralMutationBufferSize = EidosRegisteredString("_inUseNonneutralMutationBufferSize", gID__inUseNonneutralMutationBufferSize);
+const std::string &gStr__invalidNonneutralMutationBufferCount = EidosRegisteredString("_invalidNonneutralMutationBufferCount", gID__invalidNonneutralMutationBufferCount);
 const std::string &gStr__traitCalculationRegimeName = EidosRegisteredString("_traitCalculationRegimeName", gID__traitCalculationRegimeName);
 #endif
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);

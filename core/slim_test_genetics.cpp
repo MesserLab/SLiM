@@ -2007,7 +2007,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount == 0)
 			stop("nonneutral caches were unallocated despite independent dominance");
-		if (sim._allocatedNonneutralMutationBufferCount > 0)
+		if (sim._inUseNonneutralMutationBufferCount > 0)
 			stop("nonneutral mutation buffers were in use despite all nonneutral genetics");
 		if (sim._traitCalculationRegimeName != "kAllNonNeutralWithIndDomCaches")
 			stop("unexpected trait calculation regime");
@@ -2118,7 +2118,7 @@ initialize() {
 	// by this point we should have reverted back to kPureNeutral, assuming all the m2 mutations fixed
 	// if m2 mutations do not exist, we should be in kPureNeutral now
 	if (sim._debugBuild) {
-		if (sim._allocatedNonneutralMutationBufferSize != 0)
+		if (sim._inUseNonneutralMutationBufferSize != 0)
 			stop("nonneutral caches were non-empty despite no demand");
 		if (sim._traitCalculationRegimeName != "kPureNeutral")
 			stop("unexpected trait calculation regime");

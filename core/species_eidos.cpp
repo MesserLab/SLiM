@@ -2403,7 +2403,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(allocated_count));
 		}
-		case gID__allocatedNonneutralMutationBufferCount:
+		case gID__inUseNonneutralMutationBufferCount:
 		{
 			// This property provides a count of nonneutral mutation buffers that are allocated and in use
 			// This is different from allocatedNonneutralCacheCount in that a nonneutral cache can be allocated,
@@ -2429,7 +2429,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(allocated_count));
 		}
-		case gID__allocatedNonneutralMutationBufferSize:
+		case gID__inUseNonneutralMutationBufferSize:
 		{
 			// This property provides the total size of nonneutral mutation buffers that are allocated and in use
 			int64_t allocated_size = 0;
@@ -2451,6 +2451,29 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			}
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(allocated_size));
+		}
+		case gID__invalidNonneutralMutationBufferCount:
+		{
+			// This property provides the number of nonneutral mutation buffers that are marked as invalid
+			int64_t invalid_count = 0;
+			
+			for (Chromosome *chromosome : chromosomes_)
+			{
+				int context_count = chromosome->ChromosomeMutationRunContextCount();
+				
+				for (int context_index = 0; context_index < context_count; ++context_index)
+				{
+					MutationRunContext &context = chromosome->ChromosomeMutationRunContextForThread(context_index);
+					MutationRunPool in_use_pool = context.in_use_pool_;
+					MutationRunPool freed_pool = context.freed_pool_;
+					
+					for (const MutationRun *mutrun : in_use_pool)
+						if ((mutrun->nonneutral_cache_ != nullptr) && (mutrun->nonneutral_cache_->nonneutral_count_ == -1))
+							invalid_count++;
+				}
+			}
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(invalid_count));
 		}
 		case gID__traitCalculationRegimeName:
 		{
@@ -4969,8 +4992,9 @@ std::vector<EidosPropertySignature_CSP> *Species_Class::Properties_MUTABLE(void)
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__debugBuild,			true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 #if DEBUG
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralCacheCount,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralMutationBufferCount,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__allocatedNonneutralMutationBufferSize,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__inUseNonneutralMutationBufferCount,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__inUseNonneutralMutationBufferSize,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__invalidNonneutralMutationBufferCount,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr__traitCalculationRegimeName,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 #endif
 		
