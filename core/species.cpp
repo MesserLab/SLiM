@@ -1350,6 +1350,9 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 		// Changing from one regime to another demands a full recache, by definition.  This implies that if
 		// last_trait_calculation_regime is TraitCalculationRegime::kUndefined we always recache.
 		all_nonneutral_caches_invalid_ = true;
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches due to regime change" << std::endl;
+#endif
 	}
 	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kPureNeutral)
 	{
@@ -1382,7 +1385,12 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 		}
 		
 		if (!callback_state_identical)
+		{
 			all_nonneutral_caches_invalid_ = true;
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches due to state change in kAllGlobalNeutralCallbacks" << std::endl;
+#endif
+		}
 	}
 	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kNonNeutralCallbacks)
 	{
@@ -1402,7 +1410,12 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 		}
 		
 		if (!callback_state_identical)
+		{
 			all_nonneutral_caches_invalid_ = true;
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches due to state change in kNonNeutralCallbacks" << std::endl;
+#endif
+		}
 	}
 	else if (current_trait_calculation_regime_ == TraitCalculationRegime::kAllNonNeutralNoIndDomCaches)
 	{
@@ -1434,7 +1447,7 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 			(chromosome->Type() == ChromosomeType::kZ_ZSexChromosome))
 			f_haploid_chromosome = false;
 		
-#if SLIM_PROFILE_NONNEUTRAL_CACHES()
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
 		// PROFILING
 		int64_t recached_count = 0;
 #endif
@@ -1600,7 +1613,7 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 			
 			__attribute__ ((unused)) int64_t this_recached_count = (this->*(_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED))(mutrun_pool, mut_block_ptr, pure_independent_dominance_traits);
 			
-#if SLIM_PROFILE_NONNEUTRAL_CACHES()
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
 			// PROFILING
 			recached_count += this_recached_count;
 #endif
@@ -1610,6 +1623,9 @@ void Species::_ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calcul
 		
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 		chromosome->profile_mutrun_nonneutral_recache_total_ += recached_count;
+#endif
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "   _ValidateNonNeutralCaches() generated " << recached_count << " nonneutral caches for chromosome '" << chromosome->Symbol() << "' (forced == " << (all_nonneutral_caches_invalid_for_chromosome ? "T" : "F") << ")" << std::endl;
 #endif
 	}
 	
@@ -1632,11 +1648,8 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 	size_t mutrun_count = p_mutrun_pool.size();
 	const MutationRun **mutrun_pointers = p_mutrun_pool.data();
 	
-#if (SLIMPROFILING == 1)
-	int64_t recached_count;
-	
-	if (!f_all_caches_for_pool_invalid)
-		recached_count = 0;
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+	int64_t recached_count = 0;
 #endif
 	
 	for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -1656,8 +1669,9 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 				default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
 			}
 			
-#if (SLIMPROFILING == 1)
-			if (!f_all_caches_for_pool_invalid)
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+			// we count a mutrun as "recached" if it ends up allocated, with its nonneutral mutation buffer in use
+			if (mutrun->nonneutral_cache_ && (mutrun->nonneutral_cache_->nonneutral_count_ >= 0))
 				recached_count++;
 #endif
 			
@@ -1684,11 +1698,8 @@ int64_t Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_
 		}
 	}
 	
-#if (SLIMPROFILING == 1)
-	if (f_all_caches_for_pool_invalid)
-		return mutrun_count;
-	else
-		return recached_count;
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+	return recached_count;
 #endif
 	
 	return 0;	// when not profiling, we don't count the number of mutation runs recached
