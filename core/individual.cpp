@@ -6850,9 +6850,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	// a sub-method that computes and aggregates the trait effect produced by all of the mutations for the given
 	// chromosome/trait/individual, ultimately producing a final trait values for each individual.
 	
-	// First we cache a vector of mutationEffect() callbacks for each subpop; we do this here, rather than at the
+	// First we evaluate the mutationEffect() callbacks we were given; we do this here, rather than at the
 	// start of each tick, so that newly registered callbacks function, and the current active state of each
-	// callback is respected.
+	// callback is respected.  If a mutationEffect() callback exists that is non-constant, we invalidate all
+	// affected trait values up front so that they get recalculated, unless recalculation is forced anyway.
 	Population &population = species->population_;
 	bool has_active_callbacks = false;
 	
@@ -6861,7 +6862,58 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		if (callback->block_active_)
 		{
 			has_active_callbacks = true;
-			break;
+			
+			// if we're forcing recalculation, we don't need to worry about invalidation
+			if (f_force_recalc)
+				break;
+			
+			// if the callback has a constant value, we can skip invalidation; the current trait value will
+			// already incorporate that value, from the last time the trait was demanded, or will have been
+			// invalidated when this callback came into scope or was added/activated.
+			if (callback->compound_statement_node_->cached_return_value_)
+				continue;
+			
+			// TRAIT INVALIDATION: invalidate trait values affected by this callback
+			slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+			slim_trait_index_t callback_trait_index = callback->trait_index_;
+			
+			if (callback_trait_index == -1)
+			{
+				// the callback applies to every trait that is being demanded
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					
+					if (callback_subpop_id != -1)
+						if (callback_subpop_id != individual->subpopulation_->subpopulation_id_)
+							continue;
+					
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					for (slim_trait_index_t trait_index : p_trait_indices)
+						trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+				}
+			}
+			else
+			{
+				// the callback applies only to one specific trait; is that trait even being demanded?
+				if (std::find(p_trait_indices.begin(), p_trait_indices.end(), callback_trait_index) == p_trait_indices.end())
+					continue;
+				
+				// it is, so invalidate just that trait
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					
+					if (callback_subpop_id != -1)
+						if (callback_subpop_id != individual->subpopulation_->subpopulation_id_)
+							continue;
+					
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					trait_info[callback_trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+				}
+			}
 		}
 	}
 	
@@ -7390,6 +7442,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
+	if (gSLiM_disable_trait_crosschecks)
+		return;
+	
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
 		Individual *ind = individuals_buffer[individual_index];
@@ -7441,8 +7496,62 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	
 	// This method is passed p_subpop_mutationEffect_callbacks, a subpop-specific set of mutationEffect()
 	// callbacks, and does not use the subpopulation per-trait caches used by DemandPhenotype_INDIVIDUALS().
+	// We want to evaluate the set of mutationEffect() callbacks we were given; if a mutationEffect() callback
+	// exists that is non-constant, we invalidate all affected trait values up front so that they get
+	// recalculated, unless recalculation is forced anyway.
 	Individual **individuals_buffer = subpop->parent_individuals_.data();
 	int individuals_count = subpop->parent_subpop_size_;
+	
+	if (!f_force_recalc)
+	{
+		for (SLiMEidosBlock *callback : p_subpop_mutationEffect_callbacks)
+		{
+			if (callback->block_active_)
+			{
+				// if the callback has a constant value, we can skip invalidation; the current trait value will
+				// already incorporate that value, from the last time the trait was demanded, or will have been
+				// invalidated when this callback came into scope or was added/activated.
+				if (callback->compound_statement_node_->cached_return_value_)
+					continue;
+				
+				// if the callback applies to a subpopulation other than the one we're handling, skip it
+				if (callback->subpopulation_id_ != -1)
+					if (callback->subpopulation_id_ != subpop->subpopulation_id_)
+						continue;
+				
+				// TRAIT INVALIDATION: invalidate trait values affected by this callback
+				slim_trait_index_t callback_trait_index = callback->trait_index_;
+				
+				if (callback_trait_index == -1)
+				{
+					// the callback applies to every trait that is being demanded
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						for (slim_trait_index_t trait_index : p_trait_indices)
+							trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+					}
+				}
+				else
+				{
+					// the callback applies only to one specific trait; is that trait even being demanded?
+					if (std::find(p_trait_indices.begin(), p_trait_indices.end(), callback_trait_index) == p_trait_indices.end())
+						continue;
+					
+					// it is, so invalidate just that trait
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[callback_trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+					}
+				}
+			}
+		}
+	}
 	
 	// Note that our caller has already validated non-neutral caches and independent-dominance effects.
 	
@@ -7835,6 +7944,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
+	if (gSLiM_disable_trait_crosschecks)
+		return;
+	
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
 		Individual *ind = individuals_buffer[individual_index];

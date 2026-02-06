@@ -21,6 +21,7 @@
 #include "slim_test.h"
 
 #include "eidos_globals.h"
+#include "slim_globals.h"
 
 #include <string>
 
@@ -2456,6 +2457,58 @@ reproduction() { }
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_INVALIDATE_7);
+	
+	
+	// this script tests invalidation of trait values when a non-constant mutationEffect() callback is active
+	// - trait values in all individuals should be invalidated at the start of each demand phase
+	gSLiM_disable_trait_crosschecks = true;	// crosschecks don't like the stochastic callback here!
+	
+	std::string multitrait_INVALIDATE_8 =
+		R"V0G0N(
+// multitrait_INVALIDATE_8
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeMutationType("m2", 0.5, "f", 0.001).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+mutationEffect(m1) { return runif(1, 0.01, 0.99); }
+2 early() {
+	target = sample(p1.haplosomes, 1);
+	target_ind = target.individual;
+	others = p1.subsetIndividuals(exclude=target_ind);
+	mut = target.addNewMutation(m1, 0.0, 5000);
+	sim.demandPhenotype(NULL);
+	phenotype1 = target_ind.mul1T;
+	phenotype2 = target_ind.mul2T;
+	if ((phenotype1 == 1.0) | (phenotype2 == 1.0) | (phenotype1 == phenotype2))
+		stop("trait values non-random after demand");
+	if (!all(others.phenotypeForTrait() == 1.0))
+		stop("trait values unexpected after demand");
+	sim.demandPhenotype(NULL);
+	phenotype3 = target_ind.mul1T;
+	phenotype4 = target_ind.mul2T;
+	if ((phenotype3 == 1.0) | (phenotype4 == 1.0) | (phenotype3 == phenotype4))
+		stop("trait values non-random after demand");
+	if ((phenotype3 == phenotype1) | (phenotype4 == phenotype2))
+		stop("trait values unchanged after second demand");
+	if (!all(others.phenotypeForTrait() == 1.0))
+		stop("trait values unexpected after demand");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_8);
+	
+	gSLiM_disable_trait_crosschecks = false;	// resume crosschecks
 	
 	
 	// This is a particularly complex multitrait model intended to test many different things at once,

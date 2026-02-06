@@ -544,6 +544,10 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 extern int64_t SLiM_verbosity_level;
 
+// This flag can be set to true to disable trait value crosschecks; this is necessary in some cases if stochastic
+// mutationEffect() callbacks are in effect, or if phenotype values are being set directly by the script.
+extern bool gSLiM_disable_trait_crosschecks;
+
 
 // *******************************************************************************************************************
 //

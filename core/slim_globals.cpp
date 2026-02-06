@@ -615,6 +615,12 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 }
 
 
+#pragma mark -
+#pragma mark Debugging support
+#pragma mark -
+
+bool gSLiM_disable_trait_crosschecks = false;;
+
 
 #pragma mark -
 #pragma mark Shared SLiM types and enumerations

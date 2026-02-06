@@ -179,6 +179,7 @@ multitrait branch:
 		for changes to individual offsets (invalidating the trait values involved, for the individuals involved)
 		for changes to baseline offsets (invalidating the trait values involved, for all individuals) -- except for baseline accumulation at substitution
 		for changes to the effect size, dominance, hemizygous dominance, or mutation type of mutations (invalidating the trait values involved, for all individuals)
+		whenever demand occurs and a non-constant mutationEffect() callback is active in the current tick (invalidating all demanded trait values affected by that callback)
 
 
 version 5.1 (Eidos version 4.1):

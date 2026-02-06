@@ -563,7 +563,7 @@ void Species::CrosscheckAllTraitValues(void)
 {
 	// if the user has directly set phenotype values, rather that letting SLiM calculate them, we disable
 	// this crosscheck since the existing trait values are no longer expected to match SLiM's expectations
-	if (phenotypes_changed_directly_)
+	if (phenotypes_changed_directly_ || gSLiM_disable_trait_crosschecks)
 		return;
 	
 	slim_trait_index_t trait_count = TraitCount();
