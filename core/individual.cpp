@@ -6854,6 +6854,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	// start of each tick, so that newly registered callbacks function, and the current active state of each
 	// callback is respected.  If a mutationEffect() callback exists that is non-constant, we invalidate all
 	// affected trait values up front so that they get recalculated, unless recalculation is forced anyway.
+	//
+	// See NoteChangedMutationEffectCallback() for a similar mechanism, which we don't use here because here
+	// we only want to invalidate phenotypes that we are then going to demand; the goal here is to force
+	// recalculation of specifically the phenotypes that are being demanded, if callbacks affect them.
 	Population &population = species->population_;
 	bool has_active_callbacks = false;
 	
@@ -6869,7 +6873,8 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			
 			// if the callback has a constant value, we can skip invalidation; the current trait value will
 			// already incorporate that value, from the last time the trait was demanded, or will have been
-			// invalidated when this callback came into scope or was added/activated.
+			// invalidated when this callback came into scope or was added/activated.  Here we're interested
+			// specifically in callbacks with unpredictable effects that have to be called *every* demand.
 			if (callback->compound_statement_node_->cached_return_value_)
 				continue;
 			
@@ -7499,6 +7504,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	// We want to evaluate the set of mutationEffect() callbacks we were given; if a mutationEffect() callback
 	// exists that is non-constant, we invalidate all affected trait values up front so that they get
 	// recalculated, unless recalculation is forced anyway.
+	//
+	// See NoteChangedMutationEffectCallback() for a similar mechanism, which we don't use here because here
+	// we only want to invalidate phenotypes that we are then going to demand; the goal here is to force
+	// recalculation of specifically the phenotypes that are being demanded, if callbacks affect them.
 	Individual **individuals_buffer = subpop->parent_individuals_.data();
 	int individuals_count = subpop->parent_subpop_size_;
 	
@@ -7510,7 +7519,8 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			{
 				// if the callback has a constant value, we can skip invalidation; the current trait value will
 				// already incorporate that value, from the last time the trait was demanded, or will have been
-				// invalidated when this callback came into scope or was added/activated.
+				// invalidated when this callback came into scope or was added/activated.  Here we're interested
+				// specifically in callbacks with unpredictable effects that have to be called *every* demand.
 				if (callback->compound_statement_node_->cached_return_value_)
 					continue;
 				

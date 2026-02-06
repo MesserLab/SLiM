@@ -2511,6 +2511,122 @@ mutationEffect(m1) { return runif(1, 0.01, 0.99); }
 	gSLiM_disable_trait_crosschecks = false;	// resume crosschecks
 	
 	
+	// this script tests invalidation of trait values when a mutationEffect() callback comes in and out
+	// of scope, is registered/deregistered, is rescheduled, or is activated/deactivated
+	// - trait values in all individuals should be invalidated at all changes
+	std::string multitrait_INVALIDATE_9 =
+		R"V0G0N(
+// multitrait_INVALIDATE_9
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution=T;
+	initializeMutationType("m2", 0.5, "f", 0.0).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 10);
+	sim.demandPhenotype(NULL);      // initial demand to set up caches
+	
+	// register a constant-effect mutationEffect() callback
+	sim.registerMutationEffectCallback(1, "{ return NULL; }", m1, start=4, end=6, trait="mul1T");
+}
+8 first() { community.rescheduleScriptBlock(s1, ticks=c(10, 14:18)); }
+15 first() { community.rescheduleScriptBlock(s1, start=17, end=50); }
+20 first() { s1.active = 0; }
+23 first() { s1.active = 0; sim.demandPhenotype(NULL); s1.active = 1; }
+26 first() { community.deregisterScriptBlock(s1); }
+:30 early() {
+	inds = p1.individuals;
+	catn("========== " + community.tick);
+	print(inds.mul1T);
+	catn();
+	print(inds.mul2T);
+	
+	should_be_invalidated = F;
+	
+	// invalidation should occur when the callback goes in or out of scope
+	if ((community.tick == 4) | (community.tick == 7) |
+		(community.tick == 10) | (community.tick == 11) |
+		(community.tick == 14) | (community.tick == 17))
+		should_be_invalidated = T;
+	
+	// invalidation should occur when the callback is rescheduled when active
+	if (community.tick == 15)
+		should_be_invalidated = T;
+	
+	// invalidation should occur when the callback is activated or inactivated
+	if ((community.tick == 20) | (community.tick == 23))
+		should_be_invalidated = T;
+	
+	// invalidation should occur when the callback is deregistered
+	if (community.tick == 26)
+		should_be_invalidated = T;
+	
+	if (should_be_invalidated) {
+		if (!all(isNAN(inds.mul1T)))
+			stop("mul1T values were not invalidated correctly");
+		if (any(isNAN(inds.mul2T)))
+			stop("mul2T values were not carried over correctly");
+	} else {
+		if (any(isNAN(inds.mul1T)) | any(isNAN(inds.mul2T)))
+			stop("trait values were not carried over correctly");
+	}
+	sim.demandPhenotype(NULL);     // fill invalidated values
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_9);
+	
+	
+	// this script tests invalidation of trait values when the tick value is changed in script
+	// - all trait values in all individuals should be invalidated when that occurs
+	std::string multitrait_INVALIDATE_10 =
+		R"V0G0N(
+// multitrait_INVALIDATE_10
+initialize() {
+	initializeTrait("mul1T", "m", directFitnessEffect=T);
+	initializeTrait("mul2T", "m", directFitnessEffect=F);
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution=T;
+	initializeMutationType("m2", 0.5, "f", 0.0).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 50);
+	target = sample(p1.haplosomes, 20);
+	target_ind = target.individual;
+	mut = target.addNewMutation(m1, 0.0, 5000);
+	sim.demandPhenotype(NULL);      // initial demand to set up caches
+}
+mutationEffect(m1) { return 1.0 + 0.1; }   // non-constant callback
+2:5 early() {
+	inds = p1.individuals;
+	if (any(isNAN(inds.mul2T)) | any(isNAN(inds.mul2T)))
+		stop("trait values were not carried over correctly");
+	if (community.tick == 3) {
+		community.tick = 4;
+		if (!all(isNAN(inds.mul1T)) | !all(isNAN(inds.mul2T)))
+			stop("trait values were not invalidated correctly");
+		sim.demandPhenotype(NULL);     // fill invalidated values
+		if (any(isNAN(inds.mul1T)) | any(isNAN(inds.mul2T)))
+			stop("demand did not validate trait values");
+	}
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_10);
+	
+	
 	// This is a particularly complex multitrait model intended to test many different things at once,
 	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
 	// This is an abbreviated version of test script complex_multi_test_1.slim
@@ -2656,8 +2772,16 @@ mutation(m3) {
 	if (!all(isNAN(inds.n1T))) stop("n1T was calculated unnecessarily (super-pure-neutral trait)");
 	if (!all(isNAN(inds.n2T))) stop("n2T was calculated unnecessarily (no direct fitness effect)");
 	if (!all(isNAN(inds.n3T))) stop("n3T was calculated unnecessarily (no direct fitness effect)");
-	if (!all(!isNAN(inds.logistic1T))) stop("logistic1T is NAN");
-	if (!all((inds.logistic1T >= 0.0) & (inds.logistic1T <= 1.0))) stop("logistic1T is out of range");
+	
+	if ((community.tick == 7) | (community.tick == 9))
+	{
+		if (!all(isNAN(inds.logistic1T))) stop("logistic1T is not NAN (should be invalidated by callback change)");
+	}
+	else
+	{
+		if (!all(!isNAN(inds.logistic1T))) stop("logistic1T is NAN");
+		if (!all((inds.logistic1T >= 0.0) & (inds.logistic1T <= 1.0))) stop("logistic1T is out of range");
+	}
 	
 	// check baseline accumulation, which in on for all traits except n3T
 	// each substitution shifts the baseline by 1+s (multiplicatively) or 2a (additively)

@@ -559,6 +559,116 @@ void Species::NoteChangedMutation(const Mutation *p_mut)
 #endif
 }
 
+void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
+{
+	// TRAIT INVALIDATION: invalidate trait values affected by this callback.  This is called every time that
+	// a mutationEffect() callback comes into scope or falls out of scope, or is added or removed, or is made
+	// active or inactive, or is rescheduled.  Any time a mutationEffect() callback changes like that, we need
+	// to invalidate all of the trait values that are affected by that callback, regardless of the nature of
+	// the callback -- constant or not, neutral or not.  Note that the mutation type for the callback is not
+	// relevant here, because we're invalidating trait values in individuals, which are not muttype-specific.
+	slim_objectid_t callback_subpop_id = p_callback->subpopulation_id_;
+	slim_trait_index_t callback_trait_index = p_callback->trait_index_;
+	slim_trait_index_t trait_count = TraitCount();
+	slim_phenotype_t phenotype_NAN = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+	
+	for (auto subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		
+		if ((callback_subpop_id == -1) || (callback_subpop_id == subpop->subpopulation_id_))
+		{
+			slim_popsize_t individuals_count = subpop->parent_subpop_size_;
+			std::vector<Individual *> &individuals_buffer = subpop->parent_individuals_;
+			
+			if (callback_trait_index != -1)
+			{
+				// the callback applies only to one specific trait; invalidate just that trait
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					trait_info[callback_trait_index].phenotype_ = phenotype_NAN;
+				}
+			}
+			else
+			{
+				// the callback applies to every trait that is being demanded; we optimize a few cases here
+				if (trait_count == 1)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[0].phenotype_ = phenotype_NAN;
+					}
+				}
+				else if (trait_count == 2)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[0].phenotype_ = phenotype_NAN;
+						trait_info[1].phenotype_ = phenotype_NAN;
+					}
+				}
+				else if (trait_count == 3)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[0].phenotype_ = phenotype_NAN;
+						trait_info[1].phenotype_ = phenotype_NAN;
+						trait_info[2].phenotype_ = phenotype_NAN;
+					}
+				}
+				else
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+							trait_info[trait_index].phenotype_ = phenotype_NAN;
+					}
+				}
+			}
+		}
+	}
+}
+
+void Species::InvalidateAllTraitValues(void)
+{
+	// TRAIT INVALIDATION: This is called to invalidate all trait values in all species.  It should be
+	// called when the world world is turned upside down -- when the tick value changes arbitrarily,
+	// for example.  FIXME MULTITRAIT probably call this after loading data from a file, too.
+	slim_trait_index_t trait_count = TraitCount();
+	slim_phenotype_t phenotype_NAN = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+	
+	for (auto subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		slim_popsize_t individuals_count = subpop->parent_subpop_size_;
+		std::vector<Individual *> &individuals_buffer = subpop->parent_individuals_;
+		
+		for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+		{
+			Individual *individual = individuals_buffer[individual_index];
+			IndividualTraitInfo *trait_info = individual->trait_info_;
+			
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+				trait_info[trait_index].phenotype_ = phenotype_NAN;
+		}
+	}
+}
+
 void Species::CrosscheckAllTraitValues(void)
 {
 	// if the user has directly set phenotype values, rather that letting SLiM calculate them, we disable

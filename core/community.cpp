@@ -596,16 +596,8 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 #endif
 		
 		// check that the tick is in range
-		if (script_block->tick_range_is_sequence_)
-		{
-			if ((p_tick < script_block->tick_start_) || (p_tick > script_block->tick_end_))
-				continue;
-		}
-		else
-		{
-			if (script_block->tick_set_.find(p_tick) == script_block->tick_set_.end())
-				continue;
-		}
+		if (!script_block->ActiveInTick(p_tick))
+			continue;
 		
 		// check that the script type matches (event, callback, etc.) - now guaranteed by the caching mechanism
 		//if (script_block->type_ != p_event_type)
@@ -1094,6 +1086,11 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	last_script_block_tick_cached_ = false;
 	script_block_types_cached_ = false;
 	scripts_changed_ = true;
+	
+	// TRAIT INVALIDATION: If the block being registered is a mutationEffect() callback, we need to
+	// invalidate all trait values that that callback would potentially affect, to force recalculation
+	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && p_script_block->ActiveInTick(Tick()))
+		p_script_block->species_spec_->NoteChangedMutationEffectCallback(p_script_block);
 	
 #if DEBUG_BLOCK_REG_DEREG
 	std::cout << "Tick " << tick_ << ": AddScriptBlock() just added a block, script_blocks_ is:" << std::endl;
@@ -2280,6 +2277,39 @@ bool Community::_RunOneTick(void)
 	}
 	else
 	{
+		// TRAIT INVALIDATION: Invalidate trait values as needed in response to mutationEffect() callbacks
+		// becoming active for the first time, or having been active for the last time.  Note that these
+		// mechanics do not take the active property of the script block, or the activation of the species
+		// in a multispecies model, into account; that is intentional and essential.  Other state changes
+		// for mutationEffect() callbacks are handled in various other places.
+		{
+			// These mechanics for searching through script blocks are borrowed from ScriptBlocksMatching()
+			if (!script_block_types_cached_)
+				ValidateScriptBlockCaches();
+			
+			std::vector<SLiMEidosBlock*> &block_list = cached_mutationEffect_callbacks_;
+			
+			for (SLiMEidosBlock *block : block_list)
+			{
+				if (block->type_ != SLiMEidosBlockType::SLiMEidosMutationEffectCallback)
+					continue;
+				
+				if (block->ActiveInTick(Tick()))
+				{
+					// The script block is active this tick, so: was it inactive the previous tick?
+					if (!block->ActiveInTick(Tick() - 1))
+						block->species_spec_->NoteChangedMutationEffectCallback(block);
+				}
+				else
+				{
+					// The script block is inactive this tick, so: was it active the previous tick?
+					if (block->ActiveInTick(Tick() - 1))
+						block->species_spec_->NoteChangedMutationEffectCallback(block);
+				}
+			}
+		}
+		
+		// Tell active species to prepare for the tick cycle to execute
 		for (Species *species : all_species_)
 			if (species->Active())
 				species->PrepareForCycle();

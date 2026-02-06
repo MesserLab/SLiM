@@ -503,6 +503,11 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 			
 			SetTick(new_tick);
 			
+			// TRAIT INVALIDATION: If the tick changes arbitrarily, we invalidate all trait values in all species.
+			// This seems wise since the mutationEffect() callback milieu might have shifted arbitrarily, etc.
+			for (Species *species : AllSpecies())
+				species->InvalidateAllTraitValues();
+			
 			// Setting the tick into the future is generally harmless; the simulation logic is designed to handle that anyway, since
 			// that happens every tick.  Setting the tick into the past is a bit tricker, since some things that have already
 			// occurred need to be invalidated.  In particular, historical data cached by SLiMgui needs to be fixed.  Note that here we
@@ -762,6 +767,17 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
 			scheduled_deregistrations_.emplace_back(block);
+			
+			// TRAIT INVALIDATION: If the block being deregistered is a mutationEffect() callback, we need to
+			// invalidate all trait values that that callback would potentially affect, to force recalculation
+			// FIXME MULTITRAIT: I think there is a small bug here.  If a mutationEffect() callback is deregistered
+			// during, say, an early() event and then demand is expressed immediately after, that deregistered
+			// block will still be in effect and will be used in the demand (this is technically not a bug, I think,
+			// as this behavior of deregistration is documented), and then when the block is actually deregistered
+			// at the end of the tick cycle stage the trait values will not be invalidated to reflect that the
+			// callback is now no longer in effect (this is the bug).  I'm not sure what I want to do with this.
+			if ((block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && block->ActiveInTick(Tick()))
+				block->species_spec_->NoteChangedMutationEffectCallback(block);
 			
 #if DEBUG_BLOCK_REG_DEREG
 			std::cout << "deregisterScriptBlock() called for block:" << std::endl;
@@ -1212,7 +1228,11 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled during the fitness recalculation tick cycle stage." << EidosTerminate();
 	}
 	
+	// remember whether the block is currently active in this tick, for use below
+	bool block_active_now = block->ActiveInTick(Tick());
+	
 	SLiMCycleStage stage = CycleStageForScriptBlockType(block->type_);
+	EidosValue_SP retval;
 	
 	if ((!start_null || !end_null) && ticks_null)
 	{
@@ -1242,7 +1262,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		gSLiMScheduling << std::endl;
 #endif
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
+		retval = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
 	}
 	else if (!ticks_null && (start_null && end_null))
 	{
@@ -1330,12 +1350,26 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		gSLiMScheduling << std::endl;
 #endif
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
+		retval = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
 	}
 	else
 	{
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires that either start/end or ticks be supplied, but not both." << EidosTerminate();
 	}
+	
+	// TRAIT INVALIDATION: If the block being rescheduled is a mutationEffect() callback, we need to
+	// invalidate all trait values that that callback would potentially affect, to force recalculation
+	if ((block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && block->block_active_)
+	{
+		bool block_active_when_rescheduled = block->ActiveInTick(Tick());
+		
+		// we invalidate specifically if the block was active in the current tick and now is inactive, or
+		// if it was inactive in the current tick and now is active, such that trait values will change
+		if (block_active_now != block_active_when_rescheduled)
+			block->species_spec_->NoteChangedMutationEffectCallback(block);
+	}
+	
+	return retval;
 }
 
 //	*********************	- (void)simulationFinished(void)

@@ -1818,6 +1818,11 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set during the fitness recalculation tick cycle stage." << EidosTerminate();
 			}
 			
+			// TRAIT INVALIDATION: If the activation state of a mutationEffect() callback is changed, we need to
+			// invalidate all trait values that that callback would potentially affect, to force recalculation
+			if ((value != block_active_) && (type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && ActiveInTick(species_spec_->community_.Tick()))
+				species_spec_->NoteChangedMutationEffectCallback(this);
+			
 			block_active_ = value;
 			return;
 		}

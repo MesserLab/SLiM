@@ -232,6 +232,17 @@ public:
 	void _ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node);
 	void ScanTreeForIdentifiersUsed(void);
 	
+	inline bool ActiveInTick(slim_tick_t p_tick) {
+		if (tick_range_is_sequence_) {
+			if ((p_tick < tick_start_) || (p_tick > tick_end_))
+				return false;
+		} else {
+			if (tick_set_.find(p_tick) == tick_set_.end())
+				return false;
+		}
+		return true;
+	}
+	
 	void PrintDeclaration(std::ostream& p_out, Community *p_community);
 	
 	//
