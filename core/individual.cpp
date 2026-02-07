@@ -7447,6 +7447,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
+	// FIXME MULTITRAIT: Since this is incorrect with stochastic callbacks, it should be turned into a warning before ship
 	if (gSLiM_disable_trait_crosschecks)
 		return;
 	
@@ -7954,6 +7955,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
+	// FIXME MULTITRAIT: Since this is incorrect with stochastic callbacks, it should be turned into a warning before ship
 	if (gSLiM_disable_trait_crosschecks)
 		return;
 	
