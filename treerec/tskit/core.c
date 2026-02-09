@@ -33,6 +33,9 @@
 #include <tskit/core.h>
 
 #define UUID_NUM_BYTES 16
+#define TSK_JSON_BINARY_HEADER_SIZE 21
+
+static const uint8_t TSK_JSON_BINARY_MAGIC[4] = { 'J', 'B', 'L', 'B' };
 
 #if defined(_WIN32)
 
@@ -95,6 +98,22 @@ out:
 
 #endif
 
+static uint64_t
+tsk_load_u64_le(const uint8_t *p)
+{
+    uint64_t value;
+
+    value = (uint64_t) p[0];
+    value |= (uint64_t) p[1] << 8;
+    value |= (uint64_t) p[2] << 16;
+    value |= (uint64_t) p[3] << 24;
+    value |= (uint64_t) p[4] << 32;
+    value |= (uint64_t) p[5] << 40;
+    value |= (uint64_t) p[6] << 48;
+    value |= (uint64_t) p[7] << 56;
+    return value;
+}
+
 /* Generate a new UUID4 using a system-generated source of randomness.
  * Note that this function writes a NULL terminator to the end of this
  * string, so that the total length of the buffer must be 37 bytes.
@@ -118,6 +137,67 @@ tsk_generate_uuid(char *dest, int TSK_UNUSED(flags))
         ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
+out:
+    return ret;
+}
+
+int
+tsk_json_struct_metadata_get_blob(const char *metadata, tsk_size_t metadata_length,
+    const char **json, tsk_size_t *json_length, const uint8_t **blob,
+    tsk_size_t *blob_length)
+{
+    int ret;
+    uint8_t version;
+    uint64_t json_length_u64;
+    uint64_t binary_length_u64;
+    uint64_t header_and_json_length;
+    uint64_t total_length;
+    const uint8_t *bytes;
+    const uint8_t *blob_start;
+    const char *json_start;
+
+    if (metadata == NULL || json == NULL || json_length == NULL || blob == NULL
+        || blob_length == NULL) {
+        ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
+        goto out;
+    }
+    bytes = (const uint8_t *) metadata;
+    if (metadata_length < TSK_JSON_BINARY_HEADER_SIZE) {
+        ret = tsk_trace_error(TSK_ERR_FILE_FORMAT);
+        goto out;
+    }
+    if (memcmp(bytes, TSK_JSON_BINARY_MAGIC, sizeof(TSK_JSON_BINARY_MAGIC)) != 0) {
+        ret = tsk_trace_error(TSK_ERR_FILE_FORMAT);
+        goto out;
+    }
+    version = bytes[4];
+    if (version != 1) {
+        ret = tsk_trace_error(TSK_ERR_FILE_VERSION_TOO_NEW);
+        goto out;
+    }
+    json_length_u64 = tsk_load_u64_le(bytes + 5);
+    binary_length_u64 = tsk_load_u64_le(bytes + 13);
+    if (json_length_u64 > UINT64_MAX - (uint64_t) TSK_JSON_BINARY_HEADER_SIZE) {
+        ret = tsk_trace_error(TSK_ERR_FILE_FORMAT);
+        goto out;
+    }
+    header_and_json_length = (uint64_t) TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
+    if (binary_length_u64 > UINT64_MAX - header_and_json_length) {
+        ret = tsk_trace_error(TSK_ERR_FILE_FORMAT);
+        goto out;
+    }
+    total_length = header_and_json_length + binary_length_u64;
+    if ((uint64_t) metadata_length < total_length) {
+        ret = tsk_trace_error(TSK_ERR_FILE_FORMAT);
+        goto out;
+    }
+    json_start = (const char *) bytes + TSK_JSON_BINARY_HEADER_SIZE;
+    blob_start = bytes + TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
+    *json = json_start;
+    *json_length = (tsk_size_t) json_length_u64;
+    *blob = blob_start;
+    *blob_length = (tsk_size_t) binary_length_u64;
+    ret = 0;
 out:
     return ret;
 }
