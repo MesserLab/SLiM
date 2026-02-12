@@ -8758,8 +8758,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		
 		metadata_row->mutation_id_ = mut->mutation_id_;
 		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
-		metadata_row->origin_tick_ = mut->origin_tick_;
 		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
 		metadata_row->nucleotide_ = mut->nucleotide_;
 		
 		metadata_row->unused_[0] = 0;
@@ -8788,8 +8788,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		
 		metadata_row->mutation_id_ = sub->mutation_id_;
 		metadata_row->mutation_type_id_ = sub->mutation_type_ptr_->mutation_type_id_;
-		metadata_row->origin_tick_ = sub->origin_tick_;
 		metadata_row->subpop_index_ = sub->subpop_index_;
+		metadata_row->origin_tick_ = sub->origin_tick_;
 		metadata_row->nucleotide_ = sub->nucleotide_;
 		
 		metadata_row->unused_[0] = 0;
