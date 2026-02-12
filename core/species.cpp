@@ -8677,7 +8677,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			trait_info["index"] = trait->Index();
 			trait_info["name"] = trait->Name();
 			
-			if (trait->logistic_post_)
+			if (trait->HasLogisticPostTransform())
 				trait_info["type"] = "logistic";
 			else if (trait->Type() == TraitType::kAdditive)
 				trait_info["type"] = "additive";
@@ -9078,7 +9078,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 			trait_info["index"] = trait->Index();
 			trait_info["name"] = trait->Name();
 			
-			if (trait->logistic_post_)
+			if (trait->HasLogisticPostTransform())
 				trait_info["type"] = "logistic";
 			else if (trait->Type() == TraitType::kAdditive)
 				trait_info["type"] = "additive";
