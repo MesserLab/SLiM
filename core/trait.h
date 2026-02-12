@@ -154,7 +154,7 @@ public:
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetDistributionFixed_ and individualOffsetDistributionFixedValue_
 	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetDistributionMean_ and individualOffsetDistributionSD_
 	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetDistributionFixed_) ? individualOffsetDistributionFixedValue_ : _DrawIndividualOffset(); }
-	//inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionMean(void) const { return individualOffsetDistributionMean_; }		// a bit dangerous because of the exp() post-transform; probably nobody should use this
+	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionMean(void) const { return individualOffsetDistributionMean_; }		// a bit dangerous because of the exp() post-transform; probably nobody should use this
 	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionSD(void) const { return individualOffsetDistributionSD_; }
 	inline __attribute__((always_inline)) void IndividualOffsetChanged(void) { individualOffsetEverOverridden_ = true; }
 	inline __attribute__((always_inline)) bool IndividualOffsetEverChanged(void) { return individualOffsetEverOverridden_; }

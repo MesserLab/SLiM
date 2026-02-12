@@ -123,12 +123,17 @@ void SLiM_WarmUp(void)
 		//std::cout << "sizeof(size_t) == " << sizeof(size_t) << std::endl;
 		
 		// Test that our tskit metadata schemas are valid JSON, and print them out formatted for debugging purposes if desired
-		nlohmann::json top_level_schema, edge_schema, site_schema, mutation_schema, node_schema, individual_schema, population_schema;
+		nlohmann::json top_level_JSON_schema, top_level_binary_schema, edge_schema, site_schema, mutation_schema, node_schema, individual_schema, population_schema;
 		
 		try {
-			top_level_schema = nlohmann::json::parse(gSLiM_tsk_metadata_schema);
+			top_level_JSON_schema = nlohmann::json::parse(gSLiM_tsk_metadata_JSON_schema);
 		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_schema must be a JSON string." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_JSON_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			top_level_binary_schema = nlohmann::json::parse(gSLiM_tsk_metadata_binary_schema_FORMAT);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_binary_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
 			if (gSLiM_tsk_edge_metadata_schema.length())
@@ -143,7 +148,8 @@ void SLiM_WarmUp(void)
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_site_metadata_schema must be a JSON string." << EidosTerminate();
 		}
 		try {
-			mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema);
+			if (gSLiM_tsk_mutation_metadata_schema.length())
+				mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema);
 		}  catch (...) {
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_mutation_metadata_schema must be a JSON string." << EidosTerminate();
 		}
@@ -153,9 +159,9 @@ void SLiM_WarmUp(void)
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
-			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema);
+			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema_FORMAT);
 		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema must be a JSON string." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
 			population_schema = nlohmann::json::parse(gSLiM_tsk_population_metadata_schema);
@@ -165,12 +171,13 @@ void SLiM_WarmUp(void)
 		
 #if 0
 #warning printing of JSON schemas should be disabled in a production build
-		std::cout << "gSLiM_tsk_metadata_schema == " << std::endl << top_level_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_metadata_JSON_schema == " << std::endl << top_level_JSON_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT == " << std::endl << top_level_binary_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << edge_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << site_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << mutation_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << node_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_individual_metadata_schema == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << population_schema.dump(4) << std::endl << std::endl;
 #endif
 	}
@@ -1775,59 +1782,62 @@ void SLiM_ConfigureContext(void)
 // See the pyslim code for readable versions of these.
 
 // For more info on schemas in tskit, see: https://tskit.dev/tskit/docs/stable/metadata.html#sec-metadata
- 
-// BCH 11/7/2021: Since I have been needing to modify these here by hand, I have changed them into C++ raw string literals.
-// I have also added some code in SLiM_WarmUp() that checks that the metadata schemas are all valid JSON, and optionally prints them.
-// see https://stackoverflow.com/a/5460235/2752221
+
+// Note that several schemas now require substitution of a string before they are used, because there are bits
+// of the schemas that need to be customized depending on the context (number of chromosomes, number of traits).
+// The spots where this substitutuon occurs are marked with things like "%d", "%d1", or "%d2", INCLUDING the
+// quotes because the metadata strings given here need to be valid JSON to pass SLiM's internal checks.  Those
+// are then replaced, in some cases by a quoted string, in other cases by an integer.  Schemas that contain
+// substitution strings like this have a variable name here ending in "_FORMAT" to indicate that they cannot
+// be used directly.
+
+// BCH 11/7/2021: Since I have been needing to modify these here by hand, I have changed them into C++ raw string
+// literals.  I have also added some code in SLiM_WarmUp() that checks that the metadata schemas are all valid
+// JSON, and optionally prints them.  See https://stackoverflow.com/a/5460235/2752221
 
 // This is a useful JSON editor: https://jsoneditoronline.org/
 
 // BCH 12/9/2024: Added the new optional key `chromosomes`, providing an array of information about chromosomes (to support
 // multiple chromosomes), and the new required key `this_chromosome` specifying information about this file's chromosome.
-const std::string gSLiM_tsk_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.9","name":"fox","description":"foxes on Catalina island","cycle":123,"tick":123,"model_type":"WF","this_chromosome":{"id":1,"index":0,"symbol":"1","name":"autosome_1","type":"A"},"chromosomes":[{"id":1,"symbol":"1","name":"autosome_1","type":"A"},{"id":35,"symbol":"MT","name":"mtDNA","type":"HF"}],"nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.9","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"this_chromosome":{"description":"The chromosome represented by the tree sequence in this file.","properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"index":{"description":"The (zero-based) index of this chromosome in the chromosomes metadata array (if present), which should match the information given here.","type":"integer"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","index","symbol","type"],"type":"object"},"chromosomes":{"description":"The chromosomes represented by the collection of tree sequences, of which this tree sequence is one member.","items":{"properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","symbol","type"],"type":"object"},"type":"array"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","this_chromosome","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+const std::string gSLiM_tsk_metadata_JSON_schema =
+R"V0G0N({"codec":"json","examples":[{"SLiM":{"chromosomes":[{"id":1,"name":"autosome_1","symbol":"1","type":"A"},{"id":35,"name":"mtDNA","symbol":"MT","type":"HF"}],"cycle":123,"description":"foxes on Catalina island","file_version":"1.0","model_type":"WF","name":"fox","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x","this_chromosome":{"id":1,"index":0,"name":"autosome_1","symbol":"1","type":"A"},"tick":123,"traits":[{"index":0,"name":"simT","type":"multiplicative"}]}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 1.0","properties":{"chromosomes":{"description":"The chromosomes represented by the collection of tree sequences, of which this tree sequence is one member.","items":{"properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","symbol","type"],"type":"object"},"type":"array"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"},"this_chromosome":{"description":"The chromosome represented by the tree sequence in this file.","properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"index":{"description":"The (zero-based) index of this chromosome in the chromosomes metadata array (if present), which should match the information given here.","type":"integer"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","index","symbol","type"],"type":"object"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"traits":{"description":"The traits defined for this tree sequence; each mutation and individual will have per-trait metadata.","items":{"properties":{"baselineAccumulation":{"description":"Whether the baseline offset includes accumulated effects from fixed (substituted) mutations.","type":"boolean"},"baselineOffset":{"description":"The baseline offset of the trait.","type":"number"},"directFitnessEffect":{"description":"Whether the trait's effects are used directly as fitness effects.","type":"boolean"},"index":{"description":"The integer index for the trait; indices must be sequential starting from zero.","type":"integer"},"individualOffsetMean":{"description":"The mean of the trait's individual offset distribution (which might or might not be used).","type":"number"},"individualOffsetSD":{"description":"The standard deviation of the trait's individual offset distribution (which might or might not be used).","type":"number"},"name":{"description":"The string name for the trait.","type":"string"},"type":{"description":"The type of the trait; this must be 'additive', 'multiplicative', or 'logistic'.","enum":["additive","multiplicative","logistic"],"type":"string"}},"required":["index","name","type"],"type":"object"},"type":"array"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","this_chromosome","separate_sexes","nucleotide_based","traits"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+
+// Note the substituted strings "%d1" (the number of padding bytes used to produce 8-byte alignment of this
+// binary metadata in the json_binary codec) and "%d2" (the number of traits in the focal species).
+const std::string gSLiM_tsk_metadata_binary_schema_FORMAT =
+R"V0G0N({"codec":"struct","description":"SLiM schema for binary top-level metadata.","properties":{"aligner":{"binaryFormat":"%d1","index":1,"type":"null"},"mutation_list":{"index":2,"items":{"additionalProperties":false,"properties":{"index":1,"mutation_id":{"binaryFormat":"q","description":"The SLiM mutation ID for this mutation.","type":"integer"},"mutation_type":{"binaryFormat":"i","description":"The id of this mutation's mutationType.","index":2,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"per_trait":{"index":6,"items":{"additionalProperties":false,"properties":{"dominance":{"binaryFormat":"f","description":"The dominance coefficient for this trait.","index":2,"type":"number"},"effect_size":{"binaryFormat":"f","description":"The effect size for this trait.","index":1,"type":"number"},"hemizygous_dominance":{"binaryFormat":"f","description":"The hemizygous dominance coefficient for this trait.","index":3,"type":"number"}}},"length":"%d2","type":"array"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_id","mutation_type","slim_time","subpopulation","nucleotide","per_trait"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["aligner","mutation_list"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_edge_metadata_schema = "";
 const std::string gSLiM_tsk_site_metadata_schema = "";
+const std::string gSLiM_tsk_mutation_metadata_schema = "";		// this is now managed by gSLiM_tsk_metadata_binary_schema in top-level metadata
 
-const std::string gSLiM_tsk_mutation_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
-
-// BCH 12/10/2024: Removed the type field, and changed the treatment of is_vacant.  We have a
-// tricky problem here, which is that is_vacant is now variable-length and there is no count.
-// The number of byte (uint8_t) entries in is_vacant depends on the number of chromosomes in
-// the full set of tree sequences, because the node metadata has to contain flags (bits) for
-// every chromosome, not just for the chromosome represented by this file.  So we deduce the
-// length of is_vacant from that, but it is variable-length and has no count associated with
-// it in the metadata.  I think this is actually not allowed in JSON Schema, understandably.
-// To make this work, we have to write out a DIFFERENT VERSION OF THIS METADATA SCHEMA
-// depending on the number of bytes used.  In other words, if 7 bytes of is_vacant data are
-// needed (for 49-56 chromosomes), we'd write out a version of the schema that specifies
-// 7 bytes of is_vacant data using binaryFormat:7B.  This effectively puts the count into the
-// schema itself.  The number of bytes present can thus be inferred from the schema present
-// in the file, but also from the 'chromosomes' top-level metadata key; one bit is taken
-// for each chromosome, in order, regardless of their type, providing flags for one node
-// table entry for one haplosome of each chromosome.  (Remember, there are two node table
-// entries per individual; the first corresponds to haplosome 1, so its is_vacant data only
-// records is_vacant flags for haplosome 1 of each chromosome, and similarly for the second
-// node table entry corresponding to haplosome 2 of each chromosome.)  The variable name here
-// ends in "_FORMAT" because it is a format string containing `%d`, which must be replaced
-// by the correct byte count when it is used for output.  See SetCurrentNewIndividual() and
-// RecordNewHaplosome() for how this dynamic metadata structure is used in practice, and
-// WriteTreeSequenceMetadata() for where this schema format string is used.
+// BCH 12/10/2024: Removed the type field, and changed the treatment of is_vacant.  We have a tricky problem
+// here, which is that is_vacant is now variable-length and there is no count.  The number of byte (uint8_t)
+// entries in is_vacant depends on the number of chromosomes in the full set of tree sequences, because the node
+// metadata has to contain flags (bits) for every chromosome, not just for the chromosome represented by this
+// file.  So we deduce the length of is_vacant from that, but it is variable-length and has no count associated
+// with it in the metadata.  This is not allowed in JSON Schema, understandably.  To make this work, we have to
+// write out a DIFFERENT VERSION OF THIS METADATA SCHEMA depending on the number of bytes used.  In other words,
+// if 7 bytes of is_vacant data are needed (for 49-56 chromosomes), we'd write out a version of the schema that\
+// specifies 7 bytes of is_vacant data using binaryFormat:7B.  This effectively puts the count into the schema
+// itself.  The number of bytes present can thus be inferred from the schema present in the file, but also from
+// the 'chromosomes' top-level metadata key; one bit is taken for each chromosome, in order, regardless of their
+// type, providing flags for one node table entry for one haplosome of each chromosome.  (Remember, there are two
+// node table entries per individual; the first corresponds to haplosome 1, so its is_vacant data only records
+// is_vacant flags for haplosome 1 of each chromosome, and similarly for the second node table entry corresponding
+// to haplosome 2 of each chromosome.)  See SetCurrentNewIndividual() and RecordNewHaplosome() for how this
+// dynamic metadata structure is used in practice, and WriteTreeSequenceMetadata() for where this schema is used.
 //
-// BCH 4/10/2025: Changing from binary format 's' to 'B', using the new support for fixed-
-// length arrays in tskit: https://github.com/tskit-dev/tskit/issues/3088.  This has been
-// released in tskit version Python 0.6.1.  The new syntax for declaring a fixed-length
-// array is: {"type": "array", "length": 3, "items": {"type":"number", "binaryFormat":"B"}}.
-// The length, 3 here, is encoded with "%d" and replaced at runtime with the correct count.
-// (The string replaced is "%d" *including* the quotes, because the format string needs to
-// itself be a legal JSON string in order to pass SLiM's own internal checks, so beware.)
+// BCH 4/10/2025: Changing from binary format 's' to 'B', using the new support for fixed-length arrays in tskit:
+// https://github.com/tskit-dev/tskit/issues/3088 (released in tskit version Python 0.6.1).  The new syntax for
+// a fixed-length array is: {"type": "array", "length": 3, "items": {"type":"number", "binaryFormat":"B"}}.  The
+// length, 3 here, is encoded with "%d" and replaced at runtime with the correct count.
 const std::string gSLiM_tsk_node_metadata_schema_FORMAT =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"is_vacant":0,"slim_id":123}],"properties":{"is_vacant":{"description":"A vector of byte (uint8_t) values, with each bit representing whether the node represents a vacant position, either unused or a null haplosome (1), or a non-null haplosome (0), in the corresponding chromosome. This field encodes vacancy for all of the chromosomes in the model, not just the chromosome represented in this file (so that the node table is identical across all chromosomes for a multi-chromosome model). Each chromosome receives one bit here; there are two node table entries per individual, used for the two haplosomes of every chromosome, so only one bit is needed in each entry (making two bits total per chromosome, across the two node table entries). The least significant bit of the first byte is used first (for one haplosome of the first chromosome); the most significant bit of the last byte is used last. The number of bytes present in this field is indicated by this schema's 'binaryFormat' field, which is variable (!), and can also be deduced from the number of chromosomes in the model as given in the top-level 'chromosomes' metadata key, which should always be present if this metadata is present.","index":1,"items":{"binaryFormat":"B","type":"number"},"length":"%d","type":"array"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of the haplosomes associated with this node in SLiM.","index":0,"type":"integer"}},"required":["slim_id","is_vacant"],"type":["object","null"]})V0G0N";
 
-const std::string gSLiM_tsk_individual_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
+// Note the substitute string "%d" (the number of traits in the focal species).
+const std::string gSLiM_tsk_individual_metadata_schema_FORMAT =
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0,"per_trait":[{"offset":1.0,"phenotype":1.1}]}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"per_trait":{"index":8,"items":{"additionalProperties":false,"properties":{"offset":{"binaryFormat":"d","description":"The individual offset for this trait.","index":2,"type":"number"},"phenotype":{"binaryFormat":"d","description":"The phenotype for this trait.","index":1,"type":"number"}}},"length":"%d","type":"array"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
 
 // This schema was obsoleted in SLiM 3.7; we now use a JSON schema for the population metadata (see below)
 const std::string gSLiM_tsk_population_metadata_schema_PREJSON = 

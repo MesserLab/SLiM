@@ -894,6 +894,19 @@ bool Eidos_RegexWorks(void);
 // Checks that symbol_name does not contain any illegal Unicode characters; used to check identifiers, in particular
 bool Eidos_ContainsIllegalUnicode(const std::string &symbol_name);
 
+// little-endian write of a uint64_t to an address; taken from tskit/test_core.c in PR https://github.com/tskit-dev/tskit/pull/3306
+inline void Eidos_set_u64_le(uint8_t *dest, uint64_t value)
+{
+    dest[0] = (uint8_t)(value & 0xFF);
+    dest[1] = (uint8_t)((value >> 8) & 0xFF);
+    dest[2] = (uint8_t)((value >> 16) & 0xFF);
+    dest[3] = (uint8_t)((value >> 24) & 0xFF);
+    dest[4] = (uint8_t)((value >> 32) & 0xFF);
+    dest[5] = (uint8_t)((value >> 40) & 0xFF);
+    dest[6] = (uint8_t)((value >> 48) & 0xFF);
+    dest[7] = (uint8_t)((value >> 56) & 0xFF);
+}
+
 
 // *******************************************************************************************************************
 //

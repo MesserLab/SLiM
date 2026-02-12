@@ -97,6 +97,7 @@ enum class SLiMFileFormat
 // Note that these structs are packed, and so accesses to them and within them may be unaligned; we assume
 // that is OK on the platforms we run on, so as to keep file sizes down.
 
+#warning MutationMetadataRec needs to be removed!!!
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_effect_t selection_coeff_;			// 4 bytes (float): the mutation effect (e.g., selection coefficient)
@@ -105,6 +106,22 @@ typedef struct __attribute__((__packed__)) {
 	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
 	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
 } MutationMetadataRec;
+
+typedef struct __attribute__((__packed__)) {
+	slim_effect_t effect_size_;					// 4 bytes (float): the mutation effect size (e.g., selection coefficient)
+	slim_effect_t dominance_coeff_;				// 4 bytes (float): the dominance coefficient; note that NAN indicates independent dominance
+	slim_effect_t hemizygous_dominance_coeff_;	// 4 bytes (float): the hemizygous dominance coefficient
+} _MutationPerTraitMetadata;
+
+typedef struct __attribute__((__packed__)) {
+	slim_mutationid_t mutation_id_;				// 8 bytes (int64_t): the SLiM id of the mutation
+	slim_objectid_t mutation_type_id_;			// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
+	slim_objectid_t subpop_index_;				// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
+	slim_tick_t origin_tick_;					// 4 bytes (int32_t): the tick in which the mutation arose
+	int8_t nucleotide_;							// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
+	int8_t unused_[3];							// 3 bytes (int8_t): UNUSED SPACE, PRESENTLY FOR PADDING
+	_MutationPerTraitMetadata per_trait_[1];	// 12 bytes per entry: 1 or more per-trait entries (count determined by the schema!)
+} MutationTableMetadataRec;
 
 typedef struct __attribute__((__packed__)) {
 	// BCH 12/10/2024: This metadata record is becoming a bit complicated, for multichromosome SLiM, and is now actually variable-length.
@@ -130,6 +147,11 @@ typedef struct __attribute__((__packed__)) {
 } HaplosomeMetadataRec;
 
 typedef struct __attribute__((__packed__)) {
+	slim_phenotype_t phenotype_;			// 8 bytes (double): the phenotypic value for a trait
+	slim_trait_offset_t offset_;			// 8 bytes (double): the individual offset combined in to produce a trait value
+} _IndividualPerTraitMetadata;
+
+typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
 	slim_pedigreeid_t pedigree_p1_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 1
 	slim_pedigreeid_t pedigree_p2_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 2
@@ -137,14 +159,18 @@ typedef struct __attribute__((__packed__)) {
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
 	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
+	_IndividualPerTraitMetadata per_trait_[1];	// 16 bytes per entry: 1 or more per-trait entries (count determined by the schema!)
 } IndividualMetadataRec;
 
 #define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this cycle
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
-static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
+// BCH 2/11/2026: Note that all of these metadata structs are now actually variable-length; this is just a base.
+static_assert(sizeof(_MutationPerTraitMetadata) == 12, "_MutationPerTraitMetadata is not 12 bytes!");
+static_assert(sizeof(MutationTableMetadataRec) == 36, "MutationTableMetadataRec is not 36 bytes!");
 static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");	// but its size is dynamic at runtime
-static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec is not 40 bytes!");
+static_assert(sizeof(_IndividualPerTraitMetadata) == 16, "_IndividualPerTraitMetadata is not 16 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec is not 56 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
@@ -664,9 +690,6 @@ public:
 	void DisconnectCopiedSharedTables(tsk_table_collection_t &p_tables);	// zeroes out the shared table copies in p_tables
 	
 	static void handle_error(const std::string &msg, int error) __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
-	static void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
-	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
-	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
 	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
 	
@@ -678,6 +701,7 @@ public:
 	void RecordNewHaplosome_NULL(Haplosome *p_new_haplosome);
 	void RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
+	void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
 	void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags);
 	void AddLiveIndividualsToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);

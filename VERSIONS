@@ -183,6 +183,13 @@ multitrait branch:
 		whenever a mutationEffect() callback is added, removed, rescheduled, or activated/deactivated in a way that affects the current tick (invalidating all affected trait values)
 		whenever the tick counter advances such that a previously active mutationEffect() callback becomes inactive, or vice versa (invalidating all affected trait values)
 		whenever the tick counter is changed in script to a new arbitrary value (invalidating all trait values in all individuals in all species)
+	tree-sequence recording work for multitrait:
+		individual metadata now has a variable-length per-trait array of phenotype and offset information
+		mutation metadata is now moved from the mutation table's metadata column to a table placed in top-level metadata with the json+struct codec
+		mutation metadata now has a variable-length per-trait array of effect size and dominance information
+		top-level JSON metadata now has a new `traits` key (required), which lists the traits used in the tree sequence; duplicated in provenance
+		the top-level JSON, mutation, and individual metadata schemas are updated accordingly
+		pushed the .trees file version from 0.9 to 1.0
 
 
 version 5.1 (Eidos version 4.1):
