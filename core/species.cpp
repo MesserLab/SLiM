@@ -50,6 +50,7 @@
 #include <unordered_map>
 #include <float.h>
 #include <ctime>
+#include <cstdint>
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING()
@@ -9258,6 +9259,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	const char *top_level_json_buffer;
 	tsk_size_t top_level_json_length;
 	const uint8_t *top_level_binary_buffer;
+	uint8_t *top_level_binary_buffer;
 	tsk_size_t top_level_binary_length;
 	
 	int ret = tsk_json_struct_metadata_get_blob(p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
