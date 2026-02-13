@@ -168,7 +168,7 @@ typedef struct __attribute__((__packed__)) {
 // BCH 2/11/2026: Note that all of these metadata structs are now actually variable-length; this is just a base.
 static_assert(sizeof(_MutationPerTraitMetadata) == 12, "_MutationPerTraitMetadata is not 12 bytes!");
 static_assert(sizeof(MutationTableMetadataRec) == 36, "MutationTableMetadataRec is not 36 bytes!");
-static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");	// but its size is dynamic at runtime
+static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");
 static_assert(sizeof(_IndividualPerTraitMetadata) == 16, "_IndividualPerTraitMetadata is not 16 bytes!");
 static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec is not 56 bytes!");
 
