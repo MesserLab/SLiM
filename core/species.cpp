@@ -8897,7 +8897,22 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		if (d_pos == std::string::npos)
 			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) \"%d\" substring missing from gSLiM_tsk_individual_metadata_schema_FORMAT." << EidosTerminate();
 		else
-			jps_metadata_schema.replace(d_pos, 4, std::to_string(TraitCount()));	// e.g., "%d" -> 4
+			tsk_individual_metadata_schema.replace(d_pos, 4, std::to_string(TraitCount()));	// e.g., "%d" -> 4
+		
+#if 0
+		// DEBUG: dump the metadata schema to std::cout
+		std::cout << std::endl << "tsk_individual_metadata_schema == " << std::endl << tsk_individual_metadata_schema << std::endl << std::endl;
+		
+		nlohmann::json tsk_individual_metadata_schema_JSON;
+		
+		try {
+			tsk_individual_metadata_schema_JSON = nlohmann::json::parse(tsk_individual_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) tsk_individual_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		
+		std::cout << "tsk_individual_metadata_schema == " << std::endl << tsk_individual_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
 		
 		ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
 													   tsk_individual_metadata_schema.c_str(),
@@ -8924,6 +8939,21 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
 	
 	tsk_node_metadata_schema.replace(pos, 4, count_string);		// replace %d in the format string with the byte count
+	
+#if 0
+	// DEBUG: dump the metadata schema to std::cout
+	std::cout << std::endl << "tsk_node_metadata_schema == " << std::endl << tsk_node_metadata_schema << std::endl << std::endl;
+	
+	nlohmann::json tsk_node_metadata_schema_JSON;
+	
+	try {
+		tsk_node_metadata_schema_JSON = nlohmann::json::parse(tsk_node_metadata_schema);
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) tsk_node_metadata_schema must be a JSON string." << EidosTerminate();
+	}
+	
+	std::cout << "tsk_node_metadata_schema == " << std::endl << tsk_node_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
 	
 	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
 			tsk_node_metadata_schema.c_str(),
