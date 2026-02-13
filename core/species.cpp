@@ -9269,7 +9269,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		handle_error("tsk_json_struct_metadata_get_blob", ret);
 	
 	// adjust the binary pointer to account for alignment
-	size_t aligner_length = (8 - ((pointer_t)top_level_binary_buffer) & 0x07) % 8;
+	size_t aligner_length = (8 - (reinterpret_cast<std::uintptr_t>(top_level_binary_buffer) & 0x07)) % 8;
 	
 	std::string metadata_schema_str(p_tables.metadata_schema, p_tables.metadata_schema_length);
 	std::string schema_aligner_prefix = "aligner\":{\"binaryFormat\":\"";
