@@ -1795,6 +1795,11 @@ void SLiM_ConfigureContext(void)
 // literals.  I have also added some code in SLiM_WarmUp() that checks that the metadata schemas are all valid
 // JSON, and optionally prints them.  See https://stackoverflow.com/a/5460235/2752221
 
+// BCH 2/13/2026: Validation of schemas, beyond them simply being valid JSON, is also needed.  In tskit this can
+// only be done in python, which is inconvenient.  The website https://jsonschema.dev validates schemas.  Put
+// in {"$schema":"http://json-schema.org/schema#"} in the left ("JSON Schema") panel, and copy/paste a schema
+// from below into the right-hand panel to validate it.
+
 // This is a useful JSON editor: https://jsoneditoronline.org/
 
 // BCH 12/9/2024: Added the new optional key `chromosomes`, providing an array of information about chromosomes (to support
