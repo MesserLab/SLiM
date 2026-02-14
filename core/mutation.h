@@ -35,6 +35,7 @@
 
 class MutationType;
 class Trait;
+struct MutationTableMetadataRec;
 
 
 class Mutation_Class;
@@ -171,6 +172,9 @@ public:
 	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller
 	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
 	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used by tree-sequence reading in Species::__CreateMutationsFromTabulation()
+	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr);
 	
 	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller, AND a mutation id provided by the caller
 	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!

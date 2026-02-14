@@ -242,9 +242,7 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			if (!std::isfinite(value))
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property individualOffsetMean requires a finite value (not NAN or INF)." << EidosTerminate();
 			
-			individualOffsetDistributionMean_ = value;
-			_RecacheIndividualOffsetDistribution();
-			IndividualOffsetChanged();
+			SetIndividualOffsetDistributionMean(value);
 			return;
 		}
 		case gID_individualOffsetSD:
@@ -254,9 +252,7 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			if (!std::isfinite(value) || (value < 0.0))
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property individualOffsetSD requires a nonnegative finite value (not NAN or INF)." << EidosTerminate();
 			
-			individualOffsetDistributionSD_ = value;
-			_RecacheIndividualOffsetDistribution();
-			IndividualOffsetChanged();
+			SetIndividualOffsetDistributionSD(value);
 			return;
 		}
 		case gID_tag:

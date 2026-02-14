@@ -97,23 +97,13 @@ enum class SLiMFileFormat
 // Note that these structs are packed, and so accesses to them and within them may be unaligned; we assume
 // that is OK on the platforms we run on, so as to keep file sizes down.
 
-#warning MutationMetadataRec needs to be removed!!!
-typedef struct __attribute__((__packed__)) {
-	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
-	slim_effect_t selection_coeff_;			// 4 bytes (float): the mutation effect (e.g., selection coefficient)
-	// FIXME MULTITRAIT need to add a dominance_coeff_ property here! and hemizygous_dominance_coeff_!
-	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
-	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
-	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
-} MutationMetadataRec;
-
-typedef struct __attribute__((__packed__)) {
+typedef struct __attribute__((__packed__)) _MutationPerTraitMetadata {
 	slim_effect_t effect_size_;					// 4 bytes (float): the mutation effect size (e.g., selection coefficient)
 	slim_effect_t dominance_coeff_;				// 4 bytes (float): the dominance coefficient; note that NAN indicates independent dominance
 	slim_effect_t hemizygous_dominance_coeff_;	// 4 bytes (float): the hemizygous dominance coefficient
 } _MutationPerTraitMetadata;
 
-typedef struct __attribute__((__packed__)) {
+typedef struct __attribute__((__packed__)) MutationTableMetadataRec {
 	slim_mutationid_t mutation_id_;				// 8 bytes (int64_t): the SLiM id of the mutation
 	slim_objectid_t mutation_type_id_;			// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_objectid_t subpop_index_;				// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
@@ -178,6 +168,13 @@ static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec is not
 #warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness
 #endif
 #endif
+
+// This struct is used when reading .trees metadata, to encapsulate the structure of the binary mutation metadata table
+typedef struct {
+	uint8_t *table_buffer;		// the base address of the table; this is not MutationTableMetadataRec* because that is variable-length
+	size_t row_size;			// the number of bytes per row (the realized size of one MutationTableMetadataRec)
+	size_t row_count;			// the number of rows (the number of mutations)
+} MutationMetadataTable;
 
 
 #pragma mark -
@@ -709,7 +706,7 @@ public:
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model, slim_chromosome_index_t p_chromosome_index);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict, slim_chromosome_index_t p_chromosome_index);
 	void _MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int original_index);
-	void ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
+	void ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version, MutationMetadataTable &p_mut_metadata_table);
 	void _CreateDirectoryForMultichromArchive(std::string resolved_user_path, bool p_overwrite_directory);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict, bool p_overwrite_directory);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
@@ -725,21 +722,21 @@ public:
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
 	
 	void __CheckPopulationMetadata(TreeSeqInfo &p_treeseq);
-	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, int p_file_version);
+	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, int p_file_version);
 	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, TreeSeqInfo &p_treeseq);
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap, TreeSeqInfo &p_treeseq);
 	void __CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap, TreeSeqInfo &p_treeseq);
 	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
 	void __ConfigureSubpopulationsFromTables_SECONDARY(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
-	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, int p_file_version);
+	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, int p_file_version);
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq);
 	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq);
 	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
 	void _ReadAncestralSequence(const char *p_file, Chromosome &p_chromosome);
-	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq);	// given tree-seq tables, makes individuals, haplosomes, and mutations
-	void _InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq);	// given tree-seq tables, makes individuals, haplosomes, and mutations
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table);	// given tree-seq tables, makes individuals, haplosomes, and mutations
+	void _InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table);	// given tree-seq tables, makes individuals, haplosomes, and mutations
 	void _PostInstantiationCleanup(EidosInterpreter *p_interpreter);
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap, Chromosome &p_chromosome);	// initialize the population from an tskit binary file
 	slim_tick_t _InitializePopulationFromTskitDirectory(std::string p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from a multi-chromosome directory

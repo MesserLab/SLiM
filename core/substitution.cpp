@@ -91,6 +91,30 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 #endif
 }
 
+Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr, slim_tick_t p_fixation_tick) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_metadata_ptr->subpop_index_), origin_tick_(p_metadata_ptr->origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_metadata_ptr->nucleotide_), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
+{
+	// This constructor is called by Species::__CreateMutationsFromTabulation() to construct a mutation directly
+	// from a MutationTableMetadataRec pointer into the tree sequence's mutation metadata table
+	Species &species = mutation_type_ptr_->species_;
+	slim_trait_index_t trait_count = species.TraitCount();
+	
+	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+	{
+		trait_info_[trait_index].effect_size_ = p_metadata_ptr->per_trait_[trait_index].effect_size_;
+		trait_info_[trait_index].dominance_coeff_UNSAFE_ = p_metadata_ptr->per_trait_[trait_index].dominance_coeff_;
+		trait_info_[trait_index].hemizygous_dominance_coeff_ = p_metadata_ptr->per_trait_[trait_index].hemizygous_dominance_coeff_;
+	}
+	
+	EvaluateFlags();
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Substitution::Substitution()");
+#endif
+}
+
 void Substitution::EvaluateFlags(void)
 {
 	// This mirrors Substitution::SelfConsistencyCheck(); essentially it sets up flags as expected by that method.
