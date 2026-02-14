@@ -141,9 +141,11 @@ out:
     return ret;
 }
 
+// BCH 2/14/2026: MODIFIED THIS!  I've removed const from this API because I want to modify the metadata that
+// it returns.  This change has been proposed in https://github.com/tskit-dev/tskit/pull/3306.
 int
-tsk_json_struct_metadata_get_blob(const char *metadata, tsk_size_t metadata_length,
-    const char **json, tsk_size_t *json_length, const uint8_t **blob,
+tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
+    const char **json, tsk_size_t *json_length, uint8_t **blob,
     tsk_size_t *blob_length)
 {
     int ret;
@@ -152,8 +154,8 @@ tsk_json_struct_metadata_get_blob(const char *metadata, tsk_size_t metadata_leng
     uint64_t binary_length_u64;
     uint64_t header_and_json_length;
     uint64_t total_length;
-    const uint8_t *bytes;
-    const uint8_t *blob_start;
+    uint8_t *bytes;
+    uint8_t *blob_start;
     const char *json_start;
 
     if (metadata == NULL || json == NULL || json_length == NULL || blob == NULL
@@ -161,7 +163,7 @@ tsk_json_struct_metadata_get_blob(const char *metadata, tsk_size_t metadata_leng
         ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
         goto out;
     }
-    bytes = (const uint8_t *) metadata;
+    bytes = (uint8_t *) metadata;
     if (metadata_length < TSK_JSON_BINARY_HEADER_SIZE) {
         ret = tsk_trace_error(TSK_ERR_FILE_FORMAT);
         goto out;

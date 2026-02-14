@@ -1117,8 +1117,8 @@ the original metadata buffer is alive.
 @param[out] blob_length On success, set to the payload length in bytes.
 @return 0 on success, or a :ref:`TSK_ERR <c_api_errors>` code on failure.
 */
-int tsk_json_struct_metadata_get_blob(const char *metadata, tsk_size_t metadata_length,
-    const char **json, tsk_size_t *json_length, const uint8_t **blob,
+int tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
+    const char **json, tsk_size_t *json_length, uint8_t **blob,
     tsk_size_t *blob_length);
 
 /* TODO most of these can probably be macros so they compile out as no-ops.
