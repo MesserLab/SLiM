@@ -440,6 +440,8 @@ bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim
 				if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				{
 					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
+					// BCH 2/14/2026: this mutation would still be present in the tree sequence, so it needs to be retained by the species
+					mut->mutation_type_ptr_->species_.NotifyMutationRemoved(mut);
 					continue;
 				}
 				else

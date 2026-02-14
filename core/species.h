@@ -38,6 +38,7 @@
 #include "trait.h"
 #include "eidos_value.h"
 #include "mutation_run.h"
+#include "mutation_block.h"
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
@@ -371,6 +372,9 @@ private:
 	std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
 												// actually be shared by multiple haplosomes in different chromosomes
 	//Individual *current_new_individual_;
+	
+	std::vector<MutationIndex> muts_retained_by_treeseq_;	// mutations that we have retained for the tree sequence; see WriteTreeSequenceMetadata()
+	bool any_muts_retained_impermanently_ = false;			// if false, all retained mutations are from permanently remembered individuals
 	
 #if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
@@ -720,6 +724,25 @@ public:
 	void RecordAllDerivedStatesFromSLiM(void);
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
+	
+	inline __attribute__((always_inline)) void NotifyMutationRemoved(Mutation *p_mut)
+	{
+		// Called when a mutation is removed by script or by stacking policy; such mutations need to be retained
+		// since they are still present in the tree sequence, so we can persist their metadata.  Note that this
+		// needs to happen even when just one of many copies of a mutation is removed in this way, because the
+		// other copies of the mutation might subsequently be lost; in that case, the retained copy might still
+		// be needed to represent the mutation in the tree where it used to exist, unless/until simplified away.
+		// See also ExecuteMethod_treeSeqRememberIndividuals(), the other place where mutations are retained.
+		if (RecordingTreeSequenceMutations() && !p_mut->retained_by_treeseq_)
+		{
+			MutationIndex mut_index = mutation_block_->IndexInBlock(p_mut);
+			muts_retained_by_treeseq_.push_back(mut_index);
+			any_muts_retained_impermanently_ = true;
+			
+			p_mut->Retain();
+			p_mut->retained_by_treeseq_ = true;
+		}
+	}
 	
 	void __CheckPopulationMetadata(TreeSeqInfo &p_treeseq);
 	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, int p_file_version);

@@ -129,6 +129,17 @@ Species::~Species(void)
 	
 	DeleteAllMutationRuns();
 	
+	// release mutations retained by the tree sequence
+	if (muts_retained_by_treeseq_.size())
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		
+		for (MutationIndex mut_index : muts_retained_by_treeseq_)
+			(mut_block_ptr + mut_index)->Release();
+		
+		muts_retained_by_treeseq_.clear();
+	}
+	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
 	for (auto &element : mutation_types_)
@@ -7349,6 +7360,88 @@ void Species::SimplifyAllTreeSequences(void)
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
 	
+	// after simplification, we check for any retained mutations that are no longer refenced by the tree sequence
+	// and remove their retains; this can happen for mutations that were removed by script or stacking policy, if
+	// all branches they were on were simplified away, and can also happen for mutations that were in remembered
+	// individuals if they were remembered with permanent=F; this shouldn't take too long and will save memory,
+	// but there is no real harm to not doing it besides wasted memory/disk, so to save effort we skip it if
+	// there are fewer than 10,000 retained mutations -- about 360K of table space for a one-trait model.
+	if (any_muts_retained_impermanently_ && (muts_retained_by_treeseq_.size() > 10000))
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+		
+		// first mark all retained mutations 0, and build a hash table to look them up by mutation ID
+		for (MutationIndex mut_index : muts_retained_by_treeseq_)
+		{
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			mut->scratch_ = 0;
+			
+			// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
+			// is in the list; it has been marked for removal, probably because it was substituted
+			// in that case, we don't add it to the hash table, so it will be swept at the end
+			if (mut->retained_by_treeseq_)
+				mutid_to_mutation.insert(std::pair<slim_mutationid_t, Mutation *>(mut->mutation_id_, mut));
+		}
+		
+		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+			slim_mutationid_t *derived_states = (slim_mutationid_t *)chromosome_tables.mutations.derived_state;
+			tsk_size_t derived_state_length = chromosome_tables.mutations.derived_state_length;
+			
+#if DEBUG
+			if (derived_state_length % sizeof(slim_mutationid_t) != 0)
+				EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): (internal error) derived state length is not a multiple of the mutation id size." << EidosTerminate();
+#endif
+			
+			size_t derived_state_count = derived_state_length / sizeof(slim_mutationid_t);
+			
+			for (size_t derived_state_index = 0; derived_state_index < derived_state_count; ++derived_state_index)
+			{
+				slim_mutationid_t mut_id = derived_states[derived_state_index];
+				auto iter = mutid_to_mutation.find(mut_id);
+				
+				// the mutation referenced by the derived state is not retained; unsurprising
+				if (iter == mutid_to_mutation.end())
+					continue;
+				
+				// mark the retained mutation 1, since it is referenced by a derived state
+				Mutation *retained_mutation = iter->second;
+				
+				retained_mutation->scratch_ = 1;
+			}
+		}
+		
+		// unmarked mutations can be released and compacted out of muts_retained_by_treeseq_
+		size_t retained_count = muts_retained_by_treeseq_.size();
+		size_t last_valid_index = retained_count - 1;
+		
+		for (size_t retained_index = 0; retained_index < retained_count; )
+		{
+			MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			if (mut->scratch_ == 0)
+			{
+				// this element is no longer needed, so we backfill from the end and repeat this index
+				muts_retained_by_treeseq_[retained_index] = muts_retained_by_treeseq_[last_valid_index];
+				last_valid_index--;
+				retained_count--;
+				mut->retained_by_treeseq_ = false;
+				mut->Release();
+				continue;
+			}
+			
+			// this element is needed, so we don't need to touch it, we just move on
+			retained_index++;
+		}
+	}
+	
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
 	// this could potentially be parallelized, but it's kind of a fringe feature, and not that slow...
 	if (running_coalescence_checks_)
@@ -8705,30 +8798,31 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	
 	// Then figure out how large our binary data will be (but don't generate the data yet; we will write it
 	// directly into the buffer that we allocate below, to avoid copying and increased memory overhead)
-#warning need to include additional sources of mutations here
 	int registry_size;
 	const MutationIndex *register_iter = population_.MutationRegistry(&registry_size);
 	
 	const std::vector<Substitution*> substitutions = population_.substitutions_;
 	size_t substitution_count = substitutions.size();
 	
-	size_t row_count = registry_size + substitution_count;
+	size_t retained_muts_count = muts_retained_by_treeseq_.size();
+	
+	size_t estimated_row_count = registry_size + substitution_count + retained_muts_count;
 	slim_trait_index_t trait_count = TraitCount();
 	size_t size_for_additional_trait_info = sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
 	size_t size_for_one_muttable_row = sizeof(MutationTableMetadataRec) + size_for_additional_trait_info;
-	size_t mutation_table_size = row_count * size_for_one_muttable_row;
+	size_t estimated_mutation_table_size = estimated_row_count * size_for_one_muttable_row;
 	
 	// Then assemble those two components into a json+struct metadata chunk:
 	const uint8_t TSK_JSON_BINARY_MAGIC[4] = { 'J', 'B', 'L', 'B' };
 	size_t header_length = 4 + 1 + 8 + 8;
 	size_t json_length = metadata_JSON_str.length();
-	size_t binary_length = mutation_table_size;
+	size_t estimated_binary_length = estimated_mutation_table_size;
 	
 	// Insert null bytes as needed to align the binary chunk to an 8-byte boundary
 	size_t aligner_length = (8 - ((header_length + json_length) & 0x07)) % 8;
 	
-	size_t total_length = header_length + json_length + aligner_length + binary_length;
-	uint8_t *metadata_buffer = (uint8_t *)malloc(total_length);
+	size_t estimated_total_length = header_length + json_length + aligner_length + estimated_binary_length;
+	uint8_t *metadata_buffer = (uint8_t *)malloc(estimated_total_length);
 	
 	if (!metadata_buffer)
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
@@ -8740,49 +8834,16 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	
 	metadata_buffer[4] = 1;		// version number for the json_blob codec
 	
-	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
-	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)(binary_length + aligner_length));
-	
 	memcpy(metadata_buffer + header_length, metadata_JSON_str.data(), json_length);
 	
 	for (size_t aligner_index = 0; aligner_index < aligner_length; ++aligner_index)
 		metadata_buffer[header_length + json_length + aligner_index] = 0;
 	
 	// Write mutation metadata into the binary section
-	uint8_t *row_pointer = metadata_buffer + header_length + json_length + aligner_length;
+	uint8_t *base_row_pointer = metadata_buffer + header_length + json_length + aligner_length;
+	uint8_t *row_pointer = base_row_pointer;
 	
-	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
-	{
-		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
-		MutationIndex mut_index = register_iter[registry_index];
-		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
-		
-		metadata_row->mutation_id_ = mut->mutation_id_;
-		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
-		metadata_row->subpop_index_ = mut->subpop_index_;
-		metadata_row->origin_tick_ = mut->origin_tick_;
-		metadata_row->nucleotide_ = mut->nucleotide_;
-		
-		metadata_row->unused_[0] = 0;
-		metadata_row->unused_[1] = 0;
-		metadata_row->unused_[2] = 0;
-		
-		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
-		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
-		
-		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-		{
-			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
-			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
-			
-			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
-			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
-			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
-		}
-		
-		row_pointer += size_for_one_muttable_row;
-	}
-	
+	// First we write substitutions; these are guaranteed not to be in the muts_retained_by_treeseq_ vector
 	for (Substitution *sub : substitutions)
 	{
 		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
@@ -8813,12 +8874,118 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		row_pointer += size_for_one_muttable_row;
 	}
 	
+	// Then we write mutations that were retained for us, because they were associated with individuals that
+	// were remembered, or because they were removed in script or by stacking policy; these mutations might
+	// no longer be in SLiM's mutation registry, but they need to be in the mutation metadata table.
+	int retained_count = (int)muts_retained_by_treeseq_.size();
+	
+	for (int retained_index = 0; retained_index < retained_count; ++retained_index)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
+		
+		// Mutations can be in muts_retained_by_treeseq_ and yet no longer be retained; we skip them.
+		// This occurs if a mutation is turned into a substitution; a retain is then no longer needed,
+		// and here we treat the mutation as if it was not in muts_retained_by_treeseq_ to begin with.
+		if (!mut->retained_by_treeseq_)
+			continue;
+		
+		metadata_row->mutation_id_ = mut->mutation_id_;
+		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
+		metadata_row->nucleotide_ = mut->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// Finally we write mutations in the registry, as long as they were not already written
+	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		MutationIndex mut_index = register_iter[registry_index];
+		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
+		
+		// mutations in the retained list were already handled
+		if (mut->retained_by_treeseq_)
+			continue;
+		
+		// mutations that are not segregating do not get persisted
+		MutationState mut_state = (MutationState)mut->state_;
+		
+		if ((mut_state == MutationState::kLostAndRemoved) || (mut_state == MutationState::kFixedAndSubstituted) || (mut_state == MutationState::kRemovedWithSubstitution))
+			continue;
+		
+		metadata_row->mutation_id_ = mut->mutation_id_;
+		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
+		metadata_row->nucleotide_ = mut->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// we set size information at the end because we might not use all of the mutation table space
+	// if that is the case, we realloc here to free up the unused space
+	if ((row_pointer - base_row_pointer) % size_for_one_muttable_row != 0)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) count of rows filled is not an integer." << EidosTerminate();
+	
+	size_t actual_row_count = (row_pointer - base_row_pointer) / size_for_one_muttable_row;
+	size_t actual_mutation_table_size = actual_row_count * size_for_one_muttable_row;
+	size_t actual_binary_length = actual_mutation_table_size;
+	size_t actual_total_length = header_length + json_length + aligner_length + actual_binary_length;
+	
+	if (actual_total_length != estimated_total_length)
+	{
+		metadata_buffer = (uint8_t *)realloc(metadata_buffer, actual_total_length);
+		if (!metadata_buffer)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+	}
+	
+	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
+	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)(actual_mutation_table_size + aligner_length));
+	
 #if DEBUG
 	//std::cout << "WriteTreeSequenceMetadata(): wrote binary mutation table with row size " << size_for_one_muttable_row << " and " << row_count << " rows." << std::endl;
 #endif
 	
 	// Write out the metadata chunk to the table collection:
-	ret = tsk_table_collection_set_metadata(p_tables, (const char *)metadata_buffer, (tsk_size_t)total_length);
+	ret = tsk_table_collection_set_metadata(p_tables, (const char *)metadata_buffer, (tsk_size_t)actual_total_length);
 	if (ret != 0)
 		handle_error("tsk_table_collection_set_metadata", ret);
 	
@@ -12207,8 +12374,9 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 #if DEBUG
 		// BCH 2/13/2026: We used to do a memcpy() here to give us an aligned copy of metadata_ptr, but in the
 		// new metadata design the pointer should always be to an aligned address; we error here if not
-		if ((reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x07) != 0)
-			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) misaligned pointer to mutation metadata." << EidosTerminate();
+		// (we are only guaranteed aligned to a 4-byte boundary since _MutationPerTraitMetadata is 12 bytes)
+		if ((reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x03) != 0)
+			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) misaligned pointer to mutation metadata (misalignment == " << (int)(reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x07) << ")." << EidosTerminate();
 #endif
 		
 		// look up the mutation type from its index

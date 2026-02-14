@@ -42,7 +42,7 @@ slim_mutationid_t gSLiM_next_mutation_id = 0;
 
 // This constructor is used when making a new mutation with effects and dominances provided by the caller; FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 #ifdef DEBUG_LOCKS_ENABLED
 	mutation_block_LOCK.start_critical(2);
@@ -152,7 +152,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 
 // This constructor is used when making a new mutation with effects drawn from each trait's DES, and dominance taken from each trait's default dominance coefficient, both from the given mutation type
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 #ifdef DEBUG_LOCKS_ENABLED
 	mutation_block_LOCK.start_critical(2);
@@ -297,7 +297,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 
 // This constructor is used when making a new mutation with effects and dominances provided by the caller, *and* a mutation id provided by the caller
 Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_metadata_ptr->subpop_index_), origin_tick_(p_metadata_ptr->origin_tick_), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_metadata_ptr->nucleotide_), mutation_id_(p_mutation_id)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_metadata_ptr->subpop_index_), origin_tick_(p_metadata_ptr->origin_tick_), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_metadata_ptr->nucleotide_), mutation_id_(p_mutation_id)
 {
 	Species &species = mutation_type_ptr_->species_;
 	const std::vector<Trait *> &traits = species.Traits();
@@ -407,7 +407,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 
 // This constructor is used when making a new mutation with effects and dominances provided by the caller, *and* a mutation id provided by the caller
 Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
 	Species &species = mutation_type_ptr_->species_;
 	const std::vector<Trait *> &traits = species.Traits();
