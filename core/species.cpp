@@ -11310,11 +11310,11 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		if (individual.nodes_length != 2)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node count; this file cannot be read." << EidosTerminate();
 		
-		tsk_id_t node0 = individual.nodes[0];
-		tsk_id_t node1 = individual.nodes[1];
+		const tsk_id_t node0 = individual.nodes[0];
+		const tsk_id_t node1 = individual.nodes[1];
 		
-		subpop_info.nodes_.emplace_back(node0);
-		subpop_info.nodes_.emplace_back(node1);
+		subpop_info.nodes_.push_back(node0);
+		subpop_info.nodes_.push_back(node1);
 		
 		// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 		// here we crosscheck the node information against expected values from other places in the tables or the model
