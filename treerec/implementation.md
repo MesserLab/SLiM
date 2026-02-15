@@ -295,3 +295,41 @@ The `this_chromosome` key provides information about the particular chromosome r
 by one particular .trees file in the trees archive.
 
 The haplosome metadata also needs to track which nodes are "vacant" in which chromosomes.  Each individual has two nodes associated with it, and those two nodes are used, in the shared node table, to represent all of the haplosomes for all of the chromosomes for a given individual.  A male individual with a diploid autosome would have two haplosomes for that autosome, and would thus use both node table entries, so the two nodes would not be "vacant" for that autosome.  But an X chromosome in the same male individual would have only one X haplosome, and so it would use only the first of the two nodes for that individual; the second node would be "vacant" for that chromosome in that individual.  The state for the vacant vs. non-vacant state for each node, per chromosome, is kept in the node metadata in SLiM 5.  Section 29.3 of the SLiM manual provides further details and discussion; see also the `remove_vacant()` and `restore_vacant()` methods of `pyslim`.
+
+## Metadata handling in SLiM 4.3
+
+This is an introduction to how metadata handling was done in SLiM 4.3, before multiple chromosomes and multiple traits. With the addition of those features, metadata handling in SLiM got significantly more complex because now we have per-chromosome and per-trait metadata so the lengths of metadata records became variable, schemas became variable, etc. as discussed in the "Metadata and schemas" section above.
+
+So. In SLiM 4.3, we declare our schemas here:
+
+https://github.com/MesserLab/SLiM/blob/f872f3df812df4da4e18515af43d79e2d78bf33c/core/slim_globals.cpp#L1576
+
+The tskit doc about how schemas and metadata works is here:
+
+https://tskit.dev/tskit/docs/stable/metadata.html#
+
+SLiM uses a library called nlohmann to handle JSON; it's great. Here's where, for debugging purposes, SLiM tests that its own schemas are valid JSON and prints them out nicely formatted:
+
+https://github.com/MesserLab/SLiM/blob/f872f3df812df4da4e18515af43d79e2d78bf33c/core/slim_globals.cpp#L118
+
+SLiM makes its schemas "canonical" before giving them to tskit; this makes it easier to handle them on the python side, compare them for equality, etc.  Making them canonical means no whitespace, keys in alphabetical order, etc., which makes the schemas well-nigh unreadable, so putting some prettyprinting debug code like this somewhere is very helpful.
+
+OK, so some of this metadata uses tskit's JSON codec, some of it uses tskit's struct (binary) codec. For JSON metadata, here's an example of where we use the nlohmann library to assemble a JSON string and give it to tskit (in this case for our top-level metadata):
+
+https://github.com/MesserLab/SLiM/blob/f872f3df812df4da4e18515af43d79e2d78bf33c/core/species.cpp#L5632
+
+That function, at the end, also sets the correct metadata schema onto each tskit table.
+
+For struct (binary) metadata, we need to assemble the data into the correct binary form. To do that, SLiM defines a C struct for each type of metadata. Those are defined here:
+
+https://github.com/MesserLab/SLiM/blob/f872f3df812df4da4e18515af43d79e2d78bf33c/core/species.h#L82
+
+A struct like that is then used to assemble the metadata into the correct binary form, for example for individual metadata here (using IndividualMetadataRec):
+
+https://github.com/MesserLab/SLiM/blob/f872f3df812df4da4e18515af43d79e2d78bf33c/core/species.cpp#L5254
+
+or for mutation metadata here (using MutationMetadataRec):
+
+https://github.com/MesserLab/SLiM/blob/f872f3df812df4da4e18515af43d79e2d78bf33c/core/species.cpp#L4543
+
+There's lots of other cruft in both of those places, because the way that SLiM handles both the individual table and the derived state column of the mutation table is quite complicated (as discussed in sections above); but you can see how the binary metadata gets assembled and handed off to tskit.
