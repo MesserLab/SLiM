@@ -207,10 +207,10 @@ for instance, individual->node->population.metadata["slim_id"] should always
 equal individual.metadata["subpopulation"] . We would also need to ensure that the slim_id's
 were always unique.
 
-## Metadata schemas
+## Metadata and schemas
 
 tskit provides methods for structured metadata decoding using [JSON schemas](https://json-schema.org/understanding-json-schema/index.html),
-to document what the metadata means.
+to document what the metadata means (https://tskit.dev/tskit/docs/stable/metadata.html#).
 We don't make use of these, but write them to the tree sequence for tskit use.
 There's both top-level metadata (ie for the whole tree sequence)
 and metadata for every row in every table.
@@ -228,6 +228,10 @@ so - it seems - we can merrily write out JSON ourselves.
 Nonetheless, we only actually do JSON parsing and writing in SLiM's code for top-level metadata:
 for all the schemas (including the top-level metadata schema)
 we just write out the string representation, as output by tskit, saved in `slim_globals.h`.
+
+It is worth noting that several of SLiM'm metadata schemas in SLiM 5.0 and later are actually (slightly) dynamically generated.  In SLiM's code these schemas are denoted by the suffix `_schema_FORMAT` in their variable name, because the schema string has substrings named things like `"%d"`, `"%d1"`, and `"%d2"` that get replaced at runtime.  This is used to control aspects of the schema that are fixed within one tree sequence but vary across different tree sequences, such as the number of chromosomes or the number of traits.  Different tree sequences from SLiM will therefore not have exactly the same schemas, and indeed, the size of their metadata records may vary.
+
+In SLiM 5.2 and later, with the addition of support for multiple traits, keeping the mutation metadata in tskit's mutation table got rather unwieldy because the size of the metadata got larger (due to information being kept about each mutation's effect size, dominance, etc., for each trait).  The pre-5.2 way or storing mutation metadata was to put a new copy of it into the mutation table each time that a new derived state was recorded.  In some models, that resulting in a big pile of duplicated data in the form of snapshots of the metadata for the same mutation at multiple time points.  Now, instead, SLiM keeps references to all of the mutations that are still active in the tree sequence, and it outputs a single copy of each one's metadata.  This is not well-suited to the mutation table, so this metadata now goes in a separate table of mutation metadata that SLiM puts in the top-level metadata, in binary form, using tskit's new `json+struct` codec.  Any mutations (or substitutions) that are currently segregating in the population are placed in this table.  In addition there is a special facility to ensure the preservation of mutations that (a) are in the haplosomes of remembered individuals, or (b) were removed from a haplosome by script or by the stacking policy.  Such mutations might no longer be segregating in SLiM, but they might still be in the tree sequence even after simplification.  There is a vector of such mutations in Species, called `muts_retained_by_treeseq_`, that gets added to the top-level mutation metadata table at save.  For efficiency, each mutation also has a flag, `retained_by_treeseq_`, that tracks whether that mutation has been retained in that vector; this allows this scheme to operate quite efficiently – preventing duplicate entries from ever being added, efficiently filtering out entries that are lost during simplification, and making it very easy to merge the different sets of mutations at save time.
 
 In the future we may want to *keep* whatever top-level metadata there is
 in the tree sequence already (and the associated keys in the schema).
