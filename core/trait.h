@@ -154,10 +154,26 @@ public:
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetDistributionFixed_ and individualOffsetDistributionFixedValue_
 	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetDistributionMean_ and individualOffsetDistributionSD_
 	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetDistributionFixed_) ? individualOffsetDistributionFixedValue_ : _DrawIndividualOffset(); }
-	//inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionMean(void) const { return individualOffsetDistributionMean_; }		// a bit dangerous because of the exp() post-transform; probably nobody should use this
-	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionSD(void) const { return individualOffsetDistributionSD_; }
+	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionMean(void) const { return individualOffsetDistributionMean_; }	// NOTE: this is the mean before the exp() post-transform
+	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionSD(void) const { return individualOffsetDistributionSD_; }		// NOTE: this is the SD before the exp() post-transform
 	inline __attribute__((always_inline)) void IndividualOffsetChanged(void) { individualOffsetEverOverridden_ = true; }
 	inline __attribute__((always_inline)) bool IndividualOffsetEverChanged(void) { return individualOffsetEverOverridden_; }
+	inline void SetIndividualOffsetDistributionMean(slim_trait_offset_t p_mean) {
+		if (p_mean != individualOffsetDistributionMean_)
+		{
+			individualOffsetDistributionMean_ = p_mean;
+			_RecacheIndividualOffsetDistribution();
+			IndividualOffsetChanged();
+		}
+	}
+	inline void SetIndividualOffsetDistributionSD(slim_trait_offset_t p_SD) {
+		if (p_SD != individualOffsetDistributionSD_)
+		{
+			individualOffsetDistributionSD_ = p_SD;
+			_RecacheIndividualOffsetDistribution();
+			IndividualOffsetChanged();
+		}
+	}
 	
 	inline __attribute__((always_inline)) bool HasDirectFitnessEffect(void) const { return directFitnessEffect_; }
 	inline __attribute__((always_inline)) bool HasBaselineAccumulation(void) const { return baselineAccumulation_; }

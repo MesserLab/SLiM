@@ -7677,6 +7677,7 @@ void Population::RemoveAllFixedMutations(void)
 		{
 			// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 			// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
+			// BCH 2/14/2026: We now also need to remove the original mutation from our retained mutations list if it is there
 			for (int i = 0; i < fixed_mutation_accumulator_size; i++)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
@@ -7685,6 +7686,10 @@ void Population::RemoveAllFixedMutations(void)
 				species_.DoBaselineAccumulationForSubstitution(sub);
 				treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
 				substitutions_.emplace_back(sub);
+				
+				// We just clear the flag here, and it is as if the mutation was actually removed from muts_retained_by_treeseq_;
+				// it will be garbage-collected the next time simplification occurs, so we don't have to search for it here
+				mut_to_remove->retained_by_treeseq_ = false;
 			}
 		}
 		else

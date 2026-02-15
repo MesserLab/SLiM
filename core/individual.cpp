@@ -6395,10 +6395,10 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 	int64_t *integer_result_data = integer_result->data_mutable();
 	
 	// tabulate the results for each individuals
-	const int8_t PRESENT_HETEROZYGOUS = 1;
-	const int8_t PRESENT_HOMOZYGOUS = 2;
-	const int8_t PRESENT_HEMIZYGOUS = 3;
-	const int8_t PRESENT_HAPLOID = 4;
+	const uint8_t PRESENT_HETEROZYGOUS = 1;
+	const uint8_t PRESENT_HOMOZYGOUS = 2;
+	const uint8_t PRESENT_HEMIZYGOUS = 3;
+	const uint8_t PRESENT_HAPLOID = 4;
 	
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{

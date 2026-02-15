@@ -35,6 +35,7 @@
 
 class MutationType;
 class Trait;
+struct MutationTableMetadataRec;
 
 
 class Mutation_Class;
@@ -116,6 +117,18 @@ public:
 	const slim_tick_t origin_tick_;						// tick in which the mutation arose
 	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
 	int state_ : 4;										// see MutationState above; 4 bits so we can represent -1
+	unsigned int scratch_ : 4;							// temporary scratch space for use by algorithms; regard as volatile outside your own code block
+	
+	// This flag indicates that the mutation has been retained by the species because it belonged to a haplosome
+	// that was remembered by treeSeqRememberIndividuals(), or because it was removed in script or by stacking
+	// policy (and might therefore still be referenced by the tree sequence).  This flag is used by Species for
+	// bookkeeping.  It is used only when tree-sequence recording is enabled.
+	unsigned int retained_by_treeseq_ : 1;
+	
+	// NOTE: there are three bits free here
+	
+	
+	// OPTIMIZATION FLAGS
 	
 	// is_neutral_for_all_traits_ is true if all mutation effects are 0.0 (note a callback might override this).
 	// The state of is_neutral_for_all_traits_ is updated to reflect the state of the mutation when it changes.
@@ -147,8 +160,8 @@ public:
 	// if all effects for a mutation are neutral, this flag will be false.
 	unsigned int independent_dominance_for_any_traits_ : 1;
 	
+	
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
-	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
@@ -158,7 +171,7 @@ public:
 #endif
 	
 #if DEBUG
-	mutable slim_refcount_t refcount_CHECK_;					// scratch space for checking of parallel refcounting
+	mutable slim_refcount_t refcount_CHECK_;				// scratch space for checking of parallel refcounting
 #endif
 	
 	Mutation(const Mutation&) = delete;					// no copying
@@ -171,6 +184,9 @@ public:
 	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller
 	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
 	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	
+	// This constructor is used by tree-sequence reading in Species::__CreateMutationsFromTabulation()
+	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr);
 	
 	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller, AND a mutation id provided by the caller
 	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!

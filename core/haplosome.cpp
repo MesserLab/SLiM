@@ -4320,6 +4320,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					slim_position_t pos = mut->position_;
 					
 					species->RecordNewDerivedState(target_haplosome, pos, empty_mut_vector);
+					
+					// BCH 2/14/2026: All mutations removed need to be retained by the tree sequence until
+					// simplified away, so we can persist their metadata
+					species->NotifyMutationRemoved(mut);
 				}
 			}
 		}
@@ -4496,8 +4500,15 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				// TREE SEQUENCE RECORDING
 				// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 				// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
+				// BCH 2/14/2026: We now also need to remove the original mutation from our retained mutations list if it is there
 				if (species->RecordingTreeSequence())
+				{
 					pop.treeseq_substitutions_map_.emplace(mut->position_, sub);
+					
+					// We just clear the flag here, and it is as if the mutation was actually removed from muts_retained_by_treeseq_;
+					// it will be garbage-collected the next time simplification occurs, so we don't have to search for it here
+					mut->retained_by_treeseq_ = false;
+				}
 				
 				pop.substitutions_.emplace_back(sub);
 			}

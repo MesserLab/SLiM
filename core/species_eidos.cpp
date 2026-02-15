@@ -4884,6 +4884,54 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	
 	AddIndividualsToTable(ind_buffer, ind_count, &treeseq_[0].tables_, &tabled_individuals_hash_, flag);
 	
+	// BCH 2/14/2026: With the new way we handle mutation metadata with the multitrait redesign, we need to
+	// retain all mutations present in the remembered individuals here.  This ensures that the mutation state
+	// we need to write out mutation metadata at save time is still available; we get it from the mutations.
+	// FIXME: This could be optimized with a bulk operation on the mutation runs if it is a bottleneck.
+	if (RecordingTreeSequenceMutations())
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		int haplosome_count_per_individual = HaplosomeCountPerIndividual();
+		
+		for (int ind_index = 0; ind_index < ind_count; ++ind_index)
+		{
+			Individual *ind = ind_buffer[ind_index];
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			{
+				Haplosome *haplosome = ind->haplosomes_[haplosome_index];
+				int mutrun_count = haplosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
+					int mut_count = mutrun->size();
+					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+					
+					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+					{
+						MutationIndex scan_mutation_index = mut_ptr[mut_index];
+						Mutation *scan_mutation = mut_block_ptr + scan_mutation_index;
+						
+						if (!scan_mutation->retained_by_treeseq_)
+						{
+							// This mutation is not already retained by this mechanism; we use retained_by_treeseq_
+							// to ensure that a given mutation is only retained once by this mechanism.  See also
+							// NotifyMutationRemoved(), the other place where mutations are retained.
+							muts_retained_by_treeseq_.push_back(scan_mutation_index);
+							
+							if (!permanent)
+								any_muts_retained_impermanently_ = true;
+							
+							scan_mutation->Retain();
+							scan_mutation->retained_by_treeseq_ = true;
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	return gStaticEidosValueVOID;
 }
 

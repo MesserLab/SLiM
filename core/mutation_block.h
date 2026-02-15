@@ -35,6 +35,7 @@
 
 #include "mutation.h"
 
+class Species;
 class Mutation;
 class MutationRun;
 

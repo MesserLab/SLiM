@@ -2595,21 +2595,10 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 		tsk_table_collection_free(&temp_tables);
 		
 		// With no schema, error out
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a JSON schema is required." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a `json+struct` schema is required." << EidosTerminate();
 	}
 	
-	if (temp_tables.metadata_length == 0)
-	{
-		tsk_table_collection_free(&temp_tables);
-		
-		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
-		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
-		
-		objectElement->Release();	// retained by result_SP
-		return result_SP;
-	}
-	
+	// BCH 2/14/2026: As of SLiM 5.2, we read top-level metadata using the `json+struct` codec
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
 	nlohmann::json metadata_schema;
 	
@@ -2621,10 +2610,33 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	
 	std::string codec = metadata_schema["codec"];
 	
-	if (codec != "json")
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json'." << EidosTerminate();
+	if (codec != "json+struct")
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json+struct'; the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
 	
-	std::string metadata_string(temp_tables.metadata, temp_tables.metadata_length);
+	const char *top_level_json_buffer;
+	tsk_size_t top_level_json_length;
+	uint8_t *top_level_binary_buffer;
+	tsk_size_t top_level_binary_length;
+	
+	ret = tsk_json_struct_metadata_get_blob(temp_tables.metadata, temp_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
+	if ((ret == TSK_ERR_FILE_FORMAT) || (ret == TSK_ERR_FILE_VERSION_TOO_NEW))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
+	if (ret != 0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): an unknown error occurred when reading the file." << EidosTerminate();
+	
+	if (top_level_json_length == 0)
+	{
+		tsk_table_collection_free(&temp_tables);
+		
+		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
+		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
+		
+		objectElement->Release();	// retained by result_SP
+		return result_SP;
+	}
+	
+	std::string metadata_string(top_level_json_buffer, top_level_json_length);
 	nlohmann::json metadata;
 	
 	tsk_table_collection_free(&temp_tables);

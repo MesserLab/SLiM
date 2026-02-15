@@ -50,6 +50,7 @@
 #include <unordered_map>
 #include <float.h>
 #include <ctime>
+#include <cstdint>
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING()
@@ -89,7 +90,8 @@ static const char *SLIM_TREES_FILE_VERSION_META = "0.5";		// SLiM 3.5.x onward, 
 static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
 static const char *SLIM_TREES_FILE_VERSION_PRESPECIES = "0.7";	// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
 static const char *SLIM_TREES_FILE_VERSION_SPECIES = "0.8";		// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
-static const char *SLIM_TREES_FILE_VERSION = "0.9";				// SLiM 5.0 onward, for multichrom (haplosomes not genomes, and `chromosomes` key)
+static const char *SLIM_TREES_FILE_VERSION_MULTICHROM = "0.9";	// SLiM 5.0 onward, for multichrom (haplosomes not genomes, and `chromosomes` key)
+static const char *SLIM_TREES_FILE_VERSION = "1.0";				// SLiM 5.2 onward, for multitrait (per-trait metadata, `traits` key)
 
 #pragma mark -
 #pragma mark Species
@@ -126,6 +128,17 @@ Species::~Species(void)
 	population_.PurgeRemovedSubpopulations();
 	
 	DeleteAllMutationRuns();
+	
+	// release mutations retained by the tree sequence
+	if (muts_retained_by_treeseq_.size())
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		
+		for (MutationIndex mut_index : muts_retained_by_treeseq_)
+			(mut_block_ptr + mut_index)->Release();
+		
+		muts_retained_by_treeseq_.clear();
+	}
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
@@ -6644,6 +6657,8 @@ void Species::AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVI
 	for (tsk_size_t individual_index = 0; individual_index < num_rows; individual_index++)
 	{
 		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+		
+		// note that IndividualMetadataRec is variable-length now, but we only use the fixed-size header portion here
 		IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
 		slim_pedigreeid_t pedigree_p1 = metadata_rec->pedigree_p1_;
 		slim_pedigreeid_t pedigree_p2 = metadata_rec->pedigree_p2_;
@@ -6700,6 +6715,7 @@ void Species::BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIV
 	
 	for (tsk_size_t individual_index = 0; individual_index < num_rows; individual_index++)
 	{
+		// note that IndividualMetadataRec is variable-length now, but we only use the fixed-size header portion here
 		IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(metadata_base + metadata_offset[individual_index]);
 		slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
 		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
@@ -7344,6 +7360,88 @@ void Species::SimplifyAllTreeSequences(void)
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
 	
+	// after simplification, we check for any retained mutations that are no longer refenced by the tree sequence
+	// and remove their retains; this can happen for mutations that were removed by script or stacking policy, if
+	// all branches they were on were simplified away, and can also happen for mutations that were in remembered
+	// individuals if they were remembered with permanent=F; this shouldn't take too long and will save memory,
+	// but there is no real harm to not doing it besides wasted memory/disk, so to save effort we skip it if
+	// there are fewer than 10,000 retained mutations -- about 360K of table space for a one-trait model.
+	if (any_muts_retained_impermanently_ && (muts_retained_by_treeseq_.size() > 10000))
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+		
+		// first mark all retained mutations 0, and build a hash table to look them up by mutation ID
+		for (MutationIndex mut_index : muts_retained_by_treeseq_)
+		{
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			mut->scratch_ = 0;
+			
+			// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
+			// is in the list; it has been marked for removal, probably because it was substituted
+			// in that case, we don't add it to the hash table, so it will be swept at the end
+			if (mut->retained_by_treeseq_)
+				mutid_to_mutation.insert(std::pair<slim_mutationid_t, Mutation *>(mut->mutation_id_, mut));
+		}
+		
+		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+			slim_mutationid_t *derived_states = (slim_mutationid_t *)chromosome_tables.mutations.derived_state;
+			tsk_size_t derived_state_length = chromosome_tables.mutations.derived_state_length;
+			
+#if DEBUG
+			if (derived_state_length % sizeof(slim_mutationid_t) != 0)
+				EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): (internal error) derived state length is not a multiple of the mutation id size." << EidosTerminate();
+#endif
+			
+			size_t derived_state_count = derived_state_length / sizeof(slim_mutationid_t);
+			
+			for (size_t derived_state_index = 0; derived_state_index < derived_state_count; ++derived_state_index)
+			{
+				slim_mutationid_t mut_id = derived_states[derived_state_index];
+				auto iter = mutid_to_mutation.find(mut_id);
+				
+				// the mutation referenced by the derived state is not retained; unsurprising
+				if (iter == mutid_to_mutation.end())
+					continue;
+				
+				// mark the retained mutation 1, since it is referenced by a derived state
+				Mutation *retained_mutation = iter->second;
+				
+				retained_mutation->scratch_ = 1;
+			}
+		}
+		
+		// unmarked mutations can be released and compacted out of muts_retained_by_treeseq_
+		size_t retained_count = muts_retained_by_treeseq_.size();
+		size_t last_valid_index = retained_count - 1;
+		
+		for (size_t retained_index = 0; retained_index < retained_count; )
+		{
+			MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			if (mut->scratch_ == 0)
+			{
+				// this element is no longer needed, so we backfill from the end and repeat this index
+				muts_retained_by_treeseq_[retained_index] = muts_retained_by_treeseq_[last_valid_index];
+				last_valid_index--;
+				retained_count--;
+				mut->retained_by_treeseq_ = false;
+				mut->Release();
+				continue;
+			}
+			
+			// this element is needed, so we don't need to touch it, we just move on
+			retained_index++;
+		}
+	}
+	
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
 	// this could potentially be parallelized, but it's kind of a fringe feature, and not that slow...
 	if (running_coalescence_checks_)
@@ -7919,17 +8017,10 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::RecordNewDerivedState(): usage of statics");
 	
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
-	static std::vector<MutationMetadataRec> mutation_metadata;
-	MutationMetadataRec metadata_rec;
 	
 	derived_mutation_ids.resize(0);
-	mutation_metadata.resize(0);
 	for (Mutation *mutation : p_derived_mutations)
-	{
 		derived_mutation_ids.emplace_back(mutation->mutation_id_);
-		MetadataForMutation(mutation, &metadata_rec);
-		mutation_metadata.emplace_back(metadata_rec);
-	}
 	
 	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
 	// BCH 5/14/2019: Note that this means that derived states will be recorded that look "stacked" even when those mutations would
@@ -7945,8 +8036,6 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 		Substitution *substitution = position_iter->second;
 		
 		derived_mutation_ids.emplace_back(substitution->mutation_id_);
-		MetadataForSubstitution(substitution, &metadata_rec);
-		mutation_metadata.emplace_back(metadata_rec);
 	}
 	
 	// check for time consistency, using the shared node table in treeseq_[0]; this used to be a DEBUG check, but
@@ -7962,13 +8051,11 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	// add the mutation table row with the final derived state and metadata
 	char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
 	size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
-	char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
-	size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 	
 	int ret = tsk_mutation_table_add_row(&tsinfo.tables_.mutations, site_id, haplosomeTSKID, TSK_NULL, 
 					time,
 					derived_muts_bytes, (tsk_size_t)derived_state_length,
-					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
+					NULL, (tsk_size_t)0);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 }
 
@@ -8204,8 +8291,13 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		location.emplace_back(ind->spatial_y_);
 		location.emplace_back(ind->spatial_z_);
 		
-		IndividualMetadataRec metadata_rec;
-		MetadataForIndividual(ind, &metadata_rec);
+		// the IndividualMetadataRec struct is now variable-size; we want to make a struct of the appropriate
+		// size for the amount of per-trait metadata that will be present for individuals of this species
+		slim_trait_index_t trait_count = TraitCount();
+		size_t total_metadata_size = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * (trait_count - 1);
+		uint8_t metadata_buffer[total_metadata_size];	// assumes compiler extension for variable-size stack allocation
+		IndividualMetadataRec &metadata_rec = *(IndividualMetadataRec *)metadata_buffer;
+		MetadataForIndividual(ind, &metadata_rec);		// requires a metadata record of the appropriate size
 		
 		// do a fast lookup to see whether this individual is already in the individuals table
 		auto ind_pos = p_individuals_hash->find(ped_id);
@@ -8215,7 +8307,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			tsk_id_t tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
 					p_flags, location.data(), (uint32_t)location.size(), 
                     NULL, 0, // individual parents
-					(char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
+					(char *)&metadata_rec, (uint32_t)total_metadata_size);
 			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
 			
 			// Add the new individual to our hash table, for fast lookup as done above
@@ -8242,7 +8334,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 				   && (location.size()
 					   == (p_tables->individuals.location_offset[tsk_individual + 1]
 						   - p_tables->individuals.location_offset[tsk_individual]))
-				   && (sizeof(IndividualMetadataRec)
+				   && (total_metadata_size
 					   == (p_tables->individuals.metadata_offset[tsk_individual + 1]
 						   - p_tables->individuals.metadata_offset[tsk_individual])));
 			
@@ -8262,7 +8354,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 				   location.data(), location.size() * sizeof(double));
 			memcpy(p_tables->individuals.metadata
 					+ p_tables->individuals.metadata_offset[tsk_individual],
-					&metadata_rec, sizeof(IndividualMetadataRec));
+					&metadata_rec, total_metadata_size);
 			p_tables->individuals.flags[tsk_individual] |= p_flags;
 			
 			// Check node table
@@ -8558,13 +8650,18 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 
 	//////
 	// Top-level (tree sequence) metadata:
-	// In the future, we might need to *add* to the metadata *and also* the schema,
-	// leaving other keys that might already be there.
-	// But that's being a headache, so we're skipping it.
+	//
+	// SLiM now writes top-level metadata with the new "json+struct" codec.  So we assemble a JSON string and
+	// a binary struct, and put them together with a magic byte string, a version number, a header, and schemas.
+	// See https://github.com/tskit-dev/tskit/pull/3306 for the PR for the json+struct codec and discussion.
+	//
+	// NOTE: In the future, we might need to *add* to the metadata *and also* the schema, leaving other keys
+	// that might already be there.  But that's being a headache, so we're skipping it.
 	
+	// First generate our JSON string, as we did in SLiM 5.1 and earlier:
 	// BCH 3/9/2025: This is now wrapped in try/catch because the JSON library might raise, especially if it dislikes
 	// the model string we try to put in metadata for p_include_model; see https://github.com/MesserLab/SLiM/issues/488
-	std::string new_metadata_str;
+	std::string metadata_JSON_str;
 	
 	try {
 		nlohmann::json metadata;
@@ -8666,59 +8763,346 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			}
 		}
 		
-		new_metadata_str = metadata.dump();
+		metadata["SLiM"]["traits"] = nlohmann::json::array();
+		for (Trait *trait : traits_)
+		{
+			nlohmann::json trait_info;
+			
+			trait_info["index"] = trait->Index();
+			trait_info["name"] = trait->Name();
+			
+			if (trait->HasLogisticPostTransform())
+				trait_info["type"] = "logistic";
+			else if (trait->Type() == TraitType::kAdditive)
+				trait_info["type"] = "additive";
+			else
+				trait_info["type"] = "multiplicative";
+			
+			trait_info["baselineOffset"] = trait->BaselineOffset();
+			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
+			
+			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
+			trait_info["individualOffsetSD"] = trait->IndividualOffsetDistributionSD();
+			
+			trait_info["directFitnessEffect"] = trait->HasDirectFitnessEffect();
+			
+			metadata["SLiM"]["traits"].push_back(trait_info);
+		}
+		
+		metadata_JSON_str = metadata.dump();
 	} catch (const std::exception &e) {
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): a JSON string could not be generated for tree-sequence metadata due to an error: '" << e.what() << "'." << EidosTerminate();
 	} catch (...) {
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): a JSON string could not be generated for tree-sequence metadata due to an unknown error." << EidosTerminate();
 	}
 	
-	ret = tsk_table_collection_set_metadata(
-			p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
+	// Then figure out how large our binary data will be (but don't generate the data yet; we will write it
+	// directly into the buffer that we allocate below, to avoid copying and increased memory overhead)
+	int registry_size;
+	const MutationIndex *register_iter = population_.MutationRegistry(&registry_size);
+	
+	const std::vector<Substitution*> substitutions = population_.substitutions_;
+	size_t substitution_count = substitutions.size();
+	
+	size_t retained_muts_count = muts_retained_by_treeseq_.size();
+	
+	size_t estimated_row_count = registry_size + substitution_count + retained_muts_count;
+	slim_trait_index_t trait_count = TraitCount();
+	size_t size_for_additional_trait_info = sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
+	size_t size_for_one_muttable_row = sizeof(MutationTableMetadataRec) + size_for_additional_trait_info;
+	size_t estimated_mutation_table_size = estimated_row_count * size_for_one_muttable_row;
+	
+	// Then assemble those two components into a json+struct metadata chunk:
+	const uint8_t TSK_JSON_BINARY_MAGIC[4] = { 'J', 'B', 'L', 'B' };
+	size_t header_length = 4 + 1 + 8 + 8;
+	size_t json_length = metadata_JSON_str.length();
+	size_t estimated_binary_length = estimated_mutation_table_size;
+	
+	// Insert null bytes as needed to align the binary chunk to an 8-byte boundary
+	size_t aligner_length = (8 - ((header_length + json_length) & 0x07)) % 8;
+	
+	size_t estimated_total_length = header_length + json_length + aligner_length + estimated_binary_length;
+	uint8_t *metadata_buffer = (uint8_t *)malloc(estimated_total_length);
+	
+	if (!metadata_buffer)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+	
+	metadata_buffer[0] = TSK_JSON_BINARY_MAGIC[0];
+	metadata_buffer[1] = TSK_JSON_BINARY_MAGIC[1];
+	metadata_buffer[2] = TSK_JSON_BINARY_MAGIC[2];
+	metadata_buffer[3] = TSK_JSON_BINARY_MAGIC[3];
+	
+	metadata_buffer[4] = 1;		// version number for the json_blob codec
+	
+	memcpy(metadata_buffer + header_length, metadata_JSON_str.data(), json_length);
+	
+	for (size_t aligner_index = 0; aligner_index < aligner_length; ++aligner_index)
+		metadata_buffer[header_length + json_length + aligner_index] = 0;
+	
+	// Write mutation metadata into the binary section
+	uint8_t *base_row_pointer = metadata_buffer + header_length + json_length + aligner_length;
+	uint8_t *row_pointer = base_row_pointer;
+	
+	// First we write substitutions; these are guaranteed not to be in the muts_retained_by_treeseq_ vector
+	for (Substitution *sub : substitutions)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		
+		metadata_row->mutation_id_ = sub->mutation_id_;
+		metadata_row->mutation_type_id_ = sub->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = sub->subpop_index_;
+		metadata_row->origin_tick_ = sub->origin_tick_;
+		metadata_row->nucleotide_ = sub->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		SubstitutionTraitInfo *sub_trait_info_array = sub->trait_info_;
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			SubstitutionTraitInfo *sub_trait_info = sub_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = sub_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = sub_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = sub_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// Then we write mutations that were retained for us, because they were associated with individuals that
+	// were remembered, or because they were removed in script or by stacking policy; these mutations might
+	// no longer be in SLiM's mutation registry, but they need to be in the mutation metadata table.
+	int retained_count = (int)muts_retained_by_treeseq_.size();
+	
+	for (int retained_index = 0; retained_index < retained_count; ++retained_index)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
+		
+		// Mutations can be in muts_retained_by_treeseq_ and yet no longer be retained; we skip them.
+		// This occurs if a mutation is turned into a substitution; a retain is then no longer needed,
+		// and here we treat the mutation as if it was not in muts_retained_by_treeseq_ to begin with.
+		if (!mut->retained_by_treeseq_)
+			continue;
+		
+		metadata_row->mutation_id_ = mut->mutation_id_;
+		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
+		metadata_row->nucleotide_ = mut->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// Finally we write mutations in the registry, as long as they were not already written
+	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		MutationIndex mut_index = register_iter[registry_index];
+		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
+		
+		// mutations in the retained list were already handled
+		if (mut->retained_by_treeseq_)
+			continue;
+		
+		// mutations that are not segregating do not get persisted
+		MutationState mut_state = (MutationState)mut->state_;
+		
+		if ((mut_state == MutationState::kLostAndRemoved) || (mut_state == MutationState::kFixedAndSubstituted) || (mut_state == MutationState::kRemovedWithSubstitution))
+			continue;
+		
+		metadata_row->mutation_id_ = mut->mutation_id_;
+		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
+		metadata_row->nucleotide_ = mut->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// we set size information at the end because we might not use all of the mutation table space
+	// if that is the case, we realloc here to free up the unused space
+	if ((row_pointer - base_row_pointer) % size_for_one_muttable_row != 0)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) count of rows filled is not an integer." << EidosTerminate();
+	
+	size_t actual_row_count = (row_pointer - base_row_pointer) / size_for_one_muttable_row;
+	size_t actual_mutation_table_size = actual_row_count * size_for_one_muttable_row;
+	size_t actual_binary_length = actual_mutation_table_size;
+	size_t actual_total_length = header_length + json_length + aligner_length + actual_binary_length;
+	
+	if (actual_total_length != estimated_total_length)
+	{
+		metadata_buffer = (uint8_t *)realloc(metadata_buffer, actual_total_length);
+		if (!metadata_buffer)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+	}
+	
+	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
+	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)(actual_mutation_table_size + aligner_length));
+	
+#if DEBUG
+	//std::cout << "WriteTreeSequenceMetadata(): wrote binary mutation table with row size " << size_for_one_muttable_row << " and " << row_count << " rows." << std::endl;
+#endif
+	
+	// Write out the metadata chunk to the table collection:
+	ret = tsk_table_collection_set_metadata(p_tables, (const char *)metadata_buffer, (tsk_size_t)actual_total_length);
 	if (ret != 0)
 		handle_error("tsk_table_collection_set_metadata", ret);
-
-	// As above, we maybe ought to edit the metadata schema adding our keys,
+	
+	// And finally, generate the bipartite schema for the json+struct metadata chunk:
+	//
+	// NOTE: As above, we maybe ought to edit the metadata schema adding our keys,
 	// but then comparing tables is a headache; see tskit#763
+	std::string jps_metadata_schema;
+	
+	jps_metadata_schema = R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json+struct","json":)V0G0N";
+	jps_metadata_schema += gSLiM_tsk_metadata_JSON_schema;
+	jps_metadata_schema += R"V0G0N(,"struct":)V0G0N";
+	jps_metadata_schema += gSLiM_tsk_metadata_binary_schema_FORMAT;
+	jps_metadata_schema += R"V0G0N(})V0G0N";
+	
+	{
+		// fix "%d1" to have the count of padding bytes needed for 8-byte alignment
+		size_t d1_pos = jps_metadata_schema.find("\"%d1\"");
+		
+		if (d1_pos == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) substring \"%d1\" for replacement in schema not found." << EidosTerminate();
+		else
+			jps_metadata_schema.replace(d1_pos, 5, "\"" + std::to_string(aligner_length) + "x\"");	// e.g., "%d1" -> "5x"
+	}
+	{
+		// fix "%d2" to have the number of traits in this species
+		size_t d2_pos = jps_metadata_schema.find("\"%d2\"");
+		
+		if (d2_pos == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) substring \"%d2\" for replacement in schema not found." << EidosTerminate();
+		else
+			jps_metadata_schema.replace(d2_pos, 5, std::to_string(trait_count));	// e.g., "%d2" -> 3
+	}
+	
+#if 0
+	// DEBUG: dump the json+struct metadata schema to std::cout
+	std::cout << std::endl << "jps_metadata_schema == " << std::endl << jps_metadata_schema << std::endl << std::endl;
+	
+	nlohmann::json jps_metadata_schema_JSON;
+	
+	try {
+		jps_metadata_schema_JSON = nlohmann::json::parse(jps_metadata_schema);
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) jps_metadata_schema must be a JSON string." << EidosTerminate();
+	}
+	
+	std::cout << "jps_metadata_schema == " << std::endl << jps_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
+	
 	ret = tsk_table_collection_set_metadata_schema(
-			p_tables, gSLiM_tsk_metadata_schema.c_str(), (tsk_size_t)gSLiM_tsk_metadata_schema.length());
+			p_tables, jps_metadata_schema.data(), (tsk_size_t)jps_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_table_collection_set_metadata_schema", ret);
-
+	
 	////////////
 	// Set metadata schema on each table
+	
 	ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
 			gSLiM_tsk_edge_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_edge_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_edge_table_set_metadata_schema", ret);
+	
 	ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
 			gSLiM_tsk_site_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_site_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_site_table_set_metadata_schema", ret);
+	
 	ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
 			gSLiM_tsk_mutation_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_mutation_table_set_metadata_schema", ret);
-	ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
-			gSLiM_tsk_individual_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
-	if (ret != 0)
-		handle_error("tsk_individual_table_set_metadata_schema", ret);
+	
+	{
+		// fix "%d" in the individual metadata to have the number of traits in the species
+		std::string tsk_individual_metadata_schema = gSLiM_tsk_individual_metadata_schema_FORMAT;
+		size_t d_pos = tsk_individual_metadata_schema.find("\"%d\"");
+		
+		if (d_pos == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) \"%d\" substring missing from gSLiM_tsk_individual_metadata_schema_FORMAT." << EidosTerminate();
+		else
+			tsk_individual_metadata_schema.replace(d_pos, 4, std::to_string(TraitCount()));	// e.g., "%d" -> 4
+		
+#if 0
+		// DEBUG: dump the metadata schema to std::cout
+		std::cout << std::endl << "tsk_individual_metadata_schema == " << std::endl << tsk_individual_metadata_schema << std::endl << std::endl;
+		
+		nlohmann::json tsk_individual_metadata_schema_JSON;
+		
+		try {
+			tsk_individual_metadata_schema_JSON = nlohmann::json::parse(tsk_individual_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) tsk_individual_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		
+		std::cout << "tsk_individual_metadata_schema == " << std::endl << tsk_individual_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
+		
+		ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
+													   tsk_individual_metadata_schema.c_str(),
+													   (tsk_size_t)tsk_individual_metadata_schema.length());
+		if (ret != 0)
+			handle_error("tsk_individual_table_set_metadata_schema", ret);
+	}
+	
 	ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
 			gSLiM_tsk_population_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_population_table_set_metadata_schema", ret);
 	
-	// For the node table the schema we save out depends upon the number of
-	// bits needed to represent the null haplosome structure of the model.
-	// We allocate one bit per chromosome, in each node table entry (note
-	// there are two entries per individual, so it ends up being two bits
-	// of information per chromosome, across the two node table entries.)
-	// See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
+	// For the node table the schema we save out depends upon the number of bits needed to represent the null
+	// haplosome structure of the model.  We allocate one bit per chromosome, in each node table entry (note
+	// there are two entries per individual, so it ends up being two bits of information per chromosome, across
+	// the two node table entries).  See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
 	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
 	size_t pos = tsk_node_metadata_schema.find("\"%d\"");
 	std::string count_string = std::to_string(haplosome_metadata_is_vacant_bytes_);
@@ -8727,6 +9111,21 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
 	
 	tsk_node_metadata_schema.replace(pos, 4, count_string);		// replace %d in the format string with the byte count
+	
+#if 0
+	// DEBUG: dump the metadata schema to std::cout
+	std::cout << std::endl << "tsk_node_metadata_schema == " << std::endl << tsk_node_metadata_schema << std::endl << std::endl;
+	
+	nlohmann::json tsk_node_metadata_schema_JSON;
+	
+	try {
+		tsk_node_metadata_schema_JSON = nlohmann::json::parse(tsk_node_metadata_schema);
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) tsk_node_metadata_schema must be a JSON string." << EidosTerminate();
+	}
+	
+	std::cout << "tsk_node_metadata_schema == " << std::endl << tsk_node_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
 	
 	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
 			tsk_node_metadata_schema.c_str(),
@@ -8873,6 +9272,32 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 			}
 		}
 		
+		j["parameters"]["traits"] = nlohmann::json::array();
+		for (Trait *trait : traits_)
+		{
+			nlohmann::json trait_info;
+			
+			trait_info["index"] = trait->Index();
+			trait_info["name"] = trait->Name();
+			
+			if (trait->HasLogisticPostTransform())
+				trait_info["type"] = "logistic";
+			else if (trait->Type() == TraitType::kAdditive)
+				trait_info["type"] = "additive";
+			else
+				trait_info["type"] = "multiplicative";
+			
+			trait_info["baselineOffset"] = trait->BaselineOffset();
+			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
+			
+			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
+			trait_info["individualOffsetSD"] = trait->IndividualOffsetDistributionSD();
+			
+			trait_info["directFitnessEffect"] = trait->HasDirectFitnessEffect();
+			
+			j["parameters"]["traits"].push_back(trait_info);
+		}
+		
 		if (p_include_model)
 			j["parameters"]["model"] = scriptString;				// made model optional in file_version 0.4
 		j["parameters"]["model_hash"] = scriptHashString;			// added model_hash in file_version 0.4
@@ -8946,7 +9371,7 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 		
 		// check that the length is sufficient for the bits of original_index
 		if (node_metadata_length < expected_min_metadata_length)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_MungeIsNullNodeMetadataToIndex0): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 		
 		HaplosomeMetadataRec *node_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[row]);
 		HaplosomeMetadataRec *new_metadata = new_metadata_buffer + row;
@@ -8985,11 +9410,8 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 		handle_error("tsk_node_table_set_metadata_schema", ret);
 }
 
-void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version)
+void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version, MutationMetadataTable &p_mut_metadata_table)
 {
-	// New provenance reading code, using the JSON for Modern C++ library (json.hpp); this
-	// applies to file versions > 0.1.  The version 0.1 code was removed 24 Feb. 2025.
-	
 	tsk_table_collection_t &p_tables = p_treeseq.tables_;
 	std::string model_type_str;
 	std::string cycle_stage_str;
@@ -9000,147 +9422,268 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	std::string this_chromosome_type;
 	bool chomosomes_key_present = false;
 	
-	try {
-		////////////
-		// Format 0.5 and later: using top-level metadata
-		
-		// Note: we *could* parse the metadata schema, but instead we'll just try parsing the metadata.
-		// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
-		// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
-
-		std::string metadata_str(p_tables.metadata, p_tables.metadata_length);
-		auto metadata = nlohmann::json::parse(metadata_str);
-		
-		//std::cout << metadata.dump(4) << std::endl;
-		
-		if (!metadata["SLiM"].contains("file_version"))
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'file_version' is missing; this file cannot be read." << EidosTerminate();
-		
-		auto file_version = metadata["SLiM"]["file_version"];
-		
-		if ((file_version == SLIM_TREES_FILE_VERSION_PRENUC) ||
-			(file_version == SLIM_TREES_FILE_VERSION_POSTNUC) ||
-			(file_version == SLIM_TREES_FILE_VERSION_HASH) ||
-			(file_version == SLIM_TREES_FILE_VERSION_META) ||
-			(file_version == SLIM_TREES_FILE_VERSION_PREPARENT) ||
-			(file_version == SLIM_TREES_FILE_VERSION_PRESPECIES) ||
-			(file_version == SLIM_TREES_FILE_VERSION_SPECIES))
-		{
-			// SLiM 5.0 breaks backward compatibility with earlier file versions
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM or pyslim." << EidosTerminate();
-		}
-		else if (file_version == SLIM_TREES_FILE_VERSION)
-		{
-			*p_file_version = 9;
-		}
-		else
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim (internal file version " << file_version << "); this file cannot be read." << EidosTerminate();
-		
-		// We test for some keys if they are new or optional, but assume that others must be there, such as "model_type".
-		// If we fetch a key and it is missing, nhlohmann::json raises and we end up in the provenance fallback code below.
-		// That indicates that we're reading an old file version, which we no longer support in SLiM 5.
-		// BCH 2/24/2025: I'm shifting towards testing for every key before fetching, in order to give better error messages.
-		if (!metadata["SLiM"].contains("model_type"))
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'model_type' is missing; this file cannot be read." << EidosTerminate();
-		
-		model_type_str = metadata["SLiM"]["model_type"];
-		
-		if (!metadata["SLiM"].contains("tick"))
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'tick' is missing; this file cannot be read." << EidosTerminate();
-		
-		tick_ll = metadata["SLiM"]["tick"];
-		
-		// "cycle" is optional and now defaults to the tick (it used to fall back to the old "generation" key)
-		if (metadata["SLiM"].contains("cycle"))
-			gen_ll = metadata["SLiM"]["cycle"];
-		else
-			gen_ll = tick_ll;
-		
-		// "stage" is optional, and is used below only for validation; it provides an extra layer of safety
-		if (metadata["SLiM"].contains("stage"))
-			cycle_stage_str = metadata["SLiM"]["stage"];
-		
-		/*if (metadata["SLiM"].contains("name"))
-		{
-			// If a species name is present, it must match our own name; can't load data across species, as a safety measure
-			// If users find this annoying, it can be relaxed; nothing really depends on it
-			// BCH 5/12/2022: OK, it is already annoying; disabling this check for now
-			std::string metadata_name = metadata["SLiM"]["name"];
-			
-			if (metadata_name != name_)
-				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file represents a species named " << metadata_name << ", which does not match the name of the target species, " << name_ << "; species names must match." << EidosTerminate();
-		}*/
-		
-		if (metadata["SLiM"].contains("description"))
-		{
-			// If a species description is present and non-empty, it replaces our own description
-			std::string metadata_description = metadata["SLiM"]["description"];
-			
-			if (metadata_description.length())
-				description_ = metadata_description;
-		}
-		
-		// The "this_chromosome" key is required, as are the keys within it
-		auto &this_chromosome_metadata = metadata["SLiM"]["this_chromosome"];
-		
-		if (!this_chromosome_metadata.is_object())
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'this_chromosome' metadata key must be a JSON object." << std::endl;
-		if (!this_chromosome_metadata.contains("id"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		if (!this_chromosome_metadata.contains("index"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'index' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		if (!this_chromosome_metadata.contains("symbol"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		if (!this_chromosome_metadata.contains("type"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		
-		this_chromosome_id = this_chromosome_metadata["id"];
-		this_chromosome_index = this_chromosome_metadata["index"];
-		this_chromosome_symbol = this_chromosome_metadata["symbol"];
-		this_chromosome_type = this_chromosome_metadata["type"];
-		
-		// The "chromosomes" key is optional, but if provided, it has to make sense
-		if (metadata["SLiM"].contains("chromosomes"))
-		{
-			chomosomes_key_present = true;
-			
-			// We validate the whole "chromosomes" key against the whole model, to make sure everything is as expected
-			auto &chromosomes_metadata = metadata["SLiM"]["chromosomes"];
-			
-			if (!chromosomes_metadata.is_array())
-				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'chromosomes' metadata key must be an array." << std::endl;
-			if (chromosomes_metadata.size() != Chromosomes().size())
-				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'chromosomes' metadata key does not match the number of chromosomes in the model." << std::endl;
-			
-			for (std::size_t chromosomes_index = 0; chromosomes_index < Chromosomes().size(); ++chromosomes_index)
-			{
-				Chromosome *chromosome = Chromosomes()[chromosomes_index];
-				auto &one_chromosome_metadata = chromosomes_metadata[chromosomes_index];
-				
-				if (!one_chromosome_metadata.contains("id"))
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
-				if (!one_chromosome_metadata.contains("symbol"))
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
-				if (!one_chromosome_metadata.contains("type"))
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
-				
-				int one_chromosome_id = one_chromosome_metadata["id"];
-				std::string one_chromosome_symbol = one_chromosome_metadata["symbol"];
-				std::string one_chromosome_type = one_chromosome_metadata["type"];
-				
-				if (one_chromosome_id != chromosome->ID())
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the id for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
-				if (one_chromosome_symbol != chromosome->Symbol())
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the symbol for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
-				if (one_chromosome_type != chromosome->TypeString())
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
-			}
-		}
-	} catch (...) {
-		///////////////////////
-		// Previous formats: everything is in provenance
-		
+	// BCH 2/13/2026: This code was inside a big try/catch block that didn't make sense to me, since it replaced
+	// the useful error messages here with an uninformative catch-all error message; so I removed it.
+	
+	////////////
+	// Format 1.0 and later: reading top-level metadata using tskit's `json+struct` codec
+	const char *top_level_json_buffer;
+	tsk_size_t top_level_json_length;
+	uint8_t *top_level_binary_buffer;
+	tsk_size_t top_level_binary_length;
+	
+	int ret = tsk_json_struct_metadata_get_blob(p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
+	if ((ret == TSK_ERR_FILE_FORMAT) || (ret == TSK_ERR_FILE_VERSION_TOO_NEW))
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
+	if (ret != 0)
+		handle_error("tsk_json_struct_metadata_get_blob", ret);
+	
+	// adjust the binary pointer to account for alignment
+	size_t aligner_length = (8 - (reinterpret_cast<std::uintptr_t>(top_level_binary_buffer) & 0x07)) % 8;
+	
+	std::string metadata_schema_str(p_tables.metadata_schema, p_tables.metadata_schema_length);
+	std::string schema_aligner_prefix = "aligner\":{\"binaryFormat\":\"";
+	size_t schema_aligner_position = metadata_schema_str.find(schema_aligner_prefix);
+	
+	if (schema_aligner_position == std::string::npos)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level metadata schema is non-compliant; this file cannot be read." << EidosTerminate();
+	
+	char schema_aligner_char = metadata_schema_str.at(schema_aligner_position + schema_aligner_prefix.length());
+	
+	if ((schema_aligner_char < '0') || (schema_aligner_char > '7'))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level metadata schema is non-compliant; this file cannot be read." << EidosTerminate();
+	
+	size_t schema_aligner_length = (schema_aligner_char - '0');
+	
+	if (aligner_length != schema_aligner_length)
+	{
+		std::cout << "#WARNING (Species::ReadTreeSequenceMetadata): the alignment byte count for the top-level binary metadata is unexpected (the schema says " << schema_aligner_length << " but the reality is " << aligner_length << ")." << std::endl;
+		aligner_length = schema_aligner_length;
+	}
+	
+	top_level_binary_buffer = top_level_binary_buffer + aligner_length;
+	top_level_binary_length -= aligner_length;
+	
+	size_t trait_count = Traits().size();
+	size_t binary_row_length = sizeof(MutationTableMetadataRec) + sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
+	
+	if (top_level_binary_length % binary_row_length != 0)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata does not comprise an integral number of rows (binary_row_length == " << binary_row_length << ", top_level_binary_length == " << top_level_binary_length << "); this file cannot be read." << EidosTerminate();
+	
+	// pass information on the binary mutation metadata table back to the caller
+	p_mut_metadata_table.table_buffer = top_level_binary_buffer;
+	p_mut_metadata_table.row_size = binary_row_length;
+	p_mut_metadata_table.row_count = top_level_binary_length / binary_row_length;
+	
+#if DEBUG
+	//std::cout << "ReadTreeSequenceMetadata(): read binary mutation table with row size " << p_mut_metadata_table.row_size << " and " << p_mut_metadata_table.row_count << " rows." << std::endl;
+#endif
+	
+	// Note: we *could* parse the metadata schema, but instead we'll just try parsing the metadata.
+	// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
+	// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
+	
+	std::string top_level_json_str(top_level_json_buffer, top_level_json_length);
+	auto top_level_json = nlohmann::json::parse(top_level_json_str);
+	
+	//std::cout << top_level_json.dump(4) << std::endl;
+	
+	if (!top_level_json["SLiM"].contains("file_version"))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'file_version' is missing; this file cannot be read." << EidosTerminate();
+	
+	auto file_version = top_level_json["SLiM"]["file_version"];
+	
+	if ((file_version == SLIM_TREES_FILE_VERSION_PRENUC) ||
+		(file_version == SLIM_TREES_FILE_VERSION_POSTNUC) ||
+		(file_version == SLIM_TREES_FILE_VERSION_HASH) ||
+		(file_version == SLIM_TREES_FILE_VERSION_META) ||
+		(file_version == SLIM_TREES_FILE_VERSION_PREPARENT) ||
+		(file_version == SLIM_TREES_FILE_VERSION_PRESPECIES) ||
+		(file_version == SLIM_TREES_FILE_VERSION_SPECIES) ||
+		(file_version == SLIM_TREES_FILE_VERSION_MULTICHROM))
+	{
+		// SLiM 5.2 breaks backward compatibility with earlier file versions
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM or pyslim." << EidosTerminate();
+	}
+	else if (file_version == SLIM_TREES_FILE_VERSION)
+	{
+		*p_file_version = 10;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim (internal file version " << file_version << "); this file cannot be read." << EidosTerminate();
+	
+	// We test for some keys if they are new or optional, but assume that others must be there, such as "model_type".
+	// If we fetch a key and it is missing, nhlohmann::json raises and we end up in the provenance fallback code below.
+	// That indicates that we're reading an old file version, which we no longer support in SLiM 5.
+	// BCH 2/24/2025: I'm shifting towards testing for every key before fetching, in order to give better error messages.
+	if (!top_level_json["SLiM"].contains("model_type"))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'model_type' is missing; this file cannot be read." << EidosTerminate();
+	
+	model_type_str = top_level_json["SLiM"]["model_type"];
+	
+	if (!top_level_json["SLiM"].contains("tick"))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'tick' is missing; this file cannot be read." << EidosTerminate();
+	
+	tick_ll = top_level_json["SLiM"]["tick"];
+	
+	// "cycle" is optional and now defaults to the tick (it used to fall back to the old "generation" key)
+	if (top_level_json["SLiM"].contains("cycle"))
+		gen_ll = top_level_json["SLiM"]["cycle"];
+	else
+		gen_ll = tick_ll;
+	
+	// "stage" is optional, and is used below only for validation; it provides an extra layer of safety
+	if (top_level_json["SLiM"].contains("stage"))
+		cycle_stage_str = top_level_json["SLiM"]["stage"];
+	
+	/*if (metadata["SLiM"].contains("name"))
+	 {
+	 // If a species name is present, it must match our own name; can't load data across species, as a safety measure
+	 // If users find this annoying, it can be relaxed; nothing really depends on it
+	 // BCH 5/12/2022: OK, it is already annoying; disabling this check for now
+	 std::string metadata_name = metadata["SLiM"]["name"];
+	 
+	 if (metadata_name != name_)
+	 EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file represents a species named " << metadata_name << ", which does not match the name of the target species, " << name_ << "; species names must match." << EidosTerminate();
+	 }*/
+	
+	if (top_level_json["SLiM"].contains("description"))
+	{
+		// If a species description is present and non-empty, it replaces our own description
+		std::string metadata_description = top_level_json["SLiM"]["description"];
+		
+		if (metadata_description.length())
+			description_ = metadata_description;
+	}
+	
+	// The "this_chromosome" key is required, as are the keys within it
+	auto &this_chromosome_metadata = top_level_json["SLiM"]["this_chromosome"];
+	
+	if (!this_chromosome_metadata.is_object())
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'this_chromosome' metadata key must be a JSON object." << std::endl;
+	if (!this_chromosome_metadata.contains("id"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	if (!this_chromosome_metadata.contains("index"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'index' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	if (!this_chromosome_metadata.contains("symbol"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	if (!this_chromosome_metadata.contains("type"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	
+	this_chromosome_id = this_chromosome_metadata["id"];
+	this_chromosome_index = this_chromosome_metadata["index"];
+	this_chromosome_symbol = this_chromosome_metadata["symbol"];
+	this_chromosome_type = this_chromosome_metadata["type"];
+	
+	// The "chromosomes" key is optional, but if provided, it has to make sense
+	if (top_level_json["SLiM"].contains("chromosomes"))
+	{
+		chomosomes_key_present = true;
+		
+		// We validate the whole "chromosomes" key against the whole model, to make sure everything is as expected
+		auto &chromosomes_metadata = top_level_json["SLiM"]["chromosomes"];
+		
+		if (!chromosomes_metadata.is_array())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'chromosomes' metadata key must be an array." << std::endl;
+		if (chromosomes_metadata.size() != Chromosomes().size())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'chromosomes' metadata key does not match the number of chromosomes in the model." << std::endl;
+		
+		for (std::size_t chromosomes_index = 0; chromosomes_index < Chromosomes().size(); ++chromosomes_index)
+		{
+			Chromosome *chromosome = Chromosomes()[chromosomes_index];
+			auto &one_chromosome_metadata = chromosomes_metadata[chromosomes_index];
+			
+			if (!one_chromosome_metadata.contains("id"))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
+			if (!one_chromosome_metadata.contains("symbol"))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
+			if (!one_chromosome_metadata.contains("type"))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
+			
+			int one_chromosome_id = one_chromosome_metadata["id"];
+			std::string one_chromosome_symbol = one_chromosome_metadata["symbol"];
+			std::string one_chromosome_type = one_chromosome_metadata["type"];
+			
+			if (one_chromosome_id != chromosome->ID())
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the id for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
+			if (one_chromosome_symbol != chromosome->Symbol())
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the symbol for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
+			if (one_chromosome_type != chromosome->TypeString())
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
+		}
+	}
+	
+	// The new "traits" key is required, and we need to check its contents
+	auto &traits_metadata = top_level_json["SLiM"]["traits"];
+	
+	if (!traits_metadata.is_array())
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'traits' metadata key must be an array." << std::endl;
+	if (traits_metadata.size() != Traits().size())
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'traits' metadata key does not match the number of traits in the model." << std::endl;
+	
+	for (size_t traits_index = 0; traits_index < Traits().size(); ++traits_index)
+	{
+		Trait *trait = Traits()[traits_index];
+		auto &one_trait_metadata = traits_metadata[traits_index];
+		
+		// check required keys; they must match the simulation
+		if (!one_trait_metadata.contains("index"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'index' is missing from a 'traits' metadata entry." << std::endl;
+		if (!one_trait_metadata.contains("name"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'name' is missing from a 'traits' metadata entry." << std::endl;
+		if (!one_trait_metadata.contains("type"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from a 'traits' metadata entry." << std::endl;
+		
+		int one_trait_index = one_trait_metadata["index"];
+		std::string one_trait_name = one_trait_metadata["name"];
+		std::string one_trait_type = one_trait_metadata["type"];
+		
+		if (one_trait_index != trait->Index())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the index for the entry at index " << traits_index << " in the 'traits' metadata key does not match the corresponding trait in the model." << std::endl;
+		if (one_trait_name != trait->Name())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the name for the entry at index " << traits_index << " in the 'traits' metadata key does not match the corresponding trait in the model." << std::endl;
+		if (one_trait_type != trait->UserVisibleType())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << traits_index << " in the 'traits' metadata key does not match the corresponding trait in the model." << std::endl;
+		
+		// check optional keys for read-write properties; if present, we will bounds-check them and adopt their values
+		if (one_trait_metadata.contains("baselineOffset"))
+		{
+			slim_trait_offset_t new_baseline_offset = one_trait_metadata["baselineOffset"];
+			
+			if (!std::isfinite(new_baseline_offset))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffset provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset << " provided)." << EidosTerminate();
+			
+			trait->SetBaselineOffset(new_baseline_offset);
+		}
+		
+		if (one_trait_metadata.contains("individualOffsetMean"))
+		{
+			slim_trait_offset_t new_offset_mean = one_trait_metadata["individualOffsetMean"];
+			
+			if (!std::isfinite(new_offset_mean))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait individualOffsetMean provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_offset_mean << " provided)." << EidosTerminate();
+			
+			trait->SetIndividualOffsetDistributionMean(new_offset_mean);
+		}
+		
+		if (one_trait_metadata.contains("individualOffsetSD"))
+		{
+			slim_trait_offset_t new_offset_SD = one_trait_metadata["individualOffsetSD"];
+			
+			if (!std::isfinite(new_offset_SD) || (new_offset_SD < 0.0))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait individualOffsetSD provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite and nonnegative (" << new_offset_SD << " provided)." << EidosTerminate();
+			
+			trait->SetIndividualOffsetDistributionSD(new_offset_SD);
+		}
+		
+		// check optional keys for read-only propoerties; if present, they must match the simulation
+		if (one_trait_metadata.contains("baselineAccumulation"))
+			if (one_trait_metadata["baselineAccumulation"] != trait->HasBaselineAccumulation())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineAccumulation provided in the 'traits' metadata key (" << one_trait_metadata["baselineAccumulation"] << ") for trait index " << traits_index << " (trait name " << one_trait_name << ") does not match the configuration (" << trait->HasBaselineAccumulation() << ") of the corresponding trait in the model." << EidosTerminate();
+		
+		if (one_trait_metadata.contains("directFitnessEffect"))
+			if (one_trait_metadata["directFitnessEffect"] != trait->HasDirectFitnessEffect())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait directFitnessEffect provided in the 'traits' metadata key (" << one_trait_metadata["directFitnessEffect"] << ") for trait index " << traits_index << " (trait name " << one_trait_name << ") does not match the configuration (" << trait->HasDirectFitnessEffect() << ") of the corresponding trait in the model." << EidosTerminate();
 	}
 	
 	// check the model type; at the moment we do not require the model type to match what we are running, but we issue a warning on a mismatch
@@ -9197,11 +9740,11 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	Chromosome *chromosome = Chromosomes()[chromosome_index];
 	
 	if (this_chromosome_id != chromosome->ID())
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome id provided in the 'this_chromosome' key (" << this_chromosome_id << ") does not match the id (" << chromosome->ID() << ") of the corresponding chromosome in the model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome id provided in the 'this_chromosome' metadata key (" << this_chromosome_id << ") does not match the id (" << chromosome->ID() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	if (this_chromosome_type != chromosome->TypeString())
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome type provided in the 'this_chromosome' key (" << this_chromosome_type << ") does not match the type (" << chromosome->TypeString() << ") of the corresponding chromosome in the model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome type provided in the 'this_chromosome' metadata key (" << this_chromosome_type << ") does not match the type (" << chromosome->TypeString() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	if (this_chromosome_symbol != chromosome->Symbol())
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome symbol provided in the 'this_chromosome' key (" << this_chromosome_symbol << ") does not match the symbol (" << chromosome->Symbol() << ") of the corresponding chromosome in the model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome symbol provided in the 'this_chromosome' metadata key (" << this_chromosome_symbol << ") does not match the symbol (" << chromosome->Symbol() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	
 	// Check the chromosome index; when loading a multi-chromosome set, we normally require indices to match
 	// - one exception is that you can load a chromosome from any index into a single-chromosome model
@@ -9785,55 +10328,17 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 //	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_vacant_[0]);
 }
 
-void Species::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata)
-{
-	static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-	
-	if (!p_mutation || !p_metadata)
-		EIDOS_TERMINATION << "ERROR (Species::MetadataForMutation): (internal error) bad parameters to MetadataForMutation()." << EidosTerminate();
-	
-	p_metadata->mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
-	
-	// FIXME MULTITRAIT: We need to figure out where we're going to put multitrait information in .trees
-	// For now we just write out the effect for trait 0, but we need the dominance coeff too, and we need
-	// it for all traits in the model not just trait 0; this design is not going to work. See
-	// https://github.com/MesserLab/SLiM/issues/569
-	MutationBlock *mutation_block = p_mutation->mutation_type_ptr_->mutation_block_;
-	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(p_mutation);
-	
-	p_metadata->selection_coeff_ = mut_trait_info[0].effect_size_;
-	
-	p_metadata->subpop_index_ = p_mutation->subpop_index_;
-	p_metadata->origin_tick_ = p_mutation->origin_tick_;
-	p_metadata->nucleotide_ = p_mutation->nucleotide_;
-}
-
-void Species::MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata)
-{
-	static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-	
-	if (!p_substitution || !p_metadata)
-		EIDOS_TERMINATION << "ERROR (Species::MetadataForSubstitution): (internal error) bad parameters to MetadataForSubstitution()." << EidosTerminate();
-	
-	p_metadata->mutation_type_id_ = p_substitution->mutation_type_ptr_->mutation_type_id_;
-	
-	// FIXME MULTITRAIT: We need to figure out where we're going to put multitrait information in .trees
-	// For now we just write out the effect for trait 0, but we need the dominance coeff too, and we need
-	// it for all traits in the model not just trait 0; this design is not going to work.  See
-	// https://github.com/MesserLab/SLiM/issues/569
-	p_metadata->selection_coeff_ = p_substitution->trait_info_[0].effect_size_;
-	
-	p_metadata->subpop_index_ = p_substitution->subpop_index_;
-	p_metadata->origin_tick_ = p_substitution->origin_tick_;
-	p_metadata->nucleotide_ = p_substitution->nucleotide_;
-}
-
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
 {
-	static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	// We check the struct size here to detect changes that would need to be responded to here; but it is
+	// very important to note that the caller guarantees that the actual size of p_metadata is large enough
+	// to accommodate all of the per-trait metadata, which is variable-length!
+	static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
+#if DEBUG
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (Species::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
+#endif
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
 	p_metadata->pedigree_p1_ = p_individual->Parent1PedigreeID();
@@ -9845,6 +10350,20 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->flags_ = 0;
 	if (p_individual->migrant_)
 		p_metadata->flags_ |= SLIM_INDIVIDUAL_METADATA_MIGRATED;
+	
+	// write per-trait metadata
+	int trait_count = TraitCount();
+	_IndividualPerTraitMetadata *per_trait_metadata_array = p_metadata->per_trait_;
+	IndividualTraitInfo *per_trait_info_array = p_individual->trait_info_;
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		_IndividualPerTraitMetadata &per_trait_metadata = per_trait_metadata_array[trait_index];
+		IndividualTraitInfo &per_trait_info = per_trait_info_array[trait_index];
+		
+		per_trait_metadata.phenotype_ = per_trait_info.phenotype_;
+		per_trait_metadata.offset_ = per_trait_info.offset_;
+	}
 }
 
 void Species::CheckTreeSeqIntegrity(void)
@@ -10216,6 +10735,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		for (tsk_size_t individual_index = 0; individual_index < shared_individuals_table.num_rows; individual_index++)
 		{
 			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+			
+			// note that IndividualMetadataRec is variable-length now, but we only use the fixed-size header portion here
 			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(shared_individuals_table.metadata + shared_individuals_table.metadata_offset[tsk_individual]);
 			slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
 			auto lookup = tabled_individuals_hash_.find(pedigree_id);
@@ -10270,7 +10791,7 @@ typedef robin_hood::unordered_flat_map<slim_objectid_t, int64_t> SUBPOP_REMAP_RE
 typedef std::unordered_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
 #endif
 
-void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, __attribute__ ((unused)) int p_file_version)
+void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, __attribute__ ((unused)) int p_file_version)
 {
 	// If we have been given a remapping table, this method munges all of the data
 	// and metadata in the treeseq tables to accomplish that remapping.  It is gross
@@ -10545,32 +11066,21 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 		
 		// Remap subpop_index_ in the mutation metadata, in place
 		{
-			std::size_t metadata_rec_size = sizeof(MutationMetadataRec);
-			tsk_mutation_table_t &mut_table = tables.mutations;
-			tsk_size_t num_rows = mut_table.num_rows;
+			// BCH 2/13/2026: mutation metadata is now in a binary table stored in the top-level `json+struct` codec and passed in to us
+			uint8_t *table_buffer = p_mut_metadata_table.table_buffer;
+			size_t row_size = p_mut_metadata_table.row_size;
+			tsk_size_t row_count = p_mut_metadata_table.row_count;
 			
-			for (tsk_size_t mut_index = 0; mut_index < num_rows; ++mut_index)
+			for (tsk_size_t mut_index = 0; mut_index < row_count; ++mut_index)
 			{
-				char *metadata_bytes = mut_table.metadata + mut_table.metadata_offset[mut_index];
-				tsk_size_t metadata_length = mut_table.metadata_offset[mut_index + 1] - mut_table.metadata_offset[mut_index];
+				MutationTableMetadataRec *metadata = (MutationTableMetadataRec *)(table_buffer + mut_index * row_size);
+				slim_objectid_t old_subpop = metadata->subpop_index_;
+				auto remap_iter = subpop_map.find(old_subpop);
 				
-				if (metadata_length % metadata_rec_size != 0)
-					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
+				if (remap_iter == subpop_map.end())
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
 				
-				int stack_count = (int)(metadata_length / metadata_rec_size);
-				
-				for (int stack_index = 0; stack_index < stack_count; ++stack_index)
-				{
-					// Here we have to deal with the metadata format
-					MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_bytes + stack_index;
-					slim_objectid_t old_subpop = metadata->subpop_index_;
-					auto remap_iter = subpop_map.find(old_subpop);
-					
-					if (remap_iter == subpop_map.end())
-						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
-					
-					metadata->subpop_index_ = remap_iter->second;
-				}
+				metadata->subpop_index_ = remap_iter->second;
 			}
 		}
 		
@@ -10584,7 +11094,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 				char *metadata_bytes = ind_table.metadata + ind_table.metadata_offset[ind_index];
 				tsk_size_t metadata_length = ind_table.metadata_offset[ind_index + 1] - ind_table.metadata_offset[ind_index];
 				
-				if (metadata_length != sizeof(IndividualMetadataRec))
+				// BCH 2/11/2026: the IndividualMetadataRec struct is now variable-length, but we only need to
+				// work with the first part of it; so now we just require the size to be >= the base size
+				if (metadata_length >= sizeof(IndividualMetadataRec))
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 				
 				IndividualMetadataRec *metadata = (IndividualMetadataRec *)metadata_bytes;
@@ -10651,16 +11163,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
-	std::vector<IndividualSex> sex_;
 	std::vector<tsk_id_t> nodes_;
-	std::vector<slim_pedigreeid_t> pedigreeID_;
-	std::vector<slim_pedigreeid_t> pedigreeP1_;
-	std::vector<slim_pedigreeid_t> pedigreeP2_;
-	std::vector<slim_age_t> age_;
-	std::vector<double> spatial_x_;
-	std::vector<double> spatial_y_;
-	std::vector<double> spatial_z_;
-	std::vector<uint32_t> flags_;
+	std::vector<const double*> spatial_positions_;			// points into the locations column of the individual table
+	std::vector<const IndividualMetadataRec*> metadata_;	// points into the metadata column of the individual table
 } ts_subpop_info;
 
 void Species::__PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, TreeSeqInfo &p_treeseq)
@@ -10711,10 +11216,14 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): loaded tree sequence files must contain a non-empty individuals table." << EidosTerminate();
 	
 	tsk_individual_t individual;
+	slim_trait_index_t trait_count = TraitCount();
+	size_t expected_metadata_length = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * (trait_count - 1);
 	int ret = 0;
 	
 	for (size_t individual_index = 0; individual_index < individual_count; individual_index++)
 	{
+		// this tsk_treeseq_get_individual() call entails some copying, but it is much simpler than accessing
+		// columns in the individual table, and it also fetches node information for us through private API
 		ret = tsk_treeseq_get_individual(p_ts, (tsk_id_t)individual_index, &individual);
 		if (ret != 0) handle_error("__TabulateSubpopulationsFromTreeSequence tsk_treeseq_get_individual", ret);
 		
@@ -10723,7 +11232,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			continue;
 		
 		// fetch the metadata for this individual
-		if (individual.metadata_length != sizeof(IndividualMetadataRec))
+		if (individual.metadata_length != expected_metadata_length)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 		
 		IndividualMetadataRec *metadata = (IndividualMetadataRec *)(individual.metadata);
@@ -10736,6 +11245,10 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individual has a subpopulation id (" << subpop_id << ") that is not described by the population table." << EidosTerminate();
 		
 		ts_subpop_info &subpop_info = subpop_info_iter->second;
+		
+		// remember our metadata pointer, we will fetch information from it later; below we check metadata for
+		// correctness, and even edit it, but we do not copy its values, we just keep the metadata pointer
+		subpop_info.metadata_.push_back(metadata);
 		
 		// check and tabulate sex within each subpop
 		IndividualSex sex = (IndividualSex)metadata->sex_;			// IndividualSex, but int32_t in the record
@@ -10761,56 +11274,51 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unrecognized individual sex value " << sex << "." << EidosTerminate();
 		}
 		
-		subpop_info.sex_.emplace_back(sex);
-		
-		// check that the individual has exactly two nodes; we are always diploid in terms of nodes, regardless of the chromosome type
-		if (individual.nodes_length != 2)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node count; this file cannot be read." << EidosTerminate();
-		
-		subpop_info.nodes_.emplace_back(individual.nodes[0]);
-		subpop_info.nodes_.emplace_back(individual.nodes[1]);
-		
 		// bounds-check and save off the pedigree ID, which we will use again; note that parent pedigree IDs are allowed to be -1
 		if (metadata->pedigree_id_ < 0)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have pedigree IDs >= 0." << EidosTerminate();
-		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
 		
 		if ((metadata->pedigree_p1_ < -1) || (metadata->pedigree_p2_ < -1))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have parent pedigree IDs >= -1." << EidosTerminate();
-		subpop_info.pedigreeP1_.push_back(metadata->pedigree_p1_);
-		subpop_info.pedigreeP2_.push_back(metadata->pedigree_p2_);
 
-		// save off the flags for later use
-		subpop_info.flags_.push_back(metadata->flags_);
-		
 		// bounds-check ages; we cross-translate ages of 0 and -1 if the model type has been switched
 		slim_age_t age = metadata->age_;
 		
 		if ((p_file_model_type == SLiMModelType::kModelTypeNonWF) && (model_type_ == SLiMModelType::kModelTypeWF) && (age == 0))
+		{
 			age = -1;
+			metadata->age_ = -1;
+		}
 		if ((p_file_model_type == SLiMModelType::kModelTypeWF) && (model_type_ == SLiMModelType::kModelTypeNonWF) && (age == -1))
+		{
 			age = 0;
+			metadata->age_ = 0;
+		}
 		
 		if (((age < 0) || (age > SLIM_MAX_ID_VALUE)) && (model_type_ == SLiMModelType::kModelTypeNonWF))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a nonWF model must have age values >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
 		if ((age != -1) && (model_type_ == SLiMModelType::kModelTypeWF))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have age values == -1." << EidosTerminate();
 		
-		subpop_info.age_.emplace_back(age);
-		
 		// no bounds-checks for spatial position
 		if (individual.location_length != 3)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected individual location length; this file cannot be read." << EidosTerminate();
 		
-		subpop_info.spatial_x_.emplace_back(individual.location[0]);
-		subpop_info.spatial_y_.emplace_back(individual.location[1]);
-		subpop_info.spatial_z_.emplace_back(individual.location[2]);
+		subpop_info.spatial_positions_.emplace_back(individual.location);
+		
+		// check that the individual has exactly two nodes; we are always diploid in terms of nodes, regardless of the chromosome type
+		if (individual.nodes_length != 2)
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node count; this file cannot be read." << EidosTerminate();
+		
+		const tsk_id_t node0 = individual.nodes[0];
+		const tsk_id_t node1 = individual.nodes[1];
+		
+		subpop_info.nodes_.push_back(node0);
+		subpop_info.nodes_.push_back(node1);
 		
 		// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 		// here we crosscheck the node information against expected values from other places in the tables or the model
 		tsk_node_table_t &node_table = tables.nodes;
-		tsk_id_t node0 = individual.nodes[0];
-		tsk_id_t node1 = individual.nodes[1];
 		
 		if (((node_table.flags[node0] & TSK_NODE_IS_SAMPLE) == 0) || ((node_table.flags[node1] & TSK_NODE_IS_SAMPLE) == 0))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): nodes for individual are not in-sample; this file cannot be read." << EidosTerminate();
@@ -10980,7 +11488,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					
 					if (tabulation_index >= subpop_size)
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): (internal error) ran out of tabulated individuals." << EidosTerminate();
-				} while (subpop_info.sex_[tabulation_index] != generating_sex);
+				} while ((IndividualSex)subpop_info.metadata_[tabulation_index]->sex_ != generating_sex);
 				
 				Individual *individual = new_subpop->parent_individuals_[ind_index];
 				
@@ -10995,21 +11503,21 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				individual->SetTskitNodeIdBase(node_id_0);
 				
-				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
+				slim_pedigreeid_t pedigree_id = subpop_info.metadata_[tabulation_index]->pedigree_id_;
 				individual->SetPedigreeID(pedigree_id);
 				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 
-				individual->SetParentPedigreeID(subpop_info.pedigreeP1_[tabulation_index], subpop_info.pedigreeP2_[tabulation_index]);
+				individual->SetParentPedigreeID(subpop_info.metadata_[tabulation_index]->pedigree_p1_, subpop_info.metadata_[tabulation_index]->pedigree_p2_);
 				
-				uint32_t flags = subpop_info.flags_[tabulation_index];
+				uint32_t flags = subpop_info.metadata_[tabulation_index]->flags_;
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
 					individual->migrant_ = true;
 				
-				individual->age_ = subpop_info.age_[tabulation_index];
-				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
-				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
-				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
+				individual->age_ = subpop_info.metadata_[tabulation_index]->age_;
+				individual->spatial_x_ = subpop_info.spatial_positions_[tabulation_index][0];
+				individual->spatial_y_ = subpop_info.spatial_positions_[tabulation_index][1];
+				individual->spatial_z_ = subpop_info.spatial_positions_[tabulation_index][2];
 				
 				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosomes_[first_haplosome_index]);
 				slim_haplosomeid_t haplosome_id = pedigree_id * 2;
@@ -11149,7 +11657,7 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					
 					if (tabulation_index >= subpop_size)
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): (internal error) ran out of tabulated individuals." << EidosTerminate();
-				} while (subpop_info.sex_[tabulation_index] != generating_sex);
+				} while ((IndividualSex)subpop_info.metadata_[tabulation_index]->sex_ != generating_sex);
 				
 				Individual *individual = new_subpop->parent_individuals_[ind_index];
 				
@@ -11165,23 +11673,23 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 				if (individual->TskitNodeIdBase() != node_id_0)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): tskit node id mismatch between chromosomes read." << EidosTerminate();
 				
-				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
+				slim_pedigreeid_t pedigree_id = subpop_info.metadata_[tabulation_index]->pedigree_id_;
 				
 				if (individual->PedigreeID() != pedigree_id)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): pedigree id mismatch between chromosomes read." << EidosTerminate();
-				if ((individual->Parent1PedigreeID() != subpop_info.pedigreeP1_[tabulation_index]) ||
-					(individual->Parent2PedigreeID() != subpop_info.pedigreeP2_[tabulation_index]))
+				if ((individual->Parent1PedigreeID() != subpop_info.metadata_[tabulation_index]->pedigree_p1_) ||
+					(individual->Parent2PedigreeID() != subpop_info.metadata_[tabulation_index]->pedigree_p2_))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): parent pedigree id mismatch between chromosomes read." << EidosTerminate();
 				
-				uint32_t flags = subpop_info.flags_[tabulation_index];
+				uint32_t flags = subpop_info.metadata_[tabulation_index]->flags_;
 				if ((flags & SLIM_INDIVIDUAL_METADATA_MIGRATED) && !individual->migrant_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual migrant flag mismatch between chromosomes read." << EidosTerminate();
 				
-				if (individual->age_ != subpop_info.age_[tabulation_index])
+				if (individual->age_ != subpop_info.metadata_[tabulation_index]->age_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual age mismatch between chromosomes read." << EidosTerminate();
-				if ((individual->spatial_x_ != subpop_info.spatial_x_[tabulation_index]) ||
-					(individual->spatial_y_ != subpop_info.spatial_y_[tabulation_index]) ||
-					(individual->spatial_z_ != subpop_info.spatial_z_[tabulation_index]))
+				if ((individual->spatial_x_ != subpop_info.spatial_positions_[tabulation_index][0]) ||
+					(individual->spatial_y_ != subpop_info.spatial_positions_[tabulation_index][1]) ||
+					(individual->spatial_z_ != subpop_info.spatial_positions_[tabulation_index][2]))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual spatial position mismatch between chromosomes read." << EidosTerminate();
 				
 				// the haplosomes we're setting up are different from the haplosomes previously set up,
@@ -11639,37 +12147,47 @@ void Species::__ConfigureSubpopulationsFromTables_SECONDARY(__attribute__((unuse
 
 typedef struct ts_mut_info {
 	slim_position_t position;
-	MutationMetadataRec metadata;
+	MutationTableMetadataRec *metadata;
 	slim_refcount_t ref_count;
 } ts_mut_info;
 
-void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, __attribute__ ((unused)) int p_file_version)
+void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, __attribute__ ((unused)) int p_file_version)
 {
 	tsk_table_collection_t &tables = p_treeseq.tables_;
-	std::size_t metadata_rec_size = sizeof(MutationMetadataRec);
 	tsk_mutation_table_t &mut_table = tables.mutations;
 	tsk_size_t mut_count = mut_table.num_rows;
 	
 	if ((mut_count > 0) && !recording_mutations_)
 		EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): cannot load mutations when mutation recording is disabled." << EidosTerminate();
 	
+	// we need a hash table into the mutation metadata table, to look up metadata records by mutation ID
+	std::unordered_map<slim_mutationid_t, MutationTableMetadataRec *> metadata_map;
+	uint8_t *mutation_table_buffer = p_mut_metadata_table.table_buffer;
+	size_t row_size = p_mut_metadata_table.row_size;
+	size_t row_count = p_mut_metadata_table.row_count;
+	
+	for (size_t row_index = 0; row_index < row_count; ++row_index)
+	{
+		MutationTableMetadataRec *metadata_rec = (MutationTableMetadataRec *)(mutation_table_buffer + row_index * row_size);
+		slim_mutationid_t mut_id = metadata_rec->mutation_id_;
+		
+		if (metadata_map.find(mut_id) != metadata_map.end())
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): mutation id " << mut_id << " was duplicated in the mutation metadata table." << EidosTerminate();
+		
+		metadata_map.insert(std::pair<slim_mutationid_t, MutationTableMetadataRec *>(mut_id, metadata_rec));
+	}
+	
+	// now we go through the mutation table's derived state column and make ts_mut_info entries for each referenced mutation
 	for (tsk_size_t mut_index = 0; mut_index < mut_count; ++mut_index)
 	{
 		const char *derived_state_bytes = mut_table.derived_state + mut_table.derived_state_offset[mut_index];
 		tsk_size_t derived_state_length = mut_table.derived_state_offset[mut_index + 1] - mut_table.derived_state_offset[mut_index];
-		const char *metadata_bytes = mut_table.metadata + mut_table.metadata_offset[mut_index];
-		tsk_size_t metadata_length = mut_table.metadata_offset[mut_index + 1] - mut_table.metadata_offset[mut_index];
 		
 		if (derived_state_length % sizeof(slim_mutationid_t) != 0)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): unexpected mutation derived state length; this file cannot be read." << EidosTerminate();
-		if (metadata_length % metadata_rec_size != 0)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
-		if (derived_state_length / sizeof(slim_mutationid_t) != metadata_length / metadata_rec_size)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): (internal error) mutation metadata length does not match derived state length." << EidosTerminate();
 		
 		int stack_count = (int)(derived_state_length / sizeof(slim_mutationid_t));
 		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
-		const void *metadata_vec = metadata_bytes;	// either const MutationMetadataRec* or const MutationMetadataRec_PRENUC*
 		tsk_id_t site_id = mut_table.site[mut_index];
 		double position_double = tables.sites.position[site_id];
 		double position_double_round = round(position_double);
@@ -11694,19 +12212,25 @@ void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 				mut_info = &((mut_info_insert.first)->second);
 				
 				mut_info->position = position;
+				
+				// get a pointer into the mutation metadata table, and keep that pointer in our ts_mut_info
+				// note that we don't want to copy the data here because it is variable-size and can be large
+				auto metadata_iter = metadata_map.find(mut_id);
+				
+				if (metadata_iter == metadata_map.end())
+					EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): mutation id " << mut_id << " referenced by a derived state is not in the mutation metadata table." << EidosTerminate();
+				
+				mut_info->metadata = metadata_iter->second;
 			}
 			else
 			{
 				// entry already present; check that it refers to the same mutation, using its position (see https://github.com/MesserLab/SLiM/issues/179)
+				// we used to update the metadata here, to use the last recorded metadata record, but now we have one canonical metadata entry
 				mut_info = &(mut_info_find->second);
 				
 				if (mut_info->position != position)
 					EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): inconsistent mutation position observed reading tree sequence data; this may indicate that mutation IDs are not unique." << EidosTerminate();
 			}
-			
-			MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_vec + stack_index;
-			
-			mut_info->metadata = *metadata;
 		}
 	}
 }
@@ -11833,8 +12357,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
 		ts_mut_info &mut_info = mut_info_iter.second;
-		MutationMetadataRec *metadata_ptr = &mut_info.metadata;
-		MutationMetadataRec metadata;
+		MutationTableMetadataRec *metadata_ptr = mut_info.metadata;
 		slim_position_t position = mut_info.position;
 		
 		// BCH 4 Feb 2020: bump the next mutation ID counter as needed here, so that this happens in all cases – even if
@@ -11848,26 +12371,26 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if (mut_info.ref_count == 0)
 			continue;
 		
-		// BCH 4/25/2019: copy the metadata with memcpy(), avoiding a misaligned pointer access; this is needed because
-		// sizeof(MutationMetadataRec) is odd, according to Xcode.  Actually I think this might be a bug in Xcode's runtime
-		// checking, because MutationMetadataRec is defined as packed so the compiler should not use aligned reads for it...?
-		// Anyway, it's a safe fix and will probably get optimized away by the compiler, so whatever...
-		memcpy(&metadata, metadata_ptr, sizeof(MutationMetadataRec));
+#if DEBUG
+		// BCH 2/13/2026: We used to do a memcpy() here to give us an aligned copy of metadata_ptr, but in the
+		// new metadata design the pointer should always be to an aligned address; we error here if not
+		// (we are only guaranteed aligned to a 4-byte boundary since _MutationPerTraitMetadata is 12 bytes)
+		if ((reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x03) != 0)
+			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) misaligned pointer to mutation metadata (misalignment == " << (int)(reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x07) << ")." << EidosTerminate();
+#endif
 		
 		// look up the mutation type from its index
-		MutationType *mutation_type_ptr = MutationTypeWithID(metadata.mutation_type_id_);
+		MutationType *mutation_type_ptr = MutationTypeWithID(metadata_ptr->mutation_type_id_);
 		
 		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined for this species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): mutation type m" << metadata_ptr->mutation_type_id_ << " has not been defined for this species." << EidosTerminate();
 		
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			// BCH 1/26/2026: note that this does NOT do baseline accumulation, because it is assumed that the
-			// baseline offset recorded in the file already contains such effects as needed; FIXME MULTITRAIT
-			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
-			// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);	// FIXME MULTITRAIT
+			// BCH 1/26/2026: note that this code path does NOT do baseline accumulation, because it is assumed
+			// that the baseline offset recorded in the file already contains such effects as needed
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr, community_.Tick());
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
@@ -11885,9 +12408,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			
-			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec; likewise hemizygous dominance
-			// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
-			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->DefaultDominanceForTrait(0) /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);	// FIXME MULTITRAIT
+			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;
@@ -12233,7 +12754,7 @@ void _ComparePopulationTables(tsk_population_table_t &population0, tsk_populatio
 		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata_schema column differs)." << EidosTerminate();
 }
 
-void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq)
+void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table)
 {
 	// NOTE: This method handles the first (or only) chromosome being read in.  A parallel method,
 	// _InstantiateSLiMObjectsFromTables_SECONDARY(), handles the second and onward.  The code is
@@ -12263,7 +12784,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	
 	// check/rewrite the incoming tree-seq information in various ways
 	__CheckPopulationMetadata(p_treeseq);
-	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_file_version);
+	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_mut_metadata_table, p_file_version);
 	
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
@@ -12295,7 +12816,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	{
 		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
 		
-		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_file_version);
+		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_mut_metadata_table, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
 		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
 	}
@@ -12310,7 +12831,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	p_treeseq.last_coalescence_state_ = false;
 }
 
-void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq)
+void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table)
 {
 	// NOTE: _InstantiateSLiMObjectsFromTables() handles the first (or only) chromosome being read in.  This
 	// method handles the second and onward.  The code is quite similar, and should be maintained in parallel!
@@ -12341,7 +12862,7 @@ void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_in
 	
 	// check/rewrite the incoming tree-seq information in various ways
 	__CheckPopulationMetadata(p_treeseq);
-	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_file_version);
+	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_mut_metadata_table, p_file_version);
 	
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
@@ -12373,7 +12894,7 @@ void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_in
 	{
 		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
 		
-		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_file_version);
+		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_mut_metadata_table, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
 		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
 	}
@@ -12536,8 +13057,9 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
+	MutationMetadataTable mut_metadata_table;
 	
-	ReadTreeSequenceMetadata(treeSeqInfo, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
+	ReadTreeSequenceMetadata(treeSeqInfo, &metadata_tick, &metadata_cycle, &file_model_type, &file_version, mut_metadata_table);
 	
 	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
 	DerivedStatesFromAscii(&treeSeqInfo.tables_);
@@ -12547,7 +13069,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	_ReadAncestralSequence(p_file, p_chromosome);
 	
 	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map, treeSeqInfo);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map, treeSeqInfo, mut_metadata_table);
 	
 	// cleanup such as handling remembered haplosomes and the individuals table, mutation tallying, and integrity checks
 	// this incorporates all of the post-load work that spans the whole set of chromosomes in the model
@@ -12676,8 +13198,9 @@ slim_tick_t Species::_InitializePopulationFromTskitDirectory(std::string p_direc
 		slim_tick_t this_metadata_cycle;
 		SLiMModelType this_file_model_type;
 		int this_file_version;
+		MutationMetadataTable mut_metadata_table;
 		
-		ReadTreeSequenceMetadata(treeSeqInfo, &this_metadata_tick, &this_metadata_cycle, &this_file_model_type, &this_file_version);
+		ReadTreeSequenceMetadata(treeSeqInfo, &this_metadata_tick, &this_metadata_cycle, &this_file_model_type, &this_file_version, mut_metadata_table);
 		
 		if (is_first_chromosome)
 		{
@@ -12705,9 +13228,9 @@ slim_tick_t Species::_InitializePopulationFromTskitDirectory(std::string p_direc
 		// as needed.  The remaining chromosomes use _InstantiateSLiMObjectsFromTables_SECONDARY(), which
 		// checks against the population structure that was created; it should always match exactly.
 		if (is_first_chromosome)
-			_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo);
+			_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo, mut_metadata_table);
 		else
-			_InstantiateSLiMObjectsFromTables_SECONDARY(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo);
+			_InstantiateSLiMObjectsFromTables_SECONDARY(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo, mut_metadata_table);
 	}
 	
 	// cleanup such as handling remembered haplosomes and the individuals table, mutation tallying, and integrity checks

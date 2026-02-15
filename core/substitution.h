@@ -35,6 +35,7 @@
 #include "eidos_value.h"
 
 class Trait;
+struct MutationTableMetadataRec;
 
 
 class Substitution_Class;
@@ -90,6 +91,7 @@ public:
 	Substitution(void) = delete;										// no null construction
 	Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick);	// construct from the mutation that has fixed, and the tick in which it fixed
 	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
+	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr, slim_tick_t p_fixation_tick);
 	
 	inline virtual ~Substitution(void) override { free(trait_info_); trait_info_ = nullptr; }
 	
