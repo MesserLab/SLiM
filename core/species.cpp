@@ -11163,7 +11163,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
-	std::vector<const tsk_id_t> nodes_;
+	std::vector<tsk_id_t> nodes_;
 	std::vector<const double*> spatial_positions_;			// points into the locations column of the individual table
 	std::vector<const IndividualMetadataRec*> metadata_;	// points into the metadata column of the individual table
 } ts_subpop_info;
