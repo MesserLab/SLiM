@@ -6961,12 +6961,34 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	
 	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleDemandForPureNeutralTraits()!
 	
-	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in
+	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in.
+	// There are two regimes where we switch to the main mutation buffers because all mutations are nonneutral
+	// (so we don't want to copy them all into the nonneutral buffer); otherwise we use the nonneutral buffer.
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	bool use_nonneutral_caches = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
-								  (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	TraitCalculationRegime current_trait_calculation_regime_DIPLOID = species->current_trait_calculation_regime_DIPLOID_;
+	TraitCalculationRegime current_trait_calculation_regime_HAPLOID = species->current_trait_calculation_regime_HAPLOID_;
+	
+	bool use_nonneutral_caches_DIPLOID = ((current_trait_calculation_regime_DIPLOID != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (current_trait_calculation_regime_DIPLOID != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	bool use_nonneutral_caches_HAPLOID = ((current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+										  (current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+										  (current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kHaploidNoCallbacks));
 #else
-	bool use_nonneutral_caches = false;
+	bool use_nonneutral_caches_DIPLOID = false;
+	bool use_nonneutral_caches_HAPLOID = false;
+#endif
+	
+	// Determine whether we are using haploid caches or not, based upon the trait calculation regime we're in.
+	int haploid_cache_level = 0;
+	
+#if SLIM_USE_HAPLOID_CACHES()
+	if ((current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+		(current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidWithCallbacks))
+		haploid_cache_level = 1;
+	else if ((current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+			 (current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidNoCallbacks))
+		haploid_cache_level = 2;
 #endif
 	
 	// Next we cache method pointers for haploid and diploid chromosomes, which we will use throughout.  These
@@ -7015,67 +7037,183 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				
 				// cache a pointer to the correct implementation of IncorporateEffects_X() for the subpopulation
 				// this varies by subpopulation because of the different callbacks that might be present
-				if (!use_nonneutral_caches) {
+				if (haploid_cache_level == 0) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, false>;
+							}
+						}
+					} else {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, false>;
+							}
+						}
+					}
+				} else if (haploid_cache_level == 1) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, false>;
+							}
+						}
+					} else {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, false>;
+							}
+						}
+					}
+				} else /* (haploid_cache_level == 2) */ {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, false>;
+							}
+						}
+					} else {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, false>;
+							}
+						}
+					}
+				}
+				
+				if (!use_nonneutral_caches_DIPLOID) {
 					if (!mutationEffect_callbacks_exist) {
 						if (traitType == TraitType::kAdditive) {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, false, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
 						} else {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, false, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
 						}
 					} else if (single_mutationEffect_callback) {
 						if (traitType == TraitType::kAdditive) {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, true>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, true>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, true>;
 						} else {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, true>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, true>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, true>;
 						}
 					} else {
 						if (traitType == TraitType::kAdditive) {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, false>;
 						} else {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, false>;
 						}
 					}
 				} else {
 					if (!mutationEffect_callbacks_exist) {
 						if (traitType == TraitType::kAdditive) {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, false, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, false, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
 						} else {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, false, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, false, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
 						}
 					} else if (single_mutationEffect_callback) {
 						if (traitType == TraitType::kAdditive) {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, true>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, true>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, true>;
 						} else {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, true>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, true>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, true>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, true>;
 						}
 					} else {
 						if (traitType == TraitType::kAdditive) {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, false>;
 						} else {
-							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, false>;
-							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, false>;
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, false>;
 							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, false>;
 						}
 					}
@@ -7102,24 +7240,64 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				auto &IncorporateEffects_Diploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED;
 				
 				// cache a pointer to the correct implementation of IncorporateEffects_X() for the subpopulation, given no callbacks
-				if (!use_nonneutral_caches) {
+				if (haploid_cache_level == 0) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, false, false>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, false, false>;
+						}
+					}
+				} else if (haploid_cache_level == 1) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, false, false>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, false, false>;
+						}
+					}
+				} else /* haploid_cache_level == 2 */ {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, false, false>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, false, false>;
+						}
+					}
+				}
+				
+				if (!use_nonneutral_caches_DIPLOID) {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
 					}
 				} else {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
 					}
 				}
@@ -7227,12 +7405,12 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 					// Cache a method pointer for incorporating independent dominance effects here too
 					TraitType traitType = trait->Type();
-					void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index) = nullptr;
+					void (Individual::*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index) = nullptr;
 					
 					if (traitType == TraitType::kAdditive)
-						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<true>;
+						_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<true>;
 					else
-						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<false>;
+						_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<false>;
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 					
@@ -7283,10 +7461,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #if DEBUG_TRAIT_DEMAND()
 								independent_dominance_individuals++;
 #endif
-								IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+								MutRunInternalCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
 								
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
 							}
 							else
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
@@ -7302,7 +7480,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 					}
 					
 #if DEBUG_TRAIT_DEMAND()
-					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for diploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
 #endif
 				}
 				break;
@@ -7326,71 +7504,33 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 					Trait *trait = species->Traits()[trait_index];
 					
 #if DEBUG_TRAIT_DEMAND()
-					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
+					int total_individuals_recalculated = 0;
 #endif
 					
-#if SLIM_USE_NONNEUTRAL_CACHES()
-#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-					// Cache a method pointer for incorporating independent dominance effects here too
-					TraitType traitType = trait->Type();
-					void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index) = nullptr;
-					
-					if (traitType == TraitType::kAdditive)
-						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<true>;
-					else
-						_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<false>;
-					
-					if (trait->is_pure_independent_dominance_now_)
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
-						IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+						Individual *ind = individuals_buffer[individual_index];
+						Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
 						
-						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-						{
-							Individual *ind = individuals_buffer[individual_index];
-							Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
-							
-							if (haplosome->IsNull())
-								continue;
-							if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
-								continue;
-							
-							(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome, trait_index, inddom_cache_index);
-							
+						if (haplosome->IsNull())
+							continue;
+						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+							continue;
+						
+						Subpopulation *subpop = ind->subpopulation_;
+						Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+						std::vector<SLiMEidosBlock*> &subpop_trait_mutationEffect_callbacks = subpop_trait_caches.mutationEffect_callbacks_per_trait;
+						auto IncorporateEffects_Haploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED;
+						
+						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait, subpop_trait_mutationEffect_callbacks);
+						
 #if DEBUG_TRAIT_DEMAND()
-							total_individuals_recalculated++;
-							independent_dominance_individuals++;
+						total_individuals_recalculated++;
 #endif
-						}
-					}
-					else
-#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-#endif	// SLIM_USE_NONNEUTRAL_CACHES()
-					{
-						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-						{
-							Individual *ind = individuals_buffer[individual_index];
-							Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
-							
-							if (haplosome->IsNull())
-								continue;
-							if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
-								continue;
-							
-							Subpopulation *subpop = ind->subpopulation_;
-							Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
-							std::vector<SLiMEidosBlock*> &subpop_trait_mutationEffect_callbacks = subpop_trait_caches.mutationEffect_callbacks_per_trait;
-							auto IncorporateEffects_Haploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED;
-							
-							(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait, subpop_trait_mutationEffect_callbacks);
-							
-#if DEBUG_TRAIT_DEMAND()
-							total_individuals_recalculated++;
-#endif
-						}
 					}
 					
 #if DEBUG_TRAIT_DEMAND()
-					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for haploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated" << std::endl;
 #endif
 				}
 				break;
@@ -7652,12 +7792,31 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		}
 	}
 	
-	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in
+	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in.
+	// There are two regimes where we switch to the main mutation buffers because all mutations are nonneutral
+	// (so we don't want to copy them all into the nonneutral buffer); otherwise we use the nonneutral buffer.
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	bool use_nonneutral_caches = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
-								  (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	bool use_nonneutral_caches_DIPLOID = ((species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	bool use_nonneutral_caches_HAPLOID = ((species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+										  (species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+										  (species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kHaploidNoCallbacks));
 #else
-	bool use_nonneutral_caches = false;
+	bool use_nonneutral_caches_DIPLOID = false;
+	bool use_nonneutral_caches_HAPLOID = false;
+#endif
+	
+	// Determine whether we are using haploid caches or not, based upon the trait calculation regime we're in.
+	int haploid_cache_level = 0;
+	
+#if SLIM_USE_HAPLOID_CACHES()
+	if ((species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+		(species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidWithCallbacks))
+		haploid_cache_level = 1;
+	else if ((species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+			 (species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidNoCallbacks))
+		haploid_cache_level = 2;
 #endif
 	
 	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
@@ -7706,67 +7865,183 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 			void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 			
-			if (!use_nonneutral_caches) {
+			if (haploid_cache_level == 0) {
+				if (!use_nonneutral_caches_HAPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, false>;
+						}
+					}
+				}
+			} else if (haploid_cache_level == 1) {
+				if (!use_nonneutral_caches_HAPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, false>;
+						}
+					}
+				}
+			} else /* (haploid_cache_level == 2) */ {
+				if (!use_nonneutral_caches_HAPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, false>;
+						}
+					}
+				}
+			}
+			
+			if (!use_nonneutral_caches_DIPLOID) {
 				if (!mutationEffect_callbacks_exist) {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
 					}
 				} else if (single_mutationEffect_callback) {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, true>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, true>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, true>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, true>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, true>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, true>;
 					}
 				} else {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, true, true, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, true, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, false>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<false, false, false, true, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<false, true, false, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, false>;
 					}
 				}
 			} else {
 				if (!mutationEffect_callbacks_exist) {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, false, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, false, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, false, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
 					}
 				} else if (single_mutationEffect_callback) {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, true>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, true>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, true>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, true>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, true>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, true>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, true>;
 					}
 				} else {
 					if (traitType == TraitType::kAdditive) {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, true, true, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, true, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, false>;
 					} else {
-						IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<true, false, false, true, false>;
-						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Haploid<true, true, false, true, false>;
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, false>;
 						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, false>;
 					}
 				}
@@ -7776,19 +8051,15 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 			
-			void (Individual::*_IncorporateEffects_IndependentDominance_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index) = nullptr;
+			void (Individual::*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index) = nullptr;
 			
 			if (traitType == TraitType::kAdditive)
-				_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<true>;
+				_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<true>;
 			else
-				_IncorporateEffects_IndependentDominance_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance<false>;
+				_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<false>;
 			
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
-			
-#if DEBUG_TRAIT_DEMAND()
-			int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
-#endif
 			
 			// Then process the chromosome for the focal trait
 			switch (chromosome->Type())
@@ -7798,6 +8069,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				case ChromosomeType::kX_XSexChromosome:
 				case ChromosomeType::kZ_ZSexChromosome:
 				{
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
+#endif
+					
 					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
 						Individual *ind = individuals_buffer[individual_index];
@@ -7836,10 +8111,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #if DEBUG_TRAIT_DEMAND()
 								independent_dominance_individuals++;
 #endif
-								IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+								MutRunInternalCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
 								
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
-								(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
 							}
 							else
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
@@ -7853,6 +8128,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 						total_individuals_recalculated++;
 #endif
 					}
+					
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for diploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
+#endif
 					break;
 				}
 					
@@ -7868,58 +8147,33 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 				case ChromosomeType::kNullY_YSexChromosomeWithNull:
 				{
-#if SLIM_USE_NONNEUTRAL_CACHES()
-#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-					if (trait->is_pure_independent_dominance_now_)
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0;
+#endif
+					
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 					{
-						IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+						Individual *ind = individuals_buffer[individual_index];
+						Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
 						
-						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-						{
-							Individual *ind = individuals_buffer[individual_index];
-							Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
-							
-							if (haplosome->IsNull())
-								continue;
-							if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
-								continue;
-							
-							(ind->*_IncorporateEffects_IndependentDominance_TEMPLATED)(haplosome, trait_index, inddom_cache_index);
-							
+						if (haplosome->IsNull())
+							continue;
+						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+							continue;
+						
+						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait, subpop_per_trait_mutationEffect_callbacks);
+						
 #if DEBUG_TRAIT_DEMAND()
-							total_individuals_recalculated++;
-							independent_dominance_individuals++;
+						total_individuals_recalculated++;
 #endif
-						}
 					}
-					else
-#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-#endif	// SLIM_USE_NONNEUTRAL_CACHES()
-					{
-						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-						{
-							Individual *ind = individuals_buffer[individual_index];
-							Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
-							
-							if (haplosome->IsNull())
-								continue;
-							if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
-								continue;
-							
-							(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait, subpop_per_trait_mutationEffect_callbacks);
-							
+					
 #if DEBUG_TRAIT_DEMAND()
-							total_individuals_recalculated++;
+					std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for haploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated" << std::endl;
 #endif
-						}
-						break;
-					}
+					break;
 				}
 			}
-			
-#if DEBUG_TRAIT_DEMAND()
-			std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
-#endif
 		}
 		
 		if (species->DoingAnyMutationRunExperiments())
@@ -7992,17 +8246,21 @@ template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *, Subpopu
 template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *, Subpopulation *, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
 
 
-// Low-level method to calculate a phenotype for one individual, for one haploid (or hemizygous) chromosome,
-// for one trait.  This will put the result of the calculation into the individual's phenotype information.
+// Low-level method to calculate a phenotype for one individual, for one haploid chromosome, for one trait.
+// This will put the result of the calculation into the individual's phenotype information.
 // This is called by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
-template <const bool f_use_nonneutral_cache, const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+template <const int f_haploid_cache_level, const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 #if DEBUG
 	// Check template flags
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	bool use_nonneutral_cache = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
-								 (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	TraitCalculationRegime current_trait_calculation_regime = species->current_trait_calculation_regime_HAPLOID_;
+	
+	bool use_nonneutral_cache = ((current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kHaploidNoCallbacks));
 #else
 	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
 #endif
@@ -8049,7 +8307,9 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	const int32_t mutrun_count = haplosome->mutrun_count_;
-	const IndDomCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	const MutRunInternalCacheIndex haploid_cache_count = species->HaploidEffectsCacheCount();
+#endif
 	
 	// do internal math using double to avoid numerical error
 	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
@@ -8058,12 +8318,27 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	{
 		const MutationRun *mutrun = haplosome->mutruns_[run_index];
 		
+#if SLIM_USE_HAPLOID_CACHES()
+		// Incorporate pre-calculated values from the haploid cache of the mutation run
+		if (f_haploid_cache_level > 0)
+		{
+			if (f_additiveTrait)
+				effect_accumulator += mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+			else
+				effect_accumulator *= mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+			
+			// haploid cache level 2 is that there are no callbacks and all mutational effects are in the cache
+			if (f_haploid_cache_level == 2)
+				continue;
+		}
+#endif
+		
 #if SLIM_USE_NONNEUTRAL_CACHES()
 		// Cache non-neutral mutations and read from the non-neutral buffers
 		const MutationIndex *haplosome_iter, *haplosome_max;
 		
 		if (f_use_nonneutral_cache)
-			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, inddom_cache_count);
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, haploid_cache_count);
 		else
 			mutrun->beginend_nonneutral_pointers_MAIN(&haplosome_iter, &haplosome_max);
 #else
@@ -8077,8 +8352,7 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 		{
 			MutationIndex haplosome_mutation = *haplosome_iter++;
 			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
-			slim_effect_t effect = (f_hemizygous ?	mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].hemizygous_effect_ :
-									mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].homozygous_effect_);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].homozygous_effect_;
 			
 			if (f_additiveTrait)
 			{
@@ -8107,30 +8381,176 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_Haploid<false, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<false, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
-template void Individual::_IncorporateEffects_Haploid<true, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+template void Individual::_IncorporateEffects_Haploid<1, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+template void Individual::_IncorporateEffects_Haploid<2, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+
+// Low-level method to calculate a phenotype for one individual, for one hemizygous chromosome, for one trait.
+// This will put the result of the calculation into the individual's phenotype information.
+// This is called by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
+template <const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+void Individual::_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// Check template flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	TraitCalculationRegime current_trait_calculation_regime = species->current_trait_calculation_regime_DIPLOID_;
+	
+	bool use_nonneutral_cache = ((current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+#else
+	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
+#endif
+	
+	if (f_use_nonneutral_cache != use_nonneutral_cache)
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_use_nonneutral_cache flag is incorrect." << EidosTerminate();
+	
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
+	
+	size_t callback_count = p_mutationEffect_callbacks.size();
+	
+	if (f_callbacks != (callback_count > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_callbacks flag is incorrect." << EidosTerminate();
+	if (f_singlecallback != (callback_count == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_singlecallback flag is incorrect." << EidosTerminate();
+	
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) null haplosome." << EidosTerminate();
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_additiveTrait set incorrectly." << EidosTerminate();
+	if (f_callbacks != (p_mutationEffect_callbacks.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_callbacks set incorrectly." << EidosTerminate();
+	if (f_singlecallback != (p_mutationEffect_callbacks.size() == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_singlecallback set incorrectly." << EidosTerminate();
+#endif
+	
+	// we just need to scan through the haplosome and account for its mutations, using the homozygous mutation
+	// effect (no dominance effects with haploidy), or the hemizygous mutation effect for f_hemizygous == true
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	slim_trait_index_t trait_index = trait->Index();
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	const MutRunInternalCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
+#endif
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		// Cache non-neutral mutations and read from the non-neutral buffers
+		const MutationIndex *haplosome_iter, *haplosome_max;
+		
+		if (f_use_nonneutral_cache)
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, inddom_cache_count);
+		else
+			mutrun->beginend_nonneutral_pointers_MAIN(&haplosome_iter, &haplosome_max);
+#else
+		// Read directly from the MutationRun buffers
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+#endif
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].hemizygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				effect_accumulator += (double)effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= (double)effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+template void Individual::_IncorporateEffects_Hemizygous<false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
 
 // Low-level method to calculate a phenotype for one individual, for one diploid chromosome, for one trait.
 // This will put the result of the calculation into the individual's phenotype information.  This is called
@@ -8141,8 +8561,10 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 #if DEBUG
 	// Check template flags
 #if SLIM_USE_NONNEUTRAL_CACHES()
-	bool use_nonneutral_cache = ((species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
-								 (species->current_trait_calculation_regime_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	bool use_nonneutral_cache = ((species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+								 (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+								 (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kHaploidNoCallbacks));
 #else
 	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
 #endif
@@ -8189,7 +8611,9 @@ void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplos
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	const int32_t mutrun_count = haplosome1->mutrun_count_;
-	const IndDomCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	const MutRunInternalCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
+#endif
 	
 	// do internal math using double to avoid numerical error
 	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
@@ -8531,12 +8955,12 @@ template void Individual::_IncorporateEffects_Diploid<true, true, true, true>(Sp
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 
 template <const bool f_additiveTrait>
-void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index)
+void Individual::_IncorporateEffects_IndependentDominance_Diploid(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index)
 {
 #if DEBUG
 	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
 	if (haplosome->IsNull())
-		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_IndependentDominance): (internal error) null haplosome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_IndependentDominance_Diploid): (internal error) null haplosome." << EidosTerminate();
 #endif
 	
 	const int32_t mutrun_count = haplosome->mutrun_count_;
@@ -8548,6 +8972,7 @@ void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, 
 	{
 		const MutationRun *mutrun = haplosome->mutruns_[run_index];
 		
+		// For intrinsically diploid chromosomes the index into the independent-dominance cache is provided, because not all traits have a cache slot
 		if (f_additiveTrait)
 			effect_accumulator += (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
 		else
@@ -8557,8 +8982,8 @@ void Individual::_IncorporateEffects_IndependentDominance(Haplosome *haplosome, 
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-template void Individual::_IncorporateEffects_IndependentDominance<false>(Haplosome *, slim_trait_index_t, IndDomCacheIndex);
-template void Individual::_IncorporateEffects_IndependentDominance<true>(Haplosome *, slim_trait_index_t, IndDomCacheIndex);
+template void Individual::_IncorporateEffects_IndependentDominance_Diploid<false>(Haplosome *, slim_trait_index_t, MutRunInternalCacheIndex);
+template void Individual::_IncorporateEffects_IndependentDominance_Diploid<true>(Haplosome *, slim_trait_index_t, MutRunInternalCacheIndex);
 
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
@@ -8736,19 +9161,17 @@ void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *
 			}
 		}
 		
-#if SLIM_USE_NONNEUTRAL_CACHES()
-#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-		// compare the computed mutrun effect to the cached independent dominance effect, looking for large
+#if SLIM_USE_HAPLOID_CACHES()
+		// compare the computed mutrun effect to the cached haploid cache effect, looking for large
 		// difference that are indicative of a bug somewhere, rather than checking for an exact match
-		if (trait->is_pure_independent_dominance_now_)
+		if ((species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidNoCallbacks) ||
+			(species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks))
 		{
-			IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
-			double independent_dominance_effect = (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
+			double haploid_cache_effect = (double)mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
 			
-			if (std::abs(mutrun_effect_accumulator - independent_dominance_effect) > 1e-5)
-				std::cout << "      _Check_IncorporateEffects_Haploid() for trait " << species->Traits()[trait_index]->Name() << " in chromosome " << haplosome->AssociatedChromosome()->Symbol() << " : mutrun effect " << mutrun_effect_accumulator << ", cached independent-dominance effect " << independent_dominance_effect << std::endl;
+			if (std::abs(mutrun_effect_accumulator - haploid_cache_effect) > 1e-5)
+				std::cout << "      _Check_IncorporateEffects_Haploid() for trait " << species->Traits()[trait_index]->Name() << " in chromosome " << haplosome->AssociatedChromosome()->Symbol() << " : mutrun effect " << mutrun_effect_accumulator << ", haploid cache effect " << haploid_cache_effect << std::endl;
 		}
-#endif
 #endif
 		
 		if (f_additiveTrait)
@@ -9175,7 +9598,7 @@ void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *
 		// difference that are indicative of a bug somewhere, rather than checking for an exact match
 		if (trait->is_pure_independent_dominance_now_)
 		{
-			IndDomCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+			MutRunInternalCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
 			double independent_dominance_effect1 = (double)mutrun1->independent_dominance_cache_for_cache_index(inddom_cache_index);
 			double independent_dominance_effect2 = (double)mutrun2->independent_dominance_cache_for_cache_index(inddom_cache_index);
 			double independent_dominance_effect;

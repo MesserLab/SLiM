@@ -1474,7 +1474,8 @@ const std::string &gStr__allocatedNonneutralCacheCount = EidosRegisteredString("
 const std::string &gStr__inUseNonneutralMutationBufferCount = EidosRegisteredString("_inUseNonneutralMutationBufferCount", gID__inUseNonneutralMutationBufferCount);
 const std::string &gStr__inUseNonneutralMutationBufferSize = EidosRegisteredString("_inUseNonneutralMutationBufferSize", gID__inUseNonneutralMutationBufferSize);
 const std::string &gStr__invalidNonneutralMutationBufferCount = EidosRegisteredString("_invalidNonneutralMutationBufferCount", gID__invalidNonneutralMutationBufferCount);
-const std::string &gStr__traitCalculationRegimeName = EidosRegisteredString("_traitCalculationRegimeName", gID__traitCalculationRegimeName);
+const std::string &gStr__traitCalculationRegimeNameDIPLOID = EidosRegisteredString("_traitCalculationRegimeNameDIPLOID", gID__traitCalculationRegimeNameDIPLOID);
+const std::string &gStr__traitCalculationRegimeNameHAPLOID = EidosRegisteredString("_traitCalculationRegimeNameHAPLOID", gID__traitCalculationRegimeNameHAPLOID);
 #endif
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);
 const std::string &gStr_deviatePositions = EidosRegisteredString("deviatePositions", gID_deviatePositions);

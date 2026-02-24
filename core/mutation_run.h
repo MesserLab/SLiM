@@ -99,16 +99,23 @@ typedef struct MutationRunContext {
 // Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
 #define SLIM_USE_NONNEUTRAL_CACHES()				1
 #define SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()		1
+#define SLIM_USE_HAPLOID_CACHES()					1
 
 #if (SLIM_USE_INDEPENDENT_DOMINANCE_CACHES() && !SLIM_USE_NONNEUTRAL_CACHES())
 #error The use of independent-dominance caches requires the use of non-neutral caches.
+#endif
+#if (SLIM_USE_HAPLOID_CACHES() && !SLIM_USE_NONNEUTRAL_CACHES())
+#error The use of haploid caches requires the use of non-neutral caches.
 #endif
 
 #if !SLIM_USE_NONNEUTRAL_CACHES()
 #warning Non-neutral caches have been disabled; this may affect performance.
 #endif
 #if !SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-#warning Independent-dominance caches have been disabled; this may affect performance.
+#warning Independent-dominance caches have been disabled; this may affect performance, and some self-tests may fail.
+#endif
+#if !SLIM_USE_HAPLOID_CACHES()
+#warning Haploid caches have been disabled; this may affect performance, and some self-tests may fail.
 #endif
 
 #if SLIM_USE_NONNEUTRAL_CACHES() && (SLIMPROFILING == 1)
@@ -121,21 +128,40 @@ typedef struct MutationRunContext {
 #define SLIM_PROFILE_NONNEUTRAL_CACHES() 0
 #endif	// SLIM_USE_NONNEUTRAL_CACHES() && (SLIMPROFILING == 1)
 
+
 // This enumeration represents a particular modality for the calculation of trait values, depending upon the
 // callbacks present, whether independent dominance is being used, and other factors.  This affects the way
 // that non-neutral caches for MutationRun are constructed, and can be used in other ways as well.
 enum class TraitCalculationRegime : int8_t {
-	kUndefined = -1,				// used for the initial state
-	kPureNeutral = 0,				// all mutations are effectively neutral, including callbacks; genetics can be skipped, but offsets matter
-	kNoActiveCallbacks,				// no active callbacks, so you don't have to look at the mutation type at all
-	kAllGlobalNeutralCallbacks,		// we can skip actually calling all callbacks, since they are all global-neutral
-	kNonNeutralCallbacks,			// we can't skip calling all callbacks, since some are non-global-neutral
-	kAllNonNeutralNoIndDomCaches,	// virtually all mutations are nonneutral (no nonneutral buffers needed), and inddom caches aren't needed
-	kAllNonNeutralWithIndDomCaches,	// virtually all mutations are nonneutral (no nonneutral buffers needed), but inddom caches are needed
+	kUndefined = -1,					// used for the initial state
+	kPureNeutral = 0,					// 0: all mutations are effectively neutral, including callbacks; genetics can be skipped, but offsets matter
+	kNoActiveCallbacks,					// 1: no active callbacks, so you don't have to look at the mutation type at all
+	kAllGlobalNeutralCallbacks,			// 2: we can skip actually calling all callbacks, since they are all global-neutral
+	kNonNeutralCallbacks,				// 3: we can't skip calling all callbacks, since some are non-global-neutral
+	kAllNonNeutralNoIndDomCaches,		// 4: virtually all mutations are nonneutral (no nonneutral buffers needed), and inddom caches aren't needed
+	kAllNonNeutralWithIndDomCaches,		// 5: virtually all mutations are nonneutral (no nonneutral buffers needed), but inddom caches are needed
+	
+	// These regimes are haploid only, and cache mutational effects in the independent dominance caches even for
+	// nonneutral mutations, unless callbacks affect a given mutation (so it goes into the non-neutral cache).
+	kHaploidAllNonNeutralNoCallbacks,	// 6: all mutations non-neutral, no callbacks; cache ALL mutational effects (empty nonneutral buffers)
+	kHaploidNoCallbacks,				// 7: some neutral mutations (so test), no callbacks; cache ALL mutational effects (empty nonneutral buffers)
+	kHaploidAllNonNeutralWithCallbacks,	// 8: all mutations non-neutral, some callbacks; cache all mutations unaffected by callbacks
+	kHaploidWithCallbacks,				// 9: some neutral mutations (so test), some callbacks; cache all mutations unaffected by callbacks
 };
 
 std::ostream& operator<<(std::ostream& p_out, TraitCalculationRegime p_regime);
 std::string RegimeDescription(TraitCalculationRegime p_regime);
+
+
+// This struct is used to keep metrics about nonneutral caching performance
+typedef struct NonNeutralValidationMetrics {
+	int64_t total_run_count_;		// number of mutation runs evaluated
+	int64_t recached_run_count_;	// number of mutation runs for which nonneutral caches were regenerated
+	int64_t mutations_cached_;		// number of mutations added to nonneutral mutation buffers
+	int64_t mutations_omitted_;		// number of mutations omitted from nonneutral mutation buffers
+	int64_t mutations_summarized_;	// number of mutations summarized by independent dominance and haploid caches
+} NonNeutralValidationMetrics;
+
 
 class MutationRun
 {
@@ -203,14 +229,19 @@ private:
 	//	- a "non-neutral mutation buffer" that contains references to a set of mutations that need to be included
 	//		in trait value calculations *with* knowledge of whether the mutations are homozygous or heterozygous
 	//
-	//	- a set of "independent-dominance effect caches", one per trait; these are slim_effect_t values that
-	//		represent the composite effects of all mutations that satisfy certain "independent dominance"
-	//		criteria and can thus be handled *without* knowledge of homozygosity vs. heterozygosity
+	//	- a set of "independent-dominance effect caches", up to one per trait, used for mutation runs in diploid
+	//		chromosomes only; these are slim_effect_t values that represent the composite effects of all the
+	//		mutation run's mutations that satisfy certain "independent dominance" criteria and can thus be
+	//		handled *without* knowledge of homozygosity vs. heterozygosity
 	//
-	// Any given mutation will be treated in one of two ways: it will be placed in the non-neutral mutation
-	// buffer, because it needs to be included in trait calculations (because it has an intrinsic non-neutral
-	// effect on at least one trait, or because it is influenced by a non-neutral mutationEffect() callback),
-	// or (if it is deemed completely neutral, including effects of callbacks) it will not be included in that
+	//	- a set of "haploid effect caches", one per trait, used for mutation runs in haploid chromosomes only;
+	//		these are slim_effect_t values that represent the composite effects of all the mutation run's
+	//		mutations that are not modified by callbacks and can thus be handled as a single effect
+	//
+	// To a first approximation, a given mutation will be treated in one of two ways: placed in the non-neutral
+	// mutation buffer, because it needs to be included in trait calculations (because it has an intrinsic
+	// non-neutral effect on at least one trait, or because it is influenced by a non-neutral mutationEffect()
+	// callback), or (if it is deemed completely neutral, including effects of callbacks) not placed in that
 	// buffer.  This determination is managed primarily based upon the mutation type of the mutation, because
 	// that is the level at which mutationEffect() callbacks operate -- they make particular mutation types
 	// neutral or non-neutral for particular traits.  Depending upon the configuration of callbacks, SLiM might
@@ -224,7 +255,7 @@ private:
 	// used -- whenever trait values are about to be calculated -- the status of all mutation types is re-checked,
 	// with respect to their intrinsic status due to the mutations they represent, and also how that status is
 	// modified by all of the currently active mutationEffect() callbacks.  If the status of all of the mutation
-	// types is unchanged from the last cache validation, the existing cache state can be used; otherwise, the
+	// types is unchanged from the last cache validation, the existing cached state can be used; otherwise, the
 	// existing caches have to be thrown out and remade from scratch, because a mutation type's change in status
 	// means that a whole set of mutations needs to change how it is treated in the caches, which cannot be done
 	// incrementally.
@@ -236,7 +267,7 @@ private:
 	// a given mutation type.  In this case -- probably the most common case, actually -- we only care about the
 	// state of the mutation itself; its mutation type is irrelevant since it exerts no control.  Here we use
 	// precalculated flags on Mutation to guide how the mutation is handled for caching.  If the mutation is
-	// non-neutral for at least one trait, it into the non-neutral mutation buffer, otherwise it doesn't.
+	// non-neutral for at least one trait, it goes into the non-neutral mutation buffer, otherwise it doesn't.
 	//
 	// When considering mutationEffect() callbacks we can actually infer, in specific cases, that they make a
 	// mutation type neutral for some or all traits.  A callback that deterministically returns 1.0 (i.e., is
@@ -275,10 +306,13 @@ private:
 	// because of mutrun experiments.)
 	//
 	// There are some special cases.  If all mutations in the model are neutral, the non-neutral caches are not
-	// used at all, and trait calculation can skip looking at genetics completely.  If all mutations in the model
-	// are non-neutral (as is common in tree-seq models), then the non-neutral caches do not get set up at all
-	// and trait calculations use the main mutation run buffers instead (no point in copying every mutation into
-	// an identical buffer of non-neutral mutations).  FIXME MULTITRAIT work remains here...
+	// used at all, and trait calculation can skip looking at genetics completely.  On the other hand, if all
+	// mutations in the model are non-neutral (as is common in tree-seq models), then the non-neutral caches
+	// do not get set up at all and trait calculations use the main mutation run buffers instead (no point in
+	// copying every mutation into an identical buffer of non-neutral mutations).  The former state is represented
+	// by a count of 0, and the latter state by a count of SLIM_MUTRUN_USE_MAIN_BUFFER, for the size of the
+	// nonneutral mutation buffer.  Special values for TraitCalculationRegime are also associated with these
+	// states.
 	//
 	// There is a final special case that we do not cater to for now, and that is separate non-neutral mutation
 	// caching behavior on a per-chromosome basis.  Since any given mutation run belongs to one chromosome, we
@@ -293,7 +327,7 @@ private:
 	//
 	//	Independent-dominance caches
 	//
-	// A sub-category of the non-neutral cache is the independent-dominance caches.  "Independent dominance" is
+	// A sub-component of the non-neutral cache is the independent-dominance caches.  "Independent dominance" is
 	// defined as a dominance value that makes two heterozygous effects for a given mutation be equivalent to
 	// one homozygous effect.  For additive traits this is simply a dominance of 0.5; for multiplicative traits
 	// it is a dominance of h = (sqrt(1+s)−1)/s, which is not 0.5 but converges to 0.5 as s approaches zero.
@@ -301,46 +335,72 @@ private:
 	// with a special dominance value of NAN, for a mutation or (as a default dominance) for a mutation type.
 	// When independent dominance is present, it can greatly speed up trait calculations because the effect of
 	// a whole mutation run on an independent-dominance trait can be calculated, cached, and used in all of the
-	// individuals that share that mutation run.  This is the purpose of the independent-dominance caches.
+	// individuals that share that mutation run.  This is the purpose of the independent-dominance caches.  These
+	// caches are used only for mutation runs representing intrinsically diploid chromosomes; for mutation runs
+	// representing intrinsically haploid chromosomes, see "Haploid caches" below.
 	//
 	// This caching is performed on a per-trait basis.  If all mutations are independent-dominance for a given
 	// trait, and if there are no mutationEffect() callbacks that affect that trait (even by making it neutral),
-	// then an independent-dominance cache is set up for that trait for every mutation run in the species.  This
-	// is done based upon the non-neutral mutation buffers set up previously; this mechanism depends upon that
-	// facility.  The independent-dominance cache for a trait summarizes the contents of the nonneutral mutation
-	// buffer, allowing trait calculations for a given mutation run to skip the use of its buffer in favor of
-	// a single precalculated value.
-	//
-	// This is complicated slightly by the ploidy of particular chromosomes.  The description above applies to
-	// mutation runs that represent diploid chromosomes.  For haploid chromosomes, effects are "independent" by
-	// definition; ploidy is not a factor.  For such mutation runs, when mutationEffect() callbacks are not
-	// present for a given trait (even neutral ones), the non-neutral mutation buffers are not set up at all;
-	// instead, the independent-dominance caches are set up directly from the main mutation buffer of each
-	// mutation run, and all trait calculations are based simply upon those caches (making haploid models very
-	// fast).  FIXME MULTITRAIT this scheme is not set up yet; right now it makes a non-neutral cache first
+	// then an independent-dominance cache is set up for that trait for every (diploid) mutation run in the
+	// species.  This is done based upon the non-neutral mutation buffers set up previously; this mechanism
+	// depends upon that facility.  The independent-dominance cache for a trait summarizes the contents of the
+	// nonneutral mutation buffer, allowing trait calculations for a given mutation run to skip the use of its
+	// buffer in favor of a single precalculated value.
 	//
 	// For intrinsically diploid chromosomes that can be present in one copy in a given individual (like an X),
-	// it is also a bit complicated since mutations can be hemizygous, which involves a different effect size
+	// this scheme is a bit complicated since mutations can be hemizygous, which involves a different effect size
 	// than the independent-dominance effect size.  For such chromosomes, independent-dominance caches are still
 	// set up (if the preconditions are met) and are used when the chromosome is represented by two non-null
 	// haplosomes in an individual (like an X in a female).  When one haplosome is null, the cached values
 	// for independent dominance are not used; instead the effects are calculated from the non-neutral mutation
 	// buffer directly, to get the correct hemizygous effects.  FIXME MULTITRAIT: Maybe we can be smarter here...
 	
+	//
+	//	Haploid caches
+	//
+	// The independent-dominance scheme above applies to mutation runs that represent diploid chromosomes; its
+	// intent is to optimize the handling of mutations when each mutation present can be treated independently,
+	// ignoring ploidy.  For haploid chromosomes, effects are "independent" by definition; ploidy is never a
+	// factor.  In this case, it is possible to be even more efficient than the independent-dominance caches,
+	// and this is the purpose of the haploid caches.  These share the same memory space as the independent-
+	// dominance caches, but are used for haploid mutation runs.  They summarize the effects of all mutations
+	// in a mutation run that are not affected by mutationEffect() callbacks.  Unlike the independent-dominance
+	// caches, the haploid caches are not based upon the contents of the nonneutral mutation buffers; rather,
+	// all mutations summarized by the haploid caches are omitted from the nonneutral mutation buffers entirely.
+	// Only mutations that are affected by mutationEffect() callbacks are placed into the nonneutral mutation
+	// buffers, for separate handling.  To make this work, the haploid caches are actually calculated at the
+	// same time as the nonneutral caches, using four special TraitCalculationRegime values, rather than being
+	// calculated in a post-pass after nonneutral caching the way the independent-dominance caches are.
+	
 	// This struct represents the entire non-neutral cache, which can't entirely be described with a C struct due
 	// to variable-length elements.  First are the capacity and count for the nonneutral mutation buffer.  Then
-	// come slim_effect_t entries, one per trait in the species for which we have an independent-dominance cache
-	// (which is not the same as the number of traits).  After that is the nonneutral mutation buffer: a vector
-	// of MutationIndex for all of the mutations in the nonneutral cache.  This structure should be considered
-	// very private, and be accessed directly only in a few key places inside MutationRun.  Note that MutationRun
-	// doesn't know the number of traits with independent-dominance caches, and so it doesn't know the layout of
-	// this struct!  In APIs where the layout of this struct needs to be known, an inddom_cache_count value is
-	// passed in from outside.  This is kind of weird, but it is very memory-efficient, which is key here.
+	// comes some number of slim_effect_t slots, represented by internal_cache_.  The details of internal_cache_
+	// depend on ploidy:
+	//
+	//	- for mutation runs representing intrinsically diploid chromosomes, there is one slot per trait in the
+	//		species for which we have an independent-dominance cache (which is not the same as the number of
+	//		traits).  The number of independent-dominance cache slots is determined at the end of initialize()
+	//		callbacks, based upon the set of traits that are configured for independent dominance.
+	//
+	//	- for mutation runs representing intrinsically haploid chromosomes, there is one slot per trait in the
+	//		species, period; every trait gets a haploid cache slot.
+	//
+	// Finally, after the internal_cache_ slots is the nonneutral mutation buffer: a vector of MutationIndex for
+	// all of the mutations in the nonneutral cache.
+	//
+	// This structure should be considered very private, and should be accessed directly only in a few key places
+	// inside MutationRun.  Note that MutationRun doesn't know the number of traits with independent-dominance
+	// caches, and so it doesn't know the layout of this struct!  In APIs where the layout of this struct needs
+	// to be known, a MutRunInternalCacheIndex value is passed in from outside to provide the number of slots.
+	// This is kind of weird, but it is very memory-efficient, which is key here.  In DEBUG builds the count of
+	// the number of slots is also kept in internal_cache_count_DEBUG_, which is used to verify that the correct
+	// number of slots is always passed in to the various MutationRun APIs.
+	//
 	typedef struct _NonNeutralCache {
 		mutable int32_t nonneutral_capacity_;			// the capacity of the nonneutral mutation buffer
 		mutable int32_t nonneutral_count_;				// the number of entries currently used; -1 indicates an invalid cache
-		slim_effect_t independent_dominance_cache_[];	// one independent-dominance summary per inddom_cache_count
-		// the non-neutral MutationIndex buffer begins after the last entry in independent_dominance_cache_
+		slim_effect_t internal_cache_[];				// internal cache slots for independent dominance and haploid caches
+		// the non-neutral MutationIndex buffer begins after the last entry in internal_cache_
 	} NonNeutralCache;
 	
 	// The nonneutral_cache_ pointer below can be nullptr for any of three reasons:
@@ -352,10 +412,10 @@ private:
 	//	(b) The non-neutral cache is in a valid state representing the fact that there are no nonneutral mutations;
 	//		the cache is simply empty, equivalent to being allocated and having nonneutral_count_ == 0.  This
 	//		occurs when a model has been "pure-neutral" since the beginning (or since this mutation run was
-	//		created); it is managed by cache_nonneutral_mutations_REGIME_0(), which handles the trait calculation
-	//		regime for pure-neutral models.  The marker for being in this state is being in regime kPureNeutral,
-	//		but in general no special checks for nullptr should be needed here; if the species is pure-neutral,
-	//		nobody should be looking at the non-neutral cache anyway.
+	//		created); it is managed by cache_nonneutral_mutations_REGIME_kPureNeutral(), which handles the trait
+	//		calculation regime for pure-neutral models.  The marker for being in this state is being in regime
+	//		kPureNeutral, but in general no special checks for nullptr should be needed here; if the species is
+	//		pure-neutral, nobody should be looking at the non-neutral cache anyway.
 	//
 	//	(c) The non-neutral cache is in a valid state representing the fact that ALL mutations are nonneutral,
 	//		AND no traits are candidates for independent dominance.  In this case, there is no need for the
@@ -366,22 +426,29 @@ private:
 	//		from the TraitCalculationRegime.
 	//
 	// In addition to the above, if ALL mutations are nonneutral, but case (c) above is not true because at least
-	// one trait is a candidate for independent dominance (i.e., has an inddom cache slot).  This is handled in
+	// one trait is a candidate for independent dominance (i.e., has an inddom cache slot), this is handled in
 	// a similar way to case (c).  In this case, the TraitCalculationRegime is kAllNonNeutralWithIndDomCaches,
 	// and the nonneutral cache is guaranteed to be allocated (to provide space for the inddom caches), so the
 	// nonneutral_count_ will always be visible as SLIM_MUTRUN_USE_MAIN_BUFFER (but in general the user of the
 	// MutationRun knows anyway; the marker value is mostly for DEBUG checks and such).
 	//
+	// In mutation runs representing intrinsically haploid chromosomes, if haploid caches are in use (if one of
+	// the special haploid cache TraitCalculationRegimes is chosen), the nonneutral cache is guaranteed to be
+	// allocated (to provide space for the haploid caches), but the nonneutral_count_ might be zero (if all
+	// mutations are summarized by the haploid caches), or the nonneutral mutation buffer might contain only
+	// mutation affected by mutationEffect() callbacks (and not other nonneutral mutations).  In these trait
+	// calculation regimes, SLIM_MUTRUN_USE_MAIN_BUFFER is never used.
+	//
 	// Note that the nonneutral cache is validated during trait calculation, and should remain valid thereafter
 	// unless marked as invalid by having nonneutral_count_ set to -1.  Since mutation runs are usually immutable,
-	// their caches tend to stay valid.  However, if a mutation run does get modified that invalidates its
+	// their caches tend to stay valid.  However, if a mutation run does get modified, that change invalidates its
 	// nonneutral cache; and if the state of a mutation itself changes in a way that would necessitate a recache,
-	// that should be handled by the chromosome and the species.
-	// FIXME MULTITRAIT: this invalidation mechanism needs to be done/checked.
-	// FIXME MULTITRAIT: Also, there need to be checks in place that demonstrate that nonneutral caches are not
-	// re-made unnecessarily, but are instead carried over except when they get invalidated.
+	// that invalidation should be handled by the chromosome and the species.
 	// 
-	mutable NonNeutralCache *nonneutral_cache_ = nullptr;	// OWNED POINTER: the contents of the nonneutal cache
+#if DEBUG
+	mutable MutRunInternalCacheIndex internal_cache_count_DEBUG_ = static_cast<MutRunInternalCacheIndex>(-1);
+#endif
+	mutable NonNeutralCache *nonneutral_cache_ = nullptr;	// OWNED POINTER: the contents of the nonneutral cache
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
@@ -857,18 +924,20 @@ public:
 	
 	inline __attribute__((always_inline)) bool nonneutral_cache_in_use(void) const { return (nonneutral_cache_ && (nonneutral_cache_->nonneutral_count_ >= 0)); }
 	
-	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(IndDomCacheIndex inddom_cache_count) const
+	inline __attribute__((always_inline)) MutationIndex *nonneutral_mutation_buffer(MutRunInternalCacheIndex inddom_cache_count) const
 	{
 #if DEBUG
 		if (!nonneutral_cache_)
 			EIDOS_TERMINATION << "ERROR (MutationRun::nonneutral_mutation_buffer): nonneutral_mutation_buffer called with an unallocated nonneutral cache." << EidosTerminate(nullptr);
 		if (nonneutral_cache_->nonneutral_count_ < 0)
 			EIDOS_TERMINATION << "ERROR (MutationRun::nonneutral_mutation_buffer): nonneutral_mutation_buffer called with an invalid nonneutral cache (nonneutral_count_ == " << nonneutral_cache_->nonneutral_count_ << ")." << EidosTerminate(nullptr);
+		if (inddom_cache_count != internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::nonneutral_mutation_buffer): (internal error) inddom_cache_count != internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
 #endif
-		return (MutationIndex *)(nonneutral_cache_->independent_dominance_cache_ + static_cast<slim_trait_index_t>(inddom_cache_count));
+		return (MutationIndex *)(nonneutral_cache_->internal_cache_ + static_cast<slim_trait_index_t>(inddom_cache_count));
 	}
 	
-	inline __attribute__((always_inline)) void zero_out_nonneutral_cache(IndDomCacheIndex inddom_cache_count) const
+	inline __attribute__((always_inline)) void zero_out_nonneutral_cache(MutRunInternalCacheIndex inddom_cache_count) const
 	{
 		if (!nonneutral_cache_)
 		{
@@ -882,7 +951,15 @@ public:
 				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_cache): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
 			nonneutral_cache_->nonneutral_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+#if DEBUG
+			internal_cache_count_DEBUG_ = inddom_cache_count;
+#endif
 		}
+		
+#if DEBUG
+		if (inddom_cache_count != internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::nonneutral_mutation_buffer): (internal error) inddom_cache_count != internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
+#endif
 		
 		// empty out the current buffer contents
 		nonneutral_cache_->nonneutral_count_ = 0;
@@ -891,16 +968,16 @@ public:
 	inline __attribute__((always_inline)) void zero_out_nonneutral_cache_NOALLOC(void) const
 	{
 		// This variant of zero_out_nonneutral_cache() empties an existing buffer, but does not allocate a new
-		// buffer if one does not already exist.  See cache_nonneutral_mutations_REGIME_0() for comments.
+		// buffer if one does not already exist.  See cache_nonneutral_mutations_REGIME_kPureNeutral().
 		if (nonneutral_cache_)
 			nonneutral_cache_->nonneutral_count_ = 0;
 	}
 	
-	inline __attribute__((always_inline)) void zero_out_nonneutral_cache_ZEROSIZE(IndDomCacheIndex inddom_cache_count) const
+	inline __attribute__((always_inline)) void zero_out_nonneutral_cache_ZEROSIZE(MutRunInternalCacheIndex inddom_cache_count) const
 	{
 		// This variant of zero_out_nonneutral_cache() empties an existing buffer, and allocates a new cache if
 		// it has not yet been allocated; but it allocates zero extra space for the nonneutral mutation buffer.
-		// See cache_nonneutral_mutations_REGIME_5() for comments.
+		// See cache_nonneutral_mutations_REGIME_kAllNonNeutralWithIndDomCaches() for comments.
 		if (!nonneutral_cache_)
 		{
 			// If we don't have a cache allocated yet, create a buffer with space for all the cache components
@@ -912,16 +989,29 @@ public:
 				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_cache_ZEROSIZE): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
 			nonneutral_cache_->nonneutral_capacity_ = 0;
+#if DEBUG
+			internal_cache_count_DEBUG_ = inddom_cache_count;
+#endif
 		}
+		
+#if DEBUG
+		if (inddom_cache_count != internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_cache_ZEROSIZE): (internal error) inddom_cache_count != internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
+#endif
 		
 		// empty out the current buffer contents
 		nonneutral_cache_->nonneutral_count_ = 0;
 	}
 	
-	inline __attribute__((always_inline)) void expand_nonneutral_buffer(IndDomCacheIndex inddom_cache_count) const
+	inline __attribute__((always_inline)) void expand_nonneutral_buffer(MutRunInternalCacheIndex inddom_cache_count) const
 	{
 #ifdef __clang_analyzer__
 		assert(nonneutral_cache_->capacity_ > 0);
+#endif
+		
+#if DEBUG
+		if (inddom_cache_count != internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::expand_nonneutral_buffer): (internal error) inddom_cache_count != internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
 #endif
 		
 		// we don't just double ad infinitum, because we don't want to use an inordinate amount of memory
@@ -944,17 +1034,44 @@ public:
 			EIDOS_TERMINATION << "ERROR (MutationRun::expand_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 	
-	void cache_nonneutral_mutations_REGIME_0(void) const;
-	void cache_nonneutral_mutations_REGIME_1(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
-	void cache_nonneutral_mutations_REGIME_2(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
-	void cache_nonneutral_mutations_REGIME_3(Mutation *p_mut_block_ptr, IndDomCacheIndex inddom_cache_count) const;
-	void cache_nonneutral_mutations_REGIME_4(void) const;
-	void cache_nonneutral_mutations_REGIME_5(IndDomCacheIndex inddom_cache_count) const;
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+	// In this version of these methods, we keep metrics regarding what was done
+	void cache_nonneutral_mutations_REGIME_kPureNeutral(NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kNoActiveCallbacks(Mutation *p_mut_block_ptr, MutRunInternalCacheIndex inddom_cache_count, NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kAllGlobalNeutralCallbacks(Mutation *p_mut_block_ptr, MutRunInternalCacheIndex inddom_cache_count, NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kNonNeutralCallbacks(Mutation *p_mut_block_ptr, MutRunInternalCacheIndex inddom_cache_count, NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kAllNonNeutralNoIndDomCaches(NonNeutralValidationMetrics *metrics) const;
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	void cache_nonneutral_mutations_REGIME_kAllNonNeutralWithIndDomCaches(MutRunInternalCacheIndex inddom_cache_count, NonNeutralValidationMetrics *metrics) const;
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#if SLIM_USE_HAPLOID_CACHES()
+	void cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralNoCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits, NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kHaploidNoCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits, NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralWithCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits, NonNeutralValidationMetrics *metrics) const;
+	void cache_nonneutral_mutations_REGIME_kHaploidWithCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits, NonNeutralValidationMetrics *metrics) const;
+#endif	// SLIM_USE_HAPLOID_CACHES()
+#else	// !(SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND())
+	// In this version of these metrics, we do not keep metrics (for speed)
+	void cache_nonneutral_mutations_REGIME_kPureNeutral(void) const;
+	void cache_nonneutral_mutations_REGIME_kNoActiveCallbacks(Mutation *p_mut_block_ptr, MutRunInternalCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_kAllGlobalNeutralCallbacks(Mutation *p_mut_block_ptr, MutRunInternalCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_kNonNeutralCallbacks(Mutation *p_mut_block_ptr, MutRunInternalCacheIndex inddom_cache_count) const;
+	void cache_nonneutral_mutations_REGIME_kAllNonNeutralNoIndDomCaches(void) const;
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	void cache_nonneutral_mutations_REGIME_kAllNonNeutralWithIndDomCaches(MutRunInternalCacheIndex inddom_cache_count) const;
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#if SLIM_USE_HAPLOID_CACHES()
+	void cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralNoCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits) const;
+	void cache_nonneutral_mutations_REGIME_kHaploidNoCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits) const;
+	void cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralWithCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits) const;
+	void cache_nonneutral_mutations_REGIME_kHaploidWithCallbacks(MutationBlock *mutation_block, MutRunInternalCacheIndex inddom_cache_count, const std::vector<Trait *> traits) const;
+#endif	// SLIM_USE_HAPLOID_CACHES()
+#endif	// SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
 	
 	void check_nonneutral_mutation_cache() const;
 	void check_nonneutral_mutation_cache_MAIN() const;
 	
-	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, IndDomCacheIndex inddom_cache_count) const
+	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, MutRunInternalCacheIndex inddom_cache_count) const
 	{
 		// In Individual::_IncorporateEffects_Haploid() and Individual::_IncorporateEffects_Diploid(), we just need
 		// to query the species trait-calculation regime and call the correct variant of this method to use the
@@ -962,6 +1079,10 @@ public:
 #if DEBUG
 		// All nonneutral caches must be validated ahead of time; see Species::ValidateNonNeutralCaches()
 		check_nonneutral_mutation_cache();
+#endif
+#if DEBUG
+		if (inddom_cache_count != internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::beginend_nonneutral_pointers): (internal error) inddom_cache_count != internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
 #endif
 		
 		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
@@ -1002,20 +1123,44 @@ public:
 	
 	
 	//
-	//	Independent-dominance caches
+	//	Independent-dominance caches and haploid caches
 	//
 	
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-	
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
 	template <const bool f_additive_trait, const bool f_haploid_chromosome>
-	void validate_independent_dominance_cache_for_trait(slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index, MutationBlock *mutation_block) const;
+	void validate_independent_dominance_cache_for_trait(slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index, MutRunInternalCacheIndex inddom_cache_count, MutationBlock *mutation_block, NonNeutralValidationMetrics *metrics) const;
+#else
+	template <const bool f_additive_trait, const bool f_haploid_chromosome>
+	void validate_independent_dominance_cache_for_trait(slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index, MutRunInternalCacheIndex inddom_cache_count, MutationBlock *mutation_block) const;
+#endif
 	
-	inline __attribute__((always_inline)) slim_effect_t independent_dominance_cache_for_cache_index(IndDomCacheIndex inddom_cache_index) const
+	inline __attribute__((always_inline)) slim_effect_t independent_dominance_cache_for_cache_index(MutRunInternalCacheIndex inddom_cache_index) const
 	{
-		return nonneutral_cache_->independent_dominance_cache_[static_cast<slim_trait_index_t>(inddom_cache_index)];
+		// The independent-dominance caches use the same storage as the haploid caches, but are conceptually separate.
+		// Independent-dominance caches are used only for intrinsically diploid chromosomes; haploid caches, only for
+		// intrinsically haploid chromosomes.
+#if DEBUG
+		if (inddom_cache_index >= internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::independent_dominance_cache_for_cache_index): (internal error) inddom_cache_index >= internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
+#endif
+		return nonneutral_cache_->internal_cache_[static_cast<slim_trait_index_t>(inddom_cache_index)];
 	}
-	
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	
+#if SLIM_USE_HAPLOID_CACHES()
+	inline __attribute__((always_inline)) slim_effect_t haploid_cache_for_cache_index(MutRunInternalCacheIndex haploid_cache_index) const
+	{
+		// The haploid caches use the same storage as the independent-dominance caches, but are conceptually separate.
+		// Independent-dominance caches are used only for intrinsically diploid chromosomes; haploid caches, only for
+		// intrinsically haploid chromosomes.
+#if DEBUG
+		if (haploid_cache_index >= internal_cache_count_DEBUG_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::haploid_cache_for_cache_index): (internal error) haploid_cache_index >= internal_cache_count_DEBUG_." << EidosTerminate(nullptr);
+#endif
+		return nonneutral_cache_->internal_cache_[static_cast<slim_trait_index_t>(haploid_cache_index)];
+	}
+#endif	// SLIM_USE_HAPLOID_CACHES()
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	

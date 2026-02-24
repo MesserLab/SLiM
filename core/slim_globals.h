@@ -666,9 +666,12 @@ enum class BoundaryCondition : char {
 	kPeriodic
 };
 
-// The enum class is used to isolate independent dominance cache indices from other trait indices,
+// The enum class is used to isolate mutation run internal cache indices from other trait indices,
 // producing a compile error whenever one is used in place of the other; they are easy to mix up!
-enum class IndDomCacheIndex : slim_trait_index_t {};
+// When the mutrun internal cache is used for independent-dominance caches (for diploid chromosomes),
+// these indices do not necessarily correspond to trait indices; when used for haploid caches (for
+// haploid chromosomes), they do correspond one-to-one with trait indices.
+enum class MutRunInternalCacheIndex : slim_trait_index_t {};
 
 
 // *******************************************************************************************************************
@@ -1078,7 +1081,8 @@ extern const std::string &gStr__allocatedNonneutralCacheCount;				// internal AP
 extern const std::string &gStr__inUseNonneutralMutationBufferCount;			// internal API
 extern const std::string &gStr__inUseNonneutralMutationBufferSize;			// internal API
 extern const std::string &gStr__invalidNonneutralMutationBufferCount;		// internal API
-extern const std::string &gStr__traitCalculationRegimeName;					// internal API
+extern const std::string &gStr__traitCalculationRegimeNameDIPLOID;			// internal API
+extern const std::string &gStr__traitCalculationRegimeNameHAPLOID;			// internal API
 #endif
 extern const std::string &gStr_setMigrationRates;
 extern const std::string &gStr_deviatePositions;
@@ -1583,7 +1587,8 @@ enum _SLiMGlobalStringID : int {
 	gID__inUseNonneutralMutationBufferCount,			// internal API
 	gID__inUseNonneutralMutationBufferSize,				// internal API
 	gID__invalidNonneutralMutationBufferCount,			// internal API
-	gID__traitCalculationRegimeName,					// internal API
+	gID__traitCalculationRegimeNameDIPLOID,				// internal API
+	gID__traitCalculationRegimeNameHAPLOID,				// internal API
 #endif
 	gID_setMigrationRates,
 	gID_deviatePositions,

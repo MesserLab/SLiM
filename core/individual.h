@@ -414,8 +414,11 @@ public:
 	// phenotype demand for a single trait in a single individual, across a single chromosome; the result is
 	// accumulated into the trait value of the focal individual, which must be set up with an initial value
 	// see also the DemandPhenotype_X() methods in class Individual_Class, which call these methods
-	template <const bool f_use_nonneutral_cache, const bool f_hemizygous, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+	template <const int f_haploid_cache_level, const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 	void _IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
+	template <const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+	void _IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
 	template <const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
 	void _IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
@@ -423,7 +426,7 @@ public:
 #if SLIM_USE_NONNEUTRAL_CACHES()
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 	template <const bool f_additiveTrait>
-	void _IncorporateEffects_IndependentDominance(Haplosome *haplosome, slim_trait_index_t trait_index, IndDomCacheIndex inddom_cache_index);
+	void _IncorporateEffects_IndependentDominance_Diploid(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index);
 #endif
 #endif
 	

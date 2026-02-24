@@ -190,6 +190,7 @@ multitrait branch:
 		top-level JSON metadata now has a new `traits` key (required), which lists the traits used in the tree sequence; duplicated in provenance
 		the top-level JSON, mutation, and individual metadata schemas are updated accordingly
 		pushed the .trees file version from 0.9 to 1.0
+	add a separate haploid trait calculation regime, with new regime types for constructing haploid caches
 
 
 version 5.1 (Eidos version 4.1):

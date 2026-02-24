@@ -1359,6 +1359,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	SLiMAssertScriptStop("initialize() { initializeTrait('height', 'm'); initializeMutationType('m1', 0.5, 'f', 0.0001);" + middle + "muts.heightDominance = NAN; if (allClose(muts.heightDominance, 0.4999875)) stop(); }");
 	
 	// Test the new Individual cachedFitness property and crosscheck it against the Subpopulation cachedFitness() method
+	#pragma mark cachedFitness1
 	std::string cachedFitness1 =	// neutral but with fitnessScaling
 	R"V0G0N(
 		initialize() {
@@ -1388,6 +1389,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(cachedFitness1);
 	
+	#pragma mark cachedFitness2
 	std::string cachedFitness2 =	// non-neutral
 	R"V0G0N(
 		initialize() {
@@ -1413,6 +1415,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(cachedFitness2);
 	
+	#pragma mark cachedFitness3
 	std::string cachedFitness3 =	// non-neutral with independent dominance
 	R"V0G0N(
 		initialize() {
@@ -1436,6 +1439,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	SLiMAssertScriptSuccess(cachedFitness3);
 	
 	// test the new zygosityOfMutations() method
+	#pragma mark test_zygosity1
 	std::string test_zygosity1 =	// simple one-chromosome diploid test
 	R"V0G0N(
 		initialize() {
@@ -1483,6 +1487,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(test_zygosity1);
 
+	#pragma mark test_zygosity2
 	std::string test_zygosity2 =	// multiple chromosomes of different types
 	R"V0G0N(
 		initialize() {
@@ -1559,6 +1564,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(test_zygosity2);
 
+	#pragma mark test_zygosity3
 	std::string test_zygosity3 =	// same but passing mutations=mut explicitly, different code path
 	R"V0G0N(
 		initialize() {
@@ -1635,6 +1641,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	
 	SLiMAssertScriptSuccess(test_zygosity3);
 	
+	#pragma mark test_zygosity4
 	std::string test_zygosity4 =	// test specified values for hemizygosity and haploidy
 	R"V0G0N(
 		initialize() {
@@ -1704,6 +1711,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 	// - fitness values should be 1.0 for all individuals
 	// - the trait should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
 	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	#pragma mark multitrait_DEFAULT_NEUTRAL
 	std::string multitrait_DEFAULT_NEUTRAL =
 		R"V0G0N(
 // multitrait_DEFAULT_NEUTRAL
@@ -1729,7 +1737,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite all neutral genetics");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -1744,6 +1752,7 @@ initialize() {
 	// - fitness values should be 1.0 for all individuals
 	// - the trait should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
 	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	#pragma mark multitrait_DEFAULT_NEUTRAL_OBFUSCATED
 	std::string multitrait_DEFAULT_NEUTRAL_OBFUSCATED =
 		R"V0G0N(
 // multitrait_DEFAULT_NEUTRAL_OBFUSCATED
@@ -1774,7 +1783,7 @@ mutationEffect(m1, p2) { return effect; }   // considered non-neutral, but subpo
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite all neutral genetics");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -1786,6 +1795,7 @@ mutationEffect(m1, p2) { return effect; }   // considered non-neutral, but subpo
 	
 	// a quick test model for what happens if a non-neutral muttype is defined but not used in a neutral model
 	// the goal was to provoke a conflict between muttype and trait ideas of whether the model is neutral
+	#pragma mark multitrait_DEFAULT_NEUTRAL_NNMUTTYPE
 	std::string multitrait_DEFAULT_NEUTRAL_NNMUTTYPE =
 		R"V0G0N(
 // multitrait_DEFAULT_NEUTRAL_NNMUTTYPE
@@ -1809,6 +1819,7 @@ initialize() {
 	// - fitness values should be 1.0 for all individuals
 	// - traits should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
 	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	#pragma mark multitrait_COMPLETE_NEUTRAL
 	std::string multitrait_COMPLETE_NEUTRAL =
 		R"V0G0N(
 // multitrait_COMPLETE_NEUTRAL
@@ -1839,7 +1850,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite all neutral genetics");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -1854,6 +1865,7 @@ initialize() {
 	// - fitness values should be predictable from baseline offsets
 	// - traits should be "super-pure-neutral" and thus skipped and uncalculated (and thus NAN)
 	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	#pragma mark multitrait_NEUTRAL_GENETICS
 	std::string multitrait_NEUTRAL_GENETICS =
 		R"V0G0N(
 // multitrait_NEUTRAL_GENETICS
@@ -1884,7 +1896,7 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite all neutral genetics");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -1898,6 +1910,7 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 	// the additive trait is NOT configured for independent dominance
 	// - fitness values should be predictable from baseline/individual offsets
 	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	#pragma mark multitrait_NEUTRAL_GENETICS_WITH_OFFSETS
 	std::string multitrait_NEUTRAL_GENETICS_WITH_OFFSETS =
 		R"V0G0N(
 // multitrait_NEUTRAL_GENETICS_WITH_OFFSETS
@@ -1932,7 +1945,7 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite all neutral genetics");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -1945,6 +1958,7 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 	// default trait, with a nonneutral DES so all mutations are nonneutral; independent dominance is not used
 	// - fitness values are unpredictable and not tested
 	// - this model should not allocate any non-neutral caches, and should be in the kAllNonNeutralNoIndDomCaches regime
+	#pragma mark multitrait_ALL_NONNEUTRAL_NO_INDDOM
 	std::string multitrait_ALL_NONNEUTRAL_NO_INDDOM =
 		R"V0G0N(
 // multitrait_ALL_NONNEUTRAL_NO_INDDOM
@@ -1970,7 +1984,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite all nonneutral genetics");
-		if (sim._traitCalculationRegimeName != "kAllNonNeutralNoIndDomCaches")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kAllNonNeutralNoIndDomCaches")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -1980,9 +1994,382 @@ initialize() {
 	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_NO_INDDOM);
 	
 	
+	// default trait for X, with a nonneutral DES so all mutations are nonneutral; independent dominance is not used
+	// - fitness values are unpredictable and not tested
+	// - this model should not allocate any non-neutral caches, and should be in the kAllNonNeutralNoIndDomCaches regime
+	#pragma mark multitrait_ALL_NONNEUTRAL_NO_INDDOM_X
+	std::string multitrait_ALL_NONNEUTRAL_NO_INDDOM_X =
+		R"V0G0N(
+// multitrait_ALL_NONNEUTRAL_NO_INDDOM_X
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, type="X");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (isNAN(ind_t1))
+			stop("t1 value mismatch (NAN not expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._allocatedNonneutralCacheCount != 0)
+			stop("nonneutral caches were allocated despite all nonneutral genetics");
+		if (sim._traitCalculationRegimeNameDIPLOID != "kAllNonNeutralNoIndDomCaches")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_NO_INDDOM_X);
+	
+	
+	// default trait for Y, with a nonneutral DES so all mutations are nonneutral; independent dominance is not used
+	// - fitness values are unpredictable and not tested
+	// - this model should not allocate any non-neutral caches, and should be in the kHaploidAllNonNeutralNoCallbacks regime
+	#pragma mark multitrait_ALL_NONNEUTRAL_NO_INDDOM_Y
+	std::string multitrait_ALL_NONNEUTRAL_NO_INDDOM_Y =
+		R"V0G0N(
+// multitrait_ALL_NONNEUTRAL_NO_INDDOM_Y
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, type="Y");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (isNAN(ind_t1))
+			stop("t1 value mismatch (NAN not expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._inUseNonneutralMutationBufferSize != 0)
+			stop("nonneutral caches are non-zero size despite all nonneutral genetics");
+		if (sim._traitCalculationRegimeNameHAPLOID != "kHaploidAllNonNeutralNoCallbacks")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_NO_INDDOM_Y);
+	
+	
+	// default trait for H, with a nonneutral DES so all mutations are nonneutral; independent dominance is not used
+	// - fitness values are unpredictable and not tested
+	// - this model should not allocate any non-neutral caches, and should be in the kHaploidAllNonNeutralNoCallbacks regime
+	#pragma mark multitrait_ALL_NONNEUTRAL_NO_INDDOM_H
+	std::string multitrait_ALL_NONNEUTRAL_NO_INDDOM_H =
+		R"V0G0N(
+// multitrait_ALL_NONNEUTRAL_NO_INDDOM_H
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, type="H");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (isNAN(ind_t1))
+			stop("t1 value mismatch (NAN not expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._inUseNonneutralMutationBufferSize != 0)
+			stop("nonneutral caches are non-zero size despite all nonneutral genetics");
+		if (sim._traitCalculationRegimeNameHAPLOID != "kHaploidAllNonNeutralNoCallbacks")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_NO_INDDOM_H);
+	
+	
+	// default trait for H, with a nonneutral DES so all mutations are nonneutral; callbacks present
+	// - fitness values are unpredictable and not tested
+	// - this model should not allocate any non-neutral caches, and should be in the kHaploidAllNonNeutralNoCallbacks regime
+	#pragma mark multitrait_ALL_NONNEUTRAL_CALLBACKS_H
+	std::string multitrait_ALL_NONNEUTRAL_CALLBACKS_H =
+		R"V0G0N(
+// multitrait_ALL_NONNEUTRAL_CALLBACKS_H
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "e", 0.01);
+	initializeMutationType("m2", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", c(m1,m2), c(1,1));
+	
+	initializeChromosome(1, type="H");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	sim.demandPhenotype(NULL, NULL);
+	
+	if (any(isNAN(inds.phenotypeForTrait())))
+		stop("simT value mismatch (NAN not expected)");
+	if (sim._debugBuild) {
+		isCallbackTick = (match(community.tick, c(5,10,25,50,75)) != -1);
+		if (!isCallbackTick & (sim._inUseNonneutralMutationBufferSize != 0))
+			stop("nonneutral caches are non-zero size despite haploid with no callbacks");
+		expectedRegime = isCallbackTick ?
+			"kHaploidAllNonNeutralWithCallbacks" else "kHaploidAllNonNeutralNoCallbacks";
+		if (community.tick == 75)
+			expectedRegime = "kAllNonNeutralNoIndDomCaches";	// all mutation types have nonneutral callbacks
+		if (sim._traitCalculationRegimeNameHAPLOID != expectedRegime)
+			stop("unexpected trait calculation regime " + sim._traitCalculationRegimeNameHAPLOID);
+	}
+}
+c(5,10,25,50,75) mutationEffect(m1) { return 1.1; }
+c(75) mutationEffect(m2) { return 1.1; }
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_ALL_NONNEUTRAL_CALLBACKS_H);
+	
+	
+	// default trait for H, with both neutral and nonneutral mutations, with no callbacks
+	// - fitness values are unpredictable and not tested
+	// - this model should not use any non-neutral caches, and should be in the kHaploidNoCallbacks regime
+	#pragma mark multitrait_NEUTRAL_NONNEUTRAL_NOCALLBACKS_H
+	std::string multitrait_NEUTRAL_NONNEUTRAL_NOCALLBACKS_H =
+		R"V0G0N(
+// multitrait_NEUTRAL_NONNEUTRAL_NOCALLBACKS_H
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", c(m1,m2), c(1,1));
+	
+	initializeChromosome(1, type="H");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	for (ind in inds) {
+		ind_t1 = ind.phenotypeForTrait("simT");   // dynamic property not defined for the default trait
+		ind_fitness = ind.cachedFitness;
+		
+		if (isNAN(ind_t1))
+			stop("t1 value mismatch (NAN not expected): " + ind_t1);
+	}
+	if (sim._debugBuild) {
+		if (sim._inUseNonneutralMutationBufferSize != 0)
+			stop("nonneutral caches are non-zero size despite haploid with no callbacks");
+		if (sim._traitCalculationRegimeNameHAPLOID != "kHaploidNoCallbacks")
+			stop("unexpected trait calculation regime");
+	}
+}
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_NEUTRAL_NONNEUTRAL_NOCALLBACKS_H);
+	
+	
+	// default trait for H, with both neutral and nonneutral mutations, with callbacks
+	// - fitness values are unpredictable and not tested
+	// - this model should not use any non-neutral caches, and should be in the kHaploidNoCallbacks regime
+	#pragma mark multitrait_NEUTRAL_NONNEUTRAL_CALLBACKS_H
+	std::string multitrait_NEUTRAL_NONNEUTRAL_CALLBACKS_H =
+		R"V0G0N(
+// multitrait_NEUTRAL_NONNEUTRAL_CALLBACKS_H
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", c(m1,m2), c(1,1));
+	
+	initializeChromosome(1, type="H");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	sim.demandPhenotype(NULL, NULL);
+	
+	if (any(isNAN(inds.phenotypeForTrait("simT"))))
+		stop("simT value mismatch (NAN not expected)");
+	if (sim._debugBuild) {
+		if (sim._inUseNonneutralMutationBufferSize != 0)
+			stop("nonneutral caches are non-zero size despite haploid with no callbacks");
+		expectedRegime = (match(community.tick, c(5,10,25,50,75)) == -1) ?
+			"kHaploidNoCallbacks" else "kPureNeutral";
+		if (sim._traitCalculationRegimeNameHAPLOID != expectedRegime)
+			stop("unexpected trait calculation regime " + sim._traitCalculationRegimeNameHAPLOID);
+	}
+}
+c(5,10,25,50,75) mutationEffect(m2) { return NULL; }
+c(8,15,30,55,75) mutationEffect(m1) { return NULL; }
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_NEUTRAL_NONNEUTRAL_CALLBACKS_H);
+	
+	
+	// two traits for H, with both neutral and nonneutral mutations, with complex callbacks
+	// - fitness values are unpredictable and not tested
+	// - this model should not use any non-neutral caches, and should be in the kHaploidNoCallbacks regime
+	#pragma mark multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_H
+	std::string multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_H =
+		R"V0G0N(
+// multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_H
+initialize() {
+	initializeSex();
+	
+	popgen1T = initializeTrait("popgen1T", "m", 1.0, 0.0, 0.01, directFitnessEffect=T);
+	quant1T = initializeTrait("quant1T", "a", 5.0, 0.0, 0.01, directFitnessEffect=F);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", c(m1,m2), c(1,1));
+	
+	initializeChromosome(1, type="H");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	sim.demandPhenotype(NULL, NULL);
+	
+	if (any(isNAN(inds.phenotypeForTrait())))
+		stop("simT value mismatch (NAN not expected)");
+	if (sim._debugBuild) {
+		isCallbackTick = (match(community.tick, c(5,10,25,50,75)) != -1);
+		if (!isCallbackTick & (sim._inUseNonneutralMutationBufferSize != 0))
+			stop("nonneutral caches are non-zero size despite haploid with no callbacks");
+		expectedRegime = isCallbackTick ?
+			"kHaploidWithCallbacks" else "kHaploidNoCallbacks";
+		if (community.tick == 75)
+			expectedRegime = "kNonNeutralCallbacks";	// all mutation types have callbacks
+		if (sim._traitCalculationRegimeNameHAPLOID != expectedRegime)
+			stop("unexpected trait calculation regime " + sim._traitCalculationRegimeNameHAPLOID);
+	}
+}
+c(5,10,25,50,75) mutationEffect(m2, NULL, "popgen1T") { return NULL; }
+c(8,15,30,55,75) mutationEffect(m1) { return NULL; }
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_H);
+	
+	
+	// two traits for A & H, with both neutral and nonneutral mutations, with complex callbacks AND independent dominance
+	// - fitness values are unpredictable and not tested
+	// - this model should not use any non-neutral caches, and should be in the kHaploidNoCallbacks regime
+	#pragma mark multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_INDDOM_H
+	std::string multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_INDDOM_H =
+		R"V0G0N(
+// multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_INDDOM_H
+initialize() {
+	initializeSex();
+	
+	popgen1T = initializeTrait("popgen1T", "m", 1.0, 0.0, 0.01, directFitnessEffect=T);
+	quant1T = initializeTrait("quant1T", "a", 5.0, 0.0, 0.01, directFitnessEffect=F);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", NAN, "e", 0.01);
+	initializeGenomicElementType("g1", c(m1,m2), c(1,1));
+	
+	initializeChromosome(1, type="A", symbol="A");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+	
+	initializeChromosome(2, type="H", symbol="H");
+	initializeGenomicElement(g1, 0, 999999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+2: first() {
+	inds = p1.individuals;
+	sim.demandPhenotype(NULL, NULL);
+	
+	if (any(isNAN(inds.phenotypeForTrait())))
+		stop("simT value mismatch (NAN not expected)");
+	if (sim._debugBuild) {
+		isCallbackTick1 = (match(community.tick, c(5,10,25,50,75)) != -1);
+		isCallbackTick2 = (match(community.tick, c(8,15,30,55,75)) != -1);
+		
+		expectedRegimeHAPLOID = isCallbackTick1 ? "kHaploidWithCallbacks" else "kHaploidNoCallbacks";
+		if (community.tick == 75)
+			expectedRegimeHAPLOID = "kNonNeutralCallbacks";	// all mutation types have callbacks
+		if (sim._traitCalculationRegimeNameHAPLOID != expectedRegimeHAPLOID)
+			stop("unexpected trait calculation regime " + sim._traitCalculationRegimeNameHAPLOID);
+		
+		expectedRegimeDIPLOID = isCallbackTick2 ? "kAllGlobalNeutralCallbacks" else "kNoActiveCallbacks";
+		if (isCallbackTick1)
+			expectedRegimeDIPLOID = "kNonNeutralCallbacks";
+		if (sim._traitCalculationRegimeNameDIPLOID != expectedRegimeDIPLOID)
+			stop("unexpected trait calculation regime " + sim._traitCalculationRegimeNameDIPLOID);
+	}
+}
+c(5,10,25,50,75) mutationEffect(m2, NULL, "popgen1T") { return NULL; }
+c(8,15,30,55,75) mutationEffect(m1) { return NULL; }
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_NEUTRAL_NONNEUTRAL_COMPLEXCALLBACKS_INDDOM_H);
+	
+	
 	// default trait, with a nonneutral DES so all mutations are nonneutral; independent dominance is used
 	// - fitness values are unpredictable and not tested
 	// - this model should not allocate any non-neutral caches, and should be in the kAllNonNeutralWithIndDomCaches regime
+	#pragma mark multitrait_ALL_NONNEUTRAL_INDDOM
 	std::string multitrait_ALL_NONNEUTRAL_INDDOM =
 		R"V0G0N(
 // multitrait_ALL_NONNEUTRAL_INDDOM
@@ -2010,7 +2397,7 @@ initialize() {
 			stop("nonneutral caches were unallocated despite independent dominance");
 		if (sim._inUseNonneutralMutationBufferCount > 0)
 			stop("nonneutral mutation buffers were in use despite all nonneutral genetics");
-		if (sim._traitCalculationRegimeName != "kAllNonNeutralWithIndDomCaches")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kAllNonNeutralWithIndDomCaches")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -2025,6 +2412,7 @@ initialize() {
 	// - the default trait should be inferred to be pure neutral, since the callback makes it neutral
 	// - the default trait's phenotypes should never be calculated, since they are never demanded
 	// - this model should not allocate any non-neutral caches, and should be in the kPureNeutral regime
+	#pragma mark multitrait_OLD_STYLE_QUANTITATIVE
 	std::string multitrait_OLD_STYLE_QUANTITATIVE =
 		R"V0G0N(
 // multitrait_OLD_STYLE_QUANTITATIVE
@@ -2053,7 +2441,7 @@ mutationEffect(m2) { return 1.0; }
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite no demand");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -2073,6 +2461,7 @@ mutationEffect(m2) { return 1.0; }
 	// - the default trait's phenotypes should initially be uncalculated, then switch, then back
 	// - this model should initially not allocate any non-neutral caches, then switch, then back
 	// - it should start in the kPureNeutral regime, then switch to kNoActiveCallbacks, then back
+	#pragma mark multitrait_REVERT_TO_NEUTRAL
 	std::string multitrait_REVERT_TO_NEUTRAL =
 		R"V0G0N(
 // multitrait_REVERT_TO_NEUTRAL
@@ -2091,7 +2480,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount != 0)
 			stop("nonneutral caches were allocated despite no demand");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -2108,7 +2497,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._allocatedNonneutralCacheCount == 0)
 			stop("nonneutral caches were unallocated despite need for them");
-		if (sim._traitCalculationRegimeName != "kNoActiveCallbacks")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kNoActiveCallbacks")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -2121,7 +2510,7 @@ initialize() {
 	if (sim._debugBuild) {
 		if (sim._inUseNonneutralMutationBufferSize != 0)
 			stop("nonneutral caches were non-empty despite no demand");
-		if (sim._traitCalculationRegimeName != "kPureNeutral")
+		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
 			stop("unexpected trait calculation regime");
 	}
 }
@@ -2133,6 +2522,7 @@ initialize() {
 	// this script tests invalidation of trait values when addNewDrawnMutation() is called
 	// - trait values in individuals whose haplotypes changed should be invalidated
 	// - trait values in other individuals should be unaffected
+	#pragma mark multitrait_INVALIDATE_1
 	std::string multitrait_INVALIDATE_1 =
 		R"V0G0N(
 // multitrait_INVALIDATE_1
@@ -2172,6 +2562,7 @@ reproduction() { }
 	// this script tests invalidation of trait values when addNewMutation() is called
 	// - trait values in individuals whose haplotypes changed should be invalidated
 	// - trait values in other individuals should be unaffected
+	#pragma mark multitrait_INVALIDATE_2
 	std::string multitrait_INVALIDATE_2 =
 		R"V0G0N(
 // multitrait_INVALIDATE_2
@@ -2211,6 +2602,7 @@ reproduction() { }
 	// this script tests invalidation of trait values when addMutations() is called
 	// - trait values in individuals whose haplotypes changed should be invalidated
 	// - trait values in other individuals should be unaffected
+	#pragma mark multitrait_INVALIDATE_3
 	std::string multitrait_INVALIDATE_3 =
 		R"V0G0N(
 // multitrait_INVALIDATE_3
@@ -2254,6 +2646,7 @@ reproduction() { }
 	// this script tests invalidation of trait values when removeMutations() is called
 	// - trait values in individuals whose haplotypes changed should be invalidated
 	// - trait values in other individuals should be unaffected
+	#pragma mark multitrait_INVALIDATE_4
 	std::string multitrait_INVALIDATE_4 =
 		R"V0G0N(
 // multitrait_INVALIDATE_4
@@ -2302,6 +2695,7 @@ reproduction() { }
 	// this script tests invalidation of trait values when individual offsets are changed
 	// - trait values in individuals whose offsets changed should be invalidated
 	// - trait values in other individuals should be unaffected
+	#pragma mark multitrait_INVALIDATE_5
 	std::string multitrait_INVALIDATE_5 =
 		R"V0G0N(
 // multitrait_INVALIDATE_5
@@ -2350,6 +2744,7 @@ reproduction() { }
 	
 	// this script tests invalidation of trait values when baseline offsets are changed
 	// - trait values in all individuals should be invalidated
+	#pragma mark multitrait_INVALIDATE_6
 	std::string multitrait_INVALIDATE_6 =
 		R"V0G0N(
 // multitrait_INVALIDATE_6
@@ -2395,6 +2790,7 @@ reproduction() { }
 	
 	// this script tests invalidation of trait values when mutation properties are changed
 	// - trait values in all individuals should be invalidated after each change
+	#pragma mark multitrait_INVALIDATE_7
 	std::string multitrait_INVALIDATE_7 =
 		R"V0G0N(
 // multitrait_INVALIDATE_7
@@ -2463,6 +2859,7 @@ reproduction() { }
 	// - trait values in all individuals should be invalidated at the start of each demand phase
 	gSLiM_disable_trait_crosschecks = true;	// crosschecks don't like the stochastic callback here!
 	
+	#pragma mark multitrait_INVALIDATE_8
 	std::string multitrait_INVALIDATE_8 =
 		R"V0G0N(
 // multitrait_INVALIDATE_8
@@ -2514,6 +2911,7 @@ mutationEffect(m1) { return runif(1, 0.01, 0.99); }
 	// this script tests invalidation of trait values when a mutationEffect() callback comes in and out
 	// of scope, is registered/deregistered, is rescheduled, or is activated/deactivated
 	// - trait values in all individuals should be invalidated at all changes
+	#pragma mark multitrait_INVALIDATE_9
 	std::string multitrait_INVALIDATE_9 =
 		R"V0G0N(
 // multitrait_INVALIDATE_9
@@ -2586,6 +2984,7 @@ reproduction() { }
 	
 	// this script tests invalidation of trait values when the tick value is changed in script
 	// - all trait values in all individuals should be invalidated when that occurs
+	#pragma mark multitrait_INVALIDATE_10
 	std::string multitrait_INVALIDATE_10 =
 		R"V0G0N(
 // multitrait_INVALIDATE_10
@@ -2630,6 +3029,7 @@ mutationEffect(m1) { return 1.0 + 0.1; }   // non-constant callback
 	// This is a particularly complex multitrait model intended to test many different things at once,
 	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
 	// This is an abbreviated version of test script complex_multi_test_1.slim
+	#pragma mark multitrait_COMPLEX_1
 	std::string multitrait_COMPLEX_1 =
 		R"V0G0N(
 // multitrait_COMPLEX_1

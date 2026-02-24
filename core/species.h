@@ -264,8 +264,10 @@ private:
 	// made in RunInitializeCallbacks() and never revisited (since nonneutral caches are then configured).
 	// We keep track of the number of traits being cached (the number of cache slots kept by MutationRun), and
 	// a mapping from trait value to the index into MutationRun's vector of cache values.
-	IndDomCacheIndex inddom_cache_count_ = static_cast<IndDomCacheIndex>(0);
-	std::vector<IndDomCacheIndex> inddom_cache_indices_;
+	// NOTE: This is only for diploid chromosomes!  Haploid chromosomes instead keep a "haploid cache" for
+	// every trait, because they can tally up effects for traits even if they are not indepedent dominance.
+	MutRunInternalCacheIndex inddom_cache_count_ = static_cast<MutRunInternalCacheIndex>(0);
+	std::vector<MutRunInternalCacheIndex> inddom_cache_indices_;
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
@@ -458,7 +460,11 @@ public:
 	
 	// the current trait calculation regime, under which the current nonneutral caches were constructed; see mutation_run.h and Species::ValidateNonNeutralCaches()
 	// note that this is only the top-level strategy for building the nonneutral caches; flags in MutationType and Mutation also affect the process
-	TraitCalculationRegime current_trait_calculation_regime_ = TraitCalculationRegime::kUndefined;
+	TraitCalculationRegime current_trait_calculation_regime_DIPLOID_ = TraitCalculationRegime::kUndefined;
+	TraitCalculationRegime last_trait_calculation_regime_DIPLOID_ = TraitCalculationRegime::kUndefined;
+	
+	TraitCalculationRegime current_trait_calculation_regime_HAPLOID_ = TraitCalculationRegime::kUndefined;
+	TraitCalculationRegime last_trait_calculation_regime_HAPLOID_ = TraitCalculationRegime::kUndefined;
 	
 	// state about what symbols/names/identifiers have been used or are being used
 	// used_subpop_ids_ has every subpop id ever used, even if no longer in use, with the *last* name used for that subpop
@@ -507,25 +513,35 @@ public:
 	
 #if SLIM_USE_NONNEUTRAL_CACHES()
 	// Validates the MutationRun nonneutral caches across the species.  Called by PrepareForTraitCalculations().
-	void _ValidateNonNeutralCaches(TraitCalculationRegime last_trait_calculation_regime, std::vector<slim_trait_index_t> &pure_independent_dominance_traits);
+	void _ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &pure_independent_dominance_traits);
 	
 	// Validates nonneutral caches for mutation runs in one MutationRunPool.  Called by _ValidateNonNeutralCaches().
 	template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime, const bool f_independent_dominance_present, const bool f_haploid_chromosome>
-	int64_t _ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, std::vector<slim_trait_index_t> &pure_independent_dominance_traits);
+	void _ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, const std::vector<slim_trait_index_t> &pure_independent_dominance_traits, NonNeutralValidationMetrics *metrics);
 	
 #if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-	inline __attribute__((always_inline)) IndDomCacheIndex IndependentDominanceCacheCount(void) const { return inddom_cache_count_; }
-	inline __attribute__((always_inline)) IndDomCacheIndex IndependentDominanceCacheIndexForTraitIndex(slim_trait_index_t trait_index) {
-		IndDomCacheIndex inddom_cache_index = inddom_cache_indices_[trait_index];
+	// NOTE: This is only for diploid chromosomes!  Haploid chromosomes instead keep a "haploid cache" for
+	// every trait, because they can tally up effects for traits even if they are not indepedent dominance.
+	inline __attribute__((always_inline)) MutRunInternalCacheIndex IndependentDominanceCacheCount(void) const { return inddom_cache_count_; }
+	inline __attribute__((always_inline)) MutRunInternalCacheIndex IndependentDominanceCacheIndexForTraitIndex(slim_trait_index_t trait_index) {
+		MutRunInternalCacheIndex inddom_cache_index = inddom_cache_indices_[trait_index];
 #if DEBUG
-		if (inddom_cache_index == static_cast<IndDomCacheIndex>(-1))
+		if (inddom_cache_index == static_cast<MutRunInternalCacheIndex>(-1))
 			EIDOS_TERMINATION << "ERROR (Species::IndependentDominanceCacheIndexForTraitIndex): (internal error) no independent dominance cache for trait." << EidosTerminate();
 #endif
 		return inddom_cache_index;
 	}
 #else	// !SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
-	inline __attribute__((always_inline)) slim_trait_index_t IndependentDominanceCacheCount(void) const { return 0; }
+	inline __attribute__((always_inline)) MutRunInternalCacheIndex IndependentDominanceCacheCount(void) const { return static_cast<MutRunInternalCacheIndex>(0); }
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+
+#if SLIM_USE_HAPLOID_CACHES()
+	// NOTE: This is only for haploid chromosomes!  Diploid chromosomes use independent-dominance caches instead.
+	inline __attribute__((always_inline)) MutRunInternalCacheIndex HaploidEffectsCacheCount(void) const { return static_cast<MutRunInternalCacheIndex>(TraitCount()); }
+#else	// !SLIM_USE_HAPLOID_CACHES()
+	inline __attribute__((always_inline)) MutRunInternalCacheIndex HaploidEffectsCacheCount(void) const { return static_cast<MutRunInternalCacheIndex>(0); }
+#endif	// SLIM_USE_HAPLOID_CACHES()
+	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
 	// Chromosome configuration and access
@@ -546,8 +562,8 @@ public:
 	void GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value);	// with a vector EidosValue
 	
 	// Trait configuration and access
-	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
-	inline __attribute__((always_inline)) slim_trait_index_t TraitCount(void)	{ return (slim_trait_index_t)traits_.size(); }
+	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void) const	{ return traits_; }
+	inline __attribute__((always_inline)) slim_trait_index_t TraitCount(void) const	{ return (slim_trait_index_t)traits_.size(); }
 	Trait *TraitFromName(const std::string &p_name) const;
 	inline __attribute__((always_inline)) Trait *TraitFromStringID(EidosGlobalStringID p_string_id) const
 	{
