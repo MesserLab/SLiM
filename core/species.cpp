@@ -6773,7 +6773,8 @@ void Species::ReturnShuffleBuffer(void)
 void Species::CollectMutationProfileInfo(void)
 {
 	// maintain our history of the nonneutral regime
-	profile_trait_calculation_regime_history_.emplace_back(current_trait_calculation_regime_);
+	// FIXME MULTITRAIT: This now only keeps a history of diploid regimes
+	profile_trait_calculation_regime_history_.emplace_back(current_trait_calculation_regime_DIPLOID_);
 	
 	// track the maximum number of mutations in existence at one time
 	int registry_size;

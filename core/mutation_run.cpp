@@ -835,7 +835,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralNoCallb
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutindex) + trait_index;
 				slim_effect_t homozygous_effect = mut_trait_info->homozygous_effect_;
 				
-				effect_accumulator += homozygous_effect;
+				effect_accumulator += (double)homozygous_effect;
 			}
 		}
 		else // (trait->Type() == TraitType::kMultiplicative)
@@ -848,7 +848,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralNoCallb
 				MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutindex) + trait_index;
 				slim_effect_t homozygous_effect = mut_trait_info->homozygous_effect_;
 				
-				effect_accumulator *= homozygous_effect;
+				effect_accumulator *= (double)homozygous_effect;
 			}
 		}
 		

@@ -8323,9 +8323,9 @@ void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplos
 		if (f_haploid_cache_level > 0)
 		{
 			if (f_additiveTrait)
-				effect_accumulator += mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+				effect_accumulator += (double)mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
 			else
-				effect_accumulator *= mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+				effect_accumulator *= (double)mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
 			
 			// haploid cache level 2 is that there are no callbacks and all mutational effects are in the cache
 			if (f_haploid_cache_level == 2)
