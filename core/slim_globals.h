@@ -140,6 +140,9 @@ typedef double slim_fitness_t;			// storage of fitness effects (e.g., fitnessSca
 #define SLIM_TAG_UNSET_VALUE	(INT64_MIN)		// for tags of type slim_usertag_t, the flag value for "unset"
 #define SLIM_TAGF_UNSET_VALUE	(-DBL_MAX)		// for tags of type double (i.e. tagF), the flag value for "unset"
 
+#define SLIM_FITNESS_NAN (std::numeric_limits<slim_fitness_t>::quiet_NaN())
+#define SLIM_PHENOTYPE_NAN (std::numeric_limits<slim_phenotype_t>::quiet_NaN())
+
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely; not needed for slim_refcount_t at present
 void SLiM_RaiseTickRangeError(int64_t p_long_value);
 void SLiM_RaiseAgeRangeError(int64_t p_long_value);

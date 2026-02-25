@@ -583,7 +583,6 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 	slim_objectid_t callback_subpop_id = p_callback->subpopulation_id_;
 	slim_trait_index_t callback_trait_index = p_callback->trait_index_;
 	slim_trait_index_t trait_count = TraitCount();
-	slim_phenotype_t phenotype_NAN = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 	
 	for (auto subpop_iter : population_.subpops_)
 	{
@@ -602,7 +601,7 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 					Individual *individual = individuals_buffer[individual_index];
 					IndividualTraitInfo *trait_info = individual->trait_info_;
 					
-					trait_info[callback_trait_index].phenotype_ = phenotype_NAN;
+					trait_info[callback_trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
 				}
 			}
 			else
@@ -615,7 +614,7 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 						Individual *individual = individuals_buffer[individual_index];
 						IndividualTraitInfo *trait_info = individual->trait_info_;
 						
-						trait_info[0].phenotype_ = phenotype_NAN;
+						trait_info[0].phenotype_ = SLIM_PHENOTYPE_NAN;
 					}
 				}
 				else if (trait_count == 2)
@@ -625,8 +624,8 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 						Individual *individual = individuals_buffer[individual_index];
 						IndividualTraitInfo *trait_info = individual->trait_info_;
 						
-						trait_info[0].phenotype_ = phenotype_NAN;
-						trait_info[1].phenotype_ = phenotype_NAN;
+						trait_info[0].phenotype_ = SLIM_PHENOTYPE_NAN;
+						trait_info[1].phenotype_ = SLIM_PHENOTYPE_NAN;
 					}
 				}
 				else if (trait_count == 3)
@@ -636,9 +635,9 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 						Individual *individual = individuals_buffer[individual_index];
 						IndividualTraitInfo *trait_info = individual->trait_info_;
 						
-						trait_info[0].phenotype_ = phenotype_NAN;
-						trait_info[1].phenotype_ = phenotype_NAN;
-						trait_info[2].phenotype_ = phenotype_NAN;
+						trait_info[0].phenotype_ = SLIM_PHENOTYPE_NAN;
+						trait_info[1].phenotype_ = SLIM_PHENOTYPE_NAN;
+						trait_info[2].phenotype_ = SLIM_PHENOTYPE_NAN;
 					}
 				}
 				else
@@ -649,7 +648,7 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 						IndividualTraitInfo *trait_info = individual->trait_info_;
 						
 						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
-							trait_info[trait_index].phenotype_ = phenotype_NAN;
+							trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
 					}
 				}
 			}
@@ -663,7 +662,6 @@ void Species::InvalidateAllTraitValues(void)
 	// called when the world world is turned upside down -- when the tick value changes arbitrarily,
 	// for example.  FIXME MULTITRAIT probably call this after loading data from a file, too.
 	slim_trait_index_t trait_count = TraitCount();
-	slim_phenotype_t phenotype_NAN = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 	
 	for (auto subpop_iter : population_.subpops_)
 	{
@@ -677,7 +675,7 @@ void Species::InvalidateAllTraitValues(void)
 			IndividualTraitInfo *trait_info = individual->trait_info_;
 			
 			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
-				trait_info[trait_index].phenotype_ = phenotype_NAN;
+				trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
 		}
 	}
 }

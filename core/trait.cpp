@@ -104,7 +104,7 @@ void Trait::InvalidateTraitValuesForAllIndividuals(void)
 		{
 			IndividualTraitInfo *trait_info = individual->trait_info_;
 			
-			trait_info[Index()].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+			trait_info[Index()].phenotype_ = SLIM_PHENOTYPE_NAN;
 		}
 	}
 }

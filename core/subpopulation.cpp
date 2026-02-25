@@ -2397,7 +2397,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 	}
 	
 	// Create the offspring and record it
-	Individual *individual = NewSubpopIndividual(/* index */ -1, p_child_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), /* p_mean_parent_age */ (p_parent1->age_ + (float)p_parent2->age_) / 2.0F);
+	Individual *individual = NewSubpopIndividual(/* index */ -1, p_child_sex, /* age */ 0, /* fitness */ SLIM_FITNESS_NAN, /* p_mean_parent_age */ (p_parent1->age_ + (float)p_parent2->age_) / 2.0F);
 	
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
@@ -2781,7 +2781,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	}
 	
 	// Create the offspring and record it
-	Individual *individual = NewSubpopIndividual(/* index */ -1, IndividualSex::kHermaphrodite, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), /* p_mean_parent_age */ p_parent->age_);
+	Individual *individual = NewSubpopIndividual(/* index */ -1, IndividualSex::kHermaphrodite, /* age */ 0, /* fitness */ SLIM_FITNESS_NAN, /* p_mean_parent_age */ p_parent->age_);
 	
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
@@ -2982,7 +2982,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	}
 	
 	// Create the offspring and record it
-	Individual *individual = NewSubpopIndividual(/* index */ -1, parent_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), /* p_mean_parent_age */ p_parent->age_);
+	Individual *individual = NewSubpopIndividual(/* index */ -1, parent_sex, /* age */ 0, /* fitness */ SLIM_FITNESS_NAN, /* p_mean_parent_age */ p_parent->age_);
 	
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
@@ -6191,7 +6191,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		Individual *individual = GenerateIndividualEmpty(/* index */ -1,
 														 /* sex */ child_sex,
 														 /* age */ 0,
-														 /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(),
+														 /* fitness */ SLIM_FITNESS_NAN,
 														 /* mean_parent_age */ 0.0F,
 														 /* haplosome1_null */ haplosome1_null,
 														 /* haplosome2_null */ haplosome2_null,
@@ -6646,7 +6646,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			child_sex = (Eidos_RandomBool(rng_state) ? IndividualSex::kMale : IndividualSex::kFemale);
 		
 		// Make the new individual as a candidate; we make its haplosomes in the pass 2 loop below
-		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), mean_parent_age);
+		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ SLIM_FITNESS_NAN, mean_parent_age);
 		slim_pedigreeid_t pid = 0;
 		
 		if (pedigrees_enabled)
@@ -7456,7 +7456,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		// but HaplosomeRecombined() now handles that for us since it is shared functionality.
 		
 		// Make the new individual as a candidate
-		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ std::numeric_limits<slim_fitness_t>::quiet_NaN(), mean_parent_age);
+		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ SLIM_FITNESS_NAN, mean_parent_age);
 		Haplosome *haplosome1 = haplosome1_null ? chromosome->NewHaplosome_NULL(individual, 0) : chromosome->NewHaplosome_NONNULL(individual, 0);
 		Haplosome *haplosome2 = nullptr;
 		

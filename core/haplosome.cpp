@@ -2622,7 +2622,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 		IndividualTraitInfo *trait_info = target_individual->trait_info_;
 		
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
-			trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+			trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
 	}
 	
 	return gStaticEidosValueVOID;
@@ -3063,7 +3063,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		IndividualTraitInfo *trait_info = target_individual->trait_info_;
 		
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
-			trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+			trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
 	}
 	
 	return retval;
@@ -4701,7 +4701,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 		IndividualTraitInfo *trait_info = target_individual->trait_info_;
 		
 		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
-			trait_info[trait_index].phenotype_ = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+			trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
 	}
 	
 	// TIMING RESTRICTION
