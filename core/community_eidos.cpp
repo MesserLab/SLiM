@@ -501,6 +501,10 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 			slim_tick_t old_tick = tick_;
 			slim_tick_t new_tick = SLiMCastToTickTypeOrRaise(value);
 			
+			// BCH 2/25/2026: If the tick value is not actually changing, ignore the property set
+			if (old_tick == new_tick)
+				return;
+			
 			SetTick(new_tick);
 			
 			// TRAIT INVALIDATION: If the tick changes arbitrarily, we invalidate all trait values in all species.

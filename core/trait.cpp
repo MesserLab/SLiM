@@ -226,13 +226,22 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property baselineOffset requires a finite value (not NAN or INF)." << EidosTerminate();
 			
 			// effects for multiplicative traits clip at 0.0
+			slim_trait_offset_t new_baseline;
+			
 			if ((type_ == TraitType::kMultiplicative) && (value < 0.0))
-				baselineOffset_ = (slim_trait_offset_t)0.0;
+				new_baseline = (slim_trait_offset_t)0.0;
 			else
-				baselineOffset_ = (slim_trait_offset_t)value;
+				new_baseline = (slim_trait_offset_t)value;
+			
+			// BCH 2/25/2026: If the baseline value is not actually changing, ignore the property set
+			if (baselineOffset_ == new_baseline)
+				return;
+			
+			baselineOffset_ = new_baseline;
 			
 			// TRAIT INVALIDATION: the trait value for this trait is invalidated in all individuals
 			InvalidateTraitValuesForAllIndividuals();
+			
 			return;
 		}
 		case gID_individualOffsetMean:
