@@ -2021,11 +2021,12 @@
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	NSMutableArray *candidates = [NSMutableArray array];
 	const EidosClass *terminus = key_path_class;
+	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
 	// First, a sorted list of globals
 	for (auto symbol_sig : terminus->Properties_TYPE_INTERPRETER())
 	{
-		if (!symbol_sig->deprecated_)
+		if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))
 			[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
 	}
 	
@@ -2034,7 +2035,7 @@
 	// Next, a sorted list of methods, with () appended
 	for (auto method_sig : *terminus->Methods())
 	{
-		if (!method_sig->deprecated_)
+		if (!method_sig->deprecated_ && !Eidos_string_hasPrefix(method_sig->call_name_, underscore_string))
 		{
 			NSString *methodName = [NSString stringWithUTF8String:method_sig->call_name_.c_str()];
 			

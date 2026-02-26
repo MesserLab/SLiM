@@ -1589,11 +1589,12 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	QStringList candidates;
 	const EidosClass *terminus = key_path_class;
+	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
 	// First, a sorted list of globals
 	for (const auto &symbol_sig : terminus->Properties_TYPE_INTERPRETER())
     {
-        if (!symbol_sig->deprecated_)
+        if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))
             candidates << QString::fromStdString(symbol_sig->property_name_);
 	}
     
@@ -1602,7 +1603,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// Next, a sorted list of methods, with () appended
 	for (const auto &method_sig : *terminus->Methods())
 	{
-        if (!method_sig->deprecated_)
+        if (!method_sig->deprecated_ && !Eidos_string_hasPrefix(method_sig->call_name_, underscore_string))
         {
             QString methodName = QString::fromStdString(method_sig->call_name_);
             
