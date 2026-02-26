@@ -1664,6 +1664,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	if (!EidosScript::Eidos_IsIdentifier(name))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is a valid Eidos identifier." << EidosTerminate(nullptr);
 	
+	if (Eidos_string_hasPrefix(name, "_"))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not begin with an underscore ('_')." << EidosTerminate(nullptr);
+	
 	for (Trait *trait : traits_)
 		if (trait->Name() == name)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
