@@ -452,6 +452,10 @@ public:
 	// this switches to a less optimized case when evolving in WF models, if a type 's' DES could be present, since that can open up various cans of worms
 	bool type_s_DESs_present_ = false;												// optimization flag
 	
+	// this flag tracks whether every trait value in the species is NAN; if so, when trait values are demanded SLiM can use the faster "forceRecalc" code path
+	// this is an optimization for WF models; it is set true with each new generation in WF, but is never set true in nonWF models
+	bool all_trait_values_NAN_ = true;												// optimization flag
+	
 	// the current trait calculation regime, under which the current nonneutral caches were constructed; see mutation_run.h and Species::ValidateNonNeutralCaches()
 	// note that this is only the top-level strategy for building the nonneutral caches; flags in MutationType and Mutation also affect the process
 	TraitCalculationRegime current_trait_calculation_regime_DIPLOID_ = TraitCalculationRegime::kUndefined;

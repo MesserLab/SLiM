@@ -3328,6 +3328,17 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 	std::cout << " }, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
 #endif
 	
+	// if forced recalculation was not requested, but all trait values are NAN, opt for the forced recalculation code path
+	if (all_trait_values_NAN_)
+	{
+		forceRecalc = true;
+		all_trait_values_NAN_ = false;
+		
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "#   setting forceRecalc=T for efficiency since all_trait_values_NAN_ == true" << std::endl;
+#endif
+	}
+	
 	// prepare for trait calculations, such as by validating non-neutral caches and independent-dominance precalculated values
 	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
 	

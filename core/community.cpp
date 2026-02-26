@@ -2775,6 +2775,7 @@ bool Community::_RunOneTickWF(void)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->WF_GenerateOffspring();
+				species->all_trait_values_NAN_ = true;			// force recalculation next demand, for efficiency
 				species->has_recalculated_fitness_ = false;
 				
 				executing_species_ = nullptr;

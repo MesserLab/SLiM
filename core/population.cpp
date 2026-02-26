@@ -5302,6 +5302,18 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 	std::cout << "# " << community_.Tick() << " ====== RecalculateFitness(): forceRecalc == " << (p_force_trait_recalculation ? "T" : "F") << std::endl;
 #endif
 	
+	// if forced recalculation was not requested, but all trait values are NAN, opt for the forced recalculation code path
+	if (species_.all_trait_values_NAN_)
+	{
+		p_force_trait_recalculation = true;
+		species_.all_trait_values_NAN_ = false;
+		
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "#   setting forceRecalc=T for efficiency since all_trait_values_NAN_ == true" << std::endl;
+#endif
+	}
+	
+	// prepare for trait calculations, such as by validating non-neutral caches and independent-dominance precalculated values
 	species_.PrepareForTraitCalculations(mutationEffect_callbacks);
 	
 	// we need to recalculate phenotypes for traits that have a direct effect on fitness
