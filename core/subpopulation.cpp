@@ -7899,8 +7899,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			
 			// set the migrant flag of the migrated individual; note this is not set if the individual was already in the destination subpop
 			migrant->migrant_ = true;
+			migrant->scratch_ = 1;		// mark this individual as having been moved by us
 			
 			moved_count++;
+		}
+		else
+		{
+			migrant->scratch_ = 0;		// mark this individual as not having been moved by us
 		}
 	}
 	
@@ -7917,8 +7922,92 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		// selectively invalidate only the subpops involved in the migrations that occurred
 		community_.InvalidateInteractionsForSpecies(&species_);
 		
-		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		// Cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
 		population_.InvalidateMutationReferencesCache();
+		
+		// The individuals that moved might need to change trait value, because they might be influenced
+		// differently by a mutationEffect() callback.  If any non-constant mutationEffect() callback
+		// exists, we have to invalidate all affected traits.  If a constant-effect mutationEffect()
+		// callback exists that has a subpop identifier (rather than being global), we also have to
+		// invalidate all affected traits since that callback has a spatially differential effect.  We
+		// do not attempt to determine whether the spatially differential effect means that the migrants
+		// would actually change their trait value, since that would require knowing their original
+		// subpopulation, and that information has been lost; it isn't worth trying to track that.
+		std::vector<SLiMEidosBlock*> callbacks = species->CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+		
+		if (callbacks.size())
+		{
+			THREAD_SAFETY_IN_ACTIVE_PARALLEL("Subpopulation::ExecuteMethod_takeMigrants(): usage of statics");
+			
+			static std::vector<bool> trait_needs_invalidation;
+			bool any_trait_needs_invalidation = false;
+			slim_trait_index_t trait_count = species->TraitCount();
+			
+			trait_needs_invalidation.clear();		// ensure that all entries are false by throwing away existing values
+			trait_needs_invalidation.resize(trait_count);
+			
+			for (SLiMEidosBlock *callback : callbacks)
+			{
+				const EidosASTNode *compound_statement_node = callback->compound_statement_node_;
+				
+				if ((!compound_statement_node->cached_return_value_) ||		// The callback is non-constant, OR
+					(callback->subpopulation_id_ != -1))					// The callback is spatial
+				{
+					if (callback->trait_index_ == -1)
+					{
+						// all traits are affected
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+							trait_needs_invalidation[trait_index] = true;
+						
+						any_trait_needs_invalidation = true;
+						break;		// we're done, since all traits are marked affected
+					}
+					else
+					{
+						// only one trait is affected
+						trait_needs_invalidation[callback->trait_index_] = true;
+						any_trait_needs_invalidation = true;
+					}
+				}
+			}
+			
+			if (any_trait_needs_invalidation)
+			{
+				// Make a vector of the invalid traits, so we don't need to keep checking
+				static std::vector<slim_trait_index_t> trait_indices_to_invalidate;
+				trait_indices_to_invalidate.clear();
+				
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+					if (trait_needs_invalidation[trait_index])
+						trait_indices_to_invalidate.push_back(trait_index);
+				
+				// TRAIT INVALIDATION: invalidate all traits affected by relevant callbacks, in all migrants
+				// we have an optimized case for the one-trait case; that one trait must need invalidation
+				if (trait_count == 1)
+				{
+					for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
+					{
+						Individual *migrant = migrants[migrant_index];
+						
+						if (migrant->scratch_ == 1)
+							migrant->trait_info_[0].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else
+				{
+					for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
+					{
+						Individual *migrant = migrants[migrant_index];
+						
+						if (migrant->scratch_ == 1)
+						{
+							for (slim_trait_index_t trait_index : trait_indices_to_invalidate)
+								migrant->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	return gStaticEidosValueVOID;

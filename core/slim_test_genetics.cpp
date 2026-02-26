@@ -3026,6 +3026,120 @@ mutationEffect(m1) { return 1.0 + 0.1; }   // non-constant callback
 	SLiMAssertScriptSuccess(multitrait_INVALIDATE_10);
 	
 	
+	// this script tests invalidation of trait values when an individual moves between subpops
+	// - only affected trait values should be invalidated
+	// - invalidation should occur only when spatial or non-constant mutationEffect() callbacks are active
+	#pragma mark multitrait_INVALIDATE_11
+	std::string multitrait_INVALIDATE_11 =
+		R"V0G0N(
+initialize() {
+	initializeSLiMModelType("nonWF");
+	
+	initializeTrait("trait1", "m", directFitnessEffect=T);
+	initializeTrait("trait2", "m", directFitnessEffect=T);
+	initializeMutationType("m1", 0.5, "e", 0.1).convertToSubstitution=T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() { }
+1 early() {
+	sim.addSubpop("p1", 5);
+	sim.addSubpop("p2", 5);
+	for (i in 1:500) {
+		target = sample(sim.subpopulations.haplosomes, 5);
+		target.addNewDrawnMutation(m1, rdunif(1, max=99999));
+	}
+}
+1 late() {
+	// all individuals have non-neutral muts, and the callback is inactive
+	phenotypes = sim.subpopulations.individuals.phenotypeForTrait(NULL);
+	if (any(isNAN(phenotypes)))
+		stop("initial trait value is NAN");
+	if (any(phenotypes == 1.0))
+		stop("initial trait value is 1.0");
+}
+2 mutationEffect(m1, p1, "trait2") {
+	// spatial effect, only affecting trait2 in p1
+	return 1.0;
+}
+3 mutationEffect(m1, NULL, "trait1") {
+	// non-constant non-spatial effect on all individuals, only affecting trait1
+	return 1.0 + 0.0;
+}
+3 mutationEffect(m1, NULL, "trait2") {
+	// constant non-spatial effect on all individuals, only affecting trait2
+	return 1.0;
+}
+2 late() {
+	// here the mutationEffect() callback kicks in for p1; fitness calculations already demanded trait values
+	phenotypes_p1_t1 = p1.individuals.phenotypeForTrait("trait1");
+	phenotypes_p2_t1 = p2.individuals.phenotypeForTrait("trait1");
+	phenotypes_p1_t2 = p1.individuals.phenotypeForTrait("trait2");
+	phenotypes_p2_t2 = p2.individuals.phenotypeForTrait("trait2");
+	if (any(isNAN(c(phenotypes_p1_t1, phenotypes_p2_t1, phenotypes_p1_t2, phenotypes_p2_t2))))
+		stop("tick 2 trait value is NAN");
+	if (any(phenotypes_p1_t2 != 1.0))
+		stop("tick 2 trait value for phenotypes_p1_t2 != 1.0");
+	if (any(c(phenotypes_p1_t1, phenotypes_p2_t1, phenotypes_p2_t2) == 1.0))
+		stop("tick 2 other trait value == 1.0");
+	
+	// exchange individuals between p1 and p2; this should invalidate them
+	// all for trait2 since it is affected by the spatial mutation() callback
+	p1_inds = p1.individuals;
+	p2_inds = p2.individuals;
+	p1.takeMigrants(p2_inds);
+	p2.takeMigrants(p1_inds);
+	
+	// here all trait2 values should be NAN, but trait1 should be unaffected
+	phenotypes_p1_t1 = p1.individuals.phenotypeForTrait("trait1");
+	phenotypes_p2_t1 = p2.individuals.phenotypeForTrait("trait1");
+	phenotypes_p1_t2 = p1.individuals.phenotypeForTrait("trait2");
+	phenotypes_p2_t2 = p2.individuals.phenotypeForTrait("trait2");
+	if (any(isNAN(c(phenotypes_p1_t1, phenotypes_p2_t1))))
+		stop("tick 2 post-migration trait1 value is NAN");
+	if (any(!isNAN(c(phenotypes_p1_t2, phenotypes_p2_t2))))
+		stop("tick 2 post-migration trait2 value is not NAN");
+}
+3 late() {
+	// now the spatial mutationEffect() callback is inactive, the global one is active
+	phenotypes_t1 = sim.subpopulations.individuals.phenotypeForTrait("trait1");
+	phenotypes_t2 = sim.subpopulations.individuals.phenotypeForTrait("trait2");
+	if (any(isNAN(c(phenotypes_t1, phenotypes_t2))))
+		stop("tick 3 trait value is NAN");
+	if (any(c(phenotypes_t1, phenotypes_t2) != 1.0))
+		stop("tick 3 trait2 value is != 1.0");
+	
+	// exchange individuals between p1 and p2; this should NOT invalidate
+	// them, since there is no active spatial callback
+	p1_inds = p1.individuals;
+	p2_inds = p2.individuals;
+	p1.takeMigrants(p2_inds);
+	p2.takeMigrants(p1_inds);
+	
+	// here all trait2 values should still be 1.0, because that callback is constant non-spatial
+	// all trait1 values should now be NAN, because that callback is non-constant
+	phenotypes_t1 = sim.subpopulations.individuals.phenotypeForTrait("trait1");
+	phenotypes_t2 = sim.subpopulations.individuals.phenotypeForTrait("trait2");
+	if (any(!isNAN(phenotypes_t1)))
+		stop("tick 3 post-migration trait1 value is not NAN");
+	if (any(isNAN(phenotypes_t2)))
+		stop("tick 3 post-migration trait2 value is NAN");
+	if (any(phenotypes_t2 != 1.0))
+		stop("tick 3 post-migration trait2 value is != 1.0");
+	
+	// demand trait1, and then it should all be 1.0 also
+	sim.demandPhenotype(NULL, "trait1");
+	phenotypes_t1 = sim.subpopulations.individuals.phenotypeForTrait("trait1");
+	if (any(phenotypes_t1 != 1.0))
+		stop("tick 3 post-migration trait1 value is != 1.0");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_INVALIDATE_11);
+	
+	
 	// This is a particularly complex multitrait model intended to test many different things at once,
 	// including pleiotropy, independent dominance, direct and indirect effects, and so forth.
 	// This is an abbreviated version of test script complex_multi_test_1.slim

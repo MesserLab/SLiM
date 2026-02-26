@@ -183,6 +183,7 @@ multitrait branch:
 		whenever a mutationEffect() callback is added, removed, rescheduled, or activated/deactivated in a way that affects the current tick (invalidating all affected trait values)
 		whenever the tick counter advances such that a previously active mutationEffect() callback becomes inactive, or vice versa (invalidating all affected trait values)
 		whenever the tick counter is changed in script to a new arbitrary value (invalidating all trait values in all individuals in all species)
+		when takeMigrants() moves individuals and there are active callbacks that could mean that the trait values of migrants change
 	tree-sequence recording work for multitrait:
 		individual metadata now has a variable-length per-trait array of phenotype and offset information
 		mutation metadata is now moved from the mutation table's metadata column to a table placed in top-level metadata with the json+struct codec
