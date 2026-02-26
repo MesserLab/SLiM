@@ -92,6 +92,7 @@ void Trait::Print(std::ostream &p_ostream) const
 
 void Trait::InvalidateTraitValuesForAllIndividuals(void)
 {
+	// TRAIT INVALIDATION: invalidate the trait values for the focal trait, for all individuals.
 	// At first glance, it would be nice for this to be done via a flag on Trait instead.  The tricky thing about
 	// that is that the flag might get set (invalidating everyone) and then the trait values of just a subset of
 	// individuals might get validated.  The trait values of all remaining individuals would then need to be set

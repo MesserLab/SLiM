@@ -109,6 +109,7 @@ void Individual::_InitializePerTraitInformation(void)
 {
 	// Set up per-trait individual-level information such as individual offsets.  This is called by Individual::Individual(),
 	// but also in various other places where individuals are re-used, so the trait_info_ record might already be allocated.
+	// TRAIT INVALIDATION: this sets up the initial trait values for the individual to be invalidated.
 	
 	// FIXME MULTITRAIT: this will probably be a pain point; maybe we can skip it if offsets have never been changed by the user?
 	// I imagine a design where there is a bool flag that says "the offsets for this individual have been initialized".  This
