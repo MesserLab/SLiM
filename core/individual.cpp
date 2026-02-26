@@ -6879,7 +6879,12 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			if (callback->compound_statement_node_->cached_return_value_)
 				continue;
 			
-			// TRAIT INVALIDATION: invalidate trait values affected by this callback
+			// TRAIT INVALIDATION: invalidate trait values affected by this callback.
+			// BCH 2/26/2026: I thought about the inefficiency of setting all these NAN values, and explored a
+			// design in which we instead set a "force recalculation for this trait" flag.  But it made the code
+			// substantially more complex, and it actually lost one big benefit of this design, which is that
+			// if a callback is subpop-specific (which is common), we only invalidate the individuals in that
+			// subpop.  The speedup gained in some cases didn't seem worth the speedup lost in other cases.
 			slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 			slim_trait_index_t callback_trait_index = callback->trait_index_;
 			
@@ -7671,7 +7676,12 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 					if (callback->subpopulation_id_ != subpop->subpopulation_id_)
 						continue;
 				
-				// TRAIT INVALIDATION: invalidate trait values affected by this callback
+				// TRAIT INVALIDATION: invalidate trait values affected by this callback.
+				// BCH 2/26/2026: I thought about the inefficiency of setting all these NAN values, and explored a
+				// design in which we instead set a "force recalculation for this trait" flag.  But it made the code
+				// substantially more complex, and it actually lost one big benefit of this design, which is that
+				// if a callback is subpop-specific (which is common), we only invalidate the individuals in that
+				// subpop.  The speedup gained in some cases didn't seem worth the speedup lost in other cases.
 				slim_trait_index_t callback_trait_index = callback->trait_index_;
 				
 				if (callback_trait_index == -1)
