@@ -2581,7 +2581,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 						// No need to add the mutation to the registry; how would the user ever get a Mutation that was not already in it?
 						
 						// BCH 1/4/2025: the mutation is already in the system, so its effects have been
-						// noted; no call to NoteChangedMutation(mut_to_add) is needed
+						// noted; no call to NoteMutationAdded(mut_to_add) is needed.  Note that the
+						// nonneutral cache will already be invalidated (or will be new and invalid).
 					}
 				}
 			}
@@ -4415,7 +4416,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			mutations_to_remove.emplace_back(mut);
 			
 			// Note the removal; it might affect our caching, even if the mutation is neutral
-			species->NoteChangedMutation(mut);
+			species->NoteMutationRemoved(mut);
 			
 			// If we're not already aware of having removed a non-neutral mutation, check on that now
 			if (!mut->is_neutral_for_all_traits_)

@@ -561,6 +561,7 @@ public:
 		freed_run->mutation_count_ = 0;						// empty the mutation buffer
 		
 #if SLIM_USE_NONNEUTRAL_CACHES()
+		// NONNEUTRAL CACHE INVALIDATION: The nonneutral cache is invalidated when a mutation run is freed
 		if (freed_run->nonneutral_cache_)
 			freed_run->nonneutral_cache_->nonneutral_count_ = -1;		// mark the non-neutral mutation cache as invalid
 #endif
@@ -633,6 +634,7 @@ public:
 	
 	inline __attribute__((always_inline)) void will_modify_run(void) {
 #if SLIM_USE_NONNEUTRAL_CACHES()
+		// NONNEUTRAL CACHE INVALIDATION: The nonneutral cache is invalidated when a mutation run is modified
 		if (nonneutral_cache_)
 			nonneutral_cache_->nonneutral_count_ = -1;		// invalidate the nonneutral cache since the run is changing
 #endif

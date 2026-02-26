@@ -388,7 +388,7 @@ void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 		mutation_count_ -= (haplosome_iter - haplosome_backfill_iter);
 		
 #if SLIM_USE_NONNEUTRAL_CACHES()
-		// invalidate the nonneutral mutation cache
+		// NONNEUTRAL CACHE INVALIDATION: The nonneutral cache is invalidated when fixed mutations are removed
 		if (nonneutral_cache_)
 			nonneutral_cache_->nonneutral_count_ = -1;
 #endif

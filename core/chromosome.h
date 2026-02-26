@@ -281,6 +281,14 @@ public:
 	// a user-defined tag value
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
+	// OPTIMIZATION FLAGS
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	// this flag is set whenever a change invalidates all non-neutral caches in the chromosome; the caches will be re-validated the next time they are used
+	// note that there are finer-grained invalidation flags elsewhere that should be used if a total invalidation is not actually necessary, to save work
+	bool all_nonneutral_caches_invalid_for_chromosome_ = true;
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+	
 	// PROFILING : Chromosome keeps track of some additional profile information that is per-chromosome
 #if (SLIMPROFILING == 1)
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
