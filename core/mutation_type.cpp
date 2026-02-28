@@ -550,38 +550,6 @@ slim_effect_t MutationType::DrawEffectSizeForTrait(slim_trait_index_t p_trait_in
 	EIDOS_TERMINATION << "ERROR (MutationType::DrawEffectSizeForTrait): (internal error) unexpected DES_type_ value." << EidosTerminate();
 }
 
-// This is unused except by debugging code and in the debugger itself
-// FIXME MULTITRAIT commented this out for now
-/*std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type)
-{
-	p_outstream << "MutationType{default_dominance_coeff_ " << p_mutation_type.default_dominance_coeff_ << ", DES_type_ '" << p_mutation_type.des_type_ << "', DES_parameters_ <";
-	
-	if (p_mutation_type.des_parameters_.size() > 0)
-	{
-		for (unsigned int i = 0; i < p_mutation_type.des_parameters_.size(); ++i)
-		{
-			p_outstream << p_mutation_type.des_parameters_[i];
-			
-			if (i < p_mutation_type.des_parameters_.size() - 1)
-				p_outstream << " ";
-		}
-	}
-	else
-	{
-		for (unsigned int i = 0; i < p_mutation_type.des_strings_.size(); ++i)
-		{
-			p_outstream << "\"" << p_mutation_type.des_strings_[i] << "\"";
-			
-			if (i < p_mutation_type.des_strings_.size() - 1)
-				p_outstream << " ";
-		}
-	}
-	
-	p_outstream << ">}";
-	
-	return p_outstream;
-}*/
-
 
 //
 //	Eidos support

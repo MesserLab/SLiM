@@ -3723,7 +3723,6 @@ EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_met
 	}
 }
 
-// FIXME MULTITRAIT: Individual needs a +setPhenotypeForTrait() method also, not least to invalidate phenotypes
 //	*********************	- (float)phenotypeForTrait([Niso<Trait> trait = NULL])
 //
 EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -7013,10 +7012,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	// since each subpopulation might have a different set of mutationEffect() callbacks.
 	if (has_active_callbacks)
 	{
-		// If we have any active callbacks, we have to account for all callbacks (active or not), since	// FIXME MULTITRAIT this is not true any more!
-		// one callback might activate/deactivate another; inactive callbacks might not stay inactive.
-		// This callback applies to this subpopulation.  We now need to determine which traits, if any, it applies to.
-		// For each trait we keep a separate vector of callbacks that apply to that trait.
+		// If we have any active callbacks, we have to account for all active callbacks, determining which traits,
+		// if any, each applies to. For each trait we keep a separate vector of callbacks that apply to that trait.
+		// Note that we no longer need to worry about inactive callbacks here; they will remain inactive.
 		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
 		{
 			slim_trait_index_t trait_index = trait_indices[trait_indices_index];

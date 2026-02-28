@@ -83,7 +83,7 @@ enum class SLiMFileFormat
 // There would be an upper limit of 256 anyway because Mutation uses uint8_t to keep the index of its chromosome
 #define SLIM_MAX_CHROMOSOMES	256
 
-// We have a defined maximum number of traits; it is not clear that this is necessary, however.  FIXME MULTITRAIT
+// We have a defined maximum number of traits; this is not strictly necessary, but prevents misuse of the APIs.
 #define SLIM_MAX_TRAITS	256
 
 

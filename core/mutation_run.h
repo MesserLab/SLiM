@@ -295,15 +295,12 @@ private:
 	// There are a few smaller details here.  The non-neutral cache for one mutation run can be invalidated on
 	// its own, if that mutation run is modified (by adding or removing a mutation).  Each mutation run thus has
 	// its own "I'm valid" flag, and all mutation runs get checked and re-validated before non-neutral caches are
-	// used.  Second, a particular position in a particular chromosome can be invalidated; this occurs when an
+	// used.  Second, the nonneutral caches for a particular chromosome can be invalidated; this occurs when an
 	// existing mutation changes its effect between neutral and non-neutral, or its dominance between independent
 	// and non-independent, for example.  When this occurs, we want to invalidate all mutation runs that represent
 	// that position (because they might be affected by the change), without invalidating the rest of the caches;
-	// for this purpose, each Chromosome keeps a per-mutrun-slot "I'm valid" flag, and if one of those flags is
-	// set to invalid, all mutation runs in the affected slot get re-validated before non-neutral caches are used.
-	// (FIXME MULTITRAIT: This is not yet implemented.  As a first step, I think we will probably just have a
-	// per-Chromosome flag, which can be refined later; leveraging the specific mutrun slot is a little complicated
-	// because of mutrun experiments.)
+	// for this purpose, each Chromosome keeps a per-chromosome "I'm valid" flag, and if one of those flags is
+	// set to invalid, all mutation runs in that chromosome get re-validated before non-neutral caches are used.
 	//
 	// There are some special cases.  If all mutations in the model are neutral, the non-neutral caches are not
 	// used at all, and trait calculation can skip looking at genetics completely.  On the other hand, if all
@@ -314,15 +311,17 @@ private:
 	// nonneutral mutation buffer.  Special values for TraitCalculationRegime are also associated with these
 	// states.
 	//
-	// There is a final special case that we do not cater to for now, and that is separate non-neutral mutation
+	// There is a final special case that we only leverage a little now, and that is separate non-neutral mutation
 	// caching behavior on a per-chromosome basis.  Since any given mutation run belongs to one chromosome, we
 	// can potentially customize the non-neutral caching policy on a per-chromosome basis, catering to the
 	// possibility that different chromosomes will have different genetic configurations -- one might be neutral
 	// for trait A while another is non-neutral for trait A, for example.  If we kept track of that (not hard),
 	// we could optimize the caching behavior for each chromosome and potentially get some big wins, like skipping
 	// all genetic calculations for most of the chromosomes in a model because we can deduce that non-neutral
-	// effects are only present on a couple of the chromosomes, which seems like it might be common.  Optimization
-	// at this level might be added later.  FIXME MULTITRAIT
+	// effects are only present on a couple of the chromosomes.  It's not clear whether per-chromosome differences
+	// like this will be common, though.  For now, the design treats intrinsically diploid chromosomes differently
+	// from intrinsically haploid chromosomes, since that is clearly worthwhile; further optimizations have been
+	// deferred until real-world usage patterns are more clear.
 	
 	//
 	//	Independent-dominance caches

@@ -362,7 +362,6 @@ public:
 	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
 	
 	// timing restriction enforcement
-	// FIXME MULTITRAIT should add more timing restriction categories like this, to share the code and make things more readable
 	void EnforceTimingRestriction_EventBlockOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
 	void EnforceTimingRestriction_ReproductionCallbackOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
 	void EnforceTimingRestriction_FirstEventStageOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
