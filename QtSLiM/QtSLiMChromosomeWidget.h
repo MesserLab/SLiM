@@ -89,6 +89,7 @@ public:
     bool invalidSimulation(void) { return slimWindow_->invalidSimulation(); }
     Community *community(void) { return slimWindow_->community; }
     Species *focalDisplaySpecies(void);
+    Trait *focalTraitForSpecies(Species *species);  // nullptr represents "fitness"
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha)
         { slimWindow_->colorForGenomicElementType(elementType, elementTypeID, p_red, p_green, p_blue, p_alpha); }
     QtSLiMWindow *slimWindow(void) { return slimWindow_; }
@@ -156,6 +157,13 @@ public:
     Species *focalDisplaySpecies(void);
     void setFocalChromosome(Chromosome *chromosome);
     Chromosome *focalChromosome(void);
+    
+    double MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info);
+    double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_);
+    double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type);
+    bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info);
+    void RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+    void RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
     
     void setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget);
     

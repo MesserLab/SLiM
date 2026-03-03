@@ -496,6 +496,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		*(mutationPositions + mut_index) = mut_position;
         
         // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
+        // FIXME MULTITRAIT: RGBForFitnessEffect() is used incorrectly below; see MutationFitnessEffect()
         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
         slim_effect_t selection_coeff = mut_trait_info[0].effect_size_;
 		
@@ -507,7 +508,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		}
 		else
 		{
-			RGBForEffectSize(static_cast<double>(selection_coeff), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
+			RGBForFitnessEffect(static_cast<double>(selection_coeff), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
 		}
 		
 		haplo_mut->neutral_ = (selection_coeff == 0.0f);

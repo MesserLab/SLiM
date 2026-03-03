@@ -1677,6 +1677,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	if (name == "NULL")
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow a trait name of 'NULL', to avoid naming conflicts and general confusion." << EidosTerminate();
 	
+	if ((name == "fitness") || (name == "fitnessEffect"))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow a trait name of 'fitness' or 'fitnessEffect', to avoid naming conflicts and general confusion." << EidosTerminate();
+	
 	// type
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
 	TraitType type;

@@ -55,6 +55,8 @@ void QtSLiMIndividualsWidget::qtDrawIndividualsFromSubpopulationInArea(Subpopula
     double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
     slim_popsize_t subpopSize = subpop->parent_subpop_size_;
     int viewColumns = 0, viewRows = 0;
+    Species *displaySpecies = &subpop->species_;
+    Trait *displayTrait = focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
     
     // our square size is given from above (a consensus based on squareSizeForSubpopulationInArea(); calculate metrics from it
     viewColumns = static_cast<int>(floor((bounds.width() - 3) / squareSize));
@@ -106,24 +108,10 @@ void QtSLiMIndividualsWidget::qtDrawIndividualsFromSubpopulationInArea(Subpopula
             SLIM_GL_PUSHRECT();
             
             // dark gray default, for a fitness of NaN; should never happen
-            float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+            float colorRed, colorGreen, colorBlue, colorAlpha = 1.0;
             Individual &individual = *subpop->parent_individuals_[static_cast<size_t>(individualArrayIndex)];
             
-            if (Individual::s_any_individual_color_set_ && individual.color_set_)
-            {
-                colorRed = individual.colorR_ / 255.0F;
-                colorGreen = individual.colorG_ / 255.0F;
-                colorBlue = individual.colorB_ / 255.0F;
-            }
-            else
-            {
-                // use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
-                // we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
-                double fitness = individual.cached_unscaled_fitness_;
-                
-                if (!std::isnan(fitness))
-                    RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-            }
+            RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue, scalingFactor);
             
             SLIM_GL_PUSHRECT_COLORS();
             SLIM_GL_CHECKBUFFERS_NORECT();
@@ -446,9 +434,11 @@ void QtSLiMIndividualsWidget::qtDrawSpatialBackgroundInBoundsForSubpopulation(QR
 	}
 }
 
-void QtSLiMIndividualsWidget::qtDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor, QPainter &painter)
+void QtSLiMIndividualsWidget::qtDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, QPainter &painter)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+    Species *displaySpecies = &subpop->species_;
+    Trait *displayTrait = focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
 	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
@@ -552,30 +542,9 @@ void QtSLiMIndividualsWidget::qtDrawSpatialIndividualsFromSubpopulationInArea(Su
         SLIM_GL_PUSHRECT();
 		
 		// dark gray default, for a fitness of NaN; should never happen
-		float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
-		
-		if (Individual::s_any_individual_color_set_ && individual.color_set_)
-		{
-			colorRed = individual.colorR_ / 255.0F;
-			colorGreen = individual.colorG_ / 255.0F;
-			colorBlue = individual.colorB_ / 255.0F;
-		}
-        else if (forceColor)
-        {
-            // forceColor is used to make each species draw with a distinctive color in multispecies models in unified display mode
-            colorRed = forceColor[0];
-			colorGreen = forceColor[1];
-			colorBlue = forceColor[2];
-        }
-		else
-		{
-			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
-			// we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
-			double fitness = individual.cached_unscaled_fitness_;
-			
-			if (!std::isnan(fitness))
-				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-		}
+		float colorRed, colorGreen, colorBlue, colorAlpha = 1.0;
+        
+        RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue, scalingFactor);
         
         SLIM_GL_PUSHRECT_COLORS();
         SLIM_GL_CHECKBUFFERS_NORECT();

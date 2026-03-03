@@ -133,12 +133,14 @@ public:
     Community *community = nullptr;		// the simulation instance for this window
     Species *focalSpecies = nullptr;    // NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
     std::string focalSpeciesName;       // the name of the focal species (or "all"), for persistence across recycles
+    std::string focalTraitName;         // the name of the focal trait (or "none"), for persistence across recycles
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
-
+    
     // display-related variables
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool reloadingSubpopTableview = false;
     bool reloadingSpeciesBar = false;
+    bool reloadingTraitBar = false;
     
     // chromosome view configuration, applied to all chromosome views in multispecies models
     QtSLiMChromosomeWidgetController *chromosomeConfig = nullptr;
@@ -192,11 +194,13 @@ public:
     void setScriptStringAndInitializeSimulation(std::string string);
     
     Species *focalDisplaySpecies(void);
+    Trait *focalTraitForSpecies(Species *species);
     Chromosome *focalChromosome(void);
     
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateSpeciesBar(void);
+    void updateTraitBar(void);
     void updateChromosomeViewSetup(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
@@ -280,6 +284,7 @@ public slots:
     void displayGraphClicked(void);
 
     void selectedSpeciesChanged(void);
+    void traitChoiceChanged(QAction *traitChoiceAction);
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     
     //

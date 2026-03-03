@@ -171,7 +171,8 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     Species *displaySpecies = &chromosome->species_;
 	Population &pop = displaySpecies->population_;
-	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
+	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;            // this includes only haplosomes in the selected subpopulations
+    Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
     
     // Prefetch the mutations we actually want to display
     static std::vector<const Mutation *> mutations;
@@ -222,10 +223,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
             }
             else
             {
-                // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
                 MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                 
-                RGBForEffectSize(static_cast<double>(mut_trait_info[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
             }
             
             int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
@@ -261,19 +261,17 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 		for (auto mutationTypeIter : mut_types)
 		{
 			MutationType *mut_type = mutationTypeIter.second;
-			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
 			
 			if (mut_type->mutation_type_displayed_)
 			{
 				if (draw_muttypes_sequentially)
 				{
 					bool mut_type_fixed_color = !mut_type->color_.empty();
+                    double mut_type_fixed_effect = MutTypeFixedFitnessEffect(displaySpecies, mut_type); // NAN if no fixed effect
 					
 					// We optimize fixed-DES mutation types only, and those using a fixed color set by the user
-					if ((DES_info.DES_type_ == DESType::kFixed) || mut_type_fixed_color)
+                    if (!isnan(mut_type_fixed_effect) || mut_type_fixed_color)
 					{
-						slim_effect_t mut_type_effect = (mut_type_fixed_color ? 0.0 : static_cast<slim_effect_t>(DES_info.DES_parameters_[0]));
-						
 						EIDOS_BZERO(heightBuffer, static_cast<size_t>(displayPixelWidth) * sizeof(int16_t));
 						
 						// Scan through the mutation list for mutations of this type with the right effect
@@ -281,17 +279,10 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 						{
                             const Mutation *mutation = mutations[mutation_index];
 							
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wfloat-equal"
                             // We do want to do an exact floating-point equality compare here; we want to see whether the mutation's effect is unmodified from the fixed DES
-                            // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
                             MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                             
-                            if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mut_trait_info[0].effect_size_ == mut_type_effect)))
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
+                            if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || MutationFitnessEffectMatchesMutType(displaySpecies, mut_type, mut_trait_info)))
 							{
 								slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
 								slim_position_t mutationPosition = mutation->position_;
@@ -320,7 +311,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 						}
 						else
 						{
-							RGBForEffectSize(static_cast<double>(mut_type_effect), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							RGBForFitnessEffect(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						}
 						
 						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
@@ -378,10 +369,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 						
                         mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
                         
-                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
                         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                         
-						RGBForEffectSize(static_cast<double>(mut_trait_info[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -433,11 +423,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
                         mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - barHeight);
                         
 						const Mutation *mutation = mutationBuffer[binIndex];
-                        
-                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
                         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                         
-						RGBForEffectSize(static_cast<double>(mut_trait_info[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -467,6 +455,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
     slim_chromosome_index_t chromosome_index = chromosome->Index();
+    Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
 	
 	// Set up to draw rects
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f, colorAlpha = 1.0;
@@ -504,8 +493,9 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					}
 					else
 					{
-                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						RGBForEffectSize(static_cast<double>(substitution->trait_info_[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        SubstitutionTraitInfo *sub_trait_info = substitution->trait_info_;
+                        
+                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 					}
 				}
 				
@@ -584,8 +574,9 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					}
 					else
 					{
-                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						RGBForEffectSize(static_cast<double>(substitution->trait_info_[0].effect_size_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        SubstitutionTraitInfo *sub_trait_info = substitution->trait_info_;
+                        
+                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 					}
 					
                     mutationTickRect.setX(interiorRect.x() + binIndex);

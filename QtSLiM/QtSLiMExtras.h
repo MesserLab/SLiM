@@ -70,8 +70,10 @@ QColor QtSLiMColorWithWhite(double p_white, double p_alpha);
 QColor QtSLiMColorWithRGB(double p_red, double p_green, double p_blue, double p_alpha);
 QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, double p_alpha);
 
-void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-void RGBForEffectSize(double effect, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForIndividualFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForFitnessEffect(double effect, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForAdditiveTraitValue(double effect, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForMultiplicativeTraitValue(double effect, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 
 // A color scale widget that shows the color scales for fitness and selection coefficients
 class QtSLiMColorScaleWidget : public QWidget
@@ -81,7 +83,7 @@ public:
 protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
 private:
-    std::vector<QString> fitnessTicks, effectTicks;
+    std::vector<QString> fitnessTicks, fitnessEffectTicks, additiveTraitTicks, multiplicativeTraitTicks;
 };
 
 // Whether we're in "dark mode" for user interface rendering

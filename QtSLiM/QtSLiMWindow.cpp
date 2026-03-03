@@ -304,8 +304,9 @@ void QtSLiMWindow::init(void)
     // create the window UI
     ui->setupUi(this);
     
-    // hide the species bar initially so it doesn't interfere with the sizing done by interpolateSplitters()
+    // hide the species bar and trait bar initially so they don't interfere with the sizing done by interpolateSplitters()
     ui->speciesBarWidget->setHidden(true);
+    ui->traitChoiceWidget->setHidden(true);
     
     ui->speciesBar->setAcceptDrops(false);
     ui->speciesBar->setDocumentMode(false);
@@ -2421,6 +2422,33 @@ Species *QtSLiMWindow::focalDisplaySpecies(void)
 	return nullptr;
 }
 
+Trait *QtSLiMWindow::focalTraitForSpecies(Species *species)
+{
+    // displaying "fitness" (or "fitness effect") is the default, following SLiM prior to multitrait;
+    // that is represented by a return value of `nullptr`, used for undefined cases as well as "fitness"
+    if (!species)
+        return nullptr;
+    
+    const std::vector<Trait *> &traits = species->Traits();
+    
+    if (traits.size() == 0)
+        return nullptr;
+    
+    if (species->has_implicit_trait_)
+        return nullptr;
+    
+    if (focalTraitName == "fitness")
+        return nullptr;
+    
+    // Otherwise, find the trait with the chosen name
+    for (Trait *trait : traits)
+        if (trait->Name() == focalTraitName)
+            return trait;
+    
+    //qDebug() << "the focal trait" << focalTraitName << "could not be found; defaulting to 'fitness'";
+    return nullptr;
+}
+
 Chromosome *QtSLiMWindow::focalChromosome(void)
 {
     // There needs to be a focal display species to answer this question; if
@@ -2472,6 +2500,35 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
     // do a full update to show the state for the new species
     updateAfterTickFull(true);
     updateUIEnabling();
+}
+
+void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
+{
+    QMenu *traitChoiceMenu = ui->traitChoiceMenuButton->menu();
+    
+    for (QAction *action : traitChoiceMenu->actions())
+    {
+        if (action == traitChoiceAction)
+        {
+            action->setChecked(true);
+            
+            QString traitNameQ = action->text();
+            std::string traitName = traitNameQ.toStdString();
+            
+            if (focalTraitName != traitName)
+            {
+                focalTraitName = traitName;
+                ui->traitChoiceMenuButton->setText(traitNameQ);
+                
+                // do a full update to show the state for the new trait
+                updateAfterTickFull(true);
+            }
+        }
+        else
+        {
+            action->setChecked(false);
+        }
+    }
 }
 
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
@@ -2775,6 +2832,100 @@ void QtSLiMWindow::updateSpeciesBar(void)
     }
 }
 
+void QtSLiMWindow::updateTraitBar(void)
+{
+    // Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
+    if (!invalidSimulation_ && community && community->simulation_valid_ && (community->Tick() >= 1))
+    {
+        Species *displaySpecies = focalDisplaySpecies();
+        bool traitBarVisibleNow = !ui->traitChoiceWidget->isHidden();
+        bool traitBarShouldBeVisible = (displaySpecies && !displaySpecies->has_implicit_trait_ && displaySpecies->Traits().size());
+        
+        if (traitBarVisibleNow && !traitBarShouldBeVisible)
+        {
+            ui->traitChoiceMenuButton->setEnabled(false);
+            ui->traitChoiceWidget->setHidden(true);
+            
+            reloadingTraitBar = true;
+            
+            ui->traitChoiceMenuButton->setMenu(nullptr);
+            
+            reloadingTraitBar = false;
+        }
+        else if (!traitBarVisibleNow && traitBarShouldBeVisible)
+        {
+            ui->traitChoiceMenuButton->setEnabled(true);
+            ui->traitChoiceWidget->setHidden(false);
+            
+            // determine the selected trait; nullptr represents "fitness", the default choice
+            Trait *selectedTrait = nullptr;
+            
+            if (focalTraitName.length() && (focalTraitName != "fitness"))
+            {
+                for (Trait *trait : displaySpecies->Traits())
+                    if (trait->Name().compare(focalTraitName) == 0)
+                        selectedTrait = trait;
+            }
+            
+            // default to "fitness" if the chosen trait can't be found
+            if (selectedTrait == nullptr)
+                focalTraitName = "fitness";
+            
+            // then update the UI
+            reloadingTraitBar = true;
+            
+            QMenu *traitChoiceMenu = new QMenu(ui->traitChoiceMenuButton);
+            
+            {
+                // a "fitness" choice comes first
+                QAction *fitnessAction = traitChoiceMenu->addAction("fitness");
+                
+                fitnessAction->setCheckable(true);
+                
+                if (selectedTrait == nullptr)
+                {
+                    fitnessAction->setChecked(true);
+                    ui->traitChoiceMenuButton->setText("fitness");
+                }
+            }
+            
+            for (Trait *trait : displaySpecies->Traits())
+            {
+                const std::string &traitName = trait->Name();
+                QString traitNameQ = QString::fromStdString(traitName);
+                QAction *action = traitChoiceMenu->addAction(traitNameQ);
+                
+                action->setCheckable(true);
+                
+                if (selectedTrait == trait)
+                {
+                    action->setChecked(true);
+                    ui->traitChoiceMenuButton->setText(traitNameQ);
+                }
+            }
+            
+            ui->traitChoiceMenuButton->setMenu(traitChoiceMenu);
+            connect(traitChoiceMenu, &QMenu::triggered, this, &QtSLiMWindow::traitChoiceChanged);
+            
+            reloadingTraitBar = false;
+            
+            //qDebug() << "selecting trait with name" << QString::fromStdString(focalTraitName);
+        }
+    }
+    else
+    {
+        // Whenever we're invalid or uninitialized, we hide the trait bar and disable and remove its menu
+        ui->traitChoiceMenuButton->setEnabled(false);
+        ui->traitChoiceWidget->setHidden(true);
+        
+        reloadingTraitBar = true;
+        
+        ui->traitChoiceMenuButton->setMenu(nullptr);
+        
+        reloadingTraitBar = false;
+    }
+}
+
 void QtSLiMWindow::removeExtraChromosomeViews(void)
 {
     while (chromosomeOverviewWidgets.size() > 1)
@@ -2898,8 +3049,9 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		}
 	}
     
-    // Update the species bar and then fetch the focal species after that update, which might change it
+    // Update the species bar and the trait bar first, to establish the display species and trait for other UI
     updateSpeciesBar();
+    updateTraitBar();
 	
     // Create or destroy chromosome views for each species, and set the species for each chromosome view
     updateChromosomeViewSetup();
