@@ -169,7 +169,6 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 	Population &pop = displaySpecies->population_;
     double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;            // this includes only haplosomes in the selected subpopulations
     Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
-    slim_trait_index_t trait_index = (displayTrait ? displayTrait->Index() : -1);   // -1 represents "fitness"
     
     // Prefetch the mutations we actually want to display
     static std::vector<const Mutation *> mutations;
@@ -454,7 +453,6 @@ void QtSLiMChromosomeWidget::qtDrawFixedSubstitutions(QRect &interiorRect, Chrom
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
     slim_chromosome_index_t chromosome_index = chromosome->Index();
     Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
-    slim_trait_index_t trait_index = (displayTrait ? displayTrait->Index() : -1);   // -1 represents "fitness"
 	
 	// Set up to draw rects
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f, colorAlpha = 1.0;
