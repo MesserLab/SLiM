@@ -2437,6 +2437,8 @@ Trait *QtSLiMWindow::focalTraitForSpecies(Species *species)
     if (species->has_implicit_trait_)
         return nullptr;
     
+    std::string &focalTraitName = species->focalTraitName;
+    
     if (focalTraitName == "fitness")
         return nullptr;
     
@@ -2497,6 +2499,9 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
     
     //qDebug() << "selectedSpeciesChanged(): changed to species name" << QString::fromStdString(focalSpeciesName);
     
+    // force an update of the trait bar when the focal species changes
+    updateTraitBar(/* forceUpdate */ true);
+    
     // do a full update to show the state for the new species
     updateAfterTickFull(true);
     updateUIEnabling();
@@ -2504,7 +2509,33 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
 
 void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
 {
+    qDebug() << "===== traitChoiceChanged() called!";
+    
     QMenu *traitChoiceMenu = ui->traitChoiceMenuButton->menu();
+    
+    // Each action in the trait display menu has a QVariant string that identifies the species to which it applies
+    QString speciesNameQ = traitChoiceAction->data().toString();
+    std::string species_name = speciesNameQ.toStdString();
+    
+    qDebug() << "traitChoiceChanged() called for species" << speciesNameQ << species_name;
+    
+    if (species_name.length() == 0)
+        return;
+    
+    Species *displaySpecies = focalDisplaySpecies();
+    Species *species = community->SpeciesWithName(species_name);
+    
+    if (!species)
+        qDebug() << "species with name" << species_name << "not found!";
+    
+    // If a single species is selected, the action should always correspond to that species
+    if (displaySpecies && (displaySpecies != species))
+    {
+        qDebug() << "incorrectly built trait bar menu!";
+        return;
+    }
+    
+    std::string &focalTraitName = species->focalTraitName;
     
     for (QAction *action : traitChoiceMenu->actions())
     {
@@ -2518,7 +2549,11 @@ void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
             if (focalTraitName != traitName)
             {
                 focalTraitName = traitName;
-                ui->traitChoiceMenuButton->setText(traitNameQ);
+                
+                // change the label in the menu button unless we are in multispecies mode "all"
+                // note the string " multivalent" also occurs in updateTraitBar()
+                if (!ui->traitChoiceMenuButton->text().contains(" multivalent"))
+                    ui->traitChoiceMenuButton->setText(traitNameQ);
                 
                 // do a full update to show the state for the new trait
                 updateAfterTickFull(true);
@@ -2526,7 +2561,9 @@ void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
         }
         else
         {
-            action->setChecked(false);
+            // uncheck menu items for the same species
+            if (action->data().toString() == speciesNameQ)
+                action->setChecked(false);
         }
     }
 }
@@ -2832,16 +2869,38 @@ void QtSLiMWindow::updateSpeciesBar(void)
     }
 }
 
-void QtSLiMWindow::updateTraitBar(void)
+void QtSLiMWindow::updateTraitBar(bool forceUpdate)
 {
     // Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
     if (!invalidSimulation_ && community && community->simulation_valid_ && (community->Tick() >= 1))
     {
+        const std::vector<Species *> &all_species = community->AllSpecies();
         Species *displaySpecies = focalDisplaySpecies();
         bool traitBarVisibleNow = !ui->traitChoiceWidget->isHidden();
-        bool traitBarShouldBeVisible = (displaySpecies && !displaySpecies->has_implicit_trait_ && displaySpecies->Traits().size());
+        bool traitBarShouldBeVisible = false;
+        bool isMultispeciesModeAll = false;
         
-        if (traitBarVisibleNow && !traitBarShouldBeVisible)
+        if (displaySpecies)
+        {
+            // If there is a display species, it needs to have at least one trait, and that should not be an implicit trait
+            if (!displaySpecies->has_implicit_trait_ && displaySpecies->Traits().size())
+                traitBarShouldBeVisible = true;
+        }
+        else
+        {
+            // If there is no species (i.e., we are in mode "all"), at least one species must satisfy those conditions
+            for (Species *species : all_species)
+            {
+                if (!species->has_implicit_trait_ && species->Traits().size())
+                {
+                    traitBarShouldBeVisible = true;
+                    isMultispeciesModeAll = true;
+                    break;
+                }
+            }
+        }
+        
+        if ((forceUpdate || traitBarVisibleNow) && !traitBarShouldBeVisible)
         {
             ui->traitChoiceMenuButton->setEnabled(false);
             ui->traitChoiceWidget->setHidden(true);
@@ -2851,65 +2910,100 @@ void QtSLiMWindow::updateTraitBar(void)
             ui->traitChoiceMenuButton->setMenu(nullptr);
             
             reloadingTraitBar = false;
+            
+            //qDebug() << "hiding trait bar";
         }
-        else if (!traitBarVisibleNow && traitBarShouldBeVisible)
+        else if ((forceUpdate || !traitBarVisibleNow) && traitBarShouldBeVisible)
         {
             ui->traitChoiceMenuButton->setEnabled(true);
             ui->traitChoiceWidget->setHidden(false);
-            
-            // determine the selected trait; nullptr represents "fitness", the default choice
-            Trait *selectedTrait = nullptr;
-            
-            if (focalTraitName.length() && (focalTraitName != "fitness"))
-            {
-                for (Trait *trait : displaySpecies->Traits())
-                    if (trait->Name().compare(focalTraitName) == 0)
-                        selectedTrait = trait;
-            }
-            
-            // default to "fitness" if the chosen trait can't be found
-            if (selectedTrait == nullptr)
-                focalTraitName = "fitness";
             
             // then update the UI
             reloadingTraitBar = true;
             
             QMenu *traitChoiceMenu = new QMenu(ui->traitChoiceMenuButton);
+            bool needs_divider = false;
             
+            for (Species *species : all_species)
             {
-                // a "fitness" choice comes first
-                QAction *fitnessAction = traitChoiceMenu->addAction("fitness");
+                // Except in multispecies mode "all", we add menu items only for the focal species, displaySpecies
+                if (!isMultispeciesModeAll)
+                    if (species != displaySpecies)
+                        continue;
                 
-                fitnessAction->setCheckable(true);
+                // In multispecies mode "all", we skip species that we wouldn't show a single-species trait bar for
+                if (isMultispeciesModeAll)
+                    if (species->has_implicit_trait_ || (species->Traits().size() == 0))
+                        continue;
                 
+                // determine the selected trait; nullptr represents "fitness", the default choice
+                Trait *selectedTrait = nullptr;
+                std::string &focalTraitName = species->focalTraitName;
+                
+                if (focalTraitName.length() && (focalTraitName != "fitness"))
+                {
+                    for (Trait *trait : species->Traits())
+                        if (trait->Name().compare(focalTraitName) == 0)
+                            selectedTrait = trait;
+                }
+                
+                // default to "fitness" if the chosen trait can't be found
                 if (selectedTrait == nullptr)
+                    focalTraitName = "fitness";
+                
+                if (isMultispeciesModeAll)
                 {
-                    fitnessAction->setChecked(true);
-                    ui->traitChoiceMenuButton->setText("fitness");
+                    if (needs_divider)
+                        traitChoiceMenu->addSeparator();
+                    
+                    QAction *headerAction = traitChoiceMenu->addAction(QString("%1 display trait:").arg(QString::fromStdString(species->avatar_)));
+                    
+                    headerAction->setData(QVariant::fromValue(QString::fromStdString("")));
+                    headerAction->setEnabled(false);
+                    needs_divider = true;
+                }
+                
+                {
+                    // a "fitness" choice comes first
+                    QAction *fitnessAction = traitChoiceMenu->addAction("fitness");
+                    
+                    fitnessAction->setCheckable(true);
+                    fitnessAction->setData(QVariant::fromValue(QString::fromStdString(species->name_)));
+                    
+                    if (selectedTrait == nullptr)
+                    {
+                        fitnessAction->setChecked(true);
+                        ui->traitChoiceMenuButton->setText("fitness");
+                    }
+                }
+                
+                for (Trait *trait : species->Traits())
+                {
+                    const std::string &traitName = trait->Name();
+                    QString traitNameQ = QString::fromStdString(traitName);
+                    QAction *traitAction = traitChoiceMenu->addAction(traitNameQ);
+                    
+                    traitAction->setCheckable(true);
+                    traitAction->setData(QVariant::fromValue(QString::fromStdString(species->name_)));
+                    
+                    if (selectedTrait == trait)
+                    {
+                        traitAction->setChecked(true);
+                        ui->traitChoiceMenuButton->setText(traitNameQ);
+                    }
                 }
             }
             
-            for (Trait *trait : displaySpecies->Traits())
-            {
-                const std::string &traitName = trait->Name();
-                QString traitNameQ = QString::fromStdString(traitName);
-                QAction *action = traitChoiceMenu->addAction(traitNameQ);
-                
-                action->setCheckable(true);
-                
-                if (selectedTrait == trait)
-                {
-                    action->setChecked(true);
-                    ui->traitChoiceMenuButton->setText(traitNameQ);
-                }
-            }
+            // use a special label for multispecies mode "all"; note the string " multivalent" also occurs in traitChoiceChanged()
+            if (isMultispeciesModeAll)
+                ui->traitChoiceMenuButton->setText(QString("%1 multivalent").arg(QString::fromUtf8("\xF0\x9F\x94\x85")));
             
             ui->traitChoiceMenuButton->setMenu(traitChoiceMenu);
             connect(traitChoiceMenu, &QMenu::triggered, this, &QtSLiMWindow::traitChoiceChanged);
             
             reloadingTraitBar = false;
             
-            //qDebug() << "selecting trait with name" << QString::fromStdString(focalTraitName);
+            //qDebug() << "trait bar selecting trait with name" << QString::fromStdString(focalTraitName);
         }
     }
     else

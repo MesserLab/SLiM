@@ -208,6 +208,10 @@ private:
 	std::string color_;																// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;									// cached color components from color_; should always be in sync
 	
+#ifdef SLIMGUI
+	std::string focalTraitName;         											// the name of the focal trait (or "none"), for persistence across recycles
+#endif
+	
 	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
 	// We keep a MutationBlock object that stores all of the Mutation objects that belong to this species.

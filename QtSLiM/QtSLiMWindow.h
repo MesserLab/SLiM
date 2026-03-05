@@ -133,7 +133,6 @@ public:
     Community *community = nullptr;		// the simulation instance for this window
     Species *focalSpecies = nullptr;    // NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
     std::string focalSpeciesName;       // the name of the focal species (or "all"), for persistence across recycles
-    std::string focalTraitName;         // the name of the focal trait (or "none"), for persistence across recycles
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
     
     // display-related variables
@@ -200,7 +199,7 @@ public:
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateSpeciesBar(void);
-    void updateTraitBar(void);
+    void updateTraitBar(bool forceUpdate = true);
     void updateChromosomeViewSetup(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
