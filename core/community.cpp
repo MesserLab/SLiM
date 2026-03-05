@@ -2946,11 +2946,6 @@ bool Community::_RunOneTickWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
-		// FIXME wait, why should this overhead appear in the fitness recalculation step??
-		for (Species *species : all_species_)
-			species->FinishMutationRunExperimentTimings();
-		
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
@@ -3013,6 +3008,12 @@ bool Community::_RunOneTickWF(void)
 		if (gEidosProfilingClientCount)
 			CollectSLiMguiMemoryUsageProfileInfo();
 #endif
+		
+		// Do post-cycle cleanup, such as maintaining our mutation run experiments.
+		// BCH 3/5/2026: Note this used to be in stage 6; moving it here might have unexpected consequences.
+		for (Species *species : all_species_)
+			if (species->Active())
+				species->FinishCycle();
 		
 		// Decide whether the simulation is over.  We need to call EstimatedLastTick() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.

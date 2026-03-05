@@ -5178,6 +5178,12 @@ void Species::PrepareForCycle(void)
 		chromosome->ZeroMutationRunExperimentClock();
 }
 
+void Species::FinishCycle(void)
+{
+	// Called by Community at the very end of each cycle, whether WF or nonWF
+	FinishMutationRunExperimentTimings();
+}
+
 void Species::MaintainMutationRegistry(void)
 {
 	if (has_genetics_)

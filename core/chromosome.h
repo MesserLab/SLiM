@@ -441,6 +441,7 @@ public:
 	void FinishMutationRunExperimentTiming(void);
 	void PrintMutationRunExperimentSummary(void);
 	inline __attribute__((always_inline)) bool MutationRunExperimentsEnabled(void) { return x_experiments_enabled_; }
+	inline __attribute__((always_inline)) bool WithinMutationRunExperimentPeriod(void) { return x_within_measurement_period_; }
 	
 	// Mutation run experiment timing.  We use these methods to accumulate clocks taken in critical sections of the code.
 	// Note that this design does NOT include time taken in first()/early()/late() events; since script blocks can do very

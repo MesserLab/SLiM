@@ -3169,7 +3169,11 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualEmpty): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
-		chromosome->StartMutationRunExperimentClock();
+		// BCH 3/5/2026: Unusually, we need to check whether we're doing mutrun experiment timings right now.
+		// This is because this method can be called by addSubpop() in ticks in which the species in question
+		// is not active, and so mutrun experiment timing is not active.
+		if (chromosome->WithinMutationRunExperimentPeriod())
+			chromosome->StartMutationRunExperimentClock();
 		
 		// Determine what kind of haplosomes to make for this chromosome
 		ChromosomeType chromosomeType = chromosome->Type();
@@ -3346,7 +3350,8 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 			}
 		}
 		
-		chromosome->StopMutationRunExperimentClock("GenerateIndividualEmpty()");
+		if (chromosome->WithinMutationRunExperimentPeriod())
+			chromosome->StopMutationRunExperimentClock("GenerateIndividualEmpty()");
 		
 		// move forward 1 or 2, depending on whether a haplosome2 was created
 		currentHaplosomeIndex += (haplosome2 ? 2 : 1);

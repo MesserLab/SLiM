@@ -599,6 +599,7 @@ public:
 	void EndCurrentChromosome(bool starting_new_chromosome);
 	bool HasDoneAnyInitialization(void);
 	void PrepareForCycle(void);
+	void FinishCycle(void);
 	void MaintainMutationRegistry(void);
 	void RecalculateFitness(bool p_force_trait_recalculation);
 	void MaintainTreeSequence(void);
