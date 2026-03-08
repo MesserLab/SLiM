@@ -2437,7 +2437,12 @@ Trait *QtSLiMWindow::focalTraitForSpecies(Species *species)
     if (species->has_implicit_trait_)
         return nullptr;
     
-    std::string &focalTraitName = species->focalTraitName;
+    auto species_trait_pair = speciesToTrait.find(species->name_);
+    
+    if (species_trait_pair == speciesToTrait.end())
+        return nullptr;
+    
+    const std::string &focalTraitName = species_trait_pair->second;
     
     if (focalTraitName == "fitness")
         return nullptr;
@@ -2535,7 +2540,9 @@ void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
         return;
     }
     
-    std::string &focalTraitName = species->focalTraitName;
+    auto species_trait_pair = speciesToTrait.find(species->name_);
+    std::string focalTraitName = (species_trait_pair == speciesToTrait.end()) ? "fitness" : species_trait_pair->second;
+    bool trait_changed = (species_trait_pair == speciesToTrait.end());
     
     for (QAction *action : traitChoiceMenu->actions())
     {
@@ -2549,14 +2556,7 @@ void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
             if (focalTraitName != traitName)
             {
                 focalTraitName = traitName;
-                
-                // change the label in the menu button unless we are in multispecies mode "all"
-                // note the string " multivalent" also occurs in updateTraitBar()
-                if (!ui->traitChoiceMenuButton->text().contains(" multivalent"))
-                    ui->traitChoiceMenuButton->setText(traitNameQ);
-                
-                // do a full update to show the state for the new trait
-                updateAfterTickFull(true);
+                trait_changed = true;
             }
         }
         else
@@ -2565,6 +2565,22 @@ void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
             if (action->data().toString() == speciesNameQ)
                 action->setChecked(false);
         }
+    }
+    
+    if (trait_changed)
+    {
+        QString traitNameQ = QString::fromStdString(focalTraitName);
+        
+        // fix up the species-to-trait map to have the updated information
+        speciesToTrait[species->name_] = focalTraitName;
+        
+        // change the label in the menu button unless we are in multispecies mode "all"
+        // note the string " multivalent" also occurs in updateTraitBar()
+        if (!ui->traitChoiceMenuButton->text().contains(" multivalent"))
+            ui->traitChoiceMenuButton->setText(traitNameQ);
+        
+        // do a full update to show the state for the new trait
+        updateAfterTickFull(true);
     }
 }
 
@@ -2869,7 +2885,7 @@ void QtSLiMWindow::updateSpeciesBar(void)
     }
 }
 
-void QtSLiMWindow::updateTraitBar(bool forceUpdate)
+void QtSLiMWindow::updateTraitBar(bool forceUpdate /* = false */)
 {
     // Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
     if (!invalidSimulation_ && community && community->simulation_valid_ && (community->Tick() >= 1))
@@ -2938,7 +2954,9 @@ void QtSLiMWindow::updateTraitBar(bool forceUpdate)
                 
                 // determine the selected trait; nullptr represents "fitness", the default choice
                 Trait *selectedTrait = nullptr;
-                std::string &focalTraitName = species->focalTraitName;
+                auto species_trait_pair = speciesToTrait.find(species->name_);
+                std::string focalTraitName = (species_trait_pair == speciesToTrait.end()) ? "" : species_trait_pair->second;
+                bool map_needs_update = (species_trait_pair == speciesToTrait.end());
                 
                 if (focalTraitName.length() && (focalTraitName != "fitness"))
                 {
@@ -2949,7 +2967,13 @@ void QtSLiMWindow::updateTraitBar(bool forceUpdate)
                 
                 // default to "fitness" if the chosen trait can't be found
                 if (selectedTrait == nullptr)
+                {
                     focalTraitName = "fitness";
+                    map_needs_update = true;
+                }
+                
+                if (map_needs_update)
+                    speciesToTrait[species->name_] = focalTraitName;
                 
                 if (isMultispeciesModeAll)
                 {

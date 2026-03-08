@@ -199,7 +199,7 @@ public:
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateSpeciesBar(void);
-    void updateTraitBar(bool forceUpdate = true);
+    void updateTraitBar(bool forceUpdate = false);
     void updateChromosomeViewSetup(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
@@ -380,6 +380,9 @@ protected:
     void removeExtraChromosomeViews(void);
     void addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget);
     void runChromosomeContextMenuAtPoint(QPoint p_globalPoint);
+    
+    // multitrait support for per-species display traits, from species name to trait name; this remembers across recycles
+    std::unordered_map<std::string, std::string> speciesToTrait;
     
 private:
     void glueUI(void);
