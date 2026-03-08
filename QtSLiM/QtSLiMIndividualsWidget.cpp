@@ -369,9 +369,9 @@ void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &
         if (std::isnan(fitness))
         {
             // default gray for undefined cases
-            *colorRed = 0.3f;
-            *colorGreen = 0.3f;
-            *colorBlue = 0.3f;
+            *colorRed = 0.6f;
+            *colorGreen = 0.6f;
+            *colorBlue = 0.6f;
         }
         else
         {
@@ -381,9 +381,16 @@ void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &
     else
     {
         slim_trait_index_t trait_index = displayTrait->Index();
-        double ind_phenotype = (double)individual.trait_info_[trait_index].phenotype_;;
+        double ind_phenotype = (double)individual.trait_info_[trait_index].phenotype_;
         
-        if (displayTrait->Type() == TraitType::kMultiplicative)
+        if (std::isnan(ind_phenotype))
+        {
+            // default gray for undefined cases
+            *colorRed = 0.6f;
+            *colorGreen = 0.6f;
+            *colorBlue = 0.6f;
+        }
+        else if (displayTrait->Type() == TraitType::kMultiplicative)
             RGBForMultiplicativeTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue, scalingFactor);
         else
             RGBForAdditiveTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue, scalingFactor);
