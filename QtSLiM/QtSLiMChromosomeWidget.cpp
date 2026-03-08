@@ -65,7 +65,17 @@ QtSLiMChromosomeWidgetController::QtSLiMChromosomeWidgetController(QtSLiMWindow 
         }
         
         focalSpeciesName_ = focalSpecies->name_;
+        
         // focalSpeciesAvatar_ is set up in buildChromosomeDisplay();
+        
+        // likewise for focalTraitName_; it is used only in the displayWindow case, where it is fixed at creation
+        // focalTrait will be nullptr here if the species uses an implicit trait, or if "fitness" is the display trait
+        Trait *focalTrait = slimWindow_->focalTraitForSpecies(focalSpecies);
+        
+        if (focalTrait)
+            focalTraitName_ = focalTrait->Name();
+        else
+            focalTraitName_ = "fitness";    // we keep "fitness" explicitly to differentiate it from a missing trait
     }
 }
 
@@ -120,9 +130,18 @@ Species *QtSLiMChromosomeWidgetController::focalDisplaySpecies(void)
 
 Trait *QtSLiMChromosomeWidgetController::focalTraitForSpecies(Species *species)
 {
-    // FIXME MULTITRAIT: might allow separate chromosome display windows to have their own trait chooser?
-    // see QtSLiMChromosomeWidgetController::focalDisplaySpecies() above
+    if (displayWindow_)
+    {
+        if (focalTraitName_.length() == 0)
+            return nullptr;
+        
+        if (focalTraitName_ == "fitness")
+            return nullptr;
+        
+        return species->TraitFromName(focalTraitName_);
+    }
     
+    // otherwise, our focal display trait comes directly from slimWindow_
     return slimWindow_->focalTraitForSpecies(species);
 }
 
@@ -283,12 +302,44 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
         // set up the species badge; note that unlike QtSLiMGraphView, we set it up here immediately,
         // since we are guaranteed to already have a valid species object, and then we don't update it
         focalSpeciesAvatar_ = focalSpecies->avatar_;
+        bool speciesBadgeVisible = focalSpeciesAvatar_.length() && (focalSpecies->community_.all_species_.size() > 1);
         
-        if (focalSpeciesAvatar_.length() && (focalSpecies->community_.all_species_.size() > 1))
+        if (speciesBadgeVisible)
         {
             QLabel *speciesLabel = new QLabel();
             speciesLabel->setText(QString::fromStdString(focalSpeciesAvatar_));
             buttonLayout->addWidget(speciesLabel);
+        }
+        
+        // set up the trait badge; I tried having a popup menu here as in the main window, but it required
+        // too much vertical height and messed up the layout, so configurability will use the action button
+        bool traitBarVisible = !focalSpecies->has_implicit_trait_ && focalSpecies->Traits().size();
+        
+        if (traitBarVisible)
+        {
+            if (speciesBadgeVisible)
+            {
+                // add a little space between the species badge and the trait badge
+                QSpacerItem *fixedSpacer = new QSpacerItem(3, 5, QSizePolicy::Fixed, QSizePolicy::Minimum);
+                buttonLayout->addItem(fixedSpacer);
+            }
+            
+            QLabel *traitChoiceLabel = new QLabel();
+            if (focalTraitName_ == "fitness")
+            {
+                traitChoiceLabel->setText("Display trait: fitness");
+            }
+            else
+            {
+                Trait *focalTrait = focalTraitForSpecies(focalSpecies);     // nullptr means a failed lookup
+                
+                if (focalTrait)
+                    traitChoiceLabel->setText(QString("Display trait: %1").arg(QString::fromStdString(focalTraitName_)));
+                else
+                    traitChoiceLabel->setText(QString("Display trait: %1 (missing)").arg(QString::fromStdString(focalTraitName_)));
+            }
+            
+            buttonLayout->addWidget(traitChoiceLabel);
         }
         
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);

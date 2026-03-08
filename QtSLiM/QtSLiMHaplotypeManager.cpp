@@ -61,6 +61,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         return;
     
     Species *displaySpecies = controller->focalDisplaySpecies();
+    Trait *focalTrait = controller->focalTraitForSpecies(displaySpecies);
     
     if (!displaySpecies)
     {
@@ -165,12 +166,36 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
         
-        if (controller->community()->all_species_.size() > 1)
+        // make our species avatar badge
+        std::string focalSpeciesAvatar = displaySpecies->avatar_;
+        bool speciesBadgeVisible = focalSpeciesAvatar.length() && (controller->community()->all_species_.size() > 1);
+        
+        if (speciesBadgeVisible)
         {
-            // make our species avatar badge
             QLabel *speciesLabel = new QLabel();
-            speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
+            speciesLabel->setText(QString::fromStdString(focalSpeciesAvatar));
             buttonLayout->addWidget(speciesLabel);
+        }
+        
+        // set up the trait badge
+        bool traitBarVisible = !displaySpecies->has_implicit_trait_ && displaySpecies->Traits().size();
+        
+        if (traitBarVisible)
+        {
+            if (speciesBadgeVisible)
+            {
+                // add a little space between the species badge and the trait badge
+                QSpacerItem *fixedSpacer = new QSpacerItem(3, 5, QSizePolicy::Fixed, QSizePolicy::Minimum);
+                buttonLayout->addItem(fixedSpacer);
+            }
+            
+            QLabel *traitChoiceLabel = new QLabel();
+            if (!focalTrait)
+                traitChoiceLabel->setText("Display trait: fitness");
+            else
+                traitChoiceLabel->setText(QString("Display trait: %1").arg(QString::fromStdString(focalTrait->Name())));
+            
+            buttonLayout->addWidget(traitChoiceLabel);
         }
         
         QSpacerItem *leftSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -240,8 +265,8 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,
-                                                                              displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize,
-                                                                              true, index + 1, chromosomes.size());
+                                                                              displaySpecies, focalTrait, chromosome, QtSLiMRange(0,0),
+                                                                              haplosomeSampleSize, true, index + 1, chromosomes.size());
         
         if (haplotypeManager->valid_)
         {
@@ -259,13 +284,17 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
-                                               QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
-                                               int progressChromTotal) :
+                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Trait *displayTrait,
+                                               Chromosome *chromosome, QtSLiMRange displayedRange, size_t sampleSize, bool showProgress,
+                                               int progressChromIndex, int progressChromTotal) :
     QObject(p_parent)
 {
     controller_ = controller;
     focalSpeciesName_ = displaySpecies->name_;
+    
+    // displayTrait will be nullptr here if the species uses an implicit trait, or if "fitness" is the display trait
+    // we keep a pointer to the display trait while building our display list, then clear it out
+    trait = displayTrait;
     
     Community *community = controller_->community();
     Species *graphSpecies = focalDisplaySpecies();
@@ -446,6 +475,9 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 	// Now we are done with the haplosomes vector; clear it
 	haplosomes.clear();
 	haplosomes.resize(0);
+    
+    // And we're done with the display trait; clear it
+    trait = nullptr;
 }
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
@@ -483,6 +515,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 	// Copy the information we need on each mutation in use
     MutationBlock *mutation_block = graphSpecies->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+    slim_trait_index_t trait_index = trait ? trait->Index() : -1;
 	
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
@@ -495,10 +528,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		haplo_mut->position_ = mut_position;
 		*(mutationPositions + mut_index) = mut_position;
         
-        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-        // FIXME MULTITRAIT: RGBForFitnessEffect() is used incorrectly below; see MutationFitnessEffect()
         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
-        slim_effect_t selection_coeff = mut_trait_info[0].effect_size_;
 		
 		if (!mut_type->color_.empty())
 		{
@@ -508,11 +538,14 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		}
 		else
 		{
-			RGBForFitnessEffect(static_cast<double>(selection_coeff), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
+			QtSLiMChromosomeWidget::RGBForMutation(trait, graphSpecies, mut_trait_info, &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
 		}
-		
-		haplo_mut->neutral_ = (selection_coeff == 0.0f);
-		
+        
+        if (trait_index >= 0)
+            haplo_mut->neutral_ = (mut_trait_info[trait_index].effect_size_ == (slim_effect_t)0.0);
+        else
+            haplo_mut->neutral_ = (QtSLiMChromosomeWidget::MutationFitnessEffect(graphSpecies, mut_trait_info) == 1.0);
+        
 		haplo_mut->display_ = mut_type->mutation_type_displayed_;
 	}
 	

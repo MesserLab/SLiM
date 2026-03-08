@@ -85,7 +85,8 @@ void QtSLiMChromosomeWidget::qtDrawRect(QRect contentRect, Species *displaySpeci
 				// display mutations as a haplotype plot, courtesy of QtSLiMHaplotypeManager; we use ClusterNearestNeighbor and
 				// ClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
                 size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, chromosome, displayedRange, interiorHeight, false, 0, 0);
+                Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
+                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, displayTrait, chromosome, displayedRange, interiorHeight, false, 0, 0);
                 
                 if (haplotype_mgr)
                     haplotype_mgr->qtDrawHaplotypes(interiorRect, false, false, false, painter);
@@ -365,7 +366,6 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 						
                         mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
                         
-                        // FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
                         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                         
                         RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);

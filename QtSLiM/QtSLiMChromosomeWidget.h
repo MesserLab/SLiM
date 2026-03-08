@@ -65,6 +65,7 @@ class QtSLiMChromosomeWidgetController : public QObject
     std::string focalSpeciesName_;                  // we keep the name of our focal species, since a pointer would be unsafe
     std::string focalSpeciesAvatar_;                // cached so we can display it even when the simulation is invalid
     std::string chromosomeSymbol_;                  // a chromosome symbol, or "" for "all chromosomes"
+    std::string focalTraitName_;                    // we keep the name of our focal trait, since a pointer would be unsafe
     bool needsRebuild_ = false;                     // true immediately after recycling
     
 public:
@@ -158,12 +159,12 @@ public:
     void setFocalChromosome(Chromosome *chromosome);
     Chromosome *focalChromosome(void);
     
-    double MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info);
-    double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_);
-    double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type);
-    bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info);
-    void RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-    void RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+    static double MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info);
+    static double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_);
+    static double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type);
+    static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info);
+    static void RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+    static void RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
     
     void setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget);
     
