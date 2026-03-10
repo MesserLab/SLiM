@@ -4899,7 +4899,7 @@ void Species::RunInitializeCallbacks(void)
 	// Defining all traits with baseline accumulation indicates a desire to have substitution occur, with mutational effects accumulated into
 	// baseline offset values, in at least some cases.  If convertToSubstitution is F for all mutation types, indicating a desire that no
 	// mutation be substitution, a mistake has probably been made that is worth calling to the user's attention.
-	if (!has_implicit_trait_)
+	if (!has_implicit_trait_ && (traits_.size() > 0))
 	{
 		bool all_traits_baseline_accumulate = true;
 		
@@ -4923,7 +4923,7 @@ void Species::RunInitializeCallbacks(void)
 	// Defining an additive (or logistic) trait with a default dominance of 0.5 for the trait for all mutation types indicates that
 	// the trait is probably intended to have independent-dominance effects but has just not been configured in that manner, which
 	// will result in lower performance; this is probably a mistake that is worth calling to the user's attention.
-	if (!has_implicit_trait_)
+	if (!has_implicit_trait_ && (traits_.size() > 0))
 	{
 		for (const Trait *trait : traits_)
 		{
