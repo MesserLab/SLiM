@@ -275,7 +275,7 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
 // This template provides a function pointer that will delete a void* pointing to a given type.
 // It thus allows us to hold on to a void* pointing to a Qt object, for example, without building
 // against Qt; SLiMgui will give us the void* and a deleter pointer, which we can cache for it
-// and invalidate the cache, deleting the object, when appropriate without ever knowing its type.
+// and invalidate the cache, deleting the object when appropriate, without ever knowing its type.
 template<typename T>
 void Eidos_Deleter(void *ptr) {
 	delete static_cast<T*>(ptr);
