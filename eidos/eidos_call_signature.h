@@ -87,6 +87,7 @@ public:
 	EidosCallSignature *AddInt(const std::string &p_argument_name);
 	EidosCallSignature *AddFloat(const std::string &p_argument_name);
 	EidosCallSignature *AddIntString(const std::string &p_argument_name);
+	EidosCallSignature *AddFloatString(const std::string &p_argument_name);
 	EidosCallSignature *AddString(const std::string &p_argument_name);
 	EidosCallSignature *AddIntObject(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddIntStringObject(const std::string &p_argument_name, const EidosClass *p_argument_class);
