@@ -1081,7 +1081,7 @@ void QtSLiMGraphView_CustomPlot::drawRects(QPainter &painter, QRect interiorRect
                 linePath.lineTo(device_x2, device_y2);
                 linePath.lineTo(device_x1, device_y2);
                 linePath.closeSubpath();
-                painter.strokePath(linePath, QPen(borderColor, lineWidth));
+                painter.strokePath(linePath, QPen(borderColor, lineWidth, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
             }
         }
     }
