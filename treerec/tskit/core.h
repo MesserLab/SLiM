@@ -329,6 +329,16 @@ A length field in the JSON binary struct metadata header is invalid.
 The JSON binary struct metadata uses an unsupported version number.
 */
 #define TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION                    -109
+
+/**
+The JSON binary struct metadata is not equal to the expected size.
+*/
+#define TSK_ERR_JSON_STRUCT_METADATA_UNEXPECTED_SIZE                -110
+
+/**
+The JSON binary struct metadata is not equal to the expected size.
+*/
+#define TSK_ERR_JSON_STRUCT_METADATA_NONZERO_PADDING                -111
 /** @} */
 
 /**
@@ -1136,10 +1146,11 @@ int tsk_generate_uuid(char *dest, int flags);
 @brief Extract the binary payload from ``json+struct`` encoded metadata.
 
 @rst
-Metadata produced by the JSONStructCodec consists of a fixed-size
-header followed by canonical JSON bytes and an optional binary payload. This helper
-validates the framing, returning pointers to the embedded JSON and binary sections
-without copying.
+Metadata produced by the JSONStructCodec consists of a fixed-size header followed
+by canonical JSON bytes, a variable number of padding bytes (which should be zero)
+to bring the length to a multiple of 8 bytes for alignment, and finally an optional
+binary payload. This helper validates the framing, returning pointers to the
+embedded JSON and binary sections without copying.
 
 The output pointers reference memory owned by the caller and remain valid only while
 the original metadata buffer is alive.
