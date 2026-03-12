@@ -9803,9 +9803,9 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	
 	////////////
 	// Format 1.0 and later: reading top-level metadata using tskit's `json+struct` codec
-	const char *top_level_json_buffer;
+	char *top_level_json_buffer;
 	tsk_size_t top_level_json_length;
-	uint8_t *top_level_binary_buffer;
+	char *top_level_binary_buffer;
 	tsk_size_t top_level_binary_length;
 	
 	int ret = tsk_json_struct_metadata_get_blob(p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
@@ -9847,7 +9847,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata does not comprise an integral number of rows (binary_row_length == " << binary_row_length << ", top_level_binary_length == " << top_level_binary_length << "); this file cannot be read." << EidosTerminate();
 	
 	// pass information on the binary mutation metadata table back to the caller
-	p_mut_metadata_table.table_buffer = top_level_binary_buffer;
+	p_mut_metadata_table.table_buffer = (uint8_t *)top_level_binary_buffer;
 	p_mut_metadata_table.row_size = binary_row_length;
 	p_mut_metadata_table.row_count = top_level_binary_length / binary_row_length;
 	

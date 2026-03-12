@@ -2613,9 +2613,9 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	if (codec != "json+struct")
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json+struct'; the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
 	
-	const char *top_level_json_buffer;
+	char *top_level_json_buffer;
 	tsk_size_t top_level_json_length;
-	uint8_t *top_level_binary_buffer;
+	char *top_level_binary_buffer;
 	tsk_size_t top_level_binary_length;
 	
 	ret = tsk_json_struct_metadata_get_blob(temp_tables.metadata, temp_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);

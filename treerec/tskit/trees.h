@@ -663,7 +663,7 @@ sequence.
 @endrst
 
 @param self A pointer to a tsk_treeseq_t object.
-@return Returns a pointer to the time units.
+@return Returns a pointer to the null-terminated file uuid.
 */
 const char *tsk_treeseq_get_file_uuid(const tsk_treeseq_t *self);
 
