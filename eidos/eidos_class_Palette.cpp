@@ -140,7 +140,9 @@ void EidosPalette::_GenerateColorCache(void)
 	// the first node defines the start of the color ramp; the next node defines the end of the color ramp
 	float *cache_ptr = cached_colors_;
 	PaletteNode *node_ptr = nodes_.data();
+#if DEBUG
 	PaletteNode *end_node_ptr = node_ptr + nodes_.size();
+#endif
 	PaletteNode *previous_node_ptr = node_ptr++;
 	
 	for (int cache_index = 0; cache_index < cached_colors_count_; ++cache_index)

@@ -64,6 +64,8 @@ std::string RegimeDescription(TraitCalculationRegime p_regime)
 		case TraitCalculationRegime::kHaploidNoCallbacks:					return "haploid, some neutral mutations, no callbacks";
 		case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:	return "haploid, all nonneutral mutations, some callbacks";
 		case TraitCalculationRegime::kHaploidWithCallbacks:					return "haploid, some neutral mutations, some callbacks";
+		default:
+			EIDOS_TERMINATION << "ERROR (MutationRun::MutationRun): (internal error) unrecognized TraitCalculationRegime." << EidosTerminate(nullptr);
 	}
 }
 

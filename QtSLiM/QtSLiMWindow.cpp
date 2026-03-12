@@ -2514,15 +2514,11 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
 
 void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
 {
-    qDebug() << "===== traitChoiceChanged() called!";
-    
     QMenu *traitChoiceMenu = ui->traitChoiceMenuButton->menu();
     
     // Each action in the trait display menu has a QVariant string that identifies the species to which it applies
     QString speciesNameQ = traitChoiceAction->data().toString();
     std::string species_name = speciesNameQ.toStdString();
-    
-    qDebug() << "traitChoiceChanged() called for species" << speciesNameQ << species_name;
     
     if (species_name.length() == 0)
         return;
@@ -2530,15 +2526,9 @@ void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
     Species *displaySpecies = focalDisplaySpecies();
     Species *species = community->SpeciesWithName(species_name);
     
-    if (!species)
-        qDebug() << "species with name" << species_name << "not found!";
-    
     // If a single species is selected, the action should always correspond to that species
     if (displaySpecies && (displaySpecies != species))
-    {
-        qDebug() << "incorrectly built trait bar menu!";
         return;
-    }
     
     auto species_trait_pair = speciesToTrait.find(species->name_);
     std::string focalTraitName = (species_trait_pair == speciesToTrait.end()) ? "fitness" : species_trait_pair->second;
