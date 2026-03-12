@@ -195,6 +195,8 @@ multitrait branch:
 	add SLiMgui support for multitrait display, with a popup menu to choose the display trait, and some additional color scales
 		make chromosome display windows use the focal trait at the time they were created, and show a trait badge; likewise for haplotype display windows
 	change rects drawn by the Plot method rects() to have mitered corners, not bevelled
+	add Palette class to Eidos, to set up color schemes involving ramps and fades
+	add support for Palette in the Plot method image(), for easily plotting spectra and gradient fills
 
 
 version 5.1 (Eidos version 4.1):

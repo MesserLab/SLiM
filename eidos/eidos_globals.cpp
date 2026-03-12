@@ -29,6 +29,7 @@
 #include "eidos_class_Dictionary.h"
 #include "eidos_class_DataFrame.h"
 #include "eidos_class_Image.h"
+#include "eidos_class_Palette.h"
 #include "eidos_class_TestElement.h"
 
 #include <stdlib.h>
@@ -1306,6 +1307,7 @@ void Eidos_WarmUp(void)
 		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_DictionaryRetained,	gEidosStr_Dictionary,	gEidosDictionaryUnretained_Class);
 		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,			gEidosDictionaryRetained_Class);
 		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,				gEidosDictionaryRetained_Class);
+		gEidosPalette_Class =				new EidosPalette_Class(					gEidosStr_Palette,				gEidosDictionaryRetained_Class);
 		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,			gEidosDictionaryRetained_Class);
 		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,		gEidosObject_Class);
 		
@@ -4133,6 +4135,11 @@ const std::string &gEidosStr_floatB = EidosRegisteredString("floatB", gEidosID_f
 const std::string &gEidosStr_floatK = EidosRegisteredString("floatK", gEidosID_floatK);
 const std::string &gEidosStr_write = EidosRegisteredString("write", gEidosID_write);
 
+// strings for EidosPalette
+const std::string &gEidosStr_Palette = EidosRegisteredString("Palette", gEidosID_Palette);
+const std::string &gEidosStr_addNode = EidosRegisteredString("addNode", gEidosID_addNode);
+const std::string &gEidosStr_colorForValue = EidosRegisteredString("colorForValue", gEidosID_colorForValue);
+
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in EidosStringRegistry::RegisterStringForGlobalID() below
 const std::string &gEidosStr_start = EidosRegisteredString("start", gEidosID_start);
@@ -4987,6 +4994,47 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 				*p_red_component = color_table->red / 255.0F;
 				*p_green_component = color_table->green / 255.0F;
 				*p_blue_component = color_table->blue / 255.0F;
+				return;
+			}
+		}
+	}
+	
+	if (p_color_name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color strings may not be zero-length." << EidosTerminate();
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
+}
+
+void Eidos_GetColorComponents(const std::string &p_color_name, double *p_red_component, double *p_green_component, double *p_blue_component)
+{
+	// Colors can be specified either in hex as "#RRGGBB" or as a named color from the list above
+	if ((p_color_name.length() == 7) && (p_color_name[0] == '#'))
+	{
+		try
+		{
+			unsigned long r = stoul(p_color_name.substr(1, 2), nullptr, 16);
+			unsigned long g = stoul(p_color_name.substr(3, 2), nullptr, 16);
+			unsigned long b = stoul(p_color_name.substr(5, 2), nullptr, 16);
+			
+			*p_red_component = r / 255.0;
+			*p_green_component = g / 255.0;
+			*p_blue_component = b / 255.0;
+			return;
+		}
+		catch (...)
+		{
+			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification '" << p_color_name << "' is malformed." << EidosTerminate();
+		}
+	}
+	else if (p_color_name.length() > 0)
+	{
+		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
+		{
+			if (p_color_name == color_table->name)
+			{
+				*p_red_component = color_table->red / 255.0;
+				*p_green_component = color_table->green / 255.0;
+				*p_blue_component = color_table->blue / 255.0;
 				return;
 			}
 		}

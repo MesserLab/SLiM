@@ -263,7 +263,9 @@ EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, c
 #pragma mark Object instantiation
 #pragma mark -
 
-//	(object<Image>$)Image(...)
+//	(object<Image>$)Image(...) : one of...
+//		(object<Image>$)Image(string$ filePath)		// path to PNG file
+//		(object<Image>$)Image(fi gridValues)		// matrix of grid values
 static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);

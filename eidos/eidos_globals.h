@@ -1254,6 +1254,10 @@ extern const std::string &gEidosStr_floatB;
 extern const std::string &gEidosStr_floatK;
 extern const std::string &gEidosStr_write;
 
+extern const std::string &gEidosStr_Palette;
+extern const std::string &gEidosStr_addNode;
+extern const std::string &gEidosStr_colorForValue;
+
 extern const std::string &gEidosStr_start;
 extern const std::string &gEidosStr_end;
 extern const std::string &gEidosStr_weights;
@@ -1385,6 +1389,10 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_floatB,
 	gEidosID_floatK,
 	gEidosID_write,
+	
+	gEidosID_Palette,
+	gEidosID_addNode,
+	gEidosID_colorForValue,
 
 	gEidosID_start,
 	gEidosID_end,
@@ -1409,7 +1417,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 580		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 590		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
@@ -1431,6 +1439,7 @@ typedef struct {
 extern EidosNamedColor gEidosNamedColors[];
 
 void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
+void Eidos_GetColorComponents(const std::string &p_color_name, double *p_red_component, double *p_green_component, double *p_blue_component);
 void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);		// p_string_buffer must have room for 8 chars, including the null

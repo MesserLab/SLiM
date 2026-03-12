@@ -803,6 +803,15 @@
 		98C821B51C7A9B9F00548839 /* shuffle.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C821B11C7A9B9F00548839 /* shuffle.c */; };
 		98C92AED1D0B07A6001C82BC /* individual.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C92AEB1D0B07A6001C82BC /* individual.cpp */; };
 		98C92AEE1D0B07A6001C82BC /* individual.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C92AEB1D0B07A6001C82BC /* individual.cpp */; };
+		98CDFC562F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC572F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC582F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC592F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC5A2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC5B2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC5C2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC5D2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
+		98CDFC5E2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */; };
 		98CEFCEC2AAFABAA00D2C9B4 /* spline2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 98CEFCD42AAFABAA00D2C9B4 /* spline2d.c */; };
 		98CEFCED2AAFABAA00D2C9B4 /* spline2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 98CEFCD42AAFABAA00D2C9B4 /* spline2d.c */; };
 		98CEFCEE2AAFABAA00D2C9B4 /* spline2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 98CEFCD42AAFABAA00D2C9B4 /* spline2d.c */; };
@@ -2138,6 +2147,8 @@
 		98C821B11C7A9B9F00548839 /* shuffle.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shuffle.c; sourceTree = "<group>"; };
 		98C92AEB1D0B07A6001C82BC /* individual.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = individual.cpp; sourceTree = "<group>"; };
 		98C92AEC1D0B07A6001C82BC /* individual.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = individual.h; sourceTree = "<group>"; };
+		98CDFC542F5DC073001F5352 /* eidos_class_Palette.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_class_Palette.h; sourceTree = "<group>"; };
+		98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_class_Palette.cpp; sourceTree = "<group>"; };
 		98CEFCD42AAFABAA00D2C9B4 /* spline2d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = spline2d.c; sourceTree = "<group>"; };
 		98CEFCD52AAFABAA00D2C9B4 /* bilinear.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bilinear.c; sourceTree = "<group>"; };
 		98CEFCD82AAFABAA00D2C9B4 /* gsl_interp2d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gsl_interp2d.h; sourceTree = "<group>"; };
@@ -2453,6 +2464,8 @@
 				9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */,
 				9823568E252FE62F0096A745 /* eidos_class_Image.h */,
 				98235688252FE61A0096A745 /* eidos_class_Image.cpp */,
+				98CDFC542F5DC073001F5352 /* eidos_class_Palette.h */,
+				98CDFC552F5DC07A001F5352 /* eidos_class_Palette.cpp */,
 			);
 			name = "Eidos classes";
 			sourceTree = "<group>";
@@ -3843,6 +3856,7 @@
 				9876E5F81ED5573800FF9762 /* tdist.c in Sources */,
 				98332ADF1FDBC0D800274FF0 /* dgemv.c in Sources */,
 				98C821871C7A983800548839 /* gamma.c in Sources */,
+				98CDFC562F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				982556B11BA8EF760054CB3F /* eidos_globals.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -4002,6 +4016,7 @@
 				98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */,
 				98E9A6AB1A3CD5BB000AD4FC /* subpopulation.cpp in Sources */,
 				98332AF71FDBC3F100274FF0 /* swap.c in Sources */,
+				98CDFC592F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				9807661E244934A800F6CBB4 /* gzlib.c in Sources */,
 				98AC617A24BA34ED0001914C /* species_eidos.cpp in Sources */,
 				98C821341C7A980000548839 /* mt.c in Sources */,
@@ -4181,6 +4196,7 @@
 				986152472B167B4E0083E68F /* elementary.c in Sources */,
 				986151F72B167A580083E68F /* eidos_value.cpp in Sources */,
 				9861521C2B167AED0083E68F /* community.cpp in Sources */,
+				98CDFC5C2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				986152322B167B4E0083E68F /* inline.c in Sources */,
 				986151FA2B167A610083E68F /* eidos_ast_node.cpp in Sources */,
 				986152402B167B4E0083E68F /* accel.c in Sources */,
@@ -4212,6 +4228,7 @@
 				98CEFD812AAFB23E00D2C9B4 /* tridiag.c in Sources */,
 				98332AF91FDBC42700274FF0 /* swap.c in Sources */,
 				98C821A01C7A99B200548839 /* minmax.c in Sources */,
+				98CDFC5A2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				981DC35E28E26F8B000ABE91 /* eidos_functions_matrices.cpp in Sources */,
 				985724D21AD479010047C223 /* eidos_functions.cpp in Sources */,
 				98C821621C7A983800548839 /* math.c in Sources */,
@@ -4430,6 +4447,7 @@
 				98CF5232294A3FC900557BBA /* community_eidos.cpp in Sources */,
 				98EDB4FA2E6538F200CC8798 /* permutation.c in Sources */,
 				98CF5233294A3FC900557BBA /* lodepng.cpp in Sources */,
+				98CDFC5D2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				98CF5234294A3FC900557BBA /* slim_test_other.cpp in Sources */,
 				98CF5235294A3FC900557BBA /* eidos_value.cpp in Sources */,
 				98CF5236294A3FC900557BBA /* fdiv.c in Sources */,
@@ -4567,6 +4585,7 @@
 				98CEFD822AAFB23E00D2C9B4 /* tridiag.c in Sources */,
 				98CF5399294A714200557BBA /* swap.c in Sources */,
 				98CF539A294A714200557BBA /* minmax.c in Sources */,
+				98CDFC582F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				98CF539B294A714200557BBA /* eidos_functions_matrices.cpp in Sources */,
 				98CF539C294A714200557BBA /* eidos_functions.cpp in Sources */,
 				98CF539D294A714200557BBA /* math.c in Sources */,
@@ -4785,6 +4804,7 @@
 				9836868227CD72E900683639 /* community_eidos.cpp in Sources */,
 				98EDB4F92E6538F200CC8798 /* permutation.c in Sources */,
 				98235683252FDCF50096A745 /* lodepng.cpp in Sources */,
+				98CDFC5B2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				9807C0F924BA21E3008CC658 /* slim_test_other.cpp in Sources */,
 				985724A61AD435310047C223 /* eidos_value.cpp in Sources */,
 				98C8215F1C7A983700548839 /* fdiv.c in Sources */,
@@ -5051,6 +5071,7 @@
 				98D7EBE528CE557C00DEAAC4 /* tdist.c in Sources */,
 				98D7EBE628CE557C00DEAAC4 /* dgemv.c in Sources */,
 				98D7EBE728CE557C00DEAAC4 /* gamma.c in Sources */,
+				98CDFC5E2F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				98D7EBE828CE557C00DEAAC4 /* eidos_globals.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -5210,6 +5231,7 @@
 				98D7ED1128CE58FC00DEAAC4 /* slim_globals.cpp in Sources */,
 				98D7ED1228CE58FC00DEAAC4 /* interaction_type.cpp in Sources */,
 				98D7ED1328CE58FC00DEAAC4 /* subpopulation.cpp in Sources */,
+				98CDFC572F5DC07A001F5352 /* eidos_class_Palette.cpp in Sources */,
 				98D7ED1428CE58FC00DEAAC4 /* swap.c in Sources */,
 				98D7ED1528CE58FC00DEAAC4 /* gzlib.c in Sources */,
 				98D7ED1628CE58FC00DEAAC4 /* species_eidos.cpp in Sources */,
