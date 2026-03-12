@@ -5288,8 +5288,10 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         if (height == 0)
             height = 300;
         
-        if ((width < 100) || (height < 100))
-            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window width and height to be at least 100 pixels." << EidosTerminate(nullptr);
+        if (width < 100)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window width to be at least 100 pixels." << EidosTerminate(nullptr);
+        if (height < 10)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window height to be at least 10 pixels." << EidosTerminate(nullptr);
         
         graphWindow = graphWindowWithView(customPlot, width, height);
         createdWindow = true;
@@ -6725,7 +6727,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     QString title = graphView->graphTitle();
     
     graph_window->setWindowTitle(title);
-    graph_window->setMinimumSize(100, 100);
+    graph_window->setMinimumSize(100, 10);
     graph_window->resize(windowWidth, windowHeight);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
