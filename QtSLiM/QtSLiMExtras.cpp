@@ -54,6 +54,7 @@
 #include "QtSLiMAppDelegate.h"
 
 #include "eidos_value.h"
+#include "slim_globals.h"
 
 
 bool QtSLiMIsMostlyOnScreen(QWidget *window)
@@ -241,6 +242,10 @@ QString QtSLiMImagePath(QString baseName, bool highlighted)
 }
 
 
+#if 0
+
+//  old color scale code; the "scalingFactor" parameter used to be 0.8 (and in ancient history it was adjustable)
+
 const double greenBrightness = 0.8;
 
 void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
@@ -344,6 +349,31 @@ void RGBForMultiplicativeTraitValue(double value, float *colorRed, float *colorG
     RGBForFitnessEffect(value, colorRed, colorGreen, colorBlue, scalingFactor);
 }
 
+#else
+
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_IndividualFitness->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_MutationEffect->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForAdditiveTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_AdditiveTrait->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForMultiplicativeTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_MultiplicativeTrait->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+#endif
+
+
 QtSLiMColorScaleWidget::QtSLiMColorScaleWidget(QWidget *p_parent) : QWidget(p_parent),
     fitnessTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
     fitnessEffectTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
@@ -355,43 +385,57 @@ QtSLiMColorScaleWidget::QtSLiMColorScaleWidget(QWidget *p_parent) : QWidget(p_pa
 
 void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
 {
-    // we're designed to fit in a fixed size of 301 x 460; see dispatch_showColorScales()
+    // we're designed to fit in a fixed size of 301 x 474; see dispatch_showColorScales()
     // our width is odd so we have a central pixel of exactly yellow in each stripe
     QPainter painter(this);
-    QRect stripe = QRect(15, 85, 271, 20);
+    QRect stripe = QRect(15, 99, 271, 20);
     const int lineHeight = 85;
     const double labelYOffset = -22;
     const double explanationYOffset = -6;
     static QFont *labelFont = nullptr;
     static QFont *tickFont = nullptr;
     static QFont *noteFont = nullptr;
+    static QFont *noteItalicFont = nullptr;
     
     if (!labelFont)
     {
         labelFont = new QFont();
         tickFont = new QFont();
         noteFont = new QFont();
+        noteItalicFont = new QFont();
 
 #ifdef __linux__
         labelFont->setPointSize(10);
         tickFont->setPointSize(8);
         noteFont->setPointSize(9);
+        noteItalicFont->setPointSize(9);
 #else
         labelFont->setPointSize(12);
         tickFont->setPointSize(10);
         noteFont->setPointSize(11);
+        noteItalicFont->setPointSize(11);
 #endif
         
         labelFont->setBold(true);
-        noteFont->setItalic(true);
+        noteItalicFont->setItalic(true);
     }
     
-    QFontMetricsF fontMetrics(*tickFont);
+    QFontMetricsF fontMetrics_tickFont(*tickFont);
+    QFontMetricsF fontMetrics_noteFont(*noteFont);
+    QFontMetricsF fontMetrics_noteItalicFont(*noteItalicFont);
     
-    // put a note at the top
+    // put a note at the top; this is a bit annoying because we want the word "default" to be in italics
+    qreal width_panelShowsThe = fontMetrics_noteFont.horizontalAdvance("panel shows the ");
+    qreal width_default = fontMetrics_noteItalicFont.horizontalAdvance("default");
+    
     painter.setFont(*noteFont);
     painter.drawText(stripe.x(), 23, "SLiM has four conceptually distinct color scales,");
-    painter.drawText(stripe.x(), 37, "each of which is separately configurable:");
+    painter.drawText(stripe.x(), 37, "each of which is separately configurable.  This");
+    painter.drawText(stripe.x(), 51, "panel shows the ");
+    painter.setFont(*noteItalicFont);
+    painter.drawText(stripe.x() + width_panelShowsThe, 51, "default");
+    painter.setFont(*noteFont);
+    painter.drawText(stripe.x() + width_panelShowsThe + width_default, 51, " color scales:");
     
     for (int iter = 1; iter <= 4; ++iter)
     {
@@ -414,22 +458,21 @@ void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
         if (iter == 3) stripeExplanation = "colors inds/muts on an additive trait's scale";
         if (iter == 4) stripeExplanation = "colors inds/muts on a multiplicative trait's scale";
         
-        painter.setFont(*noteFont);
+        painter.setFont(*noteItalicFont);
         painter.drawText(stripe.x(), stripe.y() + explanationYOffset, stripeExplanation);
         
         // draw the color stripe itself
         for (int x = stripe.left() + 1; x <= (stripe.left() + 1) + (stripe.width() - 3); ++x)
         {
-            const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
             QRect sliver(x, stripe.top() + 1, 1, stripe.height() - 2);
             double sliverFraction = (x - (stripe.left() + 1)) / (stripe.width() - 3.0);
             double value = sliverFraction * 2.0;     // cover values of 0.0 to 2.0
             float r, g, b;
             
-            if (iter == 1) RGBForIndividualFitness(value, &r, &g, &b, scalingFactor);           // 0.0 to 2.0
-            if (iter == 2) RGBForFitnessEffect(value, &r, &g, &b, scalingFactor);               // 0.0 to 2.0
-            if (iter == 3) RGBForAdditiveTraitValue(value - 1.0, &r, &g, &b, scalingFactor);    // -1.0 to 1.0
-            if (iter == 4) RGBForMultiplicativeTraitValue(value, &r, &g, &b, scalingFactor);    // 0.0 to 2.0
+            if (iter == 1) RGBForIndividualFitness(value, &r, &g, &b);           // 0.0 to 2.0
+            if (iter == 2) RGBForFitnessEffect(value, &r, &g, &b);               // 0.0 to 2.0
+            if (iter == 3) RGBForAdditiveTraitValue(value - 1.0, &r, &g, &b);    // -1.0 to 1.0
+            if (iter == 4) RGBForMultiplicativeTraitValue(value, &r, &g, &b);    // 0.0 to 2.0
             
             painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
         }
@@ -452,9 +495,9 @@ void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
             if (iter == 4) tickLabel = multiplicativeTraitTicks[tickIndex];
             
 #if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-            tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+            tickLabelWidth = fontMetrics_tickFont.width(tickLabel);               // deprecated in 5.11
 #else
-            tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+            tickLabelWidth = fontMetrics_tickFont.horizontalAdvance(tickLabel);   // added in Qt 5.11
 #endif
             
             painter.fillRect(tickX, stripe.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
@@ -467,7 +510,7 @@ void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
     }
     
     // add final notes in italic
-    painter.setFont(*noteFont);
+    painter.setFont(*noteItalicFont);
     painter.drawText(stripe.x(), stripe.bottom() + 44, "Yellow is a neutral fitness/effect on all scales.");
     painter.drawText(stripe.x(), stripe.bottom() + 58, "All scales fade to white for very large values.");
     painter.drawText(stripe.x(), stripe.bottom() + 72, "Individual scales are relative to baseline offset.");

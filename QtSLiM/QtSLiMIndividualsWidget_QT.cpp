@@ -52,7 +52,6 @@ void QtSLiMIndividualsWidget::qtDrawIndividualsFromSubpopulationInArea(Subpopula
     //
     
     //QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
     slim_popsize_t subpopSize = subpop->parent_subpop_size_;
     int viewColumns = 0, viewRows = 0;
     Species *displaySpecies = &subpop->species_;
@@ -111,7 +110,7 @@ void QtSLiMIndividualsWidget::qtDrawIndividualsFromSubpopulationInArea(Subpopula
             float colorRed, colorGreen, colorBlue, colorAlpha = 1.0;
             Individual &individual = *subpop->parent_individuals_[static_cast<size_t>(individualArrayIndex)];
             
-            RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+            RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue);
             
             SLIM_GL_PUSHRECT_COLORS();
             SLIM_GL_CHECKBUFFERS_NORECT();
@@ -439,7 +438,6 @@ void QtSLiMIndividualsWidget::qtDrawSpatialIndividualsFromSubpopulationInArea(Su
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     Species *displaySpecies = &subpop->species_;
     Trait *displayTrait = focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
-	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
@@ -544,7 +542,7 @@ void QtSLiMIndividualsWidget::qtDrawSpatialIndividualsFromSubpopulationInArea(Su
 		// dark gray default, for a fitness of NaN; should never happen
 		float colorRed, colorGreen, colorBlue, colorAlpha = 1.0;
         
-        RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+        RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue);
         
         SLIM_GL_PUSHRECT_COLORS();
         SLIM_GL_CHECKBUFFERS_NORECT();

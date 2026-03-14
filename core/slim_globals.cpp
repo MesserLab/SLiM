@@ -39,6 +39,8 @@
 
 #include "mutation_run.h"
 
+#include "eidos_class_Palette.h"
+
 #include <string>
 #include <vector>
 #include <cstdio>
@@ -1751,6 +1753,31 @@ void SLiM_ConfigureContext(void)
 		gEidosContextReservedSymbols.push_back("originalNuc");	// defined in ApplyMutationCallbacks()
 	}
 }
+
+
+// *******************************************************************************************************************
+//
+//    Built-in palettes
+//
+#pragma mark -
+#pragma mark Built-in palettes
+#pragma mark -
+
+EidosPalette *gEidos_Palette_IndividualFitness = new EidosPalette(std::vector<double>{-0.25, 0.375, 1.0, 2.25, 10.0},
+																  std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
+																  PaletteTransition::kLinear, PaletteBlend::kRGB);
+
+EidosPalette *gEidos_Palette_MutationEffect = new EidosPalette(std::vector<double>{-0.25, 0.375, 0.99999, 1.0, 1.00001, 1.625, 2.25, 10.0},
+															   std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+															   PaletteTransition::kLinear, PaletteBlend::kRGB);
+
+EidosPalette *gEidos_Palette_AdditiveTrait = new EidosPalette(std::vector<double>{-1.25, -0.625, -0.00001, 0.0, 0.00001, 0.625, 1.25, 9.0},
+															  std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+															  PaletteTransition::kLinear, PaletteBlend::kRGB);
+
+EidosPalette *gEidos_Palette_MultiplicativeTrait = new EidosPalette(std::vector<double>{-0.25, 0.375, 0.99999, 1.0, 1.00001, 1.625, 2.25, 10.0},
+																	std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+																	PaletteTransition::kLinear, PaletteBlend::kRGB);
 
 
 // *************************************

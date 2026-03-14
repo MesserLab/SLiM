@@ -78,6 +78,34 @@ EidosPalette::EidosPalette(double value, double r, double g, double b)
 	nodes_.emplace_back(value, r, g, b, PaletteTransition::kUndefined, PaletteBlend::kUndefined);
 }
 
+EidosPalette::EidosPalette(std::vector<double> &&values, std::vector<std::string> &&colors, PaletteTransition transition, PaletteBlend blend)
+{
+	// this constructor is used internally for constructing the default SLiMgui palettes
+	int value_count = (int)values.size();
+	
+	for (int value_index = 0; value_index < value_count; value_index++)
+	{
+		double value = values[value_index];
+		const std::string &color_string = colors[value_index];
+		double r, g, b;
+		
+		Eidos_GetColorComponents(color_string, &r, &g, &b);
+		
+		if (value_index == 0)
+		{
+			range_start_ = value;
+			range_end_ = value;
+			
+			// emplace the first node directly, since AddNode() would bounds-check us
+			nodes_.emplace_back(value, r, g, b, PaletteTransition::kUndefined, PaletteBlend::kUndefined);
+		}
+		else
+		{
+			AddNode(value, r, g, b, transition, blend);
+		}
+	}
+}
+
 EidosPalette::~EidosPalette(void)
 {
 	if (cached_colors_)
@@ -120,6 +148,207 @@ void EidosPalette::AddNode(double value, double r, double g, double b, PaletteTr
 	_InvalidateColorCache();
 }
 
+void EidosPalette::_CalculateColorForValueGivenNodes(double value, float *p_r, float *p_g, float *p_b, PaletteNode *node_ptr, PaletteNode *previous_node_ptr)
+{
+	// calculate the raw fraction in [0, 1] where the input value lies between the two nodes
+	double ramp_start = (double)previous_node_ptr->value_;
+	double ramp_end = (double)node_ptr->value_;
+	double raw_fraction = ((double)value - ramp_start) / (ramp_end - ramp_start);
+	
+	// calculate the transformed fraction in [0, 1], using the chosen transition
+	double transformed_fraction;
+	
+	switch (node_ptr->transition_)
+	{
+		case PaletteTransition::kStep:
+		{
+			// step from 0.0 to 1.0 at the midpoint between the nodes
+			transformed_fraction = (raw_fraction < 0.5) ? 0.0 : 1.0;
+			break;
+		}
+		case PaletteTransition::kLinear:
+		{
+			// linear from 0.0 to 1.0 between the nodes
+			transformed_fraction = raw_fraction;
+			break;
+		}
+			
+			// sigmoid curves from 0.0 to 1.0 between the nodes
+			// sigmoid is gradual at the start and end, more rapid in the center (like logistic)
+			// inverse sigmoid is rapid at the start and end, slower in the center (like probit/logit)
+			// see https://blog.demofox.org/2012/09/24/bias-and-gain-are-your-friend/ for this math
+		case PaletteTransition::kSigmoid:
+		{
+			const double gain = 0.25;
+			
+			if (raw_fraction < 0.5)
+			{
+				double x = raw_fraction * 2.0;
+				double bias = gain;
+				transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0);
+			}
+			else
+			{
+				double x = raw_fraction * 2.0 - 1.0;
+				double bias = 1.0 - gain;
+				transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0 + 0.5);
+			}
+			break;
+		}
+		case PaletteTransition::kInverseSigmoid:
+		{
+			const double gain = 0.75;
+			
+			if (raw_fraction < 0.5)
+			{
+				double x = raw_fraction * 2.0;
+				double bias = gain;
+				transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0);
+			}
+			else
+			{
+				double x = raw_fraction * 2.0 - 1.0;
+				double bias = 1.0 - gain;
+				transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0 + 0.5);
+			}
+			break;
+		}
+			
+			// "ease in" means the slope is more gradual at the beginning
+			// "ease out" means the slope is more gradual at the end
+			// see https://github.com/maptiler/maptiler-sdk-js/blob/main/colorramp.md
+		case PaletteTransition::kEaseInSqrt:
+		{
+			transformed_fraction = 1.0 - sqrt(1.0 - raw_fraction);
+			break;
+		}
+		case PaletteTransition::kEaseInSquare:
+		{
+			transformed_fraction = raw_fraction * raw_fraction;
+			break;
+		}
+		case PaletteTransition::kEaseOutSqrt:
+		{
+			transformed_fraction = std::sqrt(raw_fraction);
+			break;
+		}
+		case PaletteTransition::kEaseOutSquare:
+		{
+			transformed_fraction = 1.0 - (1.0 - raw_fraction) * (1.0 - raw_fraction);
+			break;
+		}
+			
+		default:
+			EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) unrecognized PaletteTransition value." << EidosTerminate(nullptr);
+	}
+	
+	// calculate a mix of the colors of the two nodes
+	PaletteBlend blend = node_ptr->blend_;
+	
+	if (blend == PaletteBlend::kRGB)
+	{
+		// simple weighted average in RGB space
+		*p_r = (float)(node_ptr->r_ * transformed_fraction + previous_node_ptr->r_ * (1.0 - transformed_fraction));
+		*p_g = (float)(node_ptr->g_ * transformed_fraction + previous_node_ptr->g_ * (1.0 - transformed_fraction));
+		*p_b = (float)(node_ptr->b_ * transformed_fraction + previous_node_ptr->b_ * (1.0 - transformed_fraction));
+	}
+	else if ((blend == PaletteBlend::kHSVLongest) ||
+			 (blend == PaletteBlend::kHSVShortest) ||
+			 (blend == PaletteBlend::kHSVClockwise) ||
+			 (blend == PaletteBlend::kHSVCounterclockwise))
+	{
+		// blends in HSV space
+		double h1 = previous_node_ptr->h_, s1 = previous_node_ptr->s_, v1 = previous_node_ptr->v_;
+		double h2 = node_ptr->h_, s2 = node_ptr->s_, v2 = node_ptr->v_;
+		bool clockwise;
+		
+		if (h1 != h2)
+		{
+			switch (blend)
+			{
+				case PaletteBlend::kHSVLongest:
+				{
+					// choose the longer option, clockwise or counterclockwise
+					if (h2 > h1)
+						clockwise = (h2 - h1 > 0.5) ? false : true;
+					else
+						clockwise = (h1 - h2 > 0.5) ? true : false;
+					break;
+				}
+				case PaletteBlend::kHSVShortest:
+				{
+					// choose the shorter option, clockwise or counterclockwise
+					if (h2 > h1)
+						clockwise = (h2 - h1 > 0.5) ? true : false;
+					else
+						clockwise = (h1 - h2 > 0.5) ? false : true;
+					break;
+				}
+				case PaletteBlend::kHSVClockwise:
+				{
+					clockwise = true;
+					break;
+				}
+				case PaletteBlend::kHSVCounterclockwise:
+				{
+					clockwise = false;
+					break;
+				}
+					
+				default:
+					EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) unrecognized PaletteBlend value." << EidosTerminate(nullptr);
+			}
+			
+			if (clockwise && (h2 > h1))
+				h1 += 1.0;
+			if (!clockwise && (h1 > h2))
+				h2 += 1.0;
+		}
+		
+		// now interpolate in HSV space, handle the periodic boundary in hue, and convert to RGB at the end
+		double h = h2 * transformed_fraction + h1 * (1.0 - transformed_fraction);
+		double s = s2 * transformed_fraction + s1 * (1.0 - transformed_fraction);
+		double v = v2 * transformed_fraction + v1 * (1.0 - transformed_fraction);
+		
+		if (h > 1.0)
+			h -= 1.0;
+		
+		double r, g, b;
+		
+		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
+		
+		*p_r = (float)r;
+		*p_g = (float)g;
+		*p_b = (float)b;
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) unrecognized PaletteBlend value." << EidosTerminate(nullptr);
+	}
+}
+
+void EidosPalette::CalculateColorForValue(double value, float *r, float *g, float *b)
+{
+	PaletteNode *node_ptr = nodes_.data();
+#if DEBUG
+	PaletteNode *end_node_ptr = node_ptr + nodes_.size();
+#endif
+	PaletteNode *previous_node_ptr = node_ptr++;
+	
+	// advance to the correct pair of palette nodes, between which the input value lies
+	while (value > node_ptr->value_)
+	{
+		previous_node_ptr = node_ptr++;
+		
+#if DEBUG
+		if (node_ptr >= end_node_ptr)
+			EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) ran out of palette nodes." << EidosTerminate(nullptr);
+#endif
+	}
+	
+	_CalculateColorForValueGivenNodes(value, r, g, b, node_ptr, previous_node_ptr);
+}
+
 void EidosPalette::_GenerateColorCache(void)
 {
 	// this generates a cache of generated colors at a high enough resolution that interpolation is not needed
@@ -128,7 +357,24 @@ void EidosPalette::_GenerateColorCache(void)
 		EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) _GenerateColorCache() called with a cache that is not invalid." << EidosTerminate();
 #endif
 	
-	cached_colors_count_ = 4096;	// this makes a 48K table, which doesn't seem unreasonable...
+	// This makes a ~48K table, which doesn't seem unreasonable.  The specific number was chosen from the
+	// candidates generated by this R script:
+	//
+	//	for (n in 2:5000)
+	//	{
+	//		s = seq(from=-0.25, to=10.0, length.out=n)
+	//		if (1.0 %in% s)
+	//		print(n)
+	//	}
+	//
+	// The motivation is to get a cache size where 1.0 falls exactly at a cache slot, for built-in palettes like
+	// gEidos_Palette_IndividualFitness (and 0.0 for gEidos_Palette_AdditiveTrait).  That way the cache contains
+	// yellow at the position that 1.0 (or 0.0) would land at; with a different cache size, the value that produces
+	// yellow might be hit a cache slot exactly, and so neutral fitness might not be displayed as yellow.  So
+	// this is a bit of a hack that is specific to the built-in palettes we have right now, but I don't see a
+	// better solution to the problem of wanting a VERY narrow yellow stripe in the palette that is visible.
+	
+	cached_colors_count_ = 4060;
 	
 	if (!cached_colors_)
 		cached_colors_ = (float *)malloc(cached_colors_count_ * sizeof(float) * 3);
@@ -161,181 +407,10 @@ void EidosPalette::_GenerateColorCache(void)
 #endif
 		}
 		
-		// calculate the raw fraction in [0, 1] where the input value lies between the two nodes
-		double ramp_start = (double)previous_node_ptr->value_;
-		double ramp_end = (double)node_ptr->value_;
-		double raw_fraction = ((double)value - ramp_start) / (ramp_end - ramp_start);
+		_CalculateColorForValueGivenNodes(value, cache_ptr, cache_ptr + 1, cache_ptr + 2, node_ptr, previous_node_ptr);
+		cache_ptr += 3;
 		
-		// calculate the transformed fraction in [0, 1], using the chosen transition
-		double transformed_fraction;
-		
-		switch (node_ptr->transition_)
-		{
-			case PaletteTransition::kStep:
-			{
-				// step from 0.0 to 1.0 at the midpoint between the nodes
-				transformed_fraction = (raw_fraction < 0.5) ? 0.0 : 1.0;
-				break;
-			}
-			case PaletteTransition::kLinear:
-			{
-				// linear from 0.0 to 1.0 between the nodes
-				transformed_fraction = raw_fraction;
-				break;
-			}
-				
-				// sigmoid curves from 0.0 to 1.0 between the nodes
-				// sigmoid is gradual at the start and end, more rapid in the center (like logistic)
-				// inverse sigmoid is rapid at the start and end, slower in the center (like probit/logit)
-				// see https://blog.demofox.org/2012/09/24/bias-and-gain-are-your-friend/ for this math
-			case PaletteTransition::kSigmoid:
-			{
-				const double gain = 0.25;
-				
-				if (raw_fraction < 0.5)
-				{
-					double x = raw_fraction * 2.0;
-					double bias = gain;
-					transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0);
-				}
-				else
-				{
-					double x = raw_fraction * 2.0 - 1.0;
-					double bias = 1.0 - gain;
-					transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0 + 0.5);
-				}
-				break;
-			}
-			case PaletteTransition::kInverseSigmoid:
-			{
-				const double gain = 0.75;
-				
-				if (raw_fraction < 0.5)
-				{
-					double x = raw_fraction * 2.0;
-					double bias = gain;
-					transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0);
-				}
-				else
-				{
-					double x = raw_fraction * 2.0 - 1.0;
-					double bias = 1.0 - gain;
-					transformed_fraction = ((x / ((((1.0 / bias) - 2.0) * (1.0 - x)) + 1.0)) / 2.0 + 0.5);
-				}
-				break;
-			}
-				
-				// "ease in" means the slope is more gradual at the beginning
-				// "ease out" means the slope is more gradual at the end
-				// see https://github.com/maptiler/maptiler-sdk-js/blob/main/colorramp.md
-			case PaletteTransition::kEaseInSqrt:
-			{
-				transformed_fraction = 1.0 - sqrt(1.0 - raw_fraction);
-				break;
-			}
-			case PaletteTransition::kEaseInSquare:
-			{
-				transformed_fraction = raw_fraction * raw_fraction;
-				break;
-			}
-			case PaletteTransition::kEaseOutSqrt:
-			{
-				transformed_fraction = std::sqrt(raw_fraction);
-				break;
-			}
-			case PaletteTransition::kEaseOutSquare:
-			{
-				transformed_fraction = 1.0 - (1.0 - raw_fraction) * (1.0 - raw_fraction);
-				break;
-			}
-				
-			default:
-				EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) unrecognized PaletteTransition value." << EidosTerminate(nullptr);
-		}
-		
-		// calculate a mix of the colors of the two nodes
-		PaletteBlend blend = node_ptr->blend_;
-		
-		if (blend == PaletteBlend::kRGB)
-		{
-			// simple weighted average in RGB space
-			*(cache_ptr++) = (float)(node_ptr->r_ * transformed_fraction + previous_node_ptr->r_ * (1.0 - transformed_fraction));
-			*(cache_ptr++) = (float)(node_ptr->g_ * transformed_fraction + previous_node_ptr->g_ * (1.0 - transformed_fraction));
-			*(cache_ptr++) = (float)(node_ptr->b_ * transformed_fraction + previous_node_ptr->b_ * (1.0 - transformed_fraction));
-		}
-		else if ((blend == PaletteBlend::kHSVLongest) ||
-				 (blend == PaletteBlend::kHSVShortest) ||
-				 (blend == PaletteBlend::kHSVClockwise) ||
-				 (blend == PaletteBlend::kHSVCounterclockwise))
-		{
-			// blends in HSV space
-			double h1 = previous_node_ptr->h_, s1 = previous_node_ptr->s_, v1 = previous_node_ptr->v_;
-			double h2 = node_ptr->h_, s2 = node_ptr->s_, v2 = node_ptr->v_;
-			bool clockwise;
-			
-			if (h1 != h2)
-			{
-				switch (blend)
-				{
-					case PaletteBlend::kHSVLongest:
-					{
-						// choose the longer option, clockwise or counterclockwise
-						if (h2 > h1)
-							clockwise = (h2 - h1 > 0.5) ? false : true;
-						else
-							clockwise = (h1 - h2 > 0.5) ? true : false;
-						break;
-					}
-					case PaletteBlend::kHSVShortest:
-					{
-						// choose the shorter option, clockwise or counterclockwise
-						if (h2 > h1)
-							clockwise = (h2 - h1 > 0.5) ? true : false;
-						else
-							clockwise = (h1 - h2 > 0.5) ? false : true;
-						break;
-					}
-					case PaletteBlend::kHSVClockwise:
-					{
-						clockwise = true;
-						break;
-					}
-					case PaletteBlend::kHSVCounterclockwise:
-					{
-						clockwise = false;
-						break;
-					}
-						
-					default:
-						EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) unrecognized PaletteBlend value." << EidosTerminate(nullptr);
-				}
-				
-				if (clockwise && (h2 > h1))
-					h1 += 1.0;
-				if (!clockwise && (h1 > h2))
-					h2 += 1.0;
-			}
-			
-			// now interpolate in HSV space, handle the periodic boundary in hue, and convert to RGB at the end
-			double h = h2 * transformed_fraction + h1 * (1.0 - transformed_fraction);
-			double s = s2 * transformed_fraction + s1 * (1.0 - transformed_fraction);
-			double v = v2 * transformed_fraction + v1 * (1.0 - transformed_fraction);
-			
-			if (h > 1.0)
-				h -= 1.0;
-			
-			double r, g, b;
-			
-			Eidos_HSV2RGB(h, s, v, &r, &g, &b);
-			
-			*(cache_ptr++) = (float)r;
-			*(cache_ptr++) = (float)g;
-			*(cache_ptr++) = (float)b;
-		}
-		else
-		{
-			EIDOS_TERMINATION << "ERROR (EidosPalette::_GenerateColorCache): (internal error) unrecognized PaletteBlend value." << EidosTerminate(nullptr);
-		}
+		//std::cout << "_GenerateColorCache() : cache_index " << cache_index << " of " << cached_colors_count_ << ", value " << value << " mapped to RGB {" << *(cache_ptr - 3) << ", " << *(cache_ptr - 2) << ", " << *(cache_ptr - 1) << "}" << std::endl;
 	}
 }
 
@@ -664,36 +739,52 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		int color_count = color_value->Count();
 		
 		// transition
-		int transition_count = transition_value->Count();
 		bool transition_singleton;
-		
-		if (transition_count == 1)
-			transition_singleton = true;
-		else if (transition_count == value_count - 1)
-			transition_singleton = false;
-		else
-			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires transition to be singleton, or one less than the length of value." << EidosTerminate();
-		
 		PaletteTransition singleton_transition = PaletteTransition::kUndefined;
 		
-		if (transition_singleton)
-			singleton_transition = PaletteTransitionFromString(((EidosValue_String *)transition_value)->StringRefAtIndex_NOCAST(0, nullptr));
+		if (!transition_value)
+		{
+			transition_singleton = true;
+			singleton_transition = PaletteTransition::kLinear;
+		}
+		else
+		{
+			int transition_count = transition_value->Count();
+			
+			if (transition_count == 1)
+				transition_singleton = true;
+			else if (transition_count == value_count - 1)
+				transition_singleton = false;
+			else
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires transition to be singleton, or one less than the length of value." << EidosTerminate();
+			
+			if (transition_singleton)
+				singleton_transition = PaletteTransitionFromString(((EidosValue_String *)transition_value)->StringRefAtIndex_NOCAST(0, nullptr));
+		}
 		
 		// blend
-		int blend_count = blend_value->Count();
 		bool blend_singleton;
-		
-		if (blend_count == 1)
-			blend_singleton = true;
-		else if (blend_count == value_count - 1)
-			blend_singleton = false;
-		else
-			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires blend to be singleton, or one less than the length of value." << EidosTerminate();
-		
 		PaletteBlend singleton_blend = PaletteBlend::kUndefined;
 		
-		if (blend_singleton)
-			singleton_blend = PaletteBlendFromString(((EidosValue_String *)blend_value)->StringRefAtIndex_NOCAST(0, nullptr));
+		if (!blend_value)
+		{
+			blend_singleton = true;
+			singleton_blend = PaletteBlend::kHSVShortest;
+		}
+		else
+		{
+			int blend_count = blend_value->Count();
+			
+			if (blend_count == 1)
+				blend_singleton = true;
+			else if (blend_count == value_count - 1)
+				blend_singleton = false;
+			else
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires blend to be singleton, or one less than the length of value." << EidosTerminate();
+			
+			if (blend_singleton)
+				singleton_blend = PaletteBlendFromString(((EidosValue_String *)blend_value)->StringRefAtIndex_NOCAST(0, nullptr));
+		}
 		
 		if ((color_value->Type() == EidosValueType::kValueString) && (color_count == value_count))
 		{

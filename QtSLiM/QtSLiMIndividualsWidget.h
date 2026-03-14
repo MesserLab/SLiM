@@ -87,7 +87,7 @@ protected:
 #endif
     
     Trait *focalTraitForSpecies(Species *species);
-    void RGBForIndividual(Trait *displayTrait, Individual &individual, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+    void RGBForIndividual(Trait *displayTrait, Individual &individual, float *colorRed, float *colorGreen, float *colorBlue);
     
     bool canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations);
     PopulationViewDisplayMode displayModeForSubpopulation(Subpopulation *subpopulation);

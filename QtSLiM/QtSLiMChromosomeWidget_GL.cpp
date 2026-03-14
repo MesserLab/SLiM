@@ -169,7 +169,6 @@ void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, Chromoso
 
 void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange)
 {
-	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     Species *displaySpecies = &chromosome->species_;
 	Population &pop = displaySpecies->population_;
 	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;            // this includes only haplosomes in the selected subpopulations
@@ -226,7 +225,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
             {
                 MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                 
-                RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue);
             }
             
             int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
@@ -312,7 +311,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 						}
 						else
 						{
-							RGBForFitnessEffect(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							RGBForFitnessEffect(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue);
 						}
 						
 						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
@@ -372,7 +371,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
                         
                         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                         
-                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -426,7 +425,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 						const Mutation *mutation = mutationBuffer[binIndex];
                         MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
                         
-                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -450,7 +449,6 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Chromosome *ch
 
 void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange)
 {
-    double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     Species *displaySpecies = &chromosome->species_;
 	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
@@ -496,7 +494,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					{
                         SubstitutionTraitInfo *sub_trait_info = substitution->trait_info_;
                         
-                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue);
 					}
 				}
 				
@@ -577,7 +575,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					{
                         SubstitutionTraitInfo *sub_trait_info = substitution->trait_info_;
                         
-                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue);
 					}
 					
                     mutationTickRect.setX(interiorRect.x() + binIndex);

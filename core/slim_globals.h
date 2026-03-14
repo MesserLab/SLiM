@@ -32,6 +32,7 @@
 
 #include "eidos_globals.h"
 #include "eidos_value.h"
+#include "eidos_class_Palette.h"
 
 class MutationType;
 class Community;
@@ -675,6 +676,20 @@ enum class BoundaryCondition : char {
 // these indices do not necessarily correspond to trait indices; when used for haploid caches (for
 // haploid chromosomes), they do correspond one-to-one with trait indices.
 enum class MutRunInternalCacheIndex : slim_trait_index_t {};
+
+
+// *******************************************************************************************************************
+//
+//    Built-in palettes
+//
+#pragma mark -
+#pragma mark Built-in palettes
+#pragma mark -
+    
+extern EidosPalette *gEidos_Palette_IndividualFitness;
+extern EidosPalette *gEidos_Palette_MutationEffect;
+extern EidosPalette *gEidos_Palette_AdditiveTrait;
+extern EidosPalette *gEidos_Palette_MultiplicativeTrait;
 
 
 // *******************************************************************************************************************

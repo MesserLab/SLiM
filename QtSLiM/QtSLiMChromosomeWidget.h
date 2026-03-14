@@ -163,8 +163,8 @@ public:
     static double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_);
     static double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type);
     static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info);
-    static void RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-    static void RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+    static void RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue);
+    static void RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue);
     
     void setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget);
     

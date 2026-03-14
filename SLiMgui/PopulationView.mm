@@ -99,7 +99,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
 	//
 	
-	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	int squareSize, viewColumns = 0, viewRows = 0;
 	
@@ -189,7 +188,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			*(vertices++) = top;
 			
 			// dark gray default, for a fitness of NaN; should never happen
-			float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+			float colorRed = 0.6f, colorGreen = 0.6f, colorBlue = 0.6f, colorAlpha = 1.0;
 			Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 			
 			if (Individual::s_any_individual_color_set_ && individual.color_set_)
@@ -205,7 +204,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 				double fitness = individual.cached_unscaled_fitness_;
 				
 				if (!std::isnan(fitness))
-					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					RGBForIndividualFitness(fitness, &colorRed, &colorGreen, &colorBlue);
 			}
 			
 			for (int j = 0; j < 4; ++j)
@@ -1103,7 +1102,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
@@ -1253,7 +1251,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		*(vertices++) = top;
 		
 		// dark gray default, for a fitness of NaN; should never happen
-		float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+		float colorRed = 0.6f, colorGreen = 0.6f, colorBlue = 0.6f, colorAlpha = 1.0;
 		
 		if (Individual::s_any_individual_color_set_ && individual.color_set_)
 		{
@@ -1268,7 +1266,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			double fitness = individual.cached_unscaled_fitness_;
 			
 			if (!std::isnan(fitness))
-				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				RGBForIndividualFitness(fitness, &colorRed, &colorGreen, &colorBlue);
 		}
 		
 		for (int j = 0; j < 4; ++j)

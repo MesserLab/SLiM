@@ -93,6 +93,8 @@ protected:
 	int cached_colors_count_ = -1;
 	float *cached_colors_ = nullptr;	// OWNED POINTER; float is used for final values since the cache is big
 	
+	void _CalculateColorForValueGivenNodes(double value, float *r, float *g, float *b, PaletteNode *node_ptr, PaletteNode *previous_node_ptr);
+	
 	void _GenerateColorCache(void);
 	void _InvalidateColorCache(void);
 	inline __attribute__((always_inline)) bool _ColorCacheIsInvalid(void) { return (cached_colors_count_ == -1); }
@@ -108,12 +110,33 @@ public:
 	EidosPalette& operator=(const EidosPalette&) = delete;	// no copying
 	
 	EidosPalette(double value, double r, double g, double b);
+	EidosPalette(std::vector<double> &&values, std::vector<std::string> &&colors, PaletteTransition transition, PaletteBlend blend);
 	virtual ~EidosPalette(void) override;
 	
 	void AddNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend);
 	
 	inline __attribute__((always_inline)) void Range(double *start, double *end) { *start = range_start_; *end = range_end_; }
 	
+	void CalculateColorForValue(double value, float *r, float *g, float *b);	// doesn't use the cache; slower
+	
+	inline __attribute__((always_inline)) void ColorForValue(double value, float *r, float *g, float *b)
+	{
+		if (_ColorCacheIsInvalid())
+			_GenerateColorCache();
+		
+		int color_index;
+		
+		if (value <= range_start_)
+			color_index = 0;
+		else if (value >= range_end_)
+			color_index = cached_colors_count_ - 1;
+		else
+			color_index = (int)std::round((cached_colors_count_ - 1) * (value - range_start_) / (range_end_ - range_start_));
+        
+		*r = cached_colors_[color_index * 3 + 0];
+		*g = cached_colors_[color_index * 3 + 1];
+		*b = cached_colors_[color_index * 3 + 2];
+	}
 	inline __attribute__((always_inline)) void ColorForValue(double value, double *r, double *g, double *b)
 	{
 		if (_ColorCacheIsInvalid())
@@ -124,10 +147,10 @@ public:
 		if (value <= range_start_)
 			color_index = 0;
 		else if (value >= range_end_)
-			color_index = cached_colors_count_ = -1;
+			color_index = cached_colors_count_ - 1;
 		else
-			color_index = (int)std::round((cached_colors_count_ - 1) * (value - range_start_ / (range_end_ - range_start_)));
-		
+            color_index = (int)std::round((cached_colors_count_ - 1) * (value - range_start_) / (range_end_ - range_start_));
+        
 		*r = (double)cached_colors_[color_index * 3 + 0];
 		*g = (double)cached_colors_[color_index * 3 + 1];
 		*b = (double)cached_colors_[color_index * 3 + 2];

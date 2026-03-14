@@ -1381,7 +1381,7 @@ void QtSLiMAppDelegate::dispatch_showColorScales(void)
     // windows shown by globalImageWindowWithPath(), this window is drawn dynamically by a custom widget.
     // This code is based on the code in globalImageWindowWithPath(), with that custom widget.
     int window_width = round(301);
-    int window_height = round(460);
+    int window_height = round(474);
     
     QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
     

@@ -352,7 +352,7 @@ Trait *QtSLiMIndividualsWidget::focalTraitForSpecies(Species *species)
     return controller->focalTraitForSpecies(species);
 }
 
-void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &individual, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &individual, float *colorRed, float *colorGreen, float *colorBlue)
 {
     if (Individual::s_any_individual_color_set_ && individual.color_set_)
     {
@@ -375,7 +375,7 @@ void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &
         }
         else
         {
-            RGBForIndividualFitness(fitness, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForIndividualFitness(fitness, colorRed, colorGreen, colorBlue);
         }
     }
     else
@@ -391,9 +391,9 @@ void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &
             *colorBlue = 0.6f;
         }
         else if (displayTrait->Type() == TraitType::kMultiplicative)
-            RGBForMultiplicativeTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForMultiplicativeTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue);
         else
-            RGBForAdditiveTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForAdditiveTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue);
     }
 }
 

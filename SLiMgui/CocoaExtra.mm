@@ -78,9 +78,13 @@ bool SLiM_AmIBeingDebugged(void)
 @end
 
 
+#if 0
+
+//  old color scale code; the "scalingFactor" parameter used to be 0.8 (and in ancient history it was adjustable)
+
 const float greenBrightness = 0.8f;
 
-void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue)
 {
 	// apply the scaling factor
 	value = (value - 1.0) * scalingFactor + 1.0;
@@ -115,12 +119,12 @@ void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colo
 	}
 }
 
-void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue)
 {
 	// apply a scaling factor; this could be user-adjustible since different models have different relevant fitness ranges
 	value *= scalingFactor;
 	
-	// and add 1, just so we can re-use the same code as in RGBForFitness()
+	// and add 1, just so we can re-use the same code as in RGBForIndividualFitness()
 	value += 1.0;
 	
 	if (value <= 0.0)
@@ -174,6 +178,19 @@ void RGBForEffectSize(double value, float *colorRed, float *colorGreen, float *c
 	}
 }
 
+#else
+
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+	gEidos_Palette_IndividualFitness->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+	gEidos_Palette_MutationEffect->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+#endif
 
 @implementation SLiMMenuButton
 

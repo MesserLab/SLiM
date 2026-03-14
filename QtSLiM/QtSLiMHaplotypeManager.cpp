@@ -488,7 +488,6 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
         return;
     
     Population &population = graphSpecies->population_;
-	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	const MutationIndex *reg_end_ptr = registry + registry_size;
@@ -538,7 +537,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		}
 		else
 		{
-			QtSLiMChromosomeWidget::RGBForMutation(trait, graphSpecies, mut_trait_info, &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
+			QtSLiMChromosomeWidget::RGBForMutation(trait, graphSpecies, mut_trait_info, &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_);
 		}
         
         if (trait_index >= 0)

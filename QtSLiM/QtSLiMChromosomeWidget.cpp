@@ -825,14 +825,14 @@ bool QtSLiMChromosomeWidget::MutationFitnessEffectMatchesMutType(Species *displa
     return true;
 }
 
-void QtSLiMChromosomeWidget::RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void QtSLiMChromosomeWidget::RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue)
 {
     if (displayTrait == nullptr)
     {
         // display on the "fitness" scale
         double mut_fitness = MutationFitnessEffect(displaySpecies, mut_trait_info);
         
-        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue, scalingFactor);
+        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue);
     }
     else
     {
@@ -840,20 +840,20 @@ void QtSLiMChromosomeWidget::RGBForMutation(Trait *displayTrait, Species *displa
         double mut_effect = (double)mut_trait_info[trait_index].effect_size_;
         
         if (displayTrait->Type() == TraitType::kMultiplicative)
-            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
         else
-            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
     }
 }
 
-void QtSLiMChromosomeWidget::RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void QtSLiMChromosomeWidget::RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue)
 {
     if (displayTrait == nullptr)
     {
         // display on the "fitness" scale
         double mut_fitness = SubstitutionFitnessEffect(displaySpecies, sub_trait_info);
         
-        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue, scalingFactor);
+        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue);
     }
     else
     {
@@ -861,9 +861,9 @@ void QtSLiMChromosomeWidget::RGBForSubstitution(Trait *displayTrait, Species *di
         double mut_effect = (double)sub_trait_info[trait_index].effect_size_;
         
         if (displayTrait->Type() == TraitType::kMultiplicative)
-            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
         else
-            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue, scalingFactor);
+            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
     }
 }
 
