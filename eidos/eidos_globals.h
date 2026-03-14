@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -46,6 +46,13 @@
 // On other platforms we use std::chrono::steady_clock
 #include <chrono>
 #define CHRONO_PROFILING
+#endif
+
+//
+//	Turn on warnings that we want on in Eidos and SLiM code, but not in other code such as the GSL
+//
+#if (!defined(EIDOS_GUI) && !defined(SLIMGUI))
+#pragma GCC diagnostic warning "-Wdouble-promotion"
 #endif
 
 #include "eidos_openmp.h"
@@ -91,14 +98,16 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 // Change this define to 1 to enable Robin Hood Hashing, or change it to 0 to disable it
 // Note that you have a choice of robin_hood::unordered_node_map or robin_hood::unordered_flat_map
 // With robin_hood::unordered_flat_map, references to elements are not stable, but it is probably a bit faster
-// STD_UNORDERED_MAP_HASHING is the reverse flag; this just makes it easy to get an error message if this header
+// STD_UNORDERED_MAP_HASHING() is the reverse flag; this just makes it easy to get an error message if this header
 // is not included, following a standard usage pattern, since then neither of these defines will exist.
-#define EIDOS_ROBIN_HOOD_HASHING	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_ROBIN_HOOD_HASHING()	1
 
-#if EIDOS_ROBIN_HOOD_HASHING
-#define STD_UNORDERED_MAP_HASHING	0
+#if EIDOS_ROBIN_HOOD_HASHING()
+#define STD_UNORDERED_MAP_HASHING()	0
 #else
-#define STD_UNORDERED_MAP_HASHING	1
+#define STD_UNORDERED_MAP_HASHING()	1
 #endif
 
 
@@ -226,22 +235,26 @@ extern bool eidos_do_memory_checks;
 // To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
 // keep Valgrind from getting confused.  Use a DEBUG build so it is symbolicated (-g) and minimally optimized (-Og),
 // or add those flags to CMAKE_C_FLAGS_RELEASE and CMAKE_CXX_FLAGS_RELEASE in CMakeLists.txt.
-#define SLIM_LEAK_CHECKING	0
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define SLIM_LEAK_CHECKING()	0
 
-#if SLIM_LEAK_CHECKING
-#warning SLIM_LEAK_CHECKING enabled!
+#if SLIM_LEAK_CHECKING()
+#warning SLIM_LEAK_CHECKING() enabled!
 #endif
 
 // Enabling "debug points" in SLiMgui.  These are only enabled under SLiMgui (i.e., QtSLiM), and should always be enabled
 // in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
 #ifdef SLIMGUI
-#define DEBUG_POINTS_ENABLED	1
+#define DEBUG_POINTS_ENABLED()	1
 extern int gEidosDebugIndent;
 #else
-#define DEBUG_POINTS_ENABLED	0
+#define DEBUG_POINTS_ENABLED()	0
 #endif
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 // A simple class for RAII-based debug point indentation; saves some hassle with exceptions, etc.
 class EidosDebugPointIndent
 {
@@ -621,9 +634,11 @@ int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len);
 
 // Writing files with support for gzip compression and buffered flushing
-#define EIDOS_BUFFER_ZIP_APPENDS	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_BUFFER_ZIP_APPENDS()	1
 
-#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
+#if EIDOS_BUFFER_ZIP_APPENDS()	// implementation details for Eidos_FlushFiles(); for internal use only
 extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// canonical absolute file path -> buffered text
 bool _Eidos_FlushZipBuffer(const std::string &p_file_path, const std::string &p_outstring);
 #endif
@@ -652,6 +667,30 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 // this follows the standard bzero() declaration: void bzero(void *s, size_t n);
 // see https://stackoverflow.com/a/17097978/2752221 for some justification
 #define EIDOS_BZERO(s, n) memset((s), 0, (n))
+
+// Standard deviation of a vector of values.  The math is done in double, regardless of the type T.
+template <typename T>
+double Eidos_StandardDeviation(T *x, size_t count)
+{
+	if (count < 2)
+		return std::numeric_limits<double>::quiet_NaN();
+	
+	double mean = 0;
+	double sd = 0;
+	
+	for (size_t value_index = 0; value_index < count; ++value_index)
+		mean += (double)x[value_index];
+	
+	mean /= count;
+	
+	for (size_t value_index = 0; value_index < count; ++value_index)
+	{
+		double temp = (double)x[value_index] - mean;
+		sd += temp * temp;
+	}
+	
+	return sqrt(sd / (count - 1));		// note: sample sd, not population sd
+}
 
 // Correlation between two vectors x and y of equal length; int64_t or double are used, and can be mixed
 template <typename T1, typename T2>
@@ -768,8 +807,34 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 // Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
-// Approximate equality of two floating-point numbers, within a ratio tolerance of 1.0001
-bool Eidos_ApproximatelyEqual(double a, double b);
+// Approximate equality of two floating-point numbers, following the isClose() method's heuristics
+inline __attribute__((always_inline)) bool Eidos_IsClose(double xv, double yv, double rtol = 1.0e-05, double atol = 1.0e-08, bool equalNAN = false)
+{
+	if (std::isfinite(xv) && std::isfinite(yv))
+	{
+		// if xv and yv are finite, they are "close" if absolute(xv - yv) <= (atol + rtol * absolute(yv))
+		// note that this mirrors the behavior of the numpy function isclose(), which this is based upon;
+		// it is documented at https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
+		// Note that Python's built-in math.isclose() has a different criterion, and different defaults;
+		// see https://docs.python.org/3/library/math.html#math.isclose.
+		bool close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
+		
+		return close;
+	}
+	else
+	{
+		// if xv and yv are infinite, they are "close" if and only if they have the same sign
+		if (std::isinf(xv) && std::isinf(yv))
+			return (std::signbit(xv) == std::signbit(yv));
+		
+		// if xv and yv are NAN, they are "close" if and only if the equalNAN flag is true
+		if (std::isnan(xv) && std::isnan(yv))
+			return equalNAN;
+		
+		// all other cases involving INF and/or NAN are not "close"
+		return false;
+	}
+}
 
 // Split a std::string into a vector of substrings separated by a given delimiter
 std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim);
@@ -828,6 +893,19 @@ bool Eidos_RegexWorks(void);
 
 // Checks that symbol_name does not contain any illegal Unicode characters; used to check identifiers, in particular
 bool Eidos_ContainsIllegalUnicode(const std::string &symbol_name);
+
+// little-endian write of a uint64_t to an address; taken from tskit/test_core.c in PR https://github.com/tskit-dev/tskit/pull/3306
+inline void Eidos_set_u64_le(uint8_t *dest, uint64_t value)
+{
+    dest[0] = (uint8_t)(value & 0xFF);
+    dest[1] = (uint8_t)((value >> 8) & 0xFF);
+    dest[2] = (uint8_t)((value >> 16) & 0xFF);
+    dest[3] = (uint8_t)((value >> 24) & 0xFF);
+    dest[4] = (uint8_t)((value >> 32) & 0xFF);
+    dest[5] = (uint8_t)((value >> 40) & 0xFF);
+    dest[6] = (uint8_t)((value >> 48) & 0xFF);
+    dest[7] = (uint8_t)((value >> 56) & 0xFF);
+}
 
 
 // *******************************************************************************************************************
@@ -920,7 +998,8 @@ public:
 
 #ifdef Eidos_add_overflow
 
-#define EIDOS_HAS_OVERFLOW_BUILTINS		1
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_HAS_OVERFLOW_BUILTINS()		1
 
 #else
 
@@ -929,7 +1008,7 @@ public:
 #define Eidos_add_overflow(a, b, c)	(*(c)=(a)+(b), false)
 #define Eidos_sub_overflow(a, b, c)	(*(c)=(a)-(b), false)
 #define Eidos_mul_overflow(a, b, c)	(*(c)=(a)*(b), false)
-#define EIDOS_HAS_OVERFLOW_BUILTINS		0
+#define EIDOS_HAS_OVERFLOW_BUILTINS()		0
 
 #endif
 
@@ -1042,7 +1121,7 @@ public:
 		return EidosStringRegistry::sharedRegistry()._StringForGlobalStringID(p_string_id);
 	}
     
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
     static inline void ThunkRegistration(_EidosRegisteredString *p_registration_object)
     {
         EidosStringRegistry::sharedRegistry().gIDToString_Thunk.emplace_back(p_registration_object);
@@ -1175,6 +1254,10 @@ extern const std::string &gEidosStr_floatB;
 extern const std::string &gEidosStr_floatK;
 extern const std::string &gEidosStr_write;
 
+extern const std::string &gEidosStr_Palette;
+extern const std::string &gEidosStr_addNode;
+extern const std::string &gEidosStr_colorForValue;
+
 extern const std::string &gEidosStr_start;
 extern const std::string &gEidosStr_end;
 extern const std::string &gEidosStr_weights;
@@ -1306,6 +1389,10 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_floatB,
 	gEidosID_floatK,
 	gEidosID_write,
+	
+	gEidosID_Palette,
+	gEidosID_addNode,
+	gEidosID_colorForValue,
 
 	gEidosID_start,
 	gEidosID_end,
@@ -1330,7 +1417,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 550		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 590		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
@@ -1352,6 +1439,7 @@ typedef struct {
 extern EidosNamedColor gEidosNamedColors[];
 
 void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
+void Eidos_GetColorComponents(const std::string &p_color_name, double *p_red_component, double *p_green_component, double *p_blue_component);
 void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);		// p_string_buffer must have room for 8 chars, including the null

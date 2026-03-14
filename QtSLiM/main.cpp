@@ -15,7 +15,7 @@
 #include "eidos_globals.h"
 #include "interaction_type.h"
 
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 static void clean_up_leak_false_positives(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
     // Run the event loop
     int appReturn = app.exec();
     
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
     clean_up_leak_false_positives();
 #endif
     

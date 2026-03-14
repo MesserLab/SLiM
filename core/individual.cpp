@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/10/16.
-//  Copyright (c) 2016-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2016-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -22,6 +22,7 @@
 #include "subpopulation.h"
 #include "species.h"
 #include "community.h"
+#include "mutation_block.h"
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 #include "polymorphism.h"
@@ -53,7 +54,8 @@ bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 // individual first, haplosomes later; this is the new multichrom paradigm
 // BCH 10/12/2024: Note that this will rarely be called after simulation startup; see NewSubpopIndividual()
-Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
+// BCH 10/12/2025: Note also that NewSubpopIndividual() will rarely be called in WF models; see the Munge...() methods
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, slim_fitness_t p_fitness, float p_mean_parent_age) :
 #ifdef SLIMGUI
 	color_set_(false),
 #endif
@@ -82,6 +84,10 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 		haplosomes_ = (Haplosome **)calloc(haplosome_count_per_individual, sizeof(Haplosome *));
 	}
 	
+	// Set up per-trait information such as phenotype caches and individual offsets
+	trait_info_ = nullptr;
+	_InitializePerTraitInformation();
+	
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
@@ -92,11 +98,91 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	tagL4_set_ = false;
 	
 	// Initialize x/y/z to 0.0, only when leak-checking (they show up as used before initialized in Valgrind)
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 	spatial_x_ = 0.0;
 	spatial_y_ = 0.0;
 	spatial_z_ = 0.0;
 #endif
+}
+
+void Individual::_InitializePerTraitInformation(void)
+{
+	// Set up per-trait individual-level information such as individual offsets.  This is called by Individual::Individual(),
+	// but also in various other places where individuals are re-used, so the trait_info_ record might already be allocated.
+	// TRAIT INVALIDATION: this sets up the initial trait values for the individual to be invalidated.
+	
+	// FIXME MULTITRAIT: this will probably be a pain point; maybe we can skip it if offsets have never been changed by the user?
+	// I imagine a design where there is a bool flag that says "the offsets for this individual have been initialized".  This
+	// would allow a lazy caching scheme; if an offset is queried or set, all the offsets in that individual are then set up
+	// and the flag is set to indicate that it has been set up.  Every tick, offsets will probably be needed for every individual
+	// in order to calculate phenotypes, so we can't avoid that work altogether.  But we can avoid doing it one individual at a
+	// time, with a lot of setup overhead here to get the traits, get the RNG, etc.; we could do it in bulk for all individuals
+	// in a species, at the point when we're calculating everybody's phenotypes, which would allow us to do it very quickly.
+	// The only difficulty I see with such a lazy caching scheme is: if the trait's individual-offset distribution is *changed*
+	// by the script, then at that moment, the individual offsets of every alive individual need to be initialized using the old
+	// distribution before it changes, otherwise they will (incorrectly) draw from the new distribution.  So that's a little
+	// tricky, but doable.  I'm going to put off doing this until later, though, so as to not get bogged down.  BCH 10/12/2025
+	
+	// FIXME MULTITRAIT: note also that if all trait individual offsets have SD == 0, and thus initialize to a constant, we
+	// could use a buffer of default trait values that we memcpy() in to each individual's offset buffer.  That would be
+	// a strategy that could easily be used when we bulk-initialize the offsets of all uninitialized individuals, for example.
+	
+	// FIXME MULTITRAIT: also, _DrawIndividualOffset() looks up the RNG; when doing this work in bulk, we can look up the RNG
+	// once and then pass it in to DrawIndividualOffset() instead of having it look it up.  Much optimization to do in bulk.
+	
+	Species &species = subpopulation_->species_;
+	const std::vector<Trait *> &traits = species.Traits();
+	slim_trait_index_t trait_count = species.TraitCount();
+	
+	if (trait_count == 1)
+	{
+#if DEBUG
+		// If there is existing trait info, the number of traits should not have changed, so we should not need to adjust
+		if (trait_info_ && (trait_info_ != &trait_info_0_))
+		{
+			free(trait_info_);
+			std::cout << "_InitializePerTraitInformation(): (internal error) unmatched trait info! (case 1)" << std::endl;
+		}
+#endif
+		
+		trait_info_ = &trait_info_0_;
+		trait_info_0_.phenotype_ = SLIM_PHENOTYPE_NAN;					// "uncalculated"
+		trait_info_0_.offset_ = traits[0]->DrawIndividualOffset();
+	}
+	else if (trait_count == 0)
+	{
+#if DEBUG
+		// If there is existing trait info, the number of traits should not have changed, so we should not need to adjust
+		if (trait_info_)
+		{
+			if (trait_info_ != &trait_info_0_)
+				free(trait_info_);
+			std::cout << "_InitializePerTraitInformation(): (internal error) unmatched trait info! (case 2)" << std::endl;
+		}
+#endif
+		
+		trait_info_ = nullptr;
+	}
+	else
+	{
+#if DEBUG
+		// If there is existing trait info, the number of traits should not have changed, so we should not need to adjust
+		// Note that in this case if there is allocated trait info we assume it is the correct size; we have no way to check that
+		if (trait_info_ && (trait_info_ == &trait_info_0_))
+		{
+			std::cout << "_InitializePerTraitInformation(): (internal error) unmatched trait info! (case 3)" << std::endl;
+		}
+#endif
+		
+		if (!trait_info_)
+			trait_info_ = static_cast<IndividualTraitInfo *>(malloc(trait_count * sizeof(IndividualTraitInfo)));
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;	// "uncalculated"
+			trait_info_[trait_index].offset_ = traits[trait_index]->DrawIndividualOffset();
+		}
+	}
 }
 
 Individual::~Individual(void)
@@ -131,8 +217,12 @@ Individual::~Individual(void)
 	if (haplosomes_ != hapbuffer_)
 		free(haplosomes_);
 	
+	if (trait_info_ != &trait_info_0_)
+		free(trait_info_);
+	
 #if DEBUG
 	haplosomes_ = nullptr;
+	trait_info_ = nullptr;
 #endif
 }
 
@@ -548,7 +638,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	if (population.child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Individual::PrintIndividuals_SLiM): (internal error) called with child generation active!." << EidosTerminate();
 	
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 	// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
 	// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
 	int mem_check_counter = 0, mem_check_mod = 100;
@@ -661,7 +751,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			
 			p_out << std::endl;
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -774,7 +864,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		
 		p_out << std::endl;
 		
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 		if (eidos_do_memory_checks)
 		{
 			mem_check_counter++;
@@ -812,7 +902,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome_index];
 		PolymorphismMap polymorphisms;
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 		
 		// add all polymorphisms for this chromosome
 		for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
@@ -836,7 +926,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 						AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 				}
 				
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 				if (eidos_do_memory_checks)
 				{
 					mem_check_counter++;
@@ -860,7 +950,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			else
 				polymorphism_pair.second.Print_ID(p_out);
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -925,7 +1015,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 				
 				p_out << std::endl;
 				
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 				if (eidos_do_memory_checks)
 				{
 					mem_check_counter++;
@@ -965,7 +1055,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			else
 				subs[i]->PrintForSLiMOutput(p_out);
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -1193,8 +1283,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 2;
 						break;
 					}
 						// chromosomes that have one haplosome, from the female parent
@@ -1207,8 +1295,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 1;
 						break;
 					}
 						// chromosomes that have one haplosome, from the male parent
@@ -1216,10 +1302,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					case ChromosomeType::kHM_HaploidMaleInherited:
 					case ChromosomeType::kML_HaploidMaleLine:
 					{
-						haplosome_index += 1;
 						break;
 					}
 				}
+				haplosome_index += chromosome->IntrinsicPloidy();
 			}
 			
 			return EidosValue_SP(vec);
@@ -1253,8 +1339,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 2;
 						break;
 					}
 						// chromosomes that have one haplosome, from the female parent
@@ -1263,7 +1347,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					case ChromosomeType::kFL_HaploidFemaleLine:
 					case ChromosomeType::kH_HaploidAutosome:				// assumed to follow the same pattern, so skipped
 					{
-						haplosome_index += 1;
 						break;
 					}
 						// chromosomes that have one haplosome, from the male parent
@@ -1275,11 +1358,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						
 						if (allowNullHaplosomes || !haplosome->IsNull())
 							vec->push_object_element_no_check_NORR(haplosome);
-						
-						haplosome_index += 1;
 						break;
 					}
 				}
+				haplosome_index += chromosome->IntrinsicPloidy();
 			}
 			
 			return EidosValue_SP(vec);
@@ -1317,12 +1399,40 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(age_));
 		}
+		case gID_cachedFitness:		// ACCELERATED
+		{
+			// see Subpopulation::ExecuteMethod_cachedFitness() for comments on the implementation
+			Species &species = subpopulation_->species_;
+			Community &community = species.community_;
+			
+			// TIMING RESTRICTION
+			if (community.ModelType() == SLiMModelType::kModelTypeWF)
+			{
+				if (community.executing_species_ == &species)
+					if (community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
+						EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+				
+				if ((community.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts) && !species.has_recalculated_fitness_)
+					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness generally cannot be accessed during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed).  If you really need to get fitness values in a late() event, you can call recalculateFitness() first to force fitness value recalculation to occur, but that is not something to do lightly; proceed with caution.  Usually it is better to access fitness values after SLiM has calculated them, in a first() or early() event." << EidosTerminate();
+			}
+			else
+			{
+				if (community.executing_species_ == &species)
+					if (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)
+						EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+			}
+			
+			Subpopulation *subpop = subpopulation_;
+			double fitness = subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : (double)cached_fitness_UNSAFE_;
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness));
+		}
 		case gID_meanParentAge:
 		{
 			if (mean_parent_age_ == -1)
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property meanParentAge is not available in WF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mean_parent_age_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)mean_parent_age_));
 		}
 		case gID_pedigreeID:		// ACCELERATED
 		{
@@ -1409,7 +1519,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			vec->reserve(total_mutation_count);
 			
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 			
 			for (Chromosome *chromosome : species.Chromosomes())
 			{
@@ -1631,7 +1741,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_fitnessScaling:	// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness_scaling_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)fitness_scaling_));
 		}
 		case gEidosID_x:			// ACCELERATED
 		{
@@ -1667,12 +1777,40 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
+		{
+			// Here we implement a special behavior: you can do individual.<trait-name> or individual.<trait-name>Offset
+			// to access an individual's trait value or trait offset directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
+			Species &species = subpopulation_->species_;
+			Trait *trait = species.TraitFromStringID(p_property_id);
+			
+			if (trait)				// ACCELERATED
+			{
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[trait->Index()].phenotype_));
+			}
+			else
+			{
+				const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+				
+				if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Offset"))
+				{
+					std::string trait_name = property_string.substr(0, property_string.length() - 6);
+					trait = species.TraitFromName(trait_name);
+					
+					if (trait)
+						return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[trait->Index()].offset_));
+				}
+			}
+			
 			return super::GetProperty(p_property_id);
+		}
 	}
 }
 
-EidosValue *Individual::GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_index(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1685,8 +1823,9 @@ EidosValue *Individual::GetProperty_Accelerated_index(EidosObject **p_values, si
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	Species *consensus_species = Community::SpeciesForIndividualsVector((Individual **)p_values, (int)p_values_size);
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
@@ -1726,8 +1865,9 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1744,8 +1884,9 @@ EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_->community_.ModelType() == SLiMModelType::kModelTypeWF))
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
 	
@@ -1761,8 +1902,88 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_cachedFitness(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
+	// see Subpopulation::ExecuteMethod_cachedFitness() for comments on the implementation
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	
+	if (p_values_size == 0)
+		return float_result;
+	
+	// SPECIES CONSISTENCY CHECK
+	Individual **individuals = (Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_values_size);
+	
+	if (!species)
+		return nullptr;			// defer to GetProperty(); this case is not optimized
+	
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	if (community.ModelType() == SLiMModelType::kModelTypeWF)
+	{
+		if (community.executing_species_ == species)
+			if (community.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+		
+		if ((community.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts) && !species->has_recalculated_fitness_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness generally cannot be accessed during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed).  If you really need to get fitness values in a late() event, you can call recalculateFitness() first to force fitness value recalculation to occur, but that is not something to do lightly; proceed with caution.  Usually it is better to access fitness values after SLiM has calculated them, in a first() or early() event." << EidosTerminate();
+	}
+	else
+	{
+		if (community.executing_species_ == species)
+			if (community.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): cachedFitness may not be accessed for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+	}
+	
+	// determine whether all individuals belong to the same subpopulation
+	Subpopulation *consensus_subpop = individuals[0]->subpopulation_;
+	
+	for (size_t value_index = 1; value_index < p_values_size; ++value_index)
+		if (individuals[value_index]->subpopulation_ != consensus_subpop)
+		{
+			consensus_subpop = nullptr;
+			break;
+		}
+	
+	if (consensus_subpop)
+	{
+		if (consensus_subpop->individual_cached_fitness_OVERRIDE_)
+		{
+			double fitness = consensus_subpop->individual_cached_fitness_OVERRIDE_value_;
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+				float_result->set_float_no_check(fitness, value_index);
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				Individual *ind = (Individual *)(p_values[value_index]);
+				
+				float_result->set_float_no_check((double)ind->cached_fitness_UNSAFE_, value_index);
+			}
+		}
+	}
+	else
+	{
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *ind = (Individual *)(p_values[value_index]);
+			Subpopulation *subpop = ind->subpopulation_;
+			double fitness = (subpop->individual_cached_fitness_OVERRIDE_ ? subpop->individual_cached_fitness_OVERRIDE_value_ : (double)ind->cached_fitness_UNSAFE_);
+			
+			float_result->set_float_no_check(fitness, value_index);
+		}
+	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
 	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_->species_.PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 	
@@ -1778,8 +1999,9 @@ EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject *
 	return int_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1796,8 +2018,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObject **p_values, siz
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1813,8 +2036,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1830,8 +2054,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1847,8 +2072,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1864,8 +2090,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1881,8 +2108,9 @@ EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosObject **p_values, si
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_migrant(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1895,36 +2123,39 @@ EidosValue *Individual::GetProperty_Accelerated_migrant(EidosObject **p_values, 
 	return logical_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		float_result->set_float_no_check(value->fitness_scaling_, value_index);
+		float_result->set_float_no_check((double)value->fitness_scaling_, value_index);
 	}
 	
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		float_result->set_float_no_check(value->spatial_x_, value_index);
+		float_result->set_float_no_check((double)value->spatial_x_, value_index);
 	}
 	
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_y(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1937,8 +2168,9 @@ EidosValue *Individual::GetProperty_Accelerated_y(EidosObject **p_values, size_t
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_z(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1951,8 +2183,9 @@ EidosValue *Individual::GetProperty_Accelerated_z(EidosObject **p_values, size_t
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	Species *consensus_species = Community::SpeciesForIndividualsVector((Individual **)p_values, (int)p_values_size);
 	EidosValue_Float *float_result;
 	
@@ -2034,8 +2267,9 @@ EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_
 	return float_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -2051,8 +2285,9 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_va
 	return object_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2119,8 +2354,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosObject **p_v
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2191,8 +2427,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObjec
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2259,8 +2496,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_v
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2331,8 +2569,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObjec
 	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2361,8 +2600,9 @@ EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosObject **p_value
 	return object_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	const Individual **individuals_buffer = (const Individual **)p_values;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2389,6 +2629,97 @@ EidosValue *Individual::GetProperty_Accelerated_haplosomesNonNull(EidosObject **
 	}
 	
 	return object_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	
+	if (species)
+	{
+		Trait *trait = species->TraitFromStringID(p_property_id);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+		
+		slim_trait_index_t trait_index = trait->Index();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			
+			float_result->set_float_no_check((double)value->trait_info_[trait_index].phenotype_, value_index);
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			Species &value_species = value->subpopulation_->species_;
+			Trait *trait = value_species.TraitFromStringID(p_property_id);
+			
+			if (!trait)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+			
+			slim_trait_index_t trait_index = trait->Index();
+			
+			float_result->set_float_no_check((double)value->trait_info_[trait_index].phenotype_, value_index);
+		}
+	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
+{
+#pragma unused (p_property_id)
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+	std::string trait_name = property_string.substr(0, property_string.length() - 6);
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	
+	if (species)
+	{
+		Trait *trait = species->TraitFromName(trait_name);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+		
+		slim_trait_index_t trait_index = trait->Index();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			
+			float_result->set_float_no_check((double)value->trait_info_[trait_index].offset_, value_index);
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			const Individual *value = individuals_buffer[value_index];
+			Species &value_species = value->subpopulation_->species_;
+			Trait *trait = value_species.TraitFromName(trait_name);
+			
+			if (!trait)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+			
+			slim_trait_index_t trait_index = trait->Index();
+			
+			float_result->set_float_no_check((double)value->trait_info_[trait_index].offset_, value_index);
+		}
+	}
+	
+	return float_result;
 }
 
 void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -2476,10 +2807,10 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_fitnessScaling:	// ACCELERATED
 		{
-			fitness_scaling_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
+			fitness_scaling_ = (slim_fitness_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 			Individual::s_any_individual_fitness_scaling_set_ = true;
 			
-			if ((fitness_scaling_ < 0.0) || (std::isnan(fitness_scaling_)))
+			if ((fitness_scaling_ < (slim_fitness_t)0.0) || (std::isnan(fitness_scaling_)))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
 			return;
@@ -2509,12 +2840,57 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			// all others, including gID_none
 		default:
+		{
+			// Here we implement a special behavior: you can do individual.<trait-name> or individual.<trait-name>Offset
+			// to access an individual's trait value or trait offset directly.
+			// NOTE: This mechanism also needs to be maintained in Species::ExecuteContextFunction_initializeTrait().
+			// NOTE: This mechanism also needs to be maintained in SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal().
+			Species &species = subpopulation_->species_;
+			Trait *trait = species.TraitFromStringID(p_property_id);
+			const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+			
+			if (trait)				// ACCELERATED
+			{
+				slim_phenotype_t new_phenotype = (slim_phenotype_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+				
+				if (std::isinf(new_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+				
+				trait_info_[trait->Index()].phenotype_ = new_phenotype;
+				
+				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+				species.PhenotypeChangedDirectly();
+				return;
+			}
+			else if ((property_string.length() > 6) && Eidos_string_hasSuffix(property_string, "Offset"))		// ACCELERATED
+			{
+				std::string trait_name = property_string.substr(0, property_string.length() - 6);
+				trait = species.TraitFromName(trait_name);
+				
+				if (trait)
+				{
+					slim_trait_offset_t new_offset = (slim_trait_offset_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
+					
+					if (!std::isfinite(new_offset))
+						EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite." << EidosTerminate();
+					
+					trait_info_[trait->Index()].offset_ = new_offset;
+					trait->IndividualOffsetChanged();
+					
+					// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+					trait_info_[trait->Index()].phenotype_ = SLIM_PHENOTYPE_NAN;
+					return;
+				}
+			}
+			
 			return super::SetProperty(p_property_id, p_value);
+		}
 	}
 }
 
-void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tag_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
@@ -2534,8 +2910,9 @@ void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_va
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagF(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagF_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
@@ -2555,8 +2932,9 @@ void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_v
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL0(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2586,8 +2964,9 @@ void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL1(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2616,8 +2995,9 @@ void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL2(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2646,8 +3026,9 @@ void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL3(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2676,8 +3057,9 @@ void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_
 	}
 }
 
-void Individual::SetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	s_any_individual_tagL_set_ = true;
 	
 	const eidos_logical_t *source_data = p_source.LogicalData();
@@ -2719,7 +3101,7 @@ bool Individual::_SetFitnessScaling_1(double source_value, EidosObject **p_value
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_FITNESS_SCALE_1);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(p_values_size) firstprivate(p_values, source_value) if(parallel:p_values_size >= EIDOS_OMPMIN_SET_FITNESS_SCALE_1) num_threads(thread_count)
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-		((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
+		((Individual *)(p_values[value_index]))->fitness_scaling_ = (slim_fitness_t)source_value;
 	
 	return false;
 }
@@ -2742,14 +3124,15 @@ bool Individual::_SetFitnessScaling_N(const double *source_data, EidosObject **p
 		if ((source_value < 0.0) || (std::isnan(source_value)))
 			saw_error = true;
 		
-		((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
+		((Individual *)(p_values[value_index]))->fitness_scaling_ = (slim_fitness_t)source_value;
 	}
 	
 	return saw_error;
 }
 
-void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	Individual::s_any_individual_fitness_scaling_set_ = true;
 	bool needs_raise = false;
 	
@@ -2770,8 +3153,9 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, 
 		EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 }
 
-void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -2788,8 +3172,9 @@ void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_valu
 	}
 }
 
-void Individual::SetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_y(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -2806,8 +3191,9 @@ void Individual::SetProperty_Accelerated_y(EidosObject **p_values, size_t p_valu
 	}
 }
 
-void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_z(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
@@ -2824,9 +3210,9 @@ void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_valu
 	}
 }
 
-void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_color(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-#pragma unused (p_values, p_values_size, p_source, p_source_size)
+#pragma unused (p_property_id, p_values, p_values_size, p_source, p_source_size)
 #ifdef SLIMGUI
 	// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
 	if (p_source_size == 1)
@@ -2881,8 +3267,9 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 #endif
 }
 
-void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Individual::SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
@@ -2900,6 +3287,218 @@ void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_va
 	}
 }
 
+void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+#pragma unused (p_property_id)
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	const double *source_data = p_source.FloatData();
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+	
+	if (species)
+	{	
+		// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+		species->PhenotypeChangedDirectly();
+		
+		Trait *trait = species->TraitFromStringID(p_property_id);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+		
+		slim_trait_index_t trait_index = trait->Index();
+		
+		if (p_source_size == 1)
+		{
+			slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[0];
+			
+			if (std::isinf(new_phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[value_index];
+				
+				if (std::isinf(new_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+				
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
+			}
+		}
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		if (p_source_size == 1)
+		{
+			slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[0];
+			
+			if (std::isinf(new_phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Species &value_species = value->subpopulation_->species_;
+				
+				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+				value_species.PhenotypeChangedDirectly();
+				
+				Trait *trait = value_species.TraitFromStringID(p_property_id);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+				
+				slim_trait_index_t trait_index = trait->Index();
+				
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Species &value_species = value->subpopulation_->species_;
+				
+				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+				value_species.PhenotypeChangedDirectly();
+				
+				Trait *trait = value_species.TraitFromStringID(p_property_id);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << property_string << " does not exist for this species." << EidosTerminate();
+				
+				slim_trait_index_t trait_index = trait->Index();
+				slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[value_index];
+				
+				if (std::isinf(new_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be finite or NAN." << EidosTerminate();
+				
+				value->trait_info_[trait_index].phenotype_ = new_phenotype;
+			}
+		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+#pragma unused (p_property_id)
+	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
+	std::string trait_name = property_string.substr(0, property_string.length() - 6);
+	const Individual **individuals_buffer = (const Individual **)p_values;
+	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
+	const double *source_data = p_source.FloatData();
+	
+	if (species)
+	{	
+		Trait *trait = species->TraitFromName(trait_name);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << species->name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+		
+		slim_trait_index_t trait_index = trait->Index();
+		
+		if (p_source_size == 1)
+		{
+			slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[0];
+			
+			if (!std::isfinite(new_offset))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[value_index];
+				
+				if (!std::isfinite(new_offset))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+		}
+		
+		trait->IndividualOffsetChanged();
+	}
+	else
+	{
+		// with a mixed-species target, the species and trait have to be looked up for each individual
+		if (p_source_size == 1)
+		{
+			slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[0];
+			
+			if (!std::isfinite(new_offset))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Species &value_species = value->subpopulation_->species_;
+				Trait *trait = value_species.TraitFromName(trait_name);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+				
+				slim_trait_index_t trait_index = trait->Index();
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
+				trait->IndividualOffsetChanged();
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+		}
+		else
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				const Individual *value = individuals_buffer[value_index];
+				Species &value_species = value->subpopulation_->species_;
+				Trait *trait = value_species.TraitFromName(trait_name);
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is not defined for object element type Individual in species " << value_species.name_ << "; trait " << trait_name << " does not exist for this species." << EidosTerminate();
+				
+				slim_trait_index_t trait_index = trait->Index();
+				slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[value_index];
+				
+				if (!std::isfinite(new_offset))
+					EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property " << property_string << " is required to be a finite value (not INF or NAN)." << EidosTerminate();
+				
+				value->trait_info_[trait_index].offset_ = new_offset;
+				trait->IndividualOffsetChanged();
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				value->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+		}
+	}
+}
+
 EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
@@ -2907,6 +3506,8 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_containsMutations:			return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_interpreter);
 		//case gID_countOfMutationsOfType:	return ExecuteMethod_Accelerated_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
+		case gID_offsetForTrait:			return ExecuteMethod_offsetForTrait(p_method_id, p_arguments, p_interpreter);
+		case gID_phenotypeForTrait:			return ExecuteMethod_phenotypeForTrait(p_method_id, p_arguments, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_interpreter);
 		case gID_sharedParentCount:			return ExecuteMethod_sharedParentCount(p_method_id, p_arguments, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -3014,7 +3615,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species->SpeciesMutationBlock()->mutation_buffer_;
 	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
@@ -3087,7 +3688,75 @@ EidosValue_SP Individual::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStri
 	
 	return EidosValue_SP(vec);
 }
+
+//	*********************	- (float)offsetForTrait([Niso<Trait> trait = NULL])
+//
+EidosValue_SP Individual::ExecuteMethod_offsetForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
 	
+	// get the trait indices, with bounds-checking
+	Species &species = subpopulation_->species_;
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "offsetForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		slim_trait_index_t trait_index = trait_indices[0];
+		slim_trait_offset_t offset = trait_info_[trait_index].offset_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)offset));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_trait_offset_t offset = trait_info_[trait_index].offset_;
+			
+			float_result->push_float_no_check((double)offset);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
+//	*********************	- (float)phenotypeForTrait([Niso<Trait> trait = NULL])
+//
+EidosValue_SP Individual::ExecuteMethod_phenotypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	
+	// get the trait indices, with bounds-checking
+	Species &species = subpopulation_->species_;
+	std::vector<slim_trait_index_t> trait_indices;
+	species.GetTraitIndicesFromEidosValue(trait_indices, trait_value, "phenotypeForTrait");
+	
+	if (trait_indices.size() == 1)
+	{
+		slim_trait_index_t trait_index = trait_indices[0];
+		slim_phenotype_t phenotype = trait_info_[trait_index].phenotype_;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)phenotype));
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(trait_indices.size());
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_phenotype_t phenotype = trait_info_[trait_index].phenotype_;
+			
+			float_result->push_float_no_check((double)phenotype);
+		}
+		
+		return EidosValue_SP(float_result);
+	}
+}
+
 //	*********************	- (float)relatedness(object<Individual> individuals, [Niso<Chromosome>$ chromosome = NULL])
 //
 EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -3197,13 +3866,15 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	return EidosValue_SP(int_result);
 }
 
-//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (float$)sumOfMutationsOfType(io<MutationType>$ mutType, [Niso<Trait>$ trait = NULL])
 //
 EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (p_elements_size == 0)
 		return gStaticEidosValue_Float_ZeroVec;
+	
+	// might deprecate this method in future?
 	
 	// SPECIES CONSISTENCY CHECK
 	Species *species = Community::SpeciesForIndividualsVector((Individual **)p_elements, (int)p_elements_size);
@@ -3214,10 +3885,15 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	species->population_.CheckForDeferralInIndividualsVector((Individual **)p_elements, p_elements_size, "Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType");
 	
 	EidosValue *mutType_value = p_arguments[0].get();
+	EidosValue *trait_value = p_arguments[1].get();
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
+	// get the trait index, with bounds-checking
+	const slim_trait_index_t trait_index = species->GetTraitIndexFromEidosValue(trait_value, "sumOfMutationsOfType");
+	
 	// Sum the selection coefficients of mutations of the given type
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_elements_size);
 	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
@@ -3226,7 +3902,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
-		double selcoeff_sum = 0.0;
+		double effect_sum = 0.0;
 		
 		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 		{
@@ -3242,18 +3918,22 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 					int haplosome1_count = mutrun->size();
 					const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
 					
-					for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+					for (int index_in_mutrun = 0; index_in_mutrun < haplosome1_count; ++index_in_mutrun)
 					{
-						Mutation *mut_ptr = mut_block_ptr + haplosome1_ptr[mut_index];
+						MutationIndex mut_index = haplosome1_ptr[index_in_mutrun];
+						Mutation *mut_ptr = mut_block_ptr + mut_index;
 						
 						if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
-							selcoeff_sum += mut_ptr->selection_coeff_;
+						{
+							MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mut_index);
+							effect_sum += (double)mut_trait_info[trait_index].effect_size_;
+						}
 					}
 				}
 			}
 		}
 		
-		float_result->set_float_no_check(selcoeff_sum, element_index);
+		float_result->set_float_no_check(effect_sum, element_index);
 	}
 	
 	return EidosValue_SP(float_result);
@@ -3326,7 +4006,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	if (only_haploid_haplosomes || (vec_reserve_size < 100))	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
 		vec->reserve(vec_reserve_size);	
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	
 	for (Chromosome *chromosome : species.Chromosomes())
 	{
@@ -3598,7 +4278,7 @@ EidosValue_SP Individual::ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStrin
 	// loop through the chromosomes
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	
 	for (slim_chromosome_index_t chromosome_index : chromosome_indices)
 	{
@@ -3868,10 +4548,10 @@ EidosValue_SP Individual::ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStrin
 #pragma mark Individual_Class
 #pragma mark -
 
-EidosClass *gSLiM_Individual_Class = nullptr;
+Individual_Class *gSLiM_Individual_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -3879,7 +4559,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Individual_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -3907,6 +4587,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_yz,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_xyz,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_age));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cachedFitness,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_cachedFitness));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_meanParentAge,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
@@ -3936,8 +4617,13 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_offsetForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_phenotypeForTrait, kEidosValueMaskFloat))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_demandPhenotypeForIndividuals, kEidosValueMaskVOID))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddLogical_OS("forceRecalc", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setOffsetForTrait, kEidosValueMaskVOID))->AddIntStringObject_ON(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL)->AddNumeric_ON("offset", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setPhenotypeForTrait, kEidosValueMaskVOID))->AddIntStringObject_N(gStr_trait, gSLiM_Trait_Class)->AddNumeric("phenotype"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntStringObject_OSN(gStr_trait, gSLiM_Trait_Class, gStaticEidosValueNULL))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->MarkDeprecated());
 		methods->emplace_back(((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_zygosityOfMutations, kEidosValueMaskInt))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OS("hemizygousValue", gStaticEidosValue_Integer1)->AddInt_OS("haploidValue", gStaticEidosValue_Integer1)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsFromHaplosomes, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("category")->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
@@ -3957,11 +4643,14 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
-		case gID_outputIndividuals:			return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_outputIndividualsToVCF:	return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_zygosityOfMutations:		return ExecuteMethod_zygosityOfMutations(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_demandPhenotypeForIndividuals:	return ExecuteMethod_demandPhenotypeForIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setOffsetForTrait:				return ExecuteMethod_setOffsetForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setPhenotypeForTrait:			return ExecuteMethod_setPhenotypeForTrait(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputIndividuals:				return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputIndividualsToVCF:		return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_readIndividualsFromVCF:		return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setSpatialPosition:			return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_zygosityOfMutations:			return ExecuteMethod_zygosityOfMutations(p_method_id, p_target, p_arguments, p_interpreter);
 		default:
 		{
 			// In a sense, we here "subclass" EidosDictionaryUnretained_Class to override setValuesVectorized(); we set a flag remembering that
@@ -3972,6 +4661,434 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 			return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 		}
 	}
+}
+
+//	*********************	+ (void)setOffsetForTrait([Niso<Trait> trait = NULL], [Nif offset = NULL])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_setOffsetForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *offset_value = p_arguments[1].get();
+	
+	int individuals_count = p_target->Count();
+	int offset_count = offset_value->Count();
+	
+	if (individuals_count == 0)
+		return gStaticEidosValueVOID;
+	
+	Individual **individuals_buffer = (Individual **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setOffsetForTrait");
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
+	
+	if (offset_value->Type() == EidosValueType::kValueNULL)
+	{
+		// pattern 1: drawing a default offset value for each trait in one or more individuals
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			Trait *trait = species->Traits()[trait_index];
+			
+			if (trait->Type() == TraitType::kMultiplicative)
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					slim_trait_offset_t offset = trait->DrawIndividualOffset();
+					
+					// effects for multiplicative traits are clamped to a minimum of 0.0
+					if (offset < (slim_trait_offset_t)0.0)
+						offset = (slim_trait_offset_t)0.0;
+					
+					ind->trait_info_[trait_index].offset_ = offset;
+					
+					// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+					ind->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+				}
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					ind->trait_info_[trait_index].offset_ = trait->DrawIndividualOffset();
+					
+					// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+					ind->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+				}
+			}
+			
+			// trait->IndividualOffsetChanged();	// the new value is drawn from the offset distribution, so we don't set this flag
+		}
+	}
+	else if (offset_count == 1)
+	{
+		// pattern 2: setting a single offset value across one or more traits in one or more individuals
+		slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(offset_value->NumericAtIndex_NOCAST(0, nullptr));
+		
+		if (!std::isfinite(offset))
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			Trait *trait = species->Traits()[trait_index];
+			slim_trait_offset_t offset_for_trait = offset;
+			
+			// effects for multiplicative traits are clamped to a minimum of 0.0
+			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+				offset = (slim_trait_offset_t)0.0;
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset_for_trait;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+			
+			trait->IndividualOffsetChanged();
+		}
+	}
+	else if (offset_count == trait_count)
+	{
+		// pattern 3: setting one offset value per trait, in one or more individuals
+		int offset_index = 0;
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			Trait *trait = species->Traits()[trait_index];
+			slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(offset_value->NumericAtIndex_NOCAST(offset_index++, nullptr));
+			
+			if (!std::isfinite(offset))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+			
+			// effects for multiplicative traits are clamped to a minimum of 0.0
+			if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+				offset = (slim_trait_offset_t)0.0;
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				ind->trait_info_[trait_index].offset_ = offset;
+				
+				// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+				ind->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+			
+			trait->IndividualOffsetChanged();
+		}
+	}
+	else if (offset_count == trait_count * individuals_count)
+	{
+		// pattern 4: setting different offset values for each trait in each individual; in this case,
+		// all offsets for the specified traits in a given individual are given consecutively
+		if (offset_value->Type() == EidosValueType::kValueInt)
+		{
+			// integer offset values
+			const int64_t *offsets_int = offset_value->IntData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				Trait *trait = species->Traits()[trait_index];
+				
+				if (trait->Type() == TraitType::kMultiplicative)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if (offset < (slim_trait_offset_t)0.0)
+							offset = (slim_trait_offset_t)0.0;
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				
+				trait->IndividualOffsetChanged();
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						Trait *trait = species->Traits()[trait_index];
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_int++));
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+							offset = (slim_trait_offset_t)0.0;
+						
+						ind->trait_info_[trait_index].offset_ = offset;
+						trait->IndividualOffsetChanged();
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						ind->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+			}
+		}
+		else
+		{
+			// float offset values
+			const double *offsets_float = offset_value->FloatData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				Trait *trait = species->Traits()[trait_index];
+				
+				if (trait->Type() == TraitType::kMultiplicative)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_float++));
+						
+						if (!std::isfinite(offset))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if (offset < (slim_trait_offset_t)0.0)
+							offset = (slim_trait_offset_t)0.0;
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_float++));
+						
+						if (!std::isfinite(offset))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+						
+						individuals_buffer[individual_index]->trait_info_[trait_index].offset_ = offset;
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				
+				trait->IndividualOffsetChanged();
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						Trait *trait = species->Traits()[trait_index];
+						slim_trait_offset_t offset = static_cast<slim_trait_offset_t>(*(offsets_float++));
+						
+						if (!std::isfinite(offset))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires offset values to be finite (not NAN or INF)." << EidosTerminate();
+						
+						// effects for multiplicative traits are clamped to a minimum of 0.0
+						if ((trait->Type() == TraitType::kMultiplicative) && (offset < (slim_trait_offset_t)0.0))
+							offset = (slim_trait_offset_t)0.0;
+						
+						ind->trait_info_[trait_index].offset_ = offset;
+						trait->IndividualOffsetChanged();
+						
+						// TRAIT INVALIDATION: the trait value corresponding to the changed offset is invalidated
+						ind->trait_info_[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+			}
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setOffsetForTrait): setOffsetForTrait() requires that offset be (a) NULL, requesting the default offset value for each trait, (b) singleton, providing one offset value for all traits, (c) equal in length to the number of traits in the species, providing one offset value per trait, or (d) equal in length to the number of traits times the number of target individuals, providing one offset value per trait per individual." << EidosTerminate();
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	+ (void)setPhenotypeForTrait([Niso<Trait> trait = NULL], [Nif phenotype = NULL])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_setPhenotypeForTrait(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *phenotype_value = p_arguments[1].get();
+	
+	int individuals_count = p_target->Count();
+	int phenotype_count = phenotype_value->Count();
+	
+	if (individuals_count == 0)
+		return gStaticEidosValueVOID;
+	
+	Individual **individuals_buffer = (Individual **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
+	species->PhenotypeChangedDirectly();
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "setPhenotypeForTrait");
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
+	
+	if (phenotype_count == 1)
+	{
+		// pattern 1: setting a single phenotype value across one or more traits in one or more individuals
+		slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(phenotype_value->NumericAtIndex_NOCAST(0, nullptr));
+		
+		if (std::isinf(phenotype))
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+		
+		if (trait_count == 1)
+		{
+			// optimized case for one trait
+			slim_trait_index_t trait_index = trait_indices[0];
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = phenotype;
+		}
+		else
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				for (slim_trait_index_t trait_index : trait_indices)
+					ind->trait_info_[trait_index].phenotype_ = phenotype;
+			}
+		}
+	}
+	else if (phenotype_count == trait_count)
+	{
+		// pattern 2: setting one phenotype value per trait, in one or more individuals
+		int phenotype_index = 0;
+		
+		for (slim_trait_index_t trait_index : trait_indices)
+		{
+			slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(phenotype_value->NumericAtIndex_NOCAST(phenotype_index++, nullptr));
+			
+			if (std::isinf(phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+			
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				ind->trait_info_[trait_index].phenotype_ = phenotype;
+			}
+		}
+	}
+	else if (phenotype_count == trait_count * individuals_count)
+	{
+		// pattern 3: setting different phenotype values for each trait in each individual; in this case,
+		// all phenotypes for the specified traits in a given individual are given consecutively
+		if (phenotype_value->Type() == EidosValueType::kValueInt)
+		{
+			// integer phenotype values
+			const int64_t *phenotypes_int = phenotype_value->IntData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = static_cast<slim_phenotype_t>(*(phenotypes_int++));
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+						ind->trait_info_[trait_index].phenotype_ = static_cast<slim_phenotype_t>(*(phenotypes_int++));
+				}
+			}
+		}
+		else
+		{
+			// float phenotype values
+			const double *phenotypes_float = phenotype_value->FloatData();
+			
+			if (trait_count == 1)
+			{
+				// optimized case for one trait
+				slim_trait_index_t trait_index = trait_indices[0];
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(*(phenotypes_float++));
+					
+					if (std::isinf(phenotype))
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+					
+					individuals_buffer[individual_index]->trait_info_[trait_index].phenotype_ = phenotype;
+				}
+			}
+			else
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					
+					for (slim_trait_index_t trait_index : trait_indices)
+					{
+						slim_phenotype_t phenotype = static_cast<slim_phenotype_t>(*(phenotypes_float++));
+						
+						if (std::isinf(phenotype))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires phenotypes to be finite or NAN." << EidosTerminate();
+						
+						ind->trait_info_[trait_index].phenotype_ = phenotype;
+					}
+				}
+			}
+		}
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setPhenotypeForTrait): setPhenotypeForTrait() requires that phenotype be (a) singleton, providing one phenotype for all traits, (b) equal in length to the number of traits in the species, providing one phenotype per trait, or (c) equal in length to the number of traits times the number of target individuals, providing one phenotype per trait per individual." << EidosTerminate();
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	+ (void)outputIndividuals([Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome>$ chromosome = NULL], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = F], [logical$ pedigreeIDs = F], [logical$ objectTags = F])
@@ -4153,7 +5270,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 inline __attribute__((always_inline)) static void
 _AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haplosome_last_mutrun_modified, MutationRun *&haplosome_last_mutrun,
 					std::vector<MutationIndex> &alt_allele_mut_indices, slim_position_t mut_position, Species *species, MutationRunContext *mutrun_context,
-					bool all_target_haplosomes_started_empty, bool recording_mutations)
+					Mutation *mut_block_ptr, bool all_target_haplosomes_started_empty, bool recording_mutations)
 {
 	if (call == 0)
 		return;
@@ -4179,10 +5296,10 @@ _AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haploso
 	if (all_target_haplosomes_started_empty)
 		haplosome_last_mutrun->emplace_back(mut_index);
 	else
-		haplosome_last_mutrun->insert_sorted_mutation(mut_index);
+		haplosome_last_mutrun->insert_sorted_mutation(mut_block_ptr, mut_index);
 	
 	if (recording_mutations)
-		species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_position));
+		species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_block_ptr, mut_position));
 }
 
 //	*********************	+ (o<Mutation>)readIndividualsFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
@@ -4205,6 +5322,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): " << "readIndividualsFromVCF() requires that all target individuals belong to the same species." << EidosTerminate();
 	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	Individual * const *individuals_data = (Individual * const *)p_target->ObjectData();
 	int individuals_size = p_target->Count();
 	
@@ -4471,8 +5590,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			// parse/validate the INFO fields that we recognize
 			std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 			std::vector<slim_mutationid_t> info_mutids;
-			std::vector<double> info_selcoeffs;
-			std::vector<double> info_domcoeffs;
+			std::vector<slim_effect_t> info_effect_sizes;
+			std::vector<slim_effect_t> info_domcoeffs;
 			std::vector<slim_objectid_t> info_poporigin;
 			std::vector<slim_tick_t> info_tickorigin;
 			std::vector<slim_objectid_t> info_muttype;
@@ -4509,7 +5628,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
 					
 					for (std::string &value_substr : value_substrs)
-						info_selcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+						info_effect_sizes.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 				}
 				else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
 				{
@@ -4563,7 +5682,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				
 				if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
-				if ((info_selcoeffs.size() != 0) && (info_selcoeffs.size() != alt_allele_count))
+				if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
 				if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
@@ -4596,20 +5715,22 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (!mutation_type_ptr)
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 				
-				// check the dominance coefficient of DOM against that of the mutation type
+				// get the dominance coefficient from DOM, or use the default coefficient from the mutation type
+				slim_effect_t dominance_coeff;
+				
 				if (info_domcoeffs.size() > 0)
-				{
-					if (std::abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
-						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
-				}
-				
-				// get the selection coefficient from S, or draw one
-				double selection_coeff;
-				
-				if (info_selcoeffs.size() > 0)
-					selection_coeff = info_selcoeffs[alt_allele_index];
+					dominance_coeff = info_domcoeffs[alt_allele_index];
 				else
-					selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+					dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT; also think about hemizygous dominance
+					// FIXME MULTITRAIT this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
+				
+				// get the selection coefficient from S, or draw one from the mutation type
+				slim_effect_t selection_coeff;
+				
+				if (info_effect_sizes.size() > 0)
+					selection_coeff = info_effect_sizes[alt_allele_index];
+				else
+					selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;
@@ -4683,31 +5804,26 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				}
 				
 				// instantiate the mutation with the values decided upon
-				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 				Mutation *new_mut;
 				
 				if (info_mutids.size() > 0)
 				{
 					// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
+					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 					slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 					
-					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				else
 				{
 					// no mutation ID supplied, so use whatever is next
-					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
-				}
-				
-				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-				if (selection_coeff != 0.0)
-				{
-					species->pure_neutral_ = false;
-					mutation_type_ptr->all_pure_neutral_DFE_ = false;
+					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				
 				// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
-				pop.MutationRegistryAdd(new_mut);
+				pop.MutationRegistryAdd(new_mut, /* p_autogenerated */ false);
 				alt_allele_mut_indices.emplace_back(new_mut_index);
 				mutation_indices.emplace_back(new_mut_index);
 			}
@@ -4916,14 +6032,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 								
 								// add the called mutation to the haplosome at haplosomes_index
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 													all_target_haplosomes_started_empty, recording_mutations);
 							}
 							else if (haplosomes[haplosomes_index + 1])
 							{
 								// add the called mutation to the haplosome at haplosomes_index + 1
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index + 1], haplosomes_last_mutrun_modified[haplosomes_index + 1], haplosomes_last_mutrun[haplosomes_index + 1],
-													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 													all_target_haplosomes_started_empty, recording_mutations);
 							}
 							else
@@ -4937,7 +6053,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 							{
 								// add the called mutation to the haplosome at haplosomes_index
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 													all_target_haplosomes_started_empty, recording_mutations);
 							}
 							else
@@ -4957,7 +6073,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						if (haplosomes[haplosomes_index])
 						{
 							_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-												alt_allele_mut_indices, mut_position, species, &mutrun_context,
+												alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 												all_target_haplosomes_started_empty, recording_mutations);
 						}
 						else
@@ -4969,7 +6085,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						if (haplosomes[haplosomes_index])
 						{
 							_AddCallToHaplosome(genotype_call2, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
-												alt_allele_mut_indices, mut_position, species, &mutrun_context,
+												alt_allele_mut_indices, mut_position, species, &mutrun_context, mut_block_ptr,
 												all_target_haplosomes_started_empty, recording_mutations);
 						}
 						else
@@ -4986,7 +6102,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	}
 	
 	// Return the instantiated mutations
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mutation_count = (int)mutation_indices.size();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
@@ -5189,7 +6304,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	}
 	
 	return gStaticEidosValueVOID;
-}	
+}			
 
 //	*********************	+ (integer)zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1])
 //
@@ -5211,7 +6326,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 	species->population_.CheckForDeferralInIndividualsVector(target_individuals, target_size, "Individual_Class::ExecuteMethod_zygosityOfMutations");
 	
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	EidosValue *mutations_value = p_arguments[0].get();
 	EidosValue *hemizygousValue_value = p_arguments[1].get();
@@ -5554,7 +6670,2978 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 }
 
 
+//
+// Phenotype demand
+//
+#pragma mark -
+#pragma mark Phenotype demand
+#pragma mark -
 
+//	*********************	+ (void)demandPhenotypeForIndividuals([Niso<Trait> trait = NULL], [l$ forceRecalc = F])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *trait_value = p_arguments[0].get();
+	EidosValue *forceRecalc_value = p_arguments[1].get();
+	
+	int individuals_count = p_target->Count();
+	
+	if (individuals_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	Individual **individuals_buffer = (Individual **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals): demandPhenotypeForIndividuals() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	// demandPhenotypeForIndividuals() is strictly limited to first()/early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running mutationEffect() callbacks, and those cannot nest inside
+	// the execution of a different species.
+	community.EnforceTimingRestriction_EventBlockOnly("Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals", "demandPhenotypeForIndividuals()", "");
+	if (species->InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals): demandPhenotypeForIndividuals() cannot be called when trait/fitness calculation is already underway." << EidosTerminate();
+	
+	// mark that we are doing trait calculations, to block changes to callbacks in use
+	species->SetInsideTraitOrFitnessCalculation(true);
+	
+	// get the trait indices, with bounds-checking
+	std::vector<slim_trait_index_t> trait_indices;
+	species->GetTraitIndicesFromEidosValue(trait_indices, trait_value, "demandPhenotypeForIndividuals");
+	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
+	
+	if (trait_count == 0)
+		return gStaticEidosValueVOID;
+	
+	// forceRecalc
+	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community.Tick() << " ====== demandPhenotypeForIndividuals(): for traits {";
+	for (slim_trait_index_t trait_index : trait_indices)
+		std::cout << " " << species->Traits()[trait_index]->Name();
+	std::cout << " } in " << individuals_count << " individuals, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
+#endif
+	
+	// if forced recalculation was not requested, but all trait values are NAN, opt for the forced recalculation code path
+	if (species->all_trait_values_NAN_)
+	{
+		forceRecalc = true;
+		species->all_trait_values_NAN_ = false;
+		
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "#   setting forceRecalc=T for efficiency since all_trait_values_NAN_ == true" << std::endl;
+#endif
+	}
+	
+	// prepare for trait calculations, such as by validating non-neutral caches and independent-dominance precalculated values
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species->CallbackBlocksMatching(community.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
+	
+	species->PrepareForTraitCalculations(mutationEffect_callbacks);
+	
+	// call DemandPhenotype_INDIVIDUALS() to express the demand, across the vector of individuals
+	if (forceRecalc)
+		DemandPhenotype_INDIVIDUALS<true>(species, individuals_buffer, individuals_count, trait_indices, mutationEffect_callbacks);
+	else
+		DemandPhenotype_INDIVIDUALS<false>(species, individuals_buffer, individuals_count, trait_indices, mutationEffect_callbacks);
+	
+	// done with trait calculations, unblock
+	species->SetInsideTraitOrFitnessCalculation(false);
+	
+	// BCH 12/25/2025: I considered having this return the trait values that were demanded; but I think void is
+	// better.  Collecting the trait values would be additional work here that would not always be desired, so
+	// it's better to make the user do it separately if they want it.  Also, this method should generally be
+	// called once to demand a set of traits, but getting a whole set of trait values back -- as an interleaved
+	// vector or a matrix -- is pretty inconvenient to work with.
+	return gStaticEidosValueVOID;
+}
+
+template <const bool f_force_recalc>
+void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Individual **individuals_buffer, int individuals_count, std::vector<slim_trait_index_t> &demanded_trait_indices)
+{
+	// Given a vector of trait indices, this scans through them looking for "pure neutral" traits -- traits that
+	// are known to be neutral even considering the effect of mutationEffect() callbacks, and for which there are
+	// no non-neutral callbacks that have to be called for their side effects.  For any such traits, the effect
+	// is simply the baseline offset combined with the individual offset.  That effect is calculated here, if
+	// necessary, for each individual, and the pure neutral trait is then removed from the trait indices so it
+	// takes no further effort downstream.  This saves a calculation pass through the mutation list for the trait.
+	
+	// BCH 1/26/2026: Note that if the baseline offset is neutral and we know that all individual offsets are
+	// zero, we don't really need to assign trait values here, as long as we skip using them elsewhere.  That
+	// seems architecturally complex, and the savings would probably be small since there are only two reads and
+	// one write per individual here; the amount of work that could be avoided doesn't really seem large.
+	
+	slim_trait_index_t demanded_trait_indices_count = (slim_trait_index_t)demanded_trait_indices.size();
+	
+	for (int demanded_trait_indices_index = 0; demanded_trait_indices_index < demanded_trait_indices_count; demanded_trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = demanded_trait_indices[demanded_trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		
+		if (trait->is_pure_neutral_now_)
+		{
+			TraitType traitType = trait->Type();
+			slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
+			
+			if (traitType == TraitType::kAdditive)
+			{
+				if (trait->HasLogisticPostTransform())
+				{
+					//  logistic trait, post-process calculated values
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+						if (f_force_recalc || std::isnan(trait_info.phenotype_))
+						{
+							double additive_result = (double)(trait_baseline_offset + trait_info.offset_);
+							
+							trait_info.phenotype_ = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(- static_cast<double>(additive_result))));
+						}
+					}
+				}
+				else
+				{
+					// regular additive trait
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+						if (f_force_recalc || std::isnan(trait_info.phenotype_))
+							trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+					}
+				}
+			}
+			else	// (traitType == TraitType::kMultiplicative)
+			{
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals_buffer[individual_index];
+					IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+					
+					if (f_force_recalc || std::isnan(trait_info.phenotype_))
+						trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+				}
+			}
+			
+			// Remove the element at the current index, decrement the count, and do this index again.
+			// NOTE: this modifies the vector of demanded trait indices supplied by the caller; this is by design!
+			// It would not be correct to remove this pure-neutral trait from fitness calculations, since its
+			// baseline and individual offsets might still be relevant, but we can remove it from demand.
+			demanded_trait_indices.erase(demanded_trait_indices.begin() + demanded_trait_indices_index);
+			demanded_trait_indices_count--;
+			demanded_trait_indices_index--;
+			
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << species->community_.Tick() << " --- _HandleDemandForPureNeutralTraits() resolved demand for trait '" << trait->Name() << "' because it is known to be pure-neutral" << std::endl;
+#endif
+		}
+	}
+}
+
+// This version of DemandPhenotype is called for a vector of individuals.  This is called by the Individual method demandPhenotypeForIndividuals().
+template <const bool f_force_recalc>
+void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual **individuals_buffer, int individuals_count, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &mutationEffect_callbacks)
+{
+	// Given a vector of individuals that are all guaranteed to belong to the provided species, and a vector of
+	// trait indices guaranteed to be of length 1 or longer, this method loops over the chromosomes of the
+	// species (the top-level loop to make mutation run experiment timing simple), then over the traits provided
+	// (to avoid having to test for additive vs. multiplicative over and over for each mutation), then over
+	// the individuals (the level at which parallelization of the code occurs).  For each individual, it
+	// sets an initial trait value based on the baseline offset and individual offset.  It then dispatches to
+	// a sub-method that computes and aggregates the trait effect produced by all of the mutations for the given
+	// chromosome/trait/individual, ultimately producing a final trait values for each individual.
+	
+	// First we evaluate the mutationEffect() callbacks we were given; we do this here, rather than at the
+	// start of each tick, so that newly registered callbacks function, and the current active state of each
+	// callback is respected.  If a mutationEffect() callback exists that is non-constant, we invalidate all
+	// affected trait values up front so that they get recalculated, unless recalculation is forced anyway.
+	//
+	// See NoteChangedMutationEffectCallback() for a similar mechanism, which we don't use here because here
+	// we only want to invalidate phenotypes that we are then going to demand; the goal here is to force
+	// recalculation of specifically the phenotypes that are being demanded, if callbacks affect them.
+	Population &population = species->population_;
+	bool has_active_callbacks = false;
+	
+	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
+	{
+		if (callback->block_active_)
+		{
+			has_active_callbacks = true;
+			
+			// if we're forcing recalculation, we don't need to worry about invalidation
+			if (f_force_recalc)
+				break;
+			
+			// if the callback has a constant value, we can skip invalidation; the current trait value will
+			// already incorporate that value, from the last time the trait was demanded, or will have been
+			// invalidated when this callback came into scope or was added/activated.  Here we're interested
+			// specifically in callbacks with unpredictable effects that have to be called *every* demand.
+			if (callback->compound_statement_node_->cached_return_value_)
+				continue;
+			
+			// TRAIT INVALIDATION: invalidate trait values affected by this callback.
+			// BCH 2/26/2026: I thought about the inefficiency of setting all these NAN values, and explored a
+			// design in which we instead set a "force recalculation for this trait" flag.  But it made the code
+			// substantially more complex, and it actually lost one big benefit of this design, which is that
+			// if a callback is subpop-specific (which is common), we only invalidate the individuals in that
+			// subpop.  The speedup gained in some cases didn't seem worth the speedup lost in other cases.
+			slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+			slim_trait_index_t callback_trait_index = callback->trait_index_;
+			
+			if (callback_trait_index == -1)
+			{
+				// the callback applies to every trait that is being demanded
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					
+					if (callback_subpop_id != -1)
+						if (callback_subpop_id != individual->subpopulation_->subpopulation_id_)
+							continue;
+					
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					for (slim_trait_index_t trait_index : p_trait_indices)
+						trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+				}
+			}
+			else
+			{
+				// the callback applies only to one specific trait; is that trait even being demanded?
+				if (std::find(p_trait_indices.begin(), p_trait_indices.end(), callback_trait_index) == p_trait_indices.end())
+					continue;
+				
+				// it is, so invalidate just that trait
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					
+					if (callback_subpop_id != -1)
+						if (callback_subpop_id != individual->subpopulation_->subpopulation_id_)
+							continue;
+					
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					trait_info[callback_trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+				}
+			}
+		}
+	}
+	
+#if DEBUG
+	// check that our subpopulation per-trait caches are correctly set up for each trait
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		if ((int)subpop->per_trait_subpop_caches_.size() != species->TraitCount())
+			EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) per_trait_subpop_caches_ is not correctly sized." << EidosTerminate();
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < species->TraitCount(); trait_index++)
+		{
+			Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+			
+			if (subpop_trait_caches.mutationEffect_callbacks_per_trait.size() != 0)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) per_trait_subpop_caches_ mutationEffect_callbacks_per_trait_ is not empty." << EidosTerminate();
+			if (subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED != nullptr)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) per_trait_subpop_caches_ IncorporateEffects_Haploid_TEMPLATED is not nullptr." << EidosTerminate();
+			if (subpop_trait_caches.IncorporateEffects_Hemizygous_TEMPLATED != nullptr)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) per_trait_subpop_caches_ IncorporateEffects_Hemizygous_TEMPLATED is not nullptr." << EidosTerminate();
+			if (subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED != nullptr)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) per_trait_subpop_caches_ IncorporateEffects_Diploid_TEMPLATED is not nullptr." << EidosTerminate();
+		}
+	}
+#endif
+	
+	// Note that our caller has already validated non-neutral caches and independent-dominance effects.
+	
+	// If a trait is known to be "pure neutral" -- neutral even including the effects of callbacks, and not
+	// involving any non-neutral callbacks that need to be called for side effects -- then we want to handle
+	// the trait up front here and remove it from the vector of trait indices, for efficiency downstream.
+	// A "pure neutral" trait has phenotypes determined purely by baseline offset and individual offset.
+	// Because this modifies the vector of trait indices, we make a private copy of it here; we do not want
+	// to modify the caller's vector of trait indices, because handled traits are still relevant for fitness.
+	std::vector<slim_trait_index_t> trait_indices = p_trait_indices;
+	
+	_HandleDemandForPureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleDemandForPureNeutralTraits()!
+	
+	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in.
+	// There are two regimes where we switch to the main mutation buffers because all mutations are nonneutral
+	// (so we don't want to copy them all into the nonneutral buffer); otherwise we use the nonneutral buffer.
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	TraitCalculationRegime current_trait_calculation_regime_DIPLOID = species->current_trait_calculation_regime_DIPLOID_;
+	TraitCalculationRegime current_trait_calculation_regime_HAPLOID = species->current_trait_calculation_regime_HAPLOID_;
+	
+	bool use_nonneutral_caches_DIPLOID = ((current_trait_calculation_regime_DIPLOID != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (current_trait_calculation_regime_DIPLOID != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	bool use_nonneutral_caches_HAPLOID = ((current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+										  (current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+										  (current_trait_calculation_regime_HAPLOID != TraitCalculationRegime::kHaploidNoCallbacks));
+#else
+	bool use_nonneutral_caches_DIPLOID = false;
+	bool use_nonneutral_caches_HAPLOID = false;
+#endif
+	
+	// Determine whether we are using haploid caches or not, based upon the trait calculation regime we're in.
+	int haploid_cache_level = 0;
+	
+#if SLIM_USE_HAPLOID_CACHES()
+	if ((current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+		(current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidWithCallbacks))
+		haploid_cache_level = 1;
+	else if ((current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+			 (current_trait_calculation_regime_HAPLOID == TraitCalculationRegime::kHaploidNoCallbacks))
+		haploid_cache_level = 2;
+#endif
+	
+	// Next we cache method pointers for haploid and diploid chromosomes, which we will use throughout.  These
+	// are templated for efficiency, so we have to choose the correct template.  That depends on the subpopulation
+	// since each subpopulation might have a different set of mutationEffect() callbacks.
+	if (has_active_callbacks)
+	{
+		// If we have any active callbacks, we have to account for all active callbacks, determining which traits,
+		// if any, each applies to. For each trait we keep a separate vector of callbacks that apply to that trait.
+		// Note that we no longer need to worry about inactive callbacks here; they will remain inactive.
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			Trait *trait = species->Traits()[trait_index];
+			TraitType traitType = trait->Type();
+			
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+				
+				std::vector<SLiMEidosBlock*> &subpop_per_trait_mutationEffect_callbacks = subpop_trait_caches.mutationEffect_callbacks_per_trait;
+				auto &IncorporateEffects_Haploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED;
+				auto &IncorporateEffects_Hemizygous_TEMPLATED = subpop_trait_caches.IncorporateEffects_Hemizygous_TEMPLATED;
+				auto &IncorporateEffects_Diploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED;
+				
+				for (SLiMEidosBlock *callback : mutationEffect_callbacks)
+				{
+					// check if this callback applies to this subpopulation
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+					
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop->subpopulation_id_))
+					{
+						// check if this callback applies to this trait
+						slim_trait_index_t callback_trait_index = callback->trait_index_;
+						
+						if ((callback_trait_index == -1) || (callback_trait_index == trait_index))
+							subpop_per_trait_mutationEffect_callbacks.emplace_back(callback);
+					}
+				}
+				
+				int mutationEffect_callback_count = (int)subpop_per_trait_mutationEffect_callbacks.size();
+				bool mutationEffect_callbacks_exist = (mutationEffect_callback_count > 0);
+				bool single_mutationEffect_callback = (mutationEffect_callback_count == 1);
+				
+				// cache a pointer to the correct implementation of IncorporateEffects_X() for the subpopulation
+				// this varies by subpopulation because of the different callbacks that might be present
+				if (haploid_cache_level == 0) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, false>;
+							}
+						}
+					} else {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, false>;
+							}
+						}
+					}
+				} else if (haploid_cache_level == 1) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, false>;
+							}
+						}
+					} else {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, false>;
+							}
+						}
+					}
+				} else /* (haploid_cache_level == 2) */ {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, false>;
+							}
+						}
+					} else {
+						if (!mutationEffect_callbacks_exist) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, false, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, false, false>;
+							}
+						} else if (single_mutationEffect_callback) {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, true>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, true>;
+							}
+						} else {
+							if (traitType == TraitType::kAdditive) {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, false>;
+							} else {
+								IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, false>;
+							}
+						}
+					}
+				}
+				
+				if (!use_nonneutral_caches_DIPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
+						} else {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, true>;
+						} else {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, false>;
+						} else {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
+						} else {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, false, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, true>;
+						} else {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, true>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, false>;
+						} else {
+							IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, false>;
+							IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, false>;
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		// if we have no active callbacks at all, we know that that will remain true across the operation
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			Trait *trait = species->Traits()[trait_index];
+			TraitType traitType = trait->Type();
+			
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+				
+				auto &IncorporateEffects_Haploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED;
+				auto &IncorporateEffects_Hemizygous_TEMPLATED = subpop_trait_caches.IncorporateEffects_Hemizygous_TEMPLATED;
+				auto &IncorporateEffects_Diploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED;
+				
+				// cache a pointer to the correct implementation of IncorporateEffects_X() for the subpopulation, given no callbacks
+				if (haploid_cache_level == 0) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, false, false>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, false, false>;
+						}
+					}
+				} else if (haploid_cache_level == 1) {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, false, false>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, false, false>;
+						}
+					}
+				} else /* haploid_cache_level == 2 */ {
+					if (!use_nonneutral_caches_HAPLOID) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, false, false>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, false, false>;
+						}
+					}
+				}
+				
+				if (!use_nonneutral_caches_DIPLOID) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
+					}
+				} else {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
+					}
+				}
+			}
+		}
+	}
+	
+	// For a given individual, for a given trait, we have to make a decision as to whether we will recalculate or not.  That decision gets made
+	// once and then holds across all chromosomes for the individual.  But we're looping over chromosomes at the topmost level, so we have a
+	// little problem: how will we remember whether we decided to recalculate a given individual/trait when we get to doing the work for
+	// successive chromosomes?  We have to keep a vector of flags, actually; there's no choice but to keep that state somewhere.  So, we use
+	// std::vector<bool> with # individuals x # traits flags in it.  Here we loop through individuals and traits, making decisions about whether
+	// we're recalculating each trait in each individual.  For f_force_recalc == true that decision is always YES, so this method is templated
+	// to avoid all overhead completely in that case.  For each phenotype that we do intend to recalculate, we set its initial value from the
+	// baseline offset and individual offset for the trait.
+	// FIXME MULTITRAIT: if we have just one chromosome and one trait, we don't need this std::vector<bool>, because the decision is only needed
+	// once per individual; that should probably be special-cased, since this bool vector thing is gross and heavyweight.
+	std::vector<bool> recalc_decisions;
+	
+	if (!f_force_recalc)
+		recalc_decisions.resize(individuals_count * trait_indices.size());	// zero-fills to false
+	
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		TraitType traitType = trait->Type();
+		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
+		
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+#endif
+		
+		if (traitType == TraitType::kAdditive)
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+				
+#if DEBUG_TRAIT_DEMAND()
+				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+				
+				if (f_force_recalc)
+				{
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+				}
+				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+				{
+					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+				}
+				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+			}
+		}
+		else	// (traitType == TraitType::kMultiplicative)
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+				
+#if DEBUG_TRAIT_DEMAND()
+				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+				
+				if (f_force_recalc)
+				{
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+				}
+				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+				{
+					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+				}
+				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+			}
+		}
+	}
+	
+	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
+	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
+	// so that each one can do a single timing for mutrun experiments.
+	int haplosome_index = 0;
+	
+	for (Chromosome *chromosome : species->Chromosomes())
+	{
+		if (species->DoingAnyMutationRunExperiments())
+			chromosome->StartMutationRunExperimentClock();
+		
+		switch (chromosome->Type())
+		{
+				// diploid, possibly with one or both being null haplosomes
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+				{
+					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+					Trait *trait = species->Traits()[trait_index];
+					
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+					// Cache a method pointer for incorporating independent dominance effects here too
+					TraitType traitType = trait->Type();
+					void (Individual::*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index) = nullptr;
+					
+					if (traitType == TraitType::kAdditive)
+						_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<true>;
+					else
+						_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<false>;
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+					
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
+#endif
+					
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						
+						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+							continue;
+						
+						Subpopulation *subpop = ind->subpopulation_;
+						Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+						std::vector<SLiMEidosBlock*> &subpop_trait_mutationEffect_callbacks = subpop_trait_caches.mutationEffect_callbacks_per_trait;
+						Haplosome *haplosome1 = ind->haplosomes_[haplosome_index];
+						Haplosome *haplosome2 = ind->haplosomes_[haplosome_index+1];
+						
+						if (haplosome1->IsNull())
+						{
+							if (!haplosome2->IsNull())
+							{
+								// hemizygous (haplosome2)
+								auto IncorporateEffects_Hemizygous_TEMPLATED = subpop_trait_caches.IncorporateEffects_Hemizygous_TEMPLATED;
+								(ind->*IncorporateEffects_Hemizygous_TEMPLATED)(species, haplosome2, trait, subpop_trait_mutationEffect_callbacks);
+							}
+							else
+							{
+								// both haplosomes are null (only happens with chromosome type "A"; no work to be done
+							}
+						}
+						else if (haplosome2->IsNull())
+						{
+							// hemizygous (haplosome1)
+							auto IncorporateEffects_Hemizygous_TEMPLATED = subpop_trait_caches.IncorporateEffects_Hemizygous_TEMPLATED;
+							(ind->*IncorporateEffects_Hemizygous_TEMPLATED)(species, haplosome1, trait, subpop_trait_mutationEffect_callbacks);
+						}
+						else
+						{
+							// diploid, both haplosomes non-null; in this code path we can optimize for
+							// independent dominance since neither haplosome is hemizygous
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+							if (trait->is_pure_independent_dominance_now_)
+							{
+#if DEBUG_TRAIT_DEMAND()
+								independent_dominance_individuals++;
+#endif
+								MutRunInternalCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+								
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
+							}
+							else
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+							{
+								auto IncorporateEffects_Diploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED;
+								(ind->*IncorporateEffects_Diploid_TEMPLATED)(species, haplosome1, haplosome2, trait, subpop_trait_mutationEffect_callbacks);
+							}
+						}
+#if DEBUG_TRAIT_DEMAND()
+						total_individuals_recalculated++;
+#endif
+					}
+					
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for diploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
+#endif
+				}
+				break;
+			}
+				
+				// haploid, possibly null
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+				// haploid special cases that have an accompanying null haplosome for backward compatibility
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+				{
+					slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+					Trait *trait = species->Traits()[trait_index];
+					
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0;
+#endif
+					
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
+						
+						if (haplosome->IsNull())
+							continue;
+						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+							continue;
+						
+						Subpopulation *subpop = ind->subpopulation_;
+						Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+						std::vector<SLiMEidosBlock*> &subpop_trait_mutationEffect_callbacks = subpop_trait_caches.mutationEffect_callbacks_per_trait;
+						auto IncorporateEffects_Haploid_TEMPLATED = subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED;
+						
+						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait, subpop_trait_mutationEffect_callbacks);
+						
+#if DEBUG_TRAIT_DEMAND()
+						total_individuals_recalculated++;
+#endif
+					}
+					
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for haploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated" << std::endl;
+#endif
+				}
+				break;
+			}
+		}
+		
+		if (species->DoingAnyMutationRunExperiments())
+			chromosome->StopMutationRunExperimentClock("DemandPhenotype_INDIVIDUALS()");
+		
+		haplosome_index += chromosome->IntrinsicPloidy();
+	}
+	
+	// post-transformation for logistic traits; this has to be done after we finish processing
+	// all traits for all chromosomes, since the outer loop above is over chromosomes
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		
+		if (trait->HasLogisticPostTransform())
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+					continue;
+				
+				slim_phenotype_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
+				double additive_result = (double)phenotype_ref;
+				
+				if (std::isfinite(additive_result))
+					phenotype_ref = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(-additive_result)));
+			}
+		}
+	}	
+	
+	// clear out each subpopulation's per-trait caches that we set up above; these are only for our private use
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			Subpopulation::PerTraitSubpopCaches &subpop_trait_caches = subpop->per_trait_subpop_caches_[trait_index];
+			
+			subpop_trait_caches.mutationEffect_callbacks_per_trait.clear();
+			subpop_trait_caches.IncorporateEffects_Haploid_TEMPLATED = nullptr;
+			subpop_trait_caches.IncorporateEffects_Hemizygous_TEMPLATED = nullptr;
+			subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED = nullptr;
+		}
+	}
+	
+#if DEBUG
+	// Do a check of all computed results, against the same values computed by brute force.
+	// FIXME MULTITRAIT: Since this is incorrect with stochastic callbacks, it should be turned into a warning before ship
+	if (gSLiM_disable_trait_crosschecks)
+		return;
+	
+	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+	{
+		Individual *ind = individuals_buffer[individual_index];
+		
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			
+			if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+				continue;
+			
+			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			
+			// If the individual's trait value is NAN after calculation, that's an error.
+			if (isnan(calculated_phenotype))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype is NAN after calculation, for trait '" << species->Traits()[trait_index]->Name() << "'." << EidosTerminate();
+			
+			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+			
+			// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
+			// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
+			// We use a relatively high absolute tolerance here because some calculations are single-precision.
+			if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_INDIVIDUALS): (internal error) phenotype check failed in tick " << species->community_.Tick() << " for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+		}
+	}
+#endif
+}
+
+template void Individual_Class::DemandPhenotype_INDIVIDUALS<false>(Species *, Individual **, int, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_INDIVIDUALS<true>(Species *, Individual **, int, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
+
+
+// This version of DemandPhenotype is called for a whole subpopulation.  This allows for greater efficiency than the individual-level version of this method.
+// This is called by the Subpopulation method demandPhenotype(), and by SLiM's internal fitness calculation code for traits with a direct effect on fitness.
+template <const bool f_force_recalc>
+void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks)
+{
+	// FIXME MULTITRAIT: think about shuffling the order in which individuals are handled, in this code path
+	
+	// Given a subpopulation `subpop` that is guaranteed to belong to the provided species, and a vector of
+	// trait indices guaranteed to be of length 1 or longer, this method loops over the chromosomes of the
+	// species (the top-level loop to make mutation run experiment timing simple), then over the traits provided
+	// (to avoid having to test for additive vs. multiplicative over and over for each mutation), then over
+	// the individuals (the level at which parallelization of the code occurs).  For each individual, it
+	// sets an initial trait value based on the baseline offset and individual offset.  It then dispatches to
+	// a sub-method that computes and aggregates the trait effect produced by all of the mutations for the given
+	// chromosome/trait/individual, ultimately producing a final trait values for each individual.
+	
+	// This method is passed p_subpop_mutationEffect_callbacks, a subpop-specific set of mutationEffect()
+	// callbacks, and does not use the subpopulation per-trait caches used by DemandPhenotype_INDIVIDUALS().
+	// We want to evaluate the set of mutationEffect() callbacks we were given; if a mutationEffect() callback
+	// exists that is non-constant, we invalidate all affected trait values up front so that they get
+	// recalculated, unless recalculation is forced anyway.
+	//
+	// See NoteChangedMutationEffectCallback() for a similar mechanism, which we don't use here because here
+	// we only want to invalidate phenotypes that we are then going to demand; the goal here is to force
+	// recalculation of specifically the phenotypes that are being demanded, if callbacks affect them.
+	Individual **individuals_buffer = subpop->parent_individuals_.data();
+	int individuals_count = subpop->parent_subpop_size_;
+	
+	if (!f_force_recalc)
+	{
+		for (SLiMEidosBlock *callback : p_subpop_mutationEffect_callbacks)
+		{
+			if (callback->block_active_)
+			{
+				// if the callback has a constant value, we can skip invalidation; the current trait value will
+				// already incorporate that value, from the last time the trait was demanded, or will have been
+				// invalidated when this callback came into scope or was added/activated.  Here we're interested
+				// specifically in callbacks with unpredictable effects that have to be called *every* demand.
+				if (callback->compound_statement_node_->cached_return_value_)
+					continue;
+				
+				// if the callback applies to a subpopulation other than the one we're handling, skip it
+				if (callback->subpopulation_id_ != -1)
+					if (callback->subpopulation_id_ != subpop->subpopulation_id_)
+						continue;
+				
+				// TRAIT INVALIDATION: invalidate trait values affected by this callback.
+				// BCH 2/26/2026: I thought about the inefficiency of setting all these NAN values, and explored a
+				// design in which we instead set a "force recalculation for this trait" flag.  But it made the code
+				// substantially more complex, and it actually lost one big benefit of this design, which is that
+				// if a callback is subpop-specific (which is common), we only invalidate the individuals in that
+				// subpop.  The speedup gained in some cases didn't seem worth the speedup lost in other cases.
+				slim_trait_index_t callback_trait_index = callback->trait_index_;
+				
+				if (callback_trait_index == -1)
+				{
+					// the callback applies to every trait that is being demanded
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						for (slim_trait_index_t trait_index : p_trait_indices)
+							trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else
+				{
+					// the callback applies only to one specific trait; is that trait even being demanded?
+					if (std::find(p_trait_indices.begin(), p_trait_indices.end(), callback_trait_index) == p_trait_indices.end())
+						continue;
+					
+					// it is, so invalidate just that trait
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[callback_trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+			}
+		}
+	}
+	
+	// Note that our caller has already validated non-neutral caches and independent-dominance effects.
+	
+	// If a trait is known to be "pure neutral" -- neutral even including the effects of callbacks, and not
+	// involving any non-neutral callbacks that need to be called for side effects -- then we want to handle
+	// the trait up front here and remove it from the vector of trait indices, for efficiency downstream.
+	// A "pure neutral" trait has phenotypes determined purely by baseline offset and individual offset.
+	// Because this modifies the vector of trait indices, we make a private copy of it here; we do not want
+	// to modify the caller's vector of trait indices, because handled traits are still relevant for fitness.
+	std::vector<slim_trait_index_t> trait_indices = p_trait_indices;
+	
+	_HandleDemandForPureNeutralTraits<f_force_recalc>(species, individuals_buffer, individuals_count, trait_indices);
+	
+	slim_trait_index_t trait_indices_count = (slim_trait_index_t)trait_indices.size();	// do this after _HandleDemandForPureNeutralTraits()!
+	
+	// For a given individual, for a given trait, we have to make a decision as to whether we will recalculate or not.  That decision gets made
+	// once and then holds across all chromosomes for the individual.  But we're looping over chromosomes at the topmost level, so we have a
+	// little problem: how will we remember whether we decided to recalculate a given individual/trait when we get to doing the work for
+	// successive chromosomes?  We have to keep a vector of flags, actually; there's no choice but to keep that state somewhere.  So, we use
+	// std::vector<bool> with # individuals x # traits flags in it.  Here we loop through individuals and traits, making decisions about whether
+	// we're recalculating each trait in each individual.  For f_force_recalc == true that decision is always YES, so this method is templated
+	// to avoid all overhead completely in that case.  For each phenotype that we do intend to recalculate, we set its initial value from the
+	// baseline offset and individual offset for the trait.
+	// FIXME MULTITRAIT: if we have just one chromosome and one trait, we don't need this std::vector<bool>, because the decision is only needed
+	// once per individual; that should probably be special-cased, since this bool vector thing is gross and heavyweight.
+	std::vector<bool> recalc_decisions;
+	
+	if (!f_force_recalc)
+		recalc_decisions.resize(individuals_count * trait_indices.size());	// zero-fills to false
+	
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		TraitType traitType = trait->Type();
+		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
+		
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+#endif
+		
+		if (traitType == TraitType::kAdditive)
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+				
+#if DEBUG_TRAIT_DEMAND()
+				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+				
+				if (f_force_recalc)
+				{
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+				}
+				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+				{
+					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+				}
+				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+			}
+		}
+		else	// (traitType == TraitType::kMultiplicative)
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+				
+#if DEBUG_TRAIT_DEMAND()
+				//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+				
+				if (f_force_recalc)
+				{
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+				}
+				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+				{
+					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+				}
+				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+			}
+		}
+	}
+	
+	// Determine whether we are using nonneutral caches or not, based upon the trait calculation regime we're in.
+	// There are two regimes where we switch to the main mutation buffers because all mutations are nonneutral
+	// (so we don't want to copy them all into the nonneutral buffer); otherwise we use the nonneutral buffer.
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	bool use_nonneutral_caches_DIPLOID = ((species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+	bool use_nonneutral_caches_HAPLOID = ((species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+										  (species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+										  (species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+										  (species->current_trait_calculation_regime_HAPLOID_ != TraitCalculationRegime::kHaploidNoCallbacks));
+#else
+	bool use_nonneutral_caches_DIPLOID = false;
+	bool use_nonneutral_caches_HAPLOID = false;
+#endif
+	
+	// Determine whether we are using haploid caches or not, based upon the trait calculation regime we're in.
+	int haploid_cache_level = 0;
+	
+#if SLIM_USE_HAPLOID_CACHES()
+	if ((species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+		(species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidWithCallbacks))
+		haploid_cache_level = 1;
+	else if ((species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+			 (species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidNoCallbacks))
+		haploid_cache_level = 2;
+#endif
+	
+	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
+	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
+	// so that each one can do a single timing for mutrun experiments.
+	int haplosome_index = 0;
+	
+	for (Chromosome *chromosome : species->Chromosomes())
+	{
+		if (species->DoingAnyMutationRunExperiments())
+			chromosome->StartMutationRunExperimentClock();
+		
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			Trait *trait = species->Traits()[trait_index];
+			TraitType traitType = trait->Type();
+			
+			// Cache the mutationEffect() callbacks that are relevant to this trait
+			std::vector<SLiMEidosBlock*> subpop_per_trait_mutationEffect_callbacks;
+			
+			for (SLiMEidosBlock *callback : p_subpop_mutationEffect_callbacks)
+			{
+				// check if this callback applies to this trait
+				slim_trait_index_t callback_trait_index = callback->trait_index_;
+				
+				if ((callback_trait_index == -1) || (callback_trait_index == trait_index))
+					subpop_per_trait_mutationEffect_callbacks.emplace_back(callback);
+			}
+			
+			// FIXME MULTITRAIT: could determine at this point whether our callbacks force a fixed effect,
+			// and whether that effect is neutral; if so, we could skip all remaining genetic work.  Similarly,
+			// this would be the point at which to decide to use independent-dominance effects and skip the
+			// genetic work.  There is some redundancy to doing those determination inside the loop over
+			// chromosomes, though, unless we add per-chromosome flags about neutrality and independent
+			// dominance; maybe we can/should make such determinations outside the chromosome loop?
+			
+			int mutationEffect_callback_count = (int)subpop_per_trait_mutationEffect_callbacks.size();
+			bool mutationEffect_callbacks_exist = (mutationEffect_callback_count > 0);
+			bool single_mutationEffect_callback = (mutationEffect_callback_count == 1);
+			
+			// Cache method pointers for haploid and diploid chromosomes for this trait.  These are templated
+			// for efficiency, so we have to choose the correct template.  That depends on whether the trait is
+			// additive or multiplicative; it could potentially also depend on per-trait callbacks (FIXME MULTITRAIT).
+			void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+			void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+			void (Individual::*IncorporateEffects_Diploid_TEMPLATED)(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
+			
+			if (haploid_cache_level == 0) {
+				if (!use_nonneutral_caches_HAPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<0, true, false, true, false>;
+						}
+					}
+				}
+			} else if (haploid_cache_level == 1) {
+				if (!use_nonneutral_caches_HAPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<1, true, false, true, false>;
+						}
+					}
+				}
+			} else /* (haploid_cache_level == 2) */ {
+				if (!use_nonneutral_caches_HAPLOID) {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, false, false, true, false>;
+						}
+					}
+				} else {
+					if (!mutationEffect_callbacks_exist) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, false, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, false, false>;
+						}
+					} else if (single_mutationEffect_callback) {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, true>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, true>;
+						}
+					} else {
+						if (traitType == TraitType::kAdditive) {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, true, true, false>;
+						} else {
+							IncorporateEffects_Haploid_TEMPLATED =		&Individual::_IncorporateEffects_Haploid<2, true, false, true, false>;
+						}
+					}
+				}
+			}
+			
+			if (!use_nonneutral_caches_DIPLOID) {
+				if (!mutationEffect_callbacks_exist) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, false, false>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, false, false>;
+					}
+				} else if (single_mutationEffect_callback) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, true>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, true>;
+					}
+				} else {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, true, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, true, true, false>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<false, false, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<false, false, true, false>;
+					}
+				}
+			} else {
+				if (!mutationEffect_callbacks_exist) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, false, false>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, false, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, false, false>;
+					}
+				} else if (single_mutationEffect_callback) {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, true>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, true>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, true>;
+					}
+				} else {
+					if (traitType == TraitType::kAdditive) {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, true, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, true, true, false>;
+					} else {
+						IncorporateEffects_Hemizygous_TEMPLATED =	&Individual::_IncorporateEffects_Hemizygous<true, false, true, false>;
+						IncorporateEffects_Diploid_TEMPLATED =		&Individual::_IncorporateEffects_Diploid<true, false, true, false>;
+					}
+				}
+			}
+			
+			// Cache a method pointer for incorporating independent dominance effects here too
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+			
+			void (Individual::*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index) = nullptr;
+			
+			if (traitType == TraitType::kAdditive)
+				_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<true>;
+			else
+				_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED = &Individual::_IncorporateEffects_IndependentDominance_Diploid<false>;
+			
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+			
+			// Then process the chromosome for the focal trait
+			switch (chromosome->Type())
+			{
+					// diploid, possibly with one or both being null haplosomes
+				case ChromosomeType::kA_DiploidAutosome:
+				case ChromosomeType::kX_XSexChromosome:
+				case ChromosomeType::kZ_ZSexChromosome:
+				{
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
+#endif
+					
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						
+						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+							continue;
+						
+						Haplosome *haplosome1 = ind->haplosomes_[haplosome_index];
+						Haplosome *haplosome2 = ind->haplosomes_[haplosome_index+1];
+						
+						if (haplosome1->IsNull())
+						{
+							if (!haplosome2->IsNull())
+							{
+								// hemizygous (haplosome2)
+								(ind->*IncorporateEffects_Hemizygous_TEMPLATED)(species, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
+							}
+							else
+							{
+								// both haplosomes are null (only happens with chromosome type "A"; no work to be done
+							}
+						}
+						else if (haplosome2->IsNull())
+						{
+							// hemizygous (haplosome1)
+							(ind->*IncorporateEffects_Hemizygous_TEMPLATED)(species, haplosome1, trait, subpop_per_trait_mutationEffect_callbacks);
+						}
+						else
+						{
+							// diploid, both haplosomes non-null; in this code path we can optimize for
+							// independent dominance since neither haplosome is hemizygous
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+							if (trait->is_pure_independent_dominance_now_)
+							{
+#if DEBUG_TRAIT_DEMAND()
+								independent_dominance_individuals++;
+#endif
+								MutRunInternalCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+								
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome1, trait_index, inddom_cache_index);
+								(ind->*_IncorporateEffects_IndependentDominance_Diploid_TEMPLATED)(haplosome2, trait_index, inddom_cache_index);
+							}
+							else
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+							{
+								(ind->*IncorporateEffects_Diploid_TEMPLATED)(species, haplosome1, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
+							}
+						}
+						
+#if DEBUG_TRAIT_DEMAND()
+						total_individuals_recalculated++;
+#endif
+					}
+					
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for diploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
+#endif
+					break;
+				}
+					
+					// haploid, possibly null
+				case ChromosomeType::kH_HaploidAutosome:
+				case ChromosomeType::kY_YSexChromosome:
+				case ChromosomeType::kW_WSexChromosome:
+				case ChromosomeType::kHF_HaploidFemaleInherited:
+				case ChromosomeType::kFL_HaploidFemaleLine:
+				case ChromosomeType::kHM_HaploidMaleInherited:
+				case ChromosomeType::kML_HaploidMaleLine:
+					// haploid special cases that have an accompanying null haplosome for backward compatibility
+				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+				case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				{
+#if DEBUG_TRAIT_DEMAND()
+					int total_individuals_recalculated = 0;
+#endif
+					
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
+						
+						if (haplosome->IsNull())
+							continue;
+						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+							continue;
+						
+						(ind->*IncorporateEffects_Haploid_TEMPLATED)(species, haplosome, trait, subpop_per_trait_mutationEffect_callbacks);
+						
+#if DEBUG_TRAIT_DEMAND()
+						total_individuals_recalculated++;
+#endif
+					}
+					
+#if DEBUG_TRAIT_DEMAND()
+					std::cout << "   DemandPhenotype_SUBPOP() calculating trait " << trait->Name() << " for haploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated" << std::endl;
+#endif
+					break;
+				}
+			}
+		}
+		
+		if (species->DoingAnyMutationRunExperiments())
+			chromosome->StopMutationRunExperimentClock("DemandPhenotype_SUBPOP()");
+		
+		haplosome_index += chromosome->IntrinsicPloidy();
+	}
+	
+	// post-transformation for logistic traits; this has to be done after we finish processing
+	// all traits for all chromosomes, since the outer loop above is over chromosomes
+	for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+	{
+		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+		Trait *trait = species->Traits()[trait_index];
+		
+		if (trait->HasLogisticPostTransform())
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals_buffer[individual_index];
+				
+				if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+					continue;
+				
+				slim_phenotype_t &phenotype_ref = ind->trait_info_[trait_index].phenotype_;
+				double additive_result = (double)phenotype_ref;
+				
+				if (std::isfinite(additive_result))
+					phenotype_ref = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(-additive_result)));
+			}
+		}
+	}	
+	
+#if DEBUG
+	// Do a check of all computed results, against the same values computed by brute force.
+	// FIXME MULTITRAIT: Since this is incorrect with stochastic callbacks, it should be turned into a warning before ship
+	if (gSLiM_disable_trait_crosschecks)
+		return;
+	
+	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+	{
+		Individual *ind = individuals_buffer[individual_index];
+		
+		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
+		{
+			slim_trait_index_t trait_index = trait_indices[trait_indices_index];
+			
+			if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
+				continue;
+			
+			slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+			
+			// If the individual's trait value is NAN after calculation, that's an error.
+			if (isnan(calculated_phenotype))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype is NAN after calculation, for trait '" << species->Traits()[trait_index]->Name() << "'." << EidosTerminate();
+			
+			slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+			
+			// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
+			// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
+			// We use a relatively high absolute tolerance here because some calculations are single-precision.
+			if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::DemandPhenotype_SUBPOP): (internal error) phenotype check failed in tick " << species->community_.Tick() << " for trait " << species->Traits()[trait_index]->Name() << " (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+		}
+	}
+#endif
+}
+
+template void Individual_Class::DemandPhenotype_SUBPOP<false>(Species *, Subpopulation *, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
+template void Individual_Class::DemandPhenotype_SUBPOP<true>(Species *, Subpopulation *, const std::vector<slim_trait_index_t> &, const std::vector<SLiMEidosBlock*> &);
+
+
+// Low-level method to calculate a phenotype for one individual, for one haploid chromosome, for one trait.
+// This will put the result of the calculation into the individual's phenotype information.
+// This is called by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
+template <const int f_haploid_cache_level, const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+void Individual::_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// Check template flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	TraitCalculationRegime current_trait_calculation_regime = species->current_trait_calculation_regime_HAPLOID_;
+	
+	bool use_nonneutral_cache = ((current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kHaploidNoCallbacks));
+#else
+	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
+#endif
+	
+	if (f_use_nonneutral_cache != use_nonneutral_cache)
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_use_nonneutral_cache flag is incorrect." << EidosTerminate();
+	
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
+	
+	size_t callback_count = p_mutationEffect_callbacks.size();
+	
+	if (f_callbacks != (callback_count > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_callbacks flag is incorrect." << EidosTerminate();
+	if (f_singlecallback != (callback_count == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_singlecallback flag is incorrect." << EidosTerminate();
+	
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) null haplosome." << EidosTerminate();
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_additiveTrait set incorrectly." << EidosTerminate();
+	if (f_callbacks != (p_mutationEffect_callbacks.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_callbacks set incorrectly." << EidosTerminate();
+	if (f_singlecallback != (p_mutationEffect_callbacks.size() == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) f_singlecallback set incorrectly." << EidosTerminate();
+#endif
+	
+	// we just need to scan through the haplosome and account for its mutations, using the homozygous mutation
+	// effect (no dominance effects with haploidy), or the hemizygous mutation effect for f_hemizygous == true
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	slim_trait_index_t trait_index = trait->Index();
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	const MutRunInternalCacheIndex haploid_cache_count = species->HaploidEffectsCacheCount();
+#endif
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+#if SLIM_USE_HAPLOID_CACHES()
+		// Incorporate pre-calculated values from the haploid cache of the mutation run
+		if (f_haploid_cache_level > 0)
+		{
+			if (f_additiveTrait)
+				effect_accumulator += (double)mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+			else
+				effect_accumulator *= (double)mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+			
+			// haploid cache level 2 is that there are no callbacks and all mutational effects are in the cache
+			if (f_haploid_cache_level == 2)
+				continue;
+		}
+#endif
+		
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		// Cache non-neutral mutations and read from the non-neutral buffers
+		const MutationIndex *haplosome_iter, *haplosome_max;
+		
+		if (f_use_nonneutral_cache)
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, haploid_cache_count);
+		else
+			mutrun->beginend_nonneutral_pointers_MAIN(&haplosome_iter, &haplosome_max);
+#else
+		// Read directly from the MutationRun buffers
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+#endif
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].homozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				effect_accumulator += (double)effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= (double)effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+template void Individual::_IncorporateEffects_Haploid<0, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<0, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+template void Individual::_IncorporateEffects_Haploid<1, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<1, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+template void Individual::_IncorporateEffects_Haploid<2, false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Haploid<2, true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+
+// Low-level method to calculate a phenotype for one individual, for one hemizygous chromosome, for one trait.
+// This will put the result of the calculation into the individual's phenotype information.
+// This is called by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
+template <const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+void Individual::_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// Check template flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	TraitCalculationRegime current_trait_calculation_regime = species->current_trait_calculation_regime_DIPLOID_;
+	
+	bool use_nonneutral_cache = ((current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (current_trait_calculation_regime != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches));
+#else
+	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
+#endif
+	
+	if (f_use_nonneutral_cache != use_nonneutral_cache)
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_use_nonneutral_cache flag is incorrect." << EidosTerminate();
+	
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
+	
+	size_t callback_count = p_mutationEffect_callbacks.size();
+	
+	if (f_callbacks != (callback_count > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_callbacks flag is incorrect." << EidosTerminate();
+	if (f_singlecallback != (callback_count == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_singlecallback flag is incorrect." << EidosTerminate();
+	
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) null haplosome." << EidosTerminate();
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_additiveTrait set incorrectly." << EidosTerminate();
+	if (f_callbacks != (p_mutationEffect_callbacks.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_callbacks set incorrectly." << EidosTerminate();
+	if (f_singlecallback != (p_mutationEffect_callbacks.size() == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Hemizygous): (internal error) f_singlecallback set incorrectly." << EidosTerminate();
+#endif
+	
+	// we just need to scan through the haplosome and account for its mutations, using the homozygous mutation
+	// effect (no dominance effects with haploidy), or the hemizygous mutation effect for f_hemizygous == true
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	slim_trait_index_t trait_index = trait->Index();
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	const MutRunInternalCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
+#endif
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		// Cache non-neutral mutations and read from the non-neutral buffers
+		const MutationIndex *haplosome_iter, *haplosome_max;
+		
+		if (f_use_nonneutral_cache)
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, inddom_cache_count);
+		else
+			mutrun->beginend_nonneutral_pointers_MAIN(&haplosome_iter, &haplosome_max);
+#else
+		// Read directly from the MutationRun buffers
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+#endif
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].hemizygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				effect_accumulator += (double)effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= (double)effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+template void Individual::_IncorporateEffects_Hemizygous<false, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<false, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, false, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, false, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, false, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, true, false, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, true, true, false>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Hemizygous<true, true, true, true>(Species *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+// Low-level method to calculate a phenotype for one individual, for one diploid chromosome, for one trait.
+// This will put the result of the calculation into the individual's phenotype information.  This is called
+// by Individual_Class::DemandPhenotype_X(), which loops over chromosomes, traits, and individuals.
+template <const bool f_use_nonneutral_cache, const bool f_additiveTrait, const bool f_callbacks, const bool f_singlecallback>
+void Individual::_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// Check template flags
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	bool use_nonneutral_cache = ((species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralNoIndDomCaches) &&
+								 (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kAllNonNeutralWithIndDomCaches) &&
+								 (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) &&
+								 (species->current_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kHaploidNoCallbacks));
+#else
+	bool use_nonneutral_cache = false;		// nonneutral mutation buffer off for all regimes
+#endif
+	
+	if (f_use_nonneutral_cache != use_nonneutral_cache)
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_use_nonneutral_cache flag is incorrect." << EidosTerminate();
+	
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_additiveTrait flag is incorrect." << EidosTerminate();
+	
+	size_t callback_count = p_mutationEffect_callbacks.size();
+	
+	if (f_callbacks != (callback_count > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_callbacks flag is incorrect." << EidosTerminate();
+	if (f_singlecallback != (callback_count == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_singlecallback flag is incorrect." << EidosTerminate();
+	
+	// This method assumes that haplosome1 and haplosome2 are not null; the caller needs to guarantee this
+	if (haplosome1->IsNull() || haplosome2->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) null haplosome." << EidosTerminate();
+	if (f_additiveTrait != (trait->Type() == TraitType::kAdditive))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_additiveTrait set incorrectly." << EidosTerminate();
+	if (f_callbacks != (p_mutationEffect_callbacks.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_callbacks set incorrectly." << EidosTerminate();
+	if (f_singlecallback != (p_mutationEffect_callbacks.size() == 1))
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) f_singlecallback set incorrectly." << EidosTerminate();
+#endif
+	
+	// both haplosomes are non-null, so we need to scan through and figure out which mutations are
+	// heterozygous and which are homozygous, and assign effects accordingly
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	slim_trait_index_t trait_index = trait->Index();
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome1->mutrun_count_;
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	const MutRunInternalCacheIndex inddom_cache_count = species->IndependentDominanceCacheCount();
+#endif
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+		const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
+		
+#if SLIM_USE_NONNEUTRAL_CACHES()
+		// Cache non-neutral mutations and read from the non-neutral buffers
+		const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
+		
+		if (f_use_nonneutral_cache) {
+			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, inddom_cache_count);
+			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, inddom_cache_count);
+		} else {
+			mutrun1->beginend_nonneutral_pointers_MAIN(&haplosome1_iter, &haplosome1_max);
+			mutrun2->beginend_nonneutral_pointers_MAIN(&haplosome2_iter, &haplosome2_max);
+		}
+#else
+		// Read directly from the MutationRun buffers
+		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
+		const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
+		
+		const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
+		const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
+#endif
+		
+		// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
+		if ((haplosome1_iter != haplosome1_max) && (haplosome2_iter != haplosome2_max))
+		{
+			MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
+			slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+			
+			do
+			{
+				if (haplosome1_iter_position < haplosome2_iter_position)
+				{
+					// Process a mutation in haplosome1 since it is leading
+					Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+					
+					if (f_additiveTrait)
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+						
+						effect_accumulator += (double)heterozygous_effect;
+					}
+					else	// multiplicative
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+								trait_info_[trait_index].phenotype_ = 0.0;
+								return;
+							}
+						}
+						
+						effect_accumulator *= (double)heterozygous_effect;
+					}
+					
+					if (++haplosome1_iter == haplosome1_max)
+						break;
+					else {
+						haplosome1_mutindex = *haplosome1_iter;
+						haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+					}
+				}
+				else if (haplosome1_iter_position > haplosome2_iter_position)
+				{
+					// Process a mutation in haplosome2 since it is leading
+					Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+					
+					if (f_additiveTrait)
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+						
+						effect_accumulator += (double)heterozygous_effect;
+					}
+					else	// multiplicative
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+								trait_info_[trait_index].phenotype_ = 0.0;
+								return;
+							}
+						}
+						
+						effect_accumulator *= (double)heterozygous_effect;
+					}
+					
+					if (++haplosome2_iter == haplosome2_max)
+						break;
+					else {
+						haplosome2_mutindex = *haplosome2_iter;
+						haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+					}
+				}
+				else
+				{
+					// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
+					slim_position_t position = haplosome1_iter_position;
+					const MutationIndex *haplosome1_start = haplosome1_iter;
+					
+					// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
+					do
+					{
+						const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
+						
+						// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
+						while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
+						{
+							if (haplosome1_mutindex == *haplosome2_matchscan)
+							{
+								// a match was found, so we multiply our fitness by the full homozygous effect
+								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								slim_effect_t homozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].homozygous_effect_;
+								
+								if (f_additiveTrait)
+								{
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, trait, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									effect_accumulator += (double)homozygous_effect;
+								}
+								else	// multiplicative
+								{
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									{
+										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, trait, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+										
+										if (homozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+											trait_info_[trait_index].phenotype_ = 0.0;
+											return;
+										}
+									}
+									
+									effect_accumulator *= (double)homozygous_effect;
+								}
+								goto homozygousExit1;
+							}
+							
+							haplosome2_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						{
+							Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+							
+							if (f_additiveTrait)
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+								
+								effect_accumulator += (double)heterozygous_effect;
+							}
+							else	// multiplicative
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+										trait_info_[trait_index].phenotype_ = 0.0;
+										return;
+									}
+								}
+								
+								effect_accumulator *= (double)heterozygous_effect;
+							}
+						}
+						
+					homozygousExit1:
+						
+						if (++haplosome1_iter == haplosome1_max)
+							break;
+						else {
+							haplosome1_mutindex = *haplosome1_iter;
+							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+						}
+					} while (haplosome1_iter_position == position);
+					
+					// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
+					do
+					{
+						const MutationIndex *haplosome1_matchscan = haplosome1_start; 
+						
+						// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
+						while ((haplosome1_matchscan != haplosome1_max) && ((mut_block_ptr + *haplosome1_matchscan)->position_ == position))
+						{
+							if (haplosome2_mutindex == *haplosome1_matchscan)
+							{
+								// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
+								goto homozygousExit2;
+							}
+							
+							haplosome1_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						{
+							Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+							
+							if (f_additiveTrait)
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+								
+								effect_accumulator += (double)heterozygous_effect;
+							}
+							else	// multiplicative
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+										trait_info_[trait_index].phenotype_ = 0.0;
+										return;
+									}
+								}
+								
+								effect_accumulator *= (double)heterozygous_effect;
+							}
+						}
+						
+					homozygousExit2:
+						
+						if (++haplosome2_iter == haplosome2_max)
+							break;
+						else {
+							haplosome2_mutindex = *haplosome2_iter;
+							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+						}
+					} while (haplosome2_iter_position == position);
+					
+					// break out if either haplosome has reached its end
+					if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
+						break;
+				}
+			} while (true);
+		}
+		
+		// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
+#if DEBUG
+		assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
+#endif
+		
+		// if haplosome1 is unfinished, finish it
+		while (haplosome1_iter != haplosome1_max)
+		{
+			MutationIndex haplosome1_mutindex = *haplosome1_iter++;
+			Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+				
+				effect_accumulator += (double)heterozygous_effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= (double)heterozygous_effect;
+			}
+		}
+		
+		// if haplosome2 is unfinished, finish it
+		while (haplosome2_iter != haplosome2_max)
+		{
+			MutationIndex haplosome2_mutindex = *haplosome2_iter++;
+			Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+				
+				effect_accumulator += (double)heterozygous_effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= (double)heterozygous_effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+template void Individual::_IncorporateEffects_Diploid<false, false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, false, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, false, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<false, true, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, false, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, false, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, true, false>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+template void Individual::_IncorporateEffects_Diploid<true, true, true, true>(Species *, Haplosome *, Haplosome *, Trait *, std::vector<SLiMEidosBlock*> &);
+
+
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+
+template <const bool f_additiveTrait>
+void Individual::_IncorporateEffects_IndependentDominance_Diploid(Haplosome *haplosome, slim_trait_index_t trait_index, MutRunInternalCacheIndex inddom_cache_index)
+{
+#if DEBUG
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_IndependentDominance_Diploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+		// For intrinsically diploid chromosomes the index into the independent-dominance cache is provided, because not all traits have a cache slot
+		if (f_additiveTrait)
+			effect_accumulator += (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
+		else
+			effect_accumulator *= (double)mutrun->independent_dominance_cache_for_cache_index(inddom_cache_index);
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+template void Individual::_IncorporateEffects_IndependentDominance_Diploid<false>(Haplosome *, slim_trait_index_t, MutRunInternalCacheIndex);
+template void Individual::_IncorporateEffects_IndependentDominance_Diploid<true>(Haplosome *, slim_trait_index_t, MutRunInternalCacheIndex);
+
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+
+
+// the rest of the code below is for checking the correctness of the calculations performed by the code above
+
+slim_phenotype_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_index)
+{
+	Subpopulation *subpop = subpopulation_;
+	Species &species = subpop->species_;
+	Community &community = species.community_;
+	Trait *trait = species.Traits()[trait_index];
+	TraitType traitType = trait->Type();
+	int haplosome_index = 0;
+	slim_trait_offset_t trait_offsets = trait->BaselineOffset();
+	IndividualTraitInfo &trait_info = trait_info_[trait_index];
+	
+	if (traitType == TraitType::kAdditive)
+		trait_offsets += trait_info.offset_;
+	else // (traitType == TraitType::kMultiplicative)
+		trait_offsets *= trait_info.offset_;
+	
+	// because the low-level functions are designed to combine their effects into our phenotype,
+	// we save the phenotype value here and restore it at the end so we leave it untouched
+	slim_phenotype_t saved_phenotype = trait_info.phenotype_;
+	trait_info.phenotype_ = (slim_phenotype_t)trait_offsets;
+	
+	// determine the versions of _IncorporateEffects_X() we will use; note that we use special
+	// variants that do not use the non-neutral caches, since that is what we want to check!
+	std::vector<SLiMEidosBlock*> subpop_per_trait_mutationEffect_callbacks = species.CallbackBlocksMatching(community.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop->subpopulation_id_, trait_index, -1, /* p_active_only */ true);
+	
+	// then loop over the chromosomes and incorporate trait effects
+	for (Chromosome *chromosome : species.Chromosomes())
+	{
+		switch (chromosome->Type())
+		{
+				// diploid, possibly with one or both being null haplosomes
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				Haplosome *haplosome1 = haplosomes_[haplosome_index];
+				Haplosome *haplosome2 = haplosomes_[haplosome_index+1];
+				
+				if (haplosome1->IsNull())
+				{
+					if (!haplosome2->IsNull())
+					{
+						// hemizygous (haplosome2)
+						_Check_IncorporateEffects_Hemizygous(&species, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
+					}
+					else
+					{
+						// both haplosomes are null (only happens with chromosome type "A"; no work to be done
+					}
+				}
+				else if (haplosome2->IsNull())
+				{
+					// hemizygous (haplosome1)
+					_Check_IncorporateEffects_Hemizygous(&species, haplosome1, trait, subpop_per_trait_mutationEffect_callbacks);
+				}
+				else
+				{
+					// diploid, both haplosomes non-null
+					_Check_IncorporateEffects_Diploid(&species, haplosome1, haplosome2, trait, subpop_per_trait_mutationEffect_callbacks);
+				}
+				break;
+			}
+				
+				// haploid, possibly null
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+				// haploid special cases that have an accompanying null haplosome for backward compatibility
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *haplosome = haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
+				
+				if (!haplosome->IsNull())
+					_Check_IncorporateEffects_Haploid(&species, haplosome, trait, subpop_per_trait_mutationEffect_callbacks);
+				break;
+			}
+		}
+		
+		haplosome_index += chromosome->IntrinsicPloidy();
+	}
+	
+	// get the calculated trait value back out
+	slim_phenotype_t trait_value = trait_info.phenotype_;
+	
+	// post-process logistic trait values
+	if (trait->HasLogisticPostTransform())
+		trait_value = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(- static_cast<double>(trait_value))));
+	
+	// finally, restore our saved phenotype so we don't modify the official individual state
+	trait_info.phenotype_ = saved_phenotype;
+	
+	return trait_value;
+}
+
+void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	// set up variables for what are, in the main code path, templated variants
+	slim_trait_index_t trait_index = trait->Index();
+	bool f_callbacks = (p_mutationEffect_callbacks.size() > 0);
+	bool f_singlecallback = (p_mutationEffect_callbacks.size() == 1);
+	bool f_additiveTrait = (trait->Type() == TraitType::kAdditive);
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type = nullptr;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		double mutrun_effect_accumulator = (f_additiveTrait ? 0.0 : 1.0);
+		
+		// Read directly from the MutationRun buffers (we do not use non-neutral caches; we evaluate everything)
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].homozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				mutrun_effect_accumulator += (double)effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				mutrun_effect_accumulator *= (double)effect;
+			}
+		}
+		
+#if SLIM_USE_HAPLOID_CACHES()
+		// compare the computed mutrun effect to the cached haploid cache effect, looking for large
+		// difference that are indicative of a bug somewhere, rather than checking for an exact match
+		if ((species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidNoCallbacks) ||
+			(species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks))
+		{
+			double haploid_cache_effect = (double)mutrun->haploid_cache_for_cache_index(static_cast<MutRunInternalCacheIndex>(trait_index));
+			
+			if (std::abs(mutrun_effect_accumulator - haploid_cache_effect) > 1e-5)
+				std::cout << "      _Check_IncorporateEffects_Haploid() for trait " << species->Traits()[trait_index]->Name() << " in chromosome " << haplosome->AssociatedChromosome()->Symbol() << " : mutrun effect " << mutrun_effect_accumulator << ", haploid cache effect " << haploid_cache_effect << std::endl;
+		}
+#endif
+		
+		if (f_additiveTrait)
+			effect_accumulator += mutrun_effect_accumulator;
+		else
+			effect_accumulator *= mutrun_effect_accumulator;
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+void Individual::_Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
+	if (haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Haploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	// set up variables for what are, in the main code path, templated variants
+	slim_trait_index_t trait_index = trait->Index();
+	bool f_callbacks = (p_mutationEffect_callbacks.size() > 0);
+	bool f_singlecallback = (p_mutationEffect_callbacks.size() == 1);
+	bool f_additiveTrait = (trait->Type() == TraitType::kAdditive);
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type = nullptr;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome->mutrun_count_;
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[run_index];
+		
+		// Read directly from the MutationRun buffers (we do not use non-neutral caches; we evaluate everything)
+		const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+		const MutationIndex *haplosome_max = mutrun->end_pointer_const();
+		
+		// scan the mutation run and apply mutation effects
+		while (haplosome_iter != haplosome_max)
+		{
+			MutationIndex haplosome_mutation = *haplosome_iter++;
+			Mutation *mutation = (mut_block_ptr + haplosome_mutation);
+			slim_effect_t effect = mutation_block->TraitInfoForIndex(haplosome_mutation)[trait_index].hemizygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+				
+				effect_accumulator += (double)effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				effect_accumulator *= (double)effect;
+			}
+		}
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
+
+void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+#if DEBUG
+	// This method assumes that haplosome1 and haplosome2 are not null; the caller needs to guarantee this
+	if (haplosome1->IsNull() || haplosome2->IsNull())
+		EIDOS_TERMINATION << "ERROR (Individual::_IncorporateEffects_Diploid): (internal error) null haplosome." << EidosTerminate();
+#endif
+	
+	// set up variables for what are, in the main code path, templated variants
+	slim_trait_index_t trait_index = trait->Index();
+	bool f_callbacks = (p_mutationEffect_callbacks.size() > 0);
+	bool f_singlecallback = (p_mutationEffect_callbacks.size() == 1);
+	bool f_additiveTrait = (trait->Type() == TraitType::kAdditive);
+	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type = nullptr;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species->MutationTypeWithID(mutation_type_id);
+	}
+	
+	MutationBlock *mutation_block = species->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const int32_t mutrun_count = haplosome1->mutrun_count_;
+	
+	// do internal math using double to avoid numerical error
+	double effect_accumulator = (double)trait_info_[trait_index].phenotype_;		// start with the existing phenotype
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+		const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
+		double mutrun_effect_accumulator = (f_additiveTrait ? 0.0 : 1.0);
+		
+		// Read directly from the MutationRun buffers (we do not use non-neutral caches; we evaluate everything)
+		const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
+		const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
+		
+		const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
+		const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
+		
+		// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
+		if ((haplosome1_iter != haplosome1_max) && (haplosome2_iter != haplosome2_max))
+		{
+			MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
+			slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+			
+			do
+			{
+				if (haplosome1_iter_position < haplosome2_iter_position)
+				{
+					// Process a mutation in haplosome1 since it is leading
+					Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+					
+					if (f_additiveTrait)
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+						
+						mutrun_effect_accumulator += (double)heterozygous_effect;
+					}
+					else	// multiplicative
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+								trait_info_[trait_index].phenotype_ = 0.0;
+								return;
+							}
+						}
+						
+						mutrun_effect_accumulator *= (double)heterozygous_effect;
+					}
+					
+					if (++haplosome1_iter == haplosome1_max)
+						break;
+					else {
+						haplosome1_mutindex = *haplosome1_iter;
+						haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+					}
+				}
+				else if (haplosome1_iter_position > haplosome2_iter_position)
+				{
+					// Process a mutation in haplosome2 since it is leading
+					Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+					slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+					
+					if (f_additiveTrait)
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+						
+						mutrun_effect_accumulator += (double)heterozygous_effect;
+					}
+					else	// multiplicative
+					{
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+								trait_info_[trait_index].phenotype_ = 0.0;
+								return;
+							}
+						}
+						
+						mutrun_effect_accumulator *= (double)heterozygous_effect;
+					}
+					
+					if (++haplosome2_iter == haplosome2_max)
+						break;
+					else {
+						haplosome2_mutindex = *haplosome2_iter;
+						haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+					}
+				}
+				else
+				{
+					// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
+					slim_position_t position = haplosome1_iter_position;
+					const MutationIndex *haplosome1_start = haplosome1_iter;
+					
+					// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
+					do
+					{
+						const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
+						
+						// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
+						while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
+						{
+							if (haplosome1_mutindex == *haplosome2_matchscan)
+							{
+								// a match was found, so we multiply our fitness by the full homozygous effect
+								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								slim_effect_t homozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].homozygous_effect_;
+								
+								if (f_additiveTrait)
+								{
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, trait, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									mutrun_effect_accumulator += (double)homozygous_effect;
+								}
+								else	// multiplicative
+								{
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									{
+										homozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, true, trait, homozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+										
+										if (homozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+											trait_info_[trait_index].phenotype_ = 0.0;
+											return;
+										}
+									}
+									
+									mutrun_effect_accumulator *= (double)homozygous_effect;
+								}
+								goto homozygousExit1;
+							}
+							
+							haplosome2_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						{
+							Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+							
+							if (f_additiveTrait)
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+								
+								mutrun_effect_accumulator += (double)heterozygous_effect;
+							}
+							else	// multiplicative
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+										trait_info_[trait_index].phenotype_ = 0.0;
+										return;
+									}
+								}
+								
+								mutrun_effect_accumulator *= (double)heterozygous_effect;
+							}
+						}
+						
+					homozygousExit1:
+						
+						if (++haplosome1_iter == haplosome1_max)
+							break;
+						else {
+							haplosome1_mutindex = *haplosome1_iter;
+							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
+						}
+					} while (haplosome1_iter_position == position);
+					
+					// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
+					do
+					{
+						const MutationIndex *haplosome1_matchscan = haplosome1_start; 
+						
+						// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
+						while ((haplosome1_matchscan != haplosome1_max) && ((mut_block_ptr + *haplosome1_matchscan)->position_ == position))
+						{
+							if (haplosome2_mutindex == *haplosome1_matchscan)
+							{
+								// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
+								goto homozygousExit2;
+							}
+							
+							haplosome1_matchscan++;
+						}
+						
+						// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
+						{
+							Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+							slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+							
+							if (f_additiveTrait)
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+								
+								mutrun_effect_accumulator += (double)heterozygous_effect;
+							}
+							else	// multiplicative
+							{
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+										trait_info_[trait_index].phenotype_ = 0.0;
+										return;
+									}
+								}
+								
+								mutrun_effect_accumulator *= (double)heterozygous_effect;
+							}
+						}
+						
+					homozygousExit2:
+						
+						if (++haplosome2_iter == haplosome2_max)
+							break;
+						else {
+							haplosome2_mutindex = *haplosome2_iter;
+							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
+						}
+					} while (haplosome2_iter_position == position);
+					
+					// break out if either haplosome has reached its end
+					if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
+						break;
+				}
+			} while (true);
+		}
+		
+		// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
+#if DEBUG
+		assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
+#endif
+		
+		// if haplosome1 is unfinished, finish it
+		while (haplosome1_iter != haplosome1_max)
+		{
+			MutationIndex haplosome1_mutindex = *haplosome1_iter++;
+			Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome1_mutindex)[trait_index].heterozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+				
+				mutrun_effect_accumulator += (double)heterozygous_effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome1_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				mutrun_effect_accumulator *= (double)heterozygous_effect;
+			}
+		}
+		
+		// if haplosome2 is unfinished, finish it
+		while (haplosome2_iter != haplosome2_max)
+		{
+			MutationIndex haplosome2_mutindex = *haplosome2_iter++;
+			Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+			slim_effect_t heterozygous_effect = mutation_block->TraitInfoForIndex(haplosome2_mutindex)[trait_index].heterozygous_effect_;
+			
+			if (f_additiveTrait)
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+				
+				mutrun_effect_accumulator += (double)heterozygous_effect;
+			}
+			else	// multiplicative
+			{
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					heterozygous_effect = (slim_effect_t)subpopulation_->ApplyMutationEffectCallbacks(haplosome2_mutindex, false, trait, heterozygous_effect, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (heterozygous_effect <= (slim_effect_t)0.0) {	// not clamped to zero, so we check here
+						trait_info_[trait_index].phenotype_ = 0.0;
+						return;
+					}
+				}
+				
+				mutrun_effect_accumulator *= (double)heterozygous_effect;
+			}
+		}
+		
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+		// compare the computed mutrun effect to the cached independent dominance effect, looking for large
+		// difference that are indicative of a bug somewhere, rather than checking for an exact match
+		if (trait->is_pure_independent_dominance_now_)
+		{
+			MutRunInternalCacheIndex inddom_cache_index = species->IndependentDominanceCacheIndexForTraitIndex(trait_index);
+			double independent_dominance_effect1 = (double)mutrun1->independent_dominance_cache_for_cache_index(inddom_cache_index);
+			double independent_dominance_effect2 = (double)mutrun2->independent_dominance_cache_for_cache_index(inddom_cache_index);
+			double independent_dominance_effect;
+			
+			if (f_additiveTrait)
+				independent_dominance_effect = independent_dominance_effect1 + independent_dominance_effect2;
+			else
+				independent_dominance_effect = independent_dominance_effect1 * independent_dominance_effect2;
+			
+			if (std::abs(mutrun_effect_accumulator - independent_dominance_effect) > 1e-5)
+				std::cout << "      _Check_IncorporateEffects_Diploid() for trait " << species->Traits()[trait_index]->Name() << " in chromosome " << haplosome1->AssociatedChromosome()->Symbol() << " : mutrun effect " << mutrun_effect_accumulator << ", cached independent-dominance effect " << independent_dominance_effect << std::endl;
+		}
+#endif
+#endif
+		
+		if (f_additiveTrait)
+			effect_accumulator += mutrun_effect_accumulator;
+		else
+			effect_accumulator *= mutrun_effect_accumulator;
+	}
+	
+	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
+}
 
 
 

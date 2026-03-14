@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/30/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -25,6 +25,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_class_Image.h"
+#include "eidos_class_Palette.h"
 
 #include "spatial_map.h"
 
@@ -476,10 +477,7 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
     
     if (image_object->Class() == gSLiM_SpatialMap_Class)
     {
-        // if image is a SpatialImage, plot the map's values; it must be a singleton and have 2D spatiality
-        if (image_value->Count() != 1)
-            EIDOS_TERMINATION << "ERROR (Plot::image): a SpatialMap value passed to image() must be a singleton." << EidosTerminate(nullptr);
-        
+        // if image is a SpatialImage, plot the map's values; it must have 2D spatiality
         SpatialMap *spatial_map = (SpatialMap *)image_object;
         
         if (spatial_map->image_ && (spatial_map->image_flipped_ == flipped))
@@ -525,7 +523,7 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
             
             QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
             
-            // We give the cached image to the SpatialMap object.  Since it doesn't build against Qt, we give it a deletor function.
+            // We give the cached image to the SpatialMap object.  Since it doesn't build against Qt, we give it a deleter function.
             spatial_map->image_ = cached_image;
             spatial_map->image_flipped_ = flipped;
             spatial_map->image_deleter_ = Eidos_Deleter<QImage>;
@@ -535,10 +533,7 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
     }
     else if (image_object->Class() == gEidosImage_Class)
     {
-        // if image is an Image, plot the image's values; it must be a singleton
-        if (image_value->Count() != 1)
-            EIDOS_TERMINATION << "ERROR (Plot::image): an Image value passed to image() must be a singleton." << EidosTerminate(nullptr);
-        
+        // if image is an Image, plot the image's values
         EidosImage *eidos_image = (EidosImage *)image_object;
         
         if (eidos_image->image_ && (eidos_image->image_flipped_ == flipped))
@@ -588,6 +583,62 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
             eidos_image->image_ = cached_image;
             eidos_image->image_flipped_ = flipped;
             eidos_image->image_deleter_ = Eidos_Deleter<QImage>;
+            
+            image = *cached_image;  // make a copy with implicit sharing
+        }
+    }
+    else if (image_object->Class() == gEidosPalette_Class)
+    {
+        // if image is a Palette, plot the palette's values
+        EidosPalette *palette = (EidosPalette *)image_object;
+        
+        if (palette->image_)
+        {
+            // we have a cached QImage for this Palette
+            image = *(QImage *)palette->image_;  // make a copy with implicit sharing
+        }
+        else
+        {
+            // cache the spatial map's image if it doesn't already have a matching cache; first delete any existing (unmatching) cache
+            if (palette->image_)
+            {
+                if (palette->image_deleter_)
+                    palette->image_deleter_(palette->image_);
+                else
+                    std::cout << "Missing Palette image_deleter_; leaking memory" << std::endl;
+                
+                palette->image_ = nullptr;
+                palette->image_deleter_ = nullptr;
+            }
+            
+            float *spectrum_ptr = nullptr;
+            int spectrum_count = 0;
+            
+            palette->GetSpectrum(&spectrum_ptr, &spectrum_count);
+            
+            int image_width = spectrum_count;
+            int image_height = 1;
+            
+            // make the image buffer to be used by QtSLiMGraphView_CustomPlot; note that it takes ownership of image_data and frees it for us
+            const int bytes_per_pixel = 3;  // RGB888 format
+            uint8_t *image_data = (uint8_t *)malloc(image_width * image_height * bytes_per_pixel * sizeof(uint8_t));
+            
+            {
+                float *in_ptr = spectrum_ptr;
+                uint8_t *out_ptr = image_data;
+                
+                for (int x = 0; x < image_width; ++x) {
+                    *(out_ptr++) = (int)round(*(in_ptr++) * 255.0);
+                    *(out_ptr++) = (int)round(*(in_ptr++) * 255.0);
+                    *(out_ptr++) = (int)round(*(in_ptr++) * 255.0);
+                }
+            }
+            
+            QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
+            
+            // We give the cached image to the Palette object.  Since it doesn't build against Qt, we give it a deleter function.
+            palette->image_ = cached_image;
+            palette->image_deleter_ = Eidos_Deleter<QImage>;
             
             image = *cached_image;  // make a copy with implicit sharing
         }
@@ -1857,16 +1908,16 @@ EidosValue_SP Plot::ExecuteMethod_write(EidosGlobalStringID p_method_id, const s
 #pragma mark Plot_Class
 #pragma mark -
 
-EidosClass *gSLiM_Plot_Class = nullptr;
+Plot_Class *gSLiM_Plot_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
         
         properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_title, true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
         

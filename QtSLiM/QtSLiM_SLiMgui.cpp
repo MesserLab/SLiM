@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/7/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -296,16 +296,16 @@ EidosValue_SP SLiMgui::ExecuteMethod_plotWithTitle(EidosGlobalStringID p_method_
 #pragma mark SLiMgui_Class
 #pragma mark -
 
-EidosClass *gSLiM_SLiMgui_Class = nullptr;
+SLiMgui_Class *gSLiM_SLiMgui_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back(static_cast<EidosPropertySignature *>((new EidosPropertySignature(gStr_pid, true,	kEidosValueMaskInt | kEidosValueMaskSingleton))));
 		

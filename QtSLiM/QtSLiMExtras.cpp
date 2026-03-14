@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -54,6 +54,7 @@
 #include "QtSLiMAppDelegate.h"
 
 #include "eidos_value.h"
+#include "slim_globals.h"
 
 
 bool QtSLiMIsMostlyOnScreen(QWidget *window)
@@ -241,9 +242,13 @@ QString QtSLiMImagePath(QString baseName, bool highlighted)
 }
 
 
+#if 0
+
+//  old color scale code; the "scalingFactor" parameter used to be 0.8 (and in ancient history it was adjustable)
+
 const double greenBrightness = 0.8;
 
-void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
 	// apply the scaling factor
 	value = (value - 1.0) * scalingFactor + 1.0;
@@ -278,13 +283,10 @@ void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colo
 	}
 }
 
-void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
 	// apply a scaling factor; this could be user-adjustible since different models have different relevant fitness ranges
-	value *= scalingFactor;
-	
-	// and add 1, just so we can re-use the same code as in RGBForFitness()
-	value += 1.0;
+    value = (value - 1.0) * scalingFactor + 1.0;
 	
 	if (value <= 0.0)
 	{
@@ -337,136 +339,182 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	}
 }
 
+void RGBForAdditiveTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+{
+    RGBForFitnessEffect(value + 1, colorRed, colorGreen, colorBlue, scalingFactor);
+}
+
+void RGBForMultiplicativeTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+{
+    RGBForFitnessEffect(value, colorRed, colorGreen, colorBlue, scalingFactor);
+}
+
+#else
+
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_IndividualFitness->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_MutationEffect->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForAdditiveTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_AdditiveTrait->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+void RGBForMultiplicativeTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    gEidos_Palette_MultiplicativeTrait->ColorForValue(value, colorRed, colorGreen, colorBlue);
+}
+
+#endif
+
+
 QtSLiMColorScaleWidget::QtSLiMColorScaleWidget(QWidget *p_parent) : QWidget(p_parent),
     fitnessTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
-    effectTicks({"-1.0", "-0.5", "0.0", "0.5", "1.0"})
+    fitnessEffectTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
+    additiveTraitTicks({"−1.0", "−0.5", "baseline", "+0.5", "+1.0"}),
+    multiplicativeTraitTicks({"×0.0", "×0.5", "baseline", "×1.5", "×2.0"})
 {
     setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 }
 
 void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
 {
-    // we're designed to fit in a fixed size of 301 x 197; see dispatch_showColorScales()
-    //QRect overallRect = contentsRect();
+    // we're designed to fit in a fixed size of 301 x 474; see dispatch_showColorScales()
+    // our width is odd so we have a central pixel of exactly yellow in each stripe
     QPainter painter(this);
-    QRect stripe1 = QRect(15, 33, 271, 20);     // odd width so we have a central pixel of exactly yellow
-    QRect stripe2 = QRect(15, 105, 271, 20);    // odd width so we have a central pixel of exactly yellow
-    
+    QRect stripe = QRect(15, 99, 271, 20);
+    const int lineHeight = 85;
+    const double labelYOffset = -22;
+    const double explanationYOffset = -6;
     static QFont *labelFont = nullptr;
+    static QFont *tickFont = nullptr;
+    static QFont *noteFont = nullptr;
+    static QFont *noteItalicFont = nullptr;
     
     if (!labelFont)
     {
         labelFont = new QFont();
+        tickFont = new QFont();
+        noteFont = new QFont();
+        noteItalicFont = new QFont();
+
 #ifdef __linux__
         labelFont->setPointSize(10);
+        tickFont->setPointSize(8);
+        noteFont->setPointSize(9);
+        noteItalicFont->setPointSize(9);
 #else
         labelFont->setPointSize(12);
-#endif
-        labelFont->setBold(true);
-    }
-    painter.setFont(*labelFont);
-    
-    const double labelYOffset = -8;
-    
-    // Fitness color scale
-    painter.drawText(stripe1.x(), stripe1.y() + labelYOffset, "Individual fitness scale:");
-    
-    for (int x = stripe1.left() + 1; x <= (stripe1.left() + 1) + (stripe1.width() - 3); ++x)
-    {
-        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
-        QRect sliver(x, stripe1.top() + 1, 1, stripe1.height() - 2);
-        double sliverFraction = (x - (stripe1.left() + 1)) / (stripe1.width() - 3.0);
-        double fitness = sliverFraction * 2.0;     // cover fitness values of 0.0 to 2.0
-        float r, g, b;
-        RGBForFitness(fitness, &r, &g, &b, scalingFactor);
-        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
-    }
-    
-    QtSLiMFrameRect(stripe1, Qt::black, painter);
-    
-    // Mutation effect color scale
-    painter.drawText(stripe2.x(), stripe2.y() + labelYOffset, "Mutation effect scale:");
-    
-    for (int x = stripe2.left() + 1; x <= (stripe2.left() + 1) + (stripe2.width() - 3); ++x)
-    {
-        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
-        QRect sliver(x, stripe2.top() + 1, 1, stripe2.height() - 2);
-        double sliverFraction = (x - (stripe2.left() + 1)) / (stripe2.width() - 3.0);
-        double fitness = sliverFraction * 2.0 - 1;     // cover mutation effect values of -1.0 to 1.0
-        float r, g, b;
-        RGBForSelectionCoeff(fitness, &r, &g, &b, scalingFactor);
-        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
-        
-        //qDebug() << "x =" << x << " << sliverFraction =" << sliverFraction << " fitness =" << fitness;
-    }
-    
-    QtSLiMFrameRect(stripe2, Qt::black, painter);
-    
-    // Draw axis scales
-    static QFont *tickFont = nullptr;
-    
-    if (!tickFont)
-    {
-        tickFont = new QFont();
-#ifdef __linux__
-        tickFont->setPointSize(8);
-#else
         tickFont->setPointSize(10);
+        noteFont->setPointSize(11);
+        noteItalicFont->setPointSize(11);
 #endif
+        
+        labelFont->setBold(true);
+        noteItalicFont->setItalic(true);
     }
-    painter.setFont(*tickFont);
     
-    QFontMetricsF fontMetrics(*tickFont);
+    QFontMetricsF fontMetrics_tickFont(*tickFont);
+    QFontMetricsF fontMetrics_noteFont(*noteFont);
+    QFontMetricsF fontMetrics_noteItalicFont(*noteItalicFont);
     
-    for (int tickIndex = 0; tickIndex < 5; tickIndex++)
+    // put a note at the top; this is a bit annoying because we want the word "default" to be in italics
+    qreal width_panelShowsThe = fontMetrics_noteFont.horizontalAdvance("panel shows the ");
+    qreal width_default = fontMetrics_noteItalicFont.horizontalAdvance("default");
+    
+    painter.setFont(*noteFont);
+    painter.drawText(stripe.x(), 23, "SLiM has four conceptually distinct color scales,");
+    painter.drawText(stripe.x(), 37, "each of which is separately configurable.  This");
+    painter.drawText(stripe.x(), 51, "panel shows the ");
+    painter.setFont(*noteItalicFont);
+    painter.drawText(stripe.x() + width_panelShowsThe, 51, "default");
+    painter.setFont(*noteFont);
+    painter.drawText(stripe.x() + width_panelShowsThe + width_default, 51, " color scales:");
+    
+    for (int iter = 1; iter <= 4; ++iter)
     {
-        bool longTick = (tickIndex % 2 == 0);
-        int tickX = round(stripe1.left() + 1 + (tickIndex / 4.0) * (stripe1.width() - 3.0));
-        QString tickLabel;
-        double tickLabelWidth;
+        // draw the stripe label
+        QString stripeLabel;
         
-        // label stripe 1
-        tickLabel = fitnessTicks[tickIndex];
+        if (iter == 1) stripeLabel = "Individual fitness scale:";               // for individuals
+        if (iter == 2) stripeLabel = "Mutation fitness effect scale:";          // for mutations in mode "fitness"
+        if (iter == 3) stripeLabel = "Additive trait scale (0-based):";         // for additive trait values/effects
+        if (iter == 4) stripeLabel = "Multiplicative trait scale (1-based):";   // for multiplicative trait values/effects
         
+        painter.setFont(*labelFont);
+        painter.drawText(stripe.x(), stripe.y() + labelYOffset, stripeLabel);
+        
+        // draw the stripe explanatory text
+        QString stripeExplanation;
+        
+        if (iter == 1) stripeExplanation = "colors individuals on the 'fitness' scale";
+        if (iter == 2) stripeExplanation = "colors mutations on the 'fitness' scale";
+        if (iter == 3) stripeExplanation = "colors inds/muts on an additive trait's scale";
+        if (iter == 4) stripeExplanation = "colors inds/muts on a multiplicative trait's scale";
+        
+        painter.setFont(*noteItalicFont);
+        painter.drawText(stripe.x(), stripe.y() + explanationYOffset, stripeExplanation);
+        
+        // draw the color stripe itself
+        for (int x = stripe.left() + 1; x <= (stripe.left() + 1) + (stripe.width() - 3); ++x)
+        {
+            QRect sliver(x, stripe.top() + 1, 1, stripe.height() - 2);
+            double sliverFraction = (x - (stripe.left() + 1)) / (stripe.width() - 3.0);
+            double value = sliverFraction * 2.0;     // cover values of 0.0 to 2.0
+            float r, g, b;
+            
+            if (iter == 1) RGBForIndividualFitness(value, &r, &g, &b);           // 0.0 to 2.0
+            if (iter == 2) RGBForFitnessEffect(value, &r, &g, &b);               // 0.0 to 2.0
+            if (iter == 3) RGBForAdditiveTraitValue(value - 1.0, &r, &g, &b);    // -1.0 to 1.0
+            if (iter == 4) RGBForMultiplicativeTraitValue(value, &r, &g, &b);    // 0.0 to 2.0
+            
+            painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
+        }
+        
+        QtSLiMFrameRect(stripe, Qt::black, painter);
+        
+        // draw the ticks and tick labels
+        painter.setFont(*tickFont);
+        
+        for (int tickIndex = 0; tickIndex < 5; tickIndex++)
+        {
+            bool longTick = (tickIndex % 2 == 0);
+            int tickX = round(stripe.left() + 1 + (tickIndex / 4.0) * (stripe.width() - 3.0));
+            QString tickLabel;
+            double tickLabelWidth;
+            
+            if (iter == 1) tickLabel = fitnessTicks[tickIndex];
+            if (iter == 2) tickLabel = fitnessEffectTicks[tickIndex];
+            if (iter == 3) tickLabel = additiveTraitTicks[tickIndex];
+            if (iter == 4) tickLabel = multiplicativeTraitTicks[tickIndex];
+            
 #if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+            tickLabelWidth = fontMetrics_tickFont.width(tickLabel);               // deprecated in 5.11
 #else
-        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+            tickLabelWidth = fontMetrics_tickFont.horizontalAdvance(tickLabel);   // added in Qt 5.11
 #endif
+            
+            painter.fillRect(tickX, stripe.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
+            painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe.bottom() + 16), tickLabel);
+        }
         
-        painter.fillRect(tickX, stripe1.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
-        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe1.bottom() + 16), tickLabel);
-        
-        // label stripe 2
-        tickLabel = effectTicks[tickIndex];
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
-#else
-        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
-#endif
-        
-        painter.fillRect(tickX, stripe2.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
-        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe2.bottom() + 16), tickLabel);
+        // move to the next line
+        if (iter < 4)
+            stripe.adjust(0, lineHeight, 0, lineHeight);
     }
     
     // add final notes in italic
-    static QFont *noteFont = nullptr;
-    
-    if (!noteFont)
-    {
-        noteFont = new QFont();
-#ifdef __linux__
-        noteFont->setPointSize(9);
-#else
-        noteFont->setPointSize(11);
-#endif
-        noteFont->setItalic(true);
-    }
-    painter.setFont(*noteFont);
-    
-    painter.drawText(stripe1.x(), stripe2.bottom() + 44, "Yellow indicates neutrality on both color scales.");
-    painter.drawText(stripe1.x(), stripe2.bottom() + 58, "Both scales fade out to white for large values.");
+    painter.setFont(*noteItalicFont);
+    painter.drawText(stripe.x(), stripe.bottom() + 44, "Yellow is a neutral fitness/effect on all scales.");
+    painter.drawText(stripe.x(), stripe.bottom() + 58, "All scales fade to white for very large values.");
+    painter.drawText(stripe.x(), stripe.bottom() + 72, "Individual scales are relative to baseline offset.");
+    painter.drawText(stripe.x(), stripe.bottom() + 86, "Mutation scales use homozygous effects (1+s, 2a).");
 }
 
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
@@ -624,6 +672,19 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 1);
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, typeLength);
     typeCursor.setCharFormat(typeAttrs);
+    
+    // BCH 1/7/2025: For dynamic properties with a name like "<trait-name>EffectSize", italicize the portion in the <>
+    if (Eidos_string_hasPrefix(property_signature->property_name_, "<"))
+    {
+        size_t end_position = property_signature->property_name_.find_first_of('>');
+        QTextCharFormat italicTypeAttrs(functionAttrs);
+        italicTypeAttrs.setFontItalic(true);
+        
+        QTextCursor dynamicCursor(lineCursor);
+        dynamicCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
+        dynamicCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(end_position));
+        dynamicCursor.setCharFormat(italicTypeAttrs);
+    }
 }
 
 void ColorizeCallSignature(const EidosCallSignature *call_signature, double pointSize, QTextCursor lineCursor)

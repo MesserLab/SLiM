@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/25/17.
-//  Copyright (c) 2017-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2017-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -42,14 +42,13 @@
 #include "subpopulation.h"
 #include "spatial_kernel.h"
 
-
 class Species;
 class Subpopulation;
 class Individual;
+
+
 class InteractionType_Class;
-
-
-extern EidosClass *gSLiM_InteractionType_Class;
+extern InteractionType_Class *gSLiM_InteractionType_Class;
 
 
 // This class uses an internal implementation of kd-trees for fast nearest-neighbor finding.  We use the same data structure to
@@ -469,8 +468,8 @@ public:
 	EidosValue_SP ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 };
 
 class InteractionType_Class : public EidosDictionaryUnretained_Class
@@ -483,7 +482,7 @@ public:
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
 	inline InteractionType_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { InteractionType::_WarmUp(); }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 

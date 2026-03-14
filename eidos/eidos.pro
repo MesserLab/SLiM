@@ -81,6 +81,7 @@ SOURCES += \
     eidos_class_Dictionary.cpp \
     eidos_class_Image.cpp \
     eidos_class_Object.cpp \
+    eidos_class_Palette.cpp \
     eidos_class_TestElement.cpp \
     eidos_functions.cpp \
     eidos_functions_colors.cpp \
@@ -120,6 +121,7 @@ HEADERS += \
 	eidos_class_DataFrame.h \
     eidos_class_Dictionary.h \
     eidos_class_Object.h \
+	eidos_class_Palette.h \
     eidos_class_TestElement.h \
     eidos_class_Image.h \
     eidos_functions.h \

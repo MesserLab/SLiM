@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/4/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,7 @@
 
 #include "slim_globals.h"
 
+#include "trait.h"
 #include "chromosome.h"
 #include "individual.h"
 #include "interaction_type.h"
@@ -37,6 +38,8 @@
 #include "subpopulation.h"
 
 #include "mutation_run.h"
+
+#include "eidos_class_Palette.h"
 
 #include <string>
 #include <vector>
@@ -76,6 +79,7 @@ void SLiM_WarmUp(void)
 		// Create the global class objects for all SLiM Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
 		// and so that the global string names for the classes have already been set up by C++'s static initialization
+		gSLiM_Trait_Class =					new Trait_Class(				gStr_Trait,					gEidosDictionaryRetained_Class);
 		gSLiM_Chromosome_Class =			new Chromosome_Class(			gStr_Chromosome,			gEidosDictionaryRetained_Class);
 		gSLiM_Individual_Class =			new Individual_Class(			gEidosStr_Individual,		gEidosDictionaryUnretained_Class);
 		gSLiM_InteractionType_Class =		new InteractionType_Class(		gStr_InteractionType,		gEidosDictionaryUnretained_Class);
@@ -97,9 +101,6 @@ void SLiM_WarmUp(void)
 		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 			eidos_class->CacheDispatchTables();
 		
-		// Set up our shared pool for Mutation objects
-		SLiM_CreateMutationBlock();
-		
 		// Make sure the Eidos context information has already been configured; this has to be done first thing,
 		// so that any customizations to Eidos that SLiM introduces take effect before anything else happens
 		if (gEidosContextVersion == 0.0)
@@ -111,7 +112,7 @@ void SLiM_WarmUp(void)
 		gStaticEidosValue_StringG = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_G));
 		gStaticEidosValue_StringT = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_T));
 		
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 		// Check for a memory limit and prepare for memory-limit testing
 		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
@@ -124,12 +125,17 @@ void SLiM_WarmUp(void)
 		//std::cout << "sizeof(size_t) == " << sizeof(size_t) << std::endl;
 		
 		// Test that our tskit metadata schemas are valid JSON, and print them out formatted for debugging purposes if desired
-		nlohmann::json top_level_schema, edge_schema, site_schema, mutation_schema, node_schema, individual_schema, population_schema;
+		nlohmann::json top_level_JSON_schema, top_level_binary_schema, edge_schema, site_schema, mutation_schema, node_schema, individual_schema, population_schema;
 		
 		try {
-			top_level_schema = nlohmann::json::parse(gSLiM_tsk_metadata_schema);
+			top_level_JSON_schema = nlohmann::json::parse(gSLiM_tsk_metadata_JSON_schema);
 		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_schema must be a JSON string." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_JSON_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			top_level_binary_schema = nlohmann::json::parse(gSLiM_tsk_metadata_binary_schema_FORMAT);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_binary_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
 			if (gSLiM_tsk_edge_metadata_schema.length())
@@ -144,7 +150,8 @@ void SLiM_WarmUp(void)
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_site_metadata_schema must be a JSON string." << EidosTerminate();
 		}
 		try {
-			mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema);
+			if (gSLiM_tsk_mutation_metadata_schema.length())
+				mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema);
 		}  catch (...) {
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_mutation_metadata_schema must be a JSON string." << EidosTerminate();
 		}
@@ -154,9 +161,9 @@ void SLiM_WarmUp(void)
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
-			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema);
+			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema_FORMAT);
 		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema must be a JSON string." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
 			population_schema = nlohmann::json::parse(gSLiM_tsk_population_metadata_schema);
@@ -166,12 +173,13 @@ void SLiM_WarmUp(void)
 		
 #if 0
 #warning printing of JSON schemas should be disabled in a production build
-		std::cout << "gSLiM_tsk_metadata_schema == " << std::endl << top_level_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_metadata_JSON_schema == " << std::endl << top_level_JSON_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT == " << std::endl << top_level_binary_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << edge_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << site_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << mutation_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << node_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_individual_metadata_schema == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << population_schema.dump(4) << std::endl << std::endl;
 #endif
 	}
@@ -519,6 +527,7 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 	p_usage.totalMemoryUsage =
 		p_usage.communityObjects +
 		p_usage.mutationRefcountBuffer +
+		p_usage.mutationPerTraitBuffer +
 		p_usage.mutationUnusedPoolSpace +
 		p_usage.interactionTypeObjects +
 		p_usage.interactionTypeKDTrees +
@@ -596,6 +605,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	p_total.communityObjects += p_usage.communityObjects;
 	
 	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
+	p_total.mutationPerTraitBuffer += p_usage.mutationPerTraitBuffer;
 	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
 	
 	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
@@ -613,6 +623,12 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	p_total.totalMemoryUsage += p_usage.totalMemoryUsage;
 }
 
+
+#pragma mark -
+#pragma mark Debugging support
+#pragma mark -
+
+bool gSLiM_disable_trait_crosschecks = false;;
 
 
 #pragma mark -
@@ -1180,6 +1196,7 @@ const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initia
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
 const std::string &gStr_initializeMutationType = EidosRegisteredString("initializeMutationType", gID_initializeMutationType);
 const std::string &gStr_initializeMutationTypeNuc = EidosRegisteredString("initializeMutationTypeNuc", gID_initializeMutationTypeNuc);
+const std::string &gStr_initializeTrait = EidosRegisteredString("initializeTrait", gID_initializeTrait);
 const std::string &gStr_initializeChromosome = EidosRegisteredString("initializeChromosome", gID_initializeChromosome);
 const std::string &gStr_initializeGeneConversion = EidosRegisteredString("initializeGeneConversion", gID_initializeGeneConversion);
 const std::string &gStr_initializeMutationRate = EidosRegisteredString("initializeMutationRate", gID_initializeMutationRate);
@@ -1193,6 +1210,11 @@ const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initial
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);
 
 // mostly property names
+const std::string &gStr_baselineAccumulation = EidosRegisteredString("baselineAccumulation", gID_baselineAccumulation);
+const std::string &gStr_baselineOffset = EidosRegisteredString("baselineOffset", gID_baselineOffset);
+const std::string &gStr_individualOffsetMean = EidosRegisteredString("individualOffsetMean", gID_individualOffsetMean);
+const std::string &gStr_individualOffsetSD = EidosRegisteredString("individualOffsetSD", gID_individualOffsetSD);
+const std::string &gStr_directFitnessEffect = EidosRegisteredString("directFitnessEffect", gID_directFitnessEffect);
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
 const std::string &gStr_lastPosition = EidosRegisteredString("lastPosition", gID_lastPosition);
 const std::string &gStr_hotspotEndPositions = EidosRegisteredString("hotspotEndPositions", gID_hotspotEndPositions);
@@ -1239,19 +1261,21 @@ const std::string &gStr_mutationTypes = EidosRegisteredString("mutationTypes", g
 const std::string &gStr_mutationFractions = EidosRegisteredString("mutationFractions", gID_mutationFractions);
 const std::string &gStr_mutationMatrix = EidosRegisteredString("mutationMatrix", gID_mutationMatrix);
 const std::string &gStr_isFixed = EidosRegisteredString("isFixed", gID_isFixed);
+const std::string &gStr_isNeutral = EidosRegisteredString("isNeutral", gID_isNeutral);
 const std::string &gStr_isSegregating = EidosRegisteredString("isSegregating", gID_isSegregating);
 const std::string &gStr_mutationType = EidosRegisteredString("mutationType", gID_mutationType);
 const std::string &gStr_nucleotide = EidosRegisteredString("nucleotide", gID_nucleotide);
 const std::string &gStr_nucleotideValue = EidosRegisteredString("nucleotideValue", gID_nucleotideValue);
 const std::string &gStr_originTick = EidosRegisteredString("originTick", gID_originTick);
 const std::string &gStr_position = EidosRegisteredString("position", gID_position);
-const std::string &gStr_selectionCoeff = EidosRegisteredString("selectionCoeff", gID_selectionCoeff);
 const std::string &gStr_subpopID = EidosRegisteredString("subpopID", gID_subpopID);
 const std::string &gStr_convertToSubstitution = EidosRegisteredString("convertToSubstitution", gID_convertToSubstitution);
-const std::string &gStr_distributionType = EidosRegisteredString("distributionType", gID_distributionType);
-const std::string &gStr_distributionParams = EidosRegisteredString("distributionParams", gID_distributionParams);
-const std::string &gStr_dominanceCoeff = EidosRegisteredString("dominanceCoeff", gID_dominanceCoeff);
-const std::string &gStr_hemizygousDominanceCoeff = EidosRegisteredString("hemizygousDominanceCoeff", gID_hemizygousDominanceCoeff);
+const std::string &gStr_defaultDominanceForTrait = EidosRegisteredString("defaultDominanceForTrait", gID_defaultDominanceForTrait);
+const std::string &gStr_defaultHemizygousDominanceForTrait = EidosRegisteredString("defaultHemizygousDominanceForTrait", gID_defaultHemizygousDominanceForTrait);
+const std::string &gStr_effectSizeDistributionTypeForTrait = EidosRegisteredString("effectSizeDistributionTypeForTrait", gID_effectSizeDistributionTypeForTrait);
+const std::string &gStr_effectSizeDistributionParamsForTrait = EidosRegisteredString("effectSizeDistributionParamsForTrait", gID_effectSizeDistributionParamsForTrait);
+const std::string &gStr_dominance = EidosRegisteredString("dominance", gID_dominance);
+const std::string &gStr_hemizygousDominance = EidosRegisteredString("hemizygousDominance", gID_hemizygousDominance);
 const std::string &gStr_mutationStackGroup = EidosRegisteredString("mutationStackGroup", gID_mutationStackGroup);
 const std::string &gStr_mutationStackPolicy = EidosRegisteredString("mutationStackPolicy", gID_mutationStackPolicy);
 //const std::string &gStr_start = EidosRegisteredString("start", gID_start);
@@ -1265,8 +1289,10 @@ const std::string &gStr_allMutationTypes = EidosRegisteredString("allMutationTyp
 const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks", gID_allScriptBlocks);
 const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
 const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulations", gID_allSubpopulations);
+const std::string &gStr_allTraits = EidosRegisteredString("allTraits", gID_allTraits);
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomes = EidosRegisteredString("chromosomes", gID_chromosomes);
+const std::string &gStr_traits = EidosRegisteredString("traits", gID_traits);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
@@ -1351,6 +1377,11 @@ const std::string &gStr_countOfMutationsOfType = EidosRegisteredString("countOfM
 const std::string &gStr_positionsOfMutationsOfType = EidosRegisteredString("positionsOfMutationsOfType", gID_positionsOfMutationsOfType);
 const std::string &gStr_containsMarkerMutation = EidosRegisteredString("containsMarkerMutation", gID_containsMarkerMutation);
 const std::string &gStr_haplosomesForChromosomes = EidosRegisteredString("haplosomesForChromosomes", gID_haplosomesForChromosomes);
+const std::string &gStr_offsetForTrait = EidosRegisteredString("offsetForTrait", gID_offsetForTrait);
+const std::string &gStr_phenotypeForTrait = EidosRegisteredString("phenotypeForTrait", gID_phenotypeForTrait);
+const std::string &gStr_demandPhenotypeForIndividuals = EidosRegisteredString("demandPhenotypeForIndividuals", gID_demandPhenotypeForIndividuals);
+const std::string &gStr_setOffsetForTrait = EidosRegisteredString("setOffsetForTrait", gID_setOffsetForTrait);
+const std::string &gStr_setPhenotypeForTrait = EidosRegisteredString("setPhenotypeForTrait", gID_setPhenotypeForTrait);
 const std::string &gStr_relatedness = EidosRegisteredString("relatedness", gID_relatedness);
 const std::string &gStr_sharedParentCount = EidosRegisteredString("sharedParentCount", gID_sharedParentCount);
 const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);
@@ -1369,10 +1400,20 @@ const std::string &gStr_removeMutations = EidosRegisteredString("removeMutations
 const std::string &gStr_setGenomicElementType = EidosRegisteredString("setGenomicElementType", gID_setGenomicElementType);
 const std::string &gStr_setMutationFractions = EidosRegisteredString("setMutationFractions", gID_setMutationFractions);
 const std::string &gStr_setMutationMatrix = EidosRegisteredString("setMutationMatrix", gID_setMutationMatrix);
-const std::string &gStr_setSelectionCoeff = EidosRegisteredString("setSelectionCoeff", gID_setSelectionCoeff);
+const std::string &gStr_effectSizeForTrait = EidosRegisteredString("effectSizeForTrait", gID_effectSizeForTrait);
+const std::string &gStr_dominanceForTrait = EidosRegisteredString("dominanceForTrait", gID_dominanceForTrait);
+const std::string &gStr_hemizygousDominanceForTrait = EidosRegisteredString("hemizygousDominanceForTrait", gID_hemizygousDominanceForTrait);
+const std::string &gStr_isIndependentDominanceForTrait = EidosRegisteredString("isIndependentDominanceForTrait", gID_isIndependentDominanceForTrait);
+const std::string &gStr_setEffectSizeForTrait = EidosRegisteredString("setEffectSizeForTrait", gID_setEffectSizeForTrait);
+const std::string &gStr_setDominanceForTrait = EidosRegisteredString("setDominanceForTrait", gID_setDominanceForTrait);
+const std::string &gStr_setHemizygousDominanceForTrait = EidosRegisteredString("setHemizygousDominanceForTrait", gID_setHemizygousDominanceForTrait);
 const std::string &gStr_setMutationType = EidosRegisteredString("setMutationType", gID_setMutationType);
-const std::string &gStr_drawSelectionCoefficient = EidosRegisteredString("drawSelectionCoefficient", gID_drawSelectionCoefficient);
-const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution", gID_setDistribution);
+const std::string &gStr_drawEffectSizeForTrait = EidosRegisteredString("drawEffectSizeForTrait", gID_drawEffectSizeForTrait);
+const std::string &gStr_loggedData = EidosRegisteredString("loggedData", gID_loggedData);
+const std::string &gStr_logMutationData = EidosRegisteredString("logMutationData", gID_logMutationData);
+const std::string &gStr_setDefaultDominanceForTrait = EidosRegisteredString("setDefaultDominanceForTrait", gID_setDefaultDominanceForTrait);
+const std::string &gStr_setDefaultHemizygousDominanceForTrait = EidosRegisteredString("setDefaultHemizygousDominanceForTrait", gID_setDefaultHemizygousDominanceForTrait);
+const std::string &gStr_setEffectSizeDistributionForTrait = EidosRegisteredString("setEffectSizeDistributionForTrait", gID_setEffectSizeDistributionForTrait);
 const std::string &gStr_addPatternForClone = EidosRegisteredString("addPatternForClone", gID_addPatternForClone);
 const std::string &gStr_addPatternForCross = EidosRegisteredString("addPatternForCross", gID_addPatternForCross);
 const std::string &gStr_addPatternForNull = EidosRegisteredString("addPatternForNull", gID_addPatternForNull);
@@ -1382,6 +1423,8 @@ const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit",
 const std::string &gStr_chromosomesOfType = EidosRegisteredString("chromosomesOfType", gID_chromosomesOfType);
 const std::string &gStr_chromosomesWithIDs = EidosRegisteredString("chromosomesWithIDs", gID_chromosomesWithIDs);
 const std::string &gStr_chromosomesWithSymbols = EidosRegisteredString("chromosomesWithSymbols", gID_chromosomesWithSymbols);
+const std::string &gStr_traitsWithIndices = EidosRegisteredString("traitsWithIndices", gID_traitsWithIndices);
+const std::string &gStr_traitsWithNames = EidosRegisteredString("traitsWithNames", gID_traitsWithNames);
 const std::string &gStr_estimatedLastTick = EidosRegisteredString("estimatedLastTick", gID_estimatedLastTick);
 const std::string &gStr_deregisterScriptBlock = EidosRegisteredString("deregisterScriptBlock", gID_deregisterScriptBlock);
 const std::string &gStr_genomicElementTypesWithIDs = EidosRegisteredString("genomicElementTypesWithIDs", gID_genomicElementTypesWithIDs);
@@ -1391,6 +1434,7 @@ const std::string &gStr_scriptBlocksWithIDs = EidosRegisteredString("scriptBlock
 const std::string &gStr_speciesWithIDs = EidosRegisteredString("speciesWithIDs", gID_speciesWithIDs);
 const std::string &gStr_subpopulationsWithIDs = EidosRegisteredString("subpopulationsWithIDs", gID_subpopulationsWithIDs);
 const std::string &gStr_subpopulationsWithNames = EidosRegisteredString("subpopulationsWithNames", gID_subpopulationsWithNames);
+const std::string &gStr_demandPhenotype = EidosRegisteredString("demandPhenotype", gID_demandPhenotype);
 const std::string &gStr_individualsWithPedigreeIDs = EidosRegisteredString("individualsWithPedigreeIDs", gID_individualsWithPedigreeIDs);
 const std::string &gStr_killIndividuals = EidosRegisteredString("killIndividuals", gID_killIndividuals);
 const std::string &gStr_mutationCounts = EidosRegisteredString("mutationCounts", gID_mutationCounts);
@@ -1426,6 +1470,15 @@ const std::string &gStr_treeSeqSimplify = EidosRegisteredString("treeSeqSimplify
 const std::string &gStr_treeSeqRememberIndividuals = EidosRegisteredString("treeSeqRememberIndividuals", gID_treeSeqRememberIndividuals);
 const std::string &gStr_treeSeqOutput = EidosRegisteredString("treeSeqOutput", gID_treeSeqOutput);
 const std::string &gStr__debug = EidosRegisteredString("_debug", gID__debug);
+const std::string &gStr__debugBuild = EidosRegisteredString("_debugBuild", gID__debugBuild);
+#if DEBUG
+const std::string &gStr__allocatedNonneutralCacheCount = EidosRegisteredString("_allocatedNonneutralCacheCount", gID__allocatedNonneutralCacheCount);
+const std::string &gStr__inUseNonneutralMutationBufferCount = EidosRegisteredString("_inUseNonneutralMutationBufferCount", gID__inUseNonneutralMutationBufferCount);
+const std::string &gStr__inUseNonneutralMutationBufferSize = EidosRegisteredString("_inUseNonneutralMutationBufferSize", gID__inUseNonneutralMutationBufferSize);
+const std::string &gStr__invalidNonneutralMutationBufferCount = EidosRegisteredString("_invalidNonneutralMutationBufferCount", gID__invalidNonneutralMutationBufferCount);
+const std::string &gStr__traitCalculationRegimeNameDIPLOID = EidosRegisteredString("_traitCalculationRegimeNameDIPLOID", gID__traitCalculationRegimeNameDIPLOID);
+const std::string &gStr__traitCalculationRegimeNameHAPLOID = EidosRegisteredString("_traitCalculationRegimeNameHAPLOID", gID__traitCalculationRegimeNameHAPLOID);
+#endif
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);
 const std::string &gStr_deviatePositions = EidosRegisteredString("deviatePositions", gID_deviatePositions);
 const std::string &gStr_deviatePositionsWithMap = EidosRegisteredString("deviatePositionsWithMap", gID_deviatePositionsWithMap);
@@ -1520,7 +1573,9 @@ const std::string &gStr_isCloning = EidosRegisteredString("isCloning", gID_isClo
 const std::string &gStr_isSelfing = EidosRegisteredString("isSelfing", gID_isSelfing);
 const std::string &gStr_parent2 = EidosRegisteredString("parent2", gID_parent2);
 const std::string &gStr_mut = EidosRegisteredString("mut", gID_mut);
+const std::string &gStr_trait = EidosRegisteredString("trait", gID_trait);
 const std::string &gStr_effect = EidosRegisteredString("effect", gID_effect);
+const std::string &gStr_effectSize = EidosRegisteredString("effectSize", gID_effectSize);
 const std::string &gStr_homozygous = EidosRegisteredString("homozygous", gID_homozygous);
 const std::string &gStr_breakpoints = EidosRegisteredString("breakpoints", gID_breakpoints);
 const std::string &gStr_receiver = EidosRegisteredString("receiver", gID_receiver);
@@ -1560,6 +1615,7 @@ const std::string &gStr_text = EidosRegisteredString("text", gID_text);
 const std::string &gStr_title = EidosRegisteredString("title", gID_title);
 
 // mostly SLiM element types
+const std::string &gStr_Trait = EidosRegisteredString("Trait", gID_Trait);
 const std::string &gStr_Chromosome = EidosRegisteredString("Chromosome", gID_Chromosome);
 //const std::string &gStr_Haplosome = EidosRegisteredString("Haplosome", gID_Haplosome);				// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_GenomicElement = EidosRegisteredString("GenomicElement", gID_GenomicElement);
@@ -1602,6 +1658,9 @@ const std::string &gStr_willAutolog = EidosRegisteredString("willAutolog", gID_w
 const std::string &gStr_context = EidosRegisteredString("context", gID_context);
 
 // mostly other fixed strings
+const std::string gStr_additive = "additive"; // these trait type strings are not registered, no need
+const std::string gStr_multiplicative = "multiplicative";
+const std::string gStr_logistic = "logistic";
 const std::string gStr_A = "A";	// these nucleotide strings are not registered, no need
 const std::string gStr_C = "C";
 const std::string gStr_G = "G";
@@ -1671,6 +1730,7 @@ void SLiM_ConfigureContext(void)
 		gEidosContextReservedSymbols.push_back("receiver");		// defined in ApplyInteractionCallbacks()
 		gEidosContextReservedSymbols.push_back("exerter");		// defined in ApplyInteractionCallbacks()
 		gEidosContextReservedSymbols.push_back("mut");			// defined in ApplyMutationEffectCallbacks() etc.
+		gEidosContextReservedSymbols.push_back("trait");		// defined in ApplyMutationEffectCallbacks()
 		gEidosContextReservedSymbols.push_back("effect");		// defined in ApplyMutationEffectCallbacks()
 		gEidosContextReservedSymbols.push_back("individual");	// defined in ApplyMutationEffectCallbacks() etc.
 		gEidosContextReservedSymbols.push_back("subpop");		// defined in ApplyMutationEffectCallbacks() etc.
@@ -1693,6 +1753,31 @@ void SLiM_ConfigureContext(void)
 		gEidosContextReservedSymbols.push_back("originalNuc");	// defined in ApplyMutationCallbacks()
 	}
 }
+
+
+// *******************************************************************************************************************
+//
+//    Built-in palettes
+//
+#pragma mark -
+#pragma mark Built-in palettes
+#pragma mark -
+
+EidosPalette *gEidos_Palette_IndividualFitness = new EidosPalette(std::vector<double>{-0.25, 0.375, 1.0, 2.25, 10.0},
+																  std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
+																  PaletteTransition::kLinear, PaletteBlend::kRGB);
+
+EidosPalette *gEidos_Palette_MutationEffect = new EidosPalette(std::vector<double>{-0.25, 0.375, 0.99999, 1.0, 1.00001, 1.625, 2.25, 10.0},
+															   std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+															   PaletteTransition::kLinear, PaletteBlend::kRGB);
+
+EidosPalette *gEidos_Palette_AdditiveTrait = new EidosPalette(std::vector<double>{-1.25, -0.625, -0.00001, 0.0, 0.00001, 0.625, 1.25, 9.0},
+															  std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+															  PaletteTransition::kLinear, PaletteBlend::kRGB);
+
+EidosPalette *gEidos_Palette_MultiplicativeTrait = new EidosPalette(std::vector<double>{-0.25, 0.375, 0.99999, 1.0, 1.00001, 1.625, 2.25, 10.0},
+																	std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+																	PaletteTransition::kLinear, PaletteBlend::kRGB);
 
 
 // *************************************
@@ -1725,59 +1810,67 @@ void SLiM_ConfigureContext(void)
 // See the pyslim code for readable versions of these.
 
 // For more info on schemas in tskit, see: https://tskit.dev/tskit/docs/stable/metadata.html#sec-metadata
- 
-// BCH 11/7/2021: Since I have been needing to modify these here by hand, I have changed them into C++ raw string literals.
-// I have also added some code in SLiM_WarmUp() that checks that the metadata schemas are all valid JSON, and optionally prints them.
-// see https://stackoverflow.com/a/5460235/2752221
+
+// Note that several schemas now require substitution of a string before they are used, because there are bits
+// of the schemas that need to be customized depending on the context (number of chromosomes, number of traits).
+// The spots where this substitutuon occurs are marked with things like "%d", "%d1", or "%d2", INCLUDING the
+// quotes because the metadata strings given here need to be valid JSON to pass SLiM's internal checks.  Those
+// are then replaced, in some cases by a quoted string, in other cases by an integer.  Schemas that contain
+// substitution strings like this have a variable name here ending in "_FORMAT" to indicate that they cannot
+// be used directly.
+
+// BCH 11/7/2021: Since I have been needing to modify these here by hand, I have changed them into C++ raw string
+// literals.  I have also added some code in SLiM_WarmUp() that checks that the metadata schemas are all valid
+// JSON, and optionally prints them.  See https://stackoverflow.com/a/5460235/2752221
+
+// BCH 2/13/2026: Validation of schemas, beyond them simply being valid JSON, is also needed.  In tskit this can
+// only be done in python, which is inconvenient.  The website https://jsonschema.dev validates schemas.  Put
+// in {"$schema":"http://json-schema.org/schema#"} in the left ("JSON Schema") panel, and copy/paste a schema
+// from below into the right-hand panel to validate it.
 
 // This is a useful JSON editor: https://jsoneditoronline.org/
 
 // BCH 12/9/2024: Added the new optional key `chromosomes`, providing an array of information about chromosomes (to support
 // multiple chromosomes), and the new required key `this_chromosome` specifying information about this file's chromosome.
-const std::string gSLiM_tsk_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.9","name":"fox","description":"foxes on Catalina island","cycle":123,"tick":123,"model_type":"WF","this_chromosome":{"id":1,"index":0,"symbol":"1","name":"autosome_1","type":"A"},"chromosomes":[{"id":1,"symbol":"1","name":"autosome_1","type":"A"},{"id":35,"symbol":"MT","name":"mtDNA","type":"HF"}],"nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.9","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"this_chromosome":{"description":"The chromosome represented by the tree sequence in this file.","properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"index":{"description":"The (zero-based) index of this chromosome in the chromosomes metadata array (if present), which should match the information given here.","type":"integer"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","index","symbol","type"],"type":"object"},"chromosomes":{"description":"The chromosomes represented by the collection of tree sequences, of which this tree sequence is one member.","items":{"properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","symbol","type"],"type":"object"},"type":"array"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","this_chromosome","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+const std::string gSLiM_tsk_metadata_JSON_schema =
+R"V0G0N({"codec":"json","examples":[{"SLiM":{"chromosomes":[{"id":1,"name":"autosome_1","symbol":"1","type":"A"},{"id":35,"name":"mtDNA","symbol":"MT","type":"HF"}],"cycle":123,"description":"foxes on Catalina island","file_version":"1.0","model_type":"WF","name":"fox","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x","this_chromosome":{"id":1,"index":0,"name":"autosome_1","symbol":"1","type":"A"},"tick":123,"traits":[{"index":0,"name":"simT","type":"multiplicative"}]}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 1.0","properties":{"chromosomes":{"description":"The chromosomes represented by the collection of tree sequences, of which this tree sequence is one member.","items":{"properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","symbol","type"],"type":"object"},"type":"array"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"},"this_chromosome":{"description":"The chromosome represented by the tree sequence in this file.","properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"index":{"description":"The (zero-based) index of this chromosome in the chromosomes metadata array (if present), which should match the information given here.","type":"integer"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","index","symbol","type"],"type":"object"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"traits":{"description":"The traits defined for this tree sequence; each mutation and individual will have per-trait metadata.","items":{"properties":{"baselineAccumulation":{"description":"Whether the baseline offset includes accumulated effects from fixed (substituted) mutations.","type":"boolean"},"baselineOffset":{"description":"The baseline offset of the trait.","type":"number"},"directFitnessEffect":{"description":"Whether the trait's effects are used directly as fitness effects.","type":"boolean"},"index":{"description":"The integer index for the trait; indices must be sequential starting from zero.","type":"integer"},"individualOffsetMean":{"description":"The mean of the trait's individual offset distribution (which might or might not be used).","type":"number"},"individualOffsetSD":{"description":"The standard deviation of the trait's individual offset distribution (which might or might not be used).","type":"number"},"name":{"description":"The string name for the trait.","type":"string"},"type":{"description":"The type of the trait; this must be 'additive', 'multiplicative', or 'logistic'.","enum":["additive","multiplicative","logistic"],"type":"string"}},"required":["index","name","type"],"type":"object"},"type":"array"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","this_chromosome","separate_sexes","nucleotide_based","traits"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+
+// Note the substituted strings "%d1" (the number of padding bytes used to produce 8-byte alignment of this
+// binary metadata in the json_binary codec) and "%d2" (the number of traits in the focal species).
+const std::string gSLiM_tsk_metadata_binary_schema_FORMAT =
+R"V0G0N({"codec":"struct","description":"SLiM schema for binary top-level metadata.","properties":{"aligner":{"binaryFormat":"%d1","index":1,"type":"null"},"mutation_list":{"index":2,"items":{"additionalProperties":false,"properties":{"mutation_id":{"binaryFormat":"q","description":"The SLiM mutation ID for this mutation.","index":1,"type":"integer"},"mutation_type":{"binaryFormat":"i","description":"The id of this mutation's mutationType.","index":2,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"padding":{"binaryFormat":"3x","description":"Padding bytes for alignment","index":6,"type":"null"},"per_trait":{"index":7,"items":{"additionalProperties":false,"properties":{"dominance":{"binaryFormat":"f","description":"The dominance coefficient for this trait.","index":2,"type":"number"},"effect_size":{"binaryFormat":"f","description":"The effect size for this trait.","index":1,"type":"number"},"hemizygous_dominance":{"binaryFormat":"f","description":"The hemizygous dominance coefficient for this trait.","index":3,"type":"number"}},"required":["dominance","effect_size","hemizygous_dominance"],"type":"object"},"length":"%d2","type":"array"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_id","mutation_type","slim_time","subpopulation","nucleotide","per_trait"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["aligner","mutation_list"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_edge_metadata_schema = "";
 const std::string gSLiM_tsk_site_metadata_schema = "";
+const std::string gSLiM_tsk_mutation_metadata_schema = "";		// this is now managed by gSLiM_tsk_metadata_binary_schema in top-level metadata
 
-const std::string gSLiM_tsk_mutation_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
-
-// BCH 12/10/2024: Removed the type field, and changed the treatment of is_vacant.  We have a
-// tricky problem here, which is that is_vacant is now variable-length and there is no count.
-// The number of byte (uint8_t) entries in is_vacant depends on the number of chromosomes in
-// the full set of tree sequences, because the node metadata has to contain flags (bits) for
-// every chromosome, not just for the chromosome represented by this file.  So we deduce the
-// length of is_vacant from that, but it is variable-length and has no count associated with
-// it in the metadata.  I think this is actually not allowed in JSON Schema, understandably.
-// To make this work, we have to write out a DIFFERENT VERSION OF THIS METADATA SCHEMA
-// depending on the number of bytes used.  In other words, if 7 bytes of is_vacant data are
-// needed (for 49-56 chromosomes), we'd write out a version of the schema that specifies
-// 7 bytes of is_vacant data using binaryFormat:7B.  This effectively puts the count into the
-// schema itself.  The number of bytes present can thus be inferred from the schema present
-// in the file, but also from the 'chromosomes' top-level metadata key; one bit is taken
-// for each chromosome, in order, regardless of their type, providing flags for one node
-// table entry for one haplosome of each chromosome.  (Remember, there are two node table
-// entries per individual; the first corresponds to haplosome 1, so its is_vacant data only
-// records is_vacant flags for haplosome 1 of each chromosome, and similarly for the second
-// node table entry corresponding to haplosome 2 of each chromosome.)  The variable name here
-// ends in "_FORMAT" because it is a format string containing `%d`, which must be replaced
-// by the correct byte count when it is used for output.  See SetCurrentNewIndividual() and
-// RecordNewHaplosome() for how this dynamic metadata structure is used in practice, and
-// WriteTreeSequenceMetadata() for where this schema format string is used.
+// BCH 12/10/2024: Removed the type field, and changed the treatment of is_vacant.  We have a tricky problem
+// here, which is that is_vacant is now variable-length and there is no count.  The number of byte (uint8_t)
+// entries in is_vacant depends on the number of chromosomes in the full set of tree sequences, because the node
+// metadata has to contain flags (bits) for every chromosome, not just for the chromosome represented by this
+// file.  So we deduce the length of is_vacant from that, but it is variable-length and has no count associated
+// with it in the metadata.  This is not allowed in JSON Schema, understandably.  To make this work, we have to
+// write out a DIFFERENT VERSION OF THIS METADATA SCHEMA depending on the number of bytes used.  In other words,
+// if 7 bytes of is_vacant data are needed (for 49-56 chromosomes), we'd write out a version of the schema that\
+// specifies 7 bytes of is_vacant data using binaryFormat:7B.  This effectively puts the count into the schema
+// itself.  The number of bytes present can thus be inferred from the schema present in the file, but also from
+// the 'chromosomes' top-level metadata key; one bit is taken for each chromosome, in order, regardless of their
+// type, providing flags for one node table entry for one haplosome of each chromosome.  (Remember, there are two
+// node table entries per individual; the first corresponds to haplosome 1, so its is_vacant data only records
+// is_vacant flags for haplosome 1 of each chromosome, and similarly for the second node table entry corresponding
+// to haplosome 2 of each chromosome.)  See SetCurrentNewIndividual() and RecordNewHaplosome() for how this
+// dynamic metadata structure is used in practice, and WriteTreeSequenceMetadata() for where this schema is used.
 //
-// BCH 4/10/2025: Changing from binary format 's' to 'B', using the new support for fixed-
-// length arrays in tskit: https://github.com/tskit-dev/tskit/issues/3088.  This has been
-// released in tskit version Python 0.6.1.  The new syntax for declaring a fixed-length
-// array is: {"type": "array", "length": 3, "items": {"type":"number", "binaryFormat":"B"}}.
-// The length, 3 here, is encoded with "%d" and replaced at runtime with the correct count.
-// (The string replaced is "%d" *including* the quotes, because the format string needs to
-// itself be a legal JSON string in order to pass SLiM's own internal checks, so beware.)
+// BCH 4/10/2025: Changing from binary format 's' to 'B', using the new support for fixed-length arrays in tskit:
+// https://github.com/tskit-dev/tskit/issues/3088 (released in tskit version Python 0.6.1).  The new syntax for
+// a fixed-length array is: {"type": "array", "length": 3, "items": {"type":"number", "binaryFormat":"B"}}.  The
+// length, 3 here, is encoded with "%d" and replaced at runtime with the correct count.
 const std::string gSLiM_tsk_node_metadata_schema_FORMAT =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"is_vacant":0,"slim_id":123}],"properties":{"is_vacant":{"description":"A vector of byte (uint8_t) values, with each bit representing whether the node represents a vacant position, either unused or a null haplosome (1), or a non-null haplosome (0), in the corresponding chromosome. This field encodes vacancy for all of the chromosomes in the model, not just the chromosome represented in this file (so that the node table is identical across all chromosomes for a multi-chromosome model). Each chromosome receives one bit here; there are two node table entries per individual, used for the two haplosomes of every chromosome, so only one bit is needed in each entry (making two bits total per chromosome, across the two node table entries). The least significant bit of the first byte is used first (for one haplosome of the first chromosome); the most significant bit of the last byte is used last. The number of bytes present in this field is indicated by this schema's 'binaryFormat' field, which is variable (!), and can also be deduced from the number of chromosomes in the model as given in the top-level 'chromosomes' metadata key, which should always be present if this metadata is present.","index":1,"items":{"binaryFormat":"B","type":"number"},"length":"%d","type":"array"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of the haplosomes associated with this node in SLiM.","index":0,"type":"integer"}},"required":["slim_id","is_vacant"],"type":["object","null"]})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"is_vacant":0,"slim_id":123}],"properties":{"is_vacant":{"description":"A vector of byte (uint8_t) values, with each bit representing whether the node represents a vacant position, either unused or a null haplosome (1), or a non-null haplosome (0), in the corresponding chromosome. This field encodes vacancy for all of the chromosomes in the model, not just the chromosome represented in this file (so that the node table is identical across all chromosomes for a multi-chromosome model). Each chromosome receives one bit here; there are two node table entries per individual, used for the two haplosomes of every chromosome, so only one bit is needed in each entry (making two bits total per chromosome, across the two node table entries). The least significant bit of the first byte is used first (for one haplosome of the first chromosome); the most significant bit of the last byte is used last. The number of bytes present in this field is indicated by this schema's 'binaryFormat' field, which is variable (!), and can also be deduced from the number of chromosomes in the model as given in the top-level 'chromosomes' metadata key, which should always be present if this metadata is present.","index":2,"items":{"binaryFormat":"B","type":"number"},"length":"%d","type":"array"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of the haplosomes associated with this node in SLiM.","index":1,"type":"integer"}},"required":["slim_id","is_vacant"],"type":["object","null"]})V0G0N";
 
-const std::string gSLiM_tsk_individual_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
+// Note the substitute string "%d" (the number of traits in the focal species).
+const std::string gSLiM_tsk_individual_metadata_schema_FORMAT =
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0,"per_trait":[{"offset":1.0,"phenotype":1.1}]}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"per_trait":{"index":8,"items":{"additionalProperties":false,"properties":{"offset":{"binaryFormat":"d","description":"The individual offset for this trait.","index":2,"type":"number"},"phenotype":{"binaryFormat":"d","description":"The phenotype for this trait.","index":1,"type":"number"}},"required":["offset","phenotype"],"type":"object"},"length":"%d","type":"array"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags","per_trait"],"type":"object"})V0G0N";
 
 // This schema was obsoleted in SLiM 3.7; we now use a JSON schema for the population metadata (see below)
 const std::string gSLiM_tsk_population_metadata_schema_PREJSON = 
@@ -2437,7 +2530,7 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 	}
 	
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	//
 	//	MutationRun metrics, presented per Species
 	//
@@ -2457,27 +2550,31 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		}
 		
 		{
-			int64_t regime_tallies[3];
-			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
+			int64_t regime_tallies[6];
+			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_.size();
 			
-			for (int regime = 0; regime < 3; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 				regime_tallies[regime] = 0;
 			
-			for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-				if ((regime >= 1) && (regime <= 3))
-					regime_tallies[regime - 1]++;
+			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
+			{
+				int regime_int = (int)regime;
+				
+				if ((regime_int >= 0) && (regime_int <= 5))
+					regime_tallies[regime_int]++;
 				else
 					regime_tallies_total--;
+			}
 			
 			fout << "<p>";
 			bool first_line = true;
 			
-			for (int regime = 0; regime < 3; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 			{
 				if (!first_line)
 					fout << "<BR>\n";
 				snprintf(buf, 256, "%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0);
-				fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : regime " << (regime + 1) << " (" << (regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")) << ")";
+				fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : regime " << regime << " (" << RegimeDescription((TraitCalculationRegime)regime) << ")";
 				first_line = false;
 			}
 			
@@ -2606,6 +2703,7 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		snprintf(buf, 256, "%0.2f", mem_tot_S.mutationObjects_count / ddiv);
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.mutationObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationObjects, final_total) << "</tt> : Mutation objects (" << buf << " / " << mem_last_S.mutationObjects_count << ")<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationRefcountBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationRefcountBuffer, final_total) << "</tt> : refcount buffer<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationPerTraitBuffer, final_total) << "</tt> : per-trait buffer<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total) << "</tt> : unused pool space</p>\n\n";
 		
 		// MutationRun

@@ -12,7 +12,7 @@ development head (in the master branch):
 	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
 	add segments() call to Plot, for plotting a set of unconnected line segments
 	add rects() call to Plot, for plotting a set of rectangles
-	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
+	extend text() to support drawing text at an angle, with new [float angle = 0.0] parameter
 	add mtext() call to Plot, for drawing text in the margins outside the plot area
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
 	add the PCG random number generator, switch to pcg32_fast and pcg64_fast, remove all use of the old taus2 and MT19937-64 generators; note this completely breaks backward reproducibility
@@ -30,7 +30,7 @@ development head (in the master branch):
 		add comprehensive tests for spatial interaction kernel calculations; includes SIMD vs scalar consistency tests, C++ level tests, and script-level tests, https://github.com/MesserLab/SLiM/pull/592
 		add SIMD acceleration for trig functions (sin(), cos(), tan(), asin(), acos(), atan(), atan2()), power functions (^ opperator, pow, SpatialMap.pow()), https://github.com/MesserLab/SLiM/pull/595
 		add SIMD acceleration to SpatialMap.smooth() for 2-6x speedup, https://github.com/MesserLab/SLiM/pull/599
-	fix #593, Student's T distribution had a sign error in tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
+	fix #593, Student's T distribution had a sign error in the SpatialKernel method tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
 	update citations listed by citation()
 	CI workflow for calculating code coverage with Codecov, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/601
 	fix #594, the pedigreeID and haplosomePedigreeID properties should be accessible (without other predigree-tracking features) in tree-seq models, even without pedigree tracking being enabled
@@ -41,6 +41,163 @@ development head (in the master branch):
 		rlnorm() accepted SD < 0 and returned a value; it should error, as rnorm() does (R returns NAN in the SD < 0 case, but erroring is more consistent with Eidos policies)
 		rexp() returned values for rate < 0; this should also error, consistent with Eidos policies
 	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
+
+
+multitrait branch:
+	constant SLIM_MAX_TRAITS defines a max of 256 traits per species, but so far there is no actual need for this maximum
+	internal C++ TraitType enum defines two types of traits, kMultiplicative and kAdditive
+	add new Eidos SLiM class, Trait
+		add (object<Trait>$)initializeTrait(s$ name, s$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+		add Species property traits => (object<Trait>) to simply get all traits defined for a species
+		add Species methods – (object<Trait>)traitsWithIndices(integer indices) and – (object<Trait>)traitsWithNames(string names)
+		add Trait properties:
+			baselineOffset <-> (float$)
+			directFitnessEffect => (logical$)
+			index => (integer$)
+			individualOffsetMean <-> (float$)
+			individualOffsetSD <-> (float$)
+			name => (string$)
+			species => (object<Species>$)
+			tag <-> (integer$)
+			type => (string$)
+		add Community property allTraits => (object<Trait>)
+	make a single implicit trait with MakeImplicitTrait() (defaulting to kMultiplicative with a direct fitness effect) if initializeTrait() is not called before initializeMutationType() is called
+	add a C++ dominance_coeff_ property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
+		add dominance properties to Mutation and Substitution
+		fix calcInbreedingLoad() to use muts.dominanceCoeff instead of muts.mutationType.dominanceCoeff
+	revamp MutationType for multiple traits
+		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
+		add MutationType methods defaultDominanceForTrait([Nio<Trait> trait = NULL]), effectDistributionTypeForTrait([Nio<Trait> trait = NULL]), and effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
+		change MutationType method setDistribution() to setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
+		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
+		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
+		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
+		transition MutationType's internals to keep a separate DE for each trait using a new EffectSizeDistributionInfo struct
+		added C++ all_neutral_DES_ and all_neutral_mutations_ flags to represent whether (a) all of the effects of a given mutation type are neutral, and (b) all mutations of that type are actually neutral
+		make initializeMutationType()'s DES set up the DES for all traits (then separately configurable with setEffectDistributionForTrait())
+	add support in Individual for the individual's offset for each trait
+		add -(float)offsetForTrait([Nio<Trait> trait = NULL])
+		add +(void)setOffsetForTrait([Nio<Trait> trait = NULL], [Nif offset = NULL])
+		draw an individual's trait offsets from the trait individual-offset distributions, at the individual's moment of generation
+	add Individual properties for each trait in the individual's species, allowing direct access to the phenotype for each trait in an individual
+	add Species properties for each trait in the species, allowing direct access to traits in this species
+	make code completion work for the new dynamic properties on Species and Individual generated by initializeTrait()
+	shift from a single global mutation block into per-species mutation blocks, and make a new C++ class, MutationBlock, to encapsulate this
+		this is a forced move because we want the mutation block to have a separate buffer of per-trait state for mutations, and the number of traits varies among species
+	add effect size and dominance coefficient properties to Mutation and Substitution (but not hooked up to the simulation yet)
+		add -effectForTrait([Nio<Trait> traits = NULL]) and -dominanceForTrait([Nio<Trait> traits = NULL]) methods to Mutation and Substitution
+		add +setEffectForTrait([Nio<Trait> traits = NULL], [Nif effect = NULL]) and +setDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) methods to Mutation
+		add <trait-name>Effect and <trait-name>Dominance properties to Mutation, both read-write float$
+		add <trait-name>Effect and <trait-name>Dominance properties to Substitution, both read-only float$
+	remove Mutation method setSelectionCoeff(), autofixing to setEffectForTrait(NULL, )
+	rename the selectionCoeff property to effect, for both Mutation and Substitution; it changes from float$ to float, and now returns all trait effects; and SLiMgui autofixes this change
+	remove the old C++ selection_coeff_ and dominance_coeff_ ivars in Mutation and Substitution, and begin the transition over to the new MutationTraitInfo struct
+	add Individual method -(float)phenotypeForTrait([Nio<Trait> traits = NULL]) to get trait values
+	add Individual method +(void)setPhenotypeForTrait([Nio<Trait> trait = NULL], [Nif phenotype = NULL]) to set trait values
+	the addNewMutation() method's "selectionCoeff" parameter is now renamed to "effect"; SLiMgui will autofix this as needed
+	turn the hemizygous dominance coefficient into a first-class citizen handled identically to the regular dominance coefficient
+		MutationType: shift the C++ hemizygous_dominance_coeff_ property to be default_hemizygous_dominance_coeff_, kept per-trait
+		MutationType: remove the hemizygousDominanceCoeff property
+		MutationType: add defaultHemizygousDominanceForTrait([Nio<Trait> trait = NULL]) and setDefaultHemizygousDominanceForTrait(Nio<Trait> trait, float dominance) methods
+		Mutation: add a C++ hemizygous_dominance_coeff_ property to Mutation, per-trait, with a value inherited from MutationType's default_hemizygous_dominance_coeff_ property
+		Mutation and Substitution: add hemizygousDominance property and -hemizygousDominanceForTrait([Nio<Trait> traits = NULL]) method
+		Mutation: add +setHemizygousDominanceForTrait([Nio<Trait> traits = NULL], [Nif dominance = NULL]) method
+		Mutation: add read-write <trait-name>HemizygousDominance property to Mutation
+		Substitution: add read-only <trait-name>HemizygousDominance property
+	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
+	fix #564, initializeMutationRateFromFile() needs a `sex` parameter; I'm doing this in multitrait to avoid the annoying doc conflicts
+	fix #570, setMigrationRates() should make it easier to stop all migration (done in multitrait to avoid the annoying doc conflicts)
+		specifically, this entails two changes:
+			allow a singleton migration rate value, applied for all subpops given
+			allow the destination subpop to be given as a source, iff all rates supplied are 0.0, to stop all migration: allSubpops.setMigrationRates(allSubpops, 0.0)
+	fix #567, plot windows can have their aspect ratio distorted due to screen size and other constraints
+	add Individual class method +(void)demandPhenotype([Nio<Trait> trait = NULL], [l$ forceRecalc = F])
+	extend initializeMutationType() and initializeMutationTypeNuc() to make the effect distribution optional with [Ns$ distributionType = NULL], where NULL is equivalent to `"f", 0.0`
+	make setOffsetForTrait() clamp values to 0.0 for multiplicative traits; fix doc to discuss clamping of effects
+	extend all methods taking a `Nio<Trait> trait` parameter to `Niso<Trait> trait`, allowing traits to also be identified by string name
+	add the concept of "independent dominance" to SLiM; mutations with independent dominance for a trait allow optimization because two heterozygous effects equals one homozygous effect
+		initializeMutationType() and initializeMutationTypeNuc() now allow NAN to be passed for dominanceCoeff, indicating independent dominance (initially for all traits)
+		new-mutation construction now sets the `is_independent_dominance_for_any_trait_` and `is_independent_dominance_for_all_traits_` flags for mutations from such a mutation type
+		add isIndependentDominanceForTrait() method to Mutation and Substitution, to test for independent dominance (since the realized dominance coefficient is provided)
+		add isNeutral property to Mutation and Substitution (indicating neutrality for all traits)
+		MutationType's setDefaultDominanceForTrait() now correctly handles the use of NAN to indicate independent dominance
+		Mutation's setDominanceForTrait() method now correctly handles the use of NAN to indicate independent dominance
+		a new RealizedDominance() internal (C++) method calculates the correct dominance value to use when independent dominance is configured for a mutation, for a particular trait
+		Mutation and Substitution's dominanceForTrait() methods now use RealizedDominance(), and thus never report NAN as a dominance value (use isIndependentDominanceForTrait() for that)
+		note that there is no concept of independent dominance for the hemizygous dominance coefficient, since hemizygous mutations are present in only one copy by definition
+	switch fitness calculation over to being based upon the calculated values of traits, rather than directly upon mutations
+	eliminate overhead for setting up fitness buffers in neutral WF models; this should provide a significant speedup for such models, if they don't use a mateChoice() callback
+	extend recalculateFitness() with [logical$ forceRecalc = T] option for backward compatibility, but allowing trait value recalculation not to be forced
+	redesigned the internals of mateChoice() callbacks; there should be no user-visible consequence apart from better performance (even without mateChoice() callbacks!)
+	add new slim_trait_index_t typedef to refer to trait indices, cleaning up a bunch of code (no user-visible impact)
+	extend sumOfMutationsOfType() with a [Niso<Trait>$ trait = NULL] parameter to allow it to be applied to any trait (but it is mostly obsolete now)
+	extend cachedFitness() to accept a vector of class Individual, as well as its old style of taking a vector of indices into the target subpopulation
+	extend the Eidos identical() function to allow comparison of more than two parameters; e.g., (logical$)identical(* x, * y, ...)
+	add a cachedFitness property to class Individual to provide another way of accessing fitness values for individuals, besides the cachedFitness() method of Subpopulation
+	extend the Eidos deleteFile() and fileExists() functions to support passing in a vector of file paths
+	extend the Eidos + operator to support adding logical+logical, integer+logical, and logical+integer (all for NxN, 1xN, Nx1), as in R
+	add SLiMgui doc for the various dynamic properties added for traits
+	add a Species demandPhenotype() method, and change the Individual method demandPhenotype() to demandPhenotypeForIndividuals(); the Species method is generally preferred for speed
+	add data logging capabilities to MutationType for easier assessment of requested vs. realized DFEs, etc.
+		- (void)logMutationData(logical$ enable, [logical$ autogeneratedOnly = T], [logical$ meanOnly = F], <flags>)
+		- (io<DataFrame>)loggedData(string$ kind, <flags>)
+	policy change: mean(integer(0)) or mean(float(0)) now returns NAN rather than NULL, to match R; I just noticed this, and NAN does seem better
+	add optional [Ns$ trait = NULL] specifier to the mutationEffect() callback syntax, allowing mutationEffect() callbacks to be defined as specific to a particular trait
+		note that if this new specifier is absent or NULL, the callback will be called separately for each trait; that preserves backward compatibility
+		add trait pseudo-parameter to mutationEffect() callbacks
+		add [Niso<Trait>$ trait = NULL] parameter to registerMutationEffectCallback() to allow the trait specifier to be given (defaults to NULL for backward compatibility)
+	add a new return option for mutationEffect() callbacks: NULL now indicates neutrality for the focal trait, meaning either 1.0 (multiplicative) or 0.0 (additive)
+	re-enable non-neutral caching (but without independent dominance optimizations, so far)
+	add calculation and use of independent dominance caches, per trait
+	add a dynamic property to Individual for accessing individual offsets, <trait-name>Offset
+	renaming of Mutation's term "effect" to "effectSize" to disambiguate with the "effect" of a mutation (e.g., mutationEffect() callbacks):
+		Mutation property <trait-name>Effect -> <trait-name>EffectSize
+		Mutation property effect -> effectSize
+		Mutation effectForTrait() method -> effectSizeForTrait()
+		Mutation setEffectForTrait() method -> setEffectSizeForTrait()
+		MutationType drawEffectForTrait() method -> drawEffectSizeForTrait()
+		MutationType effectDistributionParamsForTrait() method -> effectSizeDistributionParamsForTrait()
+		MutationType effectDistributionTypeForTrait() method -> effectSizeDistributionTypeForTrait()
+		MutationType setEffectDistributionForTrait() method -> setEffectSizeDistributionTypeForTrait()
+		Substitution <trait-name>Effect property -> <trait-name>EffectSize
+		Substitution effect property -> effectSize
+		Substitution effectForTrait() method -> effectSizeForTrait()
+		addNewMutation() parameter "effect" -> "effectSize"
+		setEffectSizeForTrait() parameter "effect" -> "effectSize"
+		MutationType's loggedData() parameter "effect" -> "effectSize" and lots of related fallout for loggedData() and logMutationData(), logged_effect_, running_effect_, etc.
+	for initializeMutationType() and initializeMutationTypeNuc(), change the "dominanceCoeff" parameter to "defaultDominance"
+	switch over to using a lognormal distribution for the default individual offset distribution for multiplicative traits
+	add a third trait type, "logistic" or "l", for modeling traits that represent a probability such as a disease risk
+	add initializeTrait() parameter [logical$ baselineAccumulation = T] to control, on a per-trait bases, the accumulation of the effects of fixed (substituted) mutations into baseline offsets
+	keep independent dominance caches in MutationRun only for traits that appear to actually be set up for independent dominance
+	add targeted trait calculation optimizations for cases where (a) ALL mutations are neutral, or (b) NO mutations are neutral, both disabling the use of non-neutral caches
+	add an optimization allowing SLiM to revert back to "all muts are neutral" or "no muts are neutral" to regain top performance
+	add invalidation of cached trait values (with associated documentation changes):
+		for addNewMutation() and addNewDrawnMutation() (invalidating all trait values, for the individuals involved)
+		for addMutations() (invalidating all trait values, for the individuals involved)
+		for removeMutations() (invalidating all trait values, for the individuals involved)
+		for changes to individual offsets (invalidating the trait values involved, for the individuals involved)
+		for changes to baseline offsets (invalidating the trait values involved, for all individuals) -- except for baseline accumulation at substitution
+		for changes to the effect size, dominance, hemizygous dominance, or mutation type of mutations (invalidating the trait values involved, for all individuals)
+		whenever demand occurs and a non-constant mutationEffect() callback is active in the current tick (invalidating all demanded trait values affected by that callback)
+		whenever a mutationEffect() callback is added, removed, rescheduled, or activated/deactivated in a way that affects the current tick (invalidating all affected trait values)
+		whenever the tick counter advances such that a previously active mutationEffect() callback becomes inactive, or vice versa (invalidating all affected trait values)
+		whenever the tick counter is changed in script to a new arbitrary value (invalidating all trait values in all individuals in all species)
+		when takeMigrants() moves individuals and there are active callbacks that could mean that the trait values of migrants change
+	tree-sequence recording work for multitrait:
+		individual metadata now has a variable-length per-trait array of phenotype and offset information
+		mutation metadata is now moved from the mutation table's metadata column to a table placed in top-level metadata with the json+struct codec
+		mutation metadata now has a variable-length per-trait array of effect size and dominance information
+		top-level JSON metadata now has a new `traits` key (required), which lists the traits used in the tree sequence; duplicated in provenance
+		the top-level JSON, mutation, and individual metadata schemas are updated accordingly
+		pushed the .trees file version from 0.9 to 1.0
+	add a separate haploid trait calculation regime, with new regime types for constructing haploid caches
+	add SLiMgui support for multitrait display, with a popup menu to choose the display trait, and some additional color scales
+		make chromosome display windows use the focal trait at the time they were created, and show a trait badge; likewise for haplotype display windows
+	change rects drawn by the Plot method rects() to have mitered corners, not bevelled
+	add Palette class to Eidos, to set up color schemes involving ramps and fades
+		add support for Palette in the Plot method image(), for easily plotting spectra and gradient fills
+		switch to using Palette for coloring individuals and mutations in SLiMgui
 
 
 version 5.1 (Eidos version 4.1):
@@ -88,7 +245,6 @@ version 5.1 (Eidos version 4.1):
 	fix #529, extend calcFST() to support multiple chromosomes
 	extend subsetMutations() to support subsetting mutations belonging to more than one chromosome
 	fix #560, add recipe 14.16 "Visualizing linkage disequilibrium" to demonstrate the new calcLD_D() and calcLD_Rsquared() functions
-
 
 version 5.0 (Eidos version 4.0):
 	multi-chromosome transition:
@@ -152,7 +308,7 @@ version 5.0 (Eidos version 4.0):
 			policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
 			policy change: the "remove fixed mutations" stage of the WF tick cycle is now after "offspring become parents" (no user-visible difference except WF tick cycle diagram)
 			policy change: mutationRuns= for initializeSLiMOptions() has been changed to [l$ doMutationRunExperiments=T]; pass mutationRuns= to initializeChromosome() instead
-			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
+			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
 			policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
 				the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
 			policy change: fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F (a change in simplification behavior)
@@ -237,7 +393,7 @@ version 5.0 (Eidos version 4.0):
 		add a "page guide at column" pref to SLiMgui, for those trying to lay out code to a maximum width
 		fix a SLiMgui bug where an error panel would not be visible because it was obscured by a floating window above it, appearing to lock up the whole app
 		fixed a long-standing SLiMgui bug involving mutation frequencies and mutation run reuse when a subset of the subpopulations are selected in the GUI
-			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES debugging code, (2) separated SLiMgui's refcounting more completely from
+			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES() debugging code, (2) separated SLiMgui's refcounting more completely from
 			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
 		cleaned up the confusion around Dictionary vs. DictionaryBase; methods/functions can now use Dictionary in their signature without problems
 		fix a bug in treeSeqMetadata(); if no metadata was found, it would return object<Dictionary>(0), not an empty Dictionary object (and it leaked)

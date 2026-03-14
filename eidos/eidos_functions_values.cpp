@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -29,7 +29,7 @@
 #include <utility>
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 #endif
 
@@ -1176,24 +1176,10 @@ EidosValue_SP Eidos_ExecuteFunction_allClose(const std::vector<EidosValue_SP> &p
 		{
 			double xv = (x_count == 1) ? xv_singleton : x_data[value_index];
 			double yv = (y_count == 1) ? yv_singleton : y_data[value_index];
+			bool close = Eidos_IsClose(xv, yv, rtol, atol, equalNAN);
 			
-			if (std::isfinite(xv) && std::isfinite(yv))
-			{
-				if (std::abs(xv - yv) <= atol + rtol * std::abs(yv))
-					continue;
-			}
-			else if (std::isinf(xv) && std::isinf(yv))
-			{
-				if (std::signbit(xv) == std::signbit(yv))
-					continue;
-			}
-			else if (std::isnan(xv) && std::isnan(yv))
-			{
-				if (equalNAN)
-					continue;
-			}
-			
-			return gStaticEidosValue_LogicalF;
+			if (!close)
+				return gStaticEidosValue_LogicalF;
 		}
 	}
 	else
@@ -1529,13 +1515,22 @@ EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_a
 	return result_SP;
 }
 
-//	(logical$)identical(* x, * y)
+//	(logical$)identical(* x, * y, ...)
 EidosValue_SP Eidos_ExecuteFunction_identical(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
-	EidosValue *y_value = p_arguments[1].get();
 	
-	return IdenticalEidosValues(x_value, y_value) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+	// BCH 1/2/2026: extending this function to now accept additional arguments beyond y, but the logic is the
+	// same.  All arguments must be identical to x for T to be returned, otherwise F is returned.
+	for (size_t value_index = 1; value_index < p_arguments.size(); ++value_index)
+	{
+		EidosValue *y_value = p_arguments[value_index].get();
+		
+		if (!IdenticalEidosValues(x_value, y_value))
+			return gStaticEidosValue_LogicalF;
+	}
+	
+	return gStaticEidosValue_LogicalT;
 }
 
 //	(*)ifelse(logical test, * trueValues, * falseValues)
@@ -1790,30 +1785,7 @@ EidosValue_SP Eidos_ExecuteFunction_isClose(const std::vector<EidosValue_SP> &p_
 			double xv = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			double yv = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			
-			if (std::isfinite(xv) && std::isfinite(yv))
-			{
-				// if xv and yv are finite, they are "close" if absolute(xv - yv) <= (atol + rtol * absolute(yv))
-				// note that this mirrors the behavior of the numpy function isclose(), which this is based upon;
-				// it is documented at https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
-				// Note that Python's built-in math.isclose() has a different criterion, and different defaults;
-				// see https://docs.python.org/3/library/math.html#math.isclose.
-				bool close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
-				
-				return (close ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-			}
-			else
-			{
-				// if xv and yv are infinite, they are "close" if and only if they have the same sign
-				if (std::isinf(xv) && std::isinf(yv))
-					return ((std::signbit(xv) == std::signbit(yv)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-				
-				// if xv and yv are NAN, they are "close" if and only if the equalNAN flag is true
-				if (std::isnan(xv) && std::isnan(yv))
-					return (equalNAN ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-				
-				// all other cases involving INF and/or NAN are not "close"
-				return gStaticEidosValue_LogicalF;
-			}
+			return (Eidos_IsClose(xv, yv, rtol, atol, equalNAN) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
 		else
 		{
@@ -1829,16 +1801,7 @@ EidosValue_SP Eidos_ExecuteFunction_isClose(const std::vector<EidosValue_SP> &p_
 			{
 				double xv = (x_count == 1) ? xv_singleton : x_data[value_index];
 				double yv = (y_count == 1) ? yv_singleton : y_data[value_index];
-				bool close;
-				
-				if (std::isfinite(xv) && std::isfinite(yv))
-					close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
-				else if (std::isinf(xv) && std::isinf(yv))
-					close = (std::signbit(xv) == std::signbit(yv));
-				else if (std::isnan(xv) && std::isnan(yv))
-					close = equalNAN;
-				else
-					close = false;
+				bool close = Eidos_IsClose(xv, yv, rtol, atol, equalNAN);
 				
 				logical_result->set_logical_no_check(close, value_index);
 			}
@@ -2047,10 +2010,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table to speed up lookups from O(N) to O(1)
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<int64_t, int64_t> fromValueToIndex;
 				//typedef robin_hood::pair<int64_t, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<int64_t, int64_t> fromValueToIndex;
 				//typedef std::pair<int64_t, int64_t> MAP_PAIR;
 #endif
@@ -2095,10 +2058,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				// use a hash table to speed up lookups from O(N) to O(1)
 				// we have to use a custom comparator so that NAN==NAN is true, so that NAN gets matched correctly
 				auto equal = [](const double& l, const double& r) { if (std::isnan(l) && std::isnan(r)) return true; return l == r; };
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<double, int64_t, robin_hood::hash<double>, decltype(equal)> fromValueToIndex(0, robin_hood::hash<double>{}, equal);
 				//typedef robin_hood::pair<double, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<double, int64_t, std::hash<double>, decltype(equal)> fromValueToIndex(0, std::hash<double>{}, equal);
 				//typedef std::pair<double, int64_t> MAP_PAIR;
 #endif
@@ -2145,10 +2108,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table to speed up lookups from O(N) to O(1)
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<std::string, int64_t> fromValueToIndex;
 				//typedef robin_hood::pair<std::string, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<std::string, int64_t> fromValueToIndex;
 				//typedef std::pair<std::string, int64_t> MAP_PAIR;
 #endif
@@ -2192,10 +2155,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table to speed up lookups from O(N) to O(1)
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 				robin_hood::unordered_flat_map<EidosObject *, int64_t> fromValueToIndex;
 				//typedef robin_hood::pair<EidosObject *, int64_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 				std::unordered_map<EidosObject *, int64_t> fromValueToIndex;
 				//typedef std::pair<EidosObject *, int64_t> MAP_PAIR;
 #endif

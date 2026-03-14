@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/16/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -87,8 +87,10 @@ public:
 	EidosCallSignature *AddInt(const std::string &p_argument_name);
 	EidosCallSignature *AddFloat(const std::string &p_argument_name);
 	EidosCallSignature *AddIntString(const std::string &p_argument_name);
+	EidosCallSignature *AddFloatString(const std::string &p_argument_name);
 	EidosCallSignature *AddString(const std::string &p_argument_name);
 	EidosCallSignature *AddIntObject(const std::string &p_argument_name, const EidosClass *p_argument_class);
+	EidosCallSignature *AddIntStringObject(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddObject(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddNumeric(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv(const std::string &p_argument_name);
@@ -102,6 +104,7 @@ public:
 	EidosCallSignature *AddIntString_O(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddString_O(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddIntObject_O(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
+	EidosCallSignature *AddIntStringObject_O(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddObject_O(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddNumeric_O(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddLogicalEquiv_O(const std::string &p_argument_name, EidosValue_SP p_default_value);
@@ -115,6 +118,7 @@ public:
 	EidosCallSignature *AddIntString_S(const std::string &p_argument_name);
 	EidosCallSignature *AddString_S(const std::string &p_argument_name);
 	EidosCallSignature *AddIntObject_S(const std::string &p_argument_name, const EidosClass *p_argument_class);
+	EidosCallSignature *AddIntStringObject_S(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddObject_S(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddNumeric_S(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv_S(const std::string &p_argument_name);
@@ -128,6 +132,7 @@ public:
 	EidosCallSignature *AddIntString_OS(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddString_OS(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddIntObject_OS(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
+	EidosCallSignature *AddIntStringObject_OS(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddObject_OS(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddNumeric_OS(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddLogicalEquiv_OS(const std::string &p_argument_name, EidosValue_SP p_default_value);
@@ -141,6 +146,7 @@ public:
 	EidosCallSignature *AddIntString_N(const std::string &p_argument_name);
 	EidosCallSignature *AddString_N(const std::string &p_argument_name);
 	EidosCallSignature *AddIntObject_N(const std::string &p_argument_name, const EidosClass *p_argument_class);
+	EidosCallSignature *AddIntStringObject_N(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddObject_N(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddNumeric_N(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv_N(const std::string &p_argument_name);
@@ -152,6 +158,7 @@ public:
 	EidosCallSignature *AddIntString_ON(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddString_ON(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddIntObject_ON(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
+	EidosCallSignature *AddIntStringObject_ON(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddObject_ON(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddNumeric_ON(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddLogicalEquiv_ON(const std::string &p_argument_name, EidosValue_SP p_default_value);
@@ -163,6 +170,7 @@ public:
 	EidosCallSignature *AddIntString_SN(const std::string &p_argument_name);
 	EidosCallSignature *AddString_SN(const std::string &p_argument_name);
 	EidosCallSignature *AddIntObject_SN(const std::string &p_argument_name, const EidosClass *p_argument_class);
+	EidosCallSignature *AddIntStringObject_SN(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddObject_SN(const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddNumeric_SN(const std::string &p_argument_name);
 	EidosCallSignature *AddLogicalEquiv_SN(const std::string &p_argument_name);
@@ -174,6 +182,7 @@ public:
 	EidosCallSignature *AddIntString_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddString_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddIntObject_OSN(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
+	EidosCallSignature *AddIntStringObject_OSN(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddObject_OSN(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddNumeric_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddLogicalEquiv_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -304,8 +304,9 @@ void QtSLiMWindow::init(void)
     // create the window UI
     ui->setupUi(this);
     
-    // hide the species bar initially so it doesn't interfere with the sizing done by interpolateSplitters()
+    // hide the species bar and trait bar initially so they don't interfere with the sizing done by interpolateSplitters()
     ui->speciesBarWidget->setHidden(true);
+    ui->traitChoiceWidget->setHidden(true);
     
     ui->speciesBar->setAcceptDrops(false);
     ui->speciesBar->setDocumentMode(false);
@@ -1754,6 +1755,21 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
     QString beforeSelection4String = beforeSelection4.selectedText();
     
+    // get the one character after the selected error range, to recognize if the error is followed by "("
+    QTextCursor afterSelection1 = selection;
+    afterSelection1.setPosition(afterSelection1.selectionEnd(), QTextCursor::MoveAnchor);
+    afterSelection1.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    QString afterSelection1String = afterSelection1.selectedText();
+    
+    QTextCursor selectionPlus1After = selection;
+    selectionPlus1After.setPosition(selectionPlus1After.selectionStart(), QTextCursor::MoveAnchor);
+    selectionPlus1After.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, selection.selectionEnd() - selection.selectionStart() + 1);
+    QString selectionPlus1AfterString = selectionPlus1After.selectedText();
+    
+    //qDebug() << "selectionString ==" << selectionString;
+    //qDebug() << "afterSelection1String ==" << afterSelection1String;
+    //qDebug() << "selectionPlus1AfterString ==" << selectionPlus1AfterString;
+    
     //
     //  Changes for SLiM 4.0: multispecies SLiM, mostly, plus fitness() -> mutationEffect() and fitness(NULL) -> fitnessEffect()
     //
@@ -1898,14 +1914,15 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method now requires a vector of subpopulations to evaluate.", terminationMessage);
     }
     
-    if (terminationMessage.contains("named argument immediate skipped over required argument subpops") && (selectionString == "evaluate"))
+    if (terminationMessage.contains("named argument 'immediate' skipped over required argument 'subpops'") && (selectionString == "evaluate"))
     {
         QTextCursor entireCall = selection;
         entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
         entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 22);
         QString entireCallString = entireCall.selectedText();
         
-        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);"))
+        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);") ||
+            (entireCallString == "evaluate(immediate = T);") || (entireCallString == "evaluate(immediate = F);"))
             return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
     }
     
@@ -2113,6 +2130,64 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("method outputVCF() is not defined on object element type Haplosome") &&
             (selectionString == "outputVCF"))
         return offerAndExecuteAutofix(selection, "outputHaplosomesToVCF", "The `outputVCF()` method of Haplosome has been renamed to `outputHaplosomesToVCF()`.", terminationMessage);
+    
+    //
+    //  Shift from one trait to multitrait for SLiM 5.1
+    //
+    
+    if (terminationMessage.contains("property dominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "dominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "The `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
+    
+    // the above autofix is imperfect; if the user is assigning into dominanceCoeff, it really needs to be corrected to be a call to setDefaultDominanceForTrait()
+    
+    if (terminationMessage.contains("property hemizygousDominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "hemizygousDominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultHemizygousDominanceForTrait()", "The `hemizygousDominanceCoeff` property of MutationType has become the method `defaultHemizygousDominanceForTrait()`.", terminationMessage);
+    
+    // the above autofix is imperfect; if the user is assigning into hemizygousDominanceCoeff, it really needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
+    
+    if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationType()") &&
+            (selectionString == "dominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationType() has been renamed to `defaultDominance`.", terminationMessage);
+    
+    if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationTypeNuc()") &&
+			(selectionString == "dominanceCoeff"))
+		return offerAndExecuteAutofix(selection, "defaultDominance", "The `dominanceCoeff` parameter to initializeMutationTypeNuc() has been renamed to `defaultDominance`.", terminationMessage);
+	
+    if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
+            (selectionString == "distributionType"))
+        return offerAndExecuteAutofix(selection, "effectSizeDistributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `effectSizeDistributionTypeForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property distributionParams is not defined for object element type MutationType") &&
+            (selectionString == "distributionParams"))
+        return offerAndExecuteAutofix(selection, "effectSizeDistributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `effectSizeDistributionParamsForTrait()`.", terminationMessage);
+    
+    if ((afterSelection1String == "(") &&
+            terminationMessage.contains("method setDistribution() is not defined on object element type MutationType") &&
+            (selectionPlus1AfterString == "setDistribution("))
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectSizeDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setEffectSizeDistributionForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method drawSelectionCoefficient() is not defined on object element type MutationType") &&
+            (selectionString == "drawSelectionCoefficient"))
+        return offerAndExecuteAutofix(selection, "drawEffectSizeForTrait", "The `drawSelectionCoefficient()` method of MutationType has become the method `drawEffectSizeForTrait()`.", terminationMessage);
+    
+    if ((afterSelection1String == "(") &&
+            terminationMessage.contains("method setSelectionCoeff() is not defined on object element type Mutation") &&
+            (selectionPlus1AfterString == "setSelectionCoeff("))
+        return offerAndExecuteAutofix(selectionPlus1After, "setEffectSizeForTrait(NULL, ", "The `setSelectionCoeff()` method of Mutation has become the method `setEffectSizeForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property selectionCoeff is not defined for object element type Mutation") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effectSize", "The `selectionCoeff` property of Mutation has become the property `effectSize`.", terminationMessage);
+    
+    if (terminationMessage.contains("property selectionCoeff is not defined for object element type Substitution") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effectSize", "The `selectionCoeff` property of Substitution has become the property `effectSize`.", terminationMessage);
+    
+    if (terminationMessage.contains("unrecognized named argument 'selectionCoeff' to addNewMutation()") &&
+            (selectionString == "selectionCoeff"))
+        return offerAndExecuteAutofix(selection, "effectSize", "The `selectionCoeff` parameter to addNewMutation() has been renamed to `effectSize`.", terminationMessage);
     
     return false;
 }
@@ -2347,6 +2422,40 @@ Species *QtSLiMWindow::focalDisplaySpecies(void)
 	return nullptr;
 }
 
+Trait *QtSLiMWindow::focalTraitForSpecies(Species *species)
+{
+    // displaying "fitness" (or "fitness effect") is the default, following SLiM prior to multitrait;
+    // that is represented by a return value of `nullptr`, used for undefined cases as well as "fitness"
+    if (!species)
+        return nullptr;
+    
+    const std::vector<Trait *> &traits = species->Traits();
+    
+    if (traits.size() == 0)
+        return nullptr;
+    
+    if (species->has_implicit_trait_)
+        return nullptr;
+    
+    auto species_trait_pair = speciesToTrait.find(species->name_);
+    
+    if (species_trait_pair == speciesToTrait.end())
+        return nullptr;
+    
+    const std::string &focalTraitName = species_trait_pair->second;
+    
+    if (focalTraitName == "fitness")
+        return nullptr;
+    
+    // Otherwise, find the trait with the chosen name
+    for (Trait *trait : traits)
+        if (trait->Name() == focalTraitName)
+            return trait;
+    
+    //qDebug() << "the focal trait" << focalTraitName << "could not be found; defaulting to 'fitness'";
+    return nullptr;
+}
+
 Chromosome *QtSLiMWindow::focalChromosome(void)
 {
     // There needs to be a focal display species to answer this question; if
@@ -2395,9 +2504,74 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
     
     //qDebug() << "selectedSpeciesChanged(): changed to species name" << QString::fromStdString(focalSpeciesName);
     
+    // force an update of the trait bar when the focal species changes
+    updateTraitBar(/* forceUpdate */ true);
+    
     // do a full update to show the state for the new species
     updateAfterTickFull(true);
     updateUIEnabling();
+}
+
+void QtSLiMWindow::traitChoiceChanged(QAction *traitChoiceAction)
+{
+    QMenu *traitChoiceMenu = ui->traitChoiceMenuButton->menu();
+    
+    // Each action in the trait display menu has a QVariant string that identifies the species to which it applies
+    QString speciesNameQ = traitChoiceAction->data().toString();
+    std::string species_name = speciesNameQ.toStdString();
+    
+    if (species_name.length() == 0)
+        return;
+    
+    Species *displaySpecies = focalDisplaySpecies();
+    Species *species = community->SpeciesWithName(species_name);
+    
+    // If a single species is selected, the action should always correspond to that species
+    if (displaySpecies && (displaySpecies != species))
+        return;
+    
+    auto species_trait_pair = speciesToTrait.find(species->name_);
+    std::string focalTraitName = (species_trait_pair == speciesToTrait.end()) ? "fitness" : species_trait_pair->second;
+    bool trait_changed = (species_trait_pair == speciesToTrait.end());
+    
+    for (QAction *action : traitChoiceMenu->actions())
+    {
+        if (action == traitChoiceAction)
+        {
+            action->setChecked(true);
+            
+            QString traitNameQ = action->text();
+            std::string traitName = traitNameQ.toStdString();
+            
+            if (focalTraitName != traitName)
+            {
+                focalTraitName = traitName;
+                trait_changed = true;
+            }
+        }
+        else
+        {
+            // uncheck menu items for the same species
+            if (action->data().toString() == speciesNameQ)
+                action->setChecked(false);
+        }
+    }
+    
+    if (trait_changed)
+    {
+        QString traitNameQ = QString::fromStdString(focalTraitName);
+        
+        // fix up the species-to-trait map to have the updated information
+        speciesToTrait[species->name_] = focalTraitName;
+        
+        // change the label in the menu button unless we are in multispecies mode "all"
+        // note the string " multivalent" also occurs in updateTraitBar()
+        if (!ui->traitChoiceMenuButton->text().contains(" multivalent"))
+            ui->traitChoiceMenuButton->setText(traitNameQ);
+        
+        // do a full update to show the state for the new trait
+        updateAfterTickFull(true);
+    }
 }
 
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
@@ -2701,6 +2875,165 @@ void QtSLiMWindow::updateSpeciesBar(void)
     }
 }
 
+void QtSLiMWindow::updateTraitBar(bool forceUpdate /* = false */)
+{
+    // Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
+    if (!invalidSimulation_ && community && community->simulation_valid_ && (community->Tick() >= 1))
+    {
+        const std::vector<Species *> &all_species = community->AllSpecies();
+        Species *displaySpecies = focalDisplaySpecies();
+        bool traitBarVisibleNow = !ui->traitChoiceWidget->isHidden();
+        bool traitBarShouldBeVisible = false;
+        bool isMultispeciesModeAll = false;
+        
+        if (displaySpecies)
+        {
+            // If there is a display species, it needs to have at least one trait, and that should not be an implicit trait
+            if (!displaySpecies->has_implicit_trait_ && displaySpecies->Traits().size())
+                traitBarShouldBeVisible = true;
+        }
+        else
+        {
+            // If there is no species (i.e., we are in mode "all"), at least one species must satisfy those conditions
+            for (Species *species : all_species)
+            {
+                if (!species->has_implicit_trait_ && species->Traits().size())
+                {
+                    traitBarShouldBeVisible = true;
+                    isMultispeciesModeAll = true;
+                    break;
+                }
+            }
+        }
+        
+        if ((forceUpdate || traitBarVisibleNow) && !traitBarShouldBeVisible)
+        {
+            ui->traitChoiceMenuButton->setEnabled(false);
+            ui->traitChoiceWidget->setHidden(true);
+            
+            reloadingTraitBar = true;
+            
+            ui->traitChoiceMenuButton->setMenu(nullptr);
+            
+            reloadingTraitBar = false;
+            
+            //qDebug() << "hiding trait bar";
+        }
+        else if ((forceUpdate || !traitBarVisibleNow) && traitBarShouldBeVisible)
+        {
+            ui->traitChoiceMenuButton->setEnabled(true);
+            ui->traitChoiceWidget->setHidden(false);
+            
+            // then update the UI
+            reloadingTraitBar = true;
+            
+            QMenu *traitChoiceMenu = new QMenu(ui->traitChoiceMenuButton);
+            bool needs_divider = false;
+            
+            for (Species *species : all_species)
+            {
+                // Except in multispecies mode "all", we add menu items only for the focal species, displaySpecies
+                if (!isMultispeciesModeAll)
+                    if (species != displaySpecies)
+                        continue;
+                
+                // In multispecies mode "all", we skip species that we wouldn't show a single-species trait bar for
+                if (isMultispeciesModeAll)
+                    if (species->has_implicit_trait_ || (species->Traits().size() == 0))
+                        continue;
+                
+                // determine the selected trait; nullptr represents "fitness", the default choice
+                Trait *selectedTrait = nullptr;
+                auto species_trait_pair = speciesToTrait.find(species->name_);
+                std::string focalTraitName = (species_trait_pair == speciesToTrait.end()) ? "" : species_trait_pair->second;
+                bool map_needs_update = (species_trait_pair == speciesToTrait.end());
+                
+                if (focalTraitName.length() && (focalTraitName != "fitness"))
+                {
+                    for (Trait *trait : species->Traits())
+                        if (trait->Name().compare(focalTraitName) == 0)
+                            selectedTrait = trait;
+                }
+                
+                // default to "fitness" if the chosen trait can't be found
+                if (selectedTrait == nullptr)
+                {
+                    focalTraitName = "fitness";
+                    map_needs_update = true;
+                }
+                
+                if (map_needs_update)
+                    speciesToTrait[species->name_] = focalTraitName;
+                
+                if (isMultispeciesModeAll)
+                {
+                    if (needs_divider)
+                        traitChoiceMenu->addSeparator();
+                    
+                    QAction *headerAction = traitChoiceMenu->addAction(QString("%1 display trait:").arg(QString::fromStdString(species->avatar_)));
+                    
+                    headerAction->setData(QVariant::fromValue(QString::fromStdString("")));
+                    headerAction->setEnabled(false);
+                    needs_divider = true;
+                }
+                
+                {
+                    // a "fitness" choice comes first
+                    QAction *fitnessAction = traitChoiceMenu->addAction("fitness");
+                    
+                    fitnessAction->setCheckable(true);
+                    fitnessAction->setData(QVariant::fromValue(QString::fromStdString(species->name_)));
+                    
+                    if (selectedTrait == nullptr)
+                    {
+                        fitnessAction->setChecked(true);
+                        ui->traitChoiceMenuButton->setText("fitness");
+                    }
+                }
+                
+                for (Trait *trait : species->Traits())
+                {
+                    const std::string &traitName = trait->Name();
+                    QString traitNameQ = QString::fromStdString(traitName);
+                    QAction *traitAction = traitChoiceMenu->addAction(traitNameQ);
+                    
+                    traitAction->setCheckable(true);
+                    traitAction->setData(QVariant::fromValue(QString::fromStdString(species->name_)));
+                    
+                    if (selectedTrait == trait)
+                    {
+                        traitAction->setChecked(true);
+                        ui->traitChoiceMenuButton->setText(traitNameQ);
+                    }
+                }
+            }
+            
+            // use a special label for multispecies mode "all"; note the string " multivalent" also occurs in traitChoiceChanged()
+            if (isMultispeciesModeAll)
+                ui->traitChoiceMenuButton->setText(QString("%1 multivalent").arg(QString::fromUtf8("\xF0\x9F\x94\x85")));
+            
+            ui->traitChoiceMenuButton->setMenu(traitChoiceMenu);
+            connect(traitChoiceMenu, &QMenu::triggered, this, &QtSLiMWindow::traitChoiceChanged);
+            
+            reloadingTraitBar = false;
+            
+            //qDebug() << "trait bar selecting trait with name" << QString::fromStdString(focalTraitName);
+        }
+    }
+    else
+    {
+        // Whenever we're invalid or uninitialized, we hide the trait bar and disable and remove its menu
+        ui->traitChoiceMenuButton->setEnabled(false);
+        ui->traitChoiceWidget->setHidden(true);
+        
+        reloadingTraitBar = true;
+        
+        ui->traitChoiceMenuButton->setMenu(nullptr);
+        
+        reloadingTraitBar = false;
+    }
+}
+
 void QtSLiMWindow::removeExtraChromosomeViews(void)
 {
     while (chromosomeOverviewWidgets.size() > 1)
@@ -2824,8 +3157,9 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		}
 	}
     
-    // Update the species bar and then fetch the focal species after that update, which might change it
+    // Update the species bar and the trait bar first, to establish the display species and trait for other UI
     updateSpeciesBar();
+    updateTraitBar();
 	
     // Create or destroy chromosome views for each species, and set the species for each chromosome view
     updateChromosomeViewSetup();
@@ -4097,7 +4431,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		}
 	}
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	//
 	//	MutationRun metrics, presented per Species
 	//
@@ -4124,27 +4458,31 @@ void QtSLiMWindow::displayProfileResults(void)
         }
         
         {
-            int64_t regime_tallies[3];
-            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
+            int64_t regime_tallies[6];
+            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_trait_calculation_regime_history_.size());
             
-            for (int regime = 0; regime < 3; ++regime)
+            for (int regime = 0; regime < 6; ++regime)
                 regime_tallies[regime] = 0;
             
-            for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-                if ((regime >= 1) && (regime <= 3))
-                    regime_tallies[regime - 1]++;
+            for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
+            {
+                int regime_int = (int)regime;
+                
+                if ((regime_int >= 0) && (regime_int <= 5))
+                    regime_tallies[regime_int]++;
                 else
                     regime_tallies_total--;
+            }
             
-            for (int regime = 0; regime < 3; ++regime)
+            for (int regime = 0; regime < 6; ++regime)
             {
                 tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
+                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime).arg(QString::fromStdString(RegimeDescription((TraitCalculationRegime)regime))), optima13_d);
             }
             
             tc.insertText(" \n", optima8_d);
         }
-		
+        
         tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
         
@@ -4366,6 +4704,12 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRefcountBuffer, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : refcount buffer\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationPerTraitBuffer, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : per-trait buffer\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
 		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
@@ -4934,8 +5278,10 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         if (height == 0)
             height = 300;
         
-        if ((width < 250) || (height < 250))
-            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window width and height to be at least 250 pixels." << EidosTerminate(nullptr);
+        if (width < 100)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window width to be at least 100 pixels." << EidosTerminate(nullptr);
+        if (height < 10)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window height to be at least 10 pixels." << EidosTerminate(nullptr);
         
         graphWindow = graphWindowWithView(customPlot, width, height);
         createdWindow = true;
@@ -4962,6 +5308,40 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         
         if (createdWindow)
             QtSLiMMakeWindowVisibleAndExposed(graphWindow);
+        
+        // BCH 11/16/2025: There is one tricky thing here, which is that in practice the plot window might not be allowed
+        // to be the requested size, due to screen constraints.  We don't know that until we try.  Before the call to
+        // the QtSLiMMakeWindowVisibleAndExposed() the window is still at the original size we requested (on macOS, at
+        // least).  After that call, it has been constrained by whatever factors (screen size, dock/menubar, etc.) exist.
+        // We can't do anything about those constraints; but we do want to try to preserve the original aspect ratio
+        // requested by the user, and we emit a warning to the console.  See https://github.com/MesserLab/SLiM/issues/567
+        double realized_width = customPlot->width(), realized_height = customPlot->height();
+        double trim_width = graphWindow->width() - realized_width, trim_height = graphWindow->height() - realized_height;
+        
+        if ((realized_width != width) || (realized_height != height))
+        {
+            std::cout << "SLiMgui: the requested graph window size (" << width << ", " << height << ") was not attainable; the realized size was (" <<
+                         realized_width << ", " << realized_height << ").  Resizing to try to preserve the requested aspect ratio." << std::endl;
+            
+            double requested_aspect_ratio = width / height;
+            double realized_aspect_ratio = realized_width / realized_height;
+            
+            if (realized_aspect_ratio > requested_aspect_ratio)
+            {
+                // the width is, proportionally, larger than requested and needs to be reduced
+                double corrected_width = std::round(requested_aspect_ratio * realized_height + trim_width);
+                graphWindow->resize(corrected_width, graphWindow->height());
+            }
+            else if (realized_aspect_ratio < requested_aspect_ratio)
+            {
+                // the height is, proportionally, larger than requested and needs to be reduced
+                double corrected_height = std::round(realized_width / requested_aspect_ratio + trim_height);
+                graphWindow->resize(graphWindow->width(), corrected_height);
+            }
+            
+            //std::cout << "   requested aspect ratio " << requested_aspect_ratio << "; final aspect ratio after correction " <<
+            //          (customPlot->width() / (double)customPlot->height()) << std::endl;
+        }
     }
     else
     {
@@ -6337,7 +6717,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     QString title = graphView->graphTitle();
     
     graph_window->setWindowTitle(title);
-    graph_window->setMinimumSize(250, 250);
+    graph_window->setMinimumSize(100, 10);
     graph_window->resize(windowWidth, windowHeight);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect

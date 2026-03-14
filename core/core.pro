@@ -95,6 +95,7 @@ SOURCES += \
     individual.cpp \
     interaction_type.cpp \
     log_file.cpp \
+    mutation_block.cpp \
     mutation_run.cpp \
     mutation_type.cpp \
     mutation.cpp \
@@ -113,7 +114,8 @@ SOURCES += \
     species.cpp \
     species_eidos.cpp \
     subpopulation.cpp \
-    substitution.cpp
+    substitution.cpp \
+    trait.cpp
 
 HEADERS += \
     chromosome.h \
@@ -124,6 +126,7 @@ HEADERS += \
     individual.h \
     interaction_type.h \
     log_file.h \
+    mutation_block.h \
     mutation_run.h \
     mutation_type.h \
     mutation.h \
@@ -138,4 +141,5 @@ HEADERS += \
     spatial_map.h \
     species.h \
     subpopulation.h \
-    substitution.h
+    substitution.h \
+    trait.h

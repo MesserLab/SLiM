@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1965,7 +1965,7 @@
 		}
 	}
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	//
 	//	MutationRun metrics, presented per Species
 	//
@@ -1992,22 +1992,26 @@
 		}
 		
 		{
-			int64_t regime_tallies[3];
-			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
+			int64_t regime_tallies[6];
+			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_.size();
 			
-			for (int regime = 0; regime < 3; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 				regime_tallies[regime] = 0;
 			
-			for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-				if ((regime >= 1) && (regime <= 3))
-					regime_tallies[regime - 1]++;
+			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
+			{
+				int regime_int = (int)regime;
+				
+				if ((regime_int >= 0) && (regime_int <= 5))
+					regime_tallies[regime_int]++;
 				else
 					regime_tallies_total--;
+			}
 			
-			for (int regime = 0; regime < 3; ++regime)
+			for (int regime = 0; regime < 6; ++regime)
 			{
 				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime, [NSString stringWithUTF8String:RegimeDescription((TraitCalculationRegime)regime).c_str()]] attributes:optima13_d];
 			}
 			
 			[content eidosAppendString:@"\n" attributes:optima8_d];
@@ -2232,6 +2236,12 @@
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationRefcountBuffer total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : refcount buffer\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationPerTraitBuffer / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationPerTraitBuffer total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : per-trait buffer\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
@@ -3822,6 +3832,7 @@
 								case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_trait,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Trait_Class});
 									(*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
@@ -4133,7 +4144,7 @@
 			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OS("trait", gStaticEidosValueNULLInvisible));
 			
 			sig = callbackSig.get();
 		}
@@ -4408,6 +4419,7 @@
 				std::advance(mutTypeIter, rowIndex);
 				slim_objectid_t mutTypeID = mutTypeIter->first;
 				MutationType *mutationType = mutTypeIter->second;
+				EffectSizeDistributionInfo &DES_info = mutationType->effect_size_distributions_[0];	// FIXME MULTITRAIT
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{
@@ -4420,60 +4432,60 @@
 				}
 				else if (aTableColumn == mutTypeDominanceColumn)
 				{
-					return [NSString stringWithFormat:@"%.3f", mutationType->dominance_coeff_];
+					return [NSString stringWithFormat:@"%.3f", DES_info.default_dominance_coeff_];
 				}
 				else if (aTableColumn == mutTypeDFETypeColumn)
 				{
-					switch (mutationType->dfe_type_)
+					switch (DES_info.DES_type_)
 					{
-						case DFEType::kFixed:			return @"fixed";
-						case DFEType::kGamma:			return @"gamma";
-						case DFEType::kExponential:		return @"exp";
-						case DFEType::kNormal:			return @"normal";
-						case DFEType::kWeibull:			return @"Weibull";
-						case DFEType::kLaplace:			return @"Laplace";
-						case DFEType::kScript:			return @"script";
+						case DESType::kFixed:			return @"fixed";
+						case DESType::kGamma:			return @"gamma";
+						case DESType::kExponential:		return @"exp";
+						case DESType::kNormal:			return @"normal";
+						case DESType::kWeibull:			return @"Weibull";
+						case DESType::kLaplace:			return @"Laplace";
+						case DESType::kScript:			return @"script";
 					}
 				}
 				else if (aTableColumn == mutTypeDFEParamsColumn)
 				{
 					NSMutableString *paramString = [[NSMutableString alloc] init];
 					
-					if (mutationType->dfe_type_ == DFEType::kScript)
+					if (DES_info.DES_type_ == DESType::kScript)
 					{
-						// DFE type 's' has parameters of type string
-						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_strings_.size(); ++paramIndex)
+						// DES type 's' has parameters of type string
+						for (unsigned int paramIndex = 0; paramIndex < DES_info.DES_strings_.size(); ++paramIndex)
 						{
-							const char *dfe_string = mutationType->dfe_strings_[paramIndex].c_str();
-							NSString *ns_dfe_string = [NSString stringWithUTF8String:dfe_string];
+							const char *DES_string = DES_info.DES_strings_[paramIndex].c_str();
+							NSString *ns_DES_string = [NSString stringWithUTF8String:DES_string];
 							
-							[paramString appendFormat:@"\"%@\"", ns_dfe_string];
+							[paramString appendFormat:@"\"%@\"", ns_DES_string];
 							
-							if (paramIndex < mutationType->dfe_strings_.size() - 1)
+							if (paramIndex < DES_info.DES_strings_.size() - 1)
 								[paramString appendString:@", "];
 						}
 					}
 					else
 					{
-						// All other DFEs have parameters of type double
-						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
+						// All other DESs have parameters of type double
+						for (unsigned int paramIndex = 0; paramIndex < DES_info.DES_parameters_.size(); ++paramIndex)
 						{
 							NSString *paramSymbol = @"";
 							
-							switch (mutationType->dfe_type_)
+							switch (DES_info.DES_type_)
 							{
-								case DFEType::kFixed:			paramSymbol = @"s"; break;
-								case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
-								case DFEType::kExponential:		paramSymbol = @"s̄"; break;
-								case DFEType::kNormal:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"σ"); break;
-								case DFEType::kWeibull:			paramSymbol = (paramIndex == 0 ? @"λ" : @"k"); break;
-								case DFEType::kLaplace:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"b"); break;
-								case DFEType::kScript:			break;
+								case DESType::kFixed:			paramSymbol = @"s"; break;
+								case DESType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
+								case DESType::kExponential:		paramSymbol = @"s̄"; break;
+								case DESType::kNormal:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"σ"); break;
+								case DESType::kWeibull:			paramSymbol = (paramIndex == 0 ? @"λ" : @"k"); break;
+								case DESType::kLaplace:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"b"); break;
+								case DESType::kScript:			break;
 							}
 							
-							[paramString appendFormat:@"%@=%.3f", paramSymbol, mutationType->dfe_parameters_[paramIndex]];
+							[paramString appendFormat:@"%@=%.3f", paramSymbol, DES_info.DES_parameters_[paramIndex]];
 							
-							if (paramIndex < mutationType->dfe_parameters_.size() - 1)
+							if (paramIndex < DES_info.DES_parameters_.size() - 1)
 								[paramString appendString:@", "];
 						}
 					}
@@ -4724,7 +4736,7 @@
 				if (functionGraphToolTipWindow && ([functionGraphToolTipWindow mutType] == mutationType))
 					return (id _Nonnull)nil;	// get rid of the static analyzer warning
 				
-				//NSLog(@"show DFE tooltip view here for mut ID %d!", mutationType->mutation_type_id_);
+				//NSLog(@"show DES tooltip view here for mut ID %d!", mutationType->mutation_type_id_);
 				
 				// Make the tooltip window, configure it, and display it
 				if (!functionGraphToolTipWindow)
@@ -4765,7 +4777,7 @@
 				if (functionGraphToolTipWindow && ([functionGraphToolTipWindow interactionType] == interactionType))
 					return (id _Nonnull)nil;	// get rid of the static analyzer warning
 				
-				//NSLog(@"show DFE tooltip view here for interaction ID %d!", interactionType->interaction_type_id_);
+				//NSLog(@"show DES tooltip view here for interaction ID %d!", interactionType->interaction_type_id_);
 				
 				// Make the tooltip window, configure it, and display it
 				if (!functionGraphToolTipWindow)
@@ -4805,7 +4817,7 @@
 	}
 }
 
-// Used to take down a custom tooltip window that we may have shown above, displaying a mutation type's DFE
+// Used to take down a custom tooltip window that we may have shown above, displaying a mutation type's DES
 - (void)mouseExited:(NSEvent *)event
 {
 	if (!functionGraphToolTipWindow)
@@ -4826,7 +4838,7 @@
 		if (mut_id != [functionGraphToolTipWindow mutType]->mutation_type_id_)
 			return;
 		
-		//NSLog(@"   take down DFE tooltip view here for mut ID %d!", mut_id);
+		//NSLog(@"   take down DES tooltip view here for mut ID %d!", mut_id);
 		
 		[mutTypeTableView removeTrackingArea:trackingArea];
 	}
@@ -4837,7 +4849,7 @@
 		if (int_id != [functionGraphToolTipWindow interactionType]->interaction_type_id_)
 			return;
 		
-		//NSLog(@"   take down DFE tooltip view here for interaction ID %d!", int_id);
+		//NSLog(@"   take down DES tooltip view here for interaction ID %d!", int_id);
 		
 		[interactionTypeTableView removeTrackingArea:trackingArea];
 	}

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/24/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -979,7 +979,7 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             else if (callName == "mutationEffect")
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
-                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OS("trait", gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "fitnessEffect")
@@ -1573,7 +1573,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 		else
 		{
 			// We have a property; look up its signature and get the class
-			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
+			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty_TYPE_INTERPRETER(identifier_id);
 			
 			if (!property_signature)
 				return QStringList();			// no signature, so the class does not support the property given
@@ -1589,11 +1589,12 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	QStringList candidates;
 	const EidosClass *terminus = key_path_class;
+	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
 	// First, a sorted list of globals
-	for (const auto &symbol_sig : *terminus->Properties())
+	for (const auto &symbol_sig : terminus->Properties_TYPE_INTERPRETER())
     {
-        if (!symbol_sig->deprecated_)
+        if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))
             candidates << QString::fromStdString(symbol_sig->property_name_);
 	}
     
@@ -1602,7 +1603,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// Next, a sorted list of methods, with () appended
 	for (const auto &method_sig : *terminus->Methods())
 	{
-        if (!method_sig->deprecated_)
+        if (!method_sig->deprecated_ && !Eidos_string_hasPrefix(method_sig->call_name_, underscore_string))
         {
             QString methodName = QString::fromStdString(method_sig->call_name_);
             
@@ -2129,6 +2130,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                         case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
                             (*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_trait,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Trait_Class});
                             (*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
@@ -2349,6 +2351,9 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 			
 			script.Tokenize(true, false);					// make bad tokens as needed, do not keep nonsignificant tokens
 			script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+			
+			// Clear out dynamic property signatures kept by EidosClass, since we're starting a new type-interpretation pass.
+			EidosClass::ClearDynamicSignatures();
 			
 			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr, *callTypeTablePtr);
 			

@@ -1,9 +1,9 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
-\f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 Menlo-Bold;
-\f6\fnil\fcharset0 AppleColorEmoji;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
+\f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 AppleColorEmoji;
+\f6\fnil\fcharset0 Menlo-Italic;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab397
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
@@ -812,7 +812,7 @@ If the optional
 \f2\fs20  function is a useful convenience function if you wish to read the mutation rate map from a file.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (void)initializeMutationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."])\
+\f1\fs18 \cf2 (void)initializeMutationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."], [string$\'a0sex\'a0=\'a0"*"])\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Set a mutation rate map from data read from the file at 
@@ -862,13 +862,15 @@ See
 \f1\fs18 dec
 \f2\fs20 , which are passed through to it; and see 
 \f1\fs18 initializeMutationRate()
-\f2\fs20  for details on how the rate map is validated and used.\
+\f2\fs20  for details on how the rate map is validated and used, and how the 
+\f1\fs18 sex
+\f2\fs20  parameter is used.\
 This function is written in Eidos, and its source code can be viewed with 
 \f1\fs18 functionSource()
 \f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
+\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0\cf2 defaultDominance\cf0 , \cf2 [Ns$\'a0distributionType\'a0=\'a0NULL]\cf0 , ...)
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -882,41 +884,63 @@ This function is written in Eidos, and its source code can be viewed with
 \f1\fs18 string
 \f2\fs20  giving the name of the new mutation type (such as 
 \f1\fs18 "m5"
-\f2\fs20  to specify an ID of 5).  The dominanceCoeff parameter supplies the dominance coefficient for the mutation type; 
+\f2\fs20  to specify an ID of 5).  The global symbol for the new mutation type, such as 
+\f1\fs18 m5
+\f2\fs20 , is immediately available; the return value also provides the new object.\
+The 
+\f1\fs18 defaultDominance
+\f2\fs20  parameter supplies the default dominance coefficient for the mutation type, for all traits; 
 \f1\fs18 0.0
 \f2\fs20  produces no dominance, 
 \f1\fs18 1.0
 \f2\fs20  complete dominance, and values greater than 
 \f1\fs18 1.0
-\f2\fs20 , overdominance.  The 
+\f2\fs20 , overdominance.  A 
+\f1\fs18 defaultDominance
+\f2\fs20  value of 
+\f1\fs18 NAN
+\f2\fs20  configures the mutation type to use \'93independent dominance\'94 for new mutations of that type, for all traits; see the class 
+\f1\fs18 Trait
+\f2\fs20  documentation for discussion of independent dominance.  The default dominance coefficient for the mutation type for a specific trait can subsequently be configured with the 
+\f1\fs18 setDefaultDominanceForTrait()
+\f2\fs20  method if desired.  Note that the mutation type\'92s default hemizygous dominance coefficient is not supplied to this function; it always defaults to 
+\f1\fs18 1.0
+\f2\fs20 , but the 
+\f1\fs18 setDefaultHemizygousDominanceForTrait()
+\f2\fs20  method can configure it subsequently if desired.\
+The 
 \f1\fs18 distributionType
-\f2\fs20  may be 
+\f2\fs20  and the ellipsis parameters together define the distribution of effect size (DES) for the mutation type, for all traits.  The DES for the mutation type for a specific trait can subsequently be separately configured with the 
+\f1\fs18 setEffectSizeDistributionForTrait()
+\f2\fs20  method if desired.  The 
+\f1\fs18 distributionType
+\f2\fs20  parameter may be 
 \f1\fs18 "f"
 \f2\fs20 , in which case the ellipsis 
 \f1\fs18 ...
 \f2\fs20  should supply a 
 \f1\fs18 numeric$
-\f2\fs20  fixed selection coefficient; 
+\f2\fs20  fixed effect size; 
 \f1\fs18 "e"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient for an exponential distribution; 
+\f2\fs20  mean effect size for an exponential distribution; 
 \f1\fs18 "g"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f2\fs20  mean effect size and a 
 \f1\fs18 numeric$
 \f2\fs20  alpha shape parameter for a gamma distribution; 
 \f1\fs18 "n"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f2\fs20  mean effect size and a 
 \f1\fs18 numeric$
 \f2\fs20  sigma (standard deviation) parameter for a normal distribution; 
 \f1\fs18 "p"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f2\fs20  mean effect size and a 
 \f1\fs18 numeric$
 \f2\fs20  scale parameter for a Laplace distribution; 
 \f1\fs18 "w"
@@ -930,7 +954,19 @@ This function is written in Eidos, and its source code can be viewed with
 \f1\fs18 "s"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
-\f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
+\f2\fs20  Eidos script parameter.  If 
+\f1\fs18 distributionType
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), a fixed effect size of 
+\f1\fs18 0.0
+\f2\fs20  is used, representing a neutral DES; this is equivalent to type 
+\f1\fs18 "f"
+\f2\fs20  except that the value 
+\f1\fs18 0.0
+\f2\fs20  is assumed and must not be supplied.  See the 
+\f1\fs18 MutationType
+\f2\fs20  class documentation for discussion of the various DESs and their uses.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
@@ -954,7 +990,9 @@ Note that by default in WF models, all mutations of a given mutation type will b
 \f2\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)\
+\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0\kerning1\expnd0\expndtw0 defaultDominance\expnd0\expndtw0\kerning0
+, \kerning1\expnd0\expndtw0 [Ns$\'a0distributionType\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+, ...)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Add a nucleotide-based mutation type at initialization time.  This function is identical to 
@@ -1156,22 +1194,6 @@ There is no way to disable sex once it has been enabled; if you don\'92t want to
 \f2\fs20  property of 
 \f1\fs18 Individual
 \f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0\b \cf2 The 
-\f5\fs18 xDominanceCoeff
-\f0\fs20  parameter has been deprecated and removed.
-\f2\b0   In SLiM 5 and later, use the 
-\f1\fs18 hemizygousDominanceCoeff
-\f2\fs20  property of 
-\f1\fs18 MutationType
-\f2\fs20  instead.  \cf3 If the 
-\f1\fs18 chromosomeType
-\f2\fs20  is 
-\f1\fs18 "X"
-\f2\fs20 , the optional 
-\f1\fs18 xDominanceCoeff
-\f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)initializeSLiMModelType(string$\'a0modelType)
@@ -1447,11 +1469,11 @@ The
 \f1\fs18 avatar
 \f2\fs20  should generally be a single character \'96 usually an emoji corresponding to the species, such as 
 \f1\fs18 "
-\f6\fs14 \uc0\u55358 \u56714 
+\f5\fs14 \uc0\u55358 \u56714 
 \f1\fs18 "
 \f2\fs20  for foxes or 
 \f1\fs18 "
-\f6\fs14 \uc0\u55357 \u56365 
+\f5\fs14 \uc0\u55357 \u56365 
 \f1\fs18 "
 \f2\fs20  for mice.  If 
 \f1\fs18 avatar
@@ -1471,6 +1493,160 @@ The
 \f2\fs20  is the empty string, 
 \f1\fs18 ""
 \f2\fs20 , SLiMgui will choose a default color.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [float$\'a0individualOffsetMean\'a0=\'a00.0], [float$\'a0individualOffsetSD\'a0=\'a00.0], [logical$\'a0directFitnessEffect\'a0=\'a0F], [logical$\'a0baselineAccumulation\'a0=\'a0T])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calling this function, added in SLiM 5.2, configures a phenotypic trait in the species being initialized.  The new 
+\f1\fs18 Trait
+\f2\fs20  object is returned.  For more details on the way that traits work in SLiM, beyond what is given below, see the 
+\f1\fs18 Trait
+\f2\fs20  class documentation.\
+The 
+\f1\fs18 name
+\f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not have the same name as another trait in the species, it must be syntactically valid as an Eidos symbol (not containing a space, for example), and it must not conflict with the name of any existing property on the 
+\f1\fs18 Individual
+\f2\fs20 , 
+\f1\fs18 Species
+\f2\fs20 , 
+\f1\fs18 Mutation
+\f2\fs20 , or 
+\f1\fs18 Substitution
+\f2\fs20  classes.  These requirements are necessary because, after the new trait is created, new properties are added to those classes, with the same name as the new trait, for convenience.  The new 
+\f1\fs18 Individual
+\f2\fs20  property allows trait values to be accessed directly through a property; for example, if the new trait is named 
+\f1\fs18 height
+\f2\fs20 , getting and setting an individual\'92s trait value would be possible through the property 
+\f1\fs18 individual.height
+\f2\fs20 .  The new 
+\f1\fs18 Species
+\f2\fs20  property allows traits themselves to be accessed directly through a property; continuing the previous example, 
+\f1\fs18 sim.height
+\f2\fs20  would provide the 
+\f1\fs18 Trait
+\f2\fs20  object named 
+\f1\fs18 height
+\f2\fs20 .  See the 
+\f1\fs18 Mutation
+\f2\fs20  and 
+\f1\fs18 Substitution
+\f2\fs20  classes for details on the trait-related properties defined for them.  If desired, 
+\f1\fs18 defineConstant()
+\f2\fs20  may also be used to set up a global constant for a trait; for example, 
+\f1\fs18 defineConstant("height", height)
+\f2\fs20  would allow the 
+\f1\fs18 Trait
+\f2\fs20  object to be referenced simply as 
+\f1\fs18 height
+\f2\fs20 .\
+The 
+\f1\fs18 type
+\f2\fs20  parameter gives the type of trait to be created, as a 
+\f1\fs18 string
+\f2\fs20  value.  This should be either 
+\f1\fs18 "multiplicative"
+\f2\fs20 , if the trait value should be the result of multiplying effects together (as in a typical population-genetics model); 
+\f1\fs18 "additive"
+\f2\fs20 , if the trait value should be the result of adding effects together (as in a typical quantitative-genetics model); or 
+\f1\fs18 "logistic"
+\f2\fs20 , if the trait value should be the result of a logistic transformation of an additive trait value (for modeling a trait that represents a probability, such as a disease risk).  (Because the logistic trait type is based upon an underlying additive trait value that is transformed, it will often be grouped together in this manual as having \'93additive\'94 effects; this is in reference to that underlying model, prior to the logistic transformation.)  The shorter versions 
+\f1\fs18 "m"
+\f2\fs20 , 
+\f1\fs18 "a"
+\f2\fs20 , and 
+\f1\fs18 "l"
+\f2\fs20  are also allowed.\
+The 
+\f1\fs18 baselineOffset
+\f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) to the trait value of every individual.  If 
+\f1\fs18 NULL
+\f2\fs20  is passed, the default baseline offset is 
+\f1\fs18 1.0
+\f2\fs20  for multiplicative traits, 
+\f1\fs18 0.0
+\f2\fs20  for additive and logistic traits, such that the baseline offset has no effect upon the trait value.  Note that for multiplicative traits all effects, including the baseline offset, will be clamped to a minimum of 
+\f1\fs18 0.0
+\f2\fs20 .\
+The 
+\f1\fs18 individualOffsetMean
+\f2\fs20  and 
+\f1\fs18 individualOffsetSD
+\f2\fs20  parameters together define a normal distribution from which individual offsets are drawn to provide what is often called \'93environmental variance\'94 or \'93developmental noise\'94.  For additive traits, these drawn values are used directly as individual offsets; for multiplicative traits, they are transformed with 
+\f1\fs18 exp()
+\f2\fs20  before use (or alternatively, one could instead say that the values are drawn from a lognormal distribution with the given mean and standard deviation specified on the log scale); and for logistic traits, they are used directly as individual offsets for the underlying additive trait.  The default values for these parameters provide a zero-width individual offset distribution that produces no effect; for additive and logistic traits, the resulting effect is 
+\f1\fs18 0.0
+\f2\fs20 , whereas for multiplicative traits it is 
+\f1\fs18 1.0
+\f2\fs20  due to the 
+\f1\fs18 exp()
+\f2\fs20  transform.  Note that individual offsets can be set on individuals with 
+\f1\fs18 setOffsetForTrait()
+\f2\fs20  or the 
+\f6\i\fs18 <trait-name>
+\f1\i0 Offset
+\f2\fs20  property, both on class 
+\f1\fs18 Individual
+\f2\fs20 , so you are not limited to this built-in mechanism for drawing individual offsets; it is just provided for convenience.\
+The 
+\f1\fs18 directFitnessEffect
+\f2\fs20  parameter specifies whether the final calculated trait value for an individual should be used directly as a fitness effect for that individual.  This will typically be 
+\f1\fs18 T
+\f2\fs20  (the default) in population-genetics models where the product of all mutation effects (
+\f1\fs18 1+s
+\f2\fs20  or 
+\f1\fs18 1+hs
+\f2\fs20  for each mutation) is used as the fitness of the individual, but will typically be 
+\f1\fs18 F
+\f2\fs20  in quantitative-genetics models where the sum of all mutation effects is a trait value that is then translated into a fitness effect through a fitness function.  It would also be 
+\f1\fs18 F
+\f2\fs20  for any trait that affects an aspect of the individual other than fitness \'96 dispersal distance, for example, or aggression.\
+Finally, the 
+\f1\fs18 baselineAccumulation
+\f2\fs20  parameter specifies the behavior of the trait when fixed mutations are turned into 
+\f1\fs18 Substitution
+\f2\fs20  objects (see section 1.5.2).  If 
+\f1\fs18 baselineAccumulation
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , no special action is taken upon substitution, and so the effect of the substituted mutation will no longer be present; this was the behavior of SLiM prior to SLiM 5.2, and remains the behavior of the default trait for backward compatibility.  If 
+\f1\fs18 baselineAccumulation
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 , the effect of the substituted mutation will be combined (multiplicatively or additively, according to the trait type) into the trait\'92s baseline offset.  As a result, the trait values of individuals should not change across a substitution, because the effect that used to come from the mutation will now come from the baseline offset.  (If a 
+\f1\fs18 mutationEffect()
+\f2\fs20  callback used to modify that effect, however, that modification will no longer occur, since 
+\f1\fs18 mutationEffect()
+\f2\fs20  callbacks are not called for substitutions; in this case, it might be desirable to prevent substitution with 
+\f1\fs18 MutationType
+\f2\fs20 \'92s 
+\f1\fs18 convertToSubstitution
+\f2\fs20  property.)  Allowing baseline accumulation is usually desirable; it allows substitution to occur safely even in nonWF models (if 
+\f1\fs18 convertToSubstitution
+\f2\fs20  is set to 
+\f1\fs18 T
+\f2\fs20 ), which can make such models more efficient.\
+The use of the 
+\f1\fs18 initializeTrait()
+\f2\fs20  function is optional.  If it is not called, a new 
+\f1\fs18 Trait
+\f2\fs20  object will be created automatically, with a name generated from the species name plus a 
+\f1\fs18 "T"
+\f2\fs20 ; typically, then, the name is 
+\f1\fs18 simT
+\f2\fs20 , except in multispecies models.  This default trait is configured to be multiplicative, with default values for the other parameters except 
+\f1\fs18 directFitnessEffect
+\f2\fs20 , which is 
+\f1\fs18 T
+\f2\fs20  for the default trait, and 
+\f1\fs18 baselineAccumulation
+\f2\fs20 , which is 
+\f1\fs18 F
+\f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 5.2.  The creation of the default trait occurs as a side effect of the first call to 
+\f1\fs18 initializeMutationType()
+\f2\fs20 , if 
+\f1\fs18 initializeTrait()
+\f2\fs20  has not already been called.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -1863,7 +2039,7 @@ See the documentation for
 
 \f2\fs20 \cf2 Returns a mutation matrix representing a Jukes\'96Cantor (1969) model with mutation rate 
 \f1\fs18 alpha
-\f2\fs20  to each possible alternative nucleotide at a site.  This 2\'d72 matrix is suitable for use with 
+\f2\fs20  to each possible alternative nucleotide at a site.  This 4\'d74 matrix is suitable for use with 
 \f1\fs18 initializeGenomicElementType()
 \f2\fs20 .  Note that the actual mutation rate produced by this matrix is 
 \f1\fs18 3*alpha
@@ -1877,7 +2053,7 @@ See the documentation for
 \f1\fs18 alpha
 \f2\fs20  and transversion rate 
 \f1\fs18 beta
-\f2\fs20 .  This 2\'d72 matrix is suitable for use with 
+\f2\fs20 .  This 4\'d74 matrix is suitable for use with 
 \f1\fs18 initializeGenomicElementType()
 \f2\fs20 .  Note that the actual mutation rate produced by this model is 
 \f1\fs18 alpha+2*beta
@@ -2901,8 +3077,8 @@ The implementation of
 This function assumes that mutations of type 
 \f1\fs18 mutType
 \f2\fs20  encode their effect size upon the quantitative trait in their 
-\f1\fs18 selectionCoeff
-\f2\fs20  property, as is fairly standard in SLiM.  The implementation of 
+\f1\fs18 effect
+\f2\fs20  property, as is standard in SLiM.  The implementation of 
 \f1\fs18 calcVA()
 \f2\fs20 , which is viewable with 
 \f1\fs18 functionSource()

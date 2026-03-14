@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/19/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1081,7 +1081,7 @@ void QtSLiMGraphView_CustomPlot::drawRects(QPainter &painter, QRect interiorRect
                 linePath.lineTo(device_x2, device_y2);
                 linePath.lineTo(device_x1, device_y2);
                 linePath.closeSubpath();
-                painter.strokePath(linePath, QPen(borderColor, lineWidth));
+                painter.strokePath(linePath, QPen(borderColor, lineWidth, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
             }
         }
     }

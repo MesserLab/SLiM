@@ -3,7 +3,7 @@
 //  EidosScribe
 //
 //  Created by Ben Haller on 6/14/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -2005,7 +2005,7 @@
 		else
 		{
 			// We have a property; look up its signature and get the class
-			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
+			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty_TYPE_INTERPRETER(identifier_id);
 			
 			if (!property_signature)
 				return nil;			// no signature, so the class does not support the property given
@@ -2021,11 +2021,12 @@
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	NSMutableArray *candidates = [NSMutableArray array];
 	const EidosClass *terminus = key_path_class;
+	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
 	// First, a sorted list of globals
-	for (auto symbol_sig : *terminus->Properties())
+	for (auto symbol_sig : terminus->Properties_TYPE_INTERPRETER())
 	{
-		if (!symbol_sig->deprecated_)
+		if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))
 			[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
 	}
 	
@@ -2034,7 +2035,7 @@
 	// Next, a sorted list of methods, with () appended
 	for (auto method_sig : *terminus->Methods())
 	{
-		if (!method_sig->deprecated_)
+		if (!method_sig->deprecated_ && !Eidos_string_hasPrefix(method_sig->call_name_, underscore_string))
 		{
 			NSString *methodName = [NSString stringWithUTF8String:method_sig->call_name_.c_str()];
 			
@@ -2336,6 +2337,9 @@
 			script.PrintAST(parse_stream);
 			std::cout << "Eidos AST:\n" << parse_stream.str() << std::endl << std::endl;
 #endif
+			
+			// Clear out dynamic property signatures kept by EidosClass, since we're starting a new type-interpretation pass.
+			EidosClass::ClearDynamicSignatures();
 			
 			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr, *callTypeTablePtr);
 			

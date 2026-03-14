@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/11/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -222,6 +222,15 @@
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
 		
 		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
+		
+		// BCH 1/7/2025: For dynamic properties with a name like "<trait-name>EffectSize", italicize the portion in the <>
+		if ([propertyNameString hasPrefix:@"<"])
+		{
+			NSRange endRange = [propertyNameString rangeOfString:@">"];
+			
+			if (endRange.location != NSNotFound)
+				[attrStr applyFontTraits:NSItalicFontMask range:NSMakeRange(0, endRange.location)];
+		}
 		
 		return attrStr;
 	}

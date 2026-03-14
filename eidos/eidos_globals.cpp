@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -29,6 +29,7 @@
 #include "eidos_class_Dictionary.h"
 #include "eidos_class_DataFrame.h"
 #include "eidos_class_Image.h"
+#include "eidos_class_Palette.h"
 #include "eidos_class_TestElement.h"
 
 #include <stdlib.h>
@@ -103,7 +104,7 @@ EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 int gEidosFloatOutputPrecision = 6;
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 int gEidosDebugIndent = 0;
 #endif
 
@@ -1306,6 +1307,7 @@ void Eidos_WarmUp(void)
 		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_DictionaryRetained,	gEidosStr_Dictionary,	gEidosDictionaryUnretained_Class);
 		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,			gEidosDictionaryRetained_Class);
 		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,				gEidosDictionaryRetained_Class);
+		gEidosPalette_Class =				new EidosPalette_Class(					gEidosStr_Palette,				gEidosDictionaryRetained_Class);
 		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,			gEidosDictionaryRetained_Class);
 		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,		gEidosObject_Class);
 		
@@ -2854,7 +2856,7 @@ int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 	return -1;
 }
 
-#if EIDOS_BUFFER_ZIP_APPENDS
+#if EIDOS_BUFFER_ZIP_APPENDS()
 // This contains all unflushed append data for zip files written by writeFile(); see Eidos_FlushFiles() below
 std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
 
@@ -2906,7 +2908,7 @@ void Eidos_FlushFile(const std::string &p_file_path)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFile():  filesystem write");
 	
-#if EIDOS_BUFFER_ZIP_APPENDS
+#if EIDOS_BUFFER_ZIP_APPENDS()
 	auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
 	
 	if (buffer_iter != gEidosBufferedZipAppendData.end())
@@ -2927,7 +2929,7 @@ bool Eidos_FlushFiles(void)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFiles():  filesystem write");
 	
-#if EIDOS_BUFFER_ZIP_APPENDS
+#if EIDOS_BUFFER_ZIP_APPENDS()
 	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
 	bool success = true;
 	
@@ -2962,10 +2964,10 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 	if (p_compress)
 	{
 		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
-		#if EIDOS_BUFFER_ZIP_APPENDS
+		#if EIDOS_BUFFER_ZIP_APPENDS()
 		if (p_append)
 		{
-			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS is true
+			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS() is true
 			auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
 			
 			if (buffer_iter == gEidosBufferedZipAppendData.end())
@@ -3088,7 +3090,7 @@ double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const doub
 	if ((p_count1 <= 1) || (p_count2 <= 1))
 	{
 		std::cout << "Eidos_TTest_TwoSampleWelch requires enough elements to compute variance" << std::endl;
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	}
 	
 	// Compute measurements
@@ -3123,7 +3125,7 @@ double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const doub
 	
 	// To avoid divisions by 0:
 	if (var1 + var2 == 0)
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	
 	// two-sample test
 	double t = (mean1 - mean2) / sqrt(var1 / p_count1 + var2 / p_count2);
@@ -3146,7 +3148,7 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 	if (p_count1 <= 1)
 	{
 		std::cout << "Eidos_TTest_OneSample requires enough elements to compute variance" << std::endl;
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	}
 	
 	// Compute measurements
@@ -3169,7 +3171,7 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 	
 	// To avoid divisions by 0:
 	if (var1 == 0)
-		return NAN;
+		return std::numeric_limits<double>::quiet_NaN();
 	
 	// one-sample test
 	double t = (mean1 - p_mu) / (sqrt(var1) / sqrt(p_count1));
@@ -3426,31 +3428,6 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 		}
 	}
 	return hi;
-}
-
-bool Eidos_ApproximatelyEqual(double a, double b)
-{
-	// different signs is a mismatch
-	if (std::signbit(a) != std::signbit(b))
-		return false;
-	
-	// both zero is not a mismatch (getting rid of this case for div-by-zero safety
-	if ((a == 0) && (b == 0))
-		return true;
-	
-	// one zero (and one not) is a mismatch
-	if ((a == 0) || (b == 0))
-		return false;
-	
-	// one significantly bigger is a mismatch
-	if (a / b > 1.0001)
-		return false;
-	
-	// the other significantly bigger is a mismatch
-	if (b / a > 1.0001)
-		return false;
-	
-	return true;
 }
 
 std::vector<std::string> Eidos_string_split(const std::string &joined_string, const std::string &separator)
@@ -4158,6 +4135,11 @@ const std::string &gEidosStr_floatB = EidosRegisteredString("floatB", gEidosID_f
 const std::string &gEidosStr_floatK = EidosRegisteredString("floatK", gEidosID_floatK);
 const std::string &gEidosStr_write = EidosRegisteredString("write", gEidosID_write);
 
+// strings for EidosPalette
+const std::string &gEidosStr_Palette = EidosRegisteredString("Palette", gEidosID_Palette);
+const std::string &gEidosStr_addNode = EidosRegisteredString("addNode", gEidosID_addNode);
+const std::string &gEidosStr_colorForValue = EidosRegisteredString("colorForValue", gEidosID_colorForValue);
+
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in EidosStringRegistry::RegisterStringForGlobalID() below
 const std::string &gEidosStr_start = EidosRegisteredString("start", gEidosID_start);
@@ -4270,7 +4252,7 @@ EidosGlobalStringID EidosStringRegistry::_GlobalStringIDForString(const std::str
 		gStringToID[*copied_string] = string_id;	// makes another copy for the key
 		gIDToString[string_id] = copied_string;		// uses the copy we made above
 		
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 		// We add the string copies to a thunk object for later freeing, if we're leak-checking.
 		// Normally all these copied strings live for the lifespan of the process.
 		globalString_Thunk.emplace_back(copied_string);
@@ -4299,7 +4281,7 @@ const std::string &EidosRegisteredString(const char *p_cstr, EidosGlobalStringID
 {
 	_EidosRegisteredString *registration_object = new _EidosRegisteredString(p_cstr, p_id);
 	
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 	// We add registration objects to a thunk vector so we can free them at the end to un-confuse Valgrind;
 	// see ~EidosStringRegistry().  Note that this thunk vector is not used by Eidos or SLiM, but the
 	// registration objects are; they hold onto the std::string objects used by _RegisterStringForGlobalID().
@@ -5012,6 +4994,47 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 				*p_red_component = color_table->red / 255.0F;
 				*p_green_component = color_table->green / 255.0F;
 				*p_blue_component = color_table->blue / 255.0F;
+				return;
+			}
+		}
+	}
+	
+	if (p_color_name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color strings may not be zero-length." << EidosTerminate();
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
+}
+
+void Eidos_GetColorComponents(const std::string &p_color_name, double *p_red_component, double *p_green_component, double *p_blue_component)
+{
+	// Colors can be specified either in hex as "#RRGGBB" or as a named color from the list above
+	if ((p_color_name.length() == 7) && (p_color_name[0] == '#'))
+	{
+		try
+		{
+			unsigned long r = stoul(p_color_name.substr(1, 2), nullptr, 16);
+			unsigned long g = stoul(p_color_name.substr(3, 2), nullptr, 16);
+			unsigned long b = stoul(p_color_name.substr(5, 2), nullptr, 16);
+			
+			*p_red_component = r / 255.0;
+			*p_green_component = g / 255.0;
+			*p_blue_component = b / 255.0;
+			return;
+		}
+		catch (...)
+		{
+			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification '" << p_color_name << "' is malformed." << EidosTerminate();
+		}
+	}
+	else if (p_color_name.length() > 0)
+	{
+		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
+		{
+			if (p_color_name == color_table->name)
+			{
+				*p_red_component = color_table->red / 255.0;
+				*p_green_component = color_table->green / 255.0;
+				*p_blue_component = color_table->blue / 255.0;
 				return;
 			}
 		}

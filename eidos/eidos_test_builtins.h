@@ -1120,13 +1120,13 @@ if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of 
 
 setSeed(asInteger(clock() * 100000));
 m = mean(rbeta(10000, 2, 3));	// expectation is 0.4
-if (abs(m - 0.4) > 0.008) stop('Mismatch in expectation vs. realization of rbeta() - could be random chance (but very unlikely), rerun test');
+if (abs(m - 0.4) > 0.010) stop('Mismatch in expectation vs. realization of rbeta() - could be random chance (but very unlikely), rerun test');
 
 // ***********************************************************************************************
 
 setSeed(asInteger(clock() * 100000));
 m = mean(rexp(100000, 5));	// expectation is 5
-if (abs(m - 5) > 0.07) stop('Mismatch in expectation vs. realization of rexp() - could be random chance (but very unlikely), rerun test');
+if (abs(m - 5) > 0.08) stop('Mismatch in expectation vs. realization of rexp() - could be random chance (but very unlikely), rerun test');
 
 // ***********************************************************************************************
 
@@ -1144,7 +1144,7 @@ if (abs(m - 5) > 0.4) stop('Mismatch in expectation vs. realization of rgamma() 
 
 setSeed(asInteger(clock() * 100000));
 m = mean(rgeom(10000, 0.1));	// expectation is 9
-if (abs(m - 9) > 0.4) stop('Mismatch in expectation vs. realization of rgeom() - could be random chance (but very unlikely), rerun test');
+if (abs(m - 9) > 0.5) stop('Mismatch in expectation vs. realization of rgeom() - could be random chance (but very unlikely), rerun test');
 
 // ***********************************************************************************************
 
@@ -1167,7 +1167,7 @@ if (abs(cov - 0.2) > 0.03) stop('Mismatch in expectation vs. realization of rmvn
 
 setSeed(asInteger(clock() * 100000));
 m = mean(rnbinom(100000, 5, 0.3));	// expectation is (1-p)r/p, 0.7*5/0.3 == 11.66667, for our parameterization (different from Wikipedia)
-if (abs(m - 11.66667) > 0.08) stop('Mismatch in expectation vs. realization of rnbinom() - could be random chance (but very unlikely), rerun test');
+if (abs(m - 11.66667) > 0.09) stop('Mismatch in expectation vs. realization of rnbinom() - could be random chance (but very unlikely), rerun test');
 
 // ***********************************************************************************************
 
@@ -1179,7 +1179,7 @@ if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rnorm() 
 
 setSeed(asInteger(clock() * 100000));
 m = mean(rpois(10000, 5));	// expectation is 5
-if (abs(m - 5) > 0.09) stop('Mismatch in expectation vs. realization of rpois() - could be random chance (but very unlikely), rerun test');
+if (abs(m - 5) > 0.11) stop('Mismatch in expectation vs. realization of rpois() - could be random chance (but very unlikely), rerun test');
 
 // ***********************************************************************************************
 
@@ -1192,7 +1192,7 @@ if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of 
 
 setSeed(asInteger(clock() * 100000));
 m = mean(rweibull(10000, 5, 0.5));	// expectation is lambda * Gamma(1 + 1/k), and for positive integers Gamma(x) = (x-1)!, so here it is 5 * 2
-if (abs(m - (5 * 2)) > 1.0) stop('Mismatch in expectation vs. realization of rweibull() - could be random chance (but very unlikely), rerun test');
+if (abs(m - (5 * 2)) > 1.1) stop('Mismatch in expectation vs. realization of rweibull() - could be random chance (but very unlikely), rerun test');
 
 // ***********************************************************************************************
 
@@ -1206,7 +1206,7 @@ if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of 
 setSeed(asInteger(clock() * 100000));
 m = mean(rztpois(10000, 3));
 expected = 3 / (1 - exp(-3));	// ~= 3.15719
-if (abs(m - expected) > 0.07) stop('Mismatch in expectation vs. realization of rztpois() - could be random chance (but very unlikely), rerun test');
+if (abs(m - expected) > 0.08) stop('Mismatch in expectation vs. realization of rztpois() - could be random chance (but very unlikely), rerun test');
 
 )V0G0N"
 

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/15/19.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -93,7 +93,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
 
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		
 		// Internal SLiM functions
@@ -665,6 +665,9 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
+// FIXME MULTITRAIT: changed selectionCoeff to effect in gSLiMSourceCode_calcInbreedingLoad, but really this
+// needs to somehow be adapted for multitrait models; sum across all multiplicative effects; what about
+// additive effects?  exclude them, or raise an error?  allow the user to pass a vector of traits here?
 #pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
@@ -702,7 +705,7 @@ R"V0G0N({
 	else
 		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
-	muts = muts[muts.selectionCoeff < 0.0];
+	muts = muts[muts.effectSize < 0.0];
 	
 	// get frequencies and focus on those that are in the haplosomes
 	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
@@ -713,7 +716,7 @@ R"V0G0N({
 	
 	// fetch selection coefficients; note that we use the negation of
 	// SLiM's selection coefficient, following Morton et al. 1956's usage
-	s = -muts.selectionCoeff;
+	s = -muts.effectSize;
 	
 	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
 	// than lethal (this can happen when drawing from a gamma distribution)
@@ -721,7 +724,7 @@ R"V0G0N({
 	
 	// get h for each mutation; note that this will not work if changing
 	// h using mutationEffect() callbacks or other scripted approaches
-	h = muts.mutationType.dominanceCoeff;
+	h = muts.dominance;
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
@@ -1015,7 +1018,7 @@ R"V0G0N({
 #pragma mark Other built-in functions
 #pragma mark -
 
-#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."])
+#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
 const char *gSLiMSourceCode_initializeMutationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeMutationRateFromFile): ";
@@ -1052,7 +1055,7 @@ R"V0G0N({
 	else
 		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
 	
-	initializeMutationRate(rates * scale, ends);
+	initializeMutationRate(rates * scale, ends, sex);
 })V0G0N";
 
 #pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
@@ -2592,21 +2595,10 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 		tsk_table_collection_free(&temp_tables);
 		
 		// With no schema, error out
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a JSON schema is required." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a `json+struct` schema is required." << EidosTerminate();
 	}
 	
-	if (temp_tables.metadata_length == 0)
-	{
-		tsk_table_collection_free(&temp_tables);
-		
-		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
-		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
-		
-		objectElement->Release();	// retained by result_SP
-		return result_SP;
-	}
-	
+	// BCH 2/14/2026: As of SLiM 5.2, we read top-level metadata using the `json+struct` codec
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
 	nlohmann::json metadata_schema;
 	
@@ -2618,10 +2610,33 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	
 	std::string codec = metadata_schema["codec"];
 	
-	if (codec != "json")
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json'." << EidosTerminate();
+	if (codec != "json+struct")
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json+struct'; the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
 	
-	std::string metadata_string(temp_tables.metadata, temp_tables.metadata_length);
+	char *top_level_json_buffer;
+	tsk_size_t top_level_json_length;
+	char *top_level_binary_buffer;
+	tsk_size_t top_level_binary_length;
+	
+	ret = tsk_json_struct_metadata_get_blob(temp_tables.metadata, temp_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
+	if ((ret == TSK_ERR_FILE_FORMAT) || (ret == TSK_ERR_FILE_VERSION_TOO_NEW))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
+	if (ret != 0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): an unknown error occurred when reading the file." << EidosTerminate();
+	
+	if (top_level_json_length == 0)
+	{
+		tsk_table_collection_free(&temp_tables);
+		
+		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
+		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
+		
+		objectElement->Release();	// retained by result_SP
+		return result_SP;
+	}
+	
+	std::string metadata_string(top_level_json_buffer, top_level_json_length);
 	nlohmann::json metadata;
 	
 	tsk_table_collection_free(&temp_tables);

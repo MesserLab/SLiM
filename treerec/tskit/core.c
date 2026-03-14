@@ -32,7 +32,10 @@
 #include <kastore.h>
 #include <tskit/core.h>
 
-#define UUID_NUM_BYTES 16
+#define UUID_NUM_BYTES              16
+#define TSK_JSON_BINARY_HEADER_SIZE 21
+
+static const uint8_t _tsk_json_binary_magic[4] = { 'J', 'B', 'L', 'B' };
 
 #if defined(_WIN32)
 
@@ -95,6 +98,22 @@ out:
 
 #endif
 
+static uint64_t
+tsk_load_u64_le(const uint8_t *p)
+{
+    uint64_t value;
+
+    value = (uint64_t) p[0];
+    value |= (uint64_t) p[1] << 8;
+    value |= (uint64_t) p[2] << 16;
+    value |= (uint64_t) p[3] << 24;
+    value |= (uint64_t) p[4] << 32;
+    value |= (uint64_t) p[5] << 40;
+    value |= (uint64_t) p[6] << 48;
+    value |= (uint64_t) p[7] << 56;
+    return value;
+}
+
 /* Generate a new UUID4 using a system-generated source of randomness.
  * Note that this function writes a NULL terminator to the end of this
  * string, so that the total length of the buffer must be 37 bytes.
@@ -118,6 +137,67 @@ tsk_generate_uuid(char *dest, int TSK_UNUSED(flags))
         ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
+out:
+    return ret;
+}
+
+int
+tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
+    char **json, tsk_size_t *json_length, char **blob,
+    tsk_size_t *blob_length)
+{
+    int ret;
+    uint8_t version;
+    uint64_t json_length_u64;
+    uint64_t binary_length_u64;
+    uint64_t header_and_json_length;
+    uint64_t total_length;
+    uint8_t *bytes;
+    char *blob_start;
+    char *json_start;
+
+    if (metadata == NULL || json == NULL || json_length == NULL || blob == NULL
+        || blob_length == NULL) {
+        ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
+        goto out;
+    }
+    bytes = (uint8_t *) metadata;
+    if (metadata_length < TSK_JSON_BINARY_HEADER_SIZE) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED);
+        goto out;
+    }
+    if (memcmp(bytes, _tsk_json_binary_magic, sizeof(_tsk_json_binary_magic)) != 0) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC);
+        goto out;
+    }
+    version = bytes[4];
+    if (version != 1) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION);
+        goto out;
+    }
+    json_length_u64 = tsk_load_u64_le(bytes + 5);
+    binary_length_u64 = tsk_load_u64_le(bytes + 13);
+    if (json_length_u64 > UINT64_MAX - (uint64_t) TSK_JSON_BINARY_HEADER_SIZE) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH);
+        goto out;
+    }
+    header_and_json_length = (uint64_t) TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
+    if (binary_length_u64 > UINT64_MAX - header_and_json_length) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH);
+        goto out;
+    }
+    total_length = header_and_json_length + binary_length_u64;
+    if ((uint64_t) metadata_length < total_length) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED);
+        goto out;
+    }
+    json_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE;
+    blob_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
+    *json = json_start;
+    *json_length = (tsk_size_t) json_length_u64;
+    *blob = blob_start;
+    *blob_length = (tsk_size_t) binary_length_u64;
+    ret = 0;
 out:
     return ret;
 }
@@ -187,6 +267,22 @@ tsk_strerror_internal(int err)
         case TSK_ERR_BAD_COLUMN_TYPE:
             ret = "An incompatible type for a column was found in the file. "
                   "(TSK_ERR_BAD_COLUMN_TYPE)";
+            break;
+        case TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC:
+            ret = "JSON binary struct metadata does not begin with the expected "
+                  "magic bytes. (TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC)";
+            break;
+        case TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED:
+            ret = "JSON binary struct metadata is shorter than the expected size. "
+                  "(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED)";
+            break;
+        case TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH:
+            ret = "A length field in the JSON binary struct metadata header is invalid. "
+                  "(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH)";
+            break;
+        case TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION:
+            ret = "JSON binary struct metadata uses an unsupported version number. "
+                  "(TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION)";
             break;
 
         /* Out of bounds errors */
@@ -883,8 +979,8 @@ tsk_search_sorted(const double *restrict array, tsk_size_t size, double value)
             upper = mid;
         }
     }
-    offset = (int64_t)(array[lower] < value);
-    return (tsk_size_t)(lower + offset);
+    offset = (int64_t) (array[lower] < value);
+    return (tsk_size_t) (lower + offset);
 }
 
 /* Rounds the specified double to the closest multiple of 10**-num_digits. If
@@ -1041,7 +1137,7 @@ FILE *
 tsk_get_debug_stream(void)
 {
     if (_tsk_debug_stream == NULL) {
-        _tsk_debug_stream = stdout;
+        _tsk_debug_stream = TSK_DEFAULT_DEBUG_STREAM;
     }
     return _tsk_debug_stream;
 }

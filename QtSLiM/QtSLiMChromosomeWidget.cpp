@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -65,7 +65,17 @@ QtSLiMChromosomeWidgetController::QtSLiMChromosomeWidgetController(QtSLiMWindow 
         }
         
         focalSpeciesName_ = focalSpecies->name_;
+        
         // focalSpeciesAvatar_ is set up in buildChromosomeDisplay();
+        
+        // likewise for focalTraitName_; it is used only in the displayWindow case, where it is fixed at creation
+        // focalTrait will be nullptr here if the species uses an implicit trait, or if "fitness" is the display trait
+        Trait *focalTrait = slimWindow_->focalTraitForSpecies(focalSpecies);
+        
+        if (focalTrait)
+            focalTraitName_ = focalTrait->Name();
+        else
+            focalTraitName_ = "fitness";    // we keep "fitness" explicitly to differentiate it from a missing trait
     }
 }
 
@@ -116,6 +126,23 @@ Species *QtSLiMChromosomeWidgetController::focalDisplaySpecies(void)
     
     // otherwise, our focal display species comes directly from slimWindow_
     return slimWindow_->focalDisplaySpecies();
+}
+
+Trait *QtSLiMChromosomeWidgetController::focalTraitForSpecies(Species *species)
+{
+    if (displayWindow_)
+    {
+        if (focalTraitName_.length() == 0)
+            return nullptr;
+        
+        if (focalTraitName_ == "fitness")
+            return nullptr;
+        
+        return species->TraitFromName(focalTraitName_);
+    }
+    
+    // otherwise, our focal display trait comes directly from slimWindow_
+    return slimWindow_->focalTraitForSpecies(species);
 }
 
 void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSize)
@@ -275,12 +302,44 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
         // set up the species badge; note that unlike QtSLiMGraphView, we set it up here immediately,
         // since we are guaranteed to already have a valid species object, and then we don't update it
         focalSpeciesAvatar_ = focalSpecies->avatar_;
+        bool speciesBadgeVisible = focalSpeciesAvatar_.length() && (focalSpecies->community_.all_species_.size() > 1);
         
-        if (focalSpeciesAvatar_.length() && (focalSpecies->community_.all_species_.size() > 1))
+        if (speciesBadgeVisible)
         {
             QLabel *speciesLabel = new QLabel();
             speciesLabel->setText(QString::fromStdString(focalSpeciesAvatar_));
             buttonLayout->addWidget(speciesLabel);
+        }
+        
+        // set up the trait badge; I tried having a popup menu here as in the main window, but it required
+        // too much vertical height and messed up the layout, so configurability will use the action button
+        bool traitBarVisible = !focalSpecies->has_implicit_trait_ && focalSpecies->Traits().size();
+        
+        if (traitBarVisible)
+        {
+            if (speciesBadgeVisible)
+            {
+                // add a little space between the species badge and the trait badge
+                QSpacerItem *fixedSpacer = new QSpacerItem(3, 5, QSizePolicy::Fixed, QSizePolicy::Minimum);
+                buttonLayout->addItem(fixedSpacer);
+            }
+            
+            QLabel *traitChoiceLabel = new QLabel();
+            if (focalTraitName_ == "fitness")
+            {
+                traitChoiceLabel->setText("Display trait: fitness");
+            }
+            else
+            {
+                Trait *focalTrait = focalTraitForSpecies(focalSpecies);     // nullptr means a failed lookup
+                
+                if (focalTrait)
+                    traitChoiceLabel->setText(QString("Display trait: %1").arg(QString::fromStdString(focalTraitName_)));
+                else
+                    traitChoiceLabel->setText(QString("Display trait: %1 (missing)").arg(QString::fromStdString(focalTraitName_)));
+            }
+            
+            buttonLayout->addWidget(traitChoiceLabel);
         }
         
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -480,7 +539,7 @@ void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_
                         MutationType *muttype = muttype_iter.second;
                         slim_objectid_t muttype_id = muttype->mutation_type_id_;
                         
-                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+                        if (muttype->all_neutral_DES_)	// judges based on DES, not based on the actual neutrality of the mutations of this type!
                             displayMuttypes_.emplace_back(muttype_id);
                     }
                 }
@@ -668,6 +727,144 @@ Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
     }
     
     return nullptr;
+}
+
+double QtSLiMChromosomeWidget::MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info)
+{
+    // This calculates the composite fitness effect of a mutation for all traits that have a direct fitness effect.
+    slim_trait_index_t trait_count = displaySpecies->TraitCount();
+    const std::vector<Trait *> &traits = displaySpecies->Traits();
+    double fitnessEffect = 1.0;
+    
+    for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+    {
+        Trait *trait = traits[trait_index];
+        
+        if (trait->HasDirectFitnessEffect())
+            fitnessEffect *= (double)mut_trait_info[trait_index].homozygous_effect_;
+    }
+    
+    return fitnessEffect;
+}
+
+double QtSLiMChromosomeWidget::SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_)
+{
+    // This calculates the composite fitness effect of a substitution for all traits that have a direct fitness effect.
+    slim_trait_index_t trait_count = displaySpecies->TraitCount();
+    const std::vector<Trait *> &traits = displaySpecies->Traits();
+    double fitnessEffect = 1.0;
+    
+    for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+    {
+        Trait *trait = traits[trait_index];
+        
+        if (trait->HasDirectFitnessEffect())
+        {
+            if (trait->Type() == TraitType::kMultiplicative)
+                fitnessEffect *= (1.0 + (double)sub_trait_info_[trait_index].effect_size_);     // 1+s
+            else
+                fitnessEffect *= 2.0 * (double)sub_trait_info_[trait_index].effect_size_;       // 2a
+        }
+    }
+    
+    return fitnessEffect;
+}
+
+double QtSLiMChromosomeWidget::MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type)
+{
+    // This calculates the composite fitness effect of a mutation type for all traits that have a direct fitness effect,
+    // using the mutation type's fixed (type 'f') effect; if a direct fitness effect is not type 'f', NAN is returned.
+    slim_trait_index_t trait_count = displaySpecies->TraitCount();
+    const std::vector<Trait *> &traits = displaySpecies->Traits();
+    double fitnessEffect = 1.0;
+    
+    for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+    {
+        Trait *trait = traits[trait_index];
+        
+        if (trait->HasDirectFitnessEffect())
+        {
+            EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
+            
+            if (DES_info.DES_type_ != DESType::kFixed)
+                return std::numeric_limits<double>::quiet_NaN();
+            
+            double fixed_effect = DES_info.DES_parameters_[trait_index];
+            
+            if (trait->Type() == TraitType::kMultiplicative)
+                fitnessEffect *= (1.0 + fixed_effect);          // 1+s
+            else
+                fitnessEffect *= 2.0 * fixed_effect;            // 2a
+        }
+    }
+    
+    return fitnessEffect;
+}
+
+bool QtSLiMChromosomeWidget::MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info)
+{
+    // This checks that a given mutation matches its mutation type's fixed effects (see MutTypeFixedFitnessEffect())
+    slim_trait_index_t trait_count = displaySpecies->TraitCount();
+    const std::vector<Trait *> &traits = displaySpecies->Traits();
+    
+    for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+    {
+        Trait *trait = traits[trait_index];
+        
+        if (trait->HasDirectFitnessEffect())
+        {
+            // all direct fitness effects are guaranteed by MutTypeFixedFitnessEffect() to be type 'f'
+            EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
+            double fixed_effect = DES_info.DES_parameters_[trait_index];
+            
+            if ((slim_effect_t)fixed_effect != mut_trait_info[trait_index].effect_size_)
+                return false;
+        }
+    }
+    
+    return true;
+}
+
+void QtSLiMChromosomeWidget::RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    if (displayTrait == nullptr)
+    {
+        // display on the "fitness" scale
+        double mut_fitness = MutationFitnessEffect(displaySpecies, mut_trait_info);
+        
+        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue);
+    }
+    else
+    {
+        slim_trait_index_t trait_index = displayTrait->Index();
+        double mut_effect = (double)mut_trait_info[trait_index].effect_size_;
+        
+        if (displayTrait->Type() == TraitType::kMultiplicative)
+            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
+        else
+            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
+    }
+}
+
+void QtSLiMChromosomeWidget::RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    if (displayTrait == nullptr)
+    {
+        // display on the "fitness" scale
+        double mut_fitness = SubstitutionFitnessEffect(displaySpecies, sub_trait_info);
+        
+        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue);
+    }
+    else
+    {
+        slim_trait_index_t trait_index = displayTrait->Index();
+        double mut_effect = (double)sub_trait_info[trait_index].effect_size_;
+        
+        if (displayTrait->Type() == TraitType::kMultiplicative)
+            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
+        else
+            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
+    }
 }
 
 void QtSLiMChromosomeWidget::setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget)

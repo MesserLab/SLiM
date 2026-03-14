@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/1/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -87,6 +87,8 @@ public:
 	EidosScript(std::string p_script_string, EidosScript *p_user_script, int32_t p_user_script_line_offset, int32_t p_user_script_char_offset, int32_t p_user_script_UTF16_offset);
 	
 	virtual ~EidosScript(void);
+	
+	static bool Eidos_IsIdentifier(const std::string &symbol_name);
 	
 	void SetFinalSemicolonOptional(bool p_optional_semicolon)		{ final_semicolon_optional_ = p_optional_semicolon; }
 	

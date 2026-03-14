@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1621,10 +1621,10 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryUnretained_Class = nullptr;
+EidosDictionaryUnretained_Class *gEidosDictionaryUnretained_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1632,7 +1632,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosDictionaryUnretained_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_allKeys,				true,	kEidosValueMaskInt | kEidosValueMaskString)));
 		
@@ -1922,7 +1922,7 @@ const EidosClass *EidosDictionaryRetained::Class(void) const
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryRetained_Class = nullptr;
+EidosDictionaryRetained_Class *gEidosDictionaryRetained_Class = nullptr;
 
 
 const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Functions(void) const

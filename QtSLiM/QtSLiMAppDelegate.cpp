@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/13/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -245,7 +245,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
 
     // This lambda (1) ensures that visible top-level windows remain on screen;
     // (2) raises the active window to the front on the appropriate screen, if appropriate.
-    auto ensureOnScreen = [this]() {
+    auto ensureOnScreen = []() {
         const auto topLevels = QApplication::topLevelWidgets();
         QWidget *active = qApp->activeWindow();
         for (QWidget *w : topLevels)
@@ -322,7 +322,7 @@ QtSLiMAppDelegate::~QtSLiMAppDelegate(void)
 {
     //qDebug() << "QtSLiMAppDelegate::~QtSLiMAppDelegate";
     
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
     QtSLiM_FreeGLBuffers();
 #endif
     
@@ -1381,7 +1381,7 @@ void QtSLiMAppDelegate::dispatch_showColorScales(void)
     // windows shown by globalImageWindowWithPath(), this window is drawn dynamically by a custom widget.
     // This code is based on the code in globalImageWindowWithPath(), with that custom widget.
     int window_width = round(301);
-    int window_height = round(197);
+    int window_height = round(474);
     
     QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
     

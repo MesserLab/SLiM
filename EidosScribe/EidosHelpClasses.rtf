@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
@@ -1359,4 +1359,155 @@ Passed an
 \f4\fs20  filename extension.  If the file cannot be written, an error will result.  At present, since 
 \f3\fs18 bitsPerChannel
 \f4\fs20  is always 8, grayscale data will be written as an 8-bit grayscale PNG while color (RGB) data will be written as a 24-bit color PNG without alpha.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf2 5.5  Class Palette\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\b0\fs18 \cf2 (object<Palette>$)Palette(...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates a new 
+\f3\fs18 Palette
+\f4\fs20  object.  This can be called in a few different ways.\
+Passed a singleton value and a single color, as 
+\f3\fs18 Palette(numeric$ value, fs color)
+\f4\fs20 , it sets up the initial node of the new 
+\f3\fs18 Palette
+\f4\fs20  object with the given value and color.  The palette can be used in this state; it simply represents the single color provided.  Typically, however, further nodes would subsequently be added to the palette with 
+\f3\fs18 addNode()
+\f4\fs20 .\
+Passed a range vector and a vector of colors, as 
+\f3\fs18 Palette(numeric range, fs colors)
+\f4\fs20 , it configures the new Palette object with one node per color, equally spaced from the start of the range, 
+\f3\fs18 range[0]
+\f4\fs20 , to the end of the range, 
+\f3\fs18 range[1]
+\f4\fs20 .  The 
+\f3\fs18 range
+\f4\fs20  parameter must therefore be of length two, and the start value should be less than the end value.  This constructor always uses transition 
+\f3\fs18 "linear"
+\f4\fs20  and blend 
+\f3\fs18 "hsvShortest"
+\f4\fs20 , generally the most common interpolation mode; this is intended to be an easy way to set up a simple gradient.\
+Passed a vector of values, a vector of colors, and optional transition and blend values, as 
+\f3\fs18 Palette(numeric value, fs color, [string transition], [string blend])
+\f4\fs20 , this creates a node at each value based upon the corresponding color; the number of colors supplies must therefore be equal to the number of values.  The 
+\f3\fs18 transition
+\f4\fs20  and 
+\f3\fs18 blend
+\f4\fs20  parameters may either be singletons, or of length one less than the number of values; the first node created does not use a transition and blend.  The default transition is 
+\f3\fs18 "linear"
+\f4\fs20  and the default blend is 
+\f3\fs18 "hsvShortest"
+\f4\fs20 , but this constructor allows you to choose other values if you wish; this is intended as the most advanced and flexible constructor for 
+\f3\fs18 Palette
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.5.1  
+\f2\fs18 Palette
+\f1\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 range => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The range of values spanned by the palette\'92s nodes.  Values less than this range will map to the color of the first node; values greater than this range will map to the color of the last node.  The range will automatically expand to encompass the values of nodes added with 
+\f3\fs18 addNode()
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.5.2  
+\f2\fs18 Palette
+\f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(object<Palette>$)addNode(float\'a0value, fs\'a0color, [string\'a0transition\'a0=\'a0"linear"], [string\'a0blend\'a0=\'a0"hsvShortest"])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new node to the target palette.  The parameter 
+\f3\fs18 value
+\f4\fs20  provides the value for the new node.  The value for the new node must be greater than the values of all previously added nodes in the palette; palettes must be constructed by adding nodes with values in strictly ascending order.\
+The parameter 
+\f3\fs18 color
+\f4\fs20  provides the colors of the new node.  The color of the node will be used at that node\'92s value, and will be interpolated with the colors of adjacent nodes to produce color gradients (sometimes called a \'93ramp\'94) between the nodes.  The color parameter can be either a color string or a float RGB triplet; see chapter 7 for more information on representing colors in Eidos.\
+The new node controls how its color is interpolated with the last node previously added.  (Interpolation between the new node and the next node added will be controlled by the next node; each node controls its interpolation with the previous node.)  The way that interpolated values are calculated depends upon the parameters 
+\f3\fs18 transition
+\f4\fs20  and 
+\f3\fs18 blend
+\f4\fs20 ; 
+\f3\fs18 transition
+\f4\fs20  controls the shape of the gradient, whereas 
+\f3\fs18 blend
+\f4\fs20  controls the color space in which the interpolation is performed and way that that color space is used.  Legal values for 
+\f3\fs18 transition
+\f4\fs20  are 
+\f3\fs18 "step"
+\f4\fs20 , 
+\f3\fs18 "linear"
+\f4\fs20 , 
+\f3\fs18 "sigmoid"
+\f4\fs20 , 
+\f3\fs18 "inverseSigmoid"
+\f4\fs20 , 
+\f3\fs18 "easeInSqrt"
+\f4\fs20 , 
+\f3\fs18 "easeInSquare"
+\f4\fs20 , 
+\f3\fs18 "easeOutSqrt"
+\f4\fs20 , and 
+\f3\fs18 "easeOutSquare"
+\f4\fs20 .  Legal values for 
+\f3\fs18 blend
+\f4\fs20  are 
+\f3\fs18 "rgb"
+\f4\fs20 , 
+\f3\fs18 "hsvClockwise"
+\f4\fs20 , 
+\f3\fs18 "hsvCounterclockwise"
+\f4\fs20 , 
+\f3\fs18 "hsvShortest"
+\f4\fs20 , and 
+\f3\fs18 "hsvLongest"
+\f4\fs20 .  See the 
+\f3\fs18 Palette
+\f4\fs20  class documentation for more discussion of the effects of 
+\f3\fs18 transition
+\f4\fs20  and 
+\f3\fs18 blend
+\f4\fs20 .\
+This method is vectorized, so it can create more than one new node in a single call.  New nodes will be created, sequentially, for each successive element of 
+\f3\fs18 value
+\f4\fs20  following the rules stated above.  The lengths of 
+\f3\fs18 value
+\f4\fs20  and 
+\f3\fs18 color
+\f4\fs20  must be equal, such that a separate color is given for each new node.  The parameter 
+\f3\fs18 transition
+\f4\fs20  may match the length of 
+\f3\fs18 value
+\f4\fs20  and 
+\f3\fs18 color
+\f4\fs20  (providing a transition value for each new node) or may be singleton (providing one transition value to be used for all new nodes); similarly, 
+\f3\fs18 blend
+\f4\fs20  may match the length of 
+\f3\fs18 value
+\f4\fs20  and 
+\f3\fs18 color
+\f4\fs20  or may be singleton.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(string)colorForValue(float\'a0value)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Calculates the palette\'92s color for the value given by 
+\f3\fs18 value
+\f4\fs20 .  If 
+\f3\fs18 value
+\f4\fs20  is exactly equal to the value of a node in the palette, that node\'92s color will be used without interpolation.  Otherwise, interpolation will be performed between the pair of nodes closest to 
+\f3\fs18 value
+\f4\fs20 , following the transition and blend rules established by the node of that pair which has the greater value.  See the 
+\f3\fs18 Palette
+\f4\fs20  class documentation for discussion of the interpolation algorithm.\
 }

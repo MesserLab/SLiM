@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/7/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -28,6 +28,7 @@
 #ifndef __SLiM__slim_script_block__
 #define __SLiM__slim_script_block__
 
+
 #include "slim_globals.h"
 #include "eidos_script.h"
 #include "eidos_value.h"
@@ -38,6 +39,10 @@
 #include <unordered_set>
 
 class Community;
+
+
+class SLiMEidosBlock_Class;
+extern SLiMEidosBlock_Class *gSLiM_SLiMEidosBlock_Class;
 
 
 enum class SLiMEidosBlockType {
@@ -112,9 +117,6 @@ public:
 #pragma mark SLiMEidosBlock
 #pragma mark -
 
-extern EidosClass *gSLiM_SLiMEidosBlock_Class;
-
-
 class SLiMEidosBlock : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -156,6 +158,8 @@ public:
 	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
+	slim_trait_index_t trait_index_ = -1;						// -1 if not limited by this; -2 if it needs to be evaluated from trait_identifier_ below
+	std::string trait_identifier_;								// the original trait identifier string supplied by the user; used to determine trait_index_
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
 	int64_t chromosome_id_ = -1;								// -1 if not limited by this
@@ -173,6 +177,7 @@ public:
 	bool contains_wildcard_ = false;			// "apply", "sapply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T
 	bool contains_self_ = false;				// "self"
 	bool contains_mut_ = false;					// "mut" (mutationEffect/mutation callback parameter)
+	bool contains_trait_ = false;				// "trait" (mutationEffect callback parameter)
 	bool contains_effect_ = false;				// "effect" (mutationEffect callback parameter)
 	bool contains_individual_ = false;			// "individual" (fitnessEffect/mutationEffect/mateChoice/recombination/survival/reproduction callback parameter)
 	bool contains_element_ = false;				// "element" (mutation callback parameter)
@@ -227,6 +232,17 @@ public:
 	void _ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node);
 	void ScanTreeForIdentifiersUsed(void);
 	
+	inline bool ActiveInTick(slim_tick_t p_tick) {
+		if (tick_range_is_sequence_) {
+			if ((p_tick < tick_start_) || (p_tick > tick_end_))
+				return false;
+		} else {
+			if (tick_set_.find(p_tick) == tick_set_.end())
+				return false;
+		}
+		return true;
+	}
+	
 	void PrintDeclaration(std::ostream& p_out, Community *p_community);
 	
 	//
@@ -252,9 +268,11 @@ public:
 	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
 	inline SLiMEidosBlock_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 };
 
+#ifdef EIDOS_GUI
+// SLiMTypeTable and SLiMTypeInterpreter are only used in SLiMgui and QtSLiM
 
 #pragma mark -
 #pragma mark SLiMTypeTable
@@ -311,6 +329,7 @@ public:
 	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments) override;
 };
 
+#endif	// EIDOS_GUI
 
 #endif /* defined(__SLiM__slim_script_block__) */
 

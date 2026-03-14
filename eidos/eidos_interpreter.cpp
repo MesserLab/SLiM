@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/4/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -958,10 +958,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_nod
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NullStatement()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NullStatement", 0);
 	
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -1276,7 +1273,18 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 							
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							// Special error-handling for evaluate() because its immediate parameter was removed in SLiM 3.5
+							if ((p_call_signature->call_name_ == "evaluate") && (named_arg == "immediate"))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The evaluate() method was changed in SLiM 4.0, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							
+							// Check whether this named argument exists in the call signature, but is skipping over a required argument, or if it doesn't
+							// match any named argument in the call.  If the latter, we emit a more specific error message now.  To help with autofixing,
+							// it marks the position of the argument name as the error position, which is not how most errors here are reported.
+							for (int sig_check_index = 0; sig_check_index < sig_arg_count; ++sig_check_index)
+								if (p_call_signature->arg_names_[sig_check_index] == named_arg)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "(); check that the argument name is spelled correctly." << EidosTerminate(named_arg_name_node->token_);
 						}
 						
 						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1374,7 +1382,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument '" << named_arg << "' to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
+				// BCH 11/2/2025: Changing this to highlight the named argument, rather than the call, to help with autofixing
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "(); check that the argument name is spelled correctly." << EidosTerminate(named_arg_name_node->token_);
 			}
 			else
 			{
@@ -1421,7 +1430,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 
 EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments)
 {
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -1620,7 +1629,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, function_signature);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -1670,7 +1679,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) function " << *function_name << " returned nullptr." << EidosTerminate(call_identifier_token);
 #endif
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -1746,7 +1755,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, method_signature);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -1779,7 +1788,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		_DeprocessArgumentList(p_node, argument_buffer);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -2171,7 +2180,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// binary plus is legal either between two numeric types, or between a string and any other non-NULL operand
+		// binary plus is legal either between two numeric types, or between logical and logical, or between integer and logical, or between a string and any other non-NULL operand
 		EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 		EidosValueType first_child_type = first_child_value->Type();
 		
@@ -2328,6 +2337,138 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					int_result->set_int_no_check(add_result, value_index);
 				}
+				
+				result_SP = int_result_SP;
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+			}
+		}
+		else if ((first_child_type == EidosValueType::kValueLogical) && (second_child_type == EidosValueType::kValueLogical))
+		{
+			// both operands are logical, so we are computing an integer result
+			if (first_child_count == second_child_count)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (first_child_count == 1)
+			{
+				eidos_logical_t singleton_logical = first_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				
+				for (int value_index = 0; value_index < second_child_count; ++value_index)
+					int_result->set_int_no_check(singleton_logical + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (second_child_count == 1)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				eidos_logical_t singleton_logical = second_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + singleton_logical, value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+			}
+		}
+		else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueLogical))
+		{
+			// integer + logical -> integer result; we will gloss over the possibility of overflow here since it is so remote
+			if (first_child_count == second_child_count)
+			{
+				const int64_t *first_child_data = first_child_value->IntData();
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (first_child_count == 1)
+			{
+				int64_t singleton_integer = first_child_value->IntAtIndex_NOCAST(0, operator_token);
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				
+				for (int value_index = 0; value_index < second_child_count; ++value_index)
+					int_result->set_int_no_check(singleton_integer + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (second_child_count == 1)
+			{
+				const int64_t *first_child_data = first_child_value->IntData();
+				eidos_logical_t singleton_logical = second_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + singleton_logical, value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+			}
+		}
+		else if ((first_child_type == EidosValueType::kValueLogical) && (second_child_type == EidosValueType::kValueInt))
+		{
+			// logical + integer -> integer result; we will gloss over the possibility of overflow here since it is so remote
+			if (first_child_count == second_child_count)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				const int64_t *second_child_data = second_child_value->IntData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (first_child_count == 1)
+			{
+				eidos_logical_t singleton_logical = first_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				const int64_t *second_child_data = second_child_value->IntData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				
+				for (int value_index = 0; value_index < second_child_count; ++value_index)
+					int_result->set_int_no_check(singleton_logical + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (second_child_count == 1)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				int64_t singleton_logical = second_child_value->IntAtIndex_NOCAST(0, operator_token);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + singleton_logical, value_index);
 				
 				result_SP = int_result_SP;
 			}
@@ -4038,7 +4179,7 @@ compoundAssignmentSkip:
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		EidosValue_SP rvalue = FastEvaluateNode(p_node->children_[1]);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -5322,7 +5463,7 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	EidosASTNode *condition_node = p_node->children_[0];
 	EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -5438,7 +5579,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -5500,7 +5641,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[1];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
@@ -5572,7 +5713,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[0];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -5869,7 +6010,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	{
 		for (int range_index = 0; range_index < iteration_count; ++range_index)
 		{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			bool log_debug_point = false;
@@ -5918,7 +6059,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						*int_data = iterator_int_value;
 					}
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 					// SLiMgui debugging point
 					if (log_debug_point)
 					{
@@ -6017,7 +6158,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						}
 					}
 					
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 					// SLiMgui debugging point
 					if (log_debug_point)
 					{
@@ -6031,7 +6172,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 #endif
 				}
 				
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				if (log_debug_point)
 				{
@@ -6124,7 +6265,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Next()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Next", 0);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6152,7 +6293,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Break()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Break", 0);
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6196,7 +6337,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	else
 		result_SP = FastEvaluateNode(p_node->children_[0]);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/4/23.
-//  Copyright (c) 2023-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2023-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,6 +30,7 @@
 #ifndef __SLiM__spatial_map__
 #define __SLiM__spatial_map__
 
+
 #include "slim_globals.h"
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
@@ -39,11 +40,13 @@ class Subpopulation;
 class SpatialKernel;
 
 
+class SpatialMap_Class;
+extern SpatialMap_Class *gSLiM_SpatialMap_Class;
+
+
 #pragma mark -
 #pragma mark SpatialMap
 #pragma mark -
-
-extern EidosClass *gSLiM_SpatialMap_Class;
 
 class SpatialMap : public EidosDictionaryRetained
 {
@@ -197,7 +200,7 @@ public:
 	SpatialMap_Class& operator=(const SpatialMap_Class&) = delete;	// no copying
 	inline SpatialMap_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };

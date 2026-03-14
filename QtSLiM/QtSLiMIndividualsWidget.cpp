@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -271,25 +271,28 @@ void QtSLiMIndividualsWidget::paintEvent(QPaintEvent * /* p_paint_event */)
                             qtDrawSpatialBackgroundInBoundsForSubpopulation(spatialDisplayBounds, subpop, displaySpecies->spatial_dimensionality_, painter);
                     }
                     
-                    float forceRGB[4];
-                    float *forceColor = nullptr;
-                    
-                    if ((displayMode == PopulationViewDisplayMode::kDisplaySpatialUnified) && (controller->focalSpeciesName.compare("all") == 0))
-                    {
-                        controller->colorForSpecies(displaySpecies, forceRGB + 0, forceRGB + 1, forceRGB + 2,forceRGB + 3);
-                        forceColor = forceRGB;
-                    }
+                    // BCH 3/3/2026: In "unified display mode" we used to force a different color for each species.
+                    // I'm not sure what I want to do with this now, but since the user chooses a display trait explicity,
+                    // I don't think we can do this any longer; perhaps the user has to set it up themselves?
+                    // float forceRGB[4];
+                    // float *forceColor = nullptr;
+                    //
+                    // if ((displayMode == PopulationViewDisplayMode::kDisplaySpatialUnified) && (controller->focalSpeciesName.compare("all") == 0))
+                    // {
+                    //     controller->colorForSpecies(displaySpecies, forceRGB + 0, forceRGB + 1, forceRGB + 2,forceRGB + 3);
+                    //     forceColor = forceRGB;
+                    // }
                     
 #ifndef SLIM_NO_OPENGL
                     if (useGL)
                     {
-                        glDrawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, displaySpecies->spatial_dimensionality_, forceColor);
+                        glDrawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, displaySpecies->spatial_dimensionality_);
                         glDrawViewFrameInBounds(frameBounds); // framed more than once in displayMode 2, which is OK
                     }
                     else
 #endif
                     {
-                        qtDrawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, displaySpecies->spatial_dimensionality_, forceColor, painter);
+                        qtDrawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, displaySpecies->spatial_dimensionality_, painter);
                         qtDrawViewFrameInBounds(frameBounds, painter); // framed more than once in displayMode 2, which is OK
                     }
                     
@@ -340,6 +343,58 @@ void QtSLiMIndividualsWidget::paintEvent(QPaintEvent * /* p_paint_event */)
         if (useGL)
             painter.endNativePainting();
 	}
+}
+
+Trait *QtSLiMIndividualsWidget::focalTraitForSpecies(Species *species)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+    
+    return controller->focalTraitForSpecies(species);
+}
+
+void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &individual, float *colorRed, float *colorGreen, float *colorBlue)
+{
+    if (Individual::s_any_individual_color_set_ && individual.color_set_)
+    {
+        *colorRed = individual.colorR_ / 255.0F;
+        *colorGreen = individual.colorG_ / 255.0F;
+        *colorBlue = individual.colorB_ / 255.0F;
+    }
+    else if (displayTrait == nullptr)
+    {
+        // display on the "fitness" scale using fitness values cached in UpdateFitness()
+        // we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
+        double fitness = individual.cached_unscaled_fitness_;
+        
+        if (std::isnan(fitness))
+        {
+            // default gray for undefined cases
+            *colorRed = 0.6f;
+            *colorGreen = 0.6f;
+            *colorBlue = 0.6f;
+        }
+        else
+        {
+            RGBForIndividualFitness(fitness, colorRed, colorGreen, colorBlue);
+        }
+    }
+    else
+    {
+        slim_trait_index_t trait_index = displayTrait->Index();
+        double ind_phenotype = (double)individual.trait_info_[trait_index].phenotype_;
+        
+        if (std::isnan(ind_phenotype))
+        {
+            // default gray for undefined cases
+            *colorRed = 0.6f;
+            *colorGreen = 0.6f;
+            *colorBlue = 0.6f;
+        }
+        else if (displayTrait->Type() == TraitType::kMultiplicative)
+            RGBForMultiplicativeTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue);
+        else
+            RGBForAdditiveTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue);
+    }
 }
 
 bool QtSLiMIndividualsWidget::canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations)

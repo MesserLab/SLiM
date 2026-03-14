@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -395,10 +395,12 @@ void _RunFunctionFilesystemTests(const std::string &temp_path)
 		return;
 	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
-	EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
+	// BCH 1/3/2025: I'm commenting out the tests that call filesAtPath() on the temporary directory; that
+	// can contain a very large number of files, and is showing up as a major time-sink for self-tests.
+	//EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
 	// these always fail on Windows and I can't think of any good easy replacement
 	#ifndef _WIN32
-	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
+	//EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("sum(filesAtPath('/', T) == '/bin');", gStaticEidosValue_Integer1);
 	#endif
@@ -1824,8 +1826,8 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo();", 35, "missing required argument 'x'");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5, 6);", 35, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5);", 35, "return value cannot be type integer");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument 'y' skipped over required argument 'x'");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 39, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 44, "unrecognized named argument 'y'");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", 16);
