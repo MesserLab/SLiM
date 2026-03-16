@@ -99,6 +99,7 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	switch (p_method_id)
 	{
 		case gID_createPlot:				return ExecuteMethod_createPlot(p_method_id, p_arguments, p_interpreter);
+		case gID_defaultPalette:			return ExecuteMethod_defaultPalette(p_method_id, p_arguments, p_interpreter);
 		case gID_logFileData:				return ExecuteMethod_logFileData(p_method_id, p_arguments, p_interpreter);
 		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
 		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
@@ -121,6 +122,26 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
 		std::cerr << "WARNING (SLiMgui::ExecuteMethod_createPlot): createPlot() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
 		beenHere = true;
 	}
+	
+	return gStaticEidosValueNULL;
+}
+
+//	*********************	– (No<Palette>$)defaultPalette(string$ name)
+//
+EidosValue_SP SLiMgui::ExecuteMethod_defaultPalette(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &name = name_value->StringRefAtIndex_NOCAST(0, nullptr);
+	
+	if (name == "fitness")					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_IndividualFitness, gEidosPalette_Class));
+	if (name == "fitnessEffect")			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_MutationFitnessEffect, gEidosPalette_Class));
+	if (name == "multiplicativePhenotype")	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_IndividualMultiplicativePhenotype, gEidosPalette_Class));
+	if (name == "multiplicativeEffect")		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_MutationMultiplicativeEffect, gEidosPalette_Class));
+	if (name == "additivePhenotype")		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_IndividualAdditivePhenotype, gEidosPalette_Class));
+	if (name == "additiveEffect")			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_MutationAdditiveEffect, gEidosPalette_Class));
+	if (name == "logisticPhenotype")		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_IndividualLogisticPhenotype, gEidosPalette_Class));
+	if (name == "logisticEffect")			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidos_Palette_MutationLogisticEffect, gEidosPalette_Class));
 	
 	return gStaticEidosValueNULL;
 }
@@ -231,6 +252,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 							  ->AddLogical_OS("fullBox", gStaticEidosValue_LogicalT)
 							  ->AddNumeric_OS("axisLabelSize", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(15)))
 							  ->AddNumeric_OS("tickLabelSize", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(10))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defaultPalette, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddString_S("name"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logFileData, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString))
 							  ->AddObject_S("logFile", gSLiM_LogFile_Class)->AddIntString_S("column"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));

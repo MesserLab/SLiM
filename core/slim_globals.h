@@ -1227,6 +1227,7 @@ extern const std::string &gStr_slimgui;
 extern const std::string &gStr_pid;
 extern const std::string &gStr_configureDisplay;
 extern const std::string &gStr_createPlot;
+extern const std::string &gStr_defaultPalette;
 extern const std::string &gStr_logFileData;
 extern const std::string &gStr_openDocument;
 extern const std::string &gStr_pauseExecution;
@@ -1738,6 +1739,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pid,
 	gID_configureDisplay,
 	gID_createPlot,
+	gID_defaultPalette,
 	gID_logFileData,
 	gID_openDocument,
 	gID_pauseExecution,

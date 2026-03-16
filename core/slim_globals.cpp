@@ -1595,6 +1595,7 @@ const std::string &gStr_slimgui = EidosRegisteredString("slimgui", gID_slimgui);
 const std::string &gStr_pid = EidosRegisteredString("pid", gID_pid);
 const std::string &gStr_configureDisplay = EidosRegisteredString("configureDisplay", gID_configureDisplay);
 const std::string &gStr_createPlot = EidosRegisteredString("createPlot", gID_createPlot);
+const std::string &gStr_defaultPalette = EidosRegisteredString("defaultPalette", gID_defaultPalette);
 const std::string &gStr_logFileData = EidosRegisteredString("logFileData", gID_logFileData);
 const std::string &gStr_openDocument = EidosRegisteredString("openDocument", gID_openDocument);
 const std::string &gStr_pauseExecution = EidosRegisteredString("pauseExecution", gID_pauseExecution);
