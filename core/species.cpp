@@ -2735,13 +2735,16 @@ void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution
 	// with initializeTrait(), but disabled for the default trait for backward compatibility.  This is not
 	// terribly lightweight, since we have to loop through all the traits, but substitution is not very common
 	// so it is not worth trying to optimize with summary flags etc.
+	bool have_fetched_callbacks = false;
+	std::vector<SLiMEidosBlock*> callbacks;		// invalid when have_fetched_callbacks is false; see below
+	
 	for (Trait *trait : traits_)
 	{
+		slim_trait_index_t trait_index = trait->Index();
+		SubstitutionTraitInfo &trait_info = p_substitution->trait_info_[trait_index];
+		
 		if (trait->HasBaselineAccumulation())
 		{
-			slim_trait_index_t trait_index = trait->Index();
-			SubstitutionTraitInfo &trait_info = p_substitution->trait_info_[trait_index];
-			
 			if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
 				EIDOS_TERMINATION << "ERROR (Species::DoBaselineAccumulationForSubstitution): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
 			
@@ -2761,6 +2764,42 @@ void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution
 				
 				trait->SetBaselineOffset(trait->BaselineOffset() + homozygous_effect);
 			}
+		}
+		else
+		{
+			// When baseline accumulation is OFF, we need to invalidate all cached values for the trait, because
+			// the effect of the mutation has disappeared and will not be compensated for by the baseline offset.
+			// We technically don't need to do this if the mutation was neutral, but if there was a callback that
+			// gave the mutation a non-neutral effect, then we *do* need to do it.  To be safe, we just invalidate
+			// if any mutationEffect() callbacks exist at all, in any tick, that affect this trait; it's hard to
+			// check whether a callback was in effect the last time the trait was cached, and the timing of that
+			// might differ among individuals.
+			if (trait_info.effect_size_ == (slim_effect_t)0.0)
+			{
+				if (!have_fetched_callbacks)
+				{
+					callbacks = CallbackBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, false);
+					have_fetched_callbacks = true;
+				}
+				
+				bool callback_affecting_trait_exists = false;
+				
+				for (SLiMEidosBlock *callback : callbacks)
+				{
+					if ((callback->trait_index_ == -1) || (callback->trait_index_ == trait_index))
+					{
+						callback_affecting_trait_exists = true;
+						break;
+					}
+				}
+				
+				// if no callback exists that could have affected this trait, we can skip the invalidation
+				if (!callback_affecting_trait_exists)
+					continue;
+			}
+			
+			// ok, we have invalidate individuals for this trait; see this method for comments
+			trait->InvalidateTraitValuesForAllIndividuals();
 		}
 	}
 }

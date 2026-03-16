@@ -596,7 +596,7 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 #endif
 		
 		// check that the tick is in range
-		if (!script_block->ActiveInTick(p_tick))
+		if ((p_tick != -1) && !script_block->ActiveInTick(p_tick))
 			continue;
 		
 		// check that the script type matches (event, callback, etc.) - now guaranteed by the caching mechanism
