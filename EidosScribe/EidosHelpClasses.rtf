@@ -1423,7 +1423,7 @@ Passed a vector of values, a vector of colors, and optional transition and blend
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(object<Palette>$)addNode(float\'a0value, fs\'a0color, [string\'a0transition\'a0=\'a0"linear"], [string\'a0blend\'a0=\'a0"hsvShortest"])\
+\f3\i0\fs18 \cf2 \'96\'a0(object<Palette>$)addNode(numeric\'a0value, fs\'a0color, [string\'a0transition\'a0=\'a0"linear"], [string\'a0blend\'a0=\'a0"hsvShortest"])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds a new node to the target palette.  The parameter 
@@ -1498,7 +1498,7 @@ This method is vectorized, so it can create more than one new node in a single c
 \f4\fs20  or may be singleton.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string)colorForValue(float\'a0value)\
+\f3\fs18 \cf2 \'96\'a0(string)colorForValue(numeric\'a0value)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Calculates the palette\'92s color for the value given by 
@@ -1512,7 +1512,7 @@ This method is vectorized, so it can create more than one new node in a single c
 \f4\fs20  class documentation for discussion of the interpolation algorithm.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Palette>$)setFixedPoint(float$\'a0value)\
+\f3\fs18 \cf2 \'96\'a0(object<Palette>$)setFixedPoint(numeric$\'a0value)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets the fixed point of the target palette.  The fixed point is a single value, within the range of the palette\'92s nodes, for which the corresponding color is guaranteed to be returned exactly.  The target palette is returned to facilitate chaining of methods.\

@@ -487,7 +487,7 @@ EidosValue_SP EidosPalette::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	}
 }
 
-//	*********************	– (o<Palette>$)addNode(float value, fs color, [s transition = "linear"], [s blend = "hsvShortest"])
+//	*********************	– (o<Palette>$)addNode(numeric value, fs color, [s transition = "linear"], [s blend = "hsvShortest"])
 //
 EidosValue_SP EidosPalette::ExecuteMethod_addNode(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -600,7 +600,7 @@ EidosValue_SP EidosPalette::ExecuteMethod_addNode(EidosGlobalStringID p_method_i
 }
 
 
-//	*********************	– (s)colorForValue(float value)
+//	*********************	– (s)colorForValue(numeric value)
 //
 EidosValue_SP EidosPalette::ExecuteMethod_colorForValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -615,7 +615,7 @@ EidosValue_SP EidosPalette::ExecuteMethod_colorForValue(EidosGlobalStringID p_me
 	
 	for (int value_index = 0; value_index < value_count; ++value_index)
 	{
-		double value = value_value->FloatAtIndex_NOCAST(value_index, nullptr);
+		double value = value_value->FloatAtIndex_CAST(value_index, nullptr);
 		
 		if (!std::isfinite(value))
 			EIDOS_TERMINATION << "ERROR (EidosPalette::ExecuteMethod_colorForValue): colorForValue() requires all elements of value to be finite (not INF or NAN)." << EidosTerminate();
@@ -633,7 +633,7 @@ EidosValue_SP EidosPalette::ExecuteMethod_colorForValue(EidosGlobalStringID p_me
 }
 
 
-//	*********************	– (o<Palette>$)setFixedPoint(float$ value)
+//	*********************	– (o<Palette>$)setFixedPoint(numeric$ value)
 //
 EidosValue_SP EidosPalette::ExecuteMethod_setFixedPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -642,7 +642,7 @@ EidosValue_SP EidosPalette::ExecuteMethod_setFixedPoint(EidosGlobalStringID p_me
 		EIDOS_TERMINATION << "ERROR (EidosPalette::ExecuteMethod_setFixedPoint): setFixedPoint() cannot modify this palette because it is immutable; make a new palette instead." << EidosTerminate();
 	
 	EidosValue *value_value = p_arguments[0].get();
-	double value = value_value->FloatAtIndex_NOCAST(0, nullptr);
+	double value = value_value->FloatAtIndex_CAST(0, nullptr);
 	
 	if (!std::isfinite(value))
 		EIDOS_TERMINATION << "ERROR (EidosPalette::ExecuteMethod_setFixedPoint): setFixedPoint() requires value to be finite." << EidosTerminate();
@@ -958,9 +958,9 @@ const std::vector<EidosMethodSignature_CSP> *EidosPalette_Class::Methods(void) c
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addNode, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddFloat("value")->AddFloatString("color")->AddString_O("transition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("linear")))->AddString_O("blend", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("hsvShortest"))));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_colorForValue, kEidosValueMaskString))->AddFloat("value"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setFixedPoint, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddFloat_S("value"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addNode, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric("value")->AddFloatString("color")->AddString_O("transition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("linear")))->AddString_O("blend", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("hsvShortest"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_colorForValue, kEidosValueMaskString))->AddNumeric("value"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setFixedPoint, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric_S("value"));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
