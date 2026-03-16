@@ -183,6 +183,19 @@ EidosPalette *EidosPalette::SetFixedValue(double value)
 	return this;
 }
 
+bool EidosPalette::GetFixedValue(double *p_fixed_value, float *p_red, float *p_green, float *p_blue)
+{
+	if (std::isnan(fixed_value_))
+		return false;
+	
+	*p_fixed_value = fixed_value_;
+	*p_red = fixed_r_;
+	*p_green = fixed_g_;
+	*p_blue = fixed_b_;
+	
+	return true;
+}
+
 void EidosPalette::_CalculateColorForValueGivenNodes(double value, float *p_r, float *p_g, float *p_b, PaletteNode *node_ptr, PaletteNode *previous_node_ptr)
 {
 	// calculate the raw fraction in [0, 1] where the input value lies between the two nodes

@@ -119,8 +119,10 @@ public:
 	virtual ~EidosPalette(void) override;
 	
 	EidosPalette *AddNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend);
-	EidosPalette *SetFixedValue(double value);
 	inline EidosPalette *MakeImmutable(void) { immutable_ = true; return this; }
+	
+	EidosPalette *SetFixedValue(double value);
+	bool GetFixedValue(double *p_fixed_value, float *p_red, float *p_green, float *p_blue);
 	
 	inline __attribute__((always_inline)) void Range(double *start, double *end) { *start = range_start_; *end = range_end_; }
 	

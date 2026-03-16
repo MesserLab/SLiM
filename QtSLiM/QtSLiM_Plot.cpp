@@ -634,9 +634,34 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
                 }
             }
             
+            // handle the "fixed point" of the palette by putting its color in at the closest slot
+            // note that it still might not end up being visible onscreen, due to limited resolution
+            double fixed_value;
+            float fixed_red, fixed_green, fixed_blue;
+            bool hasFixedValue = palette->GetFixedValue(&fixed_value, &fixed_red, &fixed_green, &fixed_blue);
+            
+            if (hasFixedValue)
+            {
+                double range_start, range_end;
+                
+                palette->Range(&range_start, &range_end);
+                
+                double fixed_value_fraction = (fixed_value - range_start) / (range_end - range_start);
+                int fixed_value_index = (int)std::round(fixed_value_fraction * (spectrum_count - 1));
+                
+                if ((fixed_value_index >= 0) && (fixed_value_index < spectrum_count))
+                {
+                    uint8_t *fixed_value_ptr = image_data + (fixed_value_index * 3);
+                    
+                    *(fixed_value_ptr++) = (int)round(fixed_red * 255.0);
+                    *(fixed_value_ptr++) = (int)round(fixed_green * 255.0);
+                    *(fixed_value_ptr++) = (int)round(fixed_blue * 255.0);
+                }
+            }
+            
+            // make a QImage from image_data and give the cached image to the Palette object; since it doesn't build against Qt, we give it a deleter function.
             QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
             
-            // We give the cached image to the Palette object.  Since it doesn't build against Qt, we give it a deleter function.
             palette->image_ = cached_image;
             palette->image_deleter_ = Eidos_Deleter<QImage>;
             
