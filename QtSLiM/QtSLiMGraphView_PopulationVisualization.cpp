@@ -108,7 +108,8 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
 		// calculate the color from the mean fitness of the population
         // we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
 		double fitness = ((subpopSize == 0) ? -10000.0 : subpop->parental_mean_unscaled_fitness_);
-		RGBForIndividualFitness(fitness, &colorRed, &colorGreen, &colorBlue);
+        
+        subpop->species_.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 	}
 	
     QColor color = QtSLiMColorWithRGB(static_cast<double>(colorRed), static_cast<double>(colorGreen), static_cast<double>(colorBlue), 1.0);

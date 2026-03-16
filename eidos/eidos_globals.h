@@ -1257,6 +1257,7 @@ extern const std::string &gEidosStr_write;
 extern const std::string &gEidosStr_Palette;
 extern const std::string &gEidosStr_addNode;
 extern const std::string &gEidosStr_colorForValue;
+extern const std::string &gEidosStr_setFixedPoint;
 
 extern const std::string &gEidosStr_start;
 extern const std::string &gEidosStr_end;
@@ -1393,6 +1394,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Palette,
 	gEidosID_addNode,
 	gEidosID_colorForValue,
+	gEidosID_setFixedPoint,
 
 	gEidosID_start,
 	gEidosID_end,

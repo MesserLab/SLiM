@@ -41,9 +41,6 @@ bool SLiM_AmIBeingDebugged(void);
 @interface SLiMColorCell : NSTextFieldCell
 @end
 
-void RGBForIndividualFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue);
-void RGBForFitnessEffect(double effect, float *colorRed, float *colorGreen, float *colorBlue);
-
 // Classes to show a selection index marker when dragging out a selection in a ChromosomeView
 @interface SLiMSelectionView : NSView
 @end

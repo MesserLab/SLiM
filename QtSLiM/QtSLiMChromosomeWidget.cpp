@@ -832,7 +832,7 @@ void QtSLiMChromosomeWidget::RGBForMutation(Trait *displayTrait, Species *displa
         // display on the "fitness" scale
         double mut_fitness = MutationFitnessEffect(displaySpecies, mut_trait_info);
         
-        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue);
+        displaySpecies->fitness_effect_palette_->ColorForValue(mut_fitness, colorRed, colorGreen, colorBlue);
     }
     else
     {
@@ -840,9 +840,9 @@ void QtSLiMChromosomeWidget::RGBForMutation(Trait *displayTrait, Species *displa
         double mut_effect = (double)mut_trait_info[trait_index].effect_size_;
         
         if (displayTrait->Type() == TraitType::kMultiplicative)
-            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
+            displayTrait->mutation_effect_palette_->ColorForValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
         else
-            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
+            displayTrait->mutation_effect_palette_->ColorForValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
     }
 }
 
@@ -853,7 +853,7 @@ void QtSLiMChromosomeWidget::RGBForSubstitution(Trait *displayTrait, Species *di
         // display on the "fitness" scale
         double mut_fitness = SubstitutionFitnessEffect(displaySpecies, sub_trait_info);
         
-        RGBForFitnessEffect(mut_fitness, colorRed, colorGreen, colorBlue);
+        displaySpecies->fitness_effect_palette_->ColorForValue(mut_fitness, colorRed, colorGreen, colorBlue);
     }
     else
     {
@@ -861,9 +861,9 @@ void QtSLiMChromosomeWidget::RGBForSubstitution(Trait *displayTrait, Species *di
         double mut_effect = (double)sub_trait_info[trait_index].effect_size_;
         
         if (displayTrait->Type() == TraitType::kMultiplicative)
-            RGBForMultiplicativeTraitValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
+            displayTrait->mutation_effect_palette_->ColorForValue(1.0 + mut_effect, colorRed, colorGreen, colorBlue);
         else
-            RGBForAdditiveTraitValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
+            displayTrait->mutation_effect_palette_->ColorForValue(2.0 * mut_effect, colorRed, colorGreen, colorBlue);
     }
 }
 
@@ -1452,11 +1452,7 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         else
             QTextStream(&largestTickLabel) << "0  " << static_cast<int64_t>(largestTickBase);   // is there enough room for a zero and the max tick label?
         
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        double tickLabelWidth = fontMetrics.width(largestTickLabel);               // deprecated in 5.11
-#else
-        double tickLabelWidth = fontMetrics.horizontalAdvance(largestTickLabel);   // added in Qt 5.11
-#endif
+        double tickLabelWidth = fontMetrics.horizontalAdvance(largestTickLabel);
         
         if (tickLabelWidth > interiorRect.width())
         {
@@ -1531,11 +1527,7 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
             QTextStream(&tickLabel) << static_cast<int64_t>(tickBase);
         
         // measure it
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        double tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
-#else
-        double tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
-#endif
+        double tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);
         
         int labelLeftEdge, labelRightEdge;
         

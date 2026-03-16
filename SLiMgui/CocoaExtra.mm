@@ -178,18 +178,6 @@ void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float
 	}
 }
 
-#else
-
-void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue)
-{
-	gEidos_Palette_IndividualFitness->ColorForValue(value, colorRed, colorGreen, colorBlue);
-}
-
-void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue)
-{
-	gEidos_Palette_MutationEffect->ColorForValue(value, colorRed, colorGreen, colorBlue);
-}
-
 #endif
 
 @implementation SLiMMenuButton

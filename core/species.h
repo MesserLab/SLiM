@@ -208,6 +208,10 @@ private:
 	std::string color_;																// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;									// cached color components from color_; should always be in sync
 	
+	// palettes for coloring things in SLiMgui
+	EidosPalette *fitness_palette_ = nullptr;					// OWNED POINTER: the palette used for coloring individual fitness in SLiMgui; retained
+	EidosPalette *fitness_effect_palette_ = nullptr;           	// OWNED POINTER: the palette used for coloring mutation fitness effects in SLiMgui; retained
+	
 	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
 	// We keep a MutationBlock object that stores all of the Mutation objects that belong to this species.

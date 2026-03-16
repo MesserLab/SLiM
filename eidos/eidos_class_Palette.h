@@ -88,10 +88,15 @@ protected:
 	double range_start_, range_end_;
 	std::vector<PaletteNode> nodes_;
 	
+	bool immutable_ = false;	// if set, the Palette can no longer be modified; used to protect built-in palettes
+	
 	// for speed, we keep a cache of precalculated values that is large enough that we don't need to interpolate
 	// each cache entry consists of an RGB triplet of floats; the cache size is cached_colors_count_ * 3 floats
 	int cached_colors_count_ = -1;
 	float *cached_colors_ = nullptr;	// OWNED POINTER; float is used for final values since the cache is big
+	
+	double fixed_value_ = std::numeric_limits<double>::quiet_NaN();
+	float fixed_r_, fixed_g_, fixed_b_;
 	
 	void _CalculateColorForValueGivenNodes(double value, float *r, float *g, float *b, PaletteNode *node_ptr, PaletteNode *previous_node_ptr);
 	
@@ -113,7 +118,9 @@ public:
 	EidosPalette(std::vector<double> &&values, std::vector<std::string> &&colors, PaletteTransition transition, PaletteBlend blend);
 	virtual ~EidosPalette(void) override;
 	
-	void AddNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend);
+	EidosPalette *AddNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend);
+	EidosPalette *SetFixedValue(double value);
+	inline EidosPalette *MakeImmutable(void) { immutable_ = true; return this; }
 	
 	inline __attribute__((always_inline)) void Range(double *start, double *end) { *start = range_start_; *end = range_end_; }
 	
@@ -125,6 +132,15 @@ public:
 			_GenerateColorCache();
 		
 		int color_index;
+		
+		if (value == fixed_value_)
+		{
+			// don't use the cache for a fixed value; this guarantees yellow at neutrality, regardless of the cache resolution
+			*r = fixed_r_;
+			*g = fixed_g_;
+			*b = fixed_b_;
+			return;
+		}
 		
 		if (value <= range_start_)
 			color_index = 0;
@@ -143,6 +159,15 @@ public:
 			_GenerateColorCache();
 		
 		int color_index;
+		
+		if (value == fixed_value_)
+		{
+			// don't use the cache for a fixed value; this guarantees yellow at neutrality, regardless of the cache resolution
+			*r = fixed_r_;
+			*g = fixed_g_;
+			*b = fixed_b_;
+			return;
+		}
 		
 		if (value <= range_start_)
 			color_index = 0;
@@ -178,6 +203,7 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_addNode(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_colorForValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setFixedPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 class EidosPalette_Class : public EidosDictionaryRetained_Class

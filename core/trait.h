@@ -84,6 +84,10 @@ private:
 	
 	// if true, mutation effects are combined into the baseline offset when the mutation is substituted
 	bool baselineAccumulation_;
+    
+    // palettes for coloring things in SLiMgui
+    EidosPalette *individual_phenotype_palette_ = nullptr;		// OWNED POINTER: the palette used for coloring individuals in SLiMgui; retained
+    EidosPalette *mutation_effect_palette_ = nullptr;           // OWNED POINTER: the palette used for coloring mutations in SLiMgui; retained
 	
 public:
 	

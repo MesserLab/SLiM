@@ -99,6 +99,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
 	//
 	
+	Species &species = subpop->species_;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	int squareSize, viewColumns = 0, viewRows = 0;
 	
@@ -204,7 +205,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 				double fitness = individual.cached_unscaled_fitness_;
 				
 				if (!std::isnan(fitness))
-					RGBForIndividualFitness(fitness, &colorRed, &colorGreen, &colorBlue);
+					species.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 			}
 			
 			for (int j = 0; j < 4; ++j)
@@ -1102,6 +1103,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
+	Species &species = subpop->species_;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
@@ -1266,7 +1268,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			double fitness = individual.cached_unscaled_fitness_;
 			
 			if (!std::isnan(fitness))
-				RGBForIndividualFitness(fitness, &colorRed, &colorGreen, &colorBlue);
+				species.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 		}
 		
 		for (int j = 0; j < 4; ++j)

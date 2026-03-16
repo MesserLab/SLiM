@@ -2183,6 +2183,14 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_fitnessPalette:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(fitness_palette_, gEidosPalette_Class));
+		}
+		case gID_fitnessEffectPalette:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(fitness_effect_palette_, gEidosPalette_Class));
+		}
 		case gID_traits:
 		{
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class);
@@ -2554,6 +2562,38 @@ void Species::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			
 			if (new_cycle != old_cycle)
 				SetCycle(new_cycle);
+			return;
+		}
+		case gID_fitnessPalette:
+		{
+			if (fitness_palette_) {
+				fitness_palette_->Release();
+				fitness_palette_ = nullptr;
+			}
+			
+			EidosObject *obj = p_value.ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			fitness_palette_ = dynamic_cast<EidosPalette *>(obj);
+			fitness_palette_->Retain();
+			
+			// FIXME: tell the community about the change so SLiMgui can redisplay
+			//community_.trait_changed_;
+			return;
+		}
+		case gID_fitnessEffectPalette:
+		{
+			if (fitness_effect_palette_) {
+				fitness_effect_palette_->Release();
+				fitness_effect_palette_ = nullptr;
+			}
+			
+			EidosObject *obj = p_value.ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			fitness_effect_palette_ = dynamic_cast<EidosPalette *>(obj);
+			fitness_effect_palette_->Retain();
+			
+			// FIXME: tell the community about the change so SLiMgui can redisplay
+			//community_.trait_changed_;
 			return;
 		}
 			
@@ -5055,6 +5095,8 @@ std::vector<EidosPropertySignature_CSP> *Species_Class::Properties_MUTABLE(void)
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomes,			true,	kEidosValueMaskObject, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessPalette,			false,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessEffectPalette,	false,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_description,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_periodicity,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));

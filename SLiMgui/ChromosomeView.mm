@@ -159,6 +159,102 @@ static const int spaceBetweenChromosomes = 5;
 	return base;
 }
 
+static double MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info)
+{
+	// This calculates the composite fitness effect of a mutation for all traits that have a direct fitness effect.
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	double fitnessEffect = 1.0;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+			fitnessEffect *= (double)mut_trait_info[trait_index].homozygous_effect_;
+	}
+	
+	return fitnessEffect;
+}
+
+static double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_)
+{
+	// This calculates the composite fitness effect of a substitution for all traits that have a direct fitness effect.
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	double fitnessEffect = 1.0;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			if (trait->Type() == TraitType::kMultiplicative)
+				fitnessEffect *= (1.0 + (double)sub_trait_info_[trait_index].effect_size_);     // 1+s
+			else
+				fitnessEffect *= 2.0 * (double)sub_trait_info_[trait_index].effect_size_;       // 2a
+		}
+	}
+	
+	return fitnessEffect;
+}
+
+static double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type)
+{
+	// This calculates the composite fitness effect of a mutation type for all traits that have a direct fitness effect,
+	// using the mutation type's fixed (type 'f') effect; if a direct fitness effect is not type 'f', NAN is returned.
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	double fitnessEffect = 1.0;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
+			
+			if (DES_info.DES_type_ != DESType::kFixed)
+				return std::numeric_limits<double>::quiet_NaN();
+			
+			double fixed_effect = DES_info.DES_parameters_[trait_index];
+			
+			if (trait->Type() == TraitType::kMultiplicative)
+				fitnessEffect *= (1.0 + fixed_effect);          // 1+s
+			else
+				fitnessEffect *= 2.0 * fixed_effect;            // 2a
+		}
+	}
+	
+	return fitnessEffect;
+}
+
+static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info)
+{
+	// This checks that a given mutation matches its mutation type's fixed effects (see MutTypeFixedFitnessEffect())
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			// all direct fitness effects are guaranteed by MutTypeFixedFitnessEffect() to be type 'f'
+			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
+			double fixed_effect = DES_info.DES_parameters_[trait_index];
+			
+			if ((slim_effect_t)fixed_effect != mut_trait_info[trait_index].effect_size_)
+				return false;
+		}
+	}
+	
+	return true;
+}
+
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	NSRect interiorRect = NSInsetRect(contentRect, 1, 1);
@@ -511,8 +607,10 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						RGBForFitnessEffect(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue);
+						double mut_fitness = SubstitutionFitnessEffect(displaySpecies, substitution->trait_info_);
+						
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_fitness, &colorRed, &colorGreen, &colorBlue);
+						
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 				}
@@ -584,8 +682,10 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						RGBForFitnessEffect(substitution->trait_info_[0].effect_size_, &colorRed, &colorGreen, &colorBlue);
+						double mut_fitness = SubstitutionFitnessEffect(displaySpecies, substitution->trait_info_);
+						
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_fitness, &colorRed, &colorGreen, &colorBlue);
+						
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -667,11 +767,10 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
+						double mut_effect = MutationFitnessEffect(displaySpecies, mutation_block->TraitInfoForIndex(mut_index));
 						float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 						
-						RGBForFitnessEffect(mut_effect, &colorRed, &colorGreen, &colorBlue);
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_effect, &colorRed, &colorGreen, &colorBlue);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -707,13 +806,11 @@ static const int spaceBetweenChromosomes = 5;
 			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
-				EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
+				double mut_type_fixed_effect = MutTypeFixedFitnessEffect(displaySpecies, mut_type); // NAN if no fixed effect
 				
 				// We optimize fixed-DES mutation types only, and those using a fixed color set by the user
-				if ((DES_info.DES_type_ == DESType::kFixed) || mut_type_fixed_color)
+				if (!isnan(mut_type_fixed_effect) || mut_type_fixed_color)
 				{
-					slim_effect_t mut_type_effect = (mut_type_fixed_color ? 0.0 : (slim_effect_t)DES_info.DES_parameters_[0]);
-					
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
 					// Scan through the mutation list for mutations of this type with the right effect
@@ -721,9 +818,9 @@ static const int spaceBetweenChromosomes = 5;
 					{
 						MutationIndex mut_index = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mut_index;
+						MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
 						
-						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_ == mut_type_effect)))
+						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || MutationFitnessEffectMatchesMutType(displaySpecies, mut_type, mut_trait_info)))
 						{
 							if (mutation->chromosome_index_ == chromosome_index)
 							{
@@ -753,7 +850,7 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForFitnessEffect(mut_type_effect, &colorRed, &colorGreen, &colorBlue);
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -804,14 +901,13 @@ static const int spaceBetweenChromosomes = 5;
 						
 						if (mutation->chromosome_index_ == chromosome_index)
 						{
-							// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-							slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
+							double mut_effect = MutationFitnessEffect(displaySpecies, mutation_block->TraitInfoForIndex(mut_index));
 							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 							slim_position_t mutationPosition = mutation->position_;
 							NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 							
 							mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-							RGBForFitnessEffect(mut_effect, &colorRed, &colorGreen, &colorBlue);
+							displaySpecies->fitness_effect_palette_->ColorForValue(mut_effect, &colorRed, &colorGreen, &colorBlue);
 							[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 							NSRectFill(mutationTickRect);
 						}
@@ -864,11 +960,9 @@ static const int spaceBetweenChromosomes = 5;
 					{
 						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
 						MutationIndex mut_index = mutationBuffer[binIndex];
+						double mut_effect = MutationFitnessEffect(displaySpecies, mutation_block->TraitInfoForIndex(mut_index));
 						
-						// FIXME MULTITRAIT: should be a way to choose which trait is being used for colors in the chromosome view!
-						slim_effect_t mut_effect = mutation_block->TraitInfoForIndex(mut_index)[0].effect_size_;
-						
-						RGBForFitnessEffect(mut_effect, &colorRed, &colorGreen, &colorBlue);
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_effect, &colorRed, &colorGreen, &colorBlue);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 						NSRectFill(mutationTickRect);
 					}

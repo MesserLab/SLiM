@@ -87,23 +87,25 @@
 // than 10.13, perhaps), you can disable this check using the above flag and your build will probably
 // work; just note that that configuration is unsupported.
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
-#error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 or later recommended)."
+#error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 or later recommended, or Qt 6)."
 #endif
 #else
-// On Linux we enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled.
-// We don't rely on any specific post 5.9.5 features on Linux, and the best Qt version on Linux is
+// On Linux we now enforce Qt 5.15.2 as a hard limit too, since it is what Ubuntu 22.04 LTS supports.
+// We don't rely on any specific post 5.15.2 features on Linux, and the best Qt version on Linux is
 // probably the version that a given distro has chosen to preinstall.
-#if (QT_VERSION < QT_VERSION_CHECK(5, 9, 5))
-#error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.15 LTS recommended)."
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
+#error "SLiMgui on Linux requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 or later recommended, or Qt 6)."
 #endif
 #endif
 
 // We now support Qt 6, but do not require it.  Note that SLiM 4.2.2 was the last version that supported only Qt 5.
+// BCH 3/15/2026: After SLiM 5.1 we now require 5.15.2 or later on all platforms; I'm
+// removing older compatibility code, so we will no longer build on older Qt versions.
 #if (QT_VERSION >= QT_VERSION_CHECK(7, 0, 0))
 #error "SLiMgui requires Qt 5 or Qt 6.  Qt 7 and later are not supported at this time."
 #endif
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
-#error "SLiMgui requires Qt 5 or Qt 6.  Qt 4 and earlier are not supported."
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
+#error "SLiMgui requires Qt 5.15.2 or later, or Qt 6.  Qt 4 and earlier are not supported."
 #endif
 
 #endif
@@ -241,8 +243,6 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     qtSLiMAppDelegate = this;
 
     // Ensure windows stay on-screen when displays change (added, removed, or modified)
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
-
     // This lambda (1) ensures that visible top-level windows remain on screen;
     // (2) raises the active window to the front on the appropriate screen, if appropriate.
     auto ensureOnScreen = []() {
@@ -281,7 +281,6 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     connect(app, &QGuiApplication::screenRemoved, this, [ensureOnScreen](QScreen *) { ensureOnScreen(); });
     for (QScreen *screen : QGuiApplication::screens())
         connect(screen, &QScreen::geometryChanged, this, [ensureOnScreen](const QRect &) { ensureOnScreen(); });
-#endif
     
     // Cache app-wide icons
     slimDocumentIcon_.addFile(":/icons/DocIcon16.png");
@@ -1380,16 +1379,18 @@ void QtSLiMAppDelegate::dispatch_showColorScales(void)
     // This shows a global window that displays SLiMgui's color scales.  Unlike the above global image
     // windows shown by globalImageWindowWithPath(), this window is drawn dynamically by a custom widget.
     // This code is based on the code in globalImageWindowWithPath(), with that custom widget.
-    int window_width = round(301);
-    int window_height = round(474);
     
     QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
     
     image_window->setWindowTitle("SLiMgui Color Scales");
-    image_window->setFixedSize(window_width, window_height);
     
-    // Make the custom widget
+    // Make the custom widget and ask it to measure itself; its size is platform-dependent due to fonts
     QtSLiMColorScaleWidget *colorScaleView = new QtSLiMColorScaleWidget(image_window);
+    int window_width, window_height;
+    
+    colorScaleView->MeasureOrPaint(nullptr, &window_width, &window_height);
+    
+    image_window->setFixedSize(window_width, window_height);
     
     // Install imageView in the window
     QVBoxLayout *topLayout = new QVBoxLayout;
@@ -1446,9 +1447,7 @@ void QtSLiMAppDelegate::dispatch_quit(void)
             // Builds against older Qt versions will just quit on the last window close, because
             // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
             qApp->quit();
-#endif
 #endif
         }
     }

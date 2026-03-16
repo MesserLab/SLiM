@@ -122,11 +122,7 @@ void QtSLiMTextEdit::selfInit(void)
     QFont scriptFont = prefs.displayFontPref(&tabWidth);
     
     setFont(scriptFont);
-#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
-    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
-#else
-    setTabStopDistance(tabWidth);               // added in 5.10
-#endif
+    setTabStopDistance(tabWidth);
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
@@ -161,11 +157,7 @@ void QtSLiMTextEdit::displayFontPrefChanged()
     QFont displayFont = prefs.displayFontPref(&tabWidth);
     
     setFont(displayFont);
-#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
-    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
-#else
-    setTabStopDistance(tabWidth);               // added in 5.10
-#endif
+    setTabStopDistance(tabWidth);
 }
 
 void QtSLiMTextEdit::scriptSyntaxHighlightPrefChanged()
@@ -554,13 +546,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         // but for QPlainTextEdit hitTest() always returns -1 for some reason.
         const QFont &displayFont = QtSLiMPreferencesNotifier::instance().displayFontPref(nullptr);
         QFontMetricsF fm(displayFont);
-        int fudgeFactor;
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        fudgeFactor = std::round(fm.width(" ") / 2.0) + 1;                // deprecated in 5.11
-#else
-        fudgeFactor = std::round(fm.horizontalAdvance(" ") / 2.0) + 1;    // added in Qt 5.11
-#endif
+        int fudgeFactor = std::round(fm.horizontalAdvance(" ") / 2.0) + 1;
         
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         QPoint localPos = p_event->localPos().toPoint();
@@ -2664,11 +2650,7 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor
     QString selectedString = p_cursor.selectedText();
     static const QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
     
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated in 5.14
-#else
-    return selectedString.split(lineEndMatch, Qt::KeepEmptyParts);          // added in 5.14
-#endif
+    return selectedString.split(lineEndMatch, Qt::KeepEmptyParts);
 }
 
 void QtSLiMScriptTextEdit::copyAsHTML(void)
@@ -2859,17 +2841,9 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
     // We now show debugging icons in the line number area too, since they are kept by line number
     // The line number area therefore no longer goes down to width 0 when the pref is disabled
     if (scriptType == SLiMScriptType)
-    {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        lineNumberAreaBugWidth = 3 + fontMetrics().width("9") * 2;                 // deprecated in 5.11
-#else
-        lineNumberAreaBugWidth = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * 2;   // added in Qt 5.11
-#endif
-    }
+        lineNumberAreaBugWidth = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * 2;
     else
-    {
         lineNumberAreaBugWidth = 0;
-    }
     
     if (!prefsNotifier.showLineNumbersPref())
         return lineNumberAreaBugWidth;
@@ -2881,11 +2855,7 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated in 5.11
-#else
-    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
-#endif
+    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
     
     return lineNumberAreaBugWidth + space;
 }
@@ -3621,14 +3591,8 @@ void QtSLiMScriptTextEdit::paintEvent(QPaintEvent *event)
     {
         QFont displayFont = prefs.displayFontPref();
         QFontMetricsF fm(displayFont);
-        double marginStart;
         QString marginString(prefs.pageGuideColumnPref(), ' ');
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        marginStart = fm.width(marginString);                // deprecated in 5.11
-#else
-        marginStart = fm.horizontalAdvance(marginString);    // added in Qt 5.11
-#endif
+        double marginStart = fm.horizontalAdvance(marginString);
         
         // adjust by the document margin, which is built into QTextDocument; this took a while to find!
         // this is an inset of the QTextEdit's contents, on all four sides; it defaults to 4, which we do not change

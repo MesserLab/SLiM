@@ -38,6 +38,29 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bo
 		baselineOffset_ = p_baselineOffset;
 	
 	_RecacheIndividualOffsetDistribution();
+	
+	// set up and retain the appropriate default palettes for SLiMgui; the user can change these with Trait properties
+	if (type_ == TraitType::kMultiplicative)
+    {
+        individual_phenotype_palette_ = gEidos_Palette_IndividualMultiplicativePhenotype;
+        mutation_effect_palette_ = gEidos_Palette_MutationMultiplicativeEffect;
+    }
+	else
+    {
+		if (logistic_post_)
+		{
+			individual_phenotype_palette_ = gEidos_Palette_IndividualLogisticPhenotype;
+			mutation_effect_palette_ = gEidos_Palette_MutationLogisticEffect;
+		}
+		else
+		{
+			individual_phenotype_palette_ = gEidos_Palette_IndividualAdditivePhenotype;
+			mutation_effect_palette_ = gEidos_Palette_MutationAdditiveEffect;
+		}
+    }
+    
+    individual_phenotype_palette_->Retain();
+    mutation_effect_palette_->Retain();
 }
 
 void Trait::_RecacheIndividualOffsetDistribution(void)
@@ -68,6 +91,17 @@ void Trait::_RecacheIndividualOffsetDistribution(void)
 Trait::~Trait(void)
 {
 	//EIDOS_ERRSTREAM << "Trait::~Trait" << std::endl;
+    
+    if (individual_phenotype_palette_)
+    {
+        individual_phenotype_palette_->Release();
+        individual_phenotype_palette_ = nullptr;
+    }
+    if (mutation_effect_palette_)
+    {
+        mutation_effect_palette_->Release();
+        mutation_effect_palette_ = nullptr;
+    }
 }
 
 std::string Trait::UserVisibleType(void) const
@@ -154,6 +188,14 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_name:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name_));
+		}
+		case gID_individualPhenotypePalette:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(individual_phenotype_palette_, gEidosPalette_Class));
+		}
+		case gID_mutationEffectPalette:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(mutation_effect_palette_, gEidosPalette_Class));
 		}
 		case gID_species:
 		{
@@ -265,6 +307,38 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 			SetIndividualOffsetDistributionSD(value);
 			return;
 		}
+		case gID_individualPhenotypePalette:
+		{
+			if (individual_phenotype_palette_) {
+				individual_phenotype_palette_->Release();
+				individual_phenotype_palette_ = nullptr;
+			}
+			
+			EidosObject *obj = p_value.ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			individual_phenotype_palette_ = dynamic_cast<EidosPalette *>(obj);
+			individual_phenotype_palette_->Retain();
+			
+			// FIXME: tell the community about the change so SLiMgui can redisplay
+			//species_.community_.trait_changed_;
+			return;
+		}
+		case gID_mutationEffectPalette:
+		{
+			if (mutation_effect_palette_) {
+				mutation_effect_palette_->Release();
+				mutation_effect_palette_ = nullptr;
+			}
+			
+			EidosObject *obj = p_value.ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			mutation_effect_palette_ = dynamic_cast<EidosPalette *>(obj);
+			mutation_effect_palette_->Retain();
+			
+			// FIXME: tell the community about the change so SLiMgui can redisplay
+			//species_.community_.trait_changed_;
+			return;
+		}
 		case gID_tag:
 		{
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
@@ -314,6 +388,8 @@ std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties_MUTABLE(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualOffsetMean,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualOffsetSD,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,									true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualPhenotypePalette,				false,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEffectPalette,					false,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,								true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,									false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_type,								true,	kEidosValueMaskString | kEidosValueMaskSingleton)));

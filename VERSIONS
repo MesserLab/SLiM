@@ -199,6 +199,10 @@ multitrait branch:
 	add Palette class to Eidos, to set up color schemes involving ramps and fades
 		add support for Palette in the Plot method image(), for easily plotting spectra and gradient fills
 		switch to using Palette for coloring individuals and mutations in SLiMgui
+		add an internal read-only flag to Palette to protect SLiMgui's built-in palettes from modification by the user
+		add Trait properties individualPhenotypePalette and mutationEffectPalette for accessing/changing the palette used to display a given trait in SLiMgui
+		add Species properties fitnessPalette and fitnessEffectPalette for accessing/changing the palette used to display "fitness" and "fitness effect" values in SLiMgui
+	shift to require a minimum of Qt 5.15.2 on all platforms; Ubuntu 18.04 LTS preinstalled Qt 5.9.5, so we are now abandoning Ubuntu 18.04 LTS (no change for macOS and Windows, I think)
 
 
 version 5.1 (Eidos version 4.1):

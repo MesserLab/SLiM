@@ -70,20 +70,26 @@ QColor QtSLiMColorWithWhite(double p_white, double p_alpha);
 QColor QtSLiMColorWithRGB(double p_red, double p_green, double p_blue, double p_alpha);
 QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, double p_alpha);
 
-void RGBForIndividualFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue);
-void RGBForFitnessEffect(double effect, float *colorRed, float *colorGreen, float *colorBlue);
-void RGBForAdditiveTraitValue(double effect, float *colorRed, float *colorGreen, float *colorBlue);
-void RGBForMultiplicativeTraitValue(double effect, float *colorRed, float *colorGreen, float *colorBlue);
-
 // A color scale widget that shows the color scales for fitness and selection coefficients
 class QtSLiMColorScaleWidget : public QWidget
 {
 public:
     QtSLiMColorScaleWidget(QWidget *p_parent);
+    
+    void MeasureOrPaint(QPainter *painter, int *p_panel_width, int *p_panel_height);
+    
 protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
-private:
-    std::vector<QString> fitnessTicks, fitnessEffectTicks, additiveTraitTicks, multiplicativeTraitTicks;
+    
+    std::vector<QString> fitnessTicks, fitnessEffectTicks;
+    std::vector<QString> multiplicativePhenotypeTicks, multiplicativeEffectTicks;
+    std::vector<QString> additivePhenotypeTicks, additiveEffectTicks;
+    std::vector<QString> logisticPhenotypeTicks, logisticEffectTicks;
+    
+    std::vector<double> fitnessRange, fitnessEffectRange;
+    std::vector<double> multiplicativePhenotypeRange, multiplicativeEffectRange;
+    std::vector<double> additivePhenotypeRange, additiveEffectRange;
+    std::vector<double> logisticPhenotypeRange, logisticEffectRange;
 };
 
 // Whether we're in "dark mode" for user interface rendering

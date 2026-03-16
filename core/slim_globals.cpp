@@ -1215,6 +1215,8 @@ const std::string &gStr_baselineOffset = EidosRegisteredString("baselineOffset",
 const std::string &gStr_individualOffsetMean = EidosRegisteredString("individualOffsetMean", gID_individualOffsetMean);
 const std::string &gStr_individualOffsetSD = EidosRegisteredString("individualOffsetSD", gID_individualOffsetSD);
 const std::string &gStr_directFitnessEffect = EidosRegisteredString("directFitnessEffect", gID_directFitnessEffect);
+const std::string &gStr_individualPhenotypePalette = EidosRegisteredString("individualPhenotypePalette", gID_individualPhenotypePalette);
+const std::string &gStr_mutationEffectPalette = EidosRegisteredString("mutationEffectPalette", gID_mutationEffectPalette);
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
 const std::string &gStr_lastPosition = EidosRegisteredString("lastPosition", gID_lastPosition);
 const std::string &gStr_hotspotEndPositions = EidosRegisteredString("hotspotEndPositions", gID_hotspotEndPositions);
@@ -1290,9 +1292,12 @@ const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks
 const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
 const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulations", gID_allSubpopulations);
 const std::string &gStr_allTraits = EidosRegisteredString("allTraits", gID_allTraits);
+
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomes = EidosRegisteredString("chromosomes", gID_chromosomes);
 const std::string &gStr_traits = EidosRegisteredString("traits", gID_traits);
+const std::string &gStr_fitnessPalette = EidosRegisteredString("fitnessPalette", gID_fitnessPalette);
+const std::string &gStr_fitnessEffectPalette = EidosRegisteredString("fitnessEffectPalette", gID_fitnessEffectPalette);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
@@ -1763,21 +1768,49 @@ void SLiM_ConfigureContext(void)
 #pragma mark Built-in palettes
 #pragma mark -
 
-EidosPalette *gEidos_Palette_IndividualFitness = new EidosPalette(std::vector<double>{-0.25, 0.375, 1.0, 2.25, 10.0},
-																  std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
-																  PaletteTransition::kLinear, PaletteBlend::kRGB);
+// These are used for coloring on the "fitness" scale
+EidosPalette *gEidos_Palette_IndividualFitness =
+    (new EidosPalette(std::vector<double>{-0.25, 0.375, 1.0, 2.25, 10.0},
+                      std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(1.0)->MakeImmutable();
 
-EidosPalette *gEidos_Palette_MutationEffect = new EidosPalette(std::vector<double>{-0.25, 0.375, 0.99999, 1.0, 1.00001, 1.625, 2.25, 10.0},
-															   std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
-															   PaletteTransition::kLinear, PaletteBlend::kRGB);
+EidosPalette *gEidos_Palette_MutationFitnessEffect =
+    (new EidosPalette(std::vector<double>{-0.5, 0.5, 0.875, 0.925, 0.99999, 1.0, 1.00001, 1.075, 1.125, 1.5, 2.5},
+                      std::vector<std::string>{"#7F007F", "#9F00FF", "#FF006F", "#FF0000", "#FFCC00", "#FFFF00", "#CCCC00", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(1.0)->MakeImmutable();
 
-EidosPalette *gEidos_Palette_AdditiveTrait = new EidosPalette(std::vector<double>{-1.25, -0.625, -0.00001, 0.0, 0.00001, 0.625, 1.25, 9.0},
-															  std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
-															  PaletteTransition::kLinear, PaletteBlend::kRGB);
+// These are used for coloring on a multiplicative trait scale
+EidosPalette *gEidos_Palette_IndividualMultiplicativePhenotype =
+    (new EidosPalette(std::vector<double>{-0.25, 0.375, 1.0, 2.25, 10.0},
+                      std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(1.0)->MakeImmutable();
 
-EidosPalette *gEidos_Palette_MultiplicativeTrait = new EidosPalette(std::vector<double>{-0.25, 0.375, 0.99999, 1.0, 1.00001, 1.625, 2.25, 10.0},
-																	std::vector<std::string>{"#7F0000", "red", "#FF7F00", "yellow", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
-																	PaletteTransition::kLinear, PaletteBlend::kRGB);
+EidosPalette *gEidos_Palette_MutationMultiplicativeEffect =
+    (new EidosPalette(std::vector<double>{-0.5, 0.5, 0.875, 0.925, 0.99999, 1.0, 1.00001, 1.075, 1.125, 1.5, 2.5},
+                      std::vector<std::string>{"#7F007F", "#9F00FF", "#FF006F", "#FF0000", "#FFCC00", "#FFFF00", "#CCCC00", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(1.0)->MakeImmutable();
+
+// These are used for coloring on an additive trait scale
+EidosPalette *gEidos_Palette_IndividualAdditivePhenotype =
+    (new EidosPalette(std::vector<double>{-1.25, -0.625, 0.0, 1.25, 9.0},
+                      std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(0.0)->MakeImmutable();
+
+EidosPalette *gEidos_Palette_MutationAdditiveEffect =
+    (new EidosPalette(std::vector<double>{-1.5, -0.5, -0.125, -0.075, -0.00001, 0.0, 0.00001, 0.075, 0.125, 0.5, 1.5},
+                      std::vector<std::string>{"#7F007F", "#9F00FF", "#FF006F", "#FF0000", "#FFCC00", "#FFFF00", "#CCCC00", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(0.0)->MakeImmutable();
+
+// These are used for coloring on a logistic trait scale
+EidosPalette *gEidos_Palette_IndividualLogisticPhenotype =
+    (new EidosPalette(std::vector<double>{-0.25, 0.25, 0.5, 0.75, 1.25},
+                      std::vector<std::string>{"#000000", "red", "yellow", "#00CC00", "#CCCCCC"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(0.5)->MakeImmutable();
+
+EidosPalette *gEidos_Palette_MutationLogisticEffect =
+    (new EidosPalette(std::vector<double>{-1.5, -0.5, -0.125, -0.075, -0.00001, 0.0, 0.00001, 0.075, 0.125, 0.5, 1.5},
+                      std::vector<std::string>{"#7F007F", "#9F00FF", "#FF006F", "#FF0000", "#FFCC00", "#FFFF00", "#CCCC00", "#00CC00", "#00CCFF", "#0000FF", "#BFBFFF"},
+                      PaletteTransition::kLinear, PaletteBlend::kRGB))->SetFixedValue(0.0)->MakeImmutable();
 
 
 // *************************************

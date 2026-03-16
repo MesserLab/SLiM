@@ -4139,6 +4139,7 @@ const std::string &gEidosStr_write = EidosRegisteredString("write", gEidosID_wri
 const std::string &gEidosStr_Palette = EidosRegisteredString("Palette", gEidosID_Palette);
 const std::string &gEidosStr_addNode = EidosRegisteredString("addNode", gEidosID_addNode);
 const std::string &gEidosStr_colorForValue = EidosRegisteredString("colorForValue", gEidosID_colorForValue);
+const std::string &gEidosStr_setFixedPoint = EidosRegisteredString("setFixedPoint", gEidosID_setFixedPoint);
 
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in EidosStringRegistry::RegisterStringForGlobalID() below

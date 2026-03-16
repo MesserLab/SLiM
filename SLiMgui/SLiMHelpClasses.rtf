@@ -7632,8 +7632,7 @@ Second,
 \f4\fs20  method of 
 \f3\fs18 SpatialMap
 \f4\fs20  can be used to increase the grid resolution of the map prior to display.)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Third, 
+Third, 
 \f3\fs18 image
 \f4\fs20  may be a singleton 
 \f3\fs18 Palette
@@ -9578,6 +9577,62 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f4\fs20 , or 
 \f3\fs18 "xyz"
 \f4\fs20 , for simulations using those spatial dimensions respectively.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 fitnessEffectPalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color mutations when \'93fitness\'94 is selected as the display trait.  The homozygous effect of a mutation (1+
+\f1\i s
+\f4\i0  or 2
+\f1\i a
+\f4\i0 ) is looked up in this palette to determine the color of the mutation.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 MutationType
+\f4\fs20  takes priority for mutation display; if it is set for a given mutation type, it determines the color of mutations of that type regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui.  See also the 
+\f3\fs18 fitnessPalette
+\f4\fs20  property of 
+\f3\fs18 Species
+\f4\fs20 , and the 
+\f3\fs18 individualPhenotypePalette
+\f4\fs20  and 
+\f3\fs18 mutationEffectPalette
+\f4\fs20  properties of 
+\f3\fs18 Trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 fitnessPalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color individuals when \'93fitness\'94 is selected as the display trait.  The fitness value of an individual, not including any subpopulation 
+\f3\fs18 fitnessScaling
+\f4\fs20  value, is looked up in this palette to determine the color of the individual.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20  takes priority over this for individual display; if it is set for a given individual, it determines the color of that individual regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui.  See also the 
+\f3\fs18 fitnessEffectPalette
+\f4\fs20  property of 
+\f3\fs18 Species
+\f4\fs20 , and the 
+\f3\fs18 individualPhenotypePalette
+\f4\fs20  and 
+\f3\fs18 mutationEffectPalette
+\f4\fs20  properties of 
+\f3\fs18 Trait
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 genomicElementTypes => (object<GenomicElementType>)\
@@ -15184,6 +15239,60 @@ The individual offset distribution provided by
 \f4\fs20  method of 
 \f3\fs18 Individual
 \f4\fs20  regarding setting individual offset values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 individualPhenotypePalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color individuals when this trait is selected as the display trait.  The trait value of an individual, not including the trait\'92s baseline offset, is looked up in this palette to determine the color of the individual.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20  takes priority over this for individual display; if it is set for a given individual, it determines the color of that individual regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui.  See also the 
+\f3\fs18 mutationEffectPalette
+\f4\fs20  property of 
+\f3\fs18 Trait
+\f4\fs20 , and the 
+\f3\fs18 fitnessEffectPalette
+\f4\fs20  and 
+\f3\fs18 fitnessPalette
+\f4\fs20  properties of 
+\f3\fs18 Species
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 mutationEffectPalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color mutations when this trait is selected as the display trait.  The homozygous effect of a mutation (1+
+\f1\i s
+\f4\i0  or 2
+\f1\i a
+\f4\i0 ) is looked up in this palette to determine the color of the mutation.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 MutationType
+\f4\fs20  takes priority for mutation display; if it is set for a given mutation type, it determines the color of mutations of that type regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui.  See also the 
+\f3\fs18 individualPhenotypePalette
+\f4\fs20  property of 
+\f3\fs18 Trait
+\f4\fs20 , and the 
+\f3\fs18 fitnessEffectPalette
+\f4\fs20  and 
+\f3\fs18 fitnessPalette
+\f4\fs20  properties of 
+\f3\fs18 Species
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 name => (string$)\

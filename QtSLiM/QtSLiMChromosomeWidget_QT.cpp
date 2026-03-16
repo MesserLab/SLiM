@@ -307,7 +307,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 						}
 						else
 						{
-							RGBForFitnessEffect(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue);
+                            displaySpecies->fitness_effect_palette_->ColorForValue(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue);
 						}
 						
 						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)

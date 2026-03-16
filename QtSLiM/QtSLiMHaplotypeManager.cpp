@@ -1824,12 +1824,7 @@ void QtSLiMHaplotypeTopView::paintEvent(QPaintEvent * /* p_paint_event */)
                 
                 if (chromosomeSymbol.length())
                 {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-                    double symbolLabelWidth = fontMetrics.width(chromosomeSymbol);               // deprecated in 5.11
-#else
-                    double symbolLabelWidth = fontMetrics.horizontalAdvance(chromosomeSymbol);   // added in Qt 5.11
-#endif
-                    
+                    double symbolLabelWidth = fontMetrics.horizontalAdvance(chromosomeSymbol);
                     QRect viewFrame = child_widget->geometry();
                     QRect labelFrame = QRect(viewFrame.left(), 0, viewFrame.width(), viewFrame.top());
                     

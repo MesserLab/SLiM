@@ -32,109 +32,6 @@ static void clean_up_leak_false_positives(void)
 #endif
 
 
-// Force to light mode on macOS
-// To avoid having to make this a .mm file on macOS, we use the Obj-C runtime directly
-// See https://www.mikeash.com/pyblog/objc_msgsends-new-prototype.html for some background
-// This is pretty gross, but this is also why Objective-C is cool!  :->
-// Note that we also have a custom Info.plist file that forces light mode; we try to
-// force light mode in two different ways.  This function is necessary for cmake builds,
-// which do not use the custom Info.plist at this time.  The custom Info.plist is
-// necessary because this function, for some reason, does not succeed in forcing light
-// mode when QtSLiM is built with qmake at the command line.
-// BCH 1/17/2021: We now try to force light mode only when compiled against a Qt version
-// earlier than 5.15.2 (since Qt did not support dark mode well prior to that version).
-// Since the double-click install version is built against 5.15.2, this should mean that
-// most macOS users get dark mode support.  The NSRequiresAquaSystemAppearance key in our
-// QtSLiM_Info.plist file, which was set to <true/> to force light mode, has been
-// removed.  As per the above comment, this may mean that macOS builds against a Qt version
-// earlier than 5.15.2 will not succeed in forcing light mode.  For this reason and others,
-// we now require Qt 5.15.2 when building on macOS (see QtSLiMAppDelegate.cpp).
-// BCH 4/13/2022: Disabling this macos_ForceLightMode() function altogether.  Building against
-// Qt versions prior to 5.15.2 on macOS is no longer supported at all, and linking against
-// libobjc.dylib on macOS 12 has gotten complicated for security reasons (trampolines).
-#ifdef __APPLE__
-#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
-#if 0
-// Include objc headers
-#include <objc/runtime.h>
-#include <objc/message.h>
-
-static void macos_ForceLightMode(void)
-{
-    // First we need to make an NSString with value @"NSAppearanceNameAqua"; 1 is NSASCIIStringEncoding
-    Class nsstring_class = objc_lookUpClass("NSString");
-    SEL selector_stringWithCString_encoding = sel_registerName("stringWithCString:encoding:");
-    
-    if ((!nsstring_class) || (!selector_stringWithCString_encoding))
-        return;
-    
-    //std::cout << "nsstring_class == " << nsstring_class << std::endl;
-    //std::cout << "class_getName(nsstring_class) == " << class_getName(nsstring_class) << std::endl;
-    //std::cout << "selector_stringWithCString_encoding == " << sel_getName(selector_stringWithCString_encoding) << std::endl;
-    
-    id aquaString = ((id (*)(id, SEL, const char *, int))objc_msgSend)((id)nsstring_class, selector_stringWithCString_encoding, "NSAppearanceNameAqua", 1);
-    
-    if (!aquaString)
-        return;
-    
-    //std::cout << "aquaString == " << aquaString << std::endl;
-    //std::cout << std::endl;
-    
-    // Next we need to get the named appearance from NSAppearance
-    Class nsappearance_class = objc_lookUpClass("NSAppearance");
-    SEL selector_appearanceNamed = sel_registerName("appearanceNamed:");
-    
-    if ((!nsappearance_class) || (!selector_appearanceNamed))
-        return;
-    
-    //std::cout << "nsappearance_class == " << nsappearance_class << std::endl;
-    //std::cout << "class_getName(nsappearance_class) == " << class_getName(nsappearance_class) << std::endl;
-    //std::cout << "selector_appearanceNamed == " << sel_getName(selector_appearanceNamed) << std::endl;
-    
-    id aquaAppearance = ((id (*)(id, SEL, id))objc_msgSend)((id)nsappearance_class, selector_appearanceNamed, aquaString);
-    
-    if (!aquaAppearance)
-        return;
-    
-    //std::cout << "aquaAppearance == " << aquaAppearance << std::endl;
-    //std::cout << std::endl;
-    
-    // Then get the shared NSApp object
-    Class nsapp_class = objc_lookUpClass("NSApplication");
-    SEL selector_sharedApplication = sel_registerName("sharedApplication");
-    
-    if ((!nsapp_class) || (!selector_sharedApplication))
-        return;
-    
-    //std::cout << "nsapp_class == " << nsapp_class << std::endl;
-    //std::cout << "class_getName(nsapp_class) == " << class_getName(nsapp_class) << std::endl;
-    //std::cout << "selector_sharedApplication == " << sel_getName(selector_sharedApplication) << std::endl;
-    
-    id sharedApplication = ((id (*)(id, SEL))objc_msgSend)((id)nsapp_class, selector_sharedApplication);
-    
-    if (!sharedApplication)
-        return;
-    
-    //std::cout << "sharedApplication == " << sharedApplication << std::endl;
-    //std::cout << std::endl;
-    
-    // Then call setAppearance: on NSApplication to force light mode
-    SEL selector_setAppearance = sel_registerName("setAppearance:");
-    
-    if (!selector_setAppearance)
-        return;
-    
-    //std::cout << "selector_setAppearance == " << sel_getName(selector_setAppearance) << std::endl;
-    //std::cout << std::endl;
-    
-    // -[NSApplication setAppearance:] was added in 10.14, so we need to check availability first
-    if (class_respondsToSelector(nsapp_class, selector_setAppearance))
-        ((void (*)(id, SEL, id))objc_msgSend)(sharedApplication, selector_setAppearance, aquaAppearance);
-}
-#endif
-#endif
-#endif
-
 // This function switches the app to a dark theme, regardless of OS settings.  This is not the same as
 // "dark mode" on macOS, and should probably never be used on macOS; it's for Linux, where getting
 // Qt-based apps to obey the windowing system's preferred theme can be a battle.
@@ -164,9 +61,7 @@ static void linux_ForceDarkMode(void)
         newPalette.setColor(QPalette::WindowText,      QColor(255, 255, 255));
         newPalette.setColor(QPalette::Base,            QColor( 29,  30,  31));
         newPalette.setColor(QPalette::AlternateBase,   QColor(  9,  10,  11));
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 12, 0))
         newPalette.setColor(QPalette::PlaceholderText, QColor(101, 101, 101));
-#endif
         newPalette.setColor(QPalette::Text,            QColor(255, 255, 255));
         newPalette.setColor(QPalette::Button,          QColor( 49,  50,  51));
         newPalette.setColor(QPalette::ButtonText,      QColor(255, 255, 255));
@@ -246,17 +141,6 @@ int main(int argc, char *argv[])
         }
     }
     
-    // On macOS, force light mode appearance.  BCH 1/17/2021: We now try to force light mode only when
-    // compiled against a Qt version earlier than 5.15.2 (since Qt did not support dark mode well prior
-    // to that version).  Since the double-click install version is built against 5.15.2, this should
-    // mean that most macOS users get dark mode support.
-#ifdef __APPLE__
-#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
-#warning Building on macOS with a Qt version less than 5.15.2; dark/light mode may not work correctly
-    //macos_ForceLightMode();
-#endif
-#endif
-    
     // On Linux, force dark mode appearance if the user has chosen that.  This is Linux-only because
     // on macOS we follow the macOS dark mode setting, and Qt largely follows it for us.
 #ifndef __APPLE__
@@ -268,13 +152,11 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
     
-    // On macOS, turn off the automatic quit on last window close, for Qt 5.15.2.
+    // On macOS, turn off the automatic quit on last window close, for Qt 5.15.2 and later.
     // Builds against older Qt versions will just quit on the last window close, because
     // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
     app.setQuitOnLastWindowClosed(false);
-#endif
 #endif
     
     // Parse the command line

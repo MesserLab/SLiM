@@ -115,6 +115,13 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 	// Make space for up to SLIM_MAX_CHROMOSOMES Chromosome objects, but don't make any for now
 	// This prevents the storage underlying chromosomes_ from being reallocated
 	chromosomes_.reserve(SLIM_MAX_CHROMOSOMES);
+	
+	// set up and retain the appropriate default palettes for SLiMgui; the user can change these with Species properties
+	fitness_palette_ = gEidos_Palette_IndividualFitness;
+	fitness_effect_palette_ = gEidos_Palette_MutationFitnessEffect;
+	
+	fitness_palette_->Retain();
+	fitness_effect_palette_->Retain();
 }
 
 Species::~Species(void)
@@ -217,6 +224,17 @@ Species::~Species(void)
 			chromosome->mutation_block_ = nullptr;
 		
 		population_.mutation_block_ = nullptr;
+	}
+	
+	if (fitness_palette_)
+	{
+		fitness_palette_->Release();
+		fitness_palette_ = nullptr;
+	}
+	if (fitness_effect_palette_)
+	{
+		fitness_effect_palette_->Release();
+		fitness_effect_palette_ = nullptr;
 	}
 }
 

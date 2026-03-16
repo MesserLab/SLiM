@@ -685,11 +685,22 @@ enum class MutRunInternalCacheIndex : slim_trait_index_t {};
 #pragma mark -
 #pragma mark Built-in palettes
 #pragma mark -
-    
+
+// These are used for coloring on the "fitness" scale
 extern EidosPalette *gEidos_Palette_IndividualFitness;
-extern EidosPalette *gEidos_Palette_MutationEffect;
-extern EidosPalette *gEidos_Palette_AdditiveTrait;
-extern EidosPalette *gEidos_Palette_MultiplicativeTrait;
+extern EidosPalette *gEidos_Palette_MutationFitnessEffect;
+
+// These are used for coloring on a multiplicative trait scale
+extern EidosPalette *gEidos_Palette_IndividualMultiplicativePhenotype;
+extern EidosPalette *gEidos_Palette_MutationMultiplicativeEffect;
+
+// These are used for coloring on an additive trait scale
+extern EidosPalette *gEidos_Palette_IndividualAdditivePhenotype;
+extern EidosPalette *gEidos_Palette_MutationAdditiveEffect;
+
+// These are used for coloring on a logistic trait scale
+extern EidosPalette *gEidos_Palette_IndividualLogisticPhenotype;
+extern EidosPalette *gEidos_Palette_MutationLogisticEffect;
 
 
 // *******************************************************************************************************************
@@ -838,6 +849,8 @@ extern const std::string &gStr_baselineOffset;
 extern const std::string &gStr_individualOffsetMean;
 extern const std::string &gStr_individualOffsetSD;
 extern const std::string &gStr_directFitnessEffect;
+extern const std::string &gStr_individualPhenotypePalette;
+extern const std::string &gStr_mutationEffectPalette;
 
 extern const std::string &gStr_genomicElements;
 extern const std::string &gStr_lastPosition;
@@ -914,8 +927,11 @@ extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_allSubpopulations;
 extern const std::string &gStr_allTraits;
+
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomes;
+extern const std::string &gStr_fitnessPalette;
+extern const std::string &gStr_fitnessEffectPalette;
 extern const std::string &gStr_genomicElementTypes;
 extern const std::string &gStr_lifetimeReproductiveOutput;
 extern const std::string &gStr_lifetimeReproductiveOutputM;
@@ -1344,6 +1360,8 @@ enum _SLiMGlobalStringID : int {
 	gID_individualOffsetMean,
 	gID_individualOffsetSD,
 	gID_directFitnessEffect,
+	gID_individualPhenotypePalette,
+	gID_mutationEffectPalette,
 	
 	gID_genomicElements,
 	gID_lastPosition,
@@ -1420,9 +1438,12 @@ enum _SLiMGlobalStringID : int {
 	gID_allSpecies,
 	gID_allSubpopulations,
 	gID_allTraits,
+	
 	gID_chromosome,
 	gID_chromosomes,
 	gID_traits,
+	gID_fitnessPalette,
+	gID_fitnessEffectPalette,
 	gID_genomicElementTypes,
 	gID_lifetimeReproductiveOutput,
 	gID_lifetimeReproductiveOutputM,

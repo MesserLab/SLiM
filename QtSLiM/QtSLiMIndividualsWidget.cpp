@@ -375,7 +375,9 @@ void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &
         }
         else
         {
-            RGBForIndividualFitness(fitness, colorRed, colorGreen, colorBlue);
+            Species &species = individual.subpopulation_->species_;
+            
+            species.fitness_palette_->ColorForValue(fitness, colorRed, colorGreen, colorBlue);
         }
     }
     else
@@ -390,10 +392,8 @@ void QtSLiMIndividualsWidget::RGBForIndividual(Trait *displayTrait, Individual &
             *colorGreen = 0.6f;
             *colorBlue = 0.6f;
         }
-        else if (displayTrait->Type() == TraitType::kMultiplicative)
-            RGBForMultiplicativeTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue);
         else
-            RGBForAdditiveTraitValue(ind_phenotype, colorRed, colorGreen, colorBlue);
+            displayTrait->individual_phenotype_palette_->ColorForValue(ind_phenotype, colorRed, colorGreen, colorBlue);
     }
 }
 

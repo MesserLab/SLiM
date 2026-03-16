@@ -281,7 +281,7 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
 
 void QtSLiMWindow::init(void)
 {
-    // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
+    // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2 and later.
     // However, Qt's treatment of the menu bar seems to be a bit buggy unless a main window exists.
     // That main window can be hidden; it just needs to exist.  So here we just allow our main
     // window(s) to leak,so that Qt is happy.  This sucks, obviously, but really it seems unlikely
@@ -290,11 +290,7 @@ void QtSLiMWindow::init(void)
     // Builds against older Qt versions will just quit on the last window close, because
     // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
-    // no set of the attribute on Qt 5.15.2; we will *not* delete on close
-#else
-    setAttribute(Qt::WA_DeleteOnClose);
-#endif
+    // no set of the attribute on Qt 5.15.2 and later; we will *not* delete on close
 #else
     setAttribute(Qt::WA_DeleteOnClose);
 #endif
@@ -1141,16 +1137,14 @@ void QtSLiMWindow::closeEvent(QCloseEvent *p_event)
             emit playStateChanged();
         }
         
-        // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
+        // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2 and later.
         // In that case, we no longer get freed when we close, because we need to stick around
         // to make the global menubar work; see QtSLiMWindow::init().  So when we're closing,
         // we now free up the resources we hold and mark ourselves as a zombie window.
         // Builds against older Qt versions will just quit on the last window close, because
         // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
         invalidateUI();
-#endif
 #endif
     }
     else
@@ -3947,20 +3941,10 @@ void QtSLiMWindow::displayProfileResults(void)
     menlo11_d.setForeground(Qt::black);
     
     // Adjust the tab width to the monospace font we have chosen
-    double tabWidth = 0;
     QFontMetricsF fm(menlo11);
+    double tabWidth = fm.horizontalAdvance("   ");
     
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-    tabWidth = fm.width("   ");                // deprecated in 5.11
-#else
-    tabWidth = fm.horizontalAdvance("   ");    // added in Qt 5.11
-#endif
-    
-#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
-    textEdit->setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
-#else
-    textEdit->setTabStopDistance(tabWidth);               // added in 5.10
-#endif
+    textEdit->setTabStopDistance(tabWidth);
     
     // Build the report attributed string
     QDateTime profileStartDate = QDateTime::fromSecsSinceEpoch(community->profile_start_date);
