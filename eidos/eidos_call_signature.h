@@ -54,19 +54,21 @@ public:
 	std::string call_name_;
 	EidosGlobalStringID call_id_;
 	
-	EidosValueMask return_mask_;						// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
-	const EidosClass *return_class_;					// optional type-check for object returns; used only if the return is an object and this is not nullptr
+	EidosValueMask return_mask_;							// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
+	const EidosClass *return_class_;						// optional type-check for object returns; used only if the return is an object and this is not nullptr
 	
-	std::vector<EidosValueMask> arg_masks_;				// the expected types for each argument, as a mask
-	std::vector<std::string> arg_names_;				// the argument names as std::strings; will be gEidosStr_ELLIPSIS for an ellipsis argument
-	std::vector<EidosGlobalStringID> arg_name_IDs_;		// the argument names as EidosGlobalStringIDs, allowing fast argument list processing; will be gEidosID_ELLIPSIS for an ellipsis argument
-	std::vector<const EidosClass *> arg_classes_;		// the expected object classes for each argument; nullptr unless the argument is object type and specified an element type
-	std::vector<EidosValue_SP> arg_defaults_;			// default values for each argument; will be nullptr for required arguments
+	std::vector<EidosValueMask> arg_masks_;					// the expected types for each argument, as a mask
+	std::vector<std::string> arg_names_;					// the argument names as std::strings; will be gEidosStr_ELLIPSIS for an ellipsis argument
+	std::vector<EidosGlobalStringID> arg_name_IDs_;			// the argument names as EidosGlobalStringIDs, allowing fast argument list processing; will be gEidosID_ELLIPSIS for an ellipsis argument
+	std::vector<const EidosClass *> arg_classes_;			// the expected object classes for each argument; nullptr unless the argument is object type and specified an element type
+	std::vector<EidosValue_SP> arg_defaults_;				// default values for each argument; will be nullptr for required arguments
 	
-	bool has_optional_args_ = false;					// if true, at least one optional argument has been added
-	bool has_ellipsis_ = false;							// if true, the function accepts arbitrary varargs at some point in its signature (given in the arg vectors above)
+	bool has_optional_args_ = false;						// if true, at least one optional argument has been added
 	
-	bool deprecated_ = false;							// if true, the API represented by this signature has been deprecated
+	bool has_ellipsis_ = false;								// if true, the function accepts arbitrary varargs at some point in its signature (given in the arg vectors above)
+	std::vector<EidosCallSignature *> ellipsis_variants_;	// OWNED POINTERS: a vector of allowed variants for the ellipsis; if empty, the ellipsis allows anything (although the imp might impose restrictions)
+	
+	bool deprecated_ = false;								// if true, the API represented by this signature has been deprecated
 	
 	EidosCallSignature(const EidosCallSignature&) = delete;					// no copying
 	EidosCallSignature& operator=(const EidosCallSignature&) = delete;		// no copying
@@ -80,7 +82,12 @@ public:
 	// instead, callers will have to cast back to the correct subclass type
 	EidosCallSignature *AddArg(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosClass *p_argument_class);
 	EidosCallSignature *AddArgWithDefault(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value, bool p_fault_tolerant=false);
+	
+	// call signatures can have an ellipsis that allows arbitrary arguments; and signatures with an ellipsis can have "ellipsis variants"
+	// that are the only variants allowed for the ellipsis, and are type-checked; see defineSpatialMap() for an example of this pattern,
+	// and see _ProcessArgumentList_CREATE() for the code path where these ellipsis variants are handled at function/method dispatch
 	EidosCallSignature *AddEllipsis(void);
+	EidosCallSignature *AddEllipsisVariant(EidosCallSignature *p_variant);	// takes ownership of the passed object
 	
 	// vanilla type-specified arguments
 	EidosCallSignature *AddLogical(const std::string &p_argument_name);

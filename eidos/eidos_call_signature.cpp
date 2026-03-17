@@ -198,6 +198,19 @@ EidosCallSignature *EidosCallSignature::AddEllipsis(void)
 	return this;
 }
 
+EidosCallSignature *EidosCallSignature::AddEllipsisVariant(EidosCallSignature *p_variant)
+{
+	if (!has_ellipsis_)
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsisVariant): ellipsis variants cannot be added unless the base signature has an ellipsis." << EidosTerminate(nullptr);
+	
+	if (p_variant->has_ellipsis_)
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsisVariant): ellipsis variants cannot themselves contain an ellipsis." << EidosTerminate(nullptr);
+	
+	ellipsis_variants_.push_back(p_variant);	// we take ownership of this object
+	
+	return this;
+}
+
 EidosCallSignature *EidosCallSignature::AddLogical(const std::string &p_argument_name)			{ return AddArg(kEidosValueMaskLogical, p_argument_name, nullptr); }
 EidosCallSignature *EidosCallSignature::AddInt(const std::string &p_argument_name)				{ return AddArg(kEidosValueMaskInt, p_argument_name, nullptr); }
 EidosCallSignature *EidosCallSignature::AddFloat(const std::string &p_argument_name)			{ return AddArg(kEidosValueMaskFloat, p_argument_name, nullptr); }

@@ -1176,7 +1176,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 	std::vector<uint8_t> &no_fill_index = argument_cache->no_fill_index_;
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
-	std::vector<uint8_t> filled_explicitly;		// locally, we need a vector that tells us whether an index was filed explicitly or by default
+	std::vector<uint8_t> filled_explicitly;		// locally, we need a vector that tells us whether an index was filled explicitly or by default
 	
 	// Run through the argument nodes, reserve space for them in the arguments buffer, and evaluate default/constant values once for all calls
 	auto node_children_end = node_children.end();
@@ -1426,6 +1426,155 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 		
 		sig_arg_index++;
 	}
+}
+
+std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
+{
+	EidosASTNode_ArgumentCache *argument_cache = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+	
+#if DEBUG
+	if (argument_cache)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList_CREATE): (internal) argument cache exists." << EidosTerminate(nullptr);
+#endif
+	
+	std::vector<EidosValue_SP> *argument_buffer = nullptr;
+	
+	// We don't already have an argument cache, so create one and use it
+	
+	// If the call has an ellipsis and variants, find the variant that applies and switch to it
+	// The first variant that the call complies with is the variant that is used to generate the argument cache
+	// Note that this is a modification of the main path for _ProcessArgumentList_CREATE(), but inside a loop!
+	// See the main code path for comments; comments here will only note differences from the main path.
+	if (p_call_signature->has_ellipsis_ && (p_call_signature->ellipsis_variants_.size() > 0))
+	{
+		// We want to throw exceptions, even in SLiM, so that we can catch them here
+		bool save_throws = gEidosTerminateThrows;
+		
+		// a vector of evaluated arguments that is filled lazily; this is necessary because we only want to
+		// evaluate the arguments once, and only *after* we find an otherwise viable candidate signature
+		std::vector<EidosValue_SP> evaluated_arguments;
+		
+		for (EidosCallSignature *variant_signature : p_call_signature->ellipsis_variants_)
+		{
+			gEidosTerminateThrows = true;
+			
+			try {
+				_CreateArgumentList(p_node, variant_signature);
+			}
+			catch (...)		// NOLINT(*-empty-catch) : intentional empty catch
+			{
+				// if an error is caught, we just move silently on to trying the next variant; but we
+				// need to clean up the mess we made above first, to reset to the uninitialized state
+				free(p_node->argument_cache_);
+				p_node->argument_cache_ = nullptr;
+				
+				// clean up the error state since we don't want this throw to be reported
+				gEidosTermination.clear();
+				gEidosTermination.str("");
+				gEidosTerminateThrows = save_throws;
+				continue;
+			}
+			
+			gEidosTerminateThrows = save_throws;
+			
+			argument_cache = p_node->argument_cache_;
+			assert(argument_cache);
+			argument_buffer = &argument_cache->argument_buffer_;
+			argument_cache->argument_buffer_in_use_ = true;
+			
+			// now fill arguments, which might or might not have already been evaluated; we might
+			// evaluate two arguments and then fail the typecheck, loop to the next variant, and
+			// try again, in which case two arguments will have been evaluated and cached so far
+			std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+			size_t fill_info_index = 0;
+			
+			for (const EidosASTNode_ArgumentFill &fill : fill_info)
+			{
+				EidosValue_SP arg_value;
+				
+				if (fill_info_index < evaluated_arguments.size())
+				{
+					// we have this argument cached already, from a previous (rejected) variant
+					arg_value = evaluated_arguments[fill_info_index];
+				}
+				else
+				{
+					// we do not have this argument cached already, so evaluate and cache it; note that
+					// this can raise, and we don't catch it; if evaluating an argument raises, that is
+					// an error that has nothing to do with variants, and should be shown to the user
+					arg_value = FastEvaluateNode(fill.fill_node_);
+					
+					evaluated_arguments.push_back(arg_value);	// takes its own shared pointer
+				}
+				
+				gEidosTerminateThrows = true;
+				
+				try {
+					variant_signature->CheckArgument(arg_value.get(), fill.signature_index_);
+				}
+				catch (...)		// NOLINT(*-empty-catch) : intentional empty catch
+				{
+					// if an error is caught, we just move silently on to trying the next variant; but we
+					// need to clean up the mess we made above first, to reset to the uninitialized state
+					free(p_node->argument_cache_);
+					p_node->argument_cache_ = nullptr;
+					argument_cache = nullptr;
+					argument_buffer = nullptr;
+					
+					// clean up the error state since we don't want this throw to be reported
+					gEidosTermination.clear();
+					gEidosTermination.str("");
+					gEidosTerminateThrows = save_throws;
+					goto tryNextVariant;	// can't use continue because we're in a nested loop
+				}
+				
+				gEidosTerminateThrows = save_throws;
+				
+				(*argument_buffer)[fill.fill_index_] = std::move(arg_value);
+				fill_info_index++;
+			}
+			
+#if DEBUG
+			variant_signature->CheckArguments(*argument_buffer);
+#endif
+			
+			return argument_buffer;
+			
+		tryNextVariant:
+			;
+		}
+		
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): the arguments of the call to " << p_call_signature->call_name_ << "() did not match any of its defined variants.  Check the signature of the variant of " << p_call_signature->call_name_ << "() that you intend to call." << EidosTerminate(nullptr);
+	}
+	
+	// This is the main code path, for a signature without ellipsis variants
+	_CreateArgumentList(p_node, p_call_signature);
+	argument_cache = p_node->argument_cache_;
+	assert(argument_cache);		// static analyzer doesn't understand that _CreateArgumentList() created the cache
+	argument_buffer = &argument_cache->argument_buffer_;
+	argument_cache->argument_buffer_in_use_ = true;
+	
+	std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+	
+	// Now our argument cache is all ready to use; we just need to fill and type-check arguments
+	for (const EidosASTNode_ArgumentFill &fill : fill_info)
+	{
+		// Get the argument value by evaluating the AST node responsible for providing it
+		EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
+		
+		// Type-check the value; note that default/constant arguments are type-checked during signature construction
+		p_call_signature->CheckArgument(arg_value.get(), fill.signature_index_);
+		
+		// Move the argument value into the argument buffer
+		(*argument_buffer)[fill.fill_index_] = std::move(arg_value);
+	}
+	
+	// call CheckArguments() to double-check for errors when in DEBUG; this can be removed eventually, it's just for the transition to the new argument buffers
+#if DEBUG
+	p_call_signature->CheckArguments(*argument_buffer);
+#endif
+	
+	return argument_buffer;
 }
 
 EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments)

@@ -182,23 +182,18 @@ public:
 	// calls; slow, but presumably an edge case for typical code.  If Eidos interpretation is ever made multithreaded,
 	// the argument_buffer_in_use_ flag will need to be governed by a lock.
 	void _CreateArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature);
+	std::vector<EidosValue_SP> *_ProcessArgumentList_CREATE(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature);
 	
-	std::vector<EidosValue_SP> *_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
+	inline std::vector<EidosValue_SP> *_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
 	{
 		EidosASTNode_ArgumentCache *argument_cache = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+		
+		if (!argument_cache)
+			return _ProcessArgumentList_CREATE(p_node, p_call_signature);
+		
 		std::vector<EidosValue_SP> *argument_buffer = nullptr;
 		
-		// Allocate and configure an argument cache struct if we don't already have one
-		if (!argument_cache)
-		{
-			// We don't already have an argument cache, so create one and use it
-			_CreateArgumentList(p_node, p_call_signature);
-			argument_cache = p_node->argument_cache_;
-			assert(argument_cache);		// static analyzer doesn't understand that _CreateArgumentList() created the cache
-			argument_buffer = &argument_cache->argument_buffer_;
-			argument_cache->argument_buffer_in_use_ = true;
-		}
-		else if (argument_cache->argument_buffer_in_use_)
+		if (argument_cache->argument_buffer_in_use_)
 		{
 			// We have an argument cache, but its argument buffer is already in use, so make a new temporary one
 			argument_buffer = new std::vector<EidosValue_SP>;
