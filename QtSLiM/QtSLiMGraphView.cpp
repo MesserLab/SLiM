@@ -2407,7 +2407,7 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
                 r = 0.25; g = 0.25; b = 1.0;  // a special "no value" color for the 2D SFS plot
             }
             else
-                Eidos_ColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
+				EidosColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
             
             painter.fillRect(patchRect, QtSLiMColorWithRGB(r, g, b, 1.0));
         }

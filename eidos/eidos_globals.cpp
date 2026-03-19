@@ -74,7 +74,7 @@
 // for _Eidos_FlushZipBuffer()
 #include "../eidos_zlib/zlib.h"
 
-// for Eidos_ColorPaletteLookup()
+// for EidosColorPaletteLookup()
 #include "eidos_tinycolormap.h"
 
 //Replace some functions with their gnulib equivalents on Windows
@@ -3499,6 +3499,16 @@ bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &su
 	}
 }
 
+std::string Eidos_string_getRemainder(std::string const &fullString, std::string const &substr)
+{
+	size_t pos = fullString.find(substr);
+	
+	if (pos != std::string::npos)
+		return fullString.substr(pos + substr.length());
+	
+	return fullString;	// return the original string if the substring wasn't found
+}
+
 // case-insensitive string find and string equality; see https://stackoverflow.com/a/19839371/2752221
 bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle)
 {
@@ -5201,7 +5211,7 @@ void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, doubl
 	*p_v = v;
 }
 
-EidosColorPalette Eidos_PaletteForName(const std::string &name)
+EidosColorPalette EidosColorPaletteForName(const std::string &name)
 {
 	if (name == "cm")				return EidosColorPalette::kPalette_cm;
 	else if (name == "heat")		return EidosColorPalette::kPalette_heat;
@@ -5219,7 +5229,7 @@ EidosColorPalette Eidos_PaletteForName(const std::string &name)
 	else							return EidosColorPalette::kPalette_INVALID;
 }
 
-void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b)
+void EidosColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b)
 {
 	if (fraction < 0.0) fraction = 0.0;
 	if (fraction > 1.0) fraction = 1.0;
@@ -5336,7 +5346,7 @@ void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (Eidos_ColorPaletteLookup): unrecognized color palette in Eidos_ColorPaletteLookup()." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosColorPaletteLookup): unrecognized color palette in EidosColorPaletteLookup()." << EidosTerminate(nullptr);
 	}
 }
 

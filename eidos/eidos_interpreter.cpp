@@ -1453,9 +1453,18 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 		// a vector of evaluated arguments that is filled lazily; this is necessary because we only want to
 		// evaluate the arguments once, and only *after* we find an otherwise viable candidate signature
 		std::vector<EidosValue_SP> evaluated_arguments;
+		const std::vector<EidosCallSignature *> &ellipsis_variants = p_call_signature->ellipsis_variants_;
+		size_t variant_count = ellipsis_variants.size();
+		std::string variant_errors;		// accumulates error messages from variants that are rejected
 		
-		for (EidosCallSignature *variant_signature : p_call_signature->ellipsis_variants_)
+		variant_errors = "ERROR (EidosInterpreter::_ProcessArgumentList): the arguments of the call to ";
+		variant_errors += p_call_signature->call_name_;
+		variant_errors += "() did not match any of its defined variants:\n";
+		
+		for (size_t variant_index = 0; variant_index < variant_count; ++variant_index)
 		{
+			EidosCallSignature *variant_signature = ellipsis_variants[variant_index];
+			
 			gEidosTerminateThrows = true;
 			
 			try {
@@ -1467,6 +1476,12 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 				// need to clean up the mess we made above first, to reset to the uninitialized state
 				free(p_node->argument_cache_);
 				p_node->argument_cache_ = nullptr;
+				
+				// accumulate the error message for this variant into variant_errors
+				variant_errors += "\nvariant ";
+				variant_errors += std::to_string(variant_index);
+				variant_errors += ": ";
+				variant_errors += Eidos_string_getRemainder(gEidosTermination.str(), "): ");
 				
 				// clean up the error state since we don't want this throw to be reported
 				gEidosTermination.clear();
@@ -1521,6 +1536,12 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 					argument_cache = nullptr;
 					argument_buffer = nullptr;
 					
+					// accumulate the error message for this variant into variant_errors
+					variant_errors += "\nvariant ";
+					variant_errors += std::to_string(variant_index);
+					variant_errors += ": ";
+					variant_errors += Eidos_string_getRemainder(gEidosTermination.str(), "): ");
+					
 					// clean up the error state since we don't want this throw to be reported
 					gEidosTermination.clear();
 					gEidosTermination.str("");
@@ -1544,7 +1565,9 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 			;
 		}
 		
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): the arguments of the call to " << p_call_signature->call_name_ << "() did not match any of its defined variants.  Check the signature of the variant of " << p_call_signature->call_name_ << "() that you intend to call." << EidosTerminate(nullptr);
+		if (Eidos_string_hasSuffix(variant_errors, "\n"))
+			variant_errors.pop_back();
+		EIDOS_TERMINATION << variant_errors << EidosTerminate(nullptr);
 	}
 	
 	// This is the main code path, for a signature without ellipsis variants

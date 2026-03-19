@@ -6742,8 +6742,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					else if (map.spatiality_ == 3)
 						p_usage->subpopulationSpatialMaps += map.grid_size_[0] * map.grid_size_[1] * map.grid_size_[2] * sizeof(double);
 				}
-				if (map.red_components_)
-					p_usage->subpopulationSpatialMaps += map.n_colors_ * sizeof(float) * 3;
+				// FIXME we skip adding in the memory usage of palette_, which should be counted...
 #if defined(SLIMGUI)
 				if (map.display_buffer_)
 					p_usage->subpopulationSpatialMapsDisplay += (size_t)map.buffer_width_ * (size_t)map.buffer_height_ * sizeof(uint8_t) * 3;

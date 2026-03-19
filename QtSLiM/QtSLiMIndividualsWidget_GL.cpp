@@ -330,7 +330,6 @@ void QtSLiMIndividualsWidget::_glDrawBackgroundSpatialMap(SpatialMap *background
                 int64_t xsize = background_map->grid_size_[0];
                 int64_t ysize = background_map->grid_size_[1];
                 double *values = background_map->values_;
-                int n_colors = background_map->n_colors_;
                 
                 for (int yc = 0; yc < ysize; yc++)
                 {
@@ -352,28 +351,12 @@ void QtSLiMIndividualsWidget::_glDrawBackgroundSpatialMap(SpatialMap *background
                         if (left < bounds_x1) left = bounds_x1;
                         if (right > bounds_x2) right = bounds_x2;
                         
-                        float value_fraction = (background_map->colors_min_ < background_map->colors_max_) ? static_cast<float>((value - background_map->colors_min_) / (background_map->colors_max_ - background_map->colors_min_)) : 0.0f;
-                        float color_index = value_fraction * (n_colors - 1);
-                        int color_index_1 = static_cast<int>(floorf(color_index));
-                        int color_index_2 = static_cast<int>(ceilf(color_index));
+                        float rgb[3];
+                        background_map->ColorForValue(value, rgb);
                         
-                        if (color_index_1 < 0) color_index_1 = 0;
-                        if (color_index_1 >= n_colors) color_index_1 = n_colors - 1;
-                        if (color_index_2 < 0) color_index_2 = 0;
-                        if (color_index_2 >= n_colors) color_index_2 = n_colors - 1;
-                        
-                        float color_2_weight = color_index - color_index_1;
-                        float color_1_weight = 1.0f - color_2_weight;
-                        
-                        float red1 = background_map->red_components_[color_index_1];
-                        float green1 = background_map->green_components_[color_index_1];
-                        float blue1 = background_map->blue_components_[color_index_1];
-                        float red2 = background_map->red_components_[color_index_2];
-                        float green2 = background_map->green_components_[color_index_2];
-                        float blue2 = background_map->blue_components_[color_index_2];
-                        float colorRed = red1 * color_1_weight + red2 * color_2_weight;
-                        float colorGreen = green1 * color_1_weight + green2 * color_2_weight;
-                        float colorBlue = blue1 * color_1_weight + blue2 * color_2_weight;
+                        float colorRed = rgb[0];
+                        float colorGreen = rgb[1];
+                        float colorBlue = rgb[2];
                         float colorAlpha = 1.0;
                         
                         //glColor3f(red, green, blue);

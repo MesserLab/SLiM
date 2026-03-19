@@ -1645,9 +1645,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapValue('map', 9.0) == 3.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D x map
@@ -1683,9 +1683,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapValue('map', 9.0) == 3.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D z map
@@ -1721,9 +1721,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapValue('map', 9.0) == 3.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 2D xz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
@@ -1803,9 +1803,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapValue('map', c(9.0, 1.0)) == 5.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 3D xyz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
@@ -1882,9 +1882,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapValue('map', c(1.0, 1.0, 1.0)) == 11.0) stop(); }", __LINE__);
 
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 }
 

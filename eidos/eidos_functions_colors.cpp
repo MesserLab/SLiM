@@ -55,7 +55,7 @@ EidosValue_SP Eidos_ExecuteFunction_cmColors(const std::vector<EidosValue_SP> &p
 		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
 		double red, green, blue;
 		
-		Eidos_ColorPaletteLookup(fraction, EidosColorPalette::kPalette_cm, red, green, blue);
+		EidosColorPaletteLookup(fraction, EidosColorPalette::kPalette_cm, red, green, blue);
 		Eidos_GetColorString(red, green, blue, hex_chars);
 		string_result->PushString(std::string(hex_chars));
 	}
@@ -71,7 +71,7 @@ EidosValue_SP Eidos_ExecuteFunction_colors(const std::vector<EidosValue_SP> &p_a
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue_String *name_value = (EidosValue_String *)p_arguments[1].get();
 	const std::string &name = name_value->StringRefAtIndex_NOCAST(0, nullptr);
-	EidosColorPalette palette = Eidos_PaletteForName(name);
+	EidosColorPalette palette = EidosColorPaletteForName(name);
 	char hex_chars[8];
 	
 	if (palette == EidosColorPalette::kPalette_INVALID)
@@ -95,7 +95,7 @@ EidosValue_SP Eidos_ExecuteFunction_colors(const std::vector<EidosValue_SP> &p_a
 			double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
 			double red, green, blue;
 			
-			Eidos_ColorPaletteLookup(fraction, palette, red, green, blue);
+			EidosColorPaletteLookup(fraction, palette, red, green, blue);
 			
 			Eidos_GetColorString(red, green, blue, hex_chars);
 			string_result->PushString(std::string(hex_chars));
@@ -112,7 +112,7 @@ EidosValue_SP Eidos_ExecuteFunction_colors(const std::vector<EidosValue_SP> &p_a
 			double fraction = x_value->FloatAtIndex_NOCAST(value_index, nullptr);
 			double red, green, blue;
 			
-			Eidos_ColorPaletteLookup(fraction, palette, red, green, blue);
+			EidosColorPaletteLookup(fraction, palette, red, green, blue);
 			
 			Eidos_GetColorString(red, green, blue, hex_chars);
 			string_result->PushString(std::string(hex_chars));
@@ -182,7 +182,7 @@ EidosValue_SP Eidos_ExecuteFunction_heatColors(const std::vector<EidosValue_SP> 
 		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
 		double red, green, blue;
 		
-		Eidos_ColorPaletteLookup(fraction, EidosColorPalette::kPalette_heat, red, green, blue);
+		EidosColorPaletteLookup(fraction, EidosColorPalette::kPalette_heat, red, green, blue);
 		Eidos_GetColorString(red, green, blue, hex_chars);
 		string_result->PushString(std::string(hex_chars));
 	}
@@ -385,7 +385,7 @@ EidosValue_SP Eidos_ExecuteFunction_terrainColors(const std::vector<EidosValue_S
 		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
 		double red, green, blue;
 		
-		Eidos_ColorPaletteLookup(fraction, EidosColorPalette::kPalette_terrain, red, green, blue);
+		EidosColorPaletteLookup(fraction, EidosColorPalette::kPalette_terrain, red, green, blue);
 		Eidos_GetColorString(red, green, blue, hex_chars);
 		string_result->PushString(std::string(hex_chars));
 	}

@@ -106,6 +106,57 @@ EidosPalette::EidosPalette(std::vector<double> &&values, std::vector<std::string
 	}
 }
 
+EidosPalette::EidosPalette(EidosValue *p_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name)
+{
+	// this constructor is used internally for defineSpatialMap() and similar; the two EidosValues passed
+	// in should conform to [if valueRange = NULL], [s colors = NULL] (the NULL case chould be handled by
+	// the caller, since that means that a Palette object is not being requested).
+	EidosValueType range_type = p_range->Type();
+	EidosValueType colors_type = p_colors->Type();
+	int range_count = p_range->Count();
+	int colors_count = p_colors->Count();
+	
+	if ((range_type != EidosValueType::kValueInt) && (range_type != EidosValueType::kValueFloat))
+		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): (internal error) " << p_eidos_name << " valueRange must be type integer or float." << EidosTerminate();
+	if (range_count != 2)
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " valueRange must be exactly length 2 (giving the min and max value for the palette)." << EidosTerminate();
+	
+	if (colors_type != EidosValueType::kValueString)
+		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): (internal error) " << p_eidos_name << " colors must be type string." << EidosTerminate();
+	if (colors_count < 2)
+		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " colors must be of length >= 2." << EidosTerminate();
+	
+	// valueRange and colors were provided, so use them for coloring
+	double range_min_ = p_range->NumericAtIndex_NOCAST(0, nullptr);
+	double range_max_ = p_range->NumericAtIndex_NOCAST(1, nullptr);
+	
+	if (!std::isfinite(range_min_) || !std::isfinite(range_max_) || (range_min_ > range_max_))
+		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " valueRange must be finite, and min <= max is required." << EidosTerminate();
+	
+	const std::string *colors_vec_ptr = p_colors->StringData();
+	
+	for (int colors_index = 0; colors_index < colors_count; ++colors_index)
+	{
+		double value = range_min_ + (range_max_ - range_min_) * (colors_index / (double)(colors_count - 1));
+		double r, g, b;
+		
+		Eidos_GetColorComponents(colors_vec_ptr[colors_index], &r, &g, &b);
+		
+		if (colors_index == 0)
+		{
+			range_start_ = value;
+			range_end_ = value;
+			
+			// emplace the first node directly, since AddNode() would bounds-check us
+			nodes_.emplace_back(value, r, g, b, PaletteTransition::kUndefined, PaletteBlend::kUndefined);
+		}
+		else
+		{
+			AddNode(value, r, g, b, PaletteTransition::kLinear, PaletteBlend::kRGB);
+		}
+	}
+}
+
 EidosPalette::~EidosPalette(void)
 {
 	if (cached_colors_)

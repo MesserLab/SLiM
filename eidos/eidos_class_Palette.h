@@ -116,6 +116,7 @@ public:
 	
 	EidosPalette(double value, double r, double g, double b);
 	EidosPalette(std::vector<double> &&values, std::vector<std::string> &&colors, PaletteTransition transition, PaletteBlend blend);
+	EidosPalette(EidosValue *p_value_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name);
 	virtual ~EidosPalette(void) override;
 	
 	EidosPalette *AddNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend);

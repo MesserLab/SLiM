@@ -80,11 +80,8 @@ public:
 	bool interpolate_;					// if true, the map will interpolate values; otherwise, nearest-neighbor
 	double values_min_, values_max_;	// min/max of values_; re-evaluated every time our data changes
 	
-	int n_colors_ = 0;						// the number of color values given to map across the min/max value range
-	double colors_min_, colors_max_;	// min/max for our color gradient
-	float *red_components_ = nullptr;	// OWNED POINTER: red components, n_colors_ in size, from min to max value
-	float *green_components_ = nullptr;	// OWNED POINTER: green components, n_colors_ in size, from min to max value
-	float *blue_components_ = nullptr;	// OWNED POINTER: blue components, n_colors_ in size, from min to max value
+	EidosPalette *palette_ = nullptr;	// OWNED POINTER: the palette used to color the map; if nullptr, grayscale is used
+	double colors_min_, colors_max_;	// min/max for our color gradient; used only when palette_ == nullptr
 	
 #if defined(SLIMGUI)
 	// This cache is for SLiMgui's individuals display
@@ -101,11 +98,10 @@ public:
 	SpatialMap(const SpatialMap&) = delete;													// no copying
 	SpatialMap& operator=(const SpatialMap&) = delete;										// no copying
 	SpatialMap(void) = delete;																// no null construction
-	SpatialMap(std::string p_name, std::string p_spatiality_string, Subpopulation *p_subpop, EidosValue *p_values, bool p_interpolate, EidosValue *p_value_range, EidosValue *p_colors);
+	SpatialMap(std::string p_name, std::string p_spatiality_string, Subpopulation *p_subpop, EidosValue *p_values, bool p_interpolate, EidosPalette *p_palette);
 	SpatialMap(std::string p_name, SpatialMap &p_original);
 	~SpatialMap(void);
 	
-	void TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name);
 	void TakeValuesFromEidosValue(EidosValue *p_values, const std::string &p_code_name, const std::string &p_eidos_name);
 	void TakeOverMallocedValues(double *p_values, int64_t p_dimcount, int64_t *p_dimensions);
 	bool IsCompatibleWithSubpopulation(Subpopulation *p_subpop);

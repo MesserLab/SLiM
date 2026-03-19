@@ -841,6 +841,8 @@ std::vector<std::string> Eidos_string_split(const std::string &p_str, const std:
 std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim);
 bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &prefix);
 bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix);
+std::string Eidos_string_getRemainder(std::string const &fullString, std::string const &substr);
+
 bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle);
 bool Eidos_string_equalsCaseInsensitive(const std::string &s1, const std::string &s2);
 
@@ -1450,6 +1452,8 @@ void Eidos_GetColorString(uint8_t p_red, uint8_t p_green, uint8_t p_blue, char *
 void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, double *p_b);
 void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v);
 
+// EidosColorPalette wraps basic color palette functionality provided by tinycolormap;
+// see eidos_tinycolormap.h.  This should not be confused with EidosPalette.
 enum class EidosColorPalette : int
 {
 	kPalette_INVALID = -1,
@@ -1468,9 +1472,8 @@ enum class EidosColorPalette : int
 	kPalette_cividis,
 };
 
-EidosColorPalette Eidos_PaletteForName(const std::string &name);
-
-void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b);
+EidosColorPalette EidosColorPaletteForName(const std::string &name);
+void EidosColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b);
 
 
 // *******************************************************************************************************************

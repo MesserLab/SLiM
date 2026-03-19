@@ -985,7 +985,7 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
         colors_name = colors_value->StringAtIndex_NOCAST(0, nullptr);
     }
     
-    EidosColorPalette palette = Eidos_PaletteForName(colors_name);
+    EidosColorPalette palette = EidosColorPaletteForName(colors_name);
     
     if (palette == EidosColorPalette::kPalette_INVALID)
         EIDOS_TERMINATION << "ERROR (Plot::matrix): unrecognized color palette name in matrix()." << EidosTerminate(nullptr);
@@ -1045,7 +1045,7 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
                 
                 double red, green, blue;
                 
-                Eidos_ColorPaletteLookup(value, palette, red, green, blue);
+				EidosColorPaletteLookup(value, palette, red, green, blue);
                 
                 uint8_t r_i = round(red * 255.0);
                 uint8_t g_i = round(green * 255.0);
@@ -1082,7 +1082,7 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
                 
                 double red, green, blue;
                 
-                Eidos_ColorPaletteLookup(value, palette, red, green, blue);
+				EidosColorPaletteLookup(value, palette, red, green, blue);
                 
                 uint8_t r_i = round(red * 255.0);
                 uint8_t g_i = round(green * 255.0);

@@ -8861,48 +8861,71 @@ One possibility is that
 \f4\fs20  is blended with the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)changeColors([Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \'96\'a0(void)changeColors(...)\
+\pard\pardeftab720\li547\fi173\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Changes the color scheme for the target spatial map.  The meaning of 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  are identical to their meaning in 
+\f1\i\fs20 \cf2 variant 1:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL]
+\f4\fs20 \
+
+\f1\i variant 2:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 [No<Palette>$\'a0palette\'a0=\'a0NULL]
+\f4\fs20 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Changes the palette used to color the target spatial map.  This method supports two call variants, described below.\
+First of all, for either variant one can pass 
+\f3\fs18 NULL
+\f4\fs20  for the ellipsis parameters, or simply omit them (since their default values are 
+\f3\fs18 NULL
+\f4\fs20 ).  Doing this removes any palette currently configured for the spatial map, reverting to the default grayscale ramp as described further in the documentation for 
 \f3\fs18 defineSpatialMap()
-\f4\fs20 , but are also described here.\
-The 
+\f4\fs20 .\
+Assuming that non-
+\f3\fs18 NULL
+\f4\fs20  values are passed for the ellipsis parameters, then:\
+The first variant takes 
 \f3\fs18 valueRange
 \f4\fs20  and 
 \f3\fs18 colors
-\f4\fs20  parameters travel together; either both are 
-\f3\fs18 NULL
-\f4\fs20 , or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
-\f3\fs18 mapColor()
-\f4\fs20  method.  The 
+\f4\fs20  parameters that are used to specify the palette.  The 
 \f3\fs18 valueRange
-\f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
-\f3\fs18 colors
-\f4\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
-\f3\fs18 valueRange
-\f4\fs20 : values less than or equal to 
+\f4\fs20  parameter must be of length 2, providing the start and end values spanned by the palette; as such, 
 \f3\fs18 valueRange[0]
-\f4\fs20  will map to 
-\f3\fs18 colors[0]
-\f4\fs20 , values greater than or equal to 
+\f4\fs20  must be less than 
 \f3\fs18 valueRange[1]
-\f4\fs20  will map to the last 
+\f4\fs20 .  The 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes for an illustration of its use.\
-If 
-\f3\fs18 valueRange
-\f4\fs20  and 
+\f4\fs20  parameter must be of length 1 or greater, and must be composed of color strings.  The palette will be constructed with the first color of 
 \f3\fs18 colors
-\f4\fs20  are both 
-\f3\fs18 NULL
-\f4\fs20 , a default grayscale color scheme will be used in SLiMgui, but an error will result if 
-\f3\fs18 mapColor()
-\f4\fs20  is called.\
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[0]
+\f4\fs20 , the last color of 
+\f3\fs18 colors
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[1]
+\f4\fs20 , and the remaining colors, if any, used for nodes equally spaced between those two endpoints, in the order in which the colors were specified.  A transition of 
+\f3\fs18 "linear"
+\f4\fs20  and a blend of 
+\f3\fs18 "rgb"
+\f4\fs20  will be used.  This variant is provided for backward compatibility with versions of SLiM prior to the introduction of the 
+\f3\fs18 Palette
+\f4\fs20  class.\
+The second variant simply takes a 
+\f3\fs18 palette
+\f4\fs20  parameter that provides the 
+\f3\fs18 Palette
+\f4\fs20  object for the spatial map to use.\
+The Eidos manual\'92s documentation for the 
+\f3\fs18 Palette
+\f4\fs20  class provides background information on how palettes work, how to create a new 
+\f3\fs18 Palette
+\f4\fs20  object, and so forth.  Similarly, the Eidos manual\'92s section on \'93Colors in Eidos\'94 discusses color strings and related topics.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)changeValues(ifo<SpatialMap>\'a0x)\
@@ -8914,7 +8937,7 @@ If
 \f3\fs18 SpatialMap
 \f4\fs20  object from which values are taken directly, or a vector, matrix, or array of numeric values as described in the documentation for 
 \f3\fs18 defineSpatialMap()
-\f4\fs20 .  Other characteristics of the spatial map, such as its color mapping (if defined), its spatial bounds, and its spatiality, will remain unchanged.  The grid resolution of the spatial map is allowed to change with this method.  This method is useful for changing the values of a spatial map over time, such as to implement changes to the landscape\'92s characteristics due to seasonality, climate change, processes such as fire or urbanization, and so forth.  As with the original map values provided to 
+\f4\fs20 .  Other characteristics of the spatial map, such as its palette (if defined), its spatial bounds, and its spatiality, will remain unchanged.  The grid resolution of the spatial map is allowed to change with this method.  This method is useful for changing the values of a spatial map over time, such as to implement changes to the landscape\'92s characteristics due to seasonality, climate change, processes such as fire or urbanization, and so forth.  As with the original map values provided to 
 \f3\fs18 defineSpatialMap()
 \f4\fs20 , it is often useful to read map values from a PNG image file using the Eidos class 
 \f3\fs18 Image
@@ -9037,17 +9060,13 @@ If
 \f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Uses the spatial map\'92s color-translation machinery (as defined by the 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  parameters to 
-\f3\fs18 defineSpatialMap()
-\f4\fs20 ) to translate each element of 
+\f4\fs20 \cf2 Uses the spatial map\'92s palette to translate each element of 
 \f3\fs18 value
-\f4\fs20  into a corresponding color string.  If the spatial map does not have color-translation capabilities, an error will result.  See the documentation for 
+\f4\fs20  into a corresponding color string.  If the spatial map does not have a palette configured (and is thus using the default grayscale ramp), an error will result.  See the documentation for 
 \f3\fs18 defineSpatialMap()
-\f4\fs20  for information regarding the details of color translation.  See the Eidos manual for further information on color strings.\
+\f4\fs20  and the 
+\f3\fs18 Palette
+\f4\fs20  class for information regarding the details of this color translation.  See the Eidos manual for further information on color strings.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Image>$)mapImage([Ni$\'a0width\'a0=\'a0NULL], [Ni$\'a0height\'a0=\'a0NULL], [logical$\'a0centers\'a0=\'a0F], [logical$\'a0color\'a0=\'a0T])\
@@ -9105,13 +9124,9 @@ If
 \f3\fs18 color
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), the 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  parameters supplied to 
-\f3\fs18 defineSpatialMap()
-\f4\fs20  will be used to translate map values to RGB color values as described in the documentation of that method, providing the same appearance as in SLiMgui; of course those parameters must have been supplied, otherwise an error will result.  If 
+\f4\fs20  (the default), the spatial map\'92s palette will be used to translate map values to RGB color values in the same way as the 
+\f3\fs18 mapColor()
+\f4\fs20  method, providing the same appearance as in SLiMgui; if no palette has been specified, an error will result.  If 
 \f3\fs18 color
 \f4\fs20  is 
 \f3\fs18 F
@@ -9131,11 +9146,7 @@ If
 \f3\fs18 floatK
 \f4\fs20  channel of a grayscale PNG image, this should recover the original image\'92s pixel values.  (If a different translation scheme is desired, 
 \f3\fs18 color=T
-\f4\fs20  with the desired 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  should be used.)\
+\f4\fs20  should be used with a palette for the spatial map.)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)mapValue(float\'a0point)\
@@ -13411,10 +13422,24 @@ The
 \f4\fs20 , SLiMgui\'92s default (fitness-based) color will be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SpatialMap>$)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SpatialMap>$)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], ...)\
+\pard\pardeftab720\li547\fi173\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Defines a spatial map for the subpopulation; see the 
+\f1\i\fs20 \cf2 variant 1:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL]
+\f4\fs20 \
+
+\f1\i variant 2:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 [No<Palette>$\'a0palette\'a0=\'a0NULL]
+\f4\fs20 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Defines a spatial map for the subpopulation; see the 
 \f3\fs18 SpatialMap
 \f4\fs20  documentation regarding this class.  The new map is automatically added to the subpopulation; 
 \f3\fs18 addSpatialMap()
@@ -13424,7 +13449,7 @@ The
 \f3\fs18 defineConstant()
 \f4\fs20  or 
 \f3\fs18 defineGlobal()
-\f4\fs20  for convenience.\
+\f4\fs20  for convenience.  This method supports two call variants, described below.\
 The name of the map is given by 
 \f3\fs18 name
 \f4\fs20 , and can be used to identify it.  The map uses the spatial dimensions referenced by 
@@ -13509,40 +13534,68 @@ Moving on to the other parameters of
 \f4\fs20  method of 
 \f3\fs18 SpatialMap
 \f4\fs20  to precalculate an interpolated map using cubic/bucubic interpolation.\
-The 
+The remaining ellipsis parameters should conform to one of the two supported call variants.  First of all, for either variant one can pass 
+\f3\fs18 NULL
+\f4\fs20  for the ellipsis parameters, or simply omit them (since their default values are 
+\f3\fs18 NULL
+\f4\fs20 ).  Doing this does not configure a palette for the spatial map.  Instead, it will use the \'93default grayscale ramp\'94: shades of gray will be used for values in the spatial map, with black representing the smallest (most negative) value in the map and white representing the largest (most positive).  Note that this means that if the range of values in the map changes, the specific shade of gray used to represent a given value will also change.  Being inconsistent/unreliable for modeling purposes, these shades are therefore for display purposes only, and so methods like 
+\f3\fs18 mapColor()
+\f4\fs20  and 
+\f3\fs18 mapImage()
+\f4\fs20  will produce an error if an attempt is made to use them.  The grayscale color ramp is just a convenience for easy SLiMgui display; for more precise and controlled color mapping, you should define a palette for the spatial map.\
+Assuming that non-
+\f3\fs18 NULL
+\f4\fs20  values are passed for the ellipsis parameters, you can define a palette in one of two ways:\
+The first variant takes 
 \f3\fs18 valueRange
 \f4\fs20  and 
 \f3\fs18 colors
-\f4\fs20  parameters travel together; either both are unspecified, or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
-\f3\fs18 mapColor()
-\f4\fs20  method.  The 
+\f4\fs20  parameters that are used to specify the palette.  The 
 \f3\fs18 valueRange
-\f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
-\f3\fs18 colors
-\f4\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
-\f3\fs18 valueRange
-\f4\fs20 : values less than or equal to 
+\f4\fs20  parameter must be of length 2, providing the start and end values spanned by the palette; as such, 
 \f3\fs18 valueRange[0]
-\f4\fs20  will map to 
-\f3\fs18 colors[0]
-\f4\fs20 , values greater than or equal to 
+\f4\fs20  must be less than 
 \f3\fs18 valueRange[1]
-\f4\fs20  will map to the last 
+\f4\fs20 .  The 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes for an illustration of its use.\
+\f4\fs20  parameter must be of length 1 or greater, and must be composed of color strings.  The palette will be constructed with the first color of 
+\f3\fs18 colors
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[0]
+\f4\fs20 , the last color of 
+\f3\fs18 colors
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[1]
+\f4\fs20 , and the remaining colors, if any, used for nodes equally spaced between those two endpoints, in the order in which the colors were specified.  A transition of 
+\f3\fs18 "linear"
+\f4\fs20  and a blend of 
+\f3\fs18 "rgb"
+\f4\fs20  will be used.  This variant is provided for backward compatibility with versions of SLiM prior to the introduction of the 
+\f3\fs18 Palette
+\f4\fs20  class.\
+The second variant simply takes a 
+\f3\fs18 palette
+\f4\fs20  parameter that provides the 
+\f3\fs18 Palette
+\f4\fs20  object for the spatial map to use.\
+The Eidos manual\'92s documentation for the 
+\f3\fs18 Palette
+\f4\fs20  class provides background information on how palettes work, how to create a new 
+\f3\fs18 Palette
+\f4\fs20  object, and so forth.  Similarly, the Eidos manual\'92s section on \'93Colors in Eidos\'94 discusses color strings and related topics.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 
 \f3\fs18 "y"
 \f4\fs20 , or 
 \f3\fs18 "xy"
-\f4\fs20 ; the color-mapping parameters will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
+\f4\fs20 ; the parameters for specifying a palette will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
 \f3\fs18 "xyz"
 \f4\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
 \f1\i xyz
 \f4\i0  space it ought to display).  The 
 \f3\fs18 mapColor()
-\f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
+\f4\fs20  method will return translated color strings for any spatial map with a palette, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it chooses one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Individual>)deviatePositions(No<Individual>\'a0individuals, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\

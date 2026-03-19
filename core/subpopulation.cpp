@@ -11302,7 +11302,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	return result_SP;
 }
 
-//	*********************	– (object<SpatialMap>$)defineSpatialMap(string$ name, string$ spatiality, numeric values, [logical$ interpolate = F], [Nif valueRange = NULL], [Ns colors = NULL])
+//	*********************	– (object<SpatialMap>$)defineSpatialMap(string$ name, string$ spatiality, numeric values, [logical$ interpolate = F], ...)
+//
+//		variant 1: ... conforms to [Nif valueRange = NULL], [Ns colors = NULL])
+//		variant 2: ... conforms to [No<Palette>$ palette = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -11311,8 +11314,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	EidosValue_String *spatiality_value = (EidosValue_String *)p_arguments[1].get();
 	EidosValue *values = p_arguments[2].get();
 	EidosValue *interpolate_value = p_arguments[3].get();
-	EidosValue *value_range = p_arguments[4].get();
-	EidosValue *colors = p_arguments[5].get();
 	
 	const std::string &map_name = name_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
@@ -11322,8 +11323,47 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	const std::string &spatiality_string = spatiality_value->StringRefAtIndex_NOCAST(0, nullptr);
 	bool interpolate = interpolate_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
+	EidosPalette *palette = nullptr;
+	
+	if (p_arguments.size() == 6)
+	{
+		// variant 1, for backward compatibility
+		EidosValue *range = p_arguments[4].get();
+		EidosValue *colors = p_arguments[5].get();
+		bool range_is_null = (range->Type() == EidosValueType::kValueNULL);
+		bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
+		
+		if (range_is_null && colors_is_null)
+		{
+			// leave palette as nullptr to request the default grayscale ramp
+		}
+		else
+		{
+			if (range_is_null || colors_is_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
+			
+			palette = new EidosPalette(range, colors, "Subpopulation::ExecuteMethod_defineSpatialMap", "defineSpatialMap()");
+		}
+	}
+	else if (p_arguments.size() == 5)
+	{
+		// variant 2, with a Palette object
+		EidosValue *palette_value = p_arguments[4].get();
+		
+		if ((palette_value->Count() != 1) && (palette_value->Type() != EidosValueType::kValueObject))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): (internal error) defineSpatialMap() expected a singleton Palette object." << EidosTerminate();
+		
+		palette = dynamic_cast<EidosPalette *>(palette_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+		palette->Retain();
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() requires the arguments passed to conform to one of two specific variants (see the documentation); these arguments were not recognized as one of those variants." << EidosTerminate();
+	
 	// Make our SpatialMap object and populate it with the values provided
-	SpatialMap *spatial_map = new SpatialMap(map_name, spatiality_string, this, values, interpolate, value_range, colors);
+	SpatialMap *spatial_map = new SpatialMap(map_name, spatiality_string, this, values, interpolate, palette);
+	
+	if (palette)
+		palette->Release();		// the spatial map now has a retain on the palette
 	
 	if (!spatial_map->IsCompatibleWithSubpopulation(this))
 	{
@@ -11456,7 +11496,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 			community_.warned_spatial_map_color_deprecated_ = true;
 		}
 		
-		// call out to SpatialMap::ExecuteMethod_mapValue() to do the work
+		// call out to SpatialMap::ExecuteMethod_mapColor() to do the work
 		std::vector<EidosValue_SP> subcall_args = {p_arguments[1]};
 		
 		return map->ExecuteMethod_mapColor(p_method_id, subcall_args, p_interpreter);
@@ -11488,7 +11528,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapImage(EidosGlobalStringID p
 			community_.warned_spatial_map_image_deprecated_ = true;
 		}
 		
-		// call out to SpatialMap::ExecuteMethod_mapValue() to do the work
+		// call out to SpatialMap::ExecuteMethod_mapImage() to do the work
 		std::vector<EidosValue_SP> subcall_args = {p_arguments[1], p_arguments[2], p_arguments[3], p_arguments[4]};
 		
 		return map->ExecuteMethod_mapImage(p_method_id, subcall_args, p_interpreter);
@@ -11910,7 +11950,6 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddIntObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL)->AddLogical_OSN("tagL0", gStaticEidosValueNULL)->AddLogical_OSN("tagL1", gStaticEidosValueNULL)->AddLogical_OSN("tagL2", gStaticEidosValueNULL)->AddLogical_OSN("tagL3", gStaticEidosValueNULL)->AddLogical_OSN("tagL4", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL)->AddLogical_OSN("tagL0", gStaticEidosValueNULL)->AddLogical_OSN("tagL1", gStaticEidosValueNULL)->AddLogical_OSN("tagL2", gStaticEidosValueNULL)->AddLogical_OSN("tagL3", gStaticEidosValueNULL)->AddLogical_OSN("tagL4", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSpatialMap, kEidosValueMaskVOID, gSLiM_SpatialMap_Class))->AddObject_S("map", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSpatialMap, kEidosValueMaskVOID, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "map", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddNumeric("value")->MarkDeprecated());
@@ -11920,6 +11959,16 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_configureDisplay, kEidosValueMaskVOID))->AddFloat_ON("center", gStaticEidosValueNULL)->AddFloat_OSN("scale", gStaticEidosValueNULL)->AddString_OSN(gEidosStr_color, gStaticEidosValueNULL));
+		
+		// the defineSpatialMap() method has two ellipsis variants
+		{
+			EidosInstanceMethodSignature *ellipsisSignature = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddEllipsis();
+			EidosInstanceMethodSignature *variant1 = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
+			EidosInstanceMethodSignature *variant2 = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddObject_OSN("palette", gEidosPalette_Class, gStaticEidosValueNULL);
+			
+			ellipsisSignature->AddEllipsisVariant(variant1)->AddEllipsisVariant(variant2);	// ownership of these objects is taken from us
+			methods->emplace_back(ellipsisSignature);
+		}
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

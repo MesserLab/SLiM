@@ -754,8 +754,8 @@ void QtSLiMIndividualsWidget::chooseDefaultBackgroundSettingsForSubpopulation(Po
         {
             SpatialMap *map = map_pair.second;
             
-            // a map must be "x", "y", or "xy", and must have a defined color map, for us to choose it as a default at all
-            if (((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy")) && (map->n_colors_ > 0))
+            // a map must be "x", "y", or "xy", and must have a defined palette, for us to choose it as a default at all
+            if (((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy")) && map->palette_)
             {
                 // the map is usable, so now we check whether it's better than the map we previously found, if any
                 if ((!background_map) || (map->spatiality_ > background_map->spatiality_))
