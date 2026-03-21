@@ -1198,9 +1198,9 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", false);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("Dictionary(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 100, "be a singleton");
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "keys be of type string or integer");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "did not match any of its defined variants");
 	
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3)); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 13, c(1.1, 2.2, 3.3)); x.identicalContents(y);", false);
@@ -1209,9 +1209,9 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", false);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("Dictionary(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 93, "be a singleton");
-	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 93, "keys be of type string or integer");
+	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 93, "did not match any of its defined variants");
 	
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 2); y = Dictionary(); y.setValue('a', 'foo'); x.identicalContents(y);", false);
 	EidosAssertScriptRaise("x = Dictionary(5, 1:10, 'a', 1:10);", 4, "string key");
@@ -1465,10 +1465,10 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4));", 4, "inconsistent column sizes");
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("DataFrame(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("DataFrame(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(c(y,y));", 94, "be a singleton");
-	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "keys be of type string or integer");
-	EidosAssertScriptRaise("x = DataFrame(5, 1:10, 'a', 1:10);", 4, "always uses string keys");
+	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "did not match any of its defined variants");
+	EidosAssertScriptRaise("x = DataFrame(5, 1:10, 'a', 1:10);", 4, "did not match any of its defined variants");
 	EidosAssertScriptRaise("x = DataFrame('a', 1:10, 5, 1:10);", 4, "always uses string keys");
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:10); y = DataFrame(x); z = DataFrame('a', 1:10); y.identicalContents(z);", true);
 	EidosAssertScriptRaise("x = Dictionary(5, 1:10); y = DataFrame(x);", 29, "always uses string keys");

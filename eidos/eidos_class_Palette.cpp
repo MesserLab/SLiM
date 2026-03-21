@@ -109,7 +109,7 @@ EidosPalette::EidosPalette(std::vector<double> &&values, std::vector<std::string
 EidosPalette::EidosPalette(EidosValue *p_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name)
 {
 	// this constructor is used internally for defineSpatialMap() and similar; the two EidosValues passed
-	// in should conform to [if valueRange = NULL], [s colors = NULL] (the NULL case chould be handled by
+	// in should conform to [if valueRange = NULL], [s colors = NULL] (the NULL case chould be handled by
 	// the caller, since that means that a Palette object is not being requested).
 	EidosValueType range_type = p_range->Type();
 	EidosValueType colors_type = p_colors->Type();
@@ -726,10 +726,11 @@ EidosValue_SP EidosPalette::ExecuteMethod_setFixedPoint(EidosGlobalStringID p_me
 #pragma mark Object instantiation
 #pragma mark -
 
-//	(object<Palette>$)Palette(...) : one of...
-//		(object<Palette>$)Palette(numeric$ value, fs color)		// start value and start color; this works with addNode()
-//		(object<Palette>$)Palette(numeric range, fs colors)		// overall range, and a bunch of colors
-//		(object<Palette>$)Palette(numeric values, fs colors, [s transition = "linear"], [s blend = "hsvShortest"])
+//	*********************	(object<Palette>$)Palette(...)
+//
+//		variant 1: ... conforms to numeric$ value, fs color
+//		variant 2: ... conforms to numeric range, fs colors)
+//		variant 3: ... conforms to numeric values, fs colors, [string$ transition = "linear"], [string$ blend = "hsvShortest"]
 static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -1043,7 +1044,17 @@ const std::vector<EidosFunctionSignature_CSP> *EidosPalette_Class::Functions(voi
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddEllipsis());
+		// the Palette() constructor has three ellipsis variants
+		{
+			EidosFunctionSignature *ellipsisSignature = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddEllipsis();
+			EidosFunctionSignature *variant1 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric_S("value")->AddFloatString("color");
+			EidosFunctionSignature *variant2 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric("range")->AddFloatString("colors");
+			EidosFunctionSignature *variant3 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric("values")->AddFloatString("colors")->AddString_OS("transition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("linear")))->AddString_OS("blend", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("hsvShortest")));
+			
+			ellipsisSignature->AddEllipsisVariant(variant1)->AddEllipsisVariant(variant2)->
+				AddEllipsisVariant(variant3);	// ownership of these objects is taken from us
+			functions->emplace_back(ellipsisSignature);
+		}
 		
 		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
 	}

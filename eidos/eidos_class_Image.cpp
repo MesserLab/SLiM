@@ -263,9 +263,11 @@ EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, c
 #pragma mark Object instantiation
 #pragma mark -
 
-//	(object<Image>$)Image(...) : one of...
-//		(object<Image>$)Image(string$ filePath)		// path to PNG file
-//		(object<Image>$)Image(fi gridValues)		// matrix of grid values
+//	*********************	(object<Image>$)Image(...)
+//
+//		variant 1: ... conforms to string$ filePath
+//		variant 2: ... conforms to numeric matrix
+//
 static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -422,7 +424,15 @@ const std::vector<EidosFunctionSignature_CSP> *EidosImage_Class::Functions(void)
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddEllipsis());
+		// the Image() constructor has two ellipsis variants
+		{
+			EidosFunctionSignature *ellipsisSignature = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddEllipsis();
+			EidosFunctionSignature *variant1 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S("filePath");
+			EidosFunctionSignature *variant2 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddNumeric("matrix");
+			
+			ellipsisSignature->AddEllipsisVariant(variant1)->AddEllipsisVariant(variant2);	// ownership of these objects is taken from us
+			functions->emplace_back(ellipsisSignature);
+		}
 		
 		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
 	}

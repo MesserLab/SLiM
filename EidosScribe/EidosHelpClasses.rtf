@@ -118,7 +118,35 @@
 \f3\b0\fs18 \cf2 (object<DataFrame>$)DataFrame(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The 
+\f1\i\fs20 \cf2 variant 1:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 void
+\f4\fs20 \
+
+\f1\i variant 2:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 s$\'a0key, *\'a0value, ...
+\f4\fs20 \
+
+\f1\i variant 3:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 object<Dictionary>$\'a0dictionary
+\f4\fs20 \
+
+\f1\i variant 4:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 string\'a0json
+\f4\fs20 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f3\fs18 DataFrame
 \f4\fs20  constructor can be called in the same ways as the constructor for 
 \f3\fs18 Dictionary
@@ -518,14 +546,41 @@ If the values of
 \f3\b0\fs18 \cf2 (object<Dictionary>$)Dictionary(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Creates a new 
+\f1\i\fs20 \cf2 variant 1:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 void
+\f4\fs20 \
+
+\f1\i variant 2:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 is$\'a0key, *\'a0value, ...
+\f4\fs20 \
+
+\f1\i variant 3:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 object<Dictionary>$\'a0dictionary
+\f4\fs20 \
+
+\f1\i variant 4:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 string\'a0json
+\f4\fs20 \
+Creates a new 
 \f3\fs18 Dictionary
-\f4\fs20  object.  Called without arguments, as 
+\f4\fs20  object.  The first variant, called without arguments as 
 \f3\fs18 Dictionary()
-\f4\fs20 , this creates a new empty 
+\f4\fs20 , creates a new empty 
 \f3\fs18 Dictionary
 \f4\fs20 .\
-Alternatively, key-value pairs can be passed to set up the initial state of the new 
+With the second variant, key-value pairs can be passed to set up the initial state of the new 
 \f3\fs18 Dictionary
 \f4\fs20 .  These are set, sequentially, on the new 
 \f3\fs18 Dictionary
@@ -552,9 +607,9 @@ Alternatively, key-value pairs can be passed to set up the initial state of the 
 \f4\fs20  keys, but they cannot be mixed in a single 
 \f3\fs18 Dictionary
 \f4\fs20  object.\
-Another alternative is to call 
+With the third variant, 
 \f3\fs18 Dictionary()
-\f4\fs20  with a singleton 
+\f4\fs20  is called with a singleton 
 \f3\fs18 Dictionary
 \f4\fs20  as its only argument; this creates a new 
 \f3\fs18 Dictionary
@@ -565,9 +620,7 @@ Another alternative is to call
 \f4\fs20  and then calling 
 \f3\fs18 addKeysAndValuesFrom()
 \f4\fs20  to copy key-value pairs over; it is just a shorthand for convenience.\
-A final alternative is to call 
-\f3\fs18 Dictionary()
-\f4\fs20  with a 
+The fourth variant takes a 
 \f3\fs18 string
 \f4\fs20  vector as its only argument; this creates a new 
 \f3\fs18 Dictionary
@@ -1162,7 +1215,21 @@ The values are set into the target dictionaries in exactly the same way as the
 \f3\b0\fs18 \cf2 (object<Image>$)Image(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Creates a new 
+\f1\i\fs20 \cf2 variant 1:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 string$\'a0filePath
+\f4\fs20 \
+
+\f1\i variant 2:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 numeric\'a0matrix
+\f4\fs20 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Creates a new 
 \f3\fs18 Image
 \f4\fs20  object.  This can be called in a few different ways.\
 Passed a singleton 
@@ -1367,32 +1434,48 @@ Passed an
 \f3\b0\fs18 \cf2 (object<Palette>$)Palette(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Creates a new 
+\f1\i\fs20 \cf2 variant 1:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 numeric$\'a0value, fs\'a0color
+\f4\fs20 \
+
+\f1\i variant 2:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 numeric\'a0range, fs\'a0colors)
+\f4\fs20 \
+
+\f1\i variant 3:
+\f4\i0  
+\f3\fs18 ...
+\f4\fs20  conforms to 
+\f3\fs18 numeric\'a0values, fs\'a0colors, [string$\'a0transition\'a0=\'a0"linear"], [string$\'a0blend\'a0=\'a0"hsvShortest"]
+\f4\fs20 \
+Creates a new 
 \f3\fs18 Palette
 \f4\fs20  object.  This can be called in a few different ways.\
-Passed a singleton value and a single color, as 
-\f3\fs18 Palette(numeric$ value, fs color)
-\f4\fs20 , it sets up the initial node of the new 
+The first variant is passed a singleton value and a single color, and sets up the initial node of the new 
 \f3\fs18 Palette
 \f4\fs20  object with the given value and color.  The palette can be used in this state; it simply represents the single color provided.  Typically, however, further nodes would subsequently be added to the palette with 
 \f3\fs18 addNode()
 \f4\fs20 .\
-Passed a range vector and a vector of colors, as 
-\f3\fs18 Palette(numeric range, fs colors)
-\f4\fs20 , it configures the new Palette object with one node per color, equally spaced from the start of the range, 
+The second variant is passed a range vector and a vector of colors.  It configures the new 
+\f3\fs18 Palette
+\f4\fs20  object with one node per color, equally spaced from the start of the range, 
 \f3\fs18 range[0]
 \f4\fs20 , to the end of the range, 
 \f3\fs18 range[1]
 \f4\fs20 .  The 
 \f3\fs18 range
-\f4\fs20  parameter must therefore be of length two, and the start value should be less than the end value.  This constructor always uses transition 
+\f4\fs20  parameter must therefore be of length two, and its first value should be less than its second value.  This constructor always uses transition 
 \f3\fs18 "linear"
 \f4\fs20  and blend 
 \f3\fs18 "hsvShortest"
 \f4\fs20 , generally the most common interpolation mode; this is intended to be an easy way to set up a simple gradient.\
-Passed a vector of values, a vector of colors, and optional transition and blend values, as 
-\f3\fs18 Palette(numeric value, fs color, [string transition], [string blend])
-\f4\fs20 , this creates a node at each value based upon the corresponding color; the number of colors supplies must therefore be equal to the number of values.  The 
+The third variant is passed a vector of values, a vector of colors, and optional transition and blend values.  This creates a node at each value based upon the corresponding color; the number of colors supplied must therefore be equal to the number of values.  The 
 \f3\fs18 transition
 \f4\fs20  and 
 \f3\fs18 blend
