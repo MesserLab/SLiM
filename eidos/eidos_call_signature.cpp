@@ -203,8 +203,8 @@ EidosCallSignature *EidosCallSignature::AddEllipsisVariant(EidosCallSignature *p
 	if (!has_ellipsis_)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsisVariant): ellipsis variants cannot be added unless the base signature has an ellipsis." << EidosTerminate(nullptr);
 	
-	if (p_variant->has_ellipsis_)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsisVariant): ellipsis variants cannot themselves contain an ellipsis." << EidosTerminate(nullptr);
+	// FIXME we could do a check that all arguments except the ellipsis match between the main signature and
+	// the variant signature; this should be required, but since this only used internally it is not urgent
 	
 	ellipsis_variants_.push_back(p_variant);	// we take ownership of this object
 	

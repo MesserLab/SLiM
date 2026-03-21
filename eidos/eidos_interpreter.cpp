@@ -1468,6 +1468,8 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 			gEidosTerminateThrows = true;
 			
 			try {
+				// note that ellipsis variants can contain an ellipsis, but cannot contain ellipsis variant
+				// (the logic here is not recursive); we don't check for that, we just ignore any present
 				_CreateArgumentList(p_node, variant_signature);
 			}
 			catch (...)		// NOLINT(*-empty-catch) : intentional empty catch
