@@ -205,6 +205,7 @@ multitrait branch:
 	shift to require a minimum of Qt 5.15.2 on all platforms; Ubuntu 18.04 LTS preinstalled Qt 5.9.5, so we are now abandoning Ubuntu 18.04 LTS (no change for macOS and Windows, I think)
 	add a function/method overloading mechanism to Eidos, "ellipsis variants"; allows better documentation/handling of arguments for calls with multiple signatures
 		add ellipsis variants for constructors: Dictionary(...), DataFrame(...), Image(...), Palette(...)
+		add QtSLiM support for displaying ellipsis variants in the status bar
 	switch SpatialMap over to using a Palette for its colors
 		add a defineSpatialMap() ellipsis variant that takes a Palette object to define its colors
 		add a changeColors() ellipsis variant that takes a Palette object to define its colors

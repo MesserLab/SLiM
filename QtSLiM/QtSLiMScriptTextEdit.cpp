@@ -1018,6 +1018,14 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             }
         }
         
+        double signaturePointSize;
+
+#ifdef __linux__
+        signaturePointSize = 9;
+#else
+        signaturePointSize = 11;
+#endif
+        
         QString displayString;
         
         if (signature)
@@ -1034,19 +1042,6 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             
             td.setPlainText(displayString);
             
-            if (signature)
-            {
-                QTextCursor tc(&td);
-                tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
-                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
-                
-#ifdef __linux__
-                ColorizeCallSignature(signature.get(), 9, tc);
-#else
-                ColorizeCallSignature(signature.get(), 11, tc);
-#endif
-            }
-            
             // hanging indent for multiline wrapping aesthetics
             {
                 QTextCursor tc(&td);
@@ -1058,6 +1053,77 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 blockFormat.setTextIndent(-30);
                 
                 tc.setBlockFormat(blockFormat);
+            }
+            
+            if (signature)
+            {
+                QTextCursor tc(&td);
+                tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                
+                QTextCharFormat plainTextFormat = tc.charFormat();
+                plainTextFormat.setFontPointSize(signaturePointSize);
+                
+                ColorizeCallSignature(signature.get(), signaturePointSize, tc);
+                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                
+                QTextCharFormat codeTextFormat = tc.charFormat();
+                
+                int indexOfEllipsis = displayString.indexOf("...");
+                const std::vector<EidosCallSignature *> &variants = signature->ellipsis_variants_;
+                int variantCount = (int)variants.size();
+                
+                if (signature->has_ellipsis_ && (indexOfEllipsis > 0) && (variantCount > 0))
+                {
+                    // we insert a newline in anticipation of each new variant; this allows the text coloring to work correctly below
+                    tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                    tc.insertText("\n");  // one extra newline for separation
+                    
+                    // display ellipsis variants, showing only the variant portion as in the doc
+                    for (int variantIndex = 1; variantIndex <= variantCount; ++variantIndex)
+                    {
+                        EidosCallSignature *variant = variants[variantIndex - 1];
+                        
+                        tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                        tc.setCharFormat(plainTextFormat);
+                        tc.insertText(QString("variant %1: ").arg(variantIndex));
+                        tc.setCharFormat(codeTextFormat);
+                        tc.insertText("...");
+                        tc.setCharFormat(plainTextFormat);
+                        tc.insertText(" conforms to ");
+                        
+                        int sigStart = tc.position();
+                        QString variantString = QString::fromStdString(variant->SignatureString());
+                        tc.insertText(variantString);
+                        
+                        tc.setPosition(sigStart, QTextCursor::MoveAnchor);
+                        tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                        ColorizeCallSignature(variant, signaturePointSize, tc);
+                        
+                        // insert a newline in anticipation of the next variant; this way the (black) color of the end paren carries forward
+                        if (variantIndex < variantCount) {
+                            tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                            tc.insertText("\n");
+                        }
+                        
+                        // then delete the prefix and suffix shared between the base signature and this variant
+                        tc.setPosition(sigStart, QTextCursor::MoveAnchor);
+                        tc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, indexOfEllipsis);
+                        tc.removeSelectedText();
+                        
+                        tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                        tc.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, (variantIndex < variantCount) ? 1 : 0); // back through newline
+                        tc.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, displayString.length() - indexOfEllipsis - 3);
+                        tc.removeSelectedText();
+                    }
+                    
+                    // fix the height of the top margin of the block, to provide a bit of space between the base signature and variants
+                    tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                    tc.select(QTextCursor::BlockUnderCursor);
+                    QTextBlockFormat blockFormat = tc.blockFormat();
+                    blockFormat.setBottomMargin(6);
+                    tc.setBlockFormat(blockFormat);
+                }
             }
             
             QString htmlString = td.toHtml();
