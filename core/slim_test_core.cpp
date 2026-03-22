@@ -1953,8 +1953,8 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 135.0; if (all(i.fitnessScaling == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 0.0; if (all(i.fitnessScaling == 0.0)) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be a finite value >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be a finite value >= 0.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.x = 135.0; if (all(i.x == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.y = 135.0; if (all(i.y == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
@@ -1997,8 +1997,8 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 135.0; if (all(i.fitnessScaling == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 0.0; if (all(i.fitnessScaling == 0.0)) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be a finite value >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be a finite value >= 0.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.x = 135.0; if (all(i.x == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.y = 135.0; if (all(i.y == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);

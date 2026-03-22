@@ -1439,6 +1439,10 @@ void Subpopulation::UpdateFitness(const std::vector<SLiMEidosBlock*> &p_subpop_m
 	if (p_subpop_fitnessEffect_callbacks.size() > 0)
 		has_constant_fitness = false;
 	
+	// If any individual fitnessScaling value has been set, we need to evaluate fitness.
+	if (Individual::s_any_individual_fitness_scaling_set_)
+		has_constant_fitness = false;
+	
 	if (has_constant_fitness)
 	{
 		// We know this subpopulation has effectively constant fitness; we therefore don't express demand for
@@ -1585,6 +1589,27 @@ void Subpopulation::UpdateFitness(const std::vector<SLiMEidosBlock*> &p_subpop_m
 template<const bool f_has_constant_effects, const bool f_has_ind_fitnessScaling, const bool f_has_fitnessEffect_callbacks, const bool f_has_trait_effects, const bool f_single_trait>
 void Subpopulation::_CalculateFitnessAfterDemand(const std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, const std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, slim_fitness_t p_constant_effects)
 {
+#if DEBUG
+	if (f_has_ind_fitnessScaling && !Individual::s_any_individual_fitness_scaling_set_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_has_ind_fitnessScaling is incorrect (true, but s_any_individual_fitness_scaling_set_ == false)." << EidosTerminate(nullptr);
+	if (!f_has_ind_fitnessScaling && Individual::s_any_individual_fitness_scaling_set_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_has_ind_fitnessScaling is incorrect (false, but s_any_individual_fitness_scaling_set_ == true)." << EidosTerminate(nullptr);
+	if (f_has_fitnessEffect_callbacks && (p_fitnessEffect_callbacks.size() == 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_has_fitnessEffect_callbacks is incorrect (true, but no callbacks)." << EidosTerminate(nullptr);
+	if (!f_has_fitnessEffect_callbacks && (p_fitnessEffect_callbacks.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_has_fitnessEffect_callbacks is incorrect (false, but has callbacks)." << EidosTerminate(nullptr);
+	if (f_has_trait_effects && (p_direct_effect_trait_indices.size() == 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_has_trait_effects is incorrect (true, but no direct-effect traits)." << EidosTerminate(nullptr);
+	if (!f_has_trait_effects && (p_direct_effect_trait_indices.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_has_trait_effects is incorrect (false, but has direct-effect traits)." << EidosTerminate(nullptr);
+	if (f_single_trait && (p_direct_effect_trait_indices.size() != 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_single_trait is incorrect (true, but the number of direct-effect traits != 1)." << EidosTerminate(nullptr);
+	if (!f_single_trait && (p_direct_effect_trait_indices.size() == 1))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_single_trait is incorrect (false, but the number of direct-effect traits == 1)." << EidosTerminate(nullptr);
+	if (f_single_trait && !f_has_trait_effects)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_single_trait is incorrect (true, but f_has_trait_effects == false)." << EidosTerminate(nullptr);
+#endif
+	
 	// manage the shuffle buffer; this is not quite as fast as templatizing this flag, but it's simpler, and it
 	// only adds overhead when fitnessEffect() callbacks are present, otherwise it get optimized out completely
 	const bool f_has_shuffle_buffer = (f_has_fitnessEffect_callbacks && species_.RandomizingCallbackOrder());

@@ -5388,10 +5388,20 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 		}
 	}
 	
-	// FIXME MULTITRAIT: at present we can't clear this flag here because it is shared by all species.  That
+	// BCH 3/22/2026: we can't clear this flag here, in general, because it is shared by all species.  That
 	// means that if any species uses individual fitnessScaling, all of them take a performance hit.  I think
-	// we could move this flag to Subpopulation or Species, but that might add overhead in tracking it...
-	//Individual::s_any_individual_fitness_scaling_set_ = false;
+	// we could move this flag to Subpopulation or Species, but that would add overhead in tracking it.  The
+	// crux of the problem is that a vectorized property set like `inds.fitnessScaling = fitnesses;` cannot
+	// guarantee that all individuals in `inds` belong to the same species; so if we had a per-species flag,
+	// we would have to follow each individual up to its species to set the flag on that species, which is a
+	// lot of extra work.  That extra work is not justified in general, because most models that set an
+	// individual fitnessScaling value will do so in every tick anyway.  We can, however, clear this flag
+	// if this is a single-species model and we are not in SLiMgui (where the flag is actually shared across
+	// models).  That's the common case, and I don't think a more comprehensive fix would be efficient.
+#ifndef SLIMGUI
+	if (community_.AllSpecies().size() == 1)
+		Individual::s_any_individual_fitness_scaling_set_ = false;
+#endif
 }
 
 #if SLIM_CLEAR_HAPLOSOMES()

@@ -2810,8 +2810,8 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			fitness_scaling_ = (slim_fitness_t)p_value.FloatAtIndex_NOCAST(0, nullptr);
 			Individual::s_any_individual_fitness_scaling_set_ = true;
 			
-			if ((fitness_scaling_ < (slim_fitness_t)0.0) || (std::isnan(fitness_scaling_)))
-				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
+			if ((fitness_scaling_ < (slim_fitness_t)0.0) || !std::isfinite(fitness_scaling_))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property fitnessScaling must be a finite value >= 0.0." << EidosTerminate();
 			
 			return;
 		}
@@ -3090,7 +3090,7 @@ void Individual::SetProperty_Accelerated_tagL4(EidosGlobalStringID p_property_id
 
 bool Individual::_SetFitnessScaling_1(double source_value, EidosObject **p_values, size_t p_values_size)
 {
-	if ((source_value < 0.0) || (std::isnan(source_value)))
+	if ((source_value < 0.0) || !std::isfinite(source_value))
 		return true;
 	
 	// Note that parallelization here only helps on machines with very high memory bandwidth,
@@ -3121,7 +3121,7 @@ bool Individual::_SetFitnessScaling_N(const double *source_data, EidosObject **p
 	{
 		double source_value = source_data[value_index];
 		
-		if ((source_value < 0.0) || (std::isnan(source_value)))
+		if ((source_value < 0.0) || !std::isfinite(source_value))
 			saw_error = true;
 		
 		((Individual *)(p_values[value_index]))->fitness_scaling_ = (slim_fitness_t)source_value;
@@ -3150,7 +3150,7 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosGlobalStringID p_pr
 	}
 	
 	if (needs_raise)
-		EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be a finite value >= 0.0." << EidosTerminate();
 }
 
 void Individual::SetProperty_Accelerated_x(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
