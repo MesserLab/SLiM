@@ -118,31 +118,23 @@
 \f3\b0\fs18 \cf2 (object<DataFrame>$)DataFrame(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\i\fs20 \cf2 variant 1:
+\f1\i\fs20 \cf2 variant 1 (new empty):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 void
 \f4\fs20 \
 
-\f1\i variant 2:
+\f1\i variant 2 (key-value pairs):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 s$\'a0key, *\'a0value, ...
 \f4\fs20 \
 
-\f1\i variant 3:
+\f1\i variant 3 (Dictionary copy):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 object<Dictionary>$\'a0dictionary
 \f4\fs20 \
 
-\f1\i variant 4:
+\f1\i variant 4 (from JSON):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 string\'a0json
 \f4\fs20 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -546,34 +538,27 @@ If the values of
 \f3\b0\fs18 \cf2 (object<Dictionary>$)Dictionary(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\i\fs20 \cf2 variant 1:
+\f1\i\fs20 \cf2 variant 1 (new empty):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 void
 \f4\fs20 \
 
-\f1\i variant 2:
+\f1\i variant 2 (key-value pairs):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 is$\'a0key, *\'a0value, ...
 \f4\fs20 \
 
-\f1\i variant 3:
+\f1\i variant 3 (Dictionary copy):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 object<Dictionary>$\'a0dictionary
 \f4\fs20 \
 
-\f1\i variant 4:
+\f1\i variant 4 (from JSON):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 string\'a0json
 \f4\fs20 \
-Creates a new 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Creates a new 
 \f3\fs18 Dictionary
 \f4\fs20  object.  The first variant, called without arguments as 
 \f3\fs18 Dictionary()
@@ -1215,17 +1200,13 @@ The values are set into the target dictionaries in exactly the same way as the
 \f3\b0\fs18 \cf2 (object<Image>$)Image(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\i\fs20 \cf2 variant 1:
+\f1\i\fs20 \cf2 variant 1 (from a file):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 string$\'a0filePath
 \f4\fs20 \
 
-\f1\i variant 2:
+\f1\i variant 2 (from a matrix):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 numeric\'a0matrix
 \f4\fs20 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -1434,25 +1415,29 @@ Passed an
 \f3\b0\fs18 \cf2 (object<Palette>$)Palette(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\i\fs20 \cf2 variant 1:
+\f1\i\fs20 \cf2 variant 1 (a single node):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 numeric$\'a0value, fs\'a0color
 \f4\fs20 \
 
-\f1\i variant 2:
+\f1\i variant 2 (a range and colors):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 numeric\'a0range, fs\'a0colors)
 \f4\fs20 \
 
-\f1\i variant 3:
+\f1\i variant 3 (values and colors):
 \f4\i0  
-\f3\fs18 ...
-\f4\fs20  conforms to 
 \f3\fs18 numeric\'a0values, fs\'a0colors, [string$\'a0transition\'a0=\'a0"linear"], [string$\'a0blend\'a0=\'a0"hsvShortest"]
+\f4\fs20 \
+
+\f1\i variant 4 (from a colors() palette):
+\f4\i0  
+\f3\fs18 string$\'a0colors, numeric\'a0range, [Nif\'a0sourceRange\'a0=\'a0NULL]
+\f4\fs20 \
+
+\f1\i variant 5 (from a Palette object):
+\f4\i0  
+\f3\fs18 object<Palette>$\'a0palette, float\'a0rescaledRange, [Nf\'a0existingRange\'a0=\'a0NULL], [logical$\'a0fullPalette\'a0=\'a0T]
 \f4\fs20 \
 Creates a new 
 \f3\fs18 Palette
@@ -1486,6 +1471,82 @@ The third variant is passed a vector of values, a vector of colors, and optional
 \f4\fs20 , but this constructor allows you to choose other values if you wish; this is intended as the most advanced and flexible constructor for 
 \f3\fs18 Palette
 \f4\fs20 .\
+The fourth variant takes a singleton 
+\f3\fs18 string
+\f4\fs20  that identifies one of the built-in color palettes supported by the Eidos function 
+\f3\fs18 colors()
+\f4\fs20  \'96 at present, one of 
+\f3\fs18 "cm"
+\f4\fs20 , 
+\f3\fs18 "heat"
+\f4\fs20 , 
+\f3\fs18 "terrain"
+\f4\fs20 , 
+\f3\fs18 "parula"
+\f4\fs20 , 
+\f3\fs18 "hot"
+\f4\fs20 , 
+\f3\fs18 "jet"
+\f4\fs20 , 
+\f3\fs18 "turbo"
+\f4\fs20 , 
+\f3\fs18 "gray"
+\f4\fs20 , 
+\f3\fs18 "magma"
+\f4\fs20 , 
+\f3\fs18 "inferno"
+\f4\fs20 , 
+\f3\fs18 "plasma"
+\f4\fs20 , 
+\f3\fs18 "viridis"
+\f4\fs20 , or 
+\f3\fs18 "cividis"
+\f4\fs20   (see the 
+\f3\fs18 colors()
+\f4\fs20  function documentation for more details).  This variant also takes a 
+\f3\fs18 numeric
+\f4\fs20  parameter 
+\f3\fs18 range
+\f4\fs20 , which should be a 2-element vector providing the start and end values for the new 
+\f3\fs18 Palette
+\f4\fs20  to be created.  Finally, this variant takes an optional 2-element 
+\f3\fs18 numeric
+\f4\fs20  parameter 
+\f3\fs18 sourceRange
+\f4\fs20  providing the range of values within the original color palette that should be used; if this is omitted, the full range of the original will be used.\
+The fifth variant constructs a new 
+\f3\fs18 Palette
+\f4\fs20  from an existing 
+\f3\fs18 Palette
+\f4\fs20  object passed as 
+\f3\fs18 palette
+\f4\fs20 .  The existing palette can be stretched and shifted to span a new range of values.  To do this, a range in the existing palette is specified with 
+\f3\fs18 existingRange
+\f4\fs20 , and that range is stretched and shifted to become the range 
+\f3\fs18 rescaledRange
+\f4\fs20  in the new palette.  By default (if given the value 
+\f3\fs18 NULL
+\f4\fs20 ), 
+\f3\fs18 existingRange
+\f4\fs20  spans the entire range of the existing palette, and so the new palette will always contain the full range of colors from the existing palette.  If, instead, 
+\f3\fs18 existingRange
+\f4\fs20  is given a subrange of the existing palette\'92s range, there are two possibilities, controlled by the 
+\f3\fs18 fullPalette
+\f4\fs20  parameter.  If 
+\f3\fs18 fullPalette
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the entire existing palette will be used (and therefore the new palette\'92s range will extend beyond 
+\f3\fs18 rescaledRange
+\f4\fs20  to provide all of the existing palette\'92s colors; or if 
+\f3\fs18 fullPalette
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , only the subrange 
+\f3\fs18 existingRange
+\f4\fs20  will be used, and so the new palette\'92s range will be 
+\f3\fs18 rescaledRange
+\f4\fs20 .  If the existing palette has a fixed point, and it is mapped to part of the new palette\'92s range, it will be preserved.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.5.1  

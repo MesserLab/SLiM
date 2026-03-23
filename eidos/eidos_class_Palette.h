@@ -123,6 +123,7 @@ public:
 	inline EidosPalette *MakeImmutable(void) { immutable_ = true; return this; }
 	
 	EidosPalette *SetFixedValue(double value);
+	EidosPalette *SetFixedValue(double value, float p_red, float p_green, float p_blue);
 	bool GetFixedValue(double *p_fixed_value, float *p_red, float *p_green, float *p_blue);
 	
 	inline __attribute__((always_inline)) void Range(double *start, double *end) { *start = range_start_; *end = range_end_; }

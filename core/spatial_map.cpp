@@ -1623,8 +1623,8 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 
 //	*********************	- (void)changeColors(...)
 //
-//		variant 1: ... conforms to [Nif valueRange = NULL], [Ns colors = NULL])
-//		variant 2: ... conforms to [No<Palette>$ palette = NULL])
+//		variant 1: [Nif valueRange = NULL], [Ns colors = NULL])
+//		variant 2: [No<Palette>$ palette = NULL])
 //
 EidosValue_SP SpatialMap::ExecuteMethod_changeColors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3168,10 +3168,14 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		// the changeColors() method has two ellipsis variants
 		{
 			EidosInstanceMethodSignature *ellipsisSignature = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeColors, kEidosValueMaskVOID))->AddEllipsis();
+			
 			EidosInstanceMethodSignature *variant1 = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeColors, kEidosValueMaskVOID))->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
 			EidosInstanceMethodSignature *variant2 = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeColors, kEidosValueMaskVOID))->AddObject_OSN("palette", gEidosPalette_Class, gStaticEidosValueNULL);
 			
-			ellipsisSignature->AddEllipsisVariant(variant1)->AddEllipsisVariant(variant2);	// ownership of these objects is taken from us
+			// ownership of these objects is taken from us
+			ellipsisSignature->AddEllipsisVariant(variant1, "a range and colors");
+			ellipsisSignature->AddEllipsisVariant(variant2, "Palette object");
+			
 			methods->emplace_back(ellipsisSignature);
 		}
 		

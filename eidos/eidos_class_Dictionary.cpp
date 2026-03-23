@@ -1794,10 +1794,10 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 {
 	// This handles four variants for (object<Dictionary>$)Dictionary(...) and (object<DataFrame>$)DataFrame(...):
 	//
-	//		variant 1: ... conforms to void
-	//		variant 2: ... conforms to is$ key, * value, ...
-	//		variant 3: ... conforms to object<Dictionary>$ dictionary
-	//		variant 4: ... conforms to string json
+	//		variant 1: void
+	//		variant 2: is$ key, * value, ...
+	//		variant 3: object<Dictionary>$ dictionary
+	//		variant 4: string json
 	
 	if (p_arguments.size() == 0)
 	{
@@ -1891,10 +1891,10 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 
 //	*********************	(object<Dictionary>$)Dictionary(...)
 //
-//		variant 1: ... conforms to void
-//		variant 2: ... conforms to is$ key, * value, ...
-//		variant 3: ... conforms to object<Dictionary>$ dictionary
-//		variant 4: ... conforms to string json
+//		variant 1: void
+//		variant 2: is$ key, * value, ...
+//		variant 3: object<Dictionary>$ dictionary
+//		variant 4: string json
 //
 static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -1952,13 +1952,18 @@ const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Fu
 		// the Dictionary() constructor has four ellipsis variants
 		{
 			EidosFunctionSignature *ellipsisSignature = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddEllipsis();
+			
 			EidosFunctionSignature *variant1 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class));
 			EidosFunctionSignature *variant2 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddIntString_S("key")->AddAny("value")->AddEllipsis();
 			EidosFunctionSignature *variant3 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddObject_S("dictionary", gEidosDictionaryRetained_Class);
 			EidosFunctionSignature *variant4 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddString("json");
 			
-			ellipsisSignature->AddEllipsisVariant(variant1)->AddEllipsisVariant(variant2)->
-				AddEllipsisVariant(variant3)->AddEllipsisVariant(variant4);	// ownership of these objects is taken from us
+			// ownership of these objects is taken from us
+			ellipsisSignature->AddEllipsisVariant(variant1, "new empty");
+			ellipsisSignature->AddEllipsisVariant(variant2, "key-value pairs");
+			ellipsisSignature->AddEllipsisVariant(variant3, "Dictionary copy");
+			ellipsisSignature->AddEllipsisVariant(variant4, "from JSON");
+			
 			functions->emplace_back(ellipsisSignature);
 		}
 		

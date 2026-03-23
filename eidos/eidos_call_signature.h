@@ -68,6 +68,8 @@ public:
 	bool has_ellipsis_ = false;								// if true, the function accepts arbitrary varargs at some point in its signature (given in the arg vectors above)
 	std::vector<EidosCallSignature *> ellipsis_variants_;	// OWNED POINTERS: a vector of allowed variants for the ellipsis; if empty, the ellipsis allows anything (although the imp might impose restrictions)
 	
+	std::string description_;								// a very short description; currently used only by ellipsis variants
+	
 	bool deprecated_ = false;								// if true, the API represented by this signature has been deprecated
 	
 	EidosCallSignature(const EidosCallSignature&) = delete;					// no copying
@@ -87,7 +89,7 @@ public:
 	// that are the only variants allowed for the ellipsis, and are type-checked; see defineSpatialMap() for an example of this pattern,
 	// and see _ProcessArgumentList_CREATE() for the code path where these ellipsis variants are handled at function/method dispatch
 	EidosCallSignature *AddEllipsis(void);
-	EidosCallSignature *AddEllipsisVariant(EidosCallSignature *p_variant);	// takes ownership of the passed object
+	EidosCallSignature *AddEllipsisVariant(EidosCallSignature *p_variant, std::string p_description);	// takes ownership of the passed object
 	
 	// vanilla type-specified arguments
 	EidosCallSignature *AddLogical(const std::string &p_argument_name);

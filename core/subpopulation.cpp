@@ -11329,8 +11329,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 
 //	*********************	– (object<SpatialMap>$)defineSpatialMap(string$ name, string$ spatiality, numeric values, [logical$ interpolate = F], ...)
 //
-//		variant 1: ... conforms to [Nif valueRange = NULL], [Ns colors = NULL])
-//		variant 2: ... conforms to [No<Palette>$ palette = NULL])
+//		variant 1: [Nif valueRange = NULL], [Ns colors = NULL])
+//		variant 2: [No<Palette>$ palette = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -11988,10 +11988,14 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		// the defineSpatialMap() method has two ellipsis variants
 		{
 			EidosInstanceMethodSignature *ellipsisSignature = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddEllipsis();
+			
 			EidosInstanceMethodSignature *variant1 = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
 			EidosInstanceMethodSignature *variant2 = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS(gStr_interpolate, gStaticEidosValue_LogicalF)->AddObject_OSN("palette", gEidosPalette_Class, gStaticEidosValueNULL);
 			
-			ellipsisSignature->AddEllipsisVariant(variant1)->AddEllipsisVariant(variant2);	// ownership of these objects is taken from us
+			// ownership of these objects is taken from us
+			ellipsisSignature->AddEllipsisVariant(variant1, "a range and colors");
+			ellipsisSignature->AddEllipsisVariant(variant2, "Palette object");
+			
 			methods->emplace_back(ellipsisSignature);
 		}
 		

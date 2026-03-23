@@ -1064,6 +1064,9 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 QTextCharFormat plainTextFormat = tc.charFormat();
                 plainTextFormat.setFontPointSize(signaturePointSize);
                 
+                QTextCharFormat italicTextFormat = plainTextFormat;
+                italicTextFormat.setFontItalic(true);
+                
                 ColorizeCallSignature(signature.get(), signaturePointSize, tc);
                 tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
                 
@@ -1085,12 +1088,11 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                         EidosCallSignature *variant = variants[variantIndex - 1];
                         
                         tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-                        tc.setCharFormat(plainTextFormat);
-                        tc.insertText(QString("variant %1: ").arg(variantIndex));
-                        tc.setCharFormat(codeTextFormat);
-                        tc.insertText("...");
-                        tc.setCharFormat(plainTextFormat);
-                        tc.insertText(" conforms to ");
+                        tc.setCharFormat(italicTextFormat);
+                        tc.insertText(QString("variant %1").arg(variantIndex));
+                        if (variant->description_.length() > 0)
+                            tc.insertText(QString(" (%1)").arg(QString::fromStdString(variant->description_)));
+                        tc.insertText(QString(": "));
                         
                         int sigStart = tc.position();
                         QString variantString = QString::fromStdString(variant->SignatureString());
