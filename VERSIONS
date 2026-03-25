@@ -212,6 +212,7 @@ multitrait branch:
 	switch SpatialMap over to using a Palette for its colors
 		add a defineSpatialMap() ellipsis variant that takes a Palette object to define its colors
 		add a changeColors() ellipsis variant that takes a Palette object to define its colors
+	improve code completion intelligence in SLiMgui
 
 
 version 5.1 (Eidos version 4.1):

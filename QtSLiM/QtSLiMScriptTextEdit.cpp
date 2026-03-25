@@ -1672,104 +1672,229 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 //- (int64_t)eidosScoreAsCompletionOfString:(NSString *)base
 int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate, QString base)
 {
-    // Evaluate the quality of the target as a completion for completionBase and return a score.
-	// We look for each character of completionBase in candidate, in order, case-insensitive; all
-	// characters must be present in order for the target to be a completion at all.  Beyond that,
-	// a higher score is garnered if the matches in candidate are (1) either uppercase or the 0th character,
-	// and (2) if they are relatively near the beginning, and (3) if they occur contiguously.
-	int64_t score = 0;
-	int baseLength = base.length();
-	
-	// Do the comparison scan; find a match for each composed character sequence in base.  I *think*
-    // QString contains QChars that represent composed character sequences already, so I think in this
-    // port of the Objective-C code maybe I can ignore that issue...?  We work use rangeOfString: to do
-    // searches, to avoid issues with diacritical marks, alternative composition sequences, casing, etc.
-	int firstUnusedIndex = 0, firstUnmatchedIndex = 0;
-	
-	do
-	{
-		//NSRange baseRangeToMatch = [base rangeOfComposedCharacterSequenceAtIndex:firstUnmatchedIndex];
-		//NSString *stringToMatch = [base substringWithRange:baseRangeToMatch];
-        int baseIndexToMatch = firstUnmatchedIndex;
-        QString stringToMatch = base.mid(baseIndexToMatch, 1);
-        QString uppercaseStringToMatch = stringToMatch.toUpper();
-		int candidateMatchIndex;
-		
-		if ((stringToMatch == uppercaseStringToMatch) && (firstUnmatchedIndex != 0))
-		{
-			// If the character in base is uppercase, we only want to match an uppercase character in candidate.
-			// The exception is the first character of base; WTF should match writeTempFile() well.
-            candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
-			score += 1000;	// uppercase match
-		}
-		else
-		{
-			// If the character in base is not uppercase, we will match any case in candidate, but we prefer a
-			// lowercase character if it matches the very next part of candidate, otherwise we prefer uppercase.
-            candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
-			
-			if (candidateMatchIndex == firstUnusedIndex)
-			{
-				score += 2000;	// next-character match is even better than upper-case; continuity trumps camelcase
-			}
-			else
-			{
-				int uppercaseMatchIndex = candidate.indexOf(uppercaseStringToMatch, firstUnusedIndex);
-				
-				if (uppercaseMatchIndex != -1)
-				{
-					candidateMatchIndex = uppercaseMatchIndex;
-					score += 1000;	// uppercase match
-				}
-				else if (firstUnusedIndex > 0)
-				{
-					// This match is crap; we're jumping forward to a lowercase letter, so it's unlikely to be what
-					// the user wants.  So we bail.  This can be commented out to return lower-quality matches.
-					return INT64_MIN;
-				}
-			}
-		}
-		
-		// no match in candidate for the composed character sequence in base; candidate is not a good completion of base
-		if (candidateMatchIndex == -1)
-			return INT64_MIN;
-		
-		// matching the very beginning of candidate is very good; we really want to match the start of a candidate
-		// otherwise, earlier matches are better; a match at position 0 gets the largest score increment
-		if (candidateMatchIndex == 0)
-			score += 100000;
-		else
-            score -= (candidateMatchIndex * 10);
+    qDebug().nospace() << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: initiating with \"" << base << "\"...";
+    
+    // Kick off the recursion with a base score of 0, which will be adjusted upward and downward.
+    // If no acceptable match is found at all, INT64_MIN will be returned.
+    int64_t score = scoreForCandidateAsCompletionOfString(candidate, base, /* firstUnusedIndex */ 0, /* firstUnmatchedIndex */ 0, /* scoreSoFar */ 0, /* recursionLevel */ 1);
+    
+    if (score > INT64_MIN)
+    {
+        // We want argument-name matches to be at the top, always, when they are available, so bump their score
+        if (candidate.endsWith("="))
+            score += 1000000;
+    }
+    
+    return score;
+}
+
+// - (int64_t)eidosScoreAsCompletionOfString:(NSString *)base firstUnusedIndex:(NSUInteger)firstUnusedIndex firstUnmatchedIndex:(NSUInteger)firstUnmatchedIndex score:(int64_t)scoreSoFar recursionLevel:(int)recursionLevel
+int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate, QString base, int firstUnusedIndex, int firstUnmatchedIndex, int64_t scoreSoFar, int recursionLevel)
+{
+    qDebug().nospace() << QString(recursionLevel * 4, ' ') << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: \"" << base << "\"" <<
+        " firstUnusedIndex: " << firstUnusedIndex << " firstUnmatchedIndex: " << firstUnmatchedIndex << " score: " << scoreSoFar;
+    
+    // This recursive method is called initially by -eidosScoreAsCompletionOfString: and then by itself.
+    // This is recursive because we want to try every possibility in terms of where each character in
+    // base matches.  For example, if `this` is "individualPhenotypePalette" and base is "pal", the "p"
+    // in "pal" could match at "Phen...", "pePa...", and "Pale...".  The first two will turn out to be
+    // crap and will produce INT64_MIN, but the third is gold.  So we need to loop through each of those
+    // matches; and for each match for "p", we will then want to loop through each match for "a" and then
+    // for "l", so that we might find a golden match like "getPipPopulationAndAllocateLiability()" even
+    // though it involves the second match for "p", then the third for "a" from there, and then the
+    // third for "l" from there.  We need to experiment with all possible paths.  This is quite work-
+    // intensive but we expect `this` and `base` to be reasonably short, so it shouldn't be prohibitive.
+    //
+    // So, we are searching in `this` from position firstUnusedIndex onward, and in `base` from position
+    // firstUnmatchedIndex onward.  The assumption is that position firstUnusedIndex-1 was either a match
+    // or the start of the string, so it is especially good to match the next character at that position,
+    // even if the match is not uppercase.  Otherwise, we really want an uppercase match.  Whenever we
+    // look for a match, we loop over all possible matches and recurse downward to explore where each one
+    // leads.
+    //
+    // I *think* QString contains QChars that represent composed character sequences already, so I think
+    // in this port of the Objective-C code maybe I can ignore that issue...?
+    int candidateLength = candidate.length(), baseLength = base.length();
+    
+    // prepare for matching of the base range starting at firstUnmatchedIndex; this is our responsibility
+    int baseIndexToMatch = firstUnmatchedIndex;
+    QString stringToMatch = base.mid(baseIndexToMatch, 1);
+    QString uppercaseStringToMatch = stringToMatch.toUpper();
+    
+    // this is the best score seen after recursing all the way down; if we don't find a match we return this
+    int64_t newBestScore = INT64_MIN;	
+    
+    // think about the next base range that we will recurse to match; is there another, or are we last?
+    int nextUnmatchedIndex = baseIndexToMatch + 1;
+    bool matchingLastBaseRange = (nextUnmatchedIndex >= baseLength);
+    
+    // now handle the various matching cases that we are responsible, involving baseIndexToMatch
+    
+    if ((stringToMatch == uppercaseStringToMatch) && (firstUnmatchedIndex != 0))
+    {
+        // Here we handle the situation where the character in base is uppercase, *and* it is not the very
+        // first character of base.  In this situation, we only want to match an uppercase character in self.
+        // Matching an uppercase character in base to a lowercase character in self is not considered an
+        // acceptable match, except for the very first character of base; WTF should match writeTempFile().
         
-        // penalize skipping over a capital letter in candidate to get to the match position; iS is not a great match for initializeTreeSequence() compared to initializeSex()
-        for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
-        {
-            QString skippedChar = base.mid(skippedIndex, 1);
+        // loop through all matches, until we fail to find one
+        while (TRUE) {
+            int candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
             
-            if (skippedChar == skippedChar.toUpper())
-                score -= 50;
+            if (candidateMatchIndex != -1)
+            {
+                // we have a match; strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+                int64_t thisMatchScore = scoreSoFar + 1000;		// the bonus for finding an uppercase match
+                
+                if (candidateMatchIndex == 0)
+                    thisMatchScore += 100000;
+                else
+                    thisMatchScore -= (candidateMatchIndex * 10);
+                
+                // penalize skipping over a capital letter in candidate to get to the match position;
+                // iS is not a great match for initializeTreeSequence() compared to initializeSex()
+                for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
+                {
+                    QString skippedChar = base.mid(skippedIndex, 1);
+                    
+                    if (skippedChar == skippedChar.toUpper())
+                        thisMatchScore -= 50;
+                }
+                
+                // recurse to score the remainder of base, if we are not the end of base
+                if (matchingLastBaseRange)
+                {
+                    // penalize the unused length of the completed string, all else being equal
+                    thisMatchScore -= (candidate.length() - firstUnmatchedIndex);
+                    
+                    newBestScore = std::max(newBestScore, thisMatchScore);
+                }
+                else
+                {
+                    int64_t recurseScore = scoreForCandidateAsCompletionOfString(candidate, base, candidateMatchIndex + 1, nextUnmatchedIndex, thisMatchScore, recursionLevel + 1);
+                        
+                    newBestScore = std::max(newBestScore, recurseScore);
+                }
+                
+                // advance to the next character in candidate to look for a match
+                firstUnusedIndex = candidateMatchIndex + 1;
+                
+                // if we're out of characters, return the best match that we found
+                if (firstUnusedIndex >= candidateLength)
+                    return newBestScore;
+            }
+            else
+            {
+                // no matches left; return the best score we found
+                return newBestScore;
+            }
         }
-		
-		// move firstUnusedIndex to follow the matched range in candidate
-		firstUnusedIndex = candidateMatchIndex + 1;
-		
-		// move to the next composed character sequence in base
-		firstUnmatchedIndex = baseIndexToMatch + 1;
-		if (firstUnmatchedIndex >= baseLength)
-			break;
-	}
-	while (true);
-    
-    // penalize the unused length of the completed string, all else being equal
-    score -= (candidate.length() - firstUnmatchedIndex);
-	
-	// we want argument-name matches to be at the top, always, when they are available, so bump their score
-	if (candidate.endsWith("="))
-		score += 1000000;
-    
-    //qDebug() << "Score for" << candidate << "given base" << base << "==" << score;
-	
-	return score;
+    }
+    else
+    {
+        // Here we check for a very specific case: if we have a lowercase match at the very next part of self.
+        // If we do, that is preferred to alternatives, as a continuation of whatever matched at the immediately
+        // preceding position.  This match does not loop, because it can only happen at this one position.
+        {
+            int candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
+            
+            if (candidateMatchIndex == firstUnusedIndex)
+            {
+                // we have a match; strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+                int64_t thisMatchScore = scoreSoFar + 2000;		// next-character match is even better than upper-case; continuity trumps camelcase
+                
+                if (candidateMatchIndex == 0)
+                    thisMatchScore += 100000;
+                
+                // penalize skipping over a capital letter in candidate to get to the match position;
+                // iS is not a great match for initializeTreeSequence() compared to initializeSex()
+                for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
+                {
+                    QString skippedChar = base.mid(skippedIndex, 1);
+                    
+                    if (skippedChar == skippedChar.toUpper())
+                        thisMatchScore -= 50;
+                }
+                
+                // recurse to score the remainder of base, if we are not the end of base
+                if (matchingLastBaseRange)
+                {
+                    // penalize the unused length of the completed string, all else being equal
+                    thisMatchScore -= (candidate.length() - firstUnmatchedIndex);
+                    
+                    newBestScore = std::max(newBestScore, thisMatchScore);
+                }
+                else
+                {
+                    int64_t recurseScore = scoreForCandidateAsCompletionOfString(candidate, base, candidateMatchIndex + 1, nextUnmatchedIndex, thisMatchScore, recursionLevel + 1);
+                    
+                    newBestScore = std::max(newBestScore, recurseScore);
+                }
+                
+                return newBestScore;
+            }
+        }
+        
+        // The currently matching character in base is lowercase, and the next character of self is not a
+        // lowercase match for it.  So we have to skip ahead to find a match.  Skipping ahead to some random
+        // lowercase character later is deemed unacceptable; that's like matching "t" to the "t" in "asString()",
+        // it's crap.  So we don't even look for those.  The only acceptable match at this point is a match to
+        // the uppercase version of the match character; that's like a match of "t" to the uppercase "T" in
+        // "initializeTreeSeq()"; if the user completed on "it", initializeTreeSeq() is a good match.
+        
+        // loop through all matches, until we fail to find one
+        while (TRUE) {
+            int uppercaseMatchIndex = candidate.indexOf(uppercaseStringToMatch, firstUnusedIndex);
+            
+            if (uppercaseMatchIndex != -1)
+            {
+                // we have a match; strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+                int64_t thisMatchScore = scoreSoFar + 1000;		// the bonus for finding an uppercase match
+                
+                if (uppercaseMatchIndex == 0)
+                    thisMatchScore += 100000;
+                else
+                    thisMatchScore -= (uppercaseMatchIndex * 10);
+                
+                // penalize skipping over a capital letter in candidate to get to the match position;
+                // iS is not a great match for initializeTreeSequence() compared to initializeSex()
+                for (int skippedIndex = firstUnusedIndex; skippedIndex < uppercaseMatchIndex; ++skippedIndex)
+                {
+                    QString skippedChar = base.mid(skippedIndex, 1);
+                    
+                    if (skippedChar == skippedChar.toUpper())
+                        thisMatchScore -= 50;
+                }
+                
+                // recurse to score the remainder of base, if we are not the end of base
+                if (matchingLastBaseRange)
+                {
+                    // penalize the unused length of the completed string, all else being equal
+                    thisMatchScore -= (candidate.length() - firstUnmatchedIndex);
+                    
+                    newBestScore = std::max(newBestScore, thisMatchScore);
+                }
+                else
+                {
+                    int64_t recurseScore = scoreForCandidateAsCompletionOfString(candidate, base, uppercaseMatchIndex + 1, nextUnmatchedIndex, thisMatchScore, recursionLevel + 1);
+                    
+                    newBestScore = std::max(newBestScore, recurseScore);
+                }
+                
+                // advance to the next composed character sequence in self to look for a match
+                firstUnusedIndex = uppercaseMatchIndex + 1;
+                
+                // if we're out of characters, return the best match that we found
+                if (firstUnusedIndex >= candidateLength)
+                    return newBestScore;
+            }
+            else
+            {
+                // no matches left; return the best score we found
+                return newBestScore;
+            }
+        }
+    }
 }
 
 //- (NSArray *)completionsFromArray:(NSArray *)candidates matchingBase:(NSString *)base
