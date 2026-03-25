@@ -1738,7 +1738,7 @@ int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate,
         // acceptable match, except for the very first character of base; WTF should match writeTempFile().
         
         // loop through all matches, until we fail to find one
-        while (TRUE) {
+        while (true) {
             int candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
             
             if (candidateMatchIndex != -1)
@@ -1843,7 +1843,7 @@ int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate,
         // "initializeTreeSeq()"; if the user completed on "it", initializeTreeSeq() is a good match.
         
         // loop through all matches, until we fail to find one
-        while (TRUE) {
+        while (true) {
             int uppercaseMatchIndex = candidate.indexOf(uppercaseStringToMatch, firstUnusedIndex);
             
             if (uppercaseMatchIndex != -1)
