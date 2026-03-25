@@ -167,9 +167,9 @@ public:
 		if (value == fixed_value_)
 		{
 			// don't use the cache for a fixed value; this guarantees yellow at neutrality, regardless of the cache resolution
-			*r = fixed_r_;
-			*g = fixed_g_;
-			*b = fixed_b_;
+			*r = (double)fixed_r_;
+			*g = (double)fixed_g_;
+			*b = (double)fixed_b_;
 			return;
 		}
 		

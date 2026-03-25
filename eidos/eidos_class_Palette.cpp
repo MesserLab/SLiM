@@ -302,7 +302,7 @@ EidosPalette *EidosPalette::SetFixedValue(double value, float p_red, float p_gre
 		EIDOS_TERMINATION << "ERROR (EidosPalette::SetFixedValue): (internal error) a fixed value must be in the interior of the palette's range." << EidosTerminate();
 	if (!std::isfinite(p_red) || !std::isfinite(p_green) || !std::isfinite(p_blue))
 		EIDOS_TERMINATION << "ERROR (EidosPalette::SetFixedValue): (internal error) the RGB values must be finite." << EidosTerminate();
-	if ((p_red < 0.0) || (p_red > 1.0) || (p_green < 0.0) || (p_green > 1.0) || (p_blue < 0.0) || (p_blue > 1.0))
+	if ((p_red < (float)0.0) || (p_red > (float)1.0) || (p_green < (float)0.0) || (p_green > (float)1.0) || (p_blue < (float)0.0) || (p_blue > (float)1.0))
 		EIDOS_TERMINATION << "ERROR (EidosPalette::SetFixedValue): (internal error) the RGB values must be in [0, 1]." << EidosTerminate();
 #endif
 	
@@ -525,9 +525,7 @@ void EidosPalette::_CalculateColorForValueGivenNodes(double value, float *p_r, f
 void EidosPalette::CalculateColorForValue(double value, float *r, float *g, float *b)
 {
 	PaletteNode *node_ptr = nodes_.data();
-#if DEBUG
 	PaletteNode *end_node_ptr = node_ptr + nodes_.size();
-#endif
 	PaletteNode *previous_node_ptr = node_ptr++;
 	
 	// advance to the correct pair of palette nodes, between which the input value lies
@@ -563,9 +561,7 @@ void EidosPalette::_GenerateColorCache(void)
 	// the first node defines the start of the color ramp; the next node defines the end of the color ramp
 	float *cache_ptr = cached_colors_;
 	PaletteNode *node_ptr = nodes_.data();
-#if DEBUG
 	PaletteNode *end_node_ptr = node_ptr + nodes_.size();
-#endif
 	PaletteNode *previous_node_ptr = node_ptr++;
 	
 	//std::cout << "_GenerateColorCache() : range_start_ " << range_start_ << " range_end_ " << range_end_ << std::endl;
