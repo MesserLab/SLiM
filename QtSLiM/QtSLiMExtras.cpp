@@ -399,8 +399,9 @@ void QtSLiMColorScaleWidget::MeasureOrPaint(QPainter *painter, int *p_panel_widt
     static QString sectionSubhead4("phenotypes are in [0, 1], 0.5 neutral; effects are in (-∞, ∞), 0.0 neutral");
     static QString footerLine1("A representative sub-range of each scale is shown, not the full range.");
     static QString footerLine2("Yellow represents a neutral fitness/phenotype/effect on each scale.");
-    static QString footerLine3("These fade towards black/white for values outside the range shown.");
-    static QString footerLine4("Mutation effect scales are based upon homozygous effects (1+s, 2a).");
+    static QString footerLine3("Gray represents NAN (uncalculated) phenotypes (not shown here).");
+    static QString footerLine4("Scales fade towards black/white for values outside the range shown.");
+    static QString footerLine5("Mutation effect scales are based upon homozygous effects (1+s, 2a).");
     static QString labelLine1("Individual fitness:");
     static QString labelLine2("Individual phenotype:");
     static QString labelLine3("Mutation effect:");
@@ -423,6 +424,7 @@ void QtSLiMColorScaleWidget::MeasureOrPaint(QPainter *painter, int *p_panel_widt
     panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine2) + rightMargin));
     panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine3) + rightMargin));
     panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine4) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine5) + rightMargin));
     
     panelWidth += 20;   // we want the longest line of text to fill the width of the panel with this many pixels to spare, for aesthetics
     
@@ -518,6 +520,7 @@ void QtSLiMColorScaleWidget::MeasureOrPaint(QPainter *painter, int *p_panel_widt
     y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine2);
     y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine3);
     y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine4);
+    y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine5);
     
     // write out the calculated panel size
     if (p_panel_width)  *p_panel_width = panelWidth;
