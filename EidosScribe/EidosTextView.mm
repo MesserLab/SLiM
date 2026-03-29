@@ -2023,7 +2023,7 @@
 	const EidosClass *terminus = key_path_class;
 	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
-	// First, a sorted list of globals
+	// First, a sorted list of properties
 	for (auto symbol_sig : terminus->Properties_TYPE_INTERPRETER())
 	{
 		if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))

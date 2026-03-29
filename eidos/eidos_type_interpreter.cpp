@@ -320,6 +320,11 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 	int sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
 	//bool had_named_argument = false;
 	
+	// These are for handling ellipsis variants
+	bool saw_ellipsis_argument = false;
+	int ellipsis_argument_position = 0;
+	int count_after_signature = 0;
+	
 	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 	{
 		EidosASTNode *child = *child_iter;
@@ -347,6 +352,16 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 						{
 							const std::string &arg_name = p_call_signature->arg_names_[sig_arg_match_index];
 							bool is_ellipsis = (arg_name == "...");
+							
+							// BCH 3/29/2026: we now handle ellipsis variant arguments below, so remember the ellipsis position
+							// in the signature, and the index of the child AST node in the call node (i.e., the actual argument index)
+							if (is_ellipsis)
+							{
+								saw_ellipsis_argument = true;
+								ellipsis_argument_position = sig_arg_match_index;
+								
+								//std::cout << "ellipsis seen (point 1), ellipsis_argument_position == " << ellipsis_argument_position << "..." << std::endl;
+							}
 							
 							// To be a completion match, the name must not be private API ('_' prefix) or an ellipsis ('...')
 							// Whether it is an acceptable completion in other respects will be checked by the completion engine
@@ -398,8 +413,17 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 						
 						// arguments that receive the default value are represented in the argument list here with nullptr, since we have no node for them
 						// if the signature argument is an ellipsis, however, skip over it with no default value
-						if (arg_name_ID != gEidosID_ELLIPSIS)
+						if (arg_name_ID == gEidosID_ELLIPSIS)
+						{
+							saw_ellipsis_argument = true;
+							ellipsis_argument_position = sig_arg_index;
+							
+							//std::cout << "ellipsis seen (point 2), ellipsis_argument_position == " << ellipsis_argument_position << "..." << std::endl;
+						}
+						else
+						{
 							p_arguments.emplace_back(nullptr);
+						}
 						
 						// Move to the next signature argument
 						sig_arg_index++;
@@ -414,7 +438,10 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 		}
 		else
 		{
-			// We're beyond the end of the signature's arguments; in EidosInterpreter this is complicated because of ellipsis args, here we just let it go
+			// We're beyond the end of the signature's arguments; in EidosInterpreter this is complicated because of ellipsis args, here we just let it go.
+			// We do count the number of parameters seen after the signature end, though, in a vague attempt to be helpful with ellipsis variants.
+			count_after_signature++;
+			//std::cout << "   count_after_signature == " << count_after_signature << std::endl;
 		}
 		
 		// The child pointer is an argument node, so remember it
@@ -435,6 +462,33 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 			p_arguments.emplace_back(nullptr);
 		
 		sig_arg_index++;
+	}
+	
+	// An ellipsis is now handled specially here, because we want to provide suggestions from
+	// ellipsis variants; so when we see an ellipsis, we then loop over all variants here
+	if (argument_completions_ && p_call_signature->has_ellipsis_ && p_call_signature->ellipsis_variants_.size() && saw_ellipsis_argument)
+	{
+		for (EidosCallSignature *variant : p_call_signature->ellipsis_variants_)
+		{
+			int variant_arg_count = (int)variant->arg_name_IDs_.size();
+			
+			for (int variant_arg_match_index = ellipsis_argument_position + count_after_signature; variant_arg_match_index < variant_arg_count; ++variant_arg_match_index)
+			{
+				const std::string &variant_arg_name = variant->arg_names_[variant_arg_match_index];
+				bool variant_is_ellipsis = (variant_arg_name == "...");		// ellipsis variants can also have an ellipsis
+				
+				if ((variant_arg_name[0] != '_') && !variant_is_ellipsis)
+					argument_completions_->emplace_back(variant_arg_name);
+				
+				// We just add all arguments from the variant; we don't try to determine what position in the
+				// variant signature the completion is at, whether parameters in the variant are available or
+				// not given the names and types seen so far, etc.  We could be smarter here, but the goal for
+				// now is just to offer the user what they are looking for without shooting ourselves in the
+				// foot.  To be smarter than this, we'd have to try to actually figure out which variant is
+				// being called based upon the arguments supplied, which is more complication than I want to
+				// get into right now, but could be possible in future.  // FIXME
+			}
+		}
 	}
 }
 
