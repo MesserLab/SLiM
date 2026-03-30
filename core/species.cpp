@@ -5047,18 +5047,37 @@ void Species::RunInitializeCallbacks(void)
 			continue;
 		}
 		
+#if 0
+		// BCH 3/30/2026: I'm disabling this logic, because it is flawed.  We can't draw an inference about
+		// whether or not an ind-dom cache will be needed based on the DESs set up at initialize() time,
+		// because it will be commonplace for people to use a mutation() callback to calculate effect sizes
+		// at runtime, overriding the default DESs for the trait.  We just have to assume: if NAN is set as
+		// the default dominance for all mutation types for the trait, then the user has expressed the intent
+		// to use independent dominance, and so we need to set up a cache for it.  The doc should emphasize
+		// that NAN should not be used as the default dominance if the intention is to have the trait be
+		// entirely neutral (genetically).  Incidentally, this is a good reason not to use NAN as the default
+		// value for the mutation type default dominance; we really do need to make the user specify it.
+		// If they don't want/need independent dominance, they should not pass NAN.
+		//
+		// -----------------------------------------------------------------------------------------------
+		
 		// The trait_all_mutations_independent_dominance_ flag indicates that all *non-neutral* mutations
 		// for the trait are set up for independent dominance.  But if the trait is set up to be entirely
 		// neutral, trait_all_mutations_independent_dominance_ will be true and yet we need no cached values
 		// for it; so we check that here as an additional condition.
 		if (trait->trait_all_neutral_mutations_)
 		{
+			// BCH 3/30/2026: If we decide not to make an inddom cache for a trait for any reason, this flag
+			// needs to be set to false; it is the indicator that an inddom cache has been set up for the trait.
+			trait->trait_all_mutations_independent_dominance_ = false;
+			
 #if DEBUG_TRAIT_DEMAND()
 			std::cout << "### initialize(): trait '" << trait->Name() << "' is not eligible for independent-dominance caching (all muttypes have a neutral DES for it)" << std::endl;
 #endif
 			inddom_cache_indices_.push_back(static_cast<MutRunInternalCacheIndex>(-1));		// "the trait at this index has no inddom cache"
 			continue;
 		}
+#endif
 		
 		// This trait will have space allocated for a independent-dominance cache in each MutationRun.
 #if DEBUG_TRAIT_DEMAND()
