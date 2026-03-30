@@ -4988,24 +4988,45 @@ void Species::RunInitializeCallbacks(void)
 			{
 				slim_trait_index_t trait_index = trait->Index();
 				bool all_muttypes_intermediate_dominance = true;
+				bool muttype_independent_dominance_seen = false;
+				bool any_relevant_muttype = false;
 				
 				for (auto mut_type_iter : mutation_types_)
 				{
 					MutationType *muttype = mut_type_iter.second;
 					
 					// mutation types with a neutral DES for the trait don't matter for this determination
+					// BCH 3/30/2026: I'm not entirely happy with this condition, because it is commonplace
+					// to have a neutral DES and then set effect sizes in a mutation() callback; in that
+					// configuration, you might well want to use independent dominance rather than 0.5, so
+					// it would be useful to see this warning.  However, we don't want to urge users with
+					// a completely neutral trait to set independent dominance for that trait; that will
+					// just result in allocating an independent-dominance cache that is not needed.  I think
+					// users using a mutation() callback can be regarded as knowing what they are doing.
 					if (muttype->effect_size_distributions_[trait_index].DES_type_ == DESType::kFixed)
 						if (muttype->effect_size_distributions_[trait_index].DES_parameters_[0] == 0.0)
 							continue;
 					
-					if (muttype->DefaultDominanceForTrait(trait_index) != (slim_effect_t)0.5)
+					any_relevant_muttype = true;
+					
+					slim_effect_t default_dominance = muttype->DefaultDominanceForTrait(trait_index);
+					
+					if (std::isnan(default_dominance))
+					{
+						// if NAN is used anywhere, that is an indication that the user is aware of the
+						// independent-dominance feature and has configured it as they wish
+						muttype_independent_dominance_seen = true;
+						break;
+					}
+					
+					if (default_dominance != (slim_effect_t)0.5)
 					{
 						all_muttypes_intermediate_dominance = false;
 						break;
 					}
 				}
 				
-				if (all_muttypes_intermediate_dominance && !gEidosSuppressWarnings)
+				if (any_relevant_muttype && !muttype_independent_dominance_seen && all_muttypes_intermediate_dominance && !gEidosSuppressWarnings)
 					SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): trait '" << trait->Name() << "' is " << (trait->HasLogisticPostTransform() ? "logistic" : "additive") << ", and every non-neutral mutation type has a default dominance of 0.5 for this trait.  This suggests that the effects of mutations will exhibit independent dominance for trait '" << trait->Name() << "', but the trait is not configured to exhibit independent dominance; this may result in significantly reduced performance.  Using NAN as the default dominance for this trait, for every non-neutral mutation type, would configure the trait to exhibit independent dominance, likely providing a performance improvement with no change in the behavior of the model." << std::endl;
 			}
 		}
