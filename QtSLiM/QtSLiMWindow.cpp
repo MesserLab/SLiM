@@ -2131,15 +2131,103 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     if (terminationMessage.contains("property dominanceCoeff is not defined for object element type MutationType") &&
             (selectionString == "dominanceCoeff"))
-        return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "The `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
-    
-    // the above autofix is imperfect; if the user is assigning into dominanceCoeff, it really needs to be corrected to be a call to setDefaultDominanceForTrait()
+    {
+        // if the user is assigning into dominanceCoeff, it needs to be corrected to be a call to setDefaultDominanceForTrait()
+        if (terminationMessage.contains("GetPropertyOfElements"))
+            return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "Reading the `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
+        else if (terminationMessage.contains("SetPropertyOfElements"))
+        {
+            // we advance to encompass the next semicolon found, and put everything in between into the replacement; this is a heuristic, not precise
+            QTextCursor findEqualsCursor = selection;
+            
+            while (!findEqualsCursor.atEnd()) {
+                findEqualsCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (findEqualsCursor.selectedText().endsWith('=')) {
+                    break;
+                }
+            }
+            
+            QTextCursor eatSpacesCursor = findEqualsCursor;
+            
+            while (!eatSpacesCursor.atEnd()) {
+                eatSpacesCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (!eatSpacesCursor.selectedText().endsWith(' ')) {
+                    break;
+                }
+            }
+            
+            QTextCursor findSemicolonCursor = eatSpacesCursor;
+            
+            while (!findSemicolonCursor.atEnd()) {
+                findSemicolonCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (findSemicolonCursor.selectedText().endsWith(';')) {
+                    break;
+                }
+            }
+            
+            if (!findSemicolonCursor.atEnd())
+            {
+                QTextCursor rvalueCursor = selection;
+                rvalueCursor.setPosition(eatSpacesCursor.position() - 1, QTextCursor::MoveAnchor);
+                rvalueCursor.setPosition(findSemicolonCursor.position() - 1, QTextCursor::KeepAnchor);
+                
+                QString rvalueString = rvalueCursor.selectedText();
+                QString replacement = QString("setDefaultDominanceForTrait(NULL, %1);").arg(rvalueString);
+                
+                return offerAndExecuteAutofix(findSemicolonCursor, replacement, "Writing the `dominanceCoeff` property of MutationType has become the method `setDefaultDominanceForTrait()`.", terminationMessage);
+            }
+        }
+    }
     
     if (terminationMessage.contains("property hemizygousDominanceCoeff is not defined for object element type MutationType") &&
             (selectionString == "hemizygousDominanceCoeff"))
-        return offerAndExecuteAutofix(selection, "defaultHemizygousDominanceForTrait()", "The `hemizygousDominanceCoeff` property of MutationType has become the method `defaultHemizygousDominanceForTrait()`.", terminationMessage);
-    
-    // the above autofix is imperfect; if the user is assigning into hemizygousDominanceCoeff, it really needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
+    {
+        // if the user is assigning into hemizygousDominanceCoeff, it needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
+        if (terminationMessage.contains("GetPropertyOfElements"))
+            return offerAndExecuteAutofix(selection, "defaultHemizygousDominanceForTrait()", "The `hemizygousDominanceCoeff` property of MutationType has become the method `defaultHemizygousDominanceForTrait()`.", terminationMessage);
+        else if (terminationMessage.contains("SetPropertyOfElements"))
+        {
+            // we advance to encompass the next semicolon found, and put everything in between into the replacement; this is a heuristic, not precise
+            QTextCursor findEqualsCursor = selection;
+            
+            while (!findEqualsCursor.atEnd()) {
+                findEqualsCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (findEqualsCursor.selectedText().endsWith('=')) {
+                    break;
+                }
+            }
+            
+            QTextCursor eatSpacesCursor = findEqualsCursor;
+            
+            while (!eatSpacesCursor.atEnd()) {
+                eatSpacesCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (!eatSpacesCursor.selectedText().endsWith(' ')) {
+                    break;
+                }
+            }
+            
+            QTextCursor findSemicolonCursor = eatSpacesCursor;
+            
+            while (!findSemicolonCursor.atEnd()) {
+                findSemicolonCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+                if (findSemicolonCursor.selectedText().endsWith(';')) {
+                    break;
+                }
+            }
+            
+            if (!findSemicolonCursor.atEnd())
+            {
+                QTextCursor rvalueCursor = selection;
+                rvalueCursor.setPosition(eatSpacesCursor.position() - 1, QTextCursor::MoveAnchor);
+                rvalueCursor.setPosition(findSemicolonCursor.position() - 1, QTextCursor::KeepAnchor);
+                
+                QString rvalueString = rvalueCursor.selectedText();
+                QString replacement = QString("setDefaultHemizygousDominanceForTrait(NULL, %1);").arg(rvalueString);
+                
+                return offerAndExecuteAutofix(findSemicolonCursor, replacement, "Writing the `hemizygousDominanceCoeff` property of MutationType has become the method `setDefaultHemizygousDominanceForTrait()`.", terminationMessage);
+            }
+        }
+    }
     
     if (terminationMessage.contains("unrecognized named argument 'dominanceCoeff' to initializeMutationType()") &&
             (selectionString == "dominanceCoeff"))
