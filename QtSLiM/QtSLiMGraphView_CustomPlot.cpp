@@ -246,6 +246,9 @@ void QtSLiMGraphView_CustomPlot::setDataRanges(double *x_range, double *y_range)
         if (!yAxisIsUIRescaled_)
             yAxisIsUserRescaled_ = false;
     }
+    
+    if (x_range && y_range)
+        has_finite_data_ = true;
 }
 
 void QtSLiMGraphView_CustomPlot::setAxisConfiguration(int side, std::vector<double> *at, int labels_type, std::vector<QString> *labels)
