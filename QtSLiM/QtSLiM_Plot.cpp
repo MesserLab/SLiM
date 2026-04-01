@@ -934,7 +934,7 @@ EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const s
 }
 
 //	*********************	– (void)matrix(object$ image, numeric$ x1, numeric$ y1, numeric$ x2, numeric$ y2, [logical$ flipped = F],
-//                                          [Nif valueRange = NULL], [Ns$ colors = NULL], [float$ alpha = 1.0])
+//                                          [No<Palette>$ palette = NULL], [float$ alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -945,62 +945,17 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
     EidosValue *x2_value = p_arguments[3].get();
     EidosValue *y2_value = p_arguments[4].get();
     EidosValue *flipped_value = p_arguments[5].get();
-    EidosValue *valueRange_value = p_arguments[6].get();
-    EidosValue *colors_value = p_arguments[7].get();
-    EidosValue *alpha_value = p_arguments[8].get();
+    EidosValue *palette_value = p_arguments[6].get();
+    EidosValue *alpha_value = p_arguments[7].get();
     
     // flipped
     bool flipped = flipped_value->LogicalAtIndex_NOCAST(0, nullptr);
     
-    // valueRange
-    double range_min = 0.0, range_max = 0.0;
+    // palette
+    EidosPalette *palette = nullptr;
     
-    if (valueRange_value->Type() == EidosValueType::kValueNULL)
-    {
-        range_min = 0.0;
-        range_max = 1.0;
-    }
-    else
-    {
-        if (valueRange_value->Count() != 2)
-            EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires valueRange to be a vector of length 2 providing a data range, or NULL to use the default data range of [0, 1]." << EidosTerminate(nullptr);
-        
-        range_min = valueRange_value->NumericAtIndex_NOCAST(0, nullptr);
-        range_max = valueRange_value->NumericAtIndex_NOCAST(1, nullptr);
-        
-        if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min == range_max))
-            EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires valueRange to contain finite, unequal values that define a data range." << EidosTerminate(nullptr);
-    }
-    
-    // colors
-    std::string colors_name;
-    
-    if (colors_value->Type() == EidosValueType::kValueNULL)
-    {
-        colors_name = "gray";
-        std::swap(range_min, range_max);
-    }
-    else
-    {
-        colors_name = colors_value->StringAtIndex_NOCAST(0, nullptr);
-    }
-    
-    EidosColorPalette palette = EidosColorPaletteForName(colors_name);
-    
-    if (palette == EidosColorPalette::kPalette_INVALID)
-        EIDOS_TERMINATION << "ERROR (Plot::matrix): unrecognized color palette name in matrix()." << EidosTerminate(nullptr);
-    
-    // figure out the rescaling factors in effect; note that colors=NULL might have reversed the rescaling range
-    bool rescaling = false;
-    double rescale_offset = 0.0;
-    double rescale_scaling = 1.0;
-    
-    if ((range_min != 0.0) || (range_max != 1.0))
-    {
-        rescaling = true;
-        rescale_offset = -range_min;
-        rescale_scaling = 1.0 / (range_max - range_min);
-    }
+    if (palette_value->Type() != EidosValueType::kValueNULL)
+        palette = dynamic_cast<EidosPalette *>(palette_value->ObjectElementAtIndex_NOCAST(0, nullptr));
     
     // matrix
     if ((matrix_value->DimensionCount() != 2))
@@ -1034,18 +989,23 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
             {
                 double original_value = matrix_data[matrix_row_to_read + matrix_column * matrix_rows];
                 double value = original_value;
+                float red, green, blue;
                 
-                if (rescaling)
-                    value = (value + rescale_offset) * rescale_scaling;
-                
-                if (value < 0.0)
-                    value = 0.0;
-                if (value > 1.0)
-                    value = 1.0;
-                
-                double red, green, blue;
-                
-				EidosColorPaletteLookup(value, palette, red, green, blue);
+                if (palette)
+                {
+                    palette->ColorForValue(value, &red, &green, &blue);
+                }
+                else
+                {
+                    if (value < 0.0)
+                        value = 0.0;
+                    if (value > 1.0)
+                        value = 1.0;
+                    
+                    red = (float)value;
+                    green = (float)value;
+                    blue = (float)value;
+                }
                 
                 uint8_t r_i = round(red * 255.0);
                 uint8_t g_i = round(green * 255.0);
@@ -1071,18 +1031,23 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
             {
                 double original_value = matrix_data[matrix_row_to_read + matrix_column * matrix_rows];
                 double value = original_value;
+                float red, green, blue;
                 
-                if (rescaling)
-                    value = (value + rescale_offset) * rescale_scaling;
-                
-                if (value < 0.0)
-                    value = 0.0;
-                if (value > 1.0)
-                    value = 1.0;
-                
-                double red, green, blue;
-                
-				EidosColorPaletteLookup(value, palette, red, green, blue);
+                if (palette)
+                {
+                    palette->ColorForValue(value, &red, &green, &blue);
+                }
+                else
+                {
+                    if (value < 0.0)
+                        value = 0.0;
+                    if (value > 1.0)
+                        value = 1.0;
+                    
+                    red = (float)value;
+                    green = (float)value;
+                    blue = (float)value;
+                }
                 
                 uint8_t r_i = round(red * 255.0);
                 uint8_t g_i = round(green * 255.0);
@@ -1993,8 +1958,8 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_matrix, kEidosValueMaskVOID))
                                   ->AddNumeric("matrix")->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
-                                  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)
-                                  ->AddString_OSN("colors", gStaticEidosValueNULL)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
+                                  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddObject_OSN("palette", gEidosPalette_Class, gStaticEidosValueNULL)
+                                  ->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_mtext, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
