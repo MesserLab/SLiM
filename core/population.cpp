@@ -5324,10 +5324,6 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 		if (traits[trait_index]->HasDirectFitnessEffect())
 			direct_effect_trait_indices.push_back(trait_index);
 	
-	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
-																							// FIXME MULTITRAIT: this will get cleaned up when multiple phenotypes is done
-	
 	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
 	bool no_active_callbacks = (mutationEffect_callbacks.size() == 0) && (fitnessEffect_callbacks.size() == 0);
 	
@@ -5368,8 +5364,6 @@ void Population::RecalculateFitness(slim_tick_t p_tick, bool p_force_trait_recal
 			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks, direct_effect_trait_indices, p_force_trait_recalculation);
 		}
 	}
-	
-	community_.executing_block_type_ = old_executing_block_type;
 	
 	// reset fitness_scaling_ to 1.0 on subpops and individuals
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)

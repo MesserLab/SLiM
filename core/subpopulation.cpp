@@ -419,7 +419,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	ClearErrorPosition();
 	
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosNoBlockType)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly (community_.executing_block_type_ == " << community_.executing_block_type_ << ")." << EidosTerminate();
 	
 	SLiMModelType model_type = model_type_;
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
@@ -1610,6 +1610,10 @@ void Subpopulation::_CalculateFitnessAfterDemand(const std::vector<SLiMEidosBloc
 		EIDOS_TERMINATION << "ERROR (Subpopulation::_CalculateFitnessAfterDemand): (internal error) f_single_trait is incorrect (true, but f_has_trait_effects == false)." << EidosTerminate(nullptr);
 #endif
 	
+	// any script blocks executed during fitness evaluation will be fitnessEffect() callbacks; mark that here
+	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+	
 	// manage the shuffle buffer; this is not quite as fast as templatizing this flag, but it's simpler, and it
 	// only adds overhead when fitnessEffect() callbacks are present, otherwise it get optimized out completely
 	const bool f_has_shuffle_buffer = (f_has_fitnessEffect_callbacks && species_.RandomizingCallbackOrder());
@@ -1681,6 +1685,9 @@ void Subpopulation::_CalculateFitnessAfterDemand(const std::vector<SLiMEidosBloc
 			ind->cached_fitness_UNSAFE_ = fitness;
 		}
 	}
+	
+	// we're done executing fitnessEffect() callbacks
+	community_.executing_block_type_ = old_executing_block_type;
 	
 	if (f_has_shuffle_buffer)
 		species_.ReturnShuffleBuffer();
@@ -1894,12 +1901,6 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) incorrect mutationEffect() trait index." << EidosTerminate(callback->identifier_token_);
 		
 		// note that mutation_type_id_ is not expected to match; we check it below
-		
-		// It should now be the case that p_fitnessEffect_callbacks only contains active callbacks; the caller should guarantee this.
-		// This is made possible by the SetInsideTraitOrFitnessCalculation() mechanism, which locks out changes to fitnessEffect()
-		// and mutationEffect() callbacks inside trait/fitness calculation; the callback set is therefore fixed and can be cached.
-		if (!callback->block_active_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) mutationEffect() callback with block_active_ == false included in p_mutationEffect_callbacks." << EidosTerminate(callback->identifier_token_);
 	}
 #endif
 	
@@ -1913,166 +1914,171 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 	
 	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
-		if (mutationEffect_callback->block_active_)
-		{
-			slim_objectid_t callback_mutation_type_id = mutationEffect_callback->mutation_type_id_;
-			
-			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
-			{
-#if DEBUG_POINTS_ENABLED()
-				// SLiMgui debugging point
-				EidosDebugPointIndent indenter;
-				
-				{
-					EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
-					EidosToken *decl_token = mutationEffect_callback->root_node_->token_;
-					
-					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
-						(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
-					{
-						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutationEffect(m" << mutationEffect_callback->mutation_type_id_;
-						if (mutationEffect_callback->subpopulation_id_ != -1)
-							SLIM_ERRSTREAM << ", p" << mutationEffect_callback->subpopulation_id_;
-						if (mutationEffect_callback->trait_index_ != -1)
-							SLIM_ERRSTREAM << ", '" << mutationEffect_callback->trait_identifier_ << "'";
-						SLIM_ERRSTREAM << ")";
-						
-						if (mutationEffect_callback->block_id_ != -1)
-							SLIM_ERRSTREAM << " s" << mutationEffect_callback->block_id_;
-						
-						SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
-						indenter.indent();
-					}
-				}
+#if DEBUG
+		// It should now be the case that p_mutationEffect_callbacks only contains active callbacks; the caller should guarantee this.
+		// This is made possible by the SetInsideTraitOrFitnessCalculation() mechanism, which locks out changes to fitnessEffect()
+		// and mutationEffect() callbacks inside trait/fitness calculation; the callback set is therefore fixed and can be cached.
+		if (!mutationEffect_callback->block_active_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) mutationEffect() callback with block_active_ == false included in p_mutationEffect_callbacks." << EidosTerminate(mutationEffect_callback->identifier_token_);
 #endif
+		
+		slim_objectid_t callback_mutation_type_id = mutationEffect_callback->mutation_type_id_;
+		
+		if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
+		{
+#if DEBUG_POINTS_ENABLED()
+			// SLiMgui debugging point
+			EidosDebugPointIndent indenter;
+			
+			{
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
+				EidosToken *decl_token = mutationEffect_callback->root_node_->token_;
 				
-				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
-				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
-				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
-				
-				if (compound_statement_node->cached_return_value_)
+				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
+					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
-					EidosValue_SP result_SP = compound_statement_node->cached_return_value_;
-					EidosValue *result = result_SP.get();
-					EidosValueType result_type = result->Type();
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutationEffect(m" << mutationEffect_callback->mutation_type_id_;
+					if (mutationEffect_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << ", p" << mutationEffect_callback->subpopulation_id_;
+					if (mutationEffect_callback->trait_index_ != -1)
+						SLIM_ERRSTREAM << ", '" << mutationEffect_callback->trait_identifier_ << "'";
+					SLIM_ERRSTREAM << ")";
 					
-					if (result_type == EidosValueType::kValueNULL)
-						p_effect = ((p_trait->Type() == TraitType::kAdditive) ? (slim_effect_t)0.0 : (slim_effect_t)1.0);
-					else if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
-						p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value, or NULL to represent neutrality for the focal trait." << EidosTerminate(mutationEffect_callback->identifier_token_);
+					if (mutationEffect_callback->block_id_ != -1)
+						SLIM_ERRSTREAM << " s" << mutationEffect_callback->block_id_;
 					
-					// the cached value is owned by the tree, so we do not dispose of it
-					// there is also no script output to handle
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
+					indenter.indent();
 				}
-				else if (mutationEffect_callback->has_cached_optimization_)
+			}
+#endif
+			
+			// The callback is active and matches the mutation type id of the mutation, so we need to execute it
+			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
+			const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+			
+			if (compound_statement_node->cached_return_value_)
+			{
+				// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
+				EidosValue_SP result_SP = compound_statement_node->cached_return_value_;
+				EidosValue *result = result_SP.get();
+				EidosValueType result_type = result->Type();
+				
+				if (result_type == EidosValueType::kValueNULL)
+					p_effect = ((p_trait->Type() == TraitType::kAdditive) ? (slim_effect_t)0.0 : (slim_effect_t)1.0);
+				else if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+					p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value, or NULL to represent neutrality for the focal trait." << EidosTerminate(mutationEffect_callback->identifier_token_);
+				
+				// the cached value is owned by the tree, so we do not dispose of it
+				// there is also no script output to handle
+			}
+			else if (mutationEffect_callback->has_cached_optimization_)
+			{
+				// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
+				// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
+				// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
+				// out below which cached optimization is in effect for this callback.  See Community::OptimizeScriptBlock()
+				// for comments on the specific cases optimized here.
+				if (mutationEffect_callback->has_cached_opt_reciprocal)
 				{
-					// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
-					// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
-					// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
-					// out below which cached optimization is in effect for this callback.  See Community::OptimizeScriptBlock()
-					// for comments on the specific cases optimized here.
-					if (mutationEffect_callback->has_cached_opt_reciprocal)
-					{
-						double A = mutationEffect_callback->cached_opt_A_;
-						
-						p_effect = (slim_effect_t)(A / (double)p_effect);
-					}
-					else
-					{
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(mutationEffect_callback->identifier_token_);
-					}
+					double A = mutationEffect_callback->cached_opt_A_;
+					
+					p_effect = (slim_effect_t)(A / (double)p_effect);
 				}
 				else
 				{
-					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					EidosValue_Object local_mut(mut_block_ptr + p_mutation, gSLiM_Mutation_Class);
-					EidosValue_Object local_trait(p_trait, gSLiM_Trait_Class);
-					EidosValue_Float local_effect((double)p_effect);
-					
-					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
-					{
-						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
-						EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-						EidosFunctionMap &function_map = community_.FunctionMap();
-						EidosInterpreter interpreter(mutationEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
-#ifdef SLIMGUI
-							, community_.check_infinite_loops_
-#endif
-							);
-						
-						if (mutationEffect_callback->contains_self_)
-							callback_symbols.InitializeConstantSymbolEntry(mutationEffect_callback->SelfSymbolTableEntry());		// define "self"
-						
-						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
-						// We can use that method because we know the lifetime of the symbol table is shorter than that of
-						// the value objects, and we know that the values we are setting here will not change (the objects
-						// referred to by the values may change, but the values themselves will not change).
-						// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
-						if (mutationEffect_callback->contains_mut_)
-						{
-							local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
-						}
-						if (mutationEffect_callback->contains_trait_)
-						{
-							local_trait.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gID_trait, EidosValue_SP(&local_trait));
-						}
-						if (mutationEffect_callback->contains_effect_)
-						{
-							local_effect.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gID_effect, EidosValue_SP(&local_effect));
-						}
-						if (mutationEffect_callback->contains_individual_)
-							callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
-						if (mutationEffect_callback->contains_subpop_)
-							callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
-						
-						// p_homozygous == -1 means the mutation faces a null haplosome; otherwise, 0 means heterozyg., 1 means homozyg.
-						// that gets translated into Eidos values of NULL, F, and T, respectively
-						// FIXME MULTITRAIT: should the semantics here be changed?  haploid mutations should maybe be 1, and -1 should be hemizygous specifically?
-						if (mutationEffect_callback->contains_homozygous_)
-						{
-							if (p_homozygous == -1)
-								callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
-							else
-								callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-						}
-						
-						try
-						{
-							// Interpret the script; the result from the interpretation must be a singleton float used
-							// as a new fitness value, or NULL representing a neutral effect for the focal trait; the
-							// latter is useful for making a mutation neutral across multiple traits
-							EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutationEffect_callback->script_);
-							EidosValue *result = result_SP.get();
-							EidosValueType result_type = result->Type();
-							
-							if (result_type == EidosValueType::kValueNULL)
-								p_effect = ((p_trait->Type() == TraitType::kAdditive) ? (slim_effect_t)0.0 : (slim_effect_t)1.0);
-							else if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
-								p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
-							else
-								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value, or NULL to represent neutrality for the focal trait." << EidosTerminate(mutationEffect_callback->identifier_token_);
-						}
-						catch (...)
-						{
-							throw;
-						}
-						
-					}
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(mutationEffect_callback->identifier_token_);
 				}
-				
-				// Note that we deliberately do *not* clip the effect to a minimum of 0.0 for multiplicative
-				// traits here.  It is better for the caller to do that, because then they can also short-circuit
-				// any remaining work.  We cannot do that here, so it's better to leave the check for <= 0.0 to
-				// the caller to perform.  We can check for values that are actually illegal here, though.
-				if (!std::isfinite(p_effect))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks cannot return NAN or INF; mutation effects must be finite." << EidosTerminate(mutationEffect_callback->identifier_token_);
 			}
+			else
+			{
+				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
+				EidosValue_Object local_mut(mut_block_ptr + p_mutation, gSLiM_Mutation_Class);
+				EidosValue_Object local_trait(p_trait, gSLiM_Trait_Class);
+				EidosValue_Float local_effect((double)p_effect);
+				
+				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
+				{
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
+					EidosFunctionMap &function_map = community_.FunctionMap();
+					EidosInterpreter interpreter(mutationEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+												 , community_.check_infinite_loops_
+#endif
+												 );
+					
+					if (mutationEffect_callback->contains_self_)
+						callback_symbols.InitializeConstantSymbolEntry(mutationEffect_callback->SelfSymbolTableEntry());		// define "self"
+					
+					// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+					// We can use that method because we know the lifetime of the symbol table is shorter than that of
+					// the value objects, and we know that the values we are setting here will not change (the objects
+					// referred to by the values may change, but the values themselves will not change).
+					// BCH 11/7/2025: note these symbols are now protected in SLiM_ConfigureContext()
+					if (mutationEffect_callback->contains_mut_)
+					{
+						local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
+					}
+					if (mutationEffect_callback->contains_trait_)
+					{
+						local_trait.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_trait, EidosValue_SP(&local_trait));
+					}
+					if (mutationEffect_callback->contains_effect_)
+					{
+						local_effect.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_effect, EidosValue_SP(&local_effect));
+					}
+					if (mutationEffect_callback->contains_individual_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
+					if (mutationEffect_callback->contains_subpop_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
+					
+					// p_homozygous == -1 means the mutation faces a null haplosome; otherwise, 0 means heterozyg., 1 means homozyg.
+					// that gets translated into Eidos values of NULL, F, and T, respectively
+					// FIXME MULTITRAIT: should the semantics here be changed?  haploid mutations should maybe be 1, and -1 should be hemizygous specifically?
+					if (mutationEffect_callback->contains_homozygous_)
+					{
+						if (p_homozygous == -1)
+							callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
+						else
+							callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, (p_homozygous != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+					}
+					
+					try
+					{
+						// Interpret the script; the result from the interpretation must be a singleton float used
+						// as a new fitness value, or NULL representing a neutral effect for the focal trait; the
+						// latter is useful for making a mutation neutral across multiple traits
+						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutationEffect_callback->script_);
+						EidosValue *result = result_SP.get();
+						EidosValueType result_type = result->Type();
+						
+						if (result_type == EidosValueType::kValueNULL)
+							p_effect = ((p_trait->Type() == TraitType::kAdditive) ? (slim_effect_t)0.0 : (slim_effect_t)1.0);
+						else if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+							p_effect = (slim_effect_t)((EidosValue_Float *)result)->data()[0];
+						else
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value, or NULL to represent neutrality for the focal trait." << EidosTerminate(mutationEffect_callback->identifier_token_);
+					}
+					catch (...)
+					{
+						throw;
+					}
+					
+				}
+			}
+			
+			// Note that we deliberately do *not* clip the effect to a minimum of 0.0 for multiplicative
+			// traits here.  It is better for the caller to do that, because then they can also short-circuit
+			// any remaining work.  We cannot do that here, so it's better to leave the check for <= 0.0 to
+			// the caller to perform.  We can check for values that are actually illegal here, though.
+			if (!std::isfinite(p_effect))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks cannot return NAN or INF; mutation effects must be finite." << EidosTerminate(mutationEffect_callback->identifier_token_);
 		}
 	}
 	
@@ -2087,6 +2093,19 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(const std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyFitnessEffectCallbacks(): running Eidos callback");
+	
+#if DEBUG
+	// this should only be called with callbacks that match the situation; the caller is responsible for weeding the list
+	for (SLiMEidosBlock *callback : p_fitnessEffect_callbacks)
+	{
+		if (callback->species_spec_ != &species_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): (internal error) incorrect fitnessEffect() callback species." << EidosTerminate(callback->identifier_token_);
+		if (callback->type_ != SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): (internal error) incorrect fitnessEffect() callback type." << EidosTerminate(callback->identifier_token_);
+		if ((callback->subpopulation_id_ != -1) && (callback->subpopulation_id_ != subpopulation_id_))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): (internal error) incorrect fitnessEffect() subpopulation id." << EidosTerminate(callback->identifier_token_);
+	}
+#endif
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING

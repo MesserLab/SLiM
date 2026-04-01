@@ -7394,6 +7394,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		}
 	}
 	
+	// any script blocks executed during phenotype demand will be mutationEffect() callbacks; mark that here
+	SLiMEidosBlockType old_executing_block_type = species->community_.executing_block_type_;
+	species->community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
+	
 	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
 	// so that each one can do a single timing for mutrun experiments.
@@ -7599,6 +7603,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			subpop_trait_caches.IncorporateEffects_Diploid_TEMPLATED = nullptr;
 		}
 	}
+	
+	// we're done executing mutationEffect() callbacks
+	species->community_.executing_block_type_ = old_executing_block_type;
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
@@ -7838,6 +7845,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			 (species->current_trait_calculation_regime_HAPLOID_ == TraitCalculationRegime::kHaploidNoCallbacks))
 		haploid_cache_level = 2;
 #endif
+	
+	// any script blocks executed during phenotype demand will be mutationEffect() callbacks; mark that here
+	SLiMEidosBlockType old_executing_block_type = species->community_.executing_block_type_;
+	species->community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
 	
 	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
@@ -8226,6 +8237,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			}
 		}
 	}	
+	
+	// we're done executing mutationEffect() callbacks
+	species->community_.executing_block_type_ = old_executing_block_type;
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
