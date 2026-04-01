@@ -4855,7 +4855,10 @@ void Species::RunInitializeCallbacks(void)
 				
 				if (script_block->trait_identifier_ == "NULL")
 				{
-					trait = Traits()[0];
+					// SLiMEidosBlock::SLiMEidosBlock() could take care of this, I think, but we handle it here since this is the funnel for fixing up these callbacks
+					script_block->trait_index_ = -1;
+					script_block->trait_identifier_ = "NULL";
+					continue;
 				}
 				else
 				{
