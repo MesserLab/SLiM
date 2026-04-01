@@ -1672,7 +1672,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 //- (int64_t)eidosScoreAsCompletionOfString:(NSString *)base
 int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate, QString base)
 {
-    qDebug().nospace() << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: initiating with \"" << base << "\"...";
+    //qDebug().nospace() << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: initiating with \"" << base << "\"...";
     
     // Kick off the recursion with a base score of 0, which will be adjusted upward and downward.
     // If no acceptable match is found at all, INT64_MIN will be returned.
@@ -1691,8 +1691,7 @@ int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate,
 // - (int64_t)eidosScoreAsCompletionOfString:(NSString *)base firstUnusedIndex:(NSUInteger)firstUnusedIndex firstUnmatchedIndex:(NSUInteger)firstUnmatchedIndex score:(int64_t)scoreSoFar recursionLevel:(int)recursionLevel
 int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate, QString base, int firstUnusedIndex, int firstUnmatchedIndex, int64_t scoreSoFar, int recursionLevel)
 {
-    qDebug().nospace() << QString(recursionLevel * 4, ' ') << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: \"" << base << "\"" <<
-        " firstUnusedIndex: " << firstUnusedIndex << " firstUnmatchedIndex: " << firstUnmatchedIndex << " score: " << scoreSoFar;
+    //qDebug().nospace() << QString(recursionLevel * 4, ' ') << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: \"" << base << "\"" << " firstUnusedIndex: " << firstUnusedIndex << " firstUnmatchedIndex: " << firstUnmatchedIndex << " score: " << scoreSoFar;
     
     // This recursive method is called initially by -eidosScoreAsCompletionOfString: and then by itself.
     // This is recursive because we want to try every possibility in terms of where each character in
