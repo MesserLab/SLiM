@@ -7382,9 +7382,96 @@ The
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.12  Class Plot\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\b0\fs18 \cf2 (No<Plot>$)Plot(string$\'a0title, ifo\'a0thing, [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The standard way to create a new 
+\f3\fs18 Plot
+\f4\fs20  object (and therefore a new custom plot window in SLiMgui) is with the 
+\f3\fs18 createPlot()
+\f4\fs20  method of the 
+\f3\fs18 SLiMgui
+\f4\fs20  class.  The 
+\f3\fs18 Plot
+\f4\fs20  constructor is provided as a convenience function specifically for creating custom plot windows that display a single object or a matrix of values.  This is intended as a way to quickly and easily get a visual preview or check of something defined in your script; for more advanced plotting, use 
+\f3\fs18 createPlot()
+\f4\fs20 .\
+The thing to be plotted passed to the constructor through the parameter 
+\f3\fs18 thing
+\f4\fs20 .  The parameter 
+\f3\fs18 title
+\f4\fs20  provides the title of the new plot window.  The 
+\f3\fs18 width
+\f4\fs20  and 
+\f3\fs18 height
+\f4\fs20  parameters provide the size, in pixels, to be used for the new plot window; if they are both 
+\f3\fs18 NULL
+\f4\fs20  a default size will be chosen by 
+\f3\fs18 Plot()
+\f4\fs20  that fits the thing being plotted (at a reasonable size, preserving any intrinsic aspect ratio, and so forth).  See the 
+\f3\fs18 createPlot()
+\f4\fs20  method in section 26.14.2 for further discussion of 
+\f3\fs18 title
+\f4\fs20 , 
+\f3\fs18 width
+\f4\fs20 , and 
+\f3\fs18 height
+\f4\fs20 .\
+At present, 
+\f3\fs18 thing
+\f4\fs20  must be one of four things: a singleton 
+\f3\fs18 Image
+\f4\fs20  object, a singleton 
+\f3\fs18 SpatialMap
+\f4\fs20  object, a singleton 
+\f3\fs18 Palette
+\f4\fs20  object, or an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  matrix.  Objects of class 
+\f3\fs18 Image
+\f4\fs20 , 
+\f3\fs18 SpatialMap
+\f4\fs20 , and 
+\f3\fs18 Palette
+\f4\fs20  have intrinsic color information, and will be plotted in those colors; see their class documentation for details.  When 
+\f3\fs18 thing
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  matrix, the values of that matrix are scaled to the range [0, 1] and then displayed in grayscale (with zero as black and one as white).  In all cases the displayed thing will completely fill the interior of the plot window, which is configured to be borderless; no axes, ticks, or labels will be displayed.\
+The implementation of 
+\f3\fs18 Plot()
+\f4\fs20  is written in Eidos and is viewable with 
+\f3\fs18 functionSource("Plot")
+\f4\fs20 ; modifying it might be useful since the simple default functionality it provides might not be exactly what is desired.  For some simple modifications, note also that the new 
+\f3\fs18 Plot
+\f4\fs20  object is returned and can be modified by the caller \'96 its properties can be changed and new plot elements can be added, using the methods of class 
+\f3\fs18 Plot
+\f4\fs20 , that will be displayed on top of 
+\f3\fs18 thing
+\f4\fs20 .  If further customization is needed, a new function could be defined based upon the function source for 
+\f3\fs18 Plot()
+\f4\fs20 , or the 
+\f3\fs18 createPlot()
+\f4\fs20  method of 
+\f3\fs18 SLiMgui
+\f4\fs20  could be used for complete flexibility.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that although the 
+\f3\fs18 Plot
+\f4\fs20  class is only available when running under SLiMgui, this 
+\f3\fs18 Plot()
+\f4\fs20  function can be called outside of SLiMgui too; in that case it does nothing and returns 
+\f3\fs18 NULL
+\f4\fs20 .  This is intended as a convenience, so one doesn\'92t have to check for the existence of SLiMgui before making a simple preview plot.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf2 5.12.1  
+\f1\i\fs22 \cf2 5.12.1  
 \f2\fs18 Plot
 \f1\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0

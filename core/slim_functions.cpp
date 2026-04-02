@@ -52,6 +52,7 @@ extern const char *gSLiMSourceCode_calcTajimasD;
 
 extern const char *gSLiMSourceCode_initializeMutationRateFromFile;
 extern const char *gSLiMSourceCode_initializeRecombinationRateFromFile;
+extern const char *gSLiMSourceCode_Plot;
 
 
 const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures(void)
@@ -95,6 +96,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("Plot", gSLiMSourceCode_Plot, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "SLiM"))->AddString_S("title")->AddArg(kEidosValueMaskInt | kEidosValueMaskFloat | kEidosValueMaskObject, "thing", nullptr)->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL));
 		
 		// Internal SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_startBenchmark", SLiM_ExecuteFunction__startBenchmark, kEidosValueMaskVOID, "SLiM"))->AddString_S(gEidosStr_type));
@@ -1097,6 +1100,99 @@ R"V0G0N({
 		ends = c(ends[1:(size(ends)-1)] - base, lastPosition);
 	
 	initializeRecombinationRate(rates * scale, ends, sex);
+})V0G0N";
+
+#pragma mark (No<Plot>$)Plot(string$ title, ifo thing, [Nif$ width = NULL], [Nif$ height = NULL])
+const char *gSLiMSourceCode_Plot = 
+R"V0G0N({
+	// silently return NULL if we are not running under SLiMgui
+	if (!exists("slimgui"))
+		return NULL;
+	
+	// type-check, size-check, and determine the correct plot dimensions
+	if ((type(thing) == "object") & (size(thing) != 1))
+		stop("ERROR (Plot): the Plot() function requires a supplied " + elementType(thing) + " object to be a singleton.");
+	
+	adjustSizeToFit = F;
+	
+	if (elementType(thing) == "Palette")
+	{
+		if (isNULL(width) & isNULL(height)) {
+			width = 500;
+			height = 50;
+		}
+	}
+	else if (elementType(thing) == "SpatialMap")
+	{
+		if (nchar(thing.spatiality) != 2)
+			stop("ERROR (Plot): the Plot() function requires a supplied SpatialMap object to have a two-dimensional spatiality.");
+		
+		if (isNULL(width) & isNULL(height)) {
+			width = thing.gridDimensions[0];
+			height = thing.gridDimensions[1];
+			adjustSizeToFit = T;
+		}
+	}
+	else if (elementType(thing) == "Image")
+	{
+		if (isNULL(width) & isNULL(height)) {
+			width = thing.width;
+			height = thing.height;
+			adjustSizeToFit = T;
+		}
+	}
+	else if (type(thing) == "object")
+	{
+		stop("ERROR (Plot): the Plot() function does not currently support objects of class " + elementType(thing) + ".");
+	}
+	else
+	{
+		if (size(dim(thing)) != 2)
+		stop("ERROR (Plot): the Plot() function requires a supplied integer or float value to be a two-dimensional matrix.");
+		
+		if (isNULL(width) & isNULL(height)) {
+			width = dim(thing)[1];
+			height = dim(thing)[0];
+			adjustSizeToFit = T;
+		}
+		
+		// for a matrix, we normalize the values to span [0, 1]
+		thing = (thing - min(thing)) / (max(thing) - min(thing));
+	}
+	
+	if (adjustSizeToFit)
+	{
+		// here we try to preserve the aspect ratio of thing, while plotting
+		// it at a reasonable size; obviously this is subjective!
+		dmax = max(width, height);
+		width = width * (500.0 / dmax);
+		height = height * (500.0 / dmax);
+		
+		// make sure the dimensions are large enough that SLiMgui won't error
+		if (width < 100) {
+			height = height * (100 / width);
+			width = 100;
+		}
+		if (height < 10) {
+			width = width * (10 / height);
+			height = 10;
+		}
+		
+		width = asInteger(round(width));
+		height = asInteger(round(height));
+	}
+	
+	// create the plot at the given/calculated size, and plot the thing
+	plot = slimgui.createPlot(title, xrange=c(0,1), yrange=c(0,1),
+		xlab="", ylab="", width=width, height=height, fullBox=F);
+	plot.setBorderless();
+	
+	if (type(thing) == "object")
+		plot.image(thing, 0, 0, 1, 1);
+	else
+		plot.matrix(thing, 0, 0, 1, 1);
+	
+	return plot;
 })V0G0N";
 
 
