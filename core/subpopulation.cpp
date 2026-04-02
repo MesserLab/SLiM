@@ -2038,9 +2038,9 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 					if (mutationEffect_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 					
-					// p_homozygous == -1 means the mutation faces a null haplosome; otherwise, 0 means heterozyg., 1 means homozyg.
-					// that gets translated into Eidos values of NULL, F, and T, respectively
-					// FIXME MULTITRAIT: should the semantics here be changed?  haploid mutations should maybe be 1, and -1 should be hemizygous specifically?
+					// p_homozygous == -1 means the mutation faces a null haplosome, OR is in a haploid chromosome
+					// (both cases where homozygous/heterozygous doesn't apply); otherwise, 0 means heterozyg.,
+					// 1 means homozyg.  that gets translated into Eidos values of NULL, F, and T, respectively
 					if (mutationEffect_callback->contains_homozygous_)
 					{
 						if (p_homozygous == -1)
