@@ -10554,7 +10554,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): removeSubpopulation() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
-	community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_removeSubpopulation", "removeSubpopulation()", "");
+	if (community_.executing_species_ == &species_)
+		community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_removeSubpopulation", "removeSubpopulation()", "");
 	
 	population_.RemoveSubpopulation(*this);
 	
