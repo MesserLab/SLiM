@@ -7398,6 +7398,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	SLiMEidosBlockType old_executing_block_type = species->community_.executing_block_type_;
 	species->community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
 	
+	// In DEBUG we will watch for RNG usage and disable trait value crosschecks if stochastic callbacks are involved
+	EIDOS_RNG_PING_RESET();
+	
 	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
 	// so that each one can do a single timing for mutrun experiments.
@@ -7609,7 +7612,10 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
-	// FIXME MULTITRAIT: Since this is incorrect with stochastic callbacks, it should be turned into a warning before ship
+	// If we noticed RNG use during trait calculations, we turn off these crosschecks.
+	if (EIDOS_RNG_PING_IS_SET())
+		gSLiM_disable_trait_crosschecks = true;
+	
 	if (gSLiM_disable_trait_crosschecks)
 		return;
 	
@@ -7849,6 +7855,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	// any script blocks executed during phenotype demand will be mutationEffect() callbacks; mark that here
 	SLiMEidosBlockType old_executing_block_type = species->community_.executing_block_type_;
 	species->community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
+	
+	// In DEBUG we will watch for RNG usage and disable trait value crosschecks if stochastic callbacks are involved
+	EIDOS_RNG_PING_RESET();
 	
 	// Calculate the specified phenotypes for the individuals; this loops through all chromosomes, handling
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
@@ -8243,7 +8252,10 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	
 #if DEBUG
 	// Do a check of all computed results, against the same values computed by brute force.
-	// FIXME MULTITRAIT: Since this is incorrect with stochastic callbacks, it should be turned into a warning before ship
+	// If we noticed RNG use during trait calculations, we turn off these crosschecks.
+	if (EIDOS_RNG_PING_IS_SET())
+		gSLiM_disable_trait_crosschecks = true;
+	
 	if (gSLiM_disable_trait_crosschecks)
 		return;
 	

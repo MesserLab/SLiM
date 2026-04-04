@@ -628,7 +628,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #pragma mark Debugging support
 #pragma mark -
 
-bool gSLiM_disable_trait_crosschecks = false;;
+bool gSLiM_disable_trait_crosschecks = false;
 
 
 #pragma mark -

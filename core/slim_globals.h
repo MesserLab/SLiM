@@ -549,7 +549,10 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 extern int64_t SLiM_verbosity_level;
 
 // This flag can be set to true to disable trait value crosschecks; this is necessary in some cases if stochastic
-// mutationEffect() callbacks are in effect, or if phenotype values are being set directly by the script.
+// mutationEffect() callbacks are in effect, or if phenotype values are being set directly by the script.  This
+// flag will stay on if set, except that it is reset to false in _SLiMTestCleanup().  It is automatically set
+// to true if stochastic mutationEffect() callbacks are detected, but that does not cover all possible cases, so
+// false positives from the trait crosschecks may be observed in DEBUG builds, which is why this flag exists.
 extern bool gSLiM_disable_trait_crosschecks;
 
 

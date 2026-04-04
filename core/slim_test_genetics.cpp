@@ -2857,8 +2857,6 @@ reproduction() { }
 	
 	// this script tests invalidation of trait values when a non-constant mutationEffect() callback is active
 	// - trait values in all individuals should be invalidated at the start of each demand phase
-	gSLiM_disable_trait_crosschecks = true;	// crosschecks don't like the stochastic callback here!
-	
 	#pragma mark multitrait_INVALIDATE_8
 	std::string multitrait_INVALIDATE_8 =
 		R"V0G0N(
@@ -2904,8 +2902,6 @@ mutationEffect(m1) { return runif(1, 0.01, 0.99); }
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_INVALIDATE_8);
-	
-	gSLiM_disable_trait_crosschecks = false;	// resume crosschecks
 	
 	
 	// this script tests invalidation of trait values when a mutationEffect() callback comes in and out

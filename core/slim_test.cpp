@@ -57,6 +57,8 @@ static void _SLiMTestCleanup(Community *community)
 		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
 	
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+	
+	gSLiM_disable_trait_crosschecks = false;
 }
 
 // Instantiates and runs the script, and prints an error if the result does not match expectations

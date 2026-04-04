@@ -84,6 +84,10 @@ Eidos_RNG_State gEidos_RNG_SINGLE;
 std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #endif
 
+#if DEBUG
+bool gEidos_RNG_usageFlag = false;	// see the header for comments
+#endif
+
 
 static unsigned long int _Eidos_GenerateRNGSeed(void)
 {
