@@ -1468,7 +1468,7 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 			gEidosTerminateThrows = true;
 			
 			try {
-				// note that ellipsis variants can contain an ellipsis, but cannot contain ellipsis variant
+				// note that ellipsis variants can contain an ellipsis, but cannot contain ellipsis variants
 				// (the logic here is not recursive); we don't check for that, we just ignore any present
 				_CreateArgumentList(p_node, variant_signature);
 			}
@@ -1558,8 +1558,82 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 			}
 			
 #if DEBUG
+			// now the argument should check against the variant signature, which we have matched
 			variant_signature->CheckArguments(*argument_buffer);
 #endif
+			
+			{
+				// OK, at this point we have a variant that matches, so we're happy with it; however, the
+				// argument buffer's fill_info is set up for the variant signature, and from now on we're
+				// going to be using the base signature to check the arguments for this call.  (We don't
+				// want to actually label this call as being associated with this variant signature, because
+				// that would lock that decision in place; we want to use the base signature to preserve
+				// the full dynamic character of the language, in case the user is doing something tricky
+				// with a dynamically typed argument at runtime that can fit different variants.)  So here
+				// we need to translate argument indices in the variant signature down to argument indices
+				// in the base signature.  This is actually easy: everything corresponding to the base
+				// signature's ellipsis gets mapped to that position, and everything after gets shifted down.
+				int base_ellipsis_index = -1;
+				
+				for (auto base_arg_name : p_call_signature->arg_names_) {
+					++base_ellipsis_index;
+					if (base_arg_name == gEidosStr_ELLIPSIS)
+						break;
+				}
+				
+				// The first argument in the variant signature that corresponds to the base signature's ellipsis
+				// is at the same index as the base signature ellipsis; it takes its place in the signature.
+				int first_variant_ellipsis_arg = base_ellipsis_index;
+				
+				// Arguments are allowed to follow the base signature's ellipsis; they must be the same in every variant.
+				// If there is one argument, which is the ellipsis at position 0, then there are 1 - 0 - 1 == 0 args after.
+				int args_after_ellipsis = (int)p_call_signature->arg_names_.size() - base_ellipsis_index - 1;
+				
+				// The last argument in the variant signature that corresponds to the base signature's ellipsis preserves
+				// the args_after_ellipsis entries; if there are two, for example, then the last ellipsis arg is two back
+				int variant_arg_count = (int)variant_signature->arg_names_.size();
+				int last_variant_ellipsis_arg = (variant_arg_count - 1) - args_after_ellipsis;
+				
+				// For those args_after_ellipsis entries, their index in the base signature differs from their index in
+				// the variant signature by the number of ellipsis args in the variant, *plus one* for the ellipsis itself
+				int shift_after_ellipsis = last_variant_ellipsis_arg - first_variant_ellipsis_arg;
+				
+				//std::cout << "remapping of arguments to " << p_call_signature->call_name_ << "() : " << std::endl;
+				//std::cout << "   base_ellipsis_index == " << base_ellipsis_index << std::endl;
+				//std::cout << "   first_variant_ellipsis_arg == " << first_variant_ellipsis_arg << std::endl;
+				//std::cout << "   args_after_ellipsis == " << args_after_ellipsis << std::endl;
+				//std::cout << "   variant_arg_count == " << variant_arg_count << std::endl;
+				//std::cout << "   last_variant_ellipsis_arg == " << last_variant_ellipsis_arg << std::endl;
+				//std::cout << "   shift_after_ellipsis == " << shift_after_ellipsis << std::endl;
+				
+				for (EidosASTNode_ArgumentFill &fill : fill_info)
+				{
+					uint8_t variant_sig_index = fill.signature_index_;
+					
+					if (variant_sig_index >= first_variant_ellipsis_arg)
+					{
+						if (variant_sig_index <= last_variant_ellipsis_arg)
+						{
+							//std::cout << "      fill arg at index " << fill.fill_index_ << " (variant signature index " << (int)variant_sig_index << ") is within the ellipsis range -> " << base_ellipsis_index << std::endl;
+							fill.signature_index_ = (uint8_t)base_ellipsis_index;	// use the base ellipsis index for all variant ellipsis args
+						}
+						else
+						{
+							//std::cout << "      fill arg at index " << fill.fill_index_ << " (variant signature index " << (int)variant_sig_index << ") is after the ellipsis, so shifts to " << (fill.signature_index_ - shift_after_ellipsis) << std::endl;
+							fill.signature_index_ -= shift_after_ellipsis;			// shift by shift_after_ellipsis for args after the variant args
+						}
+					}
+					else
+					{
+						//std::cout << "      fill arg at index " << fill.fill_index_ << " (variant signature index " << (int)variant_sig_index << ") is before the ellipsis, so is untransformed" << std::endl;
+					}
+				}
+				
+#if DEBUG
+				// now the arguments should check against the base signature, which will be used henceforth
+				p_call_signature->CheckArguments(*argument_buffer);
+#endif
+			}
 			
 			return argument_buffer;
 			

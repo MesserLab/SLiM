@@ -215,6 +215,8 @@ public:
 		// Now our argument cache is all ready to use; we just need to fill and type-check arguments
 		for (const EidosASTNode_ArgumentFill &fill : fill_info)
 		{
+			//std::cout << "for call to " << p_call_signature->call_name_ << "() filling argument at index " << fill.fill_index_ << ", signature position " << (int)(fill.signature_index_) << std::endl;
+			
 			// Get the argument value by evaluating the AST node responsible for providing it
 			EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
 			
