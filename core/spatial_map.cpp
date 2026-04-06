@@ -1626,6 +1626,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 //		variant 1: [Nif valueRange = NULL], [Ns colors = NULL])
 //		variant 2: [No<Palette>$ palette = NULL])
 //
+// Note that Eidos does NOT type-check variants for us; it checks all variants against the ellipsis in the
+// base signature.  We therefore have to check very carefully below to detect illegal calling patterns.
+//
 EidosValue_SP SpatialMap::ExecuteMethod_changeColors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
@@ -1633,7 +1636,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeColors(EidosGlobalStringID p_metho
 	
 	if (p_arguments.size() == 2)
 	{
-		// variant 1, for backward compatibility
+		// Variant 1: a value range and a vector of color strings, for backward compatibility
 		EidosValue *range = p_arguments[0].get();
 		EidosValue *colors = p_arguments[1].get();
 		bool range_is_null = (range->Type() == EidosValueType::kValueNULL);
@@ -1646,21 +1649,32 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeColors(EidosGlobalStringID p_metho
 		else
 		{
 			if (range_is_null || colors_is_null)
-				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_changeColors): changeColors() valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_changeColors): changeColors() valueRange and colors must either both be NULL, or both be non-NULL." << EidosTerminate();
 			
+			// construct the palette from the EidosValue arguments; this type-checks for us
 			palette = new EidosPalette(range, colors, "SpatialMap::ExecuteMethod_changeColors", "changeColors()");
 		}
 	}
-	else if (p_arguments.size() == 1)
+	else if ((p_arguments.size() == 1) &&
+			 ((p_arguments[0]->Type() == EidosValueType::kValueNULL) ||
+			  ((p_arguments[0]->Type() == EidosValueType::kValueObject) && (p_arguments[0]->Count() == 1))))
 	{
-		// variant 2, with a Palette object
+		// Variant 2: with a Palette object, or NULL
 		EidosValue *palette_value = p_arguments[0].get();
 		
-		if ((palette_value->Count() != 1) && (palette_value->Type() != EidosValueType::kValueObject))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_changeColors): (internal error) changeColors() expected a singleton Palette object." << EidosTerminate();
-		
-		palette = dynamic_cast<EidosPalette *>(palette_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-		palette->Retain();
+		if (palette_value->Type() == EidosValueType::kValueNULL)
+		{
+			// leave palette as nullptr to request the default grayscale ramp
+		}
+		else
+		{
+			palette = dynamic_cast<EidosPalette *>(palette_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+			
+			if (!palette)
+				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_changeColors): (internal error) changeColors() expected a singleton Palette object, or NULL." << EidosTerminate();
+			
+			palette->Retain();
+		}
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_changeColors): changeColors() requires the arguments passed to conform to one of two specific variants (see the documentation); these arguments were not recognized as one of those variants." << EidosTerminate();

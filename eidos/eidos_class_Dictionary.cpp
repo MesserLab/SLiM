@@ -1798,60 +1798,57 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 	//		variant 2: is$ key, * value, ...
 	//		variant 3: object<Dictionary>$ dictionary
 	//		variant 4: string json
-	
+	//
+	// Note that Eidos does NOT type-check variants for us; it checks all variants against the ellipsis in the
+	// base signature.  We therefore have to check very carefully below to detect illegal calling patterns.
+	//
 	if (p_arguments.size() == 0)
 	{
-		// Create a new empty Dictionary
+		// Variant 1: create a new empty Dictionary
 	}
-	else if (p_arguments.size() == 1)
+	else if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueString))
 	{
-		// one argument; multiple overloaded meanings
+		// Variant 4: construct from a JSON string.  Beginning in SLiM 4.2 this is allowed to be a string
+		// vector, as returned by readFile().  We just paste the lines back together with newlines.  Note
+		// that if the user tries to put a newline inside a string value, that is actually not legal JSON
+		// (see https://stackoverflow.com/a/16690186/2752221), and nlohmann will error below.
 		EidosValue *source_value = p_arguments[0].get();
 		int source_count = source_value->Count();
+		std::string json_string;
 		
-		if (source_value->Type() == EidosValueType::kValueString)
+		for (int source_index = 0; source_index < source_count; ++source_index)
 		{
-			// Construct from a JSON string; beginning in SLiM 4.2 this is allowed to be a string vector,
-			// as returned by readFile().  We just paste the lines back together with newlines.  Note that
-			// if the user tries to put a newline inside a string value, that is actually not legal JSON
-			// (see https://stackoverflow.com/a/16690186/2752221), and nlohmann will error below.
-			std::string json_string;
+			if (source_index > 0)
+				json_string.append("\n");
 			
-			for (int source_index = 0; source_index < source_count; ++source_index)
-			{
-				if (source_index > 0)
-					json_string.append("\n");
-				
-				json_string.append(source_value->StringAtIndex_NOCAST(source_index, nullptr));
-			}
-			
-			nlohmann::json json_rep;
-			
-			try {
-				json_rep = nlohmann::json::parse(json_string);
-			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): the string$ argument passed to " << p_constructor_name << "() does not parse as a valid JSON string." << EidosTerminate(nullptr);
-			}
-			
-			AddJSONFrom(json_rep);
+			json_string.append(source_value->StringAtIndex_NOCAST(source_index, nullptr));
 		}
-		else
-		{
-			// Construct from a singleton Dictionary or Dictionary subclass
-			if (source_count != 1)
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
-			
-			EidosDictionaryUnretained *source = (source_value->Type() != EidosValueType::kValueObject) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		
-			if (!source)
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
+		nlohmann::json json_rep;
 		
-			AddKeysAndValuesFrom(source);
+		try {
+			json_rep = nlohmann::json::parse(json_string);
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): the string$ argument passed to " << p_constructor_name << "() does not parse as a valid JSON string." << EidosTerminate(nullptr);
 		}
+		
+		AddJSONFrom(json_rep);
 	}
-	else
+	else if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueObject) && (p_arguments[0]->Count() == 1))
 	{
-		// Set key-value pairs on the new Dictionary
+		// Variant 3: construct from a singleton Dictionary or Dictionary subclass
+		EidosValue *source_value = p_arguments[0].get();
+		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+		
+		if (!source)
+			EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that an object x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
+	
+		AddKeysAndValuesFrom(source);
+	}
+	else if ((p_arguments.size() >= 2) && (p_arguments[0]->Count() == 1) &&
+			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueString)))
+	{
+		// Variant 2: set key-value pairs on the new Dictionary
 		int arg_count = (int)p_arguments.size();
 		
 		if (arg_count % 2 != 0)
@@ -1884,6 +1881,10 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << " requires that keys be of type string or integer." << EidosTerminate(nullptr);
 			}
 		}
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(...) requires the arguments passed to conform to one of four specific variants (see the documentation); these arguments were not recognized as one of those variants." << EidosTerminate();
 	}
 	
 	// The caller must call ContentsChanged()

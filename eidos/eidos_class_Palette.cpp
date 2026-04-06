@@ -784,9 +784,13 @@ EidosValue_SP EidosPalette::ExecuteMethod_setFixedPoint(EidosGlobalStringID p_me
 //
 //		variant 1: numeric$ value, fs color
 //		variant 2: numeric range, fs colors)
-//		variant 3: numeric values, fs colors, [string$ transition = "linear"], [string$ blend = "hsvShortest"]
+//		variant 3: numeric values, fs colors, [string transition = "linear"], [string blend = "hsvShortest"]
 //		variant 4: string$ colors, numeric range, [Nif sourceRange = NULL]
 //		variant 5: object<Palette>$ palette, float rescaledRange, [Nf existingRange = NULL], [logical$ fullPalette = T]
+//
+// Note that Eidos does NOT type-check variants for us; it checks all variants against the ellipsis in the
+// base signature.  We therefore have to check very carefully below to detect illegal calling patterns.
+//
 static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -796,7 +800,7 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) && (p_arguments[0]->Count() == 1) &&
 		((p_arguments[1]->Type() == EidosValueType::kValueFloat) || (p_arguments[1]->Type() == EidosValueType::kValueString)))
 	{
-		// variant 1: start value and start color; this works with addNode()
+		// Variant 1: start value and start color; this works with addNode()
 		//
 		//		(object<Palette>$)Palette(numeric$ value, fs color)
 		EidosValue *value_value = p_arguments[0].get();
@@ -813,14 +817,17 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		objectElement = new EidosPalette(value, r, g, b);
 	}
 	else if ((p_arguments.size() == 2) &&
-			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) && (p_arguments[0]->Count() == 2) &&
+			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) &&
 			 ((p_arguments[1]->Type() == EidosValueType::kValueFloat) || (p_arguments[1]->Type() == EidosValueType::kValueString)))
 	{
-		// variant 2: overall range, and a bunch of colors
+		// Variant 2: overall range, and a bunch of colors
 		//
 		//		(object<Palette>$)Palette(numeric range, fs colors)
 		EidosValue *range_value = p_arguments[0].get();
 		EidosValue *color_value = p_arguments[1].get();
+		
+		if (p_arguments[0]->Count() != 2)
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): range must be a vector of length two, containing the start and end of the range." << EidosTerminate();
 		
 		double start_value = range_value->FloatAtIndex_CAST(0, nullptr);
 		double end_value = range_value->FloatAtIndex_CAST(1, nullptr);
@@ -847,67 +854,51 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 				objectElement->AddNode(value, r, g, b, PaletteTransition::kLinear, PaletteBlend::kHSVShortest);
 		}
 	}
-	else if ((p_arguments.size() >= 2) && (p_arguments.size() <= 4) &&
+	else if ((p_arguments.size() == 4) &&
 			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) &&
-			 ((p_arguments[1]->Type() == EidosValueType::kValueFloat) || (p_arguments[1]->Type() == EidosValueType::kValueString)))
+			 ((p_arguments[1]->Type() == EidosValueType::kValueFloat) || (p_arguments[1]->Type() == EidosValueType::kValueString)) &&
+			 (p_arguments[2]->Type() == EidosValueType::kValueString) &&
+			 (p_arguments[3]->Type() == EidosValueType::kValueString))
 	{
-		// variant 3: // values, colors, transitions, and blends
+		// Variant 3: values, colors, transition, and blend
 		//
 		//		(object<Palette>$)Palette(numeric value, fs color, [s transition = "linear"], [s blend = "hsvShortest"])
 		EidosValue *value_value = p_arguments[0].get();
 		EidosValue *color_value = p_arguments[1].get();
-		EidosValue *transition_value = (p_arguments.size() >= 3) ? p_arguments[2].get() : nullptr;
-		EidosValue *blend_value = (p_arguments.size() >= 4) ? p_arguments[3].get() : nullptr;
+		EidosValue *transition_value = p_arguments[2].get();
+		EidosValue *blend_value = p_arguments[3].get();
 		
 		int value_count = value_value->Count();
 		
 		// transition
 		bool transition_singleton;
 		PaletteTransition singleton_transition = PaletteTransition::kUndefined;
+		int transition_count = transition_value->Count();
 		
-		if (!transition_value)
-		{
+		if (transition_count == 1)
 			transition_singleton = true;
-			singleton_transition = PaletteTransition::kLinear;
-		}
+		else if (transition_count == value_count - 1)
+			transition_singleton = false;
 		else
-		{
-			int transition_count = transition_value->Count();
-			
-			if (transition_count == 1)
-				transition_singleton = true;
-			else if (transition_count == value_count - 1)
-				transition_singleton = false;
-			else
-				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires transition to be singleton, or one less than the length of value." << EidosTerminate();
-			
-			if (transition_singleton)
-				singleton_transition = PaletteTransitionFromString(((EidosValue_String *)transition_value)->StringRefAtIndex_NOCAST(0, nullptr));
-		}
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires transition to be singleton, or one less than the length of value." << EidosTerminate();
+		
+		if (transition_singleton)
+			singleton_transition = PaletteTransitionFromString(((EidosValue_String *)transition_value)->StringRefAtIndex_NOCAST(0, nullptr));
 		
 		// blend
 		bool blend_singleton;
 		PaletteBlend singleton_blend = PaletteBlend::kUndefined;
+		int blend_count = blend_value->Count();
 		
-		if (!blend_value)
-		{
+		if (blend_count == 1)
 			blend_singleton = true;
-			singleton_blend = PaletteBlend::kHSVShortest;
-		}
+		else if (blend_count == value_count - 1)
+			blend_singleton = false;
 		else
-		{
-			int blend_count = blend_value->Count();
-			
-			if (blend_count == 1)
-				blend_singleton = true;
-			else if (blend_count == value_count - 1)
-				blend_singleton = false;
-			else
-				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires blend to be singleton, or one less than the length of value." << EidosTerminate();
-			
-			if (blend_singleton)
-				singleton_blend = PaletteBlendFromString(((EidosValue_String *)blend_value)->StringRefAtIndex_NOCAST(0, nullptr));
-		}
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires blend to be singleton, or one less than the length of value." << EidosTerminate();
+		
+		if (blend_singleton)
+			singleton_blend = PaletteBlendFromString(((EidosValue_String *)blend_value)->StringRefAtIndex_NOCAST(0, nullptr));
 		
 		if (CountFromColorValue(color_value, /* p_singleton_required */ false) != value_count)
 			EIDOS_TERMINATION << "ERROR (EidosPalette::Eidos_Instantiate_EidosPalette): the Palette() constructor requires either one color string per value, or one float RGB triplet per value." << EidosTerminate();
@@ -944,8 +935,8 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 	}
 	else if ((p_arguments.size() == 3) &&
 			 (p_arguments[0]->Type() == EidosValueType::kValueString) && (p_arguments[0]->Count() == 1) &&
-			 ((p_arguments[1]->Type() == EidosValueType::kValueInt) || (p_arguments[1]->Type() == EidosValueType::kValueFloat)) && (p_arguments[1]->Count() == 2) &&
-			 ((((p_arguments[2]->Type() == EidosValueType::kValueInt) || (p_arguments[2]->Type() == EidosValueType::kValueFloat)) && (p_arguments[2]->Count() == 2)) || (p_arguments[2]->Type() == EidosValueType::kValueNULL)))
+			 ((p_arguments[1]->Type() == EidosValueType::kValueInt) || (p_arguments[1]->Type() == EidosValueType::kValueFloat)) &&
+			 ((p_arguments[2]->Type() == EidosValueType::kValueInt) || (p_arguments[2]->Type() == EidosValueType::kValueFloat) || (p_arguments[2]->Type() == EidosValueType::kValueNULL)))
 	{
 		// variant 4: from an Eidos color palette (as from colors()), with a range and a source range
 		//
@@ -953,6 +944,11 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		EidosValue_String *colors_value = (EidosValue_String *)p_arguments[0].get();
 		EidosValue *range_value = p_arguments[1].get();
 		EidosValue *sourceRange_value = p_arguments[2].get();
+		
+		if (p_arguments[1]->Count() == 2)
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): range must be a vector of length two, containing the start and end of the range." << EidosTerminate();
+		if ((p_arguments[2]->Type() != EidosValueType::kValueNULL) && (p_arguments[2]->Count() == 2))
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): sourceRange must be a vector of length two, containing the start and end of the source range (or it may be NULL)." << EidosTerminate();
 		
 		const std::string &colors = colors_value->StringRefAtIndex_NOCAST(0, nullptr);
 		EidosColorPalette palette = EidosColorPaletteForName(colors);
@@ -1106,7 +1102,7 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires either a singleton start value and a start color, a value range and a vector/matrix of colors, a vector of values and a vector/matrix of colors with optional transitions and blends, or a color palette name and a range and source range." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): the Palette() constructor requires the arguments passed to conform to one of five specific variants (see the documentation); these arguments were not recognized as one of those variants." << EidosTerminate();
 	}
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosPalette_Class));
@@ -1183,7 +1179,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosPalette_Class::Functions(voi
 			
 			EidosFunctionSignature *variant1 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric_S("value")->AddFloatString("color");
 			EidosFunctionSignature *variant2 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric("range")->AddFloatString("colors");
-			EidosFunctionSignature *variant3 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric("values")->AddFloatString("colors")->AddString_OS("transition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("linear")))->AddString_OS("blend", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("hsvShortest")));
+			EidosFunctionSignature *variant3 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddNumeric("values")->AddFloatString("colors")->AddString_O("transition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("linear")))->AddString_O("blend", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("hsvShortest")));
 			EidosFunctionSignature *variant4 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddString_S("colors")->AddNumeric("range")->AddNumeric_ON("sourceRange", gStaticEidosValueNULL);
 			EidosFunctionSignature *variant5 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Palette, Eidos_Instantiate_EidosPalette, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosPalette_Class))->AddObject_S("palette", gEidosPalette_Class)->AddFloat("rescaledRange")->AddFloat_ON("existingRange", gStaticEidosValueNULL)->AddLogical_OS("fullPalette", gStaticEidosValue_LogicalT);
 			

@@ -268,6 +268,9 @@ EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, c
 //		variant 1: string$ filePath
 //		variant 2: numeric matrix
 //
+// Note that Eidos does NOT type-check variants for us; it checks all variants against the ellipsis in the
+// base signature.  We therefore have to check very carefully below to detect illegal calling patterns.
+//
 static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -275,6 +278,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 	
 	if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueString) && (p_arguments[0]->Count() == 1))
 	{
+		// Variant 1: string$ filePath
 		EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
 		objectElement = new EidosImage(filePath_value->StringRefAtIndex_NOCAST(0, nullptr));
 	}
@@ -282,6 +286,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) &&
 			 (p_arguments[0]->Count() >= 1))
 	{
+		// Variant 2: numeric matrix
 		// test: x = matrix(c(255, 255, 255, 0, 0, rep(0, 10)), nrow=3, ncol=5, byrow=T); y = Image(x); y.write("~/Desktop/test.png");
 		// test: x = matrix(c(1.0, 1, 1, 0, 0, rep(0, 10)), nrow=3, ncol=5, byrow=T); y = Image(x); y.write("~/Desktop/test.png");
 		EidosValue *numeric_value = p_arguments[0].get();
@@ -344,7 +349,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): the Image() constructor requires either a singleton string (a file path) or a numeric vector (a matrix of pixel values)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): the Image() constructor requires the arguments passed to conform to one of two specific variants (see the documentation); these arguments were not recognized as one of those variants." << EidosTerminate();
 	}
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosImage_Class));
