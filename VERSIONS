@@ -12,7 +12,7 @@ development head (in the master branch):
 	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
 	add segments() call to Plot, for plotting a set of unconnected line segments
 	add rects() call to Plot, for plotting a set of rectangles
-	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
+	extend text() to support drawing text at an angle, with new [float angle = 0.0] parameter
 	add mtext() call to Plot, for drawing text in the margins outside the plot area
 	add rowSums() and colSums() functions to Eidos, for use with matrices as a faster alternative to apply()
 	add the PCG random number generator, switch to pcg32_fast and pcg64_fast, remove all use of the old taus2 and MT19937-64 generators; note this completely breaks backward reproducibility
@@ -30,7 +30,7 @@ development head (in the master branch):
 		add comprehensive tests for spatial interaction kernel calculations; includes SIMD vs scalar consistency tests, C++ level tests, and script-level tests, https://github.com/MesserLab/SLiM/pull/592
 		add SIMD acceleration for trig functions (sin(), cos(), tan(), asin(), acos(), atan(), atan2()), power functions (^ opperator, pow, SpatialMap.pow()), https://github.com/MesserLab/SLiM/pull/595
 		add SIMD acceleration to SpatialMap.smooth() for 2-6x speedup, https://github.com/MesserLab/SLiM/pull/599
-	fix #593, Student's T distribution had a sign error in tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
+	fix #593, Student's T distribution had a sign error in the SpatialKernel method tdist(), thanks to Andy Kern, https://github.com/MesserLab/SLiM/issues/591
 	update citations listed by citation()
 	CI workflow for calculating code coverage with Codecov, thanks to Andy Kern, https://github.com/MesserLab/SLiM/pull/601
 	fix #594, the pedigreeID and haplosomePedigreeID properties should be accessible (without other predigree-tracking features) in tree-seq models, even without pedigree tracking being enabled
@@ -41,6 +41,7 @@ development head (in the master branch):
 		rlnorm() accepted SD < 0 and returned a value; it should error, as rnorm() does (R returns NAN in the SD < 0 case, but erroring is more consistent with Eidos policies)
 		rexp() returned values for rate < 0; this should also error, consistent with Eidos policies
 	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
+	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
 
 
 version 5.1 (Eidos version 4.1):
