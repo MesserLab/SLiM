@@ -41,6 +41,7 @@ development head (in the master branch):
 		rlnorm() accepted SD < 0 and returned a value; it should error, as rnorm() does (R returns NAN in the SD < 0 case, but erroring is more consistent with Eidos policies)
 		rexp() returned values for rate < 0; this should also error, consistent with Eidos policies
 	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
+	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
 
 
 multitrait branch:

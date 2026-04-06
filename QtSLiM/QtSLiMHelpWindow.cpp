@@ -175,6 +175,8 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                                "nucleotideBased =>",
                                "nucleotide <–>",
                                "nucleotideValue <–>",
+                               "nucleotide =>",
+                               "nucleotideValue =>",
                                "mutationMatrix =>",
                                "– setMutationMatrix()",
                                "– ancestralNucleotides()",
