@@ -8062,7 +8062,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 }
 
 // WF only:
-//	*********************	- (void)setMigrationRates(object sourceSubpops, numeric rates)
+//	*********************	- (void)setMigrationRates(io<Subpopulation> sourceSubpops, numeric rates)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
