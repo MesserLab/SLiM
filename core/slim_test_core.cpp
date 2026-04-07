@@ -1337,10 +1337,13 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 4), c(0.1, 0.1)); } 10 early() { stop(); }", "not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 2), c(0.1, 0.1)); } 10 early() { stop(); }", "two rates set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(p2, p2), c(0.1, 0.1)); } 10 early() { stop(); }", "two rates set", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 3), 0.1); } 10 early() { stop(); }", "to be equal in size", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 3), 0.1); } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 3), float(0)); } 10 early() { stop(); }", "to be equal in size", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 3), c(0.1, 0.1, 0.1)); } 10 early() { stop(); }", "to be equal in size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(2, c(0.1, 0.1)); } 10 early() { stop(); }", "to be equal in size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(2, -0.0001); } 10 early() { stop(); }", "within [0,1]", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(2, 1.0001); } 10 early() { stop(); }", "within [0,1]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 3), 0.6); } 10 early() { stop(); }", "must sum to <= 1.0", __LINE__, false);	// raise is from EvolveSubpopulation(); we don't force constraints prematurely
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 early() { p1.setMigrationRates(c(2, 3), c(0.6, 0.6)); } 10 early() { stop(); }", "must sum to <= 1.0", __LINE__, false);	// raise is from EvolveSubpopulation(); we don't force constraints prematurely
 	
 	// Test Subpopulation - (void)setSelfingRate(numeric$ rate)
