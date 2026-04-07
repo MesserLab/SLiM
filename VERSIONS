@@ -43,6 +43,7 @@ development head (in the master branch):
 	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
 	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
 	change rects drawn by the Plot method rects() to have mitered corners, not bevelled
+	fix #564, initializeMutationRateFromFile() needs a `sex` parameter
 
 
 version 5.1 (Eidos version 4.1):
