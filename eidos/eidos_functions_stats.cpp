@@ -768,7 +768,9 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const std::vector<EidosValue_SP> &p_arg
 	
 	if (x_count == 0)
 	{
-		result_SP = gStaticEidosValueNULL;
+		// BCH 1/11/2026: changing this case from NULL to NAN, to match R;
+		// I just noticed this, and I don't think there's any reason for it
+		result_SP = gStaticEidosValue_FloatNAN;
 	}
 	else if (x_count == 1)
 	{

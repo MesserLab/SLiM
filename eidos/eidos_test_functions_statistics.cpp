@@ -190,9 +190,9 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("mean(c('foo', 'bar', 'baz'));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(NULL);", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("mean(logical(0));");
-	EidosAssertScriptSuccess_NULL("mean(integer(0));");
-	EidosAssertScriptSuccess_NULL("mean(float(0));");
+	EidosAssertScriptSuccess_F("mean(logical(0));", std::numeric_limits<double>::quiet_NaN());	// BCH 1/11/2026: changed from NULL to NAN after SLiM 5.1
+	EidosAssertScriptSuccess_F("mean(integer(0));", std::numeric_limits<double>::quiet_NaN());	// BCH 1/11/2026: changed from NULL to NAN after SLiM 5.1
+	EidosAssertScriptSuccess_F("mean(float(0));", std::numeric_limits<double>::quiet_NaN());	// BCH 1/11/2026: changed from NULL to NAN after SLiM 5.1
 	EidosAssertScriptRaise("mean(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("mean(rep(1e18, 9));", 1e18);	// stays in integer internally
 #if EIDOS_HAS_OVERFLOW_BUILTINS
