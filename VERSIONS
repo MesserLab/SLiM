@@ -42,6 +42,15 @@ development head (in the master branch):
 		rexp() returned values for rate < 0; this should also error, consistent with Eidos policies
 	add zygosityOfMutations([No<Mutation> mutations = NULL], [integer$ hemizygousValue = 1], [integer$ haploidValue = 1]) for assessing zygosity (see also mutationsFromHaplosomes())
 	policy change: the nucleotide and nucleotideValue properties of Substitution are now read-only (I think it was a bug that they were ever read-write...?)
+	change rects drawn by the Plot method rects() to have mitered corners, not bevelled
+	fix #564, initializeMutationRateFromFile() needs a `sex` parameter
+	fix #570, setMigrationRates() should make it easier to stop all migration (done in multitrait to avoid the annoying doc conflicts)
+		specifically, this entails two changes:
+			allow a singleton migration rate value, applied for all subpops given
+			allow the destination subpop to be given as a source, iff all rates supplied are 0.0, to stop all migration: allSubpops.setMigrationRates(allSubpops, 0.0)
+	fix #567, plot windows can have their aspect ratio distorted due to screen size and other constraints
+	extend the Eidos identical() function to allow comparison of more than two parameters; e.g., (logical$)identical(* x, * y, ...)
+	policy change: mean(integer(0)) or mean(float(0)) now returns NAN rather than NULL, to match R; I just noticed this, and NAN does seem better
 
 
 multitrait branch:
