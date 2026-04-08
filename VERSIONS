@@ -52,6 +52,7 @@ development head (in the master branch):
 	extend the Eidos identical() function to allow comparison of more than two parameters; e.g., (logical$)identical(* x, * y, ...)
 	policy change: mean(integer(0)) or mean(float(0)) now returns NAN rather than NULL, to match R; I just noticed this, and NAN does seem better
 	fix #612, Haplosome needs a mutationCount property
+	fix #621, add a Laplace distribution function, rlaplace()
 
 
 version 5.1 (Eidos version 4.1):

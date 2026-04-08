@@ -2148,7 +2148,23 @@ Returns a vector of
 \f3\fs20 , specifying a value for each draw.  Eidos follows R in using the geometric distribution with support on the set \{0, 1, 2, \'85\}, where the drawn value indicates the number of failures prior to success.  There is an alternative definition, based upon the number of trial required to get one success, so beware.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rlnorm(integer$
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)rlaplace(integer$\'a0n, [numeric\'a0b\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f1\fs18 n
+\f3\fs20  
+\f0\b random draws from a Laplace distribution
+\f3\b0  with shape parameter 
+\f1\fs18 b
+\f3\fs20 .  The 
+\f1\fs18 b
+\f3\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
+\f1\fs18 n
+\f3\fs20 , specifying a value for each draw.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float)rlnorm(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0meanlog\'a0=\'a00], [numeric\'a0sdlog\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0

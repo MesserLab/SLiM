@@ -927,6 +927,22 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("rgeom(2, c(0.5, 1.1));", 0, "requires 0.0 < p <= 1.0");
 	EidosAssertScriptRaise("rgeom(2, NAN);", 0, "requires 0.0 < p <= 1.0");
 	
+	// rlaplace()
+	EidosAssertScriptSuccess("rlaplace(0);", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("rlaplace(0, float(0));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess_L("setSeed(0); abs(rlaplace(1) - c(-0.111405)) < 0.00001;", true);
+	EidosAssertScriptSuccess_LV("setSeed(0); abs(rlaplace(3) - c(-0.111405, -0.418235, -0.77246)) < 0.00001;", {true, true, true});
+	EidosAssertScriptSuccess_LV("setSeed(1); abs(rlaplace(3, 10) - c(-28.3454, -27.1145, 3.55203)) < 0.1;", {true, true, true});
+	EidosAssertScriptSuccess_LV("setSeed(2); abs(rlaplace(3, 100000) - c(-69536.44, -77285.89, 125604.39)) < 0.1;", {true, true, true});
+	EidosAssertScriptSuccess_LV("setSeed(3); abs(rlaplace(3, c(10, 100, 1000)) - c(-9.48116, -3.15833, 1488.54)) < 0.1;", {true, true, true});
+	EidosAssertScriptRaise("rlaplace(-1);", 0, "requires n to be");
+	EidosAssertScriptRaise("rlaplace(2, -0.001);", 0, "requires b > 0.0");
+	EidosAssertScriptRaise("rlaplace(2, 0.0);", 0, "requires b > 0.0");
+	EidosAssertScriptRaise("rlaplace(2, c(1.0, -0.001));", 0, "requires b > 0.0");
+	EidosAssertScriptRaise("rlaplace(2, c(1.0, 0.0));", 0, "requires b > 0.0");
+	EidosAssertScriptRaise("rlaplace(3, c(10, 5));", 0, "requires b to be");
+	EidosAssertScriptSuccess("rlaplace(1, NAN);", gStaticEidosValue_FloatNAN);
+	
 	// rlnorm()
 	EidosAssertScriptSuccess("rlnorm(0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rlnorm(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

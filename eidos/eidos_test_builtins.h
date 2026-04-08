@@ -1149,6 +1149,12 @@ if (abs(m - 9) > 0.4) stop('Mismatch in expectation vs. realization of rgeom() -
 // ***********************************************************************************************
 
 setSeed(asInteger(clock() * 100000));
+m = mean(rlaplace(100000, 5));	// expectation is 0.0
+if (abs(m) > 0.08) stop('Mismatch in expectation vs. realization of rlaplace() - could be random chance (but very unlikely), rerun test');
+
+// ***********************************************************************************************
+
+setSeed(asInteger(clock() * 100000));
 m = mean(log(rlnorm(10000, 5, 0.3)));	// expectation is 5
 if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rlnorm() - could be random chance (but very unlikely), rerun test');
 
