@@ -129,10 +129,10 @@ inline __attribute__((always_inline)) bool EIDOS_RNG_PING_IS_SET(void) { return 
 //	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 //
 #ifndef _OPENMP
-inline __attribute__((always_inline)) gsl_rng *EIDOS_GSL_RNG(int threadnum)				{ EIDOS_RNG_PING(); return &gEidos_RNG_SINGLE.gsl_rng_; }
-inline __attribute__((always_inline)) EidosRNG_32_bit &EIDOS_32BIT_RNG(int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_SINGLE.pcg32_rng_; }
-inline __attribute__((always_inline)) EidosRNG_64_bit &EIDOS_64BIT_RNG(int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_SINGLE.pcg64_rng_; }
-inline __attribute__((always_inline)) Eidos_RNG_State *EIDOS_STATE_RNG(int threadnum)	{ EIDOS_RNG_PING(); return &gEidos_RNG_SINGLE; }
+inline __attribute__((always_inline)) gsl_rng *EIDOS_GSL_RNG(__attribute__((__unused__)) int threadnum)				{ EIDOS_RNG_PING(); return &gEidos_RNG_SINGLE.gsl_rng_; }
+inline __attribute__((always_inline)) EidosRNG_32_bit &EIDOS_32BIT_RNG(__attribute__((__unused__)) int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_SINGLE.pcg32_rng_; }
+inline __attribute__((always_inline)) EidosRNG_64_bit &EIDOS_64BIT_RNG(__attribute__((__unused__)) int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_SINGLE.pcg64_rng_; }
+inline __attribute__((always_inline)) Eidos_RNG_State *EIDOS_STATE_RNG(__attribute__((__unused__)) int threadnum)	{ EIDOS_RNG_PING(); return &gEidos_RNG_SINGLE; }
 #else
 inline __attribute__((always_inline)) gsl_rng *EIDOS_GSL_RNG(int threadnum)				{ EIDOS_RNG_PING(); return &gEidos_RNG_PERTHREAD[threadnum]->gsl_rng_; }
 inline __attribute__((always_inline)) EidosRNG_32_bit &EIDOS_32BIT_RNG(int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_PERTHREAD[threadnum]->pcg32_rng_; }
