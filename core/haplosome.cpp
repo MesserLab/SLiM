@@ -446,6 +446,15 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_isNullHaplosome:		// ACCELERATED
 			return ((mutrun_count_ == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		case gID_mutationCount:
+		{
+			if (IsDeferred())
+				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
+			
+			int mut_count = mutation_count();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mut_count));
+		}
 		case gID_mutations:
 		{
 			if (IsDeferred())
@@ -2252,6 +2261,7 @@ std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties_MUTABLE(voi
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_haplosomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individual,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullHaplosome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_isNullHaplosome));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationCount,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Haplosome::SetProperty_Accelerated_tag));
 		
