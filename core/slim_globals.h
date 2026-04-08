@@ -810,6 +810,7 @@ extern const std::string &gStr_geneConversionMeanLength;
 extern const std::string &gStr_geneConversionSimpleConversionFraction;
 extern const std::string &gStr_chromosomeSubposition;
 extern const std::string &gStr_isNullHaplosome;
+extern const std::string &gStr_mutationCount;
 extern const std::string &gStr_mutations;
 extern const std::string &gStr_uniqueMutations;
 extern const std::string &gStr_genomicElementType;
@@ -1272,6 +1273,7 @@ enum _SLiMGlobalStringID : int {
 	gID_geneConversionSimpleConversionFraction,
 	gID_chromosomeSubposition,
 	gID_isNullHaplosome,
+	gID_mutationCount,
 	gID_mutations,
 	gID_uniqueMutations,
 	gID_genomicElementType,

@@ -719,6 +719,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; gen.chromosomeSubposition = 0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; gen.isNullHaplosome = F; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { gen = p1.haplosomes[0]; gen.mutations[0].mutationType = m1; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { counts1 = sapply(p1.haplosomes, 'size(applyValue.mutations);'); counts2 = p1.haplosomes.mutationCount; if (identical(counts1, counts2)) stop(); }");
 	
 	// Test Haplosome + (void)addMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; gen.addMutations(object()); stop(); }", __LINE__);
