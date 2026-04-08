@@ -53,6 +53,7 @@ development head (in the master branch):
 	policy change: mean(integer(0)) or mean(float(0)) now returns NAN rather than NULL, to match R; I just noticed this, and NAN does seem better
 	fix #612, Haplosome needs a mutationCount property
 	fix #621, add a Laplace distribution function, rlaplace()
+	fix a bug (a regression, introduced in SLiM 3.7!) in printing of large float values; ".0" is sometimes shown erroneously
 
 
 multitrait branch:
