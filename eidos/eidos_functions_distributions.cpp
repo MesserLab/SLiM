@@ -1530,6 +1530,73 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 	return result_SP;
 }
 
+//	(float)rlaplace(integer$ n, [numeric b = 1])
+EidosValue_SP Eidos_ExecuteFunction_rlaplace(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	EidosValue *arg_b = p_arguments[1].get();
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
+	int arg_b_count = arg_b->Count();
+	bool b_singleton = (arg_b_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlaplace): function rlaplace() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!b_singleton && (arg_b_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlaplace): function rlaplace() requires b to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	if (b_singleton)
+	{
+		double b0 = arg_b->NumericAtIndex_NOCAST(0, nullptr);
+		
+		if (b0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlaplace): function rlaplace() requires b > 0.0 (" << EidosStringForFloat(b0) << " supplied)." << EidosTerminate(nullptr);
+		
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
+		result_SP = EidosValue_SP(float_result);
+		
+		// FIXME PARALLELIZE
+		{
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+			
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+				float_result->set_float_no_check(gsl_ran_laplace(rng_gsl, b0), draw_index);
+		}
+	}
+	else
+	{
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(float_result);
+		bool saw_error = false;
+		
+		// FIXME PARALLELIZE
+		{
+			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			{
+				double b = arg_b->NumericAtIndex_NOCAST((int)draw_index, nullptr);
+				
+				if (b <= 0.0)
+				{
+					saw_error = true;
+					continue;
+				}
+				
+				float_result->set_float_no_check(gsl_ran_laplace(rng_gsl, b), draw_index);
+			}
+		}
+		
+		if (saw_error)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlaplace): function rlaplace() requires b > 0.0." << EidosTerminate(nullptr);
+	}
+	
+	return result_SP;
+}
+
 //	(float)rlnorm(integer$ n, [numeric meanlog = 0], [numeric sdlog = 1])
 EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
