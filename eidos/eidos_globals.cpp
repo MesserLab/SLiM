@@ -3655,14 +3655,30 @@ std::string EidosStringForFloat(double p_value)
 		// since it increases clarity and consistency.  So now we look for a decimal point in the float,
 		// and if there is none, we append ".0".  We also need to worry about scientific notation; if there
 		// is an "e" or "E", we insert the ".0" just before that to produce 1.0e30 rather than 1e30.
+		// BCH 4/8/2026: Well, I messed this up, and didn't catch it for 4.5 years (and nobody else noticed
+		// it either).  I've added some unit tests for this so hopefully it will be correct this time.
 		if (string_value.find('.') == std::string::npos)
 		{
 			size_t e_pos = string_value.find_first_of("eE");
 			
 			if (e_pos == std::string::npos)
-				string_value.append(".0");
+			{
+				// BCH 4/8/2026: if a decimal point and digit was not output, and scientific notation was
+				// not used, force an extra digit of precision in fixed-point.  This might result in an
+				// extra digit of precision being output, beyond gEidosFloatOutputPrecision; the alternative
+				// would be to flip to scientific notation, but it's harder to decide when to do that.
+				ss.str("");
+				ss << std::fixed << std::setprecision(1) << p_value;
+				string_value = ss.str();
+			}
 			else
+			{
+				// BCH 4/8/2026: if a decimal point and digit was not output, and scientific notation was used,
+				// as far as I can see that means the digit after the decimal place must be 0, since the way
+				// that C++ handles scientific notation there would only be one digit in the mantissa, like
+				// "1e6"; if it were anything but "1.0e6" the extra digit would have been emitted.
 				string_value.insert(e_pos, ".0");
+			}
 		}
 		
 		return string_value;

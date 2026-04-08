@@ -319,6 +319,7 @@ int RunEidosTests(void)
 	free(temp_path_cstr);
 	
 	// Run tests
+	_RunFloatOutputTests();
 	_RunInternalFilesystemTests();
 	_RunLiteralsIdentifiersAndTokenizationTests();
 	_RunSymbolsAndVariablesTests();
@@ -1390,6 +1391,110 @@ int RunEidosTests(void)
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
 	return (gEidosTestFailureCount > 0) ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+#pragma mark float output tests
+static void _TestFloatOutput(double value, std::string expectation)
+{
+	std::string result1 = EidosStringForFloat(value);
+	
+	if (result1 == expectation)
+		gEidosTestSuccessCount++;
+	else
+	{
+		gEidosTestFailureCount++;
+		std::cerr << "double value " << value << " output as " << result1 << " (" << expectation << " expected)" << std::endl;
+	}
+}
+
+void _RunFloatOutputTests(void)
+{
+	// I added these tests after I discovered that Eidos was sometimes printing ".0" at the end of floats
+	// erroneously.  It is surprisingly difficult to get floats to output the way I want them to output!
+	// There are basically three stakes: I generally want gEidosFloatOutputPrecision digits of precision
+	// (but that is not an absolute stake; see other points); I always want a decimal point with a digit
+	// after it, to differentiate float output from integer output (unlike in R); and I want unnecessary
+	// zeros at the end to be suppressed, *except* for a zero immediately following the decimal point.
+	//
+	// This test code is predicated upon gEidosFloatOutputPrecision == 6.
+	_TestFloatOutput(std::numeric_limits<double>::infinity(), "INF");
+	_TestFloatOutput(-std::numeric_limits<double>::infinity(), "-INF");
+	_TestFloatOutput(-std::numeric_limits<double>::quiet_NaN(), "NAN");
+	_TestFloatOutput(0.0, "0.0");
+	
+	_TestFloatOutput(0.01, "0.01");
+	_TestFloatOutput(0.1, "0.1");
+	_TestFloatOutput(1.0, "1.0");
+	_TestFloatOutput(12.0, "12.0");
+	_TestFloatOutput(123.0, "123.0");
+	_TestFloatOutput(1234.0, "1234.0");
+	_TestFloatOutput(12345.0, "12345.0");
+	_TestFloatOutput(123456.0, "123456.0");
+	_TestFloatOutput(1234567.0, "1.23457e+06");
+	
+	_TestFloatOutput(-0.01, "-0.01");
+	_TestFloatOutput(-0.1, "-0.1");
+	_TestFloatOutput(-1.0, "-1.0");
+	_TestFloatOutput(-12.0, "-12.0");
+	_TestFloatOutput(-123.0, "-123.0");
+	_TestFloatOutput(-1234.0, "-1234.0");
+	_TestFloatOutput(-12345.0, "-12345.0");
+	_TestFloatOutput(-123456.0, "-123456.0");
+	_TestFloatOutput(-1234567.0, "-1.23457e+06");
+	
+	_TestFloatOutput(0.012, "0.012");
+	_TestFloatOutput(0.12, "0.12");
+	_TestFloatOutput(1.1, "1.1");
+	_TestFloatOutput(12.1, "12.1");
+	_TestFloatOutput(123.1, "123.1");
+	_TestFloatOutput(1234.1, "1234.1");
+	_TestFloatOutput(12345.1, "12345.1");
+	_TestFloatOutput(123456.1, "123456.1");
+	_TestFloatOutput(1234567.1, "1.23457e+06");
+	
+	_TestFloatOutput(-0.012, "-0.012");
+	_TestFloatOutput(-0.12, "-0.12");
+	_TestFloatOutput(-1.1, "-1.1");
+	_TestFloatOutput(-12.1, "-12.1");
+	_TestFloatOutput(-123.1, "-123.1");
+	_TestFloatOutput(-1234.1, "-1234.1");
+	_TestFloatOutput(-12345.1, "-12345.1");
+	_TestFloatOutput(-123456.1, "-123456.1");
+	_TestFloatOutput(-1234567.1, "-1.23457e+06");
+	
+	_TestFloatOutput(1.0e0, "1.0");
+	_TestFloatOutput(1.0e1, "10.0");
+	_TestFloatOutput(1.0e2, "100.0");
+	_TestFloatOutput(1.0e3, "1000.0");
+	_TestFloatOutput(1.0e4, "10000.0");
+	_TestFloatOutput(1.0e5, "100000.0");
+	_TestFloatOutput(1.0e6, "1.0e+06");
+	
+	_TestFloatOutput(-1.0e0, "-1.0");
+	_TestFloatOutput(-1.0e1, "-10.0");
+	_TestFloatOutput(-1.0e2, "-100.0");
+	_TestFloatOutput(-1.0e3, "-1000.0");
+	_TestFloatOutput(-1.0e4, "-10000.0");
+	_TestFloatOutput(-1.0e5, "-100000.0");
+	_TestFloatOutput(-1.0e6, "-1.0e+06");
+	
+	_TestFloatOutput(1.1e0, "1.1");
+	_TestFloatOutput(1.1e1, "11.0");
+	_TestFloatOutput(1.1e2, "110.0");
+	_TestFloatOutput(1.1e3, "1100.0");
+	_TestFloatOutput(1.1e4, "11000.0");
+	_TestFloatOutput(1.1e5, "110000.0");
+	_TestFloatOutput(1.1e6, "1.1e+06");
+	
+	_TestFloatOutput(-1.1e0, "-1.1");
+	_TestFloatOutput(-1.1e1, "-11.0");
+	_TestFloatOutput(-1.1e2, "-110.0");
+	_TestFloatOutput(-1.1e3, "-1100.0");
+	_TestFloatOutput(-1.1e4, "-11000.0");
+	_TestFloatOutput(-1.1e5, "-110000.0");
+	_TestFloatOutput(-1.1e6, "-1.1e+06");
+	
+	_TestFloatOutput(125604.390423, "125604.4");	// this was the value for which I noticed the bug; it was output as "125604.0", whoops!
 }
 
 #pragma mark internal filesystem tests
