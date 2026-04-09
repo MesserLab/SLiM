@@ -5418,6 +5418,8 @@
 					"$(OTHER_CFLAGS)",
 					"-fno-math-errno",
 				);
+				PER_ARCH_CFLAGS_arm64 = "-DEIDOS_HAS_NEON=1";
+				PER_ARCH_CFLAGS_x86_64 = "-mavx2 -mfma -DEIDOS_HAS_AVX2=1 -DEIDOS_HAS_FMA=1";
 				SDKROOT = macosx;
 				STRIP_STYLE = debugging;
 				WARNING_CFLAGS = "-Wimplicit-fallthrough";
@@ -5484,6 +5486,8 @@
 					"$(OTHER_CFLAGS)",
 					"-fno-math-errno",
 				);
+				PER_ARCH_CFLAGS_arm64 = "-DEIDOS_HAS_NEON=1";
+				PER_ARCH_CFLAGS_x86_64 = "-mavx2 -mfma -DEIDOS_HAS_AVX2=1 -DEIDOS_HAS_FMA=1";
 				SDKROOT = macosx;
 				STRIP_STYLE = debugging;
 				WARNING_CFLAGS = "-Wimplicit-fallthrough";

@@ -40,6 +40,27 @@ QMAKE_BUNDLE_DATA += docIconFiles
 #CONFIG += sanitizer sanitize_address sanitize_undefined
 
 
+# BCH 4/8/2026: I force AVX2 and FMA on for x86_64 builds (true since 2013), and NEON on for ARM64 builds
+# (true since forever), without the compiler capability testing done in CMakeFlags.txt.  This is a hack;
+# if it breaks things for an end user they can build with CMake instead or disable these defines.  Note
+# that building in Qt Creator is not the primary supported build method for SLiM, and is probably mostly
+# used only by me; I just want this on for development.  See https://github.com/MesserLab/SLiM/issues/598.
+# Note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro.
+isEmpty(QMAKE_TARGET.arch):QMAKE_TARGET.arch = $$QMAKE_HOST.arch
+message("Target architecture is: $${QMAKE_TARGET.arch}")
+
+contains(QMAKE_TARGET.arch, x86_64) {
+	message("Building for x86_64; enabling AVX2 and FMA")
+	QMAKE_CFLAGS += -mavx2 -mfma
+	DEFINES += EIDOS_HAS_AVX2=1 EIDOS_HAS_FMA=1
+}
+contains(QMAKE_TARGET.arch, arm64) {
+	# ARM64 NEON is always available on ARM64, no compiler flag needed
+	message("Building for ARM64; enabling NEON")
+	DEFINES += EIDOS_HAS_NEON=1
+}
+
+
 # Get the current Git SHA-1 and put it into a define; see https://stackoverflow.com/questions/27041573/print-git-hash-in-qt-as-macro-created-at-compile-time
 # Note that this only runs when qmake runs!  It would be nice to have a solution more like the one we use under CMake.
 GIT_HASH="\\\"$$system(git -C \""$$_PRO_FILE_PWD_"\" rev-parse HEAD)\\\""
