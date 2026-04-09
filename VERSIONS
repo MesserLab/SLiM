@@ -54,6 +54,7 @@ development head (in the master branch):
 	fix #612, Haplosome needs a mutationCount property
 	fix #621, add a Laplace distribution function, rlaplace()
 	fix a bug (a regression, introduced in SLiM 3.7!) in printing of large float values; ".0" is sometimes shown erroneously
+	fix #598: in Xcode and Qt Creator, force AVX2 and FMA on for x86_64 builds (true since 2013), and NEON on for ARM64 builds (true since forever); this is pretty safe, and makes SIMD/SLEEF work even without the CMake magic for them
 
 
 multitrait branch:
