@@ -73,6 +73,13 @@
 #pragma GCC diagnostic pop
 #endif
 
+// Disable certain warnings for the remainder of this file
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waggressive-loop-optimizations"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Waggressive-loop-optimizations"
+
+
 // ================================
 // SIMD Vector Math Operations
 // ================================
@@ -1203,5 +1210,11 @@ inline void convolve_dot_product_scaled_float64(
 }
 
 } // namespace Eidos_SIMD
+
+
+// stop suppressing warnings
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+
 
 #endif /* eidos_simd_h */
