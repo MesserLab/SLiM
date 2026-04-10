@@ -52,6 +52,7 @@ message("Target architecture is: $${QMAKE_TARGET.arch}")
 contains(QMAKE_TARGET.arch, x86_64) {
 	message("Building for x86_64; enabling AVX2 and FMA")
 	QMAKE_CFLAGS += -mavx2 -mfma
+	QMAKE_CXXFLAGS += -mavx2 -mfma
 	DEFINES += EIDOS_HAS_AVX2=1 EIDOS_HAS_FMA=1
 }
 contains(QMAKE_TARGET.arch, arm64) {
