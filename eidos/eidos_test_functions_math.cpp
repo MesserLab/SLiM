@@ -22,6 +22,8 @@
 
 #include <cmath>
 #include <limits>
+#include <algorithm>
+#include <vector>
 
 
 #pragma mark math

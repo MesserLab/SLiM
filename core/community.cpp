@@ -49,6 +49,7 @@
 #include <unordered_map>
 #include <float.h>
 #include <ctime>
+#include <limits>
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING
