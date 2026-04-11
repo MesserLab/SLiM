@@ -41,8 +41,6 @@ contains(QMAKE_TARGET.arch, x86_64) {
 contains(QMAKE_TARGET.arch, arm64) {
 	# ARM64 NEON is always available on ARM64, no compiler flag needed
 	message("Building for ARM64; enabling NEON")
-	QMAKE_CFLAGS += -mfloat-abi=softfp
-	QMAKE_CXXFLAGS += -mfloat-abi=softfp
 	DEFINES += EIDOS_HAS_NEON=1
 }
 
