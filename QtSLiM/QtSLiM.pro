@@ -46,20 +46,16 @@ QMAKE_BUNDLE_DATA += docIconFiles
 # that building in Qt Creator is not the primary supported build method for SLiM, and is probably mostly
 # used only by me; I just want this on for development.  See https://github.com/MesserLab/SLiM/issues/598.
 # Note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro.
-isEmpty(QMAKE_TARGET.arch):QMAKE_TARGET.arch = $$QMAKE_HOST.arch
 message("Target architecture is: $${QMAKE_TARGET.arch}")
 
-contains(QMAKE_TARGET.arch, x86_64) {
-	message("Building for x86_64; enabling AVX2 and FMA")
-	QMAKE_CFLAGS += -mavx2 -mfma
-	QMAKE_CXXFLAGS += -mavx2 -mfma
-	DEFINES += EIDOS_HAS_AVX2=1 EIDOS_HAS_FMA=1
-}
-contains(QMAKE_TARGET.arch, arm64) {
-	# ARM64 NEON is always available on ARM64, no compiler flag needed
-	message("Building for ARM64; enabling NEON")
-	DEFINES += EIDOS_HAS_NEON=1
-}
+QMAKE_CFLAGS += -Xarch_x86_64 -mavx2 -Xarch_x86_64 -mfma
+QMAKE_CXXFLAGS += -Xarch_x86_64 -mavx2 -Xarch_x86_64 -mfma
+
+QMAKE_CFLAGS += -Xarch_x86_64 -DEIDOS_HAS_AVX2=1 -Xarch_x86_64 -DEIDOS_HAS_FMA=1
+QMAKE_CXXFLAGS += -Xarch_x86_64 -DEIDOS_HAS_AVX2=1 -Xarch_x86_64 -DEIDOS_HAS_FMA=1
+
+QMAKE_CFLAGS += -Xarch_arm64 -DEIDOS_HAS_NEON=1
+QMAKE_CXXFLAGS += -Xarch_arm64 -DEIDOS_HAS_NEON=1
 
 
 # Get the current Git SHA-1 and put it into a define; see https://stackoverflow.com/questions/27041573/print-git-hash-in-qt-as-macro-created-at-compile-time
