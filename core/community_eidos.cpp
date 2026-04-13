@@ -39,6 +39,7 @@
 #include <ctime>
 #include <unordered_map>
 #include <unordered_set>
+#include <limits>
 
 
 static std::string PrintBytes(size_t p_bytes)
