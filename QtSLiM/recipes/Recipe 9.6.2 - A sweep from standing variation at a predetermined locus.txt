@@ -30,7 +30,7 @@ initialize() {
 		if (sim.mutationFrequencies(NULL, mut) > 0.1)
 		{
 			cat(simID + ": ESTABLISHED - CONVERTING TO BENEFICIAL\n");
-			mut.setSelectionCoeff(0.5);
+			mut.setEffectSizeForTrait(NULL, 0.5);
 			community.deregisterScriptBlock(self);
 		}
 	}

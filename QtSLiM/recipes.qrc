@@ -75,9 +75,8 @@
         <file>recipes/Recipe 10.4.1 - Fitness as a function of population composition, Frequency-dependent selection III.txt</file>
         <file>recipes/Recipe 10.4.2 - Fitness as a function of population composition, Cultural effects on fitness.txt</file>
         <file>recipes/Recipe 10.4.3 - Fitness as a function of population composition, Kin selection and the green-beard effect.txt</file>
-        <file>recipes/Recipe 10.5 - Changing selection coefficients with setSelectionCoeff().txt</file>
-        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations I.txt</file>
-        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations II.txt</file>
+        <file>recipes/Recipe 10.5 - Changing selection coefficients with setEffectSizeForTrait().txt</file>
+        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations.txt</file>
         <file>recipes/Recipe 11.1 - Assortative mating.txt</file>
         <file>recipes/Recipe 11.2 - Sequential mate search I.txt</file>
         <file>recipes/Recipe 11.2 - Sequential mate search II.txt</file>
