@@ -151,10 +151,13 @@ tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
     uint64_t json_length_u64;
     uint64_t binary_length_u64;
     uint64_t header_and_json_length;
+    uint64_t padding_length;
+    uint64_t header_and_json_and_padding_length;
     uint64_t total_length;
     uint8_t *bytes;
-    char *blob_start;
     char *json_start;
+    char *padding_start;
+    char *blob_start;
 
     if (metadata == NULL || json == NULL || json_length == NULL || blob == NULL
         || blob_length == NULL) {
@@ -182,17 +185,33 @@ tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
         goto out;
     }
     header_and_json_length = (uint64_t) TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
-    if (binary_length_u64 > UINT64_MAX - header_and_json_length) {
+    padding_length = (8 - (header_and_json_length & 0x07) % 8);
+    if (padding_length > UINT64_MAX - header_and_json_length) {
         ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH);
         goto out;
     }
-    total_length = header_and_json_length + binary_length_u64;
-    if ((uint64_t) metadata_length < total_length) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED);
+    header_and_json_and_padding_length = header_and_json_length + padding_length;
+    if (binary_length_u64 > UINT64_MAX - header_and_json_and_padding_length) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH);
         goto out;
     }
+    total_length = header_and_json_and_padding_length + binary_length_u64;
+    if ((uint64_t) metadata_length != total_length) {
+        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_UNEXPECTED_SIZE);
+        goto out;
+    }
+    padding_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
+    for (uint64_t padding_index = 0; padding_index < padding_length; ++padding_index)
+    {
+        // require padding bytes to be zero, for a bit more safety
+        if (*(padding_start + padding_index) != (char)0)
+        {
+            ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_NONZERO_PADDING);
+            goto out;
+        }
+    }
     json_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE;
-    blob_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
+    blob_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE + json_length_u64 + padding_length;
     *json = json_start;
     *json_length = (tsk_size_t) json_length_u64;
     *blob = blob_start;
@@ -283,6 +302,14 @@ tsk_strerror_internal(int err)
         case TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION:
             ret = "JSON binary struct metadata uses an unsupported version number. "
                   "(TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION)";
+            break;
+        case TSK_ERR_JSON_STRUCT_METADATA_UNEXPECTED_SIZE:
+            ret = "JSON binary struct metadata is not equal to the expected size. "
+                  "(TSK_ERR_JSON_STRUCT_METADATA_UNEXPECTED_SIZE)";
+            break;
+        case TSK_ERR_JSON_STRUCT_METADATA_NONZERO_PADDING:
+            ret = "JSON binary struct metadata has non-zero padding bytes between the "
+                  "JSON and struct. (TSK_ERR_JSON_STRUCT_METADATA_NONZERO_PADDING)";
             break;
 
         /* Out of bounds errors */
