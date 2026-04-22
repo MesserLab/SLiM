@@ -1161,6 +1161,16 @@ if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rlnorm()
 // ***********************************************************************************************
 
 setSeed(asInteger(clock() * 100000));
+x = rmultinom(10, 1000000000, c(0.1, 0.5, 0.1, 5.0, 0.25));
+if (!identical(colSums(x), rep(1000000000, 10))) stop('ERROR (rmultinom): (internal error) colSums incorrect');
+r = rowSums(x);
+norm = c(0.1, 0.5, 0.1, 5.0, 0.25) / sum(c(0.1, 0.5, 0.1, 5.0, 0.25));
+expected = 1000000000 * norm * 10;
+if (sum(abs(r - expected)) > 300000) stop('Mismatch in expectation vs. realization of rmultinom() - could be random chance (but very unlikely), rerun test');
+
+// ***********************************************************************************************
+
+setSeed(asInteger(clock() * 100000));
 x = rmvnorm(100000, c(-1, 5), matrix(c(1, 0.2, 0.2, 2), nrow=2));
 m1 = mean(x[,0]);
 m2 = mean(x[,1]);

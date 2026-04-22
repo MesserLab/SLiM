@@ -2187,6 +2187,32 @@ Returns a vector of
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (integer)rmultinom(integer$\'a0n, integer$\'a0size, numeric\'a0prob)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a matrix of 
+\f1\fs18 n
+\f3\fs20  
+\f0\b random vectors from the specified multinomial distribution
+\f3\b0 .  For each random vector drawn from the multinomial distribution, 
+\f1\fs18 size
+\f3\fs20  objects will be put into 
+\f7\i k
+\f3\i0  boxes, where 
+\f1\fs18 prob
+\f3\fs20  is a vector of probabilities of length 
+\f7\i k
+\f3\i0  specifying the probability for each box.  If 
+\f1\fs18 prob
+\f3\fs20  is not normalized to sum to 
+\f1\fs18 1.0
+\f3\fs20 , its entries are treated as weights and normalized appropriately.  The draws are returned as a matrix with 
+\f7\i k
+\f3\i0  rows (one row per box) and 
+\f1\fs18 n
+\f3\fs20  columns (one column per drawn random vector).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
 (float)rmvnorm(integer$\'a0n, numeric\'a0mu, numeric\'a0sigma)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0

@@ -961,6 +961,17 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess("rlnorm(1, NAN, 100);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("rlnorm(1, 1, NAN);", gStaticEidosValue_FloatNAN);
 	
+	// rmultinom()
+	EidosAssertScriptRaise("rmultinom(0, 10, c(0.1, 1.0, 10.0));", 0, "requires n to be");
+	EidosAssertScriptRaise("rmultinom(5, -1, c(0.1, 1.0, 10.0));", 0, "requires size to be");
+	EidosAssertScriptRaise("rmultinom(5, 10, float(0));", 0, "requires prob to be");
+	EidosAssertScriptRaise("rmultinom(5, 10, c(-0.1, 1.0, 10.0));", 0, "requires all probabilities in prob to be");
+	EidosAssertScriptRaise("rmultinom(5, 10, c(INF, 1.0, 10.0));", 0, "requires all probabilities in prob to be");
+	EidosAssertScriptRaise("rmultinom(5, 10, c(NAN, 1.0, 10.0));", 0, "requires all probabilities in prob to be");
+	EidosAssertScriptRaise("rmultinom(5, 10, c(0.0, 0.0, 0.0));", 0, "requires the sum of prob");
+	EidosAssertScriptSuccess_L("x = rmultinom(5, 10, c(0.1)); identical(x, matrix(rep(10, 5*1), ncol=5));", true);
+	EidosAssertScriptSuccess_L("x = rmultinom(5, 0, c(0.1, 1.0, 10.0)); identical(x, matrix(rep(0, 5*3), ncol=5));", true);
+	
 	// rmvnorm()
 	EidosAssertScriptRaise("rmvnorm(0, c(0,2), matrix(c(10,3), nrow=2));", 0, "requires n to be");
 	EidosAssertScriptRaise("rmvnorm(5, matrix(c(0,0)), matrix(c(10,3,3,2), nrow=2));", 0, "plain vector of length k");
