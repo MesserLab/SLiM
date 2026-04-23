@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/24/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -122,11 +122,7 @@ void QtSLiMTextEdit::selfInit(void)
     QFont scriptFont = prefs.displayFontPref(&tabWidth);
     
     setFont(scriptFont);
-#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
-    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
-#else
-    setTabStopDistance(tabWidth);               // added in 5.10
-#endif
+    setTabStopDistance(tabWidth);
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
@@ -161,11 +157,7 @@ void QtSLiMTextEdit::displayFontPrefChanged()
     QFont displayFont = prefs.displayFontPref(&tabWidth);
     
     setFont(displayFont);
-#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
-    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
-#else
-    setTabStopDistance(tabWidth);               // added in 5.10
-#endif
+    setTabStopDistance(tabWidth);
 }
 
 void QtSLiMTextEdit::scriptSyntaxHighlightPrefChanged()
@@ -554,13 +546,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         // but for QPlainTextEdit hitTest() always returns -1 for some reason.
         const QFont &displayFont = QtSLiMPreferencesNotifier::instance().displayFontPref(nullptr);
         QFontMetricsF fm(displayFont);
-        int fudgeFactor;
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        fudgeFactor = std::round(fm.width(" ") / 2.0) + 1;                // deprecated in 5.11
-#else
-        fudgeFactor = std::round(fm.horizontalAdvance(" ") / 2.0) + 1;    // added in Qt 5.11
-#endif
+        int fudgeFactor = std::round(fm.horizontalAdvance(" ") / 2.0) + 1;
         
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         QPoint localPos = p_event->localPos().toPoint();
@@ -979,7 +965,7 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             else if (callName == "mutationEffect")
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
-                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OS("trait", gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "fitnessEffect")
@@ -1032,6 +1018,14 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             }
         }
         
+        double signaturePointSize;
+
+#ifdef __linux__
+        signaturePointSize = 9;
+#else
+        signaturePointSize = 11;
+#endif
+        
         QString displayString;
         
         if (signature)
@@ -1048,19 +1042,6 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             
             td.setPlainText(displayString);
             
-            if (signature)
-            {
-                QTextCursor tc(&td);
-                tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
-                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
-                
-#ifdef __linux__
-                ColorizeCallSignature(signature.get(), 9, tc);
-#else
-                ColorizeCallSignature(signature.get(), 11, tc);
-#endif
-            }
-            
             // hanging indent for multiline wrapping aesthetics
             {
                 QTextCursor tc(&td);
@@ -1072,6 +1053,79 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 blockFormat.setTextIndent(-30);
                 
                 tc.setBlockFormat(blockFormat);
+            }
+            
+            if (signature)
+            {
+                QTextCursor tc(&td);
+                tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                
+                QTextCharFormat plainTextFormat = tc.charFormat();
+                plainTextFormat.setFontPointSize(signaturePointSize);
+                
+                QTextCharFormat italicTextFormat = plainTextFormat;
+                italicTextFormat.setFontItalic(true);
+                
+                ColorizeCallSignature(signature.get(), signaturePointSize, tc);
+                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                
+                QTextCharFormat codeTextFormat = tc.charFormat();
+                
+                int indexOfEllipsis = displayString.indexOf("...");
+                const std::vector<EidosCallSignature *> &variants = signature->ellipsis_variants_;
+                int variantCount = (int)variants.size();
+                
+                if (signature->has_ellipsis_ && (indexOfEllipsis > 0) && (variantCount > 0))
+                {
+                    // we insert a newline in anticipation of each new variant; this allows the text coloring to work correctly below
+                    tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                    tc.insertText("\n");  // one extra newline for separation
+                    
+                    // display ellipsis variants, showing only the variant portion as in the doc
+                    for (int variantIndex = 1; variantIndex <= variantCount; ++variantIndex)
+                    {
+                        EidosCallSignature *variant = variants[variantIndex - 1];
+                        
+                        tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                        tc.setCharFormat(italicTextFormat);
+                        tc.insertText(QString("variant %1").arg(variantIndex));
+                        if (variant->description_.length() > 0)
+                            tc.insertText(QString(" (%1)").arg(QString::fromStdString(variant->description_)));
+                        tc.insertText(QString(": "));
+                        
+                        int sigStart = tc.position();
+                        QString variantString = QString::fromStdString(variant->SignatureString());
+                        tc.insertText(variantString);
+                        
+                        tc.setPosition(sigStart, QTextCursor::MoveAnchor);
+                        tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                        ColorizeCallSignature(variant, signaturePointSize, tc);
+                        
+                        // insert a newline in anticipation of the next variant; this way the (black) color of the end paren carries forward
+                        if (variantIndex < variantCount) {
+                            tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                            tc.insertText("\n");
+                        }
+                        
+                        // then delete the prefix and suffix shared between the base signature and this variant
+                        tc.setPosition(sigStart, QTextCursor::MoveAnchor);
+                        tc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, indexOfEllipsis);
+                        tc.removeSelectedText();
+                        
+                        tc.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                        tc.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, (variantIndex < variantCount) ? 1 : 0); // back through newline
+                        tc.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, displayString.length() - indexOfEllipsis - 3);
+                        tc.removeSelectedText();
+                    }
+                    
+                    // fix the height of the top margin of the block, to provide a bit of space between the base signature and variants
+                    tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                    tc.select(QTextCursor::BlockUnderCursor);
+                    QTextBlockFormat blockFormat = tc.blockFormat();
+                    blockFormat.setBottomMargin(6);
+                    tc.setBlockFormat(blockFormat);
+                }
             }
             
             QString htmlString = td.toHtml();
@@ -1573,7 +1627,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 		else
 		{
 			// We have a property; look up its signature and get the class
-			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty(identifier_id);
+			const EidosPropertySignature *property_signature = key_path_class->SignatureForProperty_TYPE_INTERPRETER(identifier_id);
 			
 			if (!property_signature)
 				return QStringList();			// no signature, so the class does not support the property given
@@ -1589,11 +1643,12 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	QStringList candidates;
 	const EidosClass *terminus = key_path_class;
+	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
-	// First, a sorted list of globals
-	for (const auto &symbol_sig : *terminus->Properties())
+	// First, a sorted list of properties
+	for (const auto &symbol_sig : terminus->Properties_TYPE_INTERPRETER())
     {
-        if (!symbol_sig->deprecated_)
+        if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))
             candidates << QString::fromStdString(symbol_sig->property_name_);
 	}
     
@@ -1602,7 +1657,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// Next, a sorted list of methods, with () appended
 	for (const auto &method_sig : *terminus->Methods())
 	{
-        if (!method_sig->deprecated_)
+        if (!method_sig->deprecated_ && !Eidos_string_hasPrefix(method_sig->call_name_, underscore_string))
         {
             QString methodName = QString::fromStdString(method_sig->call_name_);
             
@@ -1617,104 +1672,228 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 //- (int64_t)eidosScoreAsCompletionOfString:(NSString *)base
 int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate, QString base)
 {
-    // Evaluate the quality of the target as a completion for completionBase and return a score.
-	// We look for each character of completionBase in candidate, in order, case-insensitive; all
-	// characters must be present in order for the target to be a completion at all.  Beyond that,
-	// a higher score is garnered if the matches in candidate are (1) either uppercase or the 0th character,
-	// and (2) if they are relatively near the beginning, and (3) if they occur contiguously.
-	int64_t score = 0;
-	int baseLength = base.length();
-	
-	// Do the comparison scan; find a match for each composed character sequence in base.  I *think*
-    // QString contains QChars that represent composed character sequences already, so I think in this
-    // port of the Objective-C code maybe I can ignore that issue...?  We work use rangeOfString: to do
-    // searches, to avoid issues with diacritical marks, alternative composition sequences, casing, etc.
-	int firstUnusedIndex = 0, firstUnmatchedIndex = 0;
-	
-	do
-	{
-		//NSRange baseRangeToMatch = [base rangeOfComposedCharacterSequenceAtIndex:firstUnmatchedIndex];
-		//NSString *stringToMatch = [base substringWithRange:baseRangeToMatch];
-        int baseIndexToMatch = firstUnmatchedIndex;
-        QString stringToMatch = base.mid(baseIndexToMatch, 1);
-        QString uppercaseStringToMatch = stringToMatch.toUpper();
-		int candidateMatchIndex;
-		
-		if ((stringToMatch == uppercaseStringToMatch) && (firstUnmatchedIndex != 0))
-		{
-			// If the character in base is uppercase, we only want to match an uppercase character in candidate.
-			// The exception is the first character of base; WTF should match writeTempFile() well.
-            candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
-			score += 1000;	// uppercase match
-		}
-		else
-		{
-			// If the character in base is not uppercase, we will match any case in candidate, but we prefer a
-			// lowercase character if it matches the very next part of candidate, otherwise we prefer uppercase.
-            candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
-			
-			if (candidateMatchIndex == firstUnusedIndex)
-			{
-				score += 2000;	// next-character match is even better than upper-case; continuity trumps camelcase
-			}
-			else
-			{
-				int uppercaseMatchIndex = candidate.indexOf(uppercaseStringToMatch, firstUnusedIndex);
-				
-				if (uppercaseMatchIndex != -1)
-				{
-					candidateMatchIndex = uppercaseMatchIndex;
-					score += 1000;	// uppercase match
-				}
-				else if (firstUnusedIndex > 0)
-				{
-					// This match is crap; we're jumping forward to a lowercase letter, so it's unlikely to be what
-					// the user wants.  So we bail.  This can be commented out to return lower-quality matches.
-					return INT64_MIN;
-				}
-			}
-		}
-		
-		// no match in candidate for the composed character sequence in base; candidate is not a good completion of base
-		if (candidateMatchIndex == -1)
-			return INT64_MIN;
-		
-		// matching the very beginning of candidate is very good; we really want to match the start of a candidate
-		// otherwise, earlier matches are better; a match at position 0 gets the largest score increment
-		if (candidateMatchIndex == 0)
-			score += 100000;
-		else
-            score -= (candidateMatchIndex * 10);
+    //qDebug().nospace() << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: initiating with \"" << base << "\"...";
+    
+    // Kick off the recursion with a base score of 0, which will be adjusted upward and downward.
+    // If no acceptable match is found at all, INT64_MIN will be returned.
+    int64_t score = scoreForCandidateAsCompletionOfString(candidate, base, /* firstUnusedIndex */ 0, /* firstUnmatchedIndex */ 0, /* scoreSoFar */ 0, /* recursionLevel */ 1);
+    
+    if (score > INT64_MIN)
+    {
+        // We want argument-name matches to be at the top, always, when they are available, so bump their score
+        if (candidate.endsWith("="))
+            score += 1000000;
+    }
+    
+    return score;
+}
+
+// - (int64_t)eidosScoreAsCompletionOfString:(NSString *)base firstUnusedIndex:(NSUInteger)firstUnusedIndex firstUnmatchedIndex:(NSUInteger)firstUnmatchedIndex score:(int64_t)scoreSoFar recursionLevel:(int)recursionLevel
+int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate, QString base, int firstUnusedIndex, int firstUnmatchedIndex, int64_t scoreSoFar, int recursionLevel)
+{
+    //qDebug().nospace() << QString(recursionLevel * 4, ' ') << "\"" << candidate << "\" : scoreForCandidateAsCompletionOfString: \"" << base << "\"" << " firstUnusedIndex: " << firstUnusedIndex << " firstUnmatchedIndex: " << firstUnmatchedIndex << " score: " << scoreSoFar;
+    
+    // This recursive method is called initially by -eidosScoreAsCompletionOfString: and then by itself.
+    // This is recursive because we want to try every possibility in terms of where each character in
+    // base matches.  For example, if `this` is "individualPhenotypePalette" and base is "pal", the "p"
+    // in "pal" could match at "Phen...", "pePa...", and "Pale...".  The first two will turn out to be
+    // crap and will produce INT64_MIN, but the third is gold.  So we need to loop through each of those
+    // matches; and for each match for "p", we will then want to loop through each match for "a" and then
+    // for "l", so that we might find a golden match like "getPipPopulationAndAllocateLiability()" even
+    // though it involves the second match for "p", then the third for "a" from there, and then the
+    // third for "l" from there.  We need to experiment with all possible paths.  This is quite work-
+    // intensive but we expect `this` and `base` to be reasonably short, so it shouldn't be prohibitive.
+    //
+    // So, we are searching in `this` from position firstUnusedIndex onward, and in `base` from position
+    // firstUnmatchedIndex onward.  The assumption is that position firstUnusedIndex-1 was either a match
+    // or the start of the string, so it is especially good to match the next character at that position,
+    // even if the match is not uppercase.  Otherwise, we really want an uppercase match.  Whenever we
+    // look for a match, we loop over all possible matches and recurse downward to explore where each one
+    // leads.
+    //
+    // I *think* QString contains QChars that represent composed character sequences already, so I think
+    // in this port of the Objective-C code maybe I can ignore that issue...?
+    int candidateLength = candidate.length(), baseLength = base.length();
+    
+    // prepare for matching of the base range starting at firstUnmatchedIndex; this is our responsibility
+    int baseIndexToMatch = firstUnmatchedIndex;
+    QString stringToMatch = base.mid(baseIndexToMatch, 1);
+    QString uppercaseStringToMatch = stringToMatch.toUpper();
+    
+    // this is the best score seen after recursing all the way down; if we don't find a match we return this
+    int64_t newBestScore = INT64_MIN;	
+    
+    // think about the next base range that we will recurse to match; is there another, or are we last?
+    int nextUnmatchedIndex = baseIndexToMatch + 1;
+    bool matchingLastBaseRange = (nextUnmatchedIndex >= baseLength);
+    
+    // now handle the various matching cases that we are responsible, involving baseIndexToMatch
+    
+    if ((stringToMatch == uppercaseStringToMatch) && (firstUnmatchedIndex != 0))
+    {
+        // Here we handle the situation where the character in base is uppercase, *and* it is not the very
+        // first character of base.  In this situation, we only want to match an uppercase character in self.
+        // Matching an uppercase character in base to a lowercase character in self is not considered an
+        // acceptable match, except for the very first character of base; WTF should match writeTempFile().
         
-        // penalize skipping over a capital letter in candidate to get to the match position; iS is not a great match for initializeTreeSequence() compared to initializeSex()
-        for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
-        {
-            QString skippedChar = base.mid(skippedIndex, 1);
+        // loop through all matches, until we fail to find one
+        while (true) {
+            int candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
             
-            if (skippedChar == skippedChar.toUpper())
-                score -= 50;
+            if (candidateMatchIndex != -1)
+            {
+                // we have a match; strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+                int64_t thisMatchScore = scoreSoFar + 1000;		// the bonus for finding an uppercase match
+                
+                if (candidateMatchIndex == 0)
+                    thisMatchScore += 100000;
+                else
+                    thisMatchScore -= (candidateMatchIndex * 10);
+                
+                // penalize skipping over a capital letter in candidate to get to the match position;
+                // iS is not a great match for initializeTreeSequence() compared to initializeSex()
+                for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
+                {
+                    QString skippedChar = base.mid(skippedIndex, 1);
+                    
+                    if (skippedChar == skippedChar.toUpper())
+                        thisMatchScore -= 50;
+                }
+                
+                // recurse to score the remainder of base, if we are not the end of base
+                if (matchingLastBaseRange)
+                {
+                    // penalize the unused length of the completed string, all else being equal
+                    thisMatchScore -= (candidate.length() - firstUnmatchedIndex);
+                    
+                    newBestScore = std::max(newBestScore, thisMatchScore);
+                }
+                else
+                {
+                    int64_t recurseScore = scoreForCandidateAsCompletionOfString(candidate, base, candidateMatchIndex + 1, nextUnmatchedIndex, thisMatchScore, recursionLevel + 1);
+                        
+                    newBestScore = std::max(newBestScore, recurseScore);
+                }
+                
+                // advance to the next character in candidate to look for a match
+                firstUnusedIndex = candidateMatchIndex + 1;
+                
+                // if we're out of characters, return the best match that we found
+                if (firstUnusedIndex >= candidateLength)
+                    return newBestScore;
+            }
+            else
+            {
+                // no matches left; return the best score we found
+                return newBestScore;
+            }
         }
-		
-		// move firstUnusedIndex to follow the matched range in candidate
-		firstUnusedIndex = candidateMatchIndex + 1;
-		
-		// move to the next composed character sequence in base
-		firstUnmatchedIndex = baseIndexToMatch + 1;
-		if (firstUnmatchedIndex >= baseLength)
-			break;
-	}
-	while (true);
-    
-    // penalize the unused length of the completed string, all else being equal
-    score -= (candidate.length() - firstUnmatchedIndex);
-	
-	// we want argument-name matches to be at the top, always, when they are available, so bump their score
-	if (candidate.endsWith("="))
-		score += 1000000;
-    
-    //qDebug() << "Score for" << candidate << "given base" << base << "==" << score;
-	
-	return score;
+    }
+    else
+    {
+        // Here we check for a very specific case: if we have a lowercase match at the very next part of self.
+        // If we do, that is preferred to alternatives, as a continuation of whatever matched at the immediately
+        // preceding position.  This match does not loop, because it can only happen at this one position.
+        {
+            int candidateMatchIndex = candidate.indexOf(stringToMatch, firstUnusedIndex);
+            
+            if (candidateMatchIndex == firstUnusedIndex)
+            {
+                // we have a match; strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+                int64_t thisMatchScore = scoreSoFar + 2000;		// next-character match is even better than upper-case; continuity trumps camelcase
+                
+                if (candidateMatchIndex == 0)
+                    thisMatchScore += 100000;
+                
+                // penalize skipping over a capital letter in candidate to get to the match position;
+                // iS is not a great match for initializeTreeSequence() compared to initializeSex()
+                for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
+                {
+                    QString skippedChar = base.mid(skippedIndex, 1);
+                    
+                    if (skippedChar == skippedChar.toUpper())
+                        thisMatchScore -= 50;
+                }
+                
+                // recurse to score the remainder of base, if we are not the end of base
+                if (matchingLastBaseRange)
+                {
+                    // penalize the unused length of the completed string, all else being equal
+                    thisMatchScore -= (candidate.length() - firstUnmatchedIndex);
+                    
+                    newBestScore = std::max(newBestScore, thisMatchScore);
+                }
+                else
+                {
+                    int64_t recurseScore = scoreForCandidateAsCompletionOfString(candidate, base, candidateMatchIndex + 1, nextUnmatchedIndex, thisMatchScore, recursionLevel + 1);
+                    
+                    newBestScore = std::max(newBestScore, recurseScore);
+                }
+                
+                return newBestScore;
+            }
+        }
+        
+        // The currently matching character in base is lowercase, and the next character of self is not a
+        // lowercase match for it.  So we have to skip ahead to find a match.  Skipping ahead to some random
+        // lowercase character later is deemed unacceptable; that's like matching "t" to the "t" in "asString()",
+        // it's crap.  So we don't even look for those.  The only acceptable match at this point is a match to
+        // the uppercase version of the match character; that's like a match of "t" to the uppercase "T" in
+        // "initializeTreeSeq()"; if the user completed on "it", initializeTreeSeq() is a good match.
+        
+        // loop through all matches, until we fail to find one
+        while (true) {
+            int uppercaseMatchIndex = candidate.indexOf(uppercaseStringToMatch, firstUnusedIndex);
+            
+            if (uppercaseMatchIndex != -1)
+            {
+                // we have a match; strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+                int64_t thisMatchScore = scoreSoFar + 1000;		// the bonus for finding an uppercase match
+                
+                if (uppercaseMatchIndex == 0)
+                    thisMatchScore += 100000;
+                else
+                    thisMatchScore -= (uppercaseMatchIndex * 10);
+                
+                // penalize skipping over a capital letter in candidate to get to the match position;
+                // iS is not a great match for initializeTreeSequence() compared to initializeSex()
+                for (int skippedIndex = firstUnusedIndex; skippedIndex < uppercaseMatchIndex; ++skippedIndex)
+                {
+                    QString skippedChar = base.mid(skippedIndex, 1);
+                    
+                    if (skippedChar == skippedChar.toUpper())
+                        thisMatchScore -= 50;
+                }
+                
+                // recurse to score the remainder of base, if we are not the end of base
+                if (matchingLastBaseRange)
+                {
+                    // penalize the unused length of the completed string, all else being equal
+                    thisMatchScore -= (candidate.length() - firstUnmatchedIndex);
+                    
+                    newBestScore = std::max(newBestScore, thisMatchScore);
+                }
+                else
+                {
+                    int64_t recurseScore = scoreForCandidateAsCompletionOfString(candidate, base, uppercaseMatchIndex + 1, nextUnmatchedIndex, thisMatchScore, recursionLevel + 1);
+                    
+                    newBestScore = std::max(newBestScore, recurseScore);
+                }
+                
+                // advance to the next composed character sequence in self to look for a match
+                firstUnusedIndex = uppercaseMatchIndex + 1;
+                
+                // if we're out of characters, return the best match that we found
+                if (firstUnusedIndex >= candidateLength)
+                    return newBestScore;
+            }
+            else
+            {
+                // no matches left; return the best score we found
+                return newBestScore;
+            }
+        }
+    }
 }
 
 //- (NSArray *)completionsFromArray:(NSArray *)candidates matchingBase:(NSString *)base
@@ -2129,6 +2308,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                         case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
                             (*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_trait,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Trait_Class});
                             (*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
@@ -2349,6 +2529,9 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 			
 			script.Tokenize(true, false);					// make bad tokens as needed, do not keep nonsignificant tokens
 			script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+			
+			// Clear out dynamic property signatures kept by EidosClass, since we're starting a new type-interpretation pass.
+			EidosClass::ClearDynamicSignatures();
 			
 			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr, *callTypeTablePtr);
 			
@@ -2659,11 +2842,7 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor
     QString selectedString = p_cursor.selectedText();
     static const QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
     
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated in 5.14
-#else
-    return selectedString.split(lineEndMatch, Qt::KeepEmptyParts);          // added in 5.14
-#endif
+    return selectedString.split(lineEndMatch, Qt::KeepEmptyParts);
 }
 
 void QtSLiMScriptTextEdit::copyAsHTML(void)
@@ -2854,17 +3033,9 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
     // We now show debugging icons in the line number area too, since they are kept by line number
     // The line number area therefore no longer goes down to width 0 when the pref is disabled
     if (scriptType == SLiMScriptType)
-    {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        lineNumberAreaBugWidth = 3 + fontMetrics().width("9") * 2;                 // deprecated in 5.11
-#else
-        lineNumberAreaBugWidth = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * 2;   // added in Qt 5.11
-#endif
-    }
+        lineNumberAreaBugWidth = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * 2;
     else
-    {
         lineNumberAreaBugWidth = 0;
-    }
     
     if (!prefsNotifier.showLineNumbersPref())
         return lineNumberAreaBugWidth;
@@ -2876,11 +3047,7 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated in 5.11
-#else
-    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
-#endif
+    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
     
     return lineNumberAreaBugWidth + space;
 }
@@ -3616,14 +3783,8 @@ void QtSLiMScriptTextEdit::paintEvent(QPaintEvent *event)
     {
         QFont displayFont = prefs.displayFontPref();
         QFontMetricsF fm(displayFont);
-        double marginStart;
         QString marginString(prefs.pageGuideColumnPref(), ' ');
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        marginStart = fm.width(marginString);                // deprecated in 5.11
-#else
-        marginStart = fm.horizontalAdvance(marginString);    // added in Qt 5.11
-#endif
+        double marginStart = fm.horizontalAdvance(marginString);
         
         // adjust by the document margin, which is built into QTextDocument; this took a while to find!
         // this is an inset of the QTextEdit's contents, on all four sides; it defaults to 4, which we do not change

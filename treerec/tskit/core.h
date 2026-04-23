@@ -42,7 +42,7 @@ extern "C" {
 
 #ifdef __GNUC__
 #define TSK_WARN_UNUSED __attribute__((warn_unused_result))
-#define TSK_UNUSED(x) TSK_UNUSED_##x __attribute__((__unused__))
+#define TSK_UNUSED(x)   TSK_UNUSED_##x __attribute__((__unused__))
 #else
 #define TSK_WARN_UNUSED
 #define TSK_UNUSED(x) TSK_UNUSED_##x
@@ -93,11 +93,11 @@ missing data.
  * on the thread above.
  */
 typedef int64_t tsk_id_t;
-#define TSK_MAX_ID INT64_MAX - 1
+#define TSK_MAX_ID          INT64_MAX - 1
 #define TSK_ID_STORAGE_TYPE KAS_INT64
 #else
 typedef int32_t tsk_id_t;
-#define TSK_MAX_ID INT32_MAX - 1
+#define TSK_MAX_ID          INT32_MAX - 1
 #define TSK_ID_STORAGE_TYPE KAS_INT32
 #endif
 
@@ -109,7 +109,7 @@ The ``tsk_size_t`` type is an unsigned integer used for any size or count value.
 @endrst
 */
 typedef uint64_t tsk_size_t;
-#define TSK_MAX_SIZE UINT64_MAX
+#define TSK_MAX_SIZE          UINT64_MAX
 #define TSK_SIZE_STORAGE_TYPE KAS_UINT64
 
 /**
@@ -152,7 +152,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   0
+#define TSK_VERSION_PATCH   1
 /** @} */
 
 /*
@@ -309,6 +309,26 @@ not found in the file.
 An unsupported type was provided for a column in the file.
 */
 #define TSK_ERR_BAD_COLUMN_TYPE                                     -105
+
+/**
+The JSON binary struct metadata does not begin with the expected magic bytes.
+*/
+#define TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC                      -106
+
+/**
+The JSON binary struct metadata is shorter than the expected size.
+*/
+#define TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED                      -107
+
+/**
+A length field in the JSON binary struct metadata header is invalid.
+*/
+#define TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH                 -108
+
+/**
+The JSON binary struct metadata uses an unsupported version number.
+*/
+#define TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION                    -109
 /** @} */
 
 /**
@@ -511,7 +531,7 @@ disallowed (use compute_mutation_times?).
 */
 #define TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME                    -510
 
-/** 
+/**
 A mutation's parent was not consistent with the topology of the tree.
  */
 #define TSK_ERR_BAD_MUTATION_PARENT                                 -511
@@ -971,6 +991,12 @@ not be freed by client code.
 */
 const char *tsk_strerror(int err);
 
+/* Redefine this macro in downstream builds if stdout is not the
+ * approriate stream to emit debug information when the TSK_DEBUG
+ * flag is passed to supporting functions (e.g. in R).
+ */
+#define TSK_DEFAULT_DEBUG_STREAM stdout
+
 #ifdef TSK_TRACE_ERRORS
 
 static inline int
@@ -981,6 +1007,11 @@ _tsk_trace_error(int err, int line, const char *file)
     return err;
 }
 
+/*
+Developer note: this macro may be redefined as part of compilation for
+an R package, and should be treated as part of the documented API
+(no changes).
+*/
 #define tsk_trace_error(err) (_tsk_trace_error(err, __LINE__, __FILE__))
 #else
 #define tsk_trace_error(err) (err)
@@ -1000,6 +1031,11 @@ We often wish to assert a condition that is unexpected, but using the normal `as
 means compiling without NDEBUG. This macro still asserts when NDEBUG is defined.
 If you are using this macro in your own software then please set TSK_BUG_ASSERT_MESSAGE
 to point users to your issue tracker.
+*/
+/*
+Developer note: this macro may redefined as part of compilation for
+an R package, and should be treated as part of the documented API
+(no changes).
 */
 #define tsk_bug_assert(condition)                                                       \
     do {                                                                                \
@@ -1095,6 +1131,31 @@ bool tsk_isfinite(double val);
 
 #define TSK_UUID_SIZE 36
 int tsk_generate_uuid(char *dest, int flags);
+
+/**
+@brief Extract the binary payload from ``json+struct`` encoded metadata.
+
+@rst
+Metadata produced by the JSONStructCodec consists of a fixed-size
+header followed by canonical JSON bytes and an optional binary payload. This helper
+validates the framing, returning pointers to the embedded JSON and binary sections
+without copying.
+
+The output pointers reference memory owned by the caller and remain valid only while
+the original metadata buffer is alive.
+@endrst
+
+@param[in] metadata Pointer to the encoded metadata bytes.
+@param[in] metadata_length Number of bytes available at ``metadata``.
+@param[out] json On success, set to the start of the JSON bytes.
+@param[out] json_length On success, set to the JSON length in bytes.
+@param[out] blob On success, set to the start of the binary payload.
+@param[out] blob_length On success, set to the payload length in bytes.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
+    char **json, tsk_size_t *json_length, char **blob,
+    tsk_size_t *blob_length);
 
 /* TODO most of these can probably be macros so they compile out as no-ops.
  * Lets do the 64 bit tsk_size_t switch first though. */

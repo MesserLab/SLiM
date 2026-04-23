@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -27,6 +27,7 @@
 #include "species.h"
 #include "individual.h"
 #include "subpopulation.h"
+#include "mutation_block.h"
 
 #include <iostream>
 #include <fstream>
@@ -1033,15 +1034,14 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
-	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+	MutationBlock *mutation_block = mutation_block_;
+	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
-	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, p_subpop_index, p_tick, -1);
+	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, p_subpop_index, p_tick, -1);
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -1074,10 +1074,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				EidosDebugPointIndent indenter;
 				
@@ -1404,18 +1401,17 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Draw mutation type and selection coefficient, and create the new mutation
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
-	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
-	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	MutationBlock *mutation_block = mutation_block_;
+	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, p_subpop_index, p_tick, nucleotide);
+	new (mutation) Mutation(mutation_type_ptr, index_, position, p_subpop_index, p_tick, nucleotide);
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
-		Mutation *post_callback_mut = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
+		Mutation *post_callback_mut = ApplyMutationCallbacks(mutation, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
 		// If the callback didn't return the proposed mutation, it will not be used; dispose of it
 		if (post_callback_mut != mutation)
@@ -1433,13 +1429,12 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		
 		// Otherwise, we will request the addition of whatever mutation it returned (which might be the proposed mutation).
 		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background haplosome.
-		MutationIndex post_callback_mut_index = post_callback_mut->BlockIndex();
+		MutationIndex post_callback_mut_index = mutation_block->IndexInBlock(post_callback_mut);
 		
-		if (new_mut_index != post_callback_mut_index)
-		{
-			//std::cout << "replacing mutation!" << std::endl;
-			new_mut_index = post_callback_mut_index;
-		}
+		//if (new_mut_index != post_callback_mut_index)
+		//	std::cout << "replacing mutation!" << std::endl;
+		
+		new_mut_index = post_callback_mut_index;
 	}
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
@@ -1775,7 +1770,7 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 	{
 		parent_sex = p_parent->sex_;
 		parent_subpop = p_parent->subpopulation_;
-		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_, id_);
+		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_, -1, id_, /* p_active_only */ false);
 		
 		// SPECIES CONSISTENCY CHECK
 		if (&p_parent->subpopulation_->species_ != &species_)
@@ -3755,10 +3750,10 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 #pragma mark Chromosome_Class
 #pragma mark -
 
-EidosClass *gSLiM_Chromosome_Class = nullptr;
+Chromosome_Class *gSLiM_Chromosome_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -3766,7 +3761,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,										true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

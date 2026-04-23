@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/1/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,6 +30,7 @@
 
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -137,7 +138,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
         subpop_total_haplosome_count = 1;  // refcounts will all be zero; prevent NAN values below, make them 0 instead
     
     // Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
-    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
     for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
     {

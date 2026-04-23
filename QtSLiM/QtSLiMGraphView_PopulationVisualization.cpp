@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/30/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -32,12 +32,6 @@
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 
-// This define changes the visualization a little for use making Perry's icon; should be 0 otherwise
-#define PERRY_ICON 0
-
-#if PERRY_ICON
-#warning PERRY_ICON should be 0!
-#endif
 
 QtSLiMGraphView_PopulationVisualization::QtSLiMGraphView_PopulationVisualization(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
@@ -113,9 +107,9 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
 	{
 		// calculate the color from the mean fitness of the population
         // we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-		const double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
 		double fitness = ((subpopSize == 0) ? -10000.0 : subpop->parental_mean_unscaled_fitness_);
-		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, fitnessScalingFactor);
+        
+        subpop->species_.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 	}
 	
     QColor color = QtSLiMColorWithRGB(static_cast<double>(colorRed), static_cast<double>(colorGreen), static_cast<double>(colorBlue), 1.0);
@@ -126,7 +120,6 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
     painter.drawEllipse(center, subpopRadius, subpopRadius);
     
 	// label it with the subpopulation ID
-#if !PERRY_ICON
     painter.setWorldMatrixEnabled(false);
     
 	QString popString = QString("p%1").arg(subpopID);
@@ -144,7 +137,6 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
     
     painter.drawText(drawPoint, popString);
     painter.setWorldMatrixEnabled(true);
-#endif
 }
 
 void QtSLiMGraphView_PopulationVisualization::drawArrowFromSubpopToSubpop(QPainter &painter, Subpopulation *sourceSubpop, Subpopulation *destSubpop, double migrantFraction)
@@ -182,11 +174,7 @@ void QtSLiMGraphView_PopulationVisualization::drawArrowFromSubpopToSubpop(QPaint
 	// now we figure out our line width, and we calculate a spatial translation of the bezier to shift in slightly off of
 	// the midline, based on the line width, so that incoming and outgoing vectors do not overlap at the start/end points
 	double lineWidth = 0.001 * (sqrt(migrantFraction) / 0.03);	// non-linear line width scale
-#if PERRY_ICON
-    double finalShiftMagnitude = 0.0;
-#else    
 	double finalShiftMagnitude = std::max(lineWidth * 0.75, 0.010);
-#endif
 	double finalShiftX = perpendicularFromSourceDX * finalShiftMagnitude / partVecLength;
 	double finalShiftY = perpendicularFromSourceDY * finalShiftMagnitude / partVecLength;
 	double arrowheadSize = std::max(lineWidth * 1.5, 0.008);
@@ -208,20 +196,14 @@ void QtSLiMGraphView_PopulationVisualization::drawArrowFromSubpopToSubpop(QPaint
 	double shiftedControl1X = controlPoint1X + finalShiftX, shiftedControl1Y = controlPoint1Y + finalShiftY;
 	double shiftedControl2X = controlPoint2X + finalShiftX, shiftedControl2Y = controlPoint2Y + finalShiftY;
     
-#if PERRY_ICON
-    bezierLines.moveTo(QPointF(shiftedSourceEndX, shiftedSourceEndY));
-    bezierLines.lineTo(QPointF(shiftedDestEndX, shiftedDestEndY));
-#else    
     bezierLines.moveTo(QPointF(shiftedSourceEndX, shiftedSourceEndY));
     bezierLines.cubicTo(QPointF(shiftedControl1X, shiftedControl1Y), QPointF(shiftedControl2X, shiftedControl2Y), QPointF(shiftedDestEndX, shiftedDestEndY));
-#endif
     
     painter.strokePath(bezierLines, QPen(Qt::black, lineWidth));
 	
 	// restore the clipping path
     painter.restore();
     
-#if !PERRY_ICON    
 	// draw the arrowhead; this is oriented along the line from (shiftedDestEndX, shiftedDestEndY) to (shiftedControl2X, shiftedControl2Y),
 	// of length partVecLength, and is calculated using a perpendicular off of that vector
     QPainterPath bezierArrowheads;
@@ -242,7 +224,6 @@ void QtSLiMGraphView_PopulationVisualization::drawArrowFromSubpopToSubpop(QPaint
     bezierArrowheads.closeSubpath();
     
     painter.fillPath(bezierArrowheads, Qt::black);
-#endif
 }
 
 static bool is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, double p2_x, double p2_y, double p3_x, double p3_y)

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/3/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -46,6 +46,7 @@
 #include "eidos_globals.h"
 #include "subpopulation.h"
 #include "species.h"
+#include "mutation_block.h"
 
 
 const int QtSLiM_SubpopulationStripWidth = 5;
@@ -60,6 +61,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         return;
     
     Species *displaySpecies = controller->focalDisplaySpecies();
+    Trait *focalTrait = controller->focalTraitForSpecies(displaySpecies);
     
     if (!displaySpecies)
     {
@@ -164,12 +166,36 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
         
-        if (controller->community()->all_species_.size() > 1)
+        // make our species avatar badge
+        std::string focalSpeciesAvatar = displaySpecies->avatar_;
+        bool speciesBadgeVisible = focalSpeciesAvatar.length() && (controller->community()->all_species_.size() > 1);
+        
+        if (speciesBadgeVisible)
         {
-            // make our species avatar badge
             QLabel *speciesLabel = new QLabel();
-            speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
+            speciesLabel->setText(QString::fromStdString(focalSpeciesAvatar));
             buttonLayout->addWidget(speciesLabel);
+        }
+        
+        // set up the trait badge
+        bool traitBarVisible = !displaySpecies->has_implicit_trait_ && displaySpecies->Traits().size();
+        
+        if (traitBarVisible)
+        {
+            if (speciesBadgeVisible)
+            {
+                // add a little space between the species badge and the trait badge
+                QSpacerItem *fixedSpacer = new QSpacerItem(3, 5, QSizePolicy::Fixed, QSizePolicy::Minimum);
+                buttonLayout->addItem(fixedSpacer);
+            }
+            
+            QLabel *traitChoiceLabel = new QLabel();
+            if (!focalTrait)
+                traitChoiceLabel->setText("Display trait: fitness");
+            else
+                traitChoiceLabel->setText(QString("Display trait: %1").arg(QString::fromStdString(focalTrait->Name())));
+            
+            buttonLayout->addWidget(traitChoiceLabel);
         }
         
         QSpacerItem *leftSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -239,8 +265,8 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,
-                                                                              displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize,
-                                                                              true, index + 1, chromosomes.size());
+                                                                              displaySpecies, focalTrait, chromosome, QtSLiMRange(0,0),
+                                                                              haplosomeSampleSize, true, index + 1, chromosomes.size());
         
         if (haplotypeManager->valid_)
         {
@@ -258,13 +284,17 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
-                                               QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
-                                               int progressChromTotal) :
+                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Trait *displayTrait,
+                                               Chromosome *chromosome, QtSLiMRange displayedRange, size_t sampleSize, bool showProgress,
+                                               int progressChromIndex, int progressChromTotal) :
     QObject(p_parent)
 {
     controller_ = controller;
     focalSpeciesName_ = displaySpecies->name_;
+    
+    // displayTrait will be nullptr here if the species uses an implicit trait, or if "fitness" is the display trait
+    // we keep a pointer to the display trait while building our display list, then clear it out
+    trait = displayTrait;
     
     Community *community = controller_->community();
     Species *graphSpecies = focalDisplaySpecies();
@@ -445,6 +475,9 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 	// Now we are done with the haplosomes vector; clear it
 	haplosomes.clear();
 	haplosomes.resize(0);
+    
+    // And we're done with the display trait; clear it
+    trait = nullptr;
 }
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
@@ -455,7 +488,6 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
         return;
     
     Population &population = graphSpecies->population_;
-	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	const MutationIndex *reg_end_ptr = registry + registry_size;
@@ -480,7 +512,9 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 	mutationPositions = static_cast<slim_position_t *>(malloc(sizeof(slim_position_t) * mutationIndexCount));
 	
 	// Copy the information we need on each mutation in use
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    MutationBlock *mutation_block = graphSpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+    slim_trait_index_t trait_index = trait ? trait->Index() : -1;
 	
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
@@ -492,6 +526,8 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		
 		haplo_mut->position_ = mut_position;
 		*(mutationPositions + mut_index) = mut_position;
+        
+        MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
 		
 		if (!mut_type->color_.empty())
 		{
@@ -501,11 +537,14 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 		}
 		else
 		{
-			RGBForSelectionCoeff(static_cast<double>(mut->selection_coeff_), &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_, scalingFactor);
+			QtSLiMChromosomeWidget::RGBForMutation(trait, graphSpecies, mut_trait_info, &haplo_mut->red_, &haplo_mut->green_, &haplo_mut->blue_);
 		}
-		
-		haplo_mut->neutral_ = (mut->selection_coeff_ == 0.0f);
-		
+        
+        if (trait_index >= 0)
+            haplo_mut->neutral_ = (mut_trait_info[trait_index].effect_size_ == (slim_effect_t)0.0);
+        else
+            haplo_mut->neutral_ = (QtSLiMChromosomeWidget::MutationFitnessEffect(graphSpecies, mut_trait_info) == 1.0);
+        
 		haplo_mut->display_ = mut_type->mutation_type_displayed_;
 	}
 	
@@ -1785,12 +1824,7 @@ void QtSLiMHaplotypeTopView::paintEvent(QPaintEvent * /* p_paint_event */)
                 
                 if (chromosomeSymbol.length())
                 {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-                    double symbolLabelWidth = fontMetrics.width(chromosomeSymbol);               // deprecated in 5.11
-#else
-                    double symbolLabelWidth = fontMetrics.horizontalAdvance(chromosomeSymbol);   // added in Qt 5.11
-#endif
-                    
+                    double symbolLabelWidth = fontMetrics.horizontalAdvance(chromosomeSymbol);
                     QRect viewFrame = child_widget->geometry();
                     QRect labelFrame = QRect(viewFrame.left(), 0, viewFrame.width(), viewFrame.top());
                     

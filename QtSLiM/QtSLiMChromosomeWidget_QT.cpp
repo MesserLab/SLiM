@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/25/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -23,6 +23,8 @@
 #include "QtSLiMOpenGL_Emulation.h"
 
 #include <QtDebug>
+
+#include "mutation_block.h"
 
 #include <map>
 #include <algorithm>
@@ -83,7 +85,8 @@ void QtSLiMChromosomeWidget::qtDrawRect(QRect contentRect, Species *displaySpeci
 				// display mutations as a haplotype plot, courtesy of QtSLiMHaplotypeManager; we use ClusterNearestNeighbor and
 				// ClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
                 size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, chromosome, displayedRange, interiorHeight, false, 0, 0);
+                Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
+                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, displayTrait, chromosome, displayedRange, interiorHeight, false, 0, 0);
                 
                 if (haplotype_mgr)
                     haplotype_mgr->qtDrawHaplotypes(interiorRect, false, false, false, painter);
@@ -162,19 +165,21 @@ void QtSLiMChromosomeWidget::qtDrawGenomicElements(QRect &interiorRect, Chromoso
 
 void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter)
 {
-	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     Species *displaySpecies = &chromosome->species_;
 	Population &pop = displaySpecies->population_;
-    double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
+    double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;            // this includes only haplosomes in the selected subpopulations
+    Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
     
     // Prefetch the mutations we actually want to display
     static std::vector<const Mutation *> mutations;
     mutations.resize(0);
     
+    MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
+    Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+    
     {
         int registry_size;
         const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-        Mutation *mut_block_ptr = gSLiM_Mutation_Block;
         slim_chromosome_index_t chromosome_index = chromosome->Index();
         
         for (int registry_index = 0; registry_index < registry_size; ++registry_index)
@@ -214,7 +219,9 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
             }
             else
             {
-                RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                
+                RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue);
             }
             
             int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
@@ -230,9 +237,9 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 	{
 		// We have a lot of mutations, so let's try to be smarter.  It's hard to be smarter.  The overhead from allocating the NSColors and such
 		// is pretty negligible; practially all the time is spent in NSRectFill().  Unfortunately, NSRectFillListWithColors() provides basically
-		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DFE,
+		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DES,
 		// and thus a fixed color, we can do a radix sort of mutations into bins corresponding to each pixel in our displayed image.  Then we
-		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DFEs, and mutations which have
+		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DESs, and mutations which have
 		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
 		int displayPixelWidth = interiorRect.width();
 		int16_t *heightBuffer = static_cast<int16_t *>(malloc(static_cast<size_t>(displayPixelWidth) * sizeof(int16_t)));
@@ -256,27 +263,22 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 				if (draw_muttypes_sequentially)
 				{
 					bool mut_type_fixed_color = !mut_type->color_.empty();
+                    double mut_type_fixed_effect = MutTypeFixedFitnessEffect(displaySpecies, mut_type); // NAN if no fixed effect
 					
-					// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-					if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+					// We optimize fixed-DES mutation types only, and those using a fixed color set by the user
+                    if (!isnan(mut_type_fixed_effect) || mut_type_fixed_color)
 					{
-						slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : static_cast<slim_selcoeff_t>(mut_type->dfe_parameters_[0]));
-						
 						EIDOS_BZERO(heightBuffer, static_cast<size_t>(displayPixelWidth) * sizeof(int16_t));
 						
-						// Scan through the mutation list for mutations of this type with the right selcoeff
+						// Scan through the mutation list for mutations of this type with the right effect
 						for (int mutation_index = 0; mutation_index < (int)mutations.size(); ++mutation_index)
 						{
 							const Mutation *mutation = mutations[mutation_index];
 							
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wfloat-equal"
-                            // We do want to do an exact floating-point equality compare here; we want to see whether the mutation's selcoeff is unmodified from the fixed DFE
-							if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
+                            // We do want to do an exact floating-point equality compare here; we want to see whether the mutation's effect is unmodified from the fixed DES
+                            MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                            
+                            if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || MutationFitnessEffectMatchesMutType(displaySpecies, mut_type, mut_trait_info)))
 							{
 								slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
 								slim_position_t mutationPosition = mutation->position_;
@@ -305,7 +307,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 						}
 						else
 						{
-							RGBForSelectionCoeff(static_cast<double>(mut_type_selcoeff), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                            displaySpecies->fitness_effect_palette_->ColorForValue(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue);
 						}
 						
 						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
@@ -362,7 +364,10 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
                         int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
 						
                         mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
-						RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        
+                        MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                        
+                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -414,8 +419,9 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
                         mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - barHeight);
                         
 						const Mutation *mutation = mutationBuffer[binIndex];
-						
-						RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
+                        
+                        RGBForMutation(displayTrait, displaySpecies, mut_trait_info, &colorRed, &colorGreen, &colorBlue);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
 						SLIM_GL_PUSHRECT();
@@ -439,12 +445,12 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 
 void QtSLiMChromosomeWidget::qtDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter)
 {
-    double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     Species *displaySpecies = &chromosome->species_;
 	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
     slim_chromosome_index_t chromosome_index = chromosome->Index();
+    Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
 	
 	// Set up to draw rects
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f, colorAlpha = 1.0;
@@ -482,7 +488,9 @@ void QtSLiMChromosomeWidget::qtDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					}
 					else
 					{
-						RGBForSelectionCoeff(static_cast<double>(substitution->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        SubstitutionTraitInfo *sub_trait_info = substitution->trait_info_;
+                        
+                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue);
 					}
 				}
 				
@@ -561,7 +569,9 @@ void QtSLiMChromosomeWidget::qtDrawFixedSubstitutions(QRect &interiorRect, Chrom
 					}
 					else
 					{
-						RGBForSelectionCoeff(static_cast<double>(substitution->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                        SubstitutionTraitInfo *sub_trait_info = substitution->trait_info_;
+                        
+                        RGBForSubstitution(displayTrait, displaySpecies, sub_trait_info, &colorRed, &colorGreen, &colorBlue);
 					}
 					
                     mutationTickRect.setX(interiorRect.x() + binIndex);

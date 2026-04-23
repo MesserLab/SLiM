@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/10/21.
-//  Copyright (c) 2021-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2021-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,7 +30,8 @@
 #include "eidos_value.h"
 
 
-extern EidosClass *gEidosDataFrame_Class;
+class EidosDataFrame_Class;
+extern EidosDataFrame_Class *gEidosDataFrame_Class;
 
 
 class EidosDataFrame : public EidosDictionaryRetained
@@ -100,7 +101,7 @@ public:
 	EidosDataFrame_Class& operator=(const EidosDataFrame_Class&) = delete;	// no copying
 	inline EidosDataFrame_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };

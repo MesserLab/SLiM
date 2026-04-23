@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1621,10 +1621,10 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryUnretained_Class = nullptr;
+EidosDictionaryUnretained_Class *gEidosDictionaryUnretained_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1632,7 +1632,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosDictionaryUnretained_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_allKeys,				true,	kEidosValueMaskInt | kEidosValueMaskString)));
 		
@@ -1792,59 +1792,63 @@ void EidosDictionaryRetained::SelfDelete(void)
 
 void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter, const std::string &p_caller_name, const std::string &p_constructor_name)
 {
+	// This handles four variants for (object<Dictionary>$)Dictionary(...) and (object<DataFrame>$)DataFrame(...):
+	//
+	//		variant 1: void
+	//		variant 2: is$ key, * value, ...
+	//		variant 3: object<Dictionary>$ dictionary
+	//		variant 4: string json
+	//
+	// Note that Eidos does NOT type-check variants for us; it checks all variants against the ellipsis in the
+	// base signature.  We therefore have to check very carefully below to detect illegal calling patterns.
+	//
 	if (p_arguments.size() == 0)
 	{
-		// Create a new empty Dictionary
+		// Variant 1: create a new empty Dictionary
 	}
-	else if (p_arguments.size() == 1)
+	else if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueString))
 	{
-		// one argument; multiple overloaded meanings
+		// Variant 4: construct from a JSON string.  Beginning in SLiM 4.2 this is allowed to be a string
+		// vector, as returned by readFile().  We just paste the lines back together with newlines.  Note
+		// that if the user tries to put a newline inside a string value, that is actually not legal JSON
+		// (see https://stackoverflow.com/a/16690186/2752221), and nlohmann will error below.
 		EidosValue *source_value = p_arguments[0].get();
 		int source_count = source_value->Count();
+		std::string json_string;
 		
-		if (source_value->Type() == EidosValueType::kValueString)
+		for (int source_index = 0; source_index < source_count; ++source_index)
 		{
-			// Construct from a JSON string; beginning in SLiM 4.2 this is allowed to be a string vector,
-			// as returned by readFile().  We just paste the lines back together with newlines.  Note that
-			// if the user tries to put a newline inside a string value, that is actually not legal JSON
-			// (see https://stackoverflow.com/a/16690186/2752221), and nlohmann will error below.
-			std::string json_string;
+			if (source_index > 0)
+				json_string.append("\n");
 			
-			for (int source_index = 0; source_index < source_count; ++source_index)
-			{
-				if (source_index > 0)
-					json_string.append("\n");
-				
-				json_string.append(source_value->StringAtIndex_NOCAST(source_index, nullptr));
-			}
-			
-			nlohmann::json json_rep;
-			
-			try {
-				json_rep = nlohmann::json::parse(json_string);
-			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): the string$ argument passed to " << p_constructor_name << "() does not parse as a valid JSON string." << EidosTerminate(nullptr);
-			}
-			
-			AddJSONFrom(json_rep);
+			json_string.append(source_value->StringAtIndex_NOCAST(source_index, nullptr));
 		}
-		else
-		{
-			// Construct from a singleton Dictionary or Dictionary subclass
-			if (source_count != 1)
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
-			
-			EidosDictionaryUnretained *source = (source_value->Type() != EidosValueType::kValueObject) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		
-			if (!source)
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
+		nlohmann::json json_rep;
 		
-			AddKeysAndValuesFrom(source);
+		try {
+			json_rep = nlohmann::json::parse(json_string);
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): the string$ argument passed to " << p_constructor_name << "() does not parse as a valid JSON string." << EidosTerminate(nullptr);
 		}
+		
+		AddJSONFrom(json_rep);
 	}
-	else
+	else if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueObject) && (p_arguments[0]->Count() == 1))
 	{
-		// Set key-value pairs on the new Dictionary
+		// Variant 3: construct from a singleton Dictionary or Dictionary subclass
+		EidosValue *source_value = p_arguments[0].get();
+		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+		
+		if (!source)
+			EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that an object x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
+	
+		AddKeysAndValuesFrom(source);
+	}
+	else if ((p_arguments.size() >= 2) && (p_arguments[0]->Count() == 1) &&
+			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueString)))
+	{
+		// Variant 2: set key-value pairs on the new Dictionary
 		int arg_count = (int)p_arguments.size();
 		
 		if (arg_count % 2 != 0)
@@ -1878,11 +1882,21 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 			}
 		}
 	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(...) requires the arguments passed to conform to one of four specific variants (see the documentation); these arguments were not recognized as one of those variants." << EidosTerminate();
+	}
 	
 	// The caller must call ContentsChanged()
 }
 
-//	(object<Dictionary>$)Dictionary(...)
+//	*********************	(object<Dictionary>$)Dictionary(...)
+//
+//		variant 1: void
+//		variant 2: is$ key, * value, ...
+//		variant 3: object<Dictionary>$ dictionary
+//		variant 4: string json
+//
 static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -1922,7 +1936,7 @@ const EidosClass *EidosDictionaryRetained::Class(void) const
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryRetained_Class = nullptr;
+EidosDictionaryRetained_Class *gEidosDictionaryRetained_Class = nullptr;
 
 
 const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Functions(void) const
@@ -1936,7 +1950,23 @@ const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Fu
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddEllipsis());
+		// the Dictionary() constructor has four ellipsis variants
+		{
+			EidosFunctionSignature *ellipsisSignature = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddEllipsis();
+			
+			EidosFunctionSignature *variant1 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class));
+			EidosFunctionSignature *variant2 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddIntString_S("key")->AddAny("value")->AddEllipsis();
+			EidosFunctionSignature *variant3 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddObject_S("dictionary", gEidosDictionaryRetained_Class);
+			EidosFunctionSignature *variant4 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddString("json");
+			
+			// ownership of these objects is taken from us
+			ellipsisSignature->AddEllipsisVariant(variant1, "new empty");
+			ellipsisSignature->AddEllipsisVariant(variant2, "key-value pairs");
+			ellipsisSignature->AddEllipsisVariant(variant3, "Dictionary copy");
+			ellipsisSignature->AddEllipsisVariant(variant4, "from JSON");
+			
+			functions->emplace_back(ellipsisSignature);
+		}
 		
 		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
 	}

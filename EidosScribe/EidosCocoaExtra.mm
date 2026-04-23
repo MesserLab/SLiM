@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/11/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -222,6 +222,15 @@
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];
 		
 		[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
+		
+		// BCH 1/7/2025: For dynamic properties with a name like "<trait-name>EffectSize", italicize the portion in the <>
+		if ([propertyNameString hasPrefix:@"<"])
+		{
+			NSRange endRange = [propertyNameString rangeOfString:@">"];
+			
+			if (endRange.location != NSNotFound)
+				[attrStr applyFontTraits:NSItalicFontMask range:NSMakeRange(0, endRange.location)];
+		}
 		
 		return attrStr;
 	}
@@ -550,93 +559,204 @@ std::string Eidos_Beep_MACOS(const std::string &p_sound_name)
 
 - (int64_t)eidosScoreAsCompletionOfString:(NSString *)base
 {
-	// Evaluate the quality of the target as a completion for completionBase and return a score.
-	// We look for each character of completionBase in self, in order, case-insensitive; all
-	// characters must be present in order for the target to be a completion at all.  Beyond that,
-	// a higher score is garnered if the matches in self are (1) either uppercase or the 0th character,
-	// and (2) if they are relatively near the beginning, and (3) if they occur contiguously.
-	int64_t score = 0;
+	//NSLog(@"\"%@\" : eidosScoreAsCompletionOfString: initiating with \"%@\" ...", self, base);
+	
+	// Kick off the recursion with a base score of 0, which will be adjusted upward and downward.
+	// If no acceptable match is found at all, INT64_MIN will be returned.
+	int64_t score = [self eidosScoreAsCompletionOfString:base firstUnusedIndex:0 firstUnmatchedIndex:0 score:0 recursionLevel:1];
+	
+	if (score > INT64_MIN)
+	{
+		// We want argument-name matches to be at the top, always, when they are available, so bump their score
+		if ([self hasSuffix:@"="])
+			score += 1000000;
+	}
+	
+	return score;
+}
+
+- (int64_t)eidosScoreAsCompletionOfString:(NSString *)base firstUnusedIndex:(NSUInteger)firstUnusedIndex firstUnmatchedIndex:(NSUInteger)firstUnmatchedIndex score:(int64_t)scoreSoFar recursionLevel:(int)recursionLevel
+{
+	//NSLog(@"%@\"%@\" : eidosScoreAsCompletionOfString: \"%@\" firstUnusedIndex: %lu firstUnmatchedIndex: %lu score: %lld", [@"" stringByPaddingToLength:(recursionLevel * 4) withString:@" " startingAtIndex:0], self, base, (unsigned long)firstUnusedIndex, (unsigned long)firstUnmatchedIndex, scoreSoFar);
+	
+	// This recursive method is called initially by -eidosScoreAsCompletionOfString: and then by itself.
+	// This is recursive because we want to try every possibility in terms of where each character in
+	// base matches.  For example, if `this` is "individualPhenotypePalette" and base is "pal", the "p"
+	// in "pal" could match at "Phen...", "pePa...", and "Pale...".  The first two will turn out to be
+	// crap and will produce INT64_MIN, but the third is gold.  So we need to loop through each of those
+	// matches; and for each match for "p", we will then want to loop through each match for "a" and then
+	// for "l", so that we might find a golden match like "getPipPopulationAndAllocateLiability()" even
+	// though it involves the second match for "p", then the third for "a" from there, and then the
+	// third for "l" from there.  We need to experiment with all possible paths.  This is quite work-
+	// intensive but we expect `this` and `base` to be reasonably short, so it shouldn't be prohibitive.
+	//
+	// So, we are searching in `this` from position firstUnusedIndex onward, and in `base` from position
+	// firstUnmatchedIndex onward.  The assumption is that position firstUnusedIndex-1 was either a match
+	// or the start of the string, so it is especially good to match the next character at that position,
+	// even if the match is not uppercase.  Otherwise, we really want an uppercase match.  Whenever we
+	// look for a match, we loop over all possible matches and recurse downward to explore where each one
+	// leads.
+	//
+	// We work with composed character sequences and use rangeOfString: to do searches, to avoid issues
+	// with diacritical marks, alternative composition sequences, casing, etc.
 	NSUInteger selfLength = [self length], baseLength = [base length];
 	
-	// Do the comparison scan; find a match for each composed character sequence in base.  We work
-	// with composed character sequences and use rangeOfString: to do searches, to avoid issues with
-	// diacritical marks, alternative composition sequences, casing, etc.
-	NSUInteger firstUnusedIndex = 0, firstUnmatchedIndex = 0;
+	// prepare for matching of the base range starting at firstUnmatchedIndex; this is our responsibility
+	NSRange baseRangeToMatch = [base rangeOfComposedCharacterSequenceAtIndex:firstUnmatchedIndex];
+	NSString *stringToMatch = [base substringWithRange:baseRangeToMatch];
+	NSString *uppercaseStringToMatch = [stringToMatch uppercaseString];
 	
-	do
+	// this is the best score seen after recursing all the way down; if we don't find a match we return this
+	int64_t newBestScore = INT64_MIN;	
+	
+	// think about the next base range that we will recurse to match; is there another, or are we last?
+	NSUInteger nextUnmatchedIndex = baseRangeToMatch.location + baseRangeToMatch.length;
+	bool matchingLastBaseRange = (nextUnmatchedIndex >= baseLength);
+	
+	// now handle the various matching cases that we are responsible, involving baseRangeToMatch
+	
+	if ([stringToMatch isEqualToString:uppercaseStringToMatch] && (firstUnmatchedIndex != 0))
 	{
-		NSRange baseRangeToMatch = [base rangeOfComposedCharacterSequenceAtIndex:firstUnmatchedIndex];
-		NSString *stringToMatch = [base substringWithRange:baseRangeToMatch];
-		NSString *uppercaseStringToMatch = [stringToMatch uppercaseString];
-		NSRange selfMatchRange;
+		// Here we handle the situation where the character in base is uppercase, *and* it is not the very
+		// first character of base.  In this situation, we only want to match an uppercase character in self.
+		// Matching an uppercase character in base to a lowercase character in self is not considered an
+		// acceptable match, except for the very first character of base; WTF should match writeTempFile().
 		
-		if ([stringToMatch isEqualToString:uppercaseStringToMatch] && (firstUnmatchedIndex != 0))
-		{
-			// If the character in base is uppercase, we only want to match an uppercase character in self.
-			// The exception is the first character of base; WTF should match writeTempFile() well.
-			selfMatchRange = [self rangeOfString:stringToMatch
-										 options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
-										   range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
-			score += 1000;	// uppercase match
-		}
-		else
-		{
-			// If the character in base is not uppercase, we will match any case in self, but we prefer a
-			// lowercase character if it matches the very next part of self, otherwise we prefer uppercase.
-			selfMatchRange = [self rangeOfString:stringToMatch
-										 options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
-										   range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+		// loop through all matches, until we fail to find one
+		while (TRUE) {
+			NSRange selfMatchRange = [self rangeOfString:stringToMatch
+												 options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
+												   range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
 			
-			if (selfMatchRange.location == firstUnusedIndex)
+			if (selfMatchRange.location != NSNotFound)
 			{
-				score += 2000;	// next-character match is even better than upper-case; continuity trumps camelcase
+				// strongly prefer a match at the very beginning; otherwise, lightly penalize later matches
+				int64_t thisMatchScore = scoreSoFar + 1000;		// the bonus for finding an uppercase match
+				
+				if (selfMatchRange.location == 0)
+					thisMatchScore += 100000;
+				else
+					thisMatchScore -= selfMatchRange.location;
+				
+				// we have a match; recurse to score the remainder of base, if we are not the end of base
+				if (matchingLastBaseRange)
+				{
+					newBestScore = std::max(newBestScore, thisMatchScore);
+				}
+				else
+				{
+					int64_t recurseScore = [self eidosScoreAsCompletionOfString:base
+															   firstUnusedIndex:(selfMatchRange.location + selfMatchRange.length)
+															firstUnmatchedIndex:nextUnmatchedIndex
+																		  score:thisMatchScore
+																 recursionLevel:(recursionLevel + 1)];
+					
+					newBestScore = std::max(newBestScore, recurseScore);
+				}
+				
+				// advance to the next composed character sequence in self to look for a match
+				firstUnusedIndex = selfMatchRange.location + selfMatchRange.length;
+				
+				// if we're out of characters, return the best match that we found
+				if (firstUnusedIndex >= selfLength)
+					return newBestScore;
 			}
 			else
 			{
-				NSRange uppercaseMatchRange = [self rangeOfString:uppercaseStringToMatch
-														  options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
-															range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+				// no matches left; return the best score we found
+				return newBestScore;
+			}
+		}
+	}
+	else
+	{
+		// Here we check for a very specific case: if we have a lowercase match at the very next part of self.
+		// If we do, that is preferred to alternatives, as a continuation of whatever matched at the immediately
+		// preceding position.  This match does not loop, because it can only happen at this one position.
+		{
+			NSRange selfMatchRange = [self rangeOfString:stringToMatch
+												 options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
+												   range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+			
+			if (selfMatchRange.location == firstUnusedIndex)
+			{
+				int64_t thisMatchScore = scoreSoFar + 2000;		// next-character match is even better than upper-case; continuity trumps camelcase
 				
-				if (uppercaseMatchRange.location != NSNotFound)
+				if (selfMatchRange.location == 0)
+					thisMatchScore += 100000;
+				
+				// we have a match; recurse to score the remainder of base, if we are not the end of base
+				if (matchingLastBaseRange)
 				{
-					selfMatchRange = uppercaseMatchRange;
-					score += 1000;	// uppercase match
+					newBestScore = std::max(newBestScore, thisMatchScore);
 				}
-				else if (firstUnusedIndex > 0)
+				else
 				{
-					// This match is crap; we're jumping forward to a lowercase letter, so it's unlikely to be what
-					// the user wants.  So we bail.  This can be commented out to return lower-quality matches.
-					return INT64_MIN;
+					int64_t recurseScore = [self eidosScoreAsCompletionOfString:base
+															   firstUnusedIndex:(selfMatchRange.location + selfMatchRange.length)
+															firstUnmatchedIndex:nextUnmatchedIndex
+																		  score:thisMatchScore
+																 recursionLevel:(recursionLevel + 1)];
+					
+					newBestScore = std::max(newBestScore, recurseScore);
 				}
+				
+				return newBestScore;
 			}
 		}
 		
-		// no match in self for the composed character sequence in base; self is not a good completion of base
-		if (selfMatchRange.location == NSNotFound)
-			return INT64_MIN;
+		// The currently matching character in base is lowercase, and the next character of self is not a
+		// lowercase match for it.  So we have to skip ahead to find a match.  Skipping ahead to some random
+		// lowercase character later is deemed unacceptable; that's like matching "t" to the "t" in "asString()",
+		// it's crap.  So we don't even look for those.  The only acceptable match at this point is a match to
+		// the uppercase version of the match character; that's like a match of "t" to the uppercase "T" in
+		// "initializeTreeSeq()"; if the user completed on "it", initializeTreeSeq() is a good match.
 		
-		// matching the very beginning of self is very good; we really want to match the start of a candidate
-		// otherwise, earlier matches are better; a match at position 0 gets the largest score increment
-		if (selfMatchRange.location == 0)
-			score += 100000;
-		else
-			score -= selfMatchRange.location;
-		
-		// move firstUnusedIndex to follow the matched range in self
-		firstUnusedIndex = selfMatchRange.location + selfMatchRange.length;
-		
-		// move to the next composed character sequence in base
-		firstUnmatchedIndex = baseRangeToMatch.location + baseRangeToMatch.length;
-		if (firstUnmatchedIndex >= baseLength)
-			break;
+		// loop through all matches, until we fail to find one
+		while (TRUE) {
+			NSRange uppercaseMatchRange = [self rangeOfString:uppercaseStringToMatch
+													  options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
+														range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+			
+			if (uppercaseMatchRange.location != NSNotFound)
+			{
+				// we have a match; recurse to score the remainder of base, if we are not the end of base
+				int64_t thisMatchScore = scoreSoFar + 1000;		// the bonus for finding an uppercase match
+				
+				if (uppercaseMatchRange.location == 0)
+					thisMatchScore += 100000;
+				else
+					thisMatchScore -= uppercaseMatchRange.location;
+				
+				if (matchingLastBaseRange)
+				{
+					newBestScore = std::max(newBestScore, thisMatchScore);
+				}
+				else
+				{
+					int64_t recurseScore = [self eidosScoreAsCompletionOfString:base
+															   firstUnusedIndex:(uppercaseMatchRange.location + uppercaseMatchRange.length)
+															firstUnmatchedIndex:nextUnmatchedIndex
+																		  score:thisMatchScore
+																 recursionLevel:(recursionLevel + 1)];
+					
+					newBestScore = std::max(newBestScore, recurseScore);
+				}
+				
+				// advance to the next composed character sequence in self to look for a match
+				firstUnusedIndex = uppercaseMatchRange.location + uppercaseMatchRange.length;
+				
+				// if we're out of characters, return the best match that we found
+				if (firstUnusedIndex >= selfLength)
+					return newBestScore;
+			}
+			else
+			{
+				// no matches left; return the best score we found
+				return newBestScore;
+			}
+		}
 	}
-	while (YES);
-	
-	// We want argument-name matches to be at the top, always, when they are available, so bump their score
-	if ([self hasSuffix:@"="])
-		score += 1000000;
-	
-	return score;
 }
 
 @end

@@ -1,8 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
-\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;\f8\fswiss\fcharset0 Helvetica-Oblique;
-\f9\fswiss\fcharset0 Helvetica;}
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c100000;}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
@@ -942,6 +941,14 @@ The recombination intervals are normally a constant in simulations, so be sure y
 \f4\fs20  objects defined in the simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 allTraits => (object<Trait>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 All of the 
+\f3\fs18 Trait
+\f4\fs20  objects defined in the simulation (in species declaration order, primarily, and in order of their index within a species, secondarily).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 cycleStage => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1616,7 +1623,7 @@ This value is \'93semi-unique\'94 in the sense that it is shared by
 \f1\i not
 \f4\i0  unique in the sense that it will be shared by other haplosomes within the same individual \'96 shared by all the first haplosomes, or shared by all the second haplosomes.  This \'93semi-uniqueness\'94 is intentional; it allows 
 \f3\fs18 haplosomePedigreeID
-\f4\fs20  to be used as a \'93key\'94 that associates the haplosomes of an individual across disparate datasets, such as across the different tree sequences for each chromosome that are produced by tree-sequence recording in a multi-chromosome model.  See sections 1.5.1 and 8.3 for further discussion of multi-chromosome models.\
+\f4\fs20  to be used as a \'93key\'94 that associates the haplosomes of an individual across disparate datasets, such as across the different tree sequences for each chromosome that are produced by tree-sequence recording in a multi-chromosome model.\
 If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1697,7 +1704,12 @@ individual => (object<Individual>$)\
 \f4\fs20  must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object; attempting to add a mutation to a haplosome associated with a different chromosome will raise an error.\
-Calling this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
@@ -1740,9 +1752,9 @@ Note that in nonWF models that use tree-sequence recording, mutations cannot be 
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
+\f4\fs20  to \'93tag\'94 the mutations that you create.  The effect sizes of the mutations are drawn from the distributions of effect size of their mutation types; 
 \f3\fs18 addNewMutation()
-\f4\fs20  may be used instead if you wish to specify selection coefficients.  All of the target haplosomes must be associated with the same 
+\f4\fs20  may be used instead if you wish to specify effect sizes.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object, since each new mutation is added to all of the target haplosomes.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -1781,7 +1793,7 @@ In non-nucleotide-based models,
 \f3\fs18 2
 \f4\fs20 , T=
 \f3\fs18 3
-\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its effect size is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Beginning in SLiM 2.5 this method is vectorized, so all of these parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.\
 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
@@ -1805,6 +1817,9 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \cf2 Before SLiM 4, this method also took a 
 \f3\fs18 originGeneration
 \f4\fs20  parameter.  This was deprecated (the origin generation was then required to be equal to the current generation, for internal consistency), and was removed in SLiM 4.\
+This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Calling this will normally affect the fitness values calculated at the end of the current tick (but not sooner); if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
@@ -1819,7 +1834,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20 ), to prevent the possibility of inconsistencies in the recorded tree sequence.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0selectionCoeff, integer\'a0position, [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0effectSize, integer\'a0position, [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
 , [Nis\'a0nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -1831,7 +1846,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  object or by 
 \f3\fs18 integer
 \f4\fs20  identifier), 
-\f3\fs18 selectionCoeff
+\f3\fs18 effectSize
 \f4\fs20 , 
 \f3\fs18 position
 \f4\fs20 , 
@@ -1854,7 +1869,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f3\fs18 originSubpop
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The 
 \f3\fs18 addNewDrawnMutation()
-\f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.  All of the target haplosomes must be associated with the same 
+\f4\fs20  method may be used instead if you wish effect sizes to be drawn from the mutation types of the mutations.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object, since each new mutation is added to all of the target haplosomes.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -1893,7 +1908,7 @@ In non-nucleotide-based models,
 \f3\fs18 2
 \f4\fs20 , T=
 \f3\fs18 3
-\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its effect size is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
@@ -1916,6 +1931,9 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \cf2 Before SLiM 4, this method also took a 
 \f3\fs18 originGeneration
 \f4\fs20  parameter.  This was deprecated (the origin generation was then required to be equal to the current generation, for internal consistency), and was removed in SLiM 4.\
+This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Calling this will normally affect the fitness values calculated at the end of the current tick (but not sooner); if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
@@ -2146,7 +2164,7 @@ See the
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -positionsOfMutationsOfType()
-\f4\fs20 ; and if you are aiming for a sum of the selection coefficients of matching 
+\f4\fs20 ; and if you are aiming for a sum of the effect sizes of matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -sumOfMutationsOfType()
@@ -2476,7 +2494,7 @@ readHaplosomesFromMS\kerning1\expnd0\expndtw0 ()
 \f4\fs20  is returned.\
 Each mutation is created at the position specified in the file, using the mutation type given by 
 \f3\fs18 mutationType
-\f4\fs20 .  Positions are expected to be in [0,1], and are scaled to the length of the chromosome by multiplying by the last valid base position of the chromosome (i.e., one less than the chromosome length).  Selection coefficients are drawn from the mutation type.  The population of origin for each mutation is set to 
+\f4\fs20 .  Positions are expected to be in [0,1], and are scaled to the length of the chromosome by multiplying by the last valid base position of the chromosome (i.e., one less than the chromosome length).  Effect sizes are drawn from the mutation type.  The population of origin for each mutation is set to 
 \f3\fs18 -1
 \f4\fs20 , and the tick of origin is set to the current tick.  In a nucleotide-based model, if 
 \f3\fs18 mutationType
@@ -2569,7 +2587,7 @@ The
 \f3\fs18 MID
 \f4\fs20  will be used if no mutation IDs have been used in the simulation so far; if any have been used, it is difficult for SLiM to guarantee that there are no conflicts, so a warning will be emitted and the 
 \f3\fs18 MID
-\f4\fs20  values will be ignored.  If selection coefficients are not supplied with the 
+\f4\fs20  values will be ignored.  If effect sizes are not supplied with the 
 \f3\fs18 S
 \f4\fs20  subfield, they will be drawn from the mutation type used for the mutation.  If a population of origin is not supplied with the 
 \f3\fs18 PO
@@ -2683,6 +2701,10 @@ A call of
 \f4\fs20  must be associated with the same 
 \f3\fs18 Chromosome
 \f4\fs20  object; attempting to remove a mutation from a haplosome associated with a different chromosome will raise an error.\
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes all trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Removing mutations will normally affect the fitness values calculated at the end of the current tick; if you want current fitness values to be affected, you can call the 
@@ -2723,18 +2745,28 @@ The optional parameter
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
 \f5 \'a0
-\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType\cf2 , [Niso<Trait>$\'a0trait\'a0=\'a0NULL]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
+\f4\fs20 \cf2 Returns the sum of the effect sizes of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the haplosome.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f4\fs20 , out of all of the mutations in the haplosome, for the trait specified by 
+\f3\fs18 trait
+\f4\fs20 .  The trait can be specified as the 
+\f3\fs18 integer
+\f4\fs20  index or 
+\f3\fs18 string
+\f4\fs20  name of a trait in the species, or directly as a 
+\f3\fs18 Trait
+\f4\fs20  object; 
+\f3\fs18 NULL
+\f4\fs20  can be used to represent the one defined trait in a single-trait species.\
+Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
-\f4\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has largely been superseded, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Individual
-\f4\fs20 , for cases in which the sum across both haplosomes of an individual is desired.
-\f5 \
+\f4\fs20 , for cases in which the sum across both haplosomes of an individual is desired.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.5  Class GenomicElement\
@@ -2924,7 +2956,32 @@ The species to which the target object belongs.\
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 age \cf2 \expnd0\expndtw0\kerning0
+\f2\fs18 \cf2 <trait-name>
+\f3\i0  <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the phenotype of the individual for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 phenotypeForTrait()
+\f4\fs20  method provides an alternative way to access phenotype values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 Offset <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the individual offset for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 offsetForTrait()
+\f4\fs20  method provides an alternative way to access individual offsets.\
+Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait in the target individuals, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 age \cf2 \expnd0\expndtw0\kerning0
 <\'96>\cf0 \kerning1\expnd0\expndtw0  (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2933,6 +2990,40 @@ The species to which the target object belongs.\
 \f4\fs20  in the same tick in which it was created.  The age of every individual is incremented by one at the same point that its species cycle counter is incremented, at the end of the tick cycle, 
 \f1\i if and only if
 \f4\i0  its species was active in that tick.  The age of individuals may be changed; usually this only makes sense when setting up the initial state of a model, however.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 cachedFitness => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The fitness value calculated for the individual.  The fitness value returned is a cached value; 
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
+\f4\fs20  callbacks are therefore not called as a side effect of this method.\
+It is always an error to access 
+\f3\fs18 cachedFitness
+\f4\fs20  from inside a 
+\f3\fs18 mutationEffect()
+\f4\fs20  or 
+\f3\fs18 fitnessEffect()
+\f4\fs20  callback, since fitness values are in the middle of being set up.  In WF models, it is also an error to access 
+\f3\fs18 cachedFitness
+\f4\fs20  from a 
+\f3\fs18 late()
+\f4\fs20  event, because fitness values for the new offspring generation have not yet been calculated and are undefined.  In nonWF models, the population may be a mixture of new and old individuals, so instead, 
+\f3\fs18 NAN
+\f4\fs20  will be returned as the fitness of any new offspring whose fitness has not yet been calculated.  When new subpopulations are first created with 
+\f3\fs18 addSubpop()
+\f4\fs20  or 
+\f3\fs18 addSubpopSplit()
+\f4\fs20 , the fitness of all of the newly created individuals is considered to be 
+\f3\fs18 1.0
+\f4\fs20  until fitness values are recalculated.\
+See the 
+\f3\fs18 cachedFitness()
+\f4\fs20  method of class 
+\f3\fs18 Subpopulation
+\f4\fs20  for another way to access the cached fitness values for individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 color <\'96> (string$)\
@@ -3656,6 +3747,42 @@ See the description of the
 \f4\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 +\'a0(void)demandPhenotypeForIndividuals([Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Expresses \'93demand\'94 for the phenotypes (trait values) of the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , for the target vector of individuals.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  This triggers the recalculation of those trait values in those individuals, as needed.  More specifically, if 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the specified trait values will only be recalculated if their current value is 
+\f3\fs18 NAN
+\f4\fs20 ; if they have any other value, they are considered to already be calculated, and will not be recalculated.  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
+\f3\fs18 demandPhenotypeForIndividuals()
+\f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.  Note that the target individuals are processed in the order in which they are provided; ordering artifacts could be observed if 
+\f3\fs18 mutationEffect()
+\f4\fs20  callbacks with order-dependency effects are active.\
+This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it once on a whole vector of individuals than to call it separately for each individual.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.  Note that the 
+\f3\fs18 Species
+\f4\fs20  method 
+\f3\fs18 demandPhenotype()
+\f4\fs20  is more efficient than this individual-level method since it processes the whole species at once, allowing a more structured computational approach.\
+Note that the fitness recalculation tick cycle stage automatically expresses demand for all traits that have a direct effect on fitness, so phenotypes often do not need to be demanded explicitly; doing so is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3805,7 +3932,34 @@ The returned vector will contain tranches of mutations, one tranche per chromoso
 \f4\fs20 .  (If more than one mutation associated with a given chromosome exists at the same position, the order in which those mutations are returned is undefined.)\
 This method replaces the deprecated method 
 \f3\fs18 uniqueMutationsOfType()
-\f4\fs20 , while providing additional useful options.  It is particularly useful for efficient, vectorized assessment of the homozygous versus heterozygous state of the mutations contained by an individual, which is otherwise difficult to assess efficiently.\
+\f4\fs20 , while providing additional useful options.  It is particularly useful for efficient, vectorized assessment of the homozygous versus heterozygous state of the mutations contained by an individual, which is otherwise difficult to assess efficiently.  See also the method 
+\f3\fs18 zygosityOfMutations()
+\f4\fs20 , which provides an alternative approach for assessing the zygosity of mutations in an individual.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)offsetForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the individual offset(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Offsets for a given target individual will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  Note that the offset for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .  Also see 
+\f3\fs18 setOffsetForTrait()
+\f4\fs20  for changing individual offset values.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0objectTags\'a0=\'a0F])\
@@ -4002,6 +4156,30 @@ Output is generally done in a
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(float)phenotypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the individual phenotype(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Phenotypes for a given target individual will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  Note that the phenotype for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .  Also see 
+\f3\fs18 setPhenotypeForTrait()
+\f4\fs20  for changing individual phenotypes.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 +\'a0(object<Mutation>)readIndividualsFromVCF(string$\'a0filePath, [Nio<MutationType>$\'a0mutationType\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4166,6 +4344,93 @@ See also
 \f4\fs20  for a different metric of relatedness.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 +\'a0(void)setOffsetForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0offset\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the individual offset(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Note that the offset for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .\
+The parameter 
+\f3\fs18 offset
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 offset
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this draws the offset for each of the specified traits from each trait\'92s individual-offset distribution (defined by each trait\'92s 
+\f3\fs18 individualOffsetMean
+\f4\fs20  and 
+\f3\fs18 individualOffsetSD
+\f4\fs20  properties) in each target individual.  (Note that individual offsets are automatically drawn from these distributions when an individual is created; this re-draws new offset values.)  In the second pattern, 
+\f3\fs18 offset
+\f4\fs20  is a singleton value; this sets the given offset for each of the specified traits in each target individual.  In the third pattern, 
+\f3\fs18 offset
+\f4\fs20  is of length equal to the number of specified traits; this sets the offset for each of the specified traits to the corresponding offset value in each target individual.  In the fourth pattern, 
+\f3\fs18 offset
+\f4\fs20  is of length equal to the number of specified traits times the number of target individuals; this uses 
+\f3\fs18 offset
+\f4\fs20  to provide a different offset value for each trait in each individual, using consecutive values from 
+\f3\fs18 offset
+\f4\fs20  to set the offset for each of the specified traits in one individual before moving to the next individual.\
+\pard\pardeftab720\li547\ri720\sa60\partightenfactor0
+\cf2 This method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified traits in the target individuals, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
+\f3\fs18 0.0
+\f4\fs20  as documented in the 
+\f3\fs18 Trait
+\f4\fs20  class.  This policy applies to individual offsets, so an offset value passed in or generated here may not be the value actually used by SLiM or subsequently returned by 
+\f3\fs18 offsetForTrait()
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setPhenotypeForTrait(Niso<Trait>\'a0trait, numeric\'a0phenotype)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the individual phenotype(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Note that the phenotype for a single trait can also be accessed directly through the 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20 .\
+The parameter 
+\f3\fs18 phenotype
+\f4\fs20  must follow one of three patterns.  In the first pattern, 
+\f3\fs18 phenotype
+\f4\fs20  is a singleton value; this sets the given phenotype for each of the specified traits in each target individual.  In the second pattern, 
+\f3\fs18 phenotype
+\f4\fs20  is of length equal to the number of specified traits; this sets the phenotype for each of the specified traits to the corresponding phenotype in each target individual.  In the third pattern, 
+\f3\fs18 phenotype
+\f4\fs20  is of length equal to the number of specified traits times the number of target individuals; this uses 
+\f3\fs18 phenotype
+\f4\fs20  to provide a different phenotype for each trait in each individual, using consecutive values from 
+\f3\fs18 phenotype
+\f4\fs20  to set the phenotype for each of the specified traits in one individual before moving to the next individual.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 +\'a0(void)setSpatialPosition(float\'a0position)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -4326,18 +4591,28 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 
 \f3\fs18 \cf0 \'96
 \f5 \'a0
-\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType\cf2 , [Niso<Trait>$\'a0trait\'a0=\'a0NULL]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
+\f4\fs20 \cf2 Returns the sum of the effect sizes of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the haplosomes of the individual.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f4\fs20 , out of all of the mutations in the haplosomes of the individual, for the trait specified by 
+\f3\fs18 trait
+\f4\fs20 .  The trait can be specified as the 
+\f3\fs18 integer
+\f4\fs20  index or 
+\f3\fs18 string
+\f4\fs20  name of a trait in the species, or directly as a 
+\f3\fs18 Trait
+\f4\fs20  object; 
+\f3\fs18 NULL
+\f4\fs20  can be used to represent the one defined trait in a single-trait species.\
+Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
-\f4\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has largely been superseded, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Haplosome
-\f4\fs20 , for cases in which the sum for just one haplosome is desired.
-\f5 \
+\f4\fs20 , for cases in which the sum for just one haplosome is desired.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -5954,12 +6229,140 @@ You can get the
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 chromosome => (object<Chromosome>$)\
+\f2\fs18 \cf2 <trait-name>
+\f3\i0 Dominance \expnd0\expndtw0\kerning0
+<\'96>\kerning1\expnd0\expndtw0  (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the dominance coefficient of the mutation for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 dominance
+\f4\fs20  property and the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method provide alternative ways to access dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 EffectSize \expnd0\expndtw0\kerning0
+<\'96>\kerning1\expnd0\expndtw0  (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the effect size of the mutation for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 effectSize
+\f4\fs20  property and the 
+\f3\fs18 effectSizeForTrait()
+\f4\fs20  method provide alternative ways to access effect sizes.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 HemizygousDominance \expnd0\expndtw0\kerning0
+<\'96>\kerning1\expnd0\expndtw0  (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the hemizygous dominance coefficient of the mutation for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 hemizygousDominance
+\f4\fs20  property and the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method provide alternative ways to access hemizygous dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The 
 \f3\fs18 Chromosome
 \f4\fs20  object with which the mutation is associated.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 dominance => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The dominance coefficient(s) of the mutation, taken from the default dominance coefficient(s) of its 
+\f3\fs18 MutationType
+\f4\fs20 .  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  is defined on 
+\f3\fs18 Mutation
+\f4\fs20  for each trait in the species, providing direct access to the dominance of a mutation for a specific trait.  The dominance coefficient(s) of a mutation can be changed with the 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20  method, or through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  property.\
+If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
+\f3\fs18 NAN
+\f4\fs20 , as discussed in 
+\f3\fs18 initializeMutationType()
+\f4\fs20  and 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 , this property does not provide that value of 
+\f3\fs18 NAN
+\f4\fs20 ; instead, it provides the dominance value that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance value (see 
+\f3\fs18 isIndependentDominanceForTrait()
+\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if the effect size changes.  The class 
+\f3\fs18 Trait
+\f4\fs20  documentation provides further discussion of independent dominance.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 effectSize => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The effect size(s) of the mutation, initially drawn from the distribution of effect size of its 
+\f3\fs18 MutationType
+\f4\fs20 .  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 effectSizeForTrait()
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  is defined on 
+\f3\fs18 Mutation
+\f4\fs20  for each trait in the species, providing direct access to the effect size of a mutation for a specific trait.  The effect sizes of a mutation can be changed with the 
+\f3\fs18 setEffectSizeForTrait()
+\f4\fs20  method, or through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  property.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hemizygousDominance => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the mutation, taken from the default hemizygous dominance coefficient(s) of its 
+\f3\fs18 MutationType
+\f4\fs20 .  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  is defined for each trait in the model, providing direct access to the hemizygous dominance of a mutation for a specific trait.  The coefficient(s) for a mutation can be changed with the 
+\f3\fs18 setHemizygousDominanceForTrait()
+\f4\fs20  method, or through the 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  property.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 id => (integer$)\
@@ -5979,6 +6382,16 @@ You can get the
 \f4\fs20  otherwise.  Since fixed/substituted mutations are removed from the simulation, you will only see this flag be 
 \f3\fs18 T
 \f4\fs20  if you have held onto a mutation beyond its usual lifetime.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 isNeutral => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 T
+\f4\fs20  if the mutation is neutral, 
+\f3\fs18 F
+\f4\fs20  otherwise.  For a mutation to be considered neutral, it must have an effect size of exactly 
+\f3\fs18 0.0
+\f4\fs20  for all traits; its mutation type and dominance are irrelevant to this determination.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 isSegregating => (logical$)\
@@ -6055,42 +6468,6 @@ nucleotide <\'96> (string$)\
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 selectionCoeff => (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
-\f3\fs18 MutationType
-\f5\fs20 .
-\f4 \cf2 \expnd0\expndtw0\kerning0
-  If a mutation has a 
-\f3\fs18 selectionCoeff
-\f4\fs20  of 
-\f1\i s
-\f4\i0 , the multiplicative fitness effect of the mutation in a homozygote is 1+
-\f1\i s
-\f4\i0 ; in a heterozygote it is 1+
-\f1\i hs
-\f4\i0 , where 
-\f1\i h
-\f4\i0  is the dominance coefficient kept by the mutation type.
-\f5 \cf0 \kerning1\expnd0\expndtw0 \
-
-\f4 Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
-\f3\fs18 mut
-\f4\fs20 \'92s selection coefficient to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 mut.selectionCoeff==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
-\f3\fs18 id
-\f4\fs20  or 
-\f3\fs18 tag
-\f4\fs20  properties to identify particular mutations.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf0 subpopID <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6126,45 +6503,284 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
-\f5 \
+\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Set the mutation type of the mutation to 
+\f4\fs20 \cf2 Returns the mutation\'92s dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 ; for all trait types this is used as the dominance coefficient 
+\f1\i h
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  See also the 
+\f3\fs18 dominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 Dominance
+\f4\fs20  properties.\
+If the target mutation has been configured to exhibit independent dominance for a given trait by setting its dominance value for that trait to 
+\f3\fs18 NAN
+\f4\fs20 , as discussed in 
+\f3\fs18 initializeMutationType()
+\f4\fs20  and 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 , this method does not return that value of 
+\f3\fs18 NAN
+\f4\fs20 ; instead, it returns the dominance value that will actually be used by SLiM to implement independent dominance, referred to as the \'93realized\'94 dominance value (see 
+\f3\fs18 isIndependentDominanceForTrait()
+\f4\fs20  for the way to determine whether independent dominance is configured for a trait).  This realized dominance value depends upon the mutation\'92s corresponding effect size, and may change if that effect size changes.  The class 
+\f3\fs18 Trait
+\f4\fs20  documentation provides further discussion of independent dominance.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the mutation\'92s effect size for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 ; for multiplicative traits, this is typically the selection coefficient 
+\f1\i s
+\f4\i0 , whereas for additive and logistic traits it is typically the additive effect size 
+\f1\i a
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effect sizes for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  See also the 
+\f3\fs18 effectSize
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 EffectSize
+\f4\fs20  properties.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the mutation\'92s hemizygous dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 ; for all trait types this is used as the hemizygous dominance coefficient 
+\f1\i h
+\f4\i0\fs13\fsmilli6667 \sub hemi
+\fs20 \nosupersub .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  See also the 
+\f3\fs18 hemizygousDominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 HemizygousDominance
+\f4\fs20  properties.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns whether the mutation is configured for independent dominance for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  A mutation is configured for independent dominance for a trait if it inherited a default dominance of 
+\f3\fs18 NAN
+\f4\fs20  for the trait from its mutation type, or if its dominance for the trait was subsequently set to 
+\f3\fs18 NAN
+\f4\fs20  with 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 ; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation for discussion of this feature.  Independent dominance flags for a given target mutation will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the target mutation\'92s dominance coefficient(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  See also the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  property, which can be used to set the dominance of a mutation for a trait.\
+The parameter 
+\f3\fs18 dominance
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 dominance
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this sets the dominance for each of the specified traits to the default dominance coefficient from the mutation type of the mutation in each target mutation.  (Note that mutation dominance coefficients are automatically set to these defaults when a mutation is created; this re-sets default dominance values.)  In the second pattern, 
+\f3\fs18 dominance
+\f4\fs20  is a singleton value; this sets the given dominance for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits; this sets the dominance for each of the specified traits to the corresponding dominance value in each target mutation.  In the fourth pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
+\f3\fs18 dominance
+\f4\fs20  to provide a different dominance coefficient for each trait in each mutation, using consecutive values from 
+\f3\fs18 dominance
+\f4\fs20  to set the dominance for each of the specified traits in one mutation before moving to the next mutation.\
+A dominance value of 
+\f3\fs18 NAN
+\f4\fs20  for a given trait configures the mutation to use independent dominance for that trait; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation for discussion of this feature, which can also be set at the 
+\f3\fs18 MutationType
+\f4\fs20  level with 
+\f3\fs18 initializeMutationType()
+\f4\fs20  or 
+\f3\fs18 setDefaultDominanceForTrait()
+\f4\fs20 .  A given mutation may be configured to exhibit independent dominance for some traits and not for others; a mixed configuration is allowed.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setEffectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0effectSize\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the mutation\'92s effect size(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  See also the 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  property, which can be used to set the effect size of a mutation for a trait.\
+The parameter 
+\f3\fs18 effectSize
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 effectSize
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this draws the effect size for each of the specified traits from the corresponding distribution of effect size for the mutation type of the mutation in each target mutation.  (Note that mutation effect sizes are automatically drawn from these distributions when a mutation is created; this re-draws new effect sizes.)  In the second pattern, 
+\f3\fs18 effectSize
+\f4\fs20  is a singleton value; this sets the given effect size for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 effectSize
+\f4\fs20  is of length equal to the number of specified traits; this sets the effect size for each of the specified traits to the corresponding effect size in each target mutation.  In the fourth pattern, 
+\f3\fs18 effectSize
+\f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
+\f3\fs18 effectSize
+\f4\fs20  to provide a different effect size for each trait in each mutation, using consecutive values from 
+\f3\fs18 effectSize
+\f4\fs20  to set the effect size for each of the specified traits in one mutation before moving to the next mutation.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
+\f3\fs18 0.0
+\f4\fs20  as documented in the 
+\f3\fs18 Trait
+\f4\fs20  class.  This policy applies to mutational effects, so the final effect of each mutation (perhaps influenced by a dominance coefficient) will be clamped prior to use in phenotype calculations.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setHemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [Nif\'a0dominance\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the mutation\'92s hemizygous dominance coefficient(s) for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  See also the 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  property, which can be used to set the hemizygous dominance of a mutation for a trait.\
+The parameter 
+\f3\fs18 dominance
+\f4\fs20  must follow one of four patterns.  In the first pattern, 
+\f3\fs18 dominance
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ; this sets the dominance for each of the specified traits to the default hemizygous dominance coefficient from the mutation type of the mutation in each target mutation.  (Note that mutation hemizygous dominance coefficients are automatically set to these defaults when a mutation is created; this re-sets default hemizygous dominance values.)  In the second pattern, 
+\f3\fs18 dominance
+\f4\fs20  is a singleton value; this sets the given hemizygous dominance for each of the specified traits in each target mutation.  In the third pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits; this sets the hemizygous dominance for each of the specified traits to the corresponding dominance value in each target mutation.  In the fourth pattern, 
+\f3\fs18 dominance
+\f4\fs20  is of length equal to the number of specified traits times the number of target mutations; this uses 
+\f3\fs18 dominance
+\f4\fs20  to provide a different hemizygous dominance coefficient for each trait in each mutation, using consecutive values from 
+\f3\fs18 dominance
+\f4\fs20  to set the hemizygous dominance for each of the specified traits in one mutation before moving to the next mutation.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Set the mutation type of the mutation to 
 \f3\fs18 mutType
 \f4\fs20  (which may be specified as either an 
 \f3\fs18 integer
 \f4\fs20  identifier or a 
 \f3\fs18 MutationType
-\f4\fs20  object).  This implicitly changes the dominance coefficient of the mutation to that of the new mutation type, since the dominance coefficient is a property of the mutation type.  On the other hand, the selection coefficient of the mutation is not changed, since it is a property of the mutation object itself; it can be changed explicitly using the 
-\f3\fs18 setSelectionCoeff()
-\f4\fs20  method if so desired.\
-The mutation type of a mutation is normally a constant in simulations, so be sure you know what you are doing.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-In nucleotide-based models, a restriction applies: nucleotide-based mutations may not be changed to a non-nucleotide-based mutation type, and non-nucleotide-based mutations may not be changed to a nucleotide-based mutation type.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Set the selection coefficient of the mutation to 
-\f3\fs18 selectionCoeff
-\f4\fs20 .  The selection coefficient will be changed for all individuals that possess the mutation, since they all share a single 
+\f4\fs20  object).  The effect sizes and dominance coefficients of existing mutations are not changed, since those are properties of the mutation objects themselves; they can be changed explicitly using the 
+\f3\fs18 setEffectSizeForTrait()
+\f4\fs20  and 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20  methods of 
 \f3\fs18 Mutation
-\f4\fs20  object (note that the dominance coefficient will remain unchanged, as it is determined by the mutation type).\
-This is normally a constant in simulations, so be sure you know what you are doing; often setting up a 
-\f3\fs18 mutationEffect()
-\f4\fs20  callback is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
+\f4\fs20  if so desired.\
+In nucleotide-based models, a restriction applies: nucleotide-based mutations may not be changed to a non-nucleotide-based mutation type, and non-nucleotide-based mutations may not be changed to a nucleotide-based mutation type.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Calling this method changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for the specified trait(s) in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.11  Class MutationType\
@@ -6184,7 +6800,7 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \f3\fs18 color
 \f4\fs20  is the empty string, 
 \f3\fs18 ""
-\f4\fs20 , SLiMgui\'92s default (selection-coefficient\'96based) color scheme is used; this is the default for new 
+\f4\fs20 , SLiMgui\'92s default (effect-size\'96based) color scheme is used; this is the default for new 
 \f3\fs18 MutationType
 \f4\fs20  objects.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6202,7 +6818,7 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \f3\fs18 colorSubstitution
 \f4\fs20  is the empty string, 
 \f3\fs18 ""
-\f4\fs20 , SLiMgui\'92s default (selection-coefficient\'96based) color scheme is used; this is the default for new 
+\f4\fs20 , SLiMgui\'92s default (effect-size\'96based) color scheme is used; this is the default for new 
 \f3\fs18 MutationType
 \f4\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6241,7 +6857,7 @@ In WF models this property is
 \f4\fs20  callbacks might also necessitate the disabling of substitution for a given mutation type; this is an important consideration to keep in mind.\
 In contrast, for nonWF models this property is 
 \f3\fs18 F
-\f4\fs20  by default, because even mutations with no epistatis or other indirect fitness effects will continue to influence the survival probabilities of individuals.  For nonWF models, only neutral mutation types with no epistasis or other side effects can safely be converted to substitutions upon fixation.  When such a pure-neutral mutation type is defined in a nonWF model, this property should be set to 
+\f4\fs20  by default, because even mutations with no epistatis or other indirect fitness effects will continue to influence the survival probabilities of individuals.  For nonWF models, only neutral mutation types with no epistasis or other side effects can safely be converted to substitutions upon fixation.  When such a completely neutral mutation type is defined in a nonWF model, this property should be set to 
 \f3\fs18 T
 \f4\fs20  to tell SLiM that substitution is allowed; this may have very large positive effects on performance, so it is important to remember when modeling background neutral mutations.\
 SLiM consults this flag at the end of each tick when deciding whether to substitute each fixed mutation.  If this flag is 
@@ -6255,254 +6871,7 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f4\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 distributionParams => (fs)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The parameters that configure the chosen distribution of fitness effects.  This will be of type 
-\f3\fs18 string
-\f4\fs20  for DFE type 
-\f3\fs18 "s"
-\f4\fs20 , and type 
-\f3\fs18 float
-\f4\fs20  for all other DFE types.
-\f5 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 distributionType => (string$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The type of distribution of fitness effects; one of 
-\f3\fs18 "f"
-\f4\fs20 , 
-\f3\fs18 "g"
-\f5\fs20 ,
-\f4  
-\f3\fs18 "e"
-\f5\fs20 ,
-\f4  
-\f3\fs18 "n"
-\f5\fs20 ,
-\f4  
-\f3\fs18 "w"
-\f5\fs20 ,
-\f4  or 
-\f3\fs18 "s"
-\f5\fs20 :\
-
-\f3\fs18 "f"
-\f4\fs22  \'96 A 
-\f0\b f
-\f4\b0 ixed fitness effect.  This DFE type has a single parameter, the selection coefficient 
-\f1\i s
-\f4\i0  to be used by all mutations of the mutation type.\
-
-\f3\fs18 "g"
-\f4\fs22  \'96 A 
-\f0\b g
-\f4\b0 amma-distributed fitness effect.  This DFE type is specified by two parameters, a shape parameter and a mean value.  The gamma distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u945 
-\f5\i0 ,
-\f8\i \uc0\u946 
-\f5\i0 )\'a0
-\f9 = [\uc0\u915 (
-\f8\i \uc0\u945 
-\f5\i0 )
-\f8\i \uc0\u946 \u945 
-\f5\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f6\i s
-\f5\i0 /
-\f8\i \uc0\u946 
-\f5\i0 )
-\f4 , where 
-\f8\i \uc0\u945 
-\f4\i0  is the shape parameter, and the specified mean for the distribution is equal to 
-\f8\i \uc0\u945 \u946 
-\f4\i0 .  Note that this parameterization is the same as for the Eidos function 
-\f3\fs18 rgamma()
-\f4\fs22 .  A gamma distribution is often used to model deleterious mutations at functional sites.\
-
-\f3\fs18 "e"
-\f4\fs22  \'96 An 
-\f0\b e
-\f4\b0 xponentially-distributed fitness effect.  This DFE type is specified by a single parameter, the mean of the distribution.  The exponential distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u946 
-\f5\i0 )\'a0= 
-\f8\i \uc0\u946 
-\f5\i0 \super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f6\i s
-\f5\i0 /
-\f8\i \uc0\u946 
-\f5\i0 )
-\f4 , where 
-\f8\i \uc0\u946 
-\f4\i0  is the specified mean for the distribution.  This parameterization is the same as for the Eidos function 
-\f3\fs18 rexp()
-\f4\fs22 .  An exponential distribution is often used to model beneficial mutations.\
-
-\f3\fs18 "n"
-\f4\fs22  \'96 A 
-\f0\b n
-\f4\b0 ormally-distributed fitness effect.  This DFE type is specified by two parameters, a mean and a standard deviation.  The normal distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u956 
-\f5\i0 ,
-\f8\i \uc0\u963 
-\f5\i0 )\'a0= (2
-\f9 \uc0\u960 
-\f8\i \uc0\u963 
-\f5\i0 \super 2\nosupersub )\super \uc0\u8722 1/2\nosupersub exp(\uc0\u8722 (
-\f6\i s
-\f5\i0 \uc0\u8722 
-\f8\i \uc0\u956 
-\f5\i0 )\super 2\nosupersub /2
-\f8\i \uc0\u963 
-\f5\i0 \super 2\nosupersub )
-\f4 , where 
-\f8\i \uc0\u956 
-\f4\i0  is the mean and 
-\f8\i \uc0\u963 
-\f4\i0  is the standard deviation.  This parameterization is the same as for the Eidos function 
-\f3\fs18 rnorm()
-\f4\fs22 .  A normal distribution is often used to model mutations that can be either beneficial or deleterious, since both tails of the distribution are unbounded.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs18 \cf2 "p"
-\f4\fs22  \'96 A La
-\f0\b p
-\f4\b0 lace-distributed fitness effect.  This DFE type is specified by two parameters, a mean and a scale.  The Laplace distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f6\i \uc0\u956 
-\f5\i0 ,
-\f6\i b
-\f5\i0 )\'a0= exp(\uc0\u8722 |
-\f6\i s
-\f5\i0 \uc0\u8722 
-\f6\i \uc0\u956 
-\f5\i0 |/
-\f6\i b
-\f5\i0 )/2
-\f6\i b
-\f4\i0 , where 
-\f6\i \uc0\u956 
-\f4\i0  is the mean and 
-\f6\i b
-\f4\i0  is the scale parameter.  A Laplace distribution is sometimes used to model a mix of both deleterious and beneficial mutations.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs18 \cf0 "w"
-\f4\fs22  \'96 A 
-\f0\b W
-\f4\b0 eibull-distributed fitness effect.  This DFE type is specified by a scale parameter and a shape parameter.  The Weibull distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u955 
-\f5\i0 ,
-\f6\i k
-\f5\i0 )\'a0= (
-\f6\i k
-\f5\i0 /
-\f8\i \uc0\u955 
-\f6 \super k
-\f5\i0 \nosupersub )
-\f6\i s\super k
-\f5\i0 \uc0\u8722 1\nosupersub exp(\uc0\u8722 (
-\f6\i s
-\f5\i0 /
-\f8\i \uc0\u955 
-\f5\i0 )
-\f6\i \super k
-\f5\i0 \nosupersub )
-\f4 , where 
-\f8\i \uc0\u955 
-\f4\i0  is the scale parameter and 
-\f6\i k
-\f4\i0  is the shape parameter.  This parameterization is the same as for the Eidos function 
-\f3\fs18 rweibull()
-\f4\fs22 .  A Weibull distribution is often used to model mutations following extreme-value theory.\
-
-\f3\fs18 "s"
-\f4\fs22  \'96 A 
-\f0\b s
-\f4\b0 cript-based fitness effect.  This DFE type is specified by a script parameter of type 
-\f3\fs18 string
-\f4\fs22 , specifying an Eidos script to be executed to produce each new selection coefficient.  For example, the script 
-\f3\fs18 "return rbinom(1);"
-\f4\fs22  could be used to generate selection coefficients drawn from a binomial distribution, using the Eidos function 
-\f3\fs18 rbinom()
-\f4\fs22 , even though that mutational distribution is not supported by SLiM directly.  The script must return a singleton float or integer.\
-Note that these distributions can in principle produce selection coefficients smaller than 
-\f3\fs18 -1.0. 
-\f4\fs22 In that case
-\f5 ,
-\f4  the mutations will be evaluated as \'93lethal\'94 by SLiM, and the relative fitness of the individual will be set to 
-\f3\fs18 0.0
-\f5\fs22 .
-\fs20 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 dominanceCoeff <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The dominance coefficient used for mutations of this type when heterozygous.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
-Note that the dominance coefficient is not bounded.  A dominance coefficient greater than 
-\f3\fs18 1.0
-\f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
-Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation type 
-\f3\fs18 muttype
-\f4\fs20 \'92s dominance coefficient to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 muttype.dominanceCoeff==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
-\f3\fs18 id
-\f4\fs20  or 
-\f3\fs18 tag
-\f4\fs20  properties to identify particular mutation types.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 hemizygousDominanceCoeff <\'96> (float$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null haplosome (as can occur in sex-chromosome models and models involving a mix of haploids and diploids).  This defaults to 
-\f3\fs18 1.0
-\f4\fs20 , and is used only in models where null haplosomes are present; the 
-\f3\fs18 dominanceCoeff
-\f4\fs20  property is the dominance coefficient used in most circumstances.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
-\f3\fs18 Species
-\f4\fs20  method 
-\f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.\
-As with the 
-\f3\fs18 dominanceCoeff
-\f4\fs20  property, this is stored internally using a single-precision float; see the documentation for 
-\f3\fs18 dominanceCoeff
-\f4\fs20  for discussion.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 id => (integer$)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The identifier for this mutation type; for mutation type 
@@ -6619,22 +6988,369 @@ The species to which the target object belongs.\
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(float)drawSelectionCoefficient([integer$\'a0n\'a0=\'a01])\
+\f3\i0\fs18 \cf2 \'96\'a0(float)defaultDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the default dominance coefficient used for the specified trait or traits, for mutations of this type when heterozygous.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The default dominance coefficient is taken by new mutations of this mutation type when they are created, as the value of their 
+\f3\fs18 dominance
+\f4\fs20  property, but that can be changed later with the 
+\f3\fs18 Mutation
+\f4\fs20  method 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 .\
+If a default dominance coefficient of 
+\f3\fs18 NAN
+\f4\fs20  has been set for a given trait, to configure a default of \'93independent dominance\'94 for that trait, 
+\f3\fs18 NAN
+\f4\fs20  will be returned by this method for that trait; a realized dominance value cannot be returned since the corresponding effect size is not necessarily known.  See the 
+\f3\fs18 Mutation
+\f4\fs20  method 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  regarding obtaining the realized dominance coefficient used in a particular mutation, given that mutation\'92s effect size for the trait.\
+Note that dominance coefficients are not bounded.  For multiplicative traits, dominance coefficient greater than 
+\f3\fs18 1.0
+\f4\fs20  may be used to achieve an overdominance effect.  By making the effect size very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
+Also note that dominance coefficients have a quirk: they are stored internally in SLiM as a single-precision 
+\f3\fs18 float
+\f4\fs20 , not the double-precision 
+\f3\fs18 float
+\f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)defaultHemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the default hemizygous dominance coefficient used for the specified trait or traits, for mutations of this type when hemizygous (i.e., when present in only one copy because they are facing a null haplosome, such as for an X chromosome in a male).  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The default hemizygous dominance coefficient is taken by new mutations of this mutation type when they are created, as the value of their 
+\f3\fs18 hemizygousDominance
+\f4\fs20  property, but that can be changed later with the 
+\f3\fs18 Mutation
+\f4\fs20  method 
+\f3\fs18 setHemizygousDominanceForTrait()
+\f4\fs20 .\
+Also note that dominance coefficients have a quirk: they are stored internally in SLiM as a single-precision 
+\f3\fs18 float
+\f4\fs20 , not the double-precision 
+\f3\fs18 float
+\f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)drawEffectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Draws and returns a vector of 
 \f3\fs18 n
-\f4\fs20  selection coefficients using the currently defined distribution of fitness effects (DFE) for the target mutation type.  If the DFE is type 
+\f4\fs20  mutation effect sizes using the distribution of effect size for the specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  See the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effect size is of type 
 \f3\fs18 "s"
-\f4\fs20 , this method will result in synchronous execution of the DFE\'92s script.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effect size.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
-\f5 \
+\f3\fs18 \cf2 \'96\'a0(fs)effectSizeDistributionParamsForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Set the distribution of fitness effects for a mutation type.  The 
+\f4\fs20 \cf2 Returns the parameters that configure the distribution of effect size for the specified trait or traits.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The distribution parameters will be of type 
+\f3\fs18 string
+\f4\fs20  for DES type 
+\f3\fs18 "s"
+\f4\fs20 , and type 
+\f3\fs18 float
+\f4\fs20  for all other DES types.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(string)effectSizeDistributionTypeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the type of the distribution of effect size for the specified trait or traits.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The distribution type will be one of 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "g"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , 
+\f3\fs18 "p"
+\f4\fs20 , 
+\f3\fs18 "w"
+\f4\fs20 , or 
+\f3\fs18 "s"
+\f4\fs20  , as discussed in the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(io<DataFrame>$)loggedData(string$\'a0kind, [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effectSize\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns mutation data produced by the mutation type\'92s logging facility, as configured by 
+\f3\fs18 logMutationData()
+\f4\fs20 .  The data returned can be in the form of means across all logged mutations (for 
+\f3\fs18 kind="mean"
+\f4\fs20 ), standard deviations across all logged mutations (for 
+\f3\fs18 kind="sd"
+\f4\fs20 ), or separate values for each mutation (for 
+\f3\fs18 kind="values"
+\f4\fs20 ); 
+\f3\fs18 kind="count"
+\f4\fs20  is also allowed, and simply returns a singleton 
+\f3\fs18 integer
+\f4\fs20  providing the number of entries (i.e., the number of mutations) that have been recorded.  If logging only of means was enabled (with the 
+\f3\fs18 meanOnly=T
+\f4\fs20  option to 
+\f3\fs18 logMutationData()
+\f4\fs20 ), only 
+\f3\fs18 kind="mean"
+\f4\fs20  and 
+\f3\fs18 kind="count"
+\f4\fs20  are allowed, since separate values for each mutation are then not logged.\
+The remaining flags control which columns of data should be returned (for 
+\f3\fs18 kind
+\f4\fs20  options other than 
+\f3\fs18 "count"
+\f4\fs20 ); see 
+\f3\fs18 logMutationData()
+\f4\fs20  for a summary of the mutation properties they refer to.  A 
+\f3\fs18 DataFrame
+\f4\fs20  object will be returned with named columns of values (or means, or standard deviations) for each specified data column.  The 
+\f3\fs18 trait
+\f4\fs20  property specifies which the traits for which values should be returned, with respect to the 
+\f3\fs18 effectSize
+\f4\fs20 , 
+\f3\fs18 dominance
+\f4\fs20 , and 
+\f3\fs18 hemizygousDominance
+\f4\fs20  flags; see 
+\f3\fs18 logMutationData()
+\f4\fs20  for further description.  As a convenience, if all of these flags are 
+\f3\fs18 F
+\f4\fs20  (the default), all of the logged data columns will be returned (rather than returning no data at all).  Flags set to 
+\f3\fs18 T
+\f4\fs20  for data columns that were not actually logged will simply be ignored; similarly, traits specified by 
+\f3\fs18 trait
+\f4\fs20  that were not actually logged will simply be ignored.  See the Eidos manual for the 
+\f3\fs18 DataFrame
+\f4\fs20  class documentation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)logMutationData(logical$\'a0enable, [logical$\'a0autogeneratedOnly\'a0=\'a0T], [logical$\'a0meanOnly\'a0=\'a0F], [logical$\'a0id\'a0=\'a0F], [logical$\'a0mutationTypeID\'a0=\'a0F], [logical$\'a0chromosomeID\'a0=\'a0F], [logical$\'a0position\'a0=\'a0F], [logical$\'a0nucleotideValue\'a0=\'a0F], [logical$\'a0originTick\'a0=\'a0F], [logical$\'a0subpopID\'a0=\'a0F], [logical$\'a0tag\'a0=\'a0F], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0effectSize\'a0=\'a0F], [logical$\'a0dominance\'a0=\'a0F], [logical$\'a0hemizygousDominance\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Starts or ends logging of data about new mutations belonging to the target mutation type.  If 
+\f3\fs18 autogeneratedOnly
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), only new mutations generated automatically by SLiM will be logged (including mutations that are substituted in for an auto-generated mutation using a 
+\f3\fs18 mutation()
+\f4\fs20  callback; that is still considered part of the auto-generation process).  If 
+\f3\fs18 autogeneratedOnly
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , mutations generated in script, such as with 
+\f3\fs18 addNewMutation()
+\f4\fs20 , 
+\f3\fs18 addNewDrawnMutation()
+\f4\fs20 , and reading from files such as VCF, MS, or 
+\f3\fs18 .trees
+\f4\fs20 , will also be logged.  The logged information can be obtained later with the 
+\f3\fs18 loggedData()
+\f4\fs20  method.  Once logging has been started with 
+\f3\fs18 enable=T
+\f4\fs20  it cannot be modified, only stopped with 
+\f3\fs18 enable=F
+\f4\fs20 ; and if logging is subsequently resumed with 
+\f3\fs18 enable=T
+\f4\fs20 , any previously logged data will be discarded.  (This can be useful if you wish to limit the size of the in-memory data while continuing to log new data: periodically write the accumulated data to a file and then disable and re-enable logging to discard the old data.)\
+If 
+\f3\fs18 meanOnly
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), values for each new mutation will be kept separately.  Beware: the memory usage entailed by this option can be extremely large!  Alternatively, if 
+\f3\fs18 meanOnly
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , only a running sum, used to compute a mean, will be kept for each type of data; the memory usage for this option will be small and constant, but of course a mean is more useful for some columns of data than others.  If per-mutation data is desired for any one column, use 
+\f3\fs18 meanOnly=F
+\f4\fs20 ; this option cannot be controlled independently for the various columns of data being logged.\
+Next are parameters that control which mutation properties will be logged: 
+\f3\fs18 id
+\f4\fs20  controls the 
+\f3\fs18 id
+\f4\fs20  property; 
+\f3\fs18 mutationTypeID
+\f4\fs20  controls the 
+\f3\fs18 id
+\f4\fs20  property of the mutation\'92s mutation type (this will be the same for all mutations logged by a given 
+\f3\fs18 MutationType
+\f4\fs20 , it can be useful if you combine datasets from more than one mutation type later); 
+\f3\fs18 chromosomeID
+\f4\fs20  controls the 
+\f3\fs18 id
+\f4\fs20  property of the mutation\'92s associated chromosome; 
+\f3\fs18 position
+\f4\fs20  controls the 
+\f3\fs18 position
+\f4\fs20  property; 
+\f3\fs18 nucleotideValue
+\f4\fs20  controls the 
+\f3\fs18 nucleotideValue
+\f4\fs20  property; 
+\f3\fs18 originTick
+\f4\fs20  controls the 
+\f3\fs18 originTick
+\f4\fs20  property; 
+\f3\fs18 subpopID
+\f4\fs20  controls the 
+\f3\fs18 subpopID
+\f4\fs20  property; and 
+\f3\fs18 tag
+\f4\fs20  controls the 
+\f3\fs18 tag
+\f4\fs20  property.  Data columns will be added in the order of these parameters; the 
+\f3\fs18 id
+\f4\fs20  column will be first, if requested, for example.\
+Last come parameters that control the logging of trait-associated data for the new mutations.  The 
+\f3\fs18 trait
+\f4\fs20  parameter controls which traits will be logged.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  For each specified trait, the 
+\f3\fs18 effectSize
+\f4\fs20  parameter controls logging of the effect size, the 
+\f3\fs18 dominance
+\f4\fs20  parameter controls the dominance, and the 
+\f3\fs18 hemizygousDominance
+\f4\fs20  parameter controls the hemizygous dominance.  Data columns for this trait-associated data will be grouped by trait; for example, if two traits named 
+\f3\fs18 height
+\f4\fs20  and 
+\f3\fs18 weight
+\f4\fs20  are specified, and the 
+\f3\fs18 effectSize=T
+\f4\fs20  and 
+\f3\fs18 dominance=T
+\f4\fs20  flags are specified, then columns 
+\f3\fs18 heightEffectSize
+\f4\fs20 , 
+\f3\fs18 heightDominance
+\f4\fs20 , 
+\f3\fs18 weightEffectSize
+\f4\fs20 , and 
+\f3\fs18 weightDominance
+\f4\fs20  will be added, in that order.\
+Note that logging occurs after all 
+\f3\fs18 mutation()
+\f4\fs20  callbacks have been called, at the point when the new mutation is actually added to the simulation.  If addition of a new mutation is prevented, by a 
+\f3\fs18 mutation()
+\f4\fs20  callback or by the current stacking policy, that mutation will not be logged.  The information logged will be the mutation\'92s properties at the moment that it is added; a 
+\f3\fs18 tag
+\f4\fs20  value set by a 
+\f3\fs18 mutation()
+\f4\fs20  callback will therefore be captured in the logged data, for example.  Changes to mutations made after that point will not be preserved in the log; the log is a snapshot of the moment of each mutation\'92s addition to the simulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setDefaultDominanceForTrait(Niso<Trait>\'a0trait, float\'a0dominance)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Set the default dominance coefficient for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The value of 
+\f3\fs18 dominance
+\f4\fs20  must either be singleton (in which case it is set as the default dominance for all specified traits), or must match the number of specified traits (in which case one element of 
+\f3\fs18 defaultDominance
+\f4\fs20  is used for each corresponding trait).\
+As for 
+\f3\fs18 initializeMutationType()
+\f4\fs20 , a 
+\f3\fs18 dominance
+\f4\fs20  value of 
+\f3\fs18 NAN
+\f4\fs20  for a given trait configures the mutation type to use \'93independent dominance\'94 for that trait in new mutations of that type; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation for discussion of independent dominance.  A mutation type may be configured to use independent dominance for some traits and not for others; a mixed configuration is allowed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setDefaultHemizygousDominanceForTrait(Niso<Trait>\'a0trait, float\'a0dominance)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Set the default hemizygous dominance coefficient for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The value of 
+\f3\fs18 dominance
+\f4\fs20  must either be singleton (in which case it is set as the default hemizygous dominance for all specified traits), or must match the number of specified traits (in which case one element of 
+\f3\fs18 dominance
+\f4\fs20  is used for each corresponding trait).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setEffectSizeDistributionForTrait(Niso<Trait>\'a0trait, string$\'a0distributionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Set the distribution of effect size for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.\
+The 
 \f3\fs18 distributionType
 \f4\fs20  may be 
 \f3\fs18 "f"
@@ -6642,27 +7358,27 @@ The species to which the target object belongs.\
 \f3\fs18 ...
 \f4\fs20  should supply a 
 \f3\fs18 numeric$
-\f4\fs20  fixed selection coefficient; 
+\f4\fs20  fixed effect size; 
 \f3\fs18 "e"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient for the exponential distribution; 
+\f4\fs20  mean effect size for the exponential distribution; 
 \f3\fs18 "g"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient and a 
+\f4\fs20  mean effect size and a 
 \f3\fs18 numeric$
 \f4\fs20  alpha shape parameter for a gamma distribution; 
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient and a 
+\f4\fs20  mean effect size and a 
 \f3\fs18 numeric$
 \f4\fs20  sigma (standard deviation) parameter for a normal distribution; 
 \f3\fs18 "p"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  mean selection coefficient and a 
+\f4\fs20  mean effect size and a 
 \f3\fs18 numeric$
 \f4\fs20  scale parameter for a Laplace distribution; 
 \f3\fs18 "w"
@@ -6676,13 +7392,101 @@ The species to which the target object belongs.\
 \f3\fs18 "s"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 string$
-\f4\fs20  Eidos script parameter.  The DFE for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
+\f4\fs20  Eidos script parameter.  See the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation for discussion of these distributions and their uses.  The distribution of effect size for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.12  Class Plot\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\b0\fs18 \cf2 (No<Plot>$)Plot(string$\'a0title, ifo\'a0thing, [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The standard way to create a new 
+\f3\fs18 Plot
+\f4\fs20  object (and therefore a new custom plot window in SLiMgui) is with the 
+\f3\fs18 createPlot()
+\f4\fs20  method of the 
+\f3\fs18 SLiMgui
+\f4\fs20  class.  The 
+\f3\fs18 Plot
+\f4\fs20  constructor is provided as a convenience function specifically for creating custom plot windows that display a single object or a matrix of values.  This is intended as a way to quickly and easily get a visual preview or check of something defined in your script; for more advanced plotting, use 
+\f3\fs18 createPlot()
+\f4\fs20 .\
+The thing to be plotted passed to the constructor through the parameter 
+\f3\fs18 thing
+\f4\fs20 .  The parameter 
+\f3\fs18 title
+\f4\fs20  provides the title of the new plot window.  The 
+\f3\fs18 width
+\f4\fs20  and 
+\f3\fs18 height
+\f4\fs20  parameters provide the size, in pixels, to be used for the new plot window; if they are both 
+\f3\fs18 NULL
+\f4\fs20  a default size will be chosen by 
+\f3\fs18 Plot()
+\f4\fs20  that fits the thing being plotted (at a reasonable size, preserving any intrinsic aspect ratio, and so forth).  See the 
+\f3\fs18 createPlot()
+\f4\fs20  method in section 26.14.2 for further discussion of 
+\f3\fs18 title
+\f4\fs20 , 
+\f3\fs18 width
+\f4\fs20 , and 
+\f3\fs18 height
+\f4\fs20 .\
+At present, 
+\f3\fs18 thing
+\f4\fs20  must be one of four things: a singleton 
+\f3\fs18 Image
+\f4\fs20  object, a singleton 
+\f3\fs18 SpatialMap
+\f4\fs20  object, a singleton 
+\f3\fs18 Palette
+\f4\fs20  object, or an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  matrix.  Objects of class 
+\f3\fs18 Image
+\f4\fs20 , 
+\f3\fs18 SpatialMap
+\f4\fs20 , and 
+\f3\fs18 Palette
+\f4\fs20  have intrinsic color information, and will be plotted in those colors; see their class documentation for details.  When 
+\f3\fs18 thing
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  matrix, the values of that matrix are scaled to the range [0, 1] and then displayed in grayscale (with zero as black and one as white).  In all cases the displayed thing will completely fill the interior of the plot window, which is configured to be borderless; no axes, ticks, or labels will be displayed.\
+The implementation of 
+\f3\fs18 Plot()
+\f4\fs20  is written in Eidos and is viewable with 
+\f3\fs18 functionSource("Plot")
+\f4\fs20 ; modifying it might be useful since the simple default functionality it provides might not be exactly what is desired.  For some simple modifications, note also that the new 
+\f3\fs18 Plot
+\f4\fs20  object is returned and can be modified by the caller \'96 its properties can be changed and new plot elements can be added, using the methods of class 
+\f3\fs18 Plot
+\f4\fs20 , that will be displayed on top of 
+\f3\fs18 thing
+\f4\fs20 .  If further customization is needed, a new function could be defined based upon the function source for 
+\f3\fs18 Plot()
+\f4\fs20 , or the 
+\f3\fs18 createPlot()
+\f4\fs20  method of 
+\f3\fs18 SLiMgui
+\f4\fs20  could be used for complete flexibility.\
+Note that although the 
+\f3\fs18 Plot
+\f4\fs20  class is only available when running under SLiMgui, this 
+\f3\fs18 Plot()
+\f4\fs20  function can be called outside of SLiMgui too; in that case it does nothing and returns 
+\f3\fs18 NULL
+\f4\fs20 .  This is intended as a convenience, so one doesn\'92t have to check for the existence of SLiMgui before making a simple preview plot.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf2 5.12.1  
+\f1\i\fs22 \cf2 5.12.1  
 \f2\fs18 Plot
 \f1\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6890,7 +7694,7 @@ The
 \f4\fs20  is fully transparent and 
 \f3\fs18 1.0
 \f4\fs20  is fully opaque.  The new image data will be plotted on top of any previously added data.\
-The image data may be specified in one of two ways.  First, 
+The image data may be specified in one of three ways.  First, 
 \f3\fs18 image
 \f4\fs20  may be a singleton 
 \f3\fs18 Image
@@ -6930,10 +7734,29 @@ Second,
 \f4\fs20  method of 
 \f3\fs18 SpatialMap
 \f4\fs20  can be used to increase the grid resolution of the map prior to display.)\
+Third, 
+\f3\fs18 image
+\f4\fs20  may be a singleton 
+\f3\fs18 Palette
+\f4\fs20  object.  In this case, the color gradients of the palette, as generated by interpolation between the palette\'92s nodes, are plotted inside the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 /
+\f3\fs18 y1
+\f4\fs20 /
+\f3\fs18 x2
+\f4\fs20 /
+\f3\fs18 y2
+\f4\fs20 , for the full range of the palette (as returned by the 
+\f3\fs18 range
+\f4\fs20  property of the palette).  The palette is displayed from left to right inside the specified rectangle.  Since this rendering is vertically symmetrical, the 
+\f3\fs18 flipped
+\f4\fs20  parameter is ignored.\
 This method caches the image data being plotted so that plotting the same 
 \f3\fs18 SpatialMap
-\f4\fs20  or 
+\f4\fs20 , 
 \f3\fs18 Image
+\f4\fs20 , or 
+\f3\fs18 Palette
 \f4\fs20  object multiple times is more efficient.  See the 
 \f3\fs18 matrix()
 \f4\fs20  method of 
@@ -7048,7 +7871,7 @@ The lines will be drawn in color
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)matrix(numeric\'a0matrix, numeric$\'a0x1, numeric$\'a0y1, numeric$\'a0x2, numeric$\'a0y2, [logical$\'a0flipped\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns$\'a0colors\'a0=\'a0NULL], [float$\'a0alpha\'a0=\'a01.0])\
+\f3\fs18 \cf2 \'96\'a0(void)matrix(numeric\'a0matrix, numeric$\'a0x1, numeric$\'a0y1, numeric$\'a0x2, numeric$\'a0y2, [logical$\'a0flipped\'a0=\'a0F], [No<Palette>$\'a0palette\'a0=\'a0NULL], [float$\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds image data given by 
@@ -7086,78 +7909,23 @@ The lines will be drawn in color
 \f4\fs20  the image\'92s orientation is flipped vertically relative to that default (with row 
 \f3\fs18 0
 \f4\fs20  bottommost).\
-Prior to display, the values in the matrix will be rescaled according to the parameter 
-\f3\fs18 valueRange
-\f4\fs20 .  If 
-\f3\fs18 valueRange
-\f4\fs20  is 
+The colors used to display the matrix are specified by 
+\f3\fs18 palette
+\f4\fs20 , which may be any 
+\f3\fs18 Palette
+\f4\fs20  object.  See the class 
+\f3\fs18 Palette
+\f4\fs20  documentation in the Eidos manual for further details.  If palette is 
 \f3\fs18 NULL
-\f4\fs20  (the default), the values will be left unscaled; this is equivalent to passing 
-\f3\fs18 c(0,1)
-\f4\fs20  for 
+\f4\fs20  (the default), the matrix will be displayed with a default color scheme that clamps the values of the matrix to the interval [0, 1] and then maps 
+\f3\fs18 0.0
+\f4\fs20  to black, 
+\f3\fs18 1.0
+\f4\fs20  to white, and intermediate values to intermediate shades of gray.  Note that the previous way of specifying the colors introduced in SLiM 5.1, with 
 \f3\fs18 valueRange
-\f4\fs20 .  Otherwise, 
-\f3\fs18 valueRange
-\f4\fs20  should be a 
-\f3\fs18 numeric
-\f4\fs20  vector containing two elements that define the range of values that will be rescaled to span the interval [0, 1] \'96 the range to which the color scheme will then be applied.  After rescaling the given range to [
-\f3\fs18 0
-\f4\fs20 , 
-\f3\fs18 1
-\f4\fs20 ], the resulting values are clamped to the range [
-\f3\fs18 0
-\f4\fs20 , 
-\f3\fs18 1
-\f4\fs20 ].  It is legal for 
-\f3\fs18 valueRange[0]
-\f4\fs20  to be greater than 
-\f3\fs18 valueRange[1]
-\f4\fs20 ; in this case, the rescaling operation will, in effect, reverse the direction of the color scheme by reversing the ranks of the reordered values.\
-The rescaled and clamped values are then colored according to the color scheme named by 
+\f4\fs20  and 
 \f3\fs18 colors
-\f4\fs20 , which should be one of the named schemes supported by the Eidos function 
-\f3\fs18 colors()
-\f4\fs20 : 
-\f3\fs18 "cm"
-\f4\fs20 , 
-\f3\fs18 "heat"
-\f4\fs20 , 
-\f3\fs18 "terrain"
-\f4\fs20 , 
-\f3\fs18 "parula"
-\f4\fs20 , 
-\f3\fs18 "hot"
-\f4\fs20 , 
-\f3\fs18 "jet"
-\f4\fs20 , 
-\f3\fs18 "turbo"
-\f4\fs20 , 
-\f3\fs18 "gray"
-\f4\fs20 , 
-\f3\fs18 "magma"
-\f4\fs20 , 
-\f3\fs18 "inferno"
-\f4\fs20 , 
-\f3\fs18 "plasma"
-\f4\fs20 , 
-\f3\fs18 "viridis"
-\f4\fs20 , or 
-\f3\fs18 "cividis"
-\f4\fs20 .  If 
-\f3\fs18 colors
-\f4\fs20  is 
-\f3\fs18 NULL
-\f4\fs20  (the default), the color scheme used is the reverse of the 
-\f3\fs18 "gray"
-\f4\fs20  color scheme, shading from black for 
-\f3\fs18 0
-\f4\fs20  up to white for 
-\f3\fs18 1
-\f4\fs20 .  In all cases, the color scheme is applied across the range [
-\f3\fs18 0
-\f4\fs20 , 
-\f3\fs18 1
-\f4\fs20 ] for the rescaled and clamped values.\
+\f4\fs20  parameters, has been replaced and is no longer available.\
 The plotted image will use opacity 
 \f3\fs18 alpha
 \f4\fs20 ; alpha values must be in [
@@ -7847,6 +8615,34 @@ Once the plot has been created, data can be added to it using
 \f4\fs20 .  As with other plot windows in SLiMgui, the \'93action button\'94 can be used to access plot configuration options, and to copy or save the final plot as a raster image or a PDF file.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(No<Palette>$)defaultPalette(string$\'a0name)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns SLiMgui\'92s default palette with name 
+\f3\fs18 name
+\f4\fs20 .  At present, supported names are 
+\f3\fs18 "fitness"
+\f4\fs20 , 
+\f3\fs18 "fitnessEffect"
+\f4\fs20 , 
+\f3\fs18 "multiplicativePhenotype"
+\f4\fs20 , 
+\f3\fs18 "multiplicativeEffect"
+\f4\fs20 , 
+\f3\fs18 "additivePhenotype"
+\f4\fs20 , 
+\f3\fs18 "additiveEffect"
+\f4\fs20 , 
+\f3\fs18 "logisticPhenotype"
+\f4\fs20 , and 
+\f3\fs18 "logisticEffect"
+\f4\fs20 .  If the palette cannot be found (because 
+\f3\fs18 name
+\f4\fs20  is not a recognized default palette name), 
+\f3\fs18 NULL
+\f4\fs20  is returned.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(Nfs)logFileData(object<LogFile>$\'a0logFile, is$\'a0column)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -8112,48 +8908,67 @@ One possibility is that
 \f4\fs20  is blended with the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)changeColors([Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \'96\'a0(void)changeColors(...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Changes the color scheme for the target spatial map.  The meaning of 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  are identical to their meaning in 
+\f1\i\fs20 \cf2 variant 1 (a range and colors):
+\f4\i0  
+\f3\fs18 [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL]
+\f4\fs20 \
+
+\f1\i variant 2 (Palette object):
+\f4\i0  
+\f3\fs18 [No<Palette>$\'a0palette\'a0=\'a0NULL]
+\f4\fs20 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Changes the palette used to color the target spatial map.  This method supports two call variants, described below.\
+First of all, for either variant one can pass 
+\f3\fs18 NULL
+\f4\fs20  for the ellipsis parameters, or simply omit them (since their default values are 
+\f3\fs18 NULL
+\f4\fs20 ).  Doing this removes any palette currently configured for the spatial map, reverting to the default grayscale ramp as described further in the documentation for 
 \f3\fs18 defineSpatialMap()
-\f4\fs20 , but are also described here.\
-The 
+\f4\fs20 .\
+Assuming that non-
+\f3\fs18 NULL
+\f4\fs20  values are passed for the ellipsis parameters, then:\
+The first variant takes 
 \f3\fs18 valueRange
 \f4\fs20  and 
 \f3\fs18 colors
-\f4\fs20  parameters travel together; either both are 
-\f3\fs18 NULL
-\f4\fs20 , or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
-\f3\fs18 mapColor()
-\f4\fs20  method.  The 
+\f4\fs20  parameters that are used to specify the palette.  The 
 \f3\fs18 valueRange
-\f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
-\f3\fs18 colors
-\f4\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
-\f3\fs18 valueRange
-\f4\fs20 : values less than or equal to 
+\f4\fs20  parameter must be of length 2, providing the start and end values spanned by the palette; as such, 
 \f3\fs18 valueRange[0]
-\f4\fs20  will map to 
-\f3\fs18 colors[0]
-\f4\fs20 , values greater than or equal to 
+\f4\fs20  must be less than 
 \f3\fs18 valueRange[1]
-\f4\fs20  will map to the last 
+\f4\fs20 .  The 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes for an illustration of its use.\
-If 
-\f3\fs18 valueRange
-\f4\fs20  and 
+\f4\fs20  parameter must be of length 1 or greater, and must be composed of color strings.  The palette will be constructed with the first color of 
 \f3\fs18 colors
-\f4\fs20  are both 
-\f3\fs18 NULL
-\f4\fs20 , a default grayscale color scheme will be used in SLiMgui, but an error will result if 
-\f3\fs18 mapColor()
-\f4\fs20  is called.\
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[0]
+\f4\fs20 , the last color of 
+\f3\fs18 colors
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[1]
+\f4\fs20 , and the remaining colors, if any, used for nodes equally spaced between those two endpoints, in the order in which the colors were specified.  A transition of 
+\f3\fs18 "linear"
+\f4\fs20  and a blend of 
+\f3\fs18 "rgb"
+\f4\fs20  will be used.  This variant is provided for backward compatibility with versions of SLiM prior to the introduction of the 
+\f3\fs18 Palette
+\f4\fs20  class.\
+The second variant simply takes a 
+\f3\fs18 palette
+\f4\fs20  parameter that provides the 
+\f3\fs18 Palette
+\f4\fs20  object for the spatial map to use.\
+The Eidos manual\'92s documentation for the 
+\f3\fs18 Palette
+\f4\fs20  class provides background information on how palettes work, how to create a new 
+\f3\fs18 Palette
+\f4\fs20  object, and so forth.  Similarly, the Eidos manual\'92s section on \'93Colors in Eidos\'94 discusses color strings and related topics.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)changeValues(ifo<SpatialMap>\'a0x)\
@@ -8165,7 +8980,7 @@ If
 \f3\fs18 SpatialMap
 \f4\fs20  object from which values are taken directly, or a vector, matrix, or array of numeric values as described in the documentation for 
 \f3\fs18 defineSpatialMap()
-\f4\fs20 .  Other characteristics of the spatial map, such as its color mapping (if defined), its spatial bounds, and its spatiality, will remain unchanged.  The grid resolution of the spatial map is allowed to change with this method.  This method is useful for changing the values of a spatial map over time, such as to implement changes to the landscape\'92s characteristics due to seasonality, climate change, processes such as fire or urbanization, and so forth.  As with the original map values provided to 
+\f4\fs20 .  Other characteristics of the spatial map, such as its palette (if defined), its spatial bounds, and its spatiality, will remain unchanged.  The grid resolution of the spatial map is allowed to change with this method.  This method is useful for changing the values of a spatial map over time, such as to implement changes to the landscape\'92s characteristics due to seasonality, climate change, processes such as fire or urbanization, and so forth.  As with the original map values provided to 
 \f3\fs18 defineSpatialMap()
 \f4\fs20 , it is often useful to read map values from a PNG image file using the Eidos class 
 \f3\fs18 Image
@@ -8288,17 +9103,13 @@ If
 \f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Uses the spatial map\'92s color-translation machinery (as defined by the 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  parameters to 
-\f3\fs18 defineSpatialMap()
-\f4\fs20 ) to translate each element of 
+\f4\fs20 \cf2 Uses the spatial map\'92s palette to translate each element of 
 \f3\fs18 value
-\f4\fs20  into a corresponding color string.  If the spatial map does not have color-translation capabilities, an error will result.  See the documentation for 
+\f4\fs20  into a corresponding color string.  If the spatial map does not have a palette configured (and is thus using the default grayscale ramp), an error will result.  See the documentation for 
 \f3\fs18 defineSpatialMap()
-\f4\fs20  for information regarding the details of color translation.  See the Eidos manual for further information on color strings.\
+\f4\fs20  and the 
+\f3\fs18 Palette
+\f4\fs20  class for information regarding the details of this color translation.  See the Eidos manual for further information on color strings.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Image>$)mapImage([Ni$\'a0width\'a0=\'a0NULL], [Ni$\'a0height\'a0=\'a0NULL], [logical$\'a0centers\'a0=\'a0F], [logical$\'a0color\'a0=\'a0T])\
@@ -8356,13 +9167,9 @@ If
 \f3\fs18 color
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), the 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  parameters supplied to 
-\f3\fs18 defineSpatialMap()
-\f4\fs20  will be used to translate map values to RGB color values as described in the documentation of that method, providing the same appearance as in SLiMgui; of course those parameters must have been supplied, otherwise an error will result.  If 
+\f4\fs20  (the default), the spatial map\'92s palette will be used to translate map values to RGB color values in the same way as the 
+\f3\fs18 mapColor()
+\f4\fs20  method, providing the same appearance as in SLiMgui; if no palette has been specified, an error will result.  If 
 \f3\fs18 color
 \f4\fs20  is 
 \f3\fs18 F
@@ -8382,11 +9189,7 @@ If
 \f3\fs18 floatK
 \f4\fs20  channel of a grayscale PNG image, this should recover the original image\'92s pixel values.  (If a different translation scheme is desired, 
 \f3\fs18 color=T
-\f4\fs20  with the desired 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  should be used.)\
+\f4\fs20  should be used with a palette for the spatial map.)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)mapValue(float\'a0point)\
@@ -8765,7 +9568,26 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 avatar => (string$)\
+\f2\fs18 \cf2 <trait-name>
+\f3\i0  => (object<Trait>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the 
+\f3\fs18 Trait
+\f4\fs20  object in the species for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 traits
+\f4\fs20  property and the 
+\f3\fs18 traitsWithIndices()
+\f4\fs20  and 
+\f3\fs18 traitsWithNames()
+\f4\fs20  methods provide alternative ways to access 
+\f3\fs18 Trait
+\f4\fs20  objects.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 avatar => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The avatar string used to represent this species in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Avatars are typically one-character strings, often using an emoji that symbolizes the species.  This property is read-only; its value should be set with the 
@@ -8837,6 +9659,70 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f4\fs20 , or 
 \f3\fs18 "xyz"
 \f4\fs20 , for simulations using those spatial dimensions respectively.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 fitnessEffectPalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color mutations when \'93fitness\'94 is selected as the display trait.  The homozygous effect of a mutation (1+
+\f1\i s
+\f4\i0  or 2
+\f1\i a
+\f4\i0 ) is looked up in this palette to determine the color of the mutation.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 MutationType
+\f4\fs20  takes priority for mutation display; if it is set for a given mutation type, it determines the color of mutations of that type regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui (available through the 
+\f3\fs18 defaultPalette()
+\f4\fs20  method of the 
+\f3\fs18 SLiMgui
+\f4\fs20  class).  See also the 
+\f3\fs18 fitnessPalette
+\f4\fs20  property of 
+\f3\fs18 Species
+\f4\fs20 , and the 
+\f3\fs18 individualPhenotypePalette
+\f4\fs20  and 
+\f3\fs18 mutationEffectPalette
+\f4\fs20  properties of 
+\f3\fs18 Trait
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 fitnessPalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color individuals when \'93fitness\'94 is selected as the display trait.  The fitness value of an individual, not including any subpopulation 
+\f3\fs18 fitnessScaling
+\f4\fs20  value, is looked up in this palette to determine the color of the individual.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20  takes priority over this for individual display; if it is set for a given individual, it determines the color of that individual regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui (available through the 
+\f3\fs18 defaultPalette()
+\f4\fs20  method of the 
+\f3\fs18 SLiMgui
+\f4\fs20  class).  See also the 
+\f3\fs18 fitnessEffectPalette
+\f4\fs20  property of 
+\f3\fs18 Species
+\f4\fs20 , and the 
+\f3\fs18 individualPhenotypePalette
+\f4\fs20  and 
+\f3\fs18 mutationEffectPalette
+\f4\fs20  properties of 
+\f3\fs18 Trait
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 genomicElementTypes => (object<GenomicElementType>)\
@@ -9009,6 +9895,22 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 Dictionary
 \f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to the simulation.
 \f5 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 traits => (object<Trait>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Trait
+\f4\fs20  objects defined in the species.  These are guaranteed to be in sorted order by their index (i.e., by the order in which they were defined).  The 
+\f3\fs18 traitsWithIndices()
+\f4\fs20  and 
+\f3\fs18 traitsWithNames()
+\f4\fs20  methods and the 
+\f3\fs18 <trait-name>
+\f4\fs20  property are also useful for obtaining particular 
+\f3\fs18 Trait
+\f4\fs20  objects from the species.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.16.2  
@@ -9611,6 +10513,50 @@ Subpopulations added by this method will consist of individuals that are clonal 
 \f5\fs20 .
 \f4   This method is often used to determine whether an introduced mutation is still active (as opposed to being either lost or fixed).  This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f5 \
+\pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)demandPhenotype(Nio<Subpopulation>\'a0subpops, [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Expresses \'93demand\'94 for the phenotypes (trait values) of the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , for all individuals in the subpopulations specified by 
+\f3\fs18 subpops
+\f4\fs20 .  Subpopulations may be supplied either as 
+\f3\fs18 integer
+\f4\fs20  IDs, or as 
+\f3\fs18 Subpopulation
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the subpopulations in the species.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  This triggers the recalculation of those trait values in those subpopulations, as needed.  More specifically, if 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the specified trait values will only be recalculated if their current value is 
+\f3\fs18 NAN
+\f4\fs20 ; if they have any other value, they are considered to already be calculated, and will not be recalculated.  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the specified trait values will be recalculated regardless of their current value, which can be useful if they are known to be out of date.  No value is returned by 
+\f3\fs18 demandPhenotype()
+\f4\fs20 , since assembling that return value would require additional work that would sometimes be wasted; instead, if you want to obtain the new trait values you should fetch them separately afterwards.\
+This method entails significant per-call overhead, so it is much better to call it once for a whole set of traits than to call it separately for each trait in that set.  Similarly, it is much better to call it for all subpopulations than to call it separately for each subpopulation.  The more work you give this method to do in a single call, the more it will be able to share work and optimize the calculation process.  Note that the 
+\f3\fs18 Individual
+\f4\fs20  method 
+\f3\fs18 demandPhenotypeForIndividuals()
+\f4\fs20  allows demand to be expressed for traits in a specific set of individuals, but is significantly less efficient than this method.\
+Note that the fitness recalculation tick cycle stage intrinsically expresses demand for all traits that have a direct effect on fitness, so 
+\f3\fs18 demandPhenotype()
+\f4\fs20  does not usually need to be called explicitly; it is useful primarily for expressing demand for traits that are not directly connected to fitness, but are used in some other way.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Individual>)individualsWithPedigreeIDs(integer\'a0pedigreeIDs, [Nio<Subpopulation>\'a0subpops\'a0=\'a0NULL])\
@@ -10221,7 +11167,7 @@ When loading a tree sequence, a crosscheck of the loaded data will be performed 
 \f4\fs20  is called to load a tree sequence; subsequent calls will not perform this crosscheck, for greater speed when running models that load saved population state many times (such as models that are conditional on fixation).  If you suspect that a tree sequence file might be corrupted, or might be read incorrectly, running a Debug build of SLiM enables crosschecks after every load.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL])\
+\f3\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL]\cf2 , [logical$\'a0forceRecalc\'a0=\'a0T]\cf0 )\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Force an immediate recalculation of fitness values for all individuals in all subpopulations.  Normally fitness values are calculated at a fixed point in each tick, and those values are cached and used until the next recalculation.  If simulation parameters are changed in script in a way that affects fitness calculations, and if you wish those changes to take effect immediately rather than taking effect at the next automatic recalculation, you may call 
@@ -10260,6 +11206,27 @@ The optional parameter
 \f4\fs20  in a 
 \f3\fs18 late()
 \f4\fs20  event, which is also not advisable in general.)\
+If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), this method will force the recalculation of all trait values upon which fitness depends.  (If a trait does not have a direct effect on fitness, it will not be recalculated even when 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 ; use 
+\f3\fs18 demandPhenotype()
+\f4\fs20  to force recalculation of such traits.)  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , trait values will only be recalculated if they are marked as invalid \'96 in other words, if their value is 
+\f3\fs18 NAN
+\f4\fs20 .  This option can improve performance by skipping redundant calculations, but can produce out-of-date fitness values if something in the model state has changed such that trait values actually do need to be recalculated even though they are not 
+\f3\fs18 NAN
+\f4\fs20 .  This could occur if, for example, if a 
+\f3\fs18 mutationEffect()
+\f4\fs20  callback\'92s activation state has been changed.\
 After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
 \f3\fs18 mutationEffect()
 \f4\fs20  and 
@@ -10432,7 +11399,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerMutationEffectCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerMutationEffectCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Niso<Trait>$\'a0trait\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Register a block of Eidos source code, represented as the 
@@ -10451,11 +11418,21 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3\fs18 integer
 \f4\fs20  identifier, or 
 \f3\fs18 NULL
-\f4\fs20 , the default, to indicate all subpopulations), and optional 
+\f4\fs20 , the default, to indicate all subpopulations), optional 
 \f3\fs18 start
 \f4\fs20  and 
 \f3\fs18 end
-\f4\fs20  ticks all limiting its applicability.  The script block will be given identifier 
+\f4\fs20  ticks, and optional trait identifier 
+\f3\fs18 trait
+\f4\fs20  (which may be an 
+\f3\fs18 integer
+\f4\fs20  trait index, a 
+\f3\fs18 string
+\f4\fs20  trait name, a 
+\f3\fs18 Trait
+\f4\fs20  object, or 
+\f3\fs18 NULL
+\f4\fs20  if the species has only one defined trait anyway), all limiting its applicability.  The script block will be given identifier 
 \f3\fs18 id
 \f4\fs20  (specified as an 
 \f3\fs18 integer
@@ -10733,6 +11710,42 @@ This method is shorthand for getting the
 \f4\fs20 , out of all of the substitutions that are currently present in the species.  This method is provided for speed; it is much faster than the corresponding Eidos code.  See also 
 \f3\fs18 mutationsOfType()
 \f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Trait>)traitsWithIndices(integer\'a0indices)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 Trait
+\f4\fs20  objects corresponding to the trait indices supplied in 
+\f3\fs18 indices
+\f4\fs20 , in the same order.  If any index in 
+\f3\fs18 indices
+\f4\fs20  does not correspond to a trait in the target species, an error will be raised.  See also 
+\f3\fs18 traitsWithNames()
+\f4\fs20 , and the 
+\f3\fs18 traits
+\f4\fs20  and 
+\f3\fs18 <trait-name>
+\f4\fs20  properties.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Trait>)traitsWithNames(string\'a0names)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 Trait
+\f4\fs20  objects corresponding to the trait names supplied in 
+\f3\fs18 names
+\f4\fs20 , in the same order.  If any name in 
+\f3\fs18 names
+\f4\fs20  does not correspond to a trait in the target species, an error will be raised.  See also 
+\f3\fs18 traitsWithIndices()
+\f4\fs20 , and the 
+\f3\fs18 traits
+\f4\fs20  and 
+\f3\fs18 <trait-name>
+\f4\fs20  properties.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -12359,12 +13372,23 @@ Adding a map to a subpopulation is not strictly necessary, at present; one may q
 \f4\fs20 , both for its compatibility check that prevents unnoticed scripting errors, and because it ensures correct display of the model in SLiMgui.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
+\f3\fs18 \cf0 \'96\'a0(float)cachedFitness(\cf2 [Nio<Individual>\'a0individuals\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The fitness values calculated for the individuals at the indices given are returned.  If 
+\f4\fs20 \cf2 The fitness values calculated for the individuals specified by 
+\f3\fs18 individuals
+\f4\fs20  are returned.  The 
+\f3\fs18 individuals
+\f4\fs20  parameter may be an 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20  (all elements of which must belong to the target subpopulation), an 
+\f3\fs18 integer
+\f4\fs20  vector of indices of individuals within the target subpopulation, or 
 \f3\fs18 NULL
-\f4\fs20  is passed, fitness values for all individuals in the subpopulation are returned.  The fitness values returned are cached values; 
+\f4\fs20  (the default) to specify all individuals in the target subpopulation.\
+The fitness values returned are cached values; 
 \f3\fs18 mutationEffect()
 \f4\fs20  and 
 \f3\fs18 fitnessEffect()
@@ -12380,13 +13404,18 @@ Adding a map to a subpopulation is not strictly necessary, at present; one may q
 \f3\fs18 late()
 \f4\fs20  event, because fitness values for the new offspring generation have not yet been calculated and are undefined.  In nonWF models, the population may be a mixture of new and old individuals, so instead, 
 \f3\fs18 NAN
-\f4\fs20  will be returned as the fitness of any new individuals whose fitness has not yet been calculated.  When new subpopulations are first created with 
+\f4\fs20  will be returned as the fitness of any new offspring whose fitness has not yet been calculated.  When new subpopulations are first created with 
 \f3\fs18 addSubpop()
 \f4\fs20  or 
 \f3\fs18 addSubpopSplit()
 \f4\fs20 , the fitness of all of the newly created individuals is considered to be 
 \f3\fs18 1.0
 \f4\fs20  until fitness values are recalculated.\
+See the 
+\f3\fs18 cachedFitness
+\f4\fs20  property of class 
+\f3\fs18 Individual
+\f4\fs20  for another way to access the cached fitness values for individuals.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -12441,10 +13470,19 @@ The
 \f4\fs20 , SLiMgui\'92s default (fitness-based) color will be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SpatialMap>$)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SpatialMap>$)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Defines a spatial map for the subpopulation; see the 
+\f1\i\fs20 \cf2 variant 1 (a range and colors):
+\f4\i0  
+\f3\fs18 [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL]
+\f4\fs20 \
+
+\f1\i variant 2 (Palette object):
+\f4\i0  
+\f3\fs18 [No<Palette>$\'a0palette\'a0=\'a0NULL]
+\f4\fs20 \
+Defines a spatial map for the subpopulation; see the 
 \f3\fs18 SpatialMap
 \f4\fs20  documentation regarding this class.  The new map is automatically added to the subpopulation; 
 \f3\fs18 addSpatialMap()
@@ -12454,7 +13492,7 @@ The
 \f3\fs18 defineConstant()
 \f4\fs20  or 
 \f3\fs18 defineGlobal()
-\f4\fs20  for convenience.\
+\f4\fs20  for convenience.  This method supports two call variants, described below.\
 The name of the map is given by 
 \f3\fs18 name
 \f4\fs20 , and can be used to identify it.  The map uses the spatial dimensions referenced by 
@@ -12539,40 +13577,68 @@ Moving on to the other parameters of
 \f4\fs20  method of 
 \f3\fs18 SpatialMap
 \f4\fs20  to precalculate an interpolated map using cubic/bucubic interpolation.\
-The 
+The remaining ellipsis parameters should conform to one of the two supported call variants.  First of all, for either variant one can pass 
+\f3\fs18 NULL
+\f4\fs20  for the ellipsis parameters, or simply omit them (since their default values are 
+\f3\fs18 NULL
+\f4\fs20 ).  Doing this does not configure a palette for the spatial map.  Instead, it will use the \'93default grayscale ramp\'94: shades of gray will be used for values in the spatial map, with black representing the smallest (most negative) value in the map and white representing the largest (most positive).  Note that this means that if the range of values in the map changes, the specific shade of gray used to represent a given value will also change.  Being inconsistent/unreliable for modeling purposes, these shades are therefore for display purposes only, and so methods like 
+\f3\fs18 mapColor()
+\f4\fs20  and 
+\f3\fs18 mapImage()
+\f4\fs20  will produce an error if an attempt is made to use them.  The grayscale color ramp is just a convenience for easy SLiMgui display; for more precise and controlled color mapping, you should define a palette for the spatial map.\
+Assuming that non-
+\f3\fs18 NULL
+\f4\fs20  values are passed for the ellipsis parameters, you can define a palette in one of two ways:\
+The first variant takes 
 \f3\fs18 valueRange
 \f4\fs20  and 
 \f3\fs18 colors
-\f4\fs20  parameters travel together; either both are unspecified, or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
-\f3\fs18 mapColor()
-\f4\fs20  method.  The 
+\f4\fs20  parameters that are used to specify the palette.  The 
 \f3\fs18 valueRange
-\f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
-\f3\fs18 colors
-\f4\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
-\f3\fs18 valueRange
-\f4\fs20 : values less than or equal to 
+\f4\fs20  parameter must be of length 2, providing the start and end values spanned by the palette; as such, 
 \f3\fs18 valueRange[0]
-\f4\fs20  will map to 
-\f3\fs18 colors[0]
-\f4\fs20 , values greater than or equal to 
+\f4\fs20  must be less than 
 \f3\fs18 valueRange[1]
-\f4\fs20  will map to the last 
+\f4\fs20 .  The 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes for an illustration of its use.\
+\f4\fs20  parameter must be of length 1 or greater, and must be composed of color strings.  The palette will be constructed with the first color of 
+\f3\fs18 colors
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[0]
+\f4\fs20 , the last color of 
+\f3\fs18 colors
+\f4\fs20  used for a palette node at 
+\f3\fs18 valueRange[1]
+\f4\fs20 , and the remaining colors, if any, used for nodes equally spaced between those two endpoints, in the order in which the colors were specified.  A transition of 
+\f3\fs18 "linear"
+\f4\fs20  and a blend of 
+\f3\fs18 "rgb"
+\f4\fs20  will be used.  This variant is provided for backward compatibility with versions of SLiM prior to the introduction of the 
+\f3\fs18 Palette
+\f4\fs20  class.\
+The second variant simply takes a 
+\f3\fs18 palette
+\f4\fs20  parameter that provides the 
+\f3\fs18 Palette
+\f4\fs20  object for the spatial map to use.\
+The Eidos manual\'92s documentation for the 
+\f3\fs18 Palette
+\f4\fs20  class provides background information on how palettes work, how to create a new 
+\f3\fs18 Palette
+\f4\fs20  object, and so forth.  Similarly, the Eidos manual\'92s section on \'93Colors in Eidos\'94 discusses color strings and related topics.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 
 \f3\fs18 "y"
 \f4\fs20 , or 
 \f3\fs18 "xy"
-\f4\fs20 ; the color-mapping parameters will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
+\f4\fs20 ; the parameters for specifying a palette will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
 \f3\fs18 "xyz"
 \f4\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
 \f1\i xyz
 \f4\i0  space it ought to display).  The 
 \f3\fs18 mapColor()
-\f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
+\f4\fs20  method will return translated color strings for any spatial map with a palette, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it chooses one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Individual>)deviatePositions(No<Individual>\'a0individuals, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
@@ -13861,46 +14927,133 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 chromosome => (object<Chromosome>$)\
+\f2\fs18 \cf2 <trait-name>
+\f3\i0 Dominance => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the dominance coefficient of the substitution for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 dominance
+\f4\fs20  property and the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method provide alternative ways to access dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 EffectSize => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the effect size of the substitution for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 effectSize
+\f4\fs20  property and the 
+\f3\fs18 effectSizeForTrait()
+\f4\fs20  method provide alternative ways to access effect sizes.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i\fs18 \cf2 <trait-name>
+\f3\i0 HemizygousDominance => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This dynamic property provides the hemizygous dominance coefficient of the substitution for the trait named 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20 .  A dynamic property with this naming pattern will be defined for each trait in each species.  The 
+\f3\fs18 hemizygousDominance
+\f4\fs20  property and the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method provide alternative ways to access hemizygous dominance values.  Due to internal optimizations, this may not be exactly equal to the original value that was set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 chromosome => (object<Chromosome>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The 
 \f3\fs18 Chromosome
-\f4\fs20  object with which the mutation is associated.\
+\f4\fs20  object with which the substitution is associated.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 id => (integer$)\
+\f3\fs18 \cf2 dominance => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The identifier for this mutation.  Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run, and that identifier is carried over to the 
+\f4\fs20 \cf2 The dominance coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 dominanceForTrait()
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 Dominance
+\f4\fs20  is defined on 
 \f3\fs18 Substitution
-\f4\fs20  object when the mutation fixes.
-\f5 \
+\f4\fs20  for each trait in the model, providing direct access to the dominance of a substitution for a specific trait.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 fixationTick => (integer$)\
+\f3\fs18 \cf2 effectSize => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The tick in which this mutation fixed.
-\f5 \
+\f4\fs20 \cf2 The effect size(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the effect sizes for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 effectSizeForTrait()
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 EffectSize
+\f4\fs20  is defined on 
+\f3\fs18 Substitution
+\f4\fs20  for each trait in the model, providing direct access to the effect size of a substitution for a specific trait.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 mutationType => (object<MutationType>$)\
+\f3\fs18 \cf2 hemizygousDominance => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The 
+\f4\fs20 \cf2 The hemizygous dominance coefficient(s) of the substitution, carried over from the original mutation object.  In a multi-trait model, this property provides the hemizygous dominance coefficients for all of the traits (in the order in which the traits were defined).  For more control, see the 
+\f3\fs18 hemizygousDominanceForTrait()
+\f4\fs20  method.  Also note that a dynamic property named 
+\f2\i\fs18 <trait-name>
+\f3\i0 HemizygousDominance
+\f4\fs20  is defined on 
+\f3\fs18 Substitution
+\f4\fs20  for each trait in the model, providing direct access to the hemizygous dominance of a substitution for a specific trait.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 id => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The identifier for this substitution.  Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run, and that identifier is carried over to the 
+\f3\fs18 Substitution
+\f4\fs20  object when the mutation fixes.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 isNeutral => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 T
+\f4\fs20  if the substitution is neutral, 
+\f3\fs18 F
+\f4\fs20  otherwise.  The value of this property is carried over from the original mutation; see the same property on 
+\f3\fs18 Mutation
+\f4\fs20  for further details.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 fixationTick => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The tick in which this substitution fixed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 mutationType => (object<MutationType>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
 \f3\fs18 MutationType
-\f4\fs20  from which this mutation was drawn.
-\f5 \
+\f4\fs20  to which this substitution belongs.  The value of this property is carried over from the original mutation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-nucleotide => (string$)\
+\f3\fs18 \cf2 nucleotide => (string$)
+\f4\fs20 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 A 
+\cf2 A 
 \f3\fs18 string
-\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f4\fs20  representing the nucleotide associated with this substitution; this will be 
 \f3\fs18 "A"
 \f4\fs20 , 
 \f3\fs18 "C"
@@ -13908,15 +15061,15 @@ nucleotide => (string$)\
 \f3\fs18 "G"
 \f4\fs20 , or 
 \f3\fs18 "T"
-\f4\fs20 .  If the mutation is not nucleotide-based, this property is unavailable.\
+\f4\fs20 .  If the substitution is not nucleotide-based, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 nucleotideValue => (integer$)\
+\f3\fs18 \cf2 nucleotideValue => (integer$)
+\f4\fs20 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 An 
+\cf2 An 
 \f3\fs18 integer
-\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f4\fs20  representing the nucleotide associated with this substitution; this will be 
 \f3\fs18 0
 \f4\fs20  (A), 
 \f3\fs18 1
@@ -13924,35 +15077,25 @@ nucleotide => (string$)\
 \f3\fs18 2
 \f4\fs20  (G), or 
 \f3\fs18 3
-\f4\fs20  (T).  If the mutation is not nucleotide-based, this property is unavailable.\
+\f4\fs20  (T).  If the substitution is not nucleotide-based, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 originTick => (integer$)\
+\f3\fs18 \cf2 originTick => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The tick in which this mutation arose.
-\f5 \
+\f4\fs20 \cf2 The tick in which the original mutation for this substitution arose.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 position => (integer$)\
+\f3\fs18 \cf2 position => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The position in the chromosome of this mutation.
-\f5 \
+\f4\fs20 \cf2 The position in the chromosome of this substitution.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 selectionCoeff => (float$)\
+\f3\fs18 \cf2 subpopID <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
-\f3\fs18 MutationType
-\f5\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 subpopID <\'96> (integer$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The identifier of the subpopulation in which this mutation arose.  This value is carried over from the 
+\f4\fs20 \cf2 The identifier of the subpopulation in which the original mutation for this substitution arose.  This value is carried over from the 
 \f3\fs18 Mutation
 \f4\fs20  object directly; if a \'93tag\'94 value was used in the 
 \f3\fs18 Mutation
@@ -13962,7 +15105,7 @@ nucleotide => (string$)\
 \f3\fs18 subpopID
 \f4\fs20  in 
 \f3\fs18 Substitution
-\f4\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\
+\f4\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 tag <\'96> (integer$)\
@@ -13982,7 +15125,364 @@ nucleotide => (string$)\
 \f1\i\fs22 \cf0 5.18.2  
 \f2\fs18 Substitution
 \f1\fs22  methods\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f5\i0 \cf0 \
+\f3\i0\fs18 \cf2 \'96\'a0(float)dominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the substitution\'92s dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , carried over from the original mutation object.  For all trait types this is used as the dominance coefficient 
+\f1\i h
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  See also the 
+\f3\fs18 dominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 Dominance
+\f4\fs20  properties.
+\f5\fs22 \cf0 \
+
+\f4\fs20 \cf2 Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)effectSizeForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the substitution\'92s effect size for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , carried over from the original mutation object.  For multiplicative traits, this is typically the selection coefficient 
+\f1\i s
+\f4\i0 , whereas for additive and logistic traits it is typically the additive effect size 
+\f1\i a
+\f4\i0 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Effect sizes for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  See also the 
+\f3\fs18 effectSize
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 EffectSize
+\f4\fs20  properties.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)hemizygousDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the substitution\'92s hemizygous dominance coefficient for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 , carried over from the original mutation object.  For all trait types this is used as the hemizygous dominance coefficient 
+\f1\i h
+\f4\i0\fs13\fsmilli6667 \sub hemi
+\fs20 \nosupersub .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  Hemizygous dominance coefficients for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .  See also the 
+\f3\fs18 hemizygousDominance
+\f4\fs20  and 
+\f2\i\fs18 <trait-value>
+\f3\i0 HemizygousDominance
+\f4\fs20  properties.\
+Due to internal optimizations, these values may not be exactly equal to the original values that were set.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(logical)isIndependentDominanceForTrait([Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns whether the substitution is configured for independent dominance for the trait(s) specified by 
+\f3\fs18 trait
+\f4\fs20 .  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species, in the order in which they were defined.  A substitution is configured for independent dominance for a trait if the original mutation inherited a default dominance of 
+\f3\fs18 NAN
+\f4\fs20  for the trait from its mutation type, or if the original mutation\'92s dominance for the trait was subsequently set to 
+\f3\fs18 NAN
+\f4\fs20  with 
+\f3\fs18 setDominanceForTrait()
+\f4\fs20 ; see the class 
+\f3\fs18 Trait
+\f4\fs20  documentation for discussion of this feature.  Independent dominance flags for a given target substitution will be returned consecutively in the order in which the traits are specified by 
+\f3\fs18 trait
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf2 5.19  Class Trait\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\b0 \cf2 5.19.1  
+\f2\fs18 Trait
+\f1\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 baselineAccumulation => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 logical
+\f4\fs20  flag indicating whether the trait accumulates the effects of substitutions into its baseline offset or not.  This governs what happens when a mutation that has fixed is converted into a Substitution object, as controlled by 
+\f3\fs18 MutationType
+\f4\fs20 \'92s 
+\f3\fs18 convertToSubstitution
+\f4\fs20  property.  If 
+\f3\fs18 baselineAccumulation
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the effect of the substituted mutation on this trait is combined (additively or multiplicatively) into the baseline offset of this trait, such that the mutation\'92s effect continues to be present in the simulation even though it has been substituted.  If 
+\f3\fs18 F
+\f4\fs20 , this does not occur and so the effect of the substituted mutation on this trait will no longer be present (unless it is handled in script in some way).  This flag is controlled by the 
+\f3\fs18 baselineAccumulation
+\f4\fs20  parameter to 
+\f3\fs18 initializeTrait()
+\f4\fs20 ; for the default trait, it is always 
+\f3\fs18 F
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 baselineOffset <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
+This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
+\f3\fs18 individualOffsetMean
+\f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that for multiplicative traits, all effects are clamped to a minimum of 
+\f3\fs18 0.0
+\f4\fs20  as documented in the 
+\f3\fs18 Trait
+\f4\fs20  class.  A baseline offset value set through this property may therefore not be the value used by SLiM or subsequently returned by this property.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 directFitnessEffect => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 logical
+\f4\fs20  flag indicating whether the trait has a direct fitness effect or not.  If 
+\f3\fs18 T
+\f4\fs20 , the trait value for an individual is used as a fitness effect for that individual, implying that the trait should be considered a fitness component.  If 
+\f3\fs18 F
+\f4\fs20 , the trait value is not used directly as a fitness effect; in script, one might compute a fitness effect from the trait value (using a \'93fitness function\'94), or the trait might have other effects that are not obviously related to fitness at all.  This flag is controlled by the 
+\f3\fs18 defaultFitnessEffect
+\f4\fs20  parameter to 
+\f3\fs18 initializeTrait()
+\f4\fs20 ; for the default trait, it is always 
+\f3\fs18 T
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 index => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The index of the trait in the vector of traits kept by the species.  The first trait defined in a species is at index 
+\f3\fs18 0
+\f4\fs20 , and subsequent traits count upwards from there.  The index of a trait is often used to refer to the trait, so it is important.  A global constant is defined for every trait, using each trait\'92s name, that provides the index of each trait, so this property will probably rarely be needed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 individualOffsetMean <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The mean for the normal distribution from which individual offsets are drawn.  (As described in 
+\f3\fs18 initializeTrait()
+\f4\fs20 , for multiplicative traits the drawn values are transformed with 
+\f3\fs18 exp()
+\f4\fs20  before use, so in effect a lognormal distribution is used, and 
+\f3\fs18 individualOffsetMean
+\f4\fs20  is the mean of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f3\fs18 individualOffsetSD
+\f4\fs20  property.\
+The individual offset distribution provided by 
+\f3\fs18 Trait
+\f4\fs20  does not need to be used; if you want to set up individual offsets in your own way, simply set 
+\f3\fs18 individualOffsetSD
+\f4\fs20  to 
+\f3\fs18 0.0
+\f4\fs20  (so SLiM doesn\'92t waste time drawing values that won\'92t be used), and set the individual offset value for each new individual yourself.  Note also that changing 
+\f3\fs18 individualOffsetMean
+\f4\fs20  does not change the individual offsets of existing individuals, since that would not always be desirable; you can set new offsets on individuals yourself if you wish.  See the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property and 
+\f3\fs18 setOffsetForTrait()
+\f4\fs20  method of 
+\f3\fs18 Individual
+\f4\fs20  regarding setting individual offset values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 individualOffsetSD <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The standard deviation for the normal distribution from which individual offsets are drawn.  (As described in 
+\f3\fs18 initializeTrait()
+\f4\fs20 , for multiplicative traits the drawn values are transformed with 
+\f3\fs18 exp()
+\f4\fs20  before use, so in effect a lognormal distribution is used, and 
+\f3\fs18 individualOffsetSD
+\f4\fs20  is the standard deviation of that lognormal distribution in log space.)  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f3\fs18 individualOffsetMean
+\f4\fs20  property.\
+The individual offset distribution provided by 
+\f3\fs18 Trait
+\f4\fs20  does not need to be used; if you want to set up individual offsets in your own way, simply set 
+\f3\fs18 individualOffsetSD
+\f4\fs20  to 
+\f3\fs18 0.0
+\f4\fs20  (so SLiM doesn\'92t waste time drawing values that won\'92t be used), and set the individual offset value for each new individual yourself.  Note also that changing 
+\f3\fs18 individualOffsetMean
+\f4\fs20  does not change the individual offsets of existing individuals, since that would not always be desirable; you can set new offsets on individuals yourself if you wish.  See the 
+\f2\i\fs18 <trait-name>
+\f3\i0 Offset
+\f4\fs20  property and 
+\f3\fs18 setOffsetForTrait()
+\f4\fs20  method of 
+\f3\fs18 Individual
+\f4\fs20  regarding setting individual offset values.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 individualPhenotypePalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color individuals when this trait is selected as the display trait.  The trait value of an individual, not including the trait\'92s baseline offset, is looked up in this palette to determine the color of the individual.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 Individual
+\f4\fs20  takes priority over this for individual display; if it is set for a given individual, it determines the color of that individual regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui (available through the 
+\f3\fs18 defaultPalette()
+\f4\fs20  method of the 
+\f3\fs18 SLiMgui
+\f4\fs20  class).  See also the 
+\f3\fs18 mutationEffectPalette
+\f4\fs20  property of 
+\f3\fs18 Trait
+\f4\fs20 , and the 
+\f3\fs18 fitnessEffectPalette
+\f4\fs20  and 
+\f3\fs18 fitnessPalette
+\f4\fs20  properties of 
+\f3\fs18 Species
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 mutationEffectPalette <\'96> (object<Palette>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Palette
+\f4\fs20  object used in 
+\f3\fs18 SLiMgui
+\f4\fs20  to color mutations when this trait is selected as the display trait.  The homozygous effect of a mutation (1+
+\f1\i s
+\f4\i0  or 2
+\f1\i a
+\f4\i0 ) is looked up in this palette to determine the color of the mutation.\
+Note that the 
+\f3\fs18 color
+\f4\fs20  property of 
+\f3\fs18 MutationType
+\f4\fs20  takes priority for mutation display; if it is set for a given mutation type, it determines the color of mutations of that type regardless of the chosen display trait.  The initial value of this property is a default palette provided by SLiMgui (available through the 
+\f3\fs18 defaultPalette()
+\f4\fs20  method of the 
+\f3\fs18 SLiMgui
+\f4\fs20  class).  See also the 
+\f3\fs18 individualPhenotypePalette
+\f4\fs20  property of 
+\f3\fs18 Trait
+\f4\fs20 , and the 
+\f3\fs18 fitnessEffectPalette
+\f4\fs20  and 
+\f3\fs18 fitnessPalette
+\f4\fs20  properties of 
+\f3\fs18 Species
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 name => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The name of the trait, as given to 
+\f3\fs18 initializeTrait()
+\f4\fs20 .  The default trait that is provided if no trait is explicitly defined has a name that is the name of the species plus a 
+\f3\fs18 T
+\f4\fs20 ; so for a single-species model, the default trait will generally be named 
+\f3\fs18 simT
+\f4\fs20 .  The name of a trait can sometimes be used to refer to the trait, and is visible in SLiMgui.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 species => (object<Species>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The species to which the target object belongs.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A user-defined 
+\f3\fs18 integer
+\f4\fs20  value.  The value of 
+\f3\fs18 tag
+\f4\fs20  is initially undefined, and it is an error to try to read it; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f3\fs18 tag
+\f4\fs20  is not used by SLiM; it is free for you to use.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 type => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The type of the trait, as a 
+\f3\fs18 string
+\f4\fs20 .  In the present design, this will be either 
+\f3\fs18 "multiplicative"
+\f4\fs20 , 
+\f3\fs18 "additive"
+\f4\fs20 , or 
+\f3\fs18 "logistic"
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.19.2  
+\f2\fs18 Trait
+\f1\fs22  methods
+\f4\i0 \
+\pard\pardeftab720\sa60\partightenfactor0
+\cf2 \
 }

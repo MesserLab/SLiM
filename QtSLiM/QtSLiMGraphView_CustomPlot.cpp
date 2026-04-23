@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/19/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -246,6 +246,9 @@ void QtSLiMGraphView_CustomPlot::setDataRanges(double *x_range, double *y_range)
         if (!yAxisIsUIRescaled_)
             yAxisIsUserRescaled_ = false;
     }
+    
+    if (x_range && y_range)
+        has_finite_data_ = true;
 }
 
 void QtSLiMGraphView_CustomPlot::setAxisConfiguration(int side, std::vector<double> *at, int labels_type, std::vector<QString> *labels)
@@ -1081,7 +1084,7 @@ void QtSLiMGraphView_CustomPlot::drawRects(QPainter &painter, QRect interiorRect
                 linePath.lineTo(device_x2, device_y2);
                 linePath.lineTo(device_x1, device_y2);
                 linePath.closeSubpath();
-				painter.strokePath(linePath, QPen(borderColor, lineWidth, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+                painter.strokePath(linePath, QPen(borderColor, lineWidth, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
             }
         }
     }

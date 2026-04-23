@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,6 +30,7 @@
 #include "eidos_class_Dictionary.h"
 #include "eidos_class_DataFrame.h"
 #include "eidos_class_Image.h"
+#include "eidos_class_Palette.h"
 #include "eidos_class_TestElement.h"
 #include "json.hpp"
 
@@ -90,7 +91,7 @@ nlohmann::json EidosObject::JSONRepresentation(void) const
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ClassNameForDisplay() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 }
 
 void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -310,7 +311,8 @@ std::vector<EidosClass *> EidosClass::RegisteredClasses(bool p_builtin, bool p_c
 			(class_object == gEidosDictionaryUnretained_Class) ||
 			(class_object == gEidosDictionaryRetained_Class) ||
 			(class_object == gEidosDataFrame_Class) ||
-			(class_object == gEidosImage_Class))
+			(class_object == gEidosImage_Class) ||
+			(class_object == gEidosPalette_Class))
 			builtin = true;
 		
 		if ((builtin && p_builtin) || (!builtin && p_context))
@@ -470,7 +472,7 @@ bool EidosClass::IsSubclassOfClass(const EidosClass *p_class_object) const
 
 void EidosClass::CacheDispatchTables(void)
 {
-	// This can be called more than once during startup, because Eidos warms up and the SLiM warms up
+	// This can be called more than once during startup, because Eidos warms up and then SLiM warms up
 	if (dispatches_cached_)
 		return;
 	
@@ -527,7 +529,73 @@ void EidosClass::RaiseForDispatchUninitialized(void) const
 	EIDOS_TERMINATION << "ERROR (EidosClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ClassName() << "." << EidosTerminate(nullptr);
 }
 
+void EidosClass::AddSignatureForProperty(EidosPropertySignature_CSP p_property_signature)
+{
+#if DEBUG
+	if (!dispatches_cached_)
+		RaiseForDispatchUninitialized();
+#endif
+	
+	EidosGlobalStringID property_id = p_property_signature->property_id_;
+	std::string property_name = p_property_signature->property_name_;
+	
+	// We need to add the property to the class's property dispatch table
+	if (property_id < (EidosGlobalStringID)property_signatures_dispatch_capacity_)
+	{
+		// The property id fits into our existing dispatch table, so we can just fill it in.
+		// However, it is an error if this slot in the dispatch table is already in use.
+		if (property_signatures_dispatch_[property_id])
+			EIDOS_TERMINATION << "ERROR (EidosClass::AddSignatureForProperty): (internal error) dispatch table slot is already in use for property name '" << p_property_signature->property_name_ << "'." << EidosTerminate(nullptr);
+		
+		property_signatures_dispatch_[property_id] = p_property_signature;
+	}
+	else
+	{
+		// The property id does not fit into the existing dispatch table, so we need to realloc, zero
+		// out all the new entries in the expanded dispatch table, and set the requested entry.  Note
+		// that for dynamically generated property ids, the dispatch table might get a lot bigger!
+		int32_t new_capacity = std::max(property_signatures_dispatch_capacity_, (int32_t)property_id) + 1;
+		
+		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)realloc(property_signatures_dispatch_, new_capacity * sizeof(EidosPropertySignature_CSP));
+		if (!property_signatures_dispatch_)
+			EIDOS_TERMINATION << "ERROR (EidosClass::AddSignatureForProperty): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		EIDOS_BZERO(property_signatures_dispatch_ + property_signatures_dispatch_capacity_, (new_capacity - property_signatures_dispatch_capacity_) * sizeof(EidosPropertySignature_CSP));
+		property_signatures_dispatch_capacity_ = new_capacity;
+		
+		property_signatures_dispatch_[property_id] = p_property_signature;
+	}
+	
+	// We also need to add it to the vector of property signatures kept by the class.  We do this by
+	// simply calling Properties(), which returns a pointer to its internally allocated static vector
+	// of properties, and then modifying that vector.  This is a pretty weird thing to do, and it is
+	// not as general as it ought to be; if we add a property to a superclass, it is not added to the
+	// vector of properties kept by a subclass, in the present design.  But it will work for now.
+	// FIXME a more general design would be for each class to keep a mutable vector of its own properties,
+	// and then have an EidosClass method that walks up the superclass chain, assembles and uniques a
+	// vector of all methods, and sorts and returns that as a const vector, re-done on request every time.
+	// The Properties() method is no longer a bottleneck for much, so something like that would be maybe ok.
+	std::vector<EidosPropertySignature_CSP> *properties = Properties_MUTABLE();
+	
+	if (std::find_if(properties->begin(), properties->end(),
+		[property_name](EidosPropertySignature_CSP property_signature) {
+			return (property_signature->property_name_ == property_name);
+		}) == properties->end())
+	{
+		properties->push_back(p_property_signature);
+		
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
+}
+
 const std::vector<EidosPropertySignature_CSP> *EidosClass::Properties(void) const
+{
+	// This just gets the mutable properties vector and returns it as a const properties vector instead.
+	// This is the accessor used by everything except adding dynamic properties to classes.
+	return Properties_MUTABLE();
+}
+
+std::vector<EidosPropertySignature_CSP> *EidosClass::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -708,6 +776,73 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
+
+
+#ifdef EIDOS_GUI
+// We provide some support here for EidosTypeInterpreter to make code completion work with dynamic properties
+
+void EidosClass::ClearDynamicSignatures(void)
+{
+	std::vector<EidosClass *> classes = EidosClass::RegisteredClasses(/* p_builtin */ true, /* p_context */ true);
+	
+	for (EidosClass *one_class : classes)
+		one_class->dynamic_property_signatures_.clear();
+}
+
+void EidosClass::AddSignatureForProperty_TYPE_INTERPRETER(EidosPropertySignature_CSP p_property_signature)
+{
+	// if a dynamic property already exists with the given name, we assume it is the same, and just return
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		if (dynamic_property->property_id_ == p_property_signature->property_id_)
+			return;
+	
+	dynamic_property_signatures_.push_back(p_property_signature);
+}
+
+// This calls Properties() to get the built-in properties, and then adds the dynamic ones
+std::vector<EidosPropertySignature_CSP> EidosClass::Properties_TYPE_INTERPRETER(void) const
+{
+	std::vector<EidosPropertySignature_CSP> properties = *Properties();		// make a local copy for ourselves to modify
+	
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		properties.push_back(dynamic_property);
+	
+	std::sort(properties.begin(), properties.end(), CompareEidosPropertySignatures);
+	
+	// We got properties from two places: the built-in properties of the class, and dynamic property
+	// signatures.  Dynamic properties actually end up in both places sometimes: they get added to the
+	// class itself (if execution has proceeded to the point where that happens), AND they get added
+	// to the list of dynamic properties (by the type interpreter, which can do this even if execution
+	// has not reached the point where the property actually exists yet).  This is good -- it means
+	// that we know about the signature in two different ways that are valid at different places and
+	// times.  But it also means that we can contain duplicates at this point, so we need to unique.
+	// The uniquing needs to be done by name; the duplicates are different signature objects.
+	auto unique_end_iter = std::unique(properties.begin(), properties.end(),
+	[](const EidosPropertySignature_CSP& a, const EidosPropertySignature_CSP& b) {
+		return a->property_name_ == b->property_name_;
+	});
+	properties.resize(std::distance(properties.begin(), unique_end_iter));
+	
+	return properties;
+}
+
+// This calls SignatureForProperty(), and then checks the dynamic ones if that failed
+const EidosPropertySignature *EidosClass::SignatureForProperty_TYPE_INTERPRETER(EidosGlobalStringID p_property_id) const
+{
+	const EidosPropertySignature *signature = SignatureForProperty(p_property_id);
+	
+	if (signature)
+		return signature;
+	
+	for (EidosPropertySignature_CSP dynamic_property : dynamic_property_signatures_)
+		if (dynamic_property->property_id_ == p_property_id)
+			return dynamic_property.get();
+	
+	return nullptr;
+}
+
+#endif	// EIDOS_GUI
+
 
 
 

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/26/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -31,6 +31,7 @@
 #include "polymorphism.h"
 #include "subpopulation.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -49,9 +50,10 @@
 #include <unordered_map>
 #include <float.h>
 #include <ctime>
+#include <cstdint>
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 #endif
 
@@ -88,7 +90,8 @@ static const char *SLIM_TREES_FILE_VERSION_META = "0.5";		// SLiM 3.5.x onward, 
 static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
 static const char *SLIM_TREES_FILE_VERSION_PRESPECIES = "0.7";	// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
 static const char *SLIM_TREES_FILE_VERSION_SPECIES = "0.8";		// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
-static const char *SLIM_TREES_FILE_VERSION = "0.9";				// SLiM 5.0 onward, for multichrom (haplosomes not genomes, and `chromosomes` key)
+static const char *SLIM_TREES_FILE_VERSION_MULTICHROM = "0.9";	// SLiM 5.0 onward, for multichrom (haplosomes not genomes, and `chromosomes` key)
+static const char *SLIM_TREES_FILE_VERSION = "1.0";				// SLiM 5.2 onward, for multitrait (per-trait metadata, `traits` key)
 
 #pragma mark -
 #pragma mark Species
@@ -112,6 +115,13 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 	// Make space for up to SLIM_MAX_CHROMOSOMES Chromosome objects, but don't make any for now
 	// This prevents the storage underlying chromosomes_ from being reallocated
 	chromosomes_.reserve(SLIM_MAX_CHROMOSOMES);
+	
+	// set up and retain the appropriate default palettes for SLiMgui; the user can change these with Species properties
+	fitness_palette_ = gEidos_Palette_IndividualFitness;
+	fitness_effect_palette_ = gEidos_Palette_MutationFitnessEffect;
+	
+	fitness_palette_->Retain();
+	fitness_effect_palette_->Retain();
 }
 
 Species::~Species(void)
@@ -125,6 +135,17 @@ Species::~Species(void)
 	population_.PurgeRemovedSubpopulations();
 	
 	DeleteAllMutationRuns();
+	
+	// release mutations retained by the tree sequence
+	if (muts_retained_by_treeseq_.size())
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		
+		for (MutationIndex mut_index : muts_retained_by_treeseq_)
+			(mut_block_ptr + mut_index)->Release();
+		
+		muts_retained_by_treeseq_.clear();
+	}
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
@@ -185,121 +206,2164 @@ Species::~Species(void)
 	
 	std::fill(chromosome_for_haplosome_index_.begin(), chromosome_for_haplosome_index_.end(), nullptr);
 	chromosome_for_haplosome_index_.clear();
-}
-
-void Species::_MakeHaplosomeMetadataRecords(void)
-{
-	// Set up our default metadata records for haplosomes, which are variable-length.  The default records
-	// are used as the initial configuration of the nodes for new individuals; then, as haplosomes are
-	// added to the new individual, the is_vacant_ bits get tweaked as needed in the recorded metadata, which
-	// is a bit gross, but necessary; the node metadata is recorded before the haplosomes are created.
-	// See HaplosomeMetadataRec for comments on this design.
 	
-	// First, calculate how many bytes we need
-	size_t bits_needed_for_is_vacant = chromosomes_.size();					// each chromosome needs one bit per node table entry
-	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_vacant_[1] in the record
-	haplosome_metadata_is_vacant_bytes_ = ((bits_needed_for_is_vacant + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
-	haplosome_metadata_size_ += haplosome_metadata_is_vacant_bytes_;
+	// Free our Trait objects
+	for (Trait *trait : traits_)
+		delete trait;
+	traits_.clear();
 	
-	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
-	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
-	hap_metadata_1M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
-	hap_metadata_2F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
-	hap_metadata_2M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
-	
-	// Then set the is_vacant_ bits for the default state for males and females; this is the state in which
-	// all chromosomes that dictate the is_vacant_ state by sex have that dictated state, while all others
-	// (types "A", "H", and "H-" only) are assumed to be non-null.  Any positions that are unused for a
-	// given chromosome type (like the second position for type "Y") are given as 1 here, "vacant", by
-	// definition; "vacant" is either "unused" or "null haplosome".  We go from least-significant bit
-	// to most-significant bit, byte by byte, with each chromosome using two bits.  The less significant
-	// of those two bits is is_vacant_ for haplosome 1 for that chromosome; the more significant of those
-	// two bits is is_vacant_ for haplosome 2 for that chromosome.
-	IndividualSex sex = IndividualSex::kFemale;
-	HaplosomeMetadataRec *focal_metadata_1 = hap_metadata_1F_;
-	HaplosomeMetadataRec *focal_metadata_2 = hap_metadata_2F_;
-	
-	while (true)
+	// Free our MutationBlock, and make those with pointers to it forget; see CreateAndPromulgateMutationBlock()
 	{
-		for (Chromosome *chromosome : chromosomes_)
-		{
-			slim_chromosome_index_t chromosome_index = chromosome->Index();
-			bool haplosome_1_is_vacant = false, haplosome_2_is_vacant = false;
-			
-			switch (chromosome->Type())
-			{
-				case ChromosomeType::kA_DiploidAutosome:
-					haplosome_1_is_vacant = false;								// always present (by default)
-					haplosome_2_is_vacant = false;								// always present (by default)
-					break;
-					
-				case ChromosomeType::kH_HaploidAutosome:
-				case ChromosomeType::kHF_HaploidFemaleInherited:
-				case ChromosomeType::kHM_HaploidMaleInherited:
-					haplosome_1_is_vacant = false;								// always present (by default)
-					haplosome_2_is_vacant = true;								// always unused
-					break;
-					
-				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-					haplosome_1_is_vacant = false;								// always present
-					haplosome_2_is_vacant = true;								// always null
-					break;
-					
-				case ChromosomeType::kX_XSexChromosome:
-					haplosome_1_is_vacant = false;								// always present
-					haplosome_2_is_vacant = (sex == IndividualSex::kMale);		// null in males
-					break;
-					
-				case ChromosomeType::kY_YSexChromosome:
-				case ChromosomeType::kML_HaploidMaleLine:
-					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
-					haplosome_2_is_vacant = true;								// always unused
-					break;
-					
-				case ChromosomeType::kZ_ZSexChromosome:
-					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
-					haplosome_2_is_vacant = false;								// always present
-					break;
-					
-				case ChromosomeType::kW_WSexChromosome:
-				case ChromosomeType::kFL_HaploidFemaleLine:
-					haplosome_1_is_vacant = (sex == IndividualSex::kMale);		// null in males
-					haplosome_2_is_vacant = true;								// always unused
-					break;
-					
-				case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					haplosome_1_is_vacant = true;								// always null
-					haplosome_2_is_vacant = (sex == IndividualSex::kFemale);	// null in females
-					break;
-			}
-			
-			// set the appropriate bits in the focal metadata, which we know was cleared to zero initially
-			int byte_index = chromosome_index / 8;
-			int bit_shift = chromosome_index % 8;
-			
-			if (haplosome_1_is_vacant)
-				focal_metadata_1->is_vacant_[byte_index] |= (0x01 << bit_shift);
-			
-			if (haplosome_2_is_vacant)
-				focal_metadata_2->is_vacant_[byte_index] |= (0x01 << bit_shift);
-		}
+		delete mutation_block_;
+		mutation_block_ = nullptr;
 		
-		// loop from female to male, then break out
-		if (sex_enabled_ && (sex == IndividualSex::kFemale))
-		{
-			sex = IndividualSex::kMale;
-			focal_metadata_1 = hap_metadata_1M_;
-			focal_metadata_2 = hap_metadata_2M_;
-			continue;
-		}
-		break;
+		for (auto muttype_iter : mutation_types_)
+			muttype_iter.second->mutation_block_ = nullptr;
+		
+		for (Chromosome *chromosome : chromosomes_)
+			chromosome->mutation_block_ = nullptr;
+		
+		population_.mutation_block_ = nullptr;
 	}
 	
-//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_vacant_[0]);
-//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_vacant_[0]);
-//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_vacant_[0]);
-//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_vacant_[0]);
+	if (fitness_palette_)
+	{
+		fitness_palette_->Release();
+		fitness_palette_ = nullptr;
+	}
+	if (fitness_effect_palette_)
+	{
+		fitness_effect_palette_->Release();
+		fitness_effect_palette_ = nullptr;
+	}
 }
+
+Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) {
+	for (auto subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		if (subpop->name_ == p_subpop_name)
+			return subpop;
+	}
+	return nullptr;
+}
+
+void Species::RecalculateOptimizationFlags(bool p_sweep_registry /* = false */)
+{
+	// This is called when a GenomicElementType / MutationType is changed, including at the end of initialize()
+	// callbacks.  It runs through the autogeneration configuration for the species and sets optimization flags.
+	// If p_sweep_registry == true, it does a sweep through the whole mutation registry for greater accuracy.
+	int registry_count = 0;
+	const MutationIndex *registry_iter = population_.MutationRegistry(&registry_count);
+	
+	// First we loop through all the mutation types (whether in use by a GEType or not) and validate them
+	type_s_DESs_present_ = false;
+	
+	for (auto mut_type_iter : mutation_types_)
+	{
+		MutationType *mutation_type_ptr = mut_type_iter.second;
+		
+		// recalculate whether the mutation type's effect distributions are all neutral; note that we assess
+		// the DES of the mutation type here, but we don't change muttype_all_neutral_mutations_ unless the
+		// mutation type is actually in use, which we assess below
+		mutation_type_ptr->all_neutral_DES_ = true;
+		
+		for (EffectSizeDistributionInfo &DES_info : mutation_type_ptr->effect_size_distributions_)
+		{
+			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+				mutation_type_ptr->all_neutral_DES_ = false;
+			
+			if (DES_info.DES_type_ == DESType::kScript)
+				type_s_DESs_present_ = true;
+		}
+	}
+	
+#if DEBUG_TRAIT_DEMAND()
+	// If we manage to infer a species-wide change in state, we want to log about that at the end
+	bool previous_species_all_neutral_mutations = species_all_neutral_mutations_;
+	bool previous_species_no_neutral_mutations = species_no_neutral_mutations_;
+#endif
+	
+	// Normally our optimization flags for whether neutral and nonneutral mutations are present are sticky,
+	// because we don't want to scan through the mutation registry to check whether we can reset them (and
+	// even if all mutation type DESs are all-neutral, nonneutral mutations could still exist in various
+	// ways); but if there are no segregating mutations we can reset them and recover our initial state.
+	// If p_sweep_registry == true we reset in the same way, and sweep the registry at the end.
+	if ((registry_count == 0) || p_sweep_registry)
+	{
+		species_all_neutral_mutations_ = true;
+		species_no_neutral_mutations_ = true;
+		
+		for (auto mut_type_iter : mutation_types_)
+		{
+			MutationType *mutation_type_ptr = mut_type_iter.second;
+			
+			mutation_type_ptr->muttype_all_neutral_mutations_ = true;
+		}
+		
+		for (Trait *trait : traits_)
+		{
+			trait->trait_all_neutral_mutations_ = true;
+			
+			// We longer allow this to get reset back to true, even when the registry is empty.  The reason is
+			// that this flag now needs to be "sticky", to reflect the decision made in RunInitializeCallbacks()
+			// as to which traits will receive independent-dominance caches.  That decision is final.
+			//trait->trait_all_mutations_independent_dominance_ = true;
+		}
+	}
+	
+	// Then we loop through the GETypes and determine whether there are mutation types in use by a GEType
+	// that are non-neutral, and if so, set the appropriate optimization flags.  Note that we assume here
+	// that if a mutation type is in use by a GEType, mutations of that type will be created; but that is
+	// not really true (the GEType might not be used anywhere, or the mutation rate might be 0.0, or all
+	// new mutations of that type might be rejected...).  Also, this logic could be done per-chromosome
+	// for greater accuracy.  FIXME MULTITRAIT
+	for (auto ge_type_iter : genomic_element_types_)
+	{
+		GenomicElementType *ge_type_ptr = ge_type_iter.second;
+		
+		for (MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+		{
+			if (mutation_type_ptr->all_neutral_DES_)
+			{
+				species_no_neutral_mutations_ = false;
+			}
+			else	// !mutation_type_ptr->all_neutral_DES_
+			{
+				mutation_type_ptr->muttype_all_neutral_mutations_ = false;
+				
+				species_all_neutral_mutations_ = false;
+				
+				for (Trait *trait : traits_)
+				{
+					slim_trait_index_t trait_index = trait->Index();
+					EffectSizeDistributionInfo &DES_info = mutation_type_ptr->effect_size_distributions_[trait_index];
+					
+					if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+					{
+						trait->trait_all_neutral_mutations_ = false;
+						
+						if (!std::isnan(DES_info.default_dominance_coeff_))
+							trait->trait_all_mutations_independent_dominance_ = false;
+					}
+				}
+			}
+		}
+	}
+	
+	// Now sweep the registry, if requested; this lets us diagnose our state more accurately
+	if (p_sweep_registry && (registry_count > 0))
+	{
+		MutationBlock *mutation_block = mutation_block_;
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+			
+			if (mut->is_neutral_for_all_traits_)
+			{
+				species_no_neutral_mutations_ = false;
+			}
+			else	// !mut->is_neutral_for_all_traits_
+			{
+				species_all_neutral_mutations_ = false;
+				mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+				
+				MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(mut);
+				
+				for (Trait *trait : traits_)
+					if (mut_trait_info[trait->Index()].effect_size_ != (slim_effect_t)0.0)
+						trait->trait_all_neutral_mutations_ = false;
+			}
+		}
+	}
+	
+#if DEBUG_TRAIT_DEMAND()
+	// If we manage to infer a species-wide change in state, we want to log about that at the end
+	if (species_all_neutral_mutations_ && !previous_species_all_neutral_mutations)
+		std::cout << "# " << community_.Tick() << " %%%%%%%%%%%%%%%%%%%% RecalculateOptimizationFlags() drew a new inference that the species has all neutral mutations." << std::endl;
+	if (species_no_neutral_mutations_ && !previous_species_no_neutral_mutations)
+		std::cout << "# " << community_.Tick() << " %%%%%%%%%%%%%%%%%%%% RecalculateOptimizationFlags() drew a new inference that the species has all nonneutral mutations." << std::endl;
+#endif
+	
+	// These flags cause a refresh of the user interface in SLiMgui.  We don't know for sure here that these
+	// flags need to be set, but assuming it simplifies our design and the impact should be minimal.
+	community_.mutation_types_changed_ = true;
+	community_.genomic_element_types_changed_ = true;
+}
+
+void Species::CheckOptimizationFlags(void)
+{
+	// This is called to check that the various optimization flags set by RecalculateOptimizationFlags()
+	// are in the correct state; incorrect results will be produced if the optimization flags are wrong!
+	
+	// First check that all mutation types are tracked correctly
+	for (auto mut_type_iter : mutation_types_)
+	{
+		MutationType *mutation_type_ptr = mut_type_iter.second;
+		
+		for (EffectSizeDistributionInfo &DES_info : mutation_type_ptr->effect_size_distributions_)
+		{
+			if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+				if (mutation_type_ptr->all_neutral_DES_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) all_neutral_DES_ is incorrect (a DES is non-neutral)." << EidosTerminate();
+			
+			if (DES_info.DES_type_ == DESType::kScript)
+				if (type_s_DESs_present_ != true)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) type_s_DESs_present_ is incorrect (a DES uses type 's')." << EidosTerminate();
+		}
+	}
+	
+	// Then check that mutation types used by genomic element types have the correct effect on flags
+	for (auto ge_type_iter : genomic_element_types_)
+	{
+		GenomicElementType *ge_type_ptr = ge_type_iter.second;
+		
+		for (MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+		{
+			if (mutation_type_ptr->all_neutral_DES_)
+			{
+				if (species_no_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_no_neutral_mutations_ is incorrect (a neutral mutation type is in use)." << EidosTerminate();
+			}
+			else	// !mutation_type_ptr->all_neutral_DES_
+			{
+				if (mutation_type_ptr->muttype_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect (a DES of the mutation type is non-neutral)." << EidosTerminate();
+				
+				if (species_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect (a non-neutral mutation type is in use)." << EidosTerminate();
+				
+				for (Trait *trait : traits_)
+				{
+					slim_trait_index_t trait_index = trait->Index();
+					EffectSizeDistributionInfo &DES_info = mutation_type_ptr->effect_size_distributions_[trait_index];
+					
+					if ((DES_info.DES_type_ != DESType::kFixed) || (DES_info.DES_parameters_[0] != 0.0))
+					{
+						if (trait->trait_all_neutral_mutations_ != false)
+							EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_neutral_mutations_ is incorrect (a mutation type with a non-neutral DES for the trait is in use)." << EidosTerminate();
+						
+						if (!std::isnan(DES_info.default_dominance_coeff_))
+							if (trait->trait_all_mutations_independent_dominance_ != false)
+								EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_mutations_independent_dominance_ is incorrect (a mutation type with a non-neutral non-independent DES for the trait is in use)." << EidosTerminate();
+					}
+				}
+			}
+		}
+	}
+	
+	// Finally, check that all mutations in the registry are compatible with the flag settings.  This state is
+	// taken care of by NoteMutationAdded() and NoteMutationStateChanged(), not RecalculateOptimizationFlags().
+	int registry_count = 0;
+	const MutationIndex *registry_iter = population_.MutationRegistry(&registry_count);
+	
+	if (registry_count > 0)
+	{
+		MutationBlock *mutation_block = mutation_block_;
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+			
+			mut->SelfConsistencyCheck(" in Species::CheckOptimizationFlags()");
+			
+			if (mut->is_neutral_for_all_traits_)
+			{
+				if (species_no_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_no_neutral_mutations_ is incorrect (a neutral mutation is segregating)." << EidosTerminate();
+			}
+			else	// !mut->is_neutral_for_all_traits_
+			{
+				if (species_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) species_all_neutral_mutations_ is incorrect (a non-neutral mutation is segregating)." << EidosTerminate();
+				
+				if (mut->mutation_type_ptr_->muttype_all_neutral_mutations_ != false)
+					EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) muttype_all_neutral_mutations_ is incorrect (a non-neutral mutation belongs to this mutation type)." << EidosTerminate();
+				
+				// check Trait flags against this mutation
+				MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(mut);
+				
+				for (Trait *trait : traits_)
+				{
+					slim_trait_index_t trait_index = trait->Index();
+					MutationTraitInfo &trait_info = mut_trait_info[trait_index];
+					
+					if (trait_info.effect_size_ != (slim_effect_t)0.0)
+					{
+						// this mutation is non-neutral for this trait
+						if (trait->trait_all_neutral_mutations_ != false)
+							EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_neutral_mutations_ is incorrect (a mutation has a non-neutral effect for this trait)." << EidosTerminate();
+						
+						if (!std::isnan(trait_info.dominance_coeff_UNSAFE_))
+						{
+							// this mutation is non-neutral *and* not independent-dominance
+							if (trait->trait_all_mutations_independent_dominance_ != false)
+								EIDOS_TERMINATION << "ERROR (Species::CheckOptimizationFlags): (internal error) trait_all_mutations_independent_dominance_ is incorrect (a mutation has a non-neutral, non-independent effect for this trait)." << EidosTerminate();
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void Species::NoteAutogeneratedMutation(const Mutation *p_mut)
+{
+	// NoteAutogeneratedMutation() should be called whenever a new mutation is auto-generated by SLiM.
+	// This is a different path from NoteMutationAdded() because the characteristics of these
+	// mutations are known, and have already been factored in to SLiM optimization settings.
+	
+	// It is possible that what appears to be a non-neutral DES will occasionally generate a neutral
+	// mutation due to chance, underflow, etc.  So even though the autogeneration DESs have already
+	// been factored in, we do need to check for that possibility here.  The alternative would be to
+	// assume that any/every distribution that could conceivably generate a neutral mutation wiil do
+	// so eventually; but it seems preferable to assume non-neutrality until proven otherwise.
+	if (p_mut->is_neutral_for_all_traits_)
+	{
+		// We only need to know about mutations becoming neutral for tracking this species flag, which indicates
+		// that ALL mutations are non-neutral; if we see even one neutral mutation, this flag turns off.
+		species_no_neutral_mutations_ = false;
+	}
+	
+	// We do not invalidate any trait values or nonneutral mutation caches here.  The specific caches
+	// affected by this added mutation will be invalidated in the individuals / mutruns modified.
+}
+
+void Species::NoteMutationAdded(const Mutation *p_mut)
+{
+	if (p_mut->is_neutral_for_all_traits_)
+	{
+		// We only need to know about mutations becoming neutral for tracking this species flag, which indicates
+		// that ALL mutations are non-neutral; if we see even one neutral mutation, this flag turns off.
+		species_no_neutral_mutations_ = false;
+	}
+	else
+	{
+		// We track a lot more information about mutations becoming non-neutral, because they need to be managed.
+		// This is a fair bit of work, but it is only done once when a new non-neutral mutation is created, or a
+		// mutation is changed to a non-neutral state.  That is not very frequent compared to other overhead.
+		
+		species_all_neutral_mutations_ = false;
+		p_mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+		
+		// since the mutation is non-neutral for at least one trait, we have to fix the Trait flags
+		MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(p_mut);
+		
+		for (Trait *trait : traits_)
+		{
+			slim_trait_index_t trait_index = trait->Index();
+			MutationTraitInfo &trait_info = mut_trait_info[trait_index];
+			
+			if (trait_info.effect_size_ != (slim_effect_t)0.0)
+			{
+				// this mutation is non-neutral for this trait
+				trait->trait_all_neutral_mutations_ = false;
+				
+				if (!std::isnan(trait_info.dominance_coeff_UNSAFE_))
+				{
+					// this mutation is non-neutral *and* not independent-dominance
+					trait->trait_all_mutations_independent_dominance_ = false;
+				}
+			}
+		}
+	}
+	
+	// We do not invalidate any trait values or nonneutral mutation caches here.  The specific caches
+	// affected by this added mutation will be invalidated in the individuals / mutruns modified.
+}
+
+void Species::NoteMutationRemoved(__attribute__ ((unused)) const Mutation *p_mut)
+{
+	// At present, removing a mutation does not affect any optimization flags, but if we wanted to,
+	// we could start treating one of those flags as non-sticky and re-evaluate it here.
+	
+	// We do not invalidate any trait values or nonneutral mutation caches here.  The specific caches
+	// affected by this removed mutation will be invalidated in the individuals / mutruns modified.
+}
+
+void Species::NoteMutationStateChanged(const Mutation *p_mut)
+{
+	if (p_mut->is_neutral_for_all_traits_)
+	{
+		// We only need to know about mutations becoming neutral for tracking this species flag, which indicates
+		// that ALL mutations are non-neutral; if we see even one neutral mutation, this flag turns off.
+		species_no_neutral_mutations_ = false;
+	}
+	else
+	{
+		// We track a lot more information about mutations becoming non-neutral, because they need to be managed.
+		// This is a fair bit of work, but it is only done once when a new non-neutral mutation is created, or a
+		// mutation is changed to a non-neutral state.  That is not very frequent compared to other overhead.
+		
+		species_all_neutral_mutations_ = false;
+		p_mut->mutation_type_ptr_->muttype_all_neutral_mutations_ = false;
+		
+		// since the mutation is non-neutral for at least one trait, we have to fix the Trait flags
+		MutationTraitInfo *mut_trait_info = mutation_block_->TraitInfoForMutation(p_mut);
+		
+		for (Trait *trait : traits_)
+		{
+			slim_trait_index_t trait_index = trait->Index();
+			MutationTraitInfo &trait_info = mut_trait_info[trait_index];
+			
+			if (trait_info.effect_size_ != (slim_effect_t)0.0)
+			{
+				// this mutation is non-neutral for this trait
+				trait->trait_all_neutral_mutations_ = false;
+				
+				if (!std::isnan(trait_info.dominance_coeff_UNSAFE_))
+				{
+					// this mutation is non-neutral *and* not independent-dominance
+					trait->trait_all_mutations_independent_dominance_ = false;
+				}
+			}
+		}
+	}
+	
+	// NONNEUTRAL CACHE INVALIDATION: Whenever a mutation changes in any way, whether becoming neutral or
+	// becoming non-neutral, we need to invalidate the nonneutral caches that that mutation is a member of.
+	// Right now we are somewhat over-conservative and simply invalidate all of the non-neutral caches for
+	// the affected chromosome, with a per-chromosome flag.  We could narrow this down to one mutrun slot,
+	// but that would make the design a lot more complex, and mutation state changes are usually uncommon.
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	Chromosome *associated_chromosome = Chromosomes()[p_mut->chromosome_index_];
+	
+	associated_chromosome->all_nonneutral_caches_invalid_for_chromosome_ = true;
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " !!! NoteMutationStateChanged() invalidating all nonneutral caches for chromosome '" << associated_chromosome->Symbol() << "' due to mutation state change" << std::endl;
+#endif
+#endif
+}
+
+void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
+{
+	// TRAIT INVALIDATION: invalidate trait values affected by this callback.  This is called every time that
+	// a mutationEffect() callback comes into scope or falls out of scope, or is added or removed, or is made
+	// active or inactive, or is rescheduled.  Any time a mutationEffect() callback changes like that, we need
+	// to invalidate all of the trait values that are affected by that callback, regardless of the nature of
+	// the callback -- constant or not, neutral or not.  Note that the mutation type for the callback is not
+	// relevant here, because we're invalidating trait values in individuals, which are not muttype-specific.
+	slim_objectid_t callback_subpop_id = p_callback->subpopulation_id_;
+	slim_trait_index_t callback_trait_index = p_callback->trait_index_;
+	slim_trait_index_t trait_count = TraitCount();
+	
+	for (auto subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		
+		if ((callback_subpop_id == -1) || (callback_subpop_id == subpop->subpopulation_id_))
+		{
+			slim_popsize_t individuals_count = subpop->parent_subpop_size_;
+			std::vector<Individual *> &individuals_buffer = subpop->parent_individuals_;
+			
+			if (callback_trait_index != -1)
+			{
+				// the callback applies only to one specific trait; invalidate just that trait
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					trait_info[callback_trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+				}
+			}
+			else
+			{
+				// the callback applies to every trait that is being demanded; we optimize a few cases here
+				if (trait_count == 1)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[0].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else if (trait_count == 2)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[0].phenotype_ = SLIM_PHENOTYPE_NAN;
+						trait_info[1].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else if (trait_count == 3)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						trait_info[0].phenotype_ = SLIM_PHENOTYPE_NAN;
+						trait_info[1].phenotype_ = SLIM_PHENOTYPE_NAN;
+						trait_info[2].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+				else
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *individual = individuals_buffer[individual_index];
+						IndividualTraitInfo *trait_info = individual->trait_info_;
+						
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+							trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+					}
+				}
+			}
+		}
+	}
+}
+
+void Species::InvalidateAllTraitValues(void)
+{
+	// TRAIT INVALIDATION: This is called to invalidate all trait values in all species.  It should be
+	// called when the world world is turned upside down -- when the tick value changes arbitrarily,
+	// for example.  FIXME MULTITRAIT probably call this after loading data from a file, too.
+	slim_trait_index_t trait_count = TraitCount();
+	
+	for (auto subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		slim_popsize_t individuals_count = subpop->parent_subpop_size_;
+		std::vector<Individual *> &individuals_buffer = subpop->parent_individuals_;
+		
+		for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+		{
+			Individual *individual = individuals_buffer[individual_index];
+			IndividualTraitInfo *trait_info = individual->trait_info_;
+			
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+				trait_info[trait_index].phenotype_ = SLIM_PHENOTYPE_NAN;
+		}
+	}
+}
+
+void Species::CrosscheckAllTraitValues(void)
+{
+	// if the user has directly set phenotype values, rather that letting SLiM calculate them, we disable
+	// this crosscheck since the existing trait values are no longer expected to match SLiM's expectations
+	if (phenotypes_changed_directly_ || gSLiM_disable_trait_crosschecks)
+		return;
+	
+	slim_trait_index_t trait_count = TraitCount();
+	__attribute__ ((unused)) int64_t invalidated_count = 0;
+	__attribute__ ((unused)) int64_t correct_count = 0;
+	
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+		
+		for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)	// go through all children
+		{
+			Individual *ind = subpop->parent_individuals_[individual_index];
+			
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+			{
+				slim_phenotype_t calculated_phenotype = ind->trait_info_[trait_index].phenotype_;
+				
+				// NAN phenotypes have been invalidated, so there's nothing to check
+				if (isnan(calculated_phenotype))
+				{
+					invalidated_count++;
+					continue;
+				}
+				
+				slim_phenotype_t check_phenotype = ind->_CheckPhenotypeForTrait(trait_index);
+				
+				// Use Eidos_IsClose() to test whether our crosscheck produced a "close" value or not.  The
+				// goal is not to check for exact equality, but to find bugs that make calculations incorrect.
+				// We use a relatively high absolute tolerance here because some calculations are single-precision.
+				if (!Eidos_IsClose((double)calculated_phenotype, (double)check_phenotype, /* rtol */ 1.0e-05, /* atol */ 1.0e-5))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::CrosscheckAllTraitValues): (internal error) phenotype check failed in tick " << community_.Tick() << " for trait '" << Traits()[trait_index]->Name() << "' (calculated_phenotype == " << calculated_phenotype << ", check_phenotype == " << check_phenotype << ", difference == " << (calculated_phenotype - check_phenotype) << ")." << EidosTerminate();
+				
+				correct_count++;
+			}
+		}
+	}
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " ~~~ CrosscheckAllTraitValues() checked cached trait values; " << invalidated_count << " are invalidated, " << correct_count << " are correct." << std::endl;
+#endif
+}
+
+void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutationEffect_callbacks)
+{
+	// There is nothing to validate, in no-genetics models.
+	if (!HasGenetics())
+		return;
+	
+	//
+	//	Track previous state so we can compare against new state
+	//
+	
+	// First, figure out how we are going to handle MutationRun nonneutral mutation caches; see mutation_run.h.
+	// We need to assess the state of callbacks for each mutation type, and then depending upon that compared to
+	// the state from the previous generation, invalidate nonneutral caches or allow them to persist.
+	last_trait_calculation_regime_DIPLOID_ = current_trait_calculation_regime_DIPLOID_;
+	last_trait_calculation_regime_HAPLOID_ = current_trait_calculation_regime_HAPLOID_;
+	
+	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
+	const std::vector<Trait *> &traits = Traits();
+	TraitCalculationRegime new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kUndefined;
+	TraitCalculationRegime new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kUndefined;
+	std::vector<slim_trait_index_t> pure_independent_dominance_traits;
+	
+	// First, save off the old values of flags that influence nonneutral caching.  We don't do this if we're
+	// starting afresh; we will recache completely anyway, and we need to avoid reading uninitialized values.
+	if (last_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kUndefined)
+	{
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			muttype->previous_is_pure_neutral_now_ = muttype->is_pure_neutral_now_;
+			muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
+			muttype->previous_subject_to_non_global_neutral_callback_ = muttype->subject_to_non_global_neutral_callback_;
+		}
+	}
+	
+#if DEBUG
+	// Crosscheck to see whether mutation types and traits agree about whether all mutations are neutral.
+	// I think the two should agree in all cases, because the logic for setting their flags is parallel
+	// in RecalculateOptimizationFlags(), NoteMutationAdded(), and NoteMutationStateChanged().
+	{
+		bool all_muttypes_all_neutral_mutations = true;
+		bool all_traits_all_neutral_mutations = true;
+		
+		for (auto muttype_iter : mut_types)
+			all_muttypes_all_neutral_mutations &= muttype_iter.second->muttype_all_neutral_mutations_;
+		for (Trait *trait : traits)
+			all_traits_all_neutral_mutations &= trait->trait_all_neutral_mutations_;
+		
+		if (all_muttypes_all_neutral_mutations != all_traits_all_neutral_mutations)
+			EIDOS_TERMINATION << "ERROR (Species::PrepareForTraitCalculations): (internal error) mutation types and traits disagree as to whether all mutations are neutral (mutation types say " << (all_muttypes_all_neutral_mutations ? "YES" : "NO") << ", traits say " << (all_traits_all_neutral_mutations ? "YES" : "NO") << ")." << EidosTerminate();
+	}
+#endif
+	
+	//
+	//	Assess the state of mutationEffect() callbacks and neutrality of mutation types / traits
+	//
+	
+	// Initially, every mutation type is assumed to be uninfluenced by callbacks, and thus pure-neutral
+	// if all mutations of that type are intrinsically neutral (i.e., have an effect of 0.0), which we track
+	for (auto muttype_iter : mut_types)
+	{
+		MutationType *muttype = muttype_iter.second;
+		
+		muttype->is_pure_neutral_now_ = muttype->muttype_all_neutral_mutations_;
+		muttype->subject_to_mutationEffect_callback_ = false;
+		muttype->subject_to_non_global_neutral_callback_ = false;
+	}
+	
+	// Similarly, every trait is assumed to be uninfluenced by callbacks, and thus pure-neutral if all
+	// mutations' effects are intrinsically neutral for that trait (i.e., have an effect of 0.0).  For
+	// traits we also determine pure independent dominance; similarly, every trait is assumed to be
+	// uninfluenced by callbacks, and thus pure independent dominance if all mutations' effects exhibit
+	// pure independent dominance for that trait (i.e., have a dominance coefficient of NAN).
+	for (Trait *trait : traits)
+	{
+		trait->is_pure_neutral_now_ = trait->trait_all_neutral_mutations_;
+		trait->is_pure_independent_dominance_now_ = trait->trait_all_mutations_independent_dominance_ && !trait->trait_all_neutral_mutations_;
+		trait->subject_to_mutationEffect_callback_ = false;
+		trait->subject_to_non_global_neutral_callback_ = false;
+	}
+	
+	//
+	//	Determine the trait calculation regime (DIPLOID)
+	//
+	
+	if (mutationEffect_callbacks.size() == 0)
+	{
+		// This regime is "no active callbacks, so you don't have to look at the mutation type at all, it doesn't
+		// matter; just look at the mutations themselves to determine which go into the non-neutral cache".
+		// This avoids the work of looking at the mutation type, and also allows the cache to be more precise
+		// since determinations are made per-mutation rather than per-mutation-type.
+		new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kNoActiveCallbacks;
+	}
+	else
+	{
+		// Assess how muttypes are being influenced by mutationEffect() callbacks
+		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+		{
+			MutationType *callback_mut_type = nullptr;
+			bool makes_globally_neutral = _CallbackMakesMutationTypeGloballyNeutral(mutationEffect_callback, callback_mut_type);
+			
+			// a callback might be defined for a muttype or subpop not in use, in which case we skip it
+			if (!callback_mut_type)
+				continue;
+			
+			if (makes_globally_neutral)
+			{
+				// the callback makes the mutation type completely neutral, in all subpops; this does not
+				// entirely override a previous non-neutral callback, because that might have side effects
+				// on aspects of the model of than the mutation effect, but effect is guaranteed neutral now
+				// if the mutation type is already pure neutral, the callback is redundant and is ignored
+				if (!callback_mut_type->is_pure_neutral_now_)
+				{
+					callback_mut_type->is_pure_neutral_now_ = true;
+					callback_mut_type->subject_to_mutationEffect_callback_ = true;
+				}
+			}
+			else
+			{
+				bool makes_non_neutral = _CallbackMakesMutationTypeNonNeutral(mutationEffect_callback, callback_mut_type);
+				
+				if (makes_non_neutral)
+				{
+					// the callback is non-neutral, so it has to be called, with non-neutral effects
+					callback_mut_type->is_pure_neutral_now_ = false;
+					callback_mut_type->subject_to_mutationEffect_callback_ = true;
+					callback_mut_type->subject_to_non_global_neutral_callback_ = true;
+				}
+				else
+				{
+					// the callback is neutral, just not global-neutral; so it might need to be called
+					if (callback_mut_type->is_pure_neutral_now_)
+					{
+						// the mutation type is pure-neutral, so the callback is redundant and can be
+						// ignored; all it does is set mutations to neutral that are already neutral
+					}
+					else
+					{
+						// the mutation type is not pure-neutral, so we have to consider the callback as
+						// "non-neutral" because it potentially modifies the existing effects of mutations
+						callback_mut_type->subject_to_mutationEffect_callback_ = true;
+						callback_mut_type->subject_to_non_global_neutral_callback_ = true;
+					}
+				}
+			}
+		}
+		
+		// And assess how traits are being influenced by mutationEffect() callbacks.  We do this one trait at a
+		// time, so that we can focus on that trait and try to draw the strongest possible inference about it.
+		for (Trait *trait : traits_)
+		{
+			std::vector<bool> trait_pure_neutral_for_muttype;
+			
+			trait_pure_neutral_for_muttype.resize(mut_types.size());
+			
+			// at the outset, take the effect of each mutation type of the trait as simply being whether it is
+			// pure neutral across the board; this misses out on per-trait effects, so this could be refined
+			// if we had per-trait information from the mutation type, but we don't currently track that.
+			
+			if (trait->trait_all_neutral_mutations_)
+			{
+				// if we know that all mutations are neutral for the trait, we can infer that every muttype is
+				// neutral for the trait (without the effects of callbacks, which we assess below)
+				for (auto muttype_iter : mut_types)
+					trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_] = true;
+			}
+			else
+			{
+				// otherwise, we can take the effect of each mutation type of the trait as simply being whether
+				// it is pure neutral across the board; this misses out on per-trait effects, so this could be
+				// refined if we had per-trait information from the mutation type, but we don't have that.
+				for (auto muttype_iter : mut_types)
+					trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_] = muttype_iter.second->is_pure_neutral_now_;
+			}
+			
+			// that is our assessment based on mutations alone; now we examine callbacks for their effect
+			
+			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+			{
+				MutationType *callback_mut_type = nullptr;
+				Trait *callback_trait = nullptr;
+				bool makes_globally_neutral = _CallbackMakesTraitGloballyNeutral(mutationEffect_callback, callback_trait, callback_mut_type);
+				
+				// a callback might be defined for a muttype or subpop not in use, in which case we skip it
+				if (!callback_mut_type)
+					continue;
+				
+				// note that ANY callback that applies to a given trait turns off pure-independent-dominance,
+				// even if the callback is neutral; this is because the independent-dominance mechanism is
+				// based on the nonneutral mutation buffer, without the involvement of callbacks, so even a
+				// neutral or global-neutral callback causes incorrect independent dominance values to be cached.
+				// we could instead leave is_pure_independent_dominance_now_ unaffected here, and turn off the
+				// independent dominance mechanism when actually using the cached values if any callback is
+				// present; that would work, but then we'd often spend time making the independent dominance
+				// cache and then not using it at all; ideally we'd be smarter about this.  FIXME MULTICHROM
+				trait->is_pure_independent_dominance_now_ = false;
+				
+				// we're handling one focal trait at a time here; if the callback doesn't apply to it, move on
+				// if callback_trait is nullptr, that means it applies to all traits, so it applies to this one
+				if (callback_trait && (callback_trait != trait))
+					continue;
+				
+				int muttype_index = callback_mut_type->mutation_type_index_;
+				
+				if (makes_globally_neutral)
+				{
+					// if the trait is already pure neutral, a callback making it neutral is redundant
+					if (!trait_pure_neutral_for_muttype[muttype_index])
+						trait->subject_to_mutationEffect_callback_ = true;
+				}
+				else
+				{
+					bool makes_non_neutral = _CallbackMakesTraitNonNeutral(mutationEffect_callback, callback_trait, callback_mut_type);
+					
+					if (makes_non_neutral)
+					{
+						// the callback is non-neutral, so it has to be called, with non-neutral effects
+						trait->subject_to_mutationEffect_callback_ = true;
+						trait->subject_to_non_global_neutral_callback_ = true;
+						
+						trait_pure_neutral_for_muttype[muttype_index] = false;					}
+					else
+					{
+						// the callback is neutral, just not global-neutral; so it might need to be called
+						if (trait_pure_neutral_for_muttype[muttype_index])
+						{
+							// the trait is pure-neutral, so the callback is redundant and can be ignored;
+							// all it does is set mutations to neutral that are already neutral
+						}
+						else
+						{
+							// the trait is not pure-neutral, so we have to consider the callback "nonneutral"
+							// because it potentially modifies the existing effects of mutations
+							trait->subject_to_mutationEffect_callback_ = true;
+							trait->subject_to_non_global_neutral_callback_ = true;
+						}
+					}
+				}
+			}
+			
+			// now we can draw an inference about whether this trait is pure neutral or not
+			bool pure_neutral_for_all_muttypes = true;
+			
+			for (auto muttype_iter : mut_types)
+				if (!trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_])
+					pure_neutral_for_all_muttypes = false;
+			
+			if (pure_neutral_for_all_muttypes)
+			{
+				trait->subject_to_non_global_neutral_callback_ = false;
+				trait->is_pure_neutral_now_ = true;
+			}
+			else
+			{
+				trait->is_pure_neutral_now_ = false;
+			}
+		}
+		
+		// Now we would like to know if there is any callback that we actually need to call; if every callback
+		// is a global-neutral callback, we can skip calling all callbacks completely, but if there exists a
+		// non-global-neutral callback (even overriden by another callback later in the chain), we have to call
+		// that since it could have side effects
+		bool all_active_callbacks_are_global_neutral_effects = true;
+		
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (muttype->subject_to_non_global_neutral_callback_)
+			{
+				all_active_callbacks_are_global_neutral_effects = false;
+				break;
+			}
+		}
+		
+		if (all_active_callbacks_are_global_neutral_effects)
+		{
+			// This regime is "we can skip all callbacks, since they are all global-neutral on some or all mutation
+			// types".  We still have to be aware that those global-neutral callbacks exist; we cannot simply
+			// consult mutation effects, because those are sometimes overridden. But we can assume that if
+			// subject_to_mutationEffect_callback_ is set for a mutation type, all mutations of that type are
+			// neutral, because the callback in question is global-neutral. When that flag is not set, we consult
+			// the mutation itself to decide whether it goes into the non-neutral cache.
+			new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kAllGlobalNeutralCallbacks;
+		}
+		else
+		{
+			// We have at least one active callback that is not a global constant-effect callback, so there
+			// is at least one muttype that is influenced by a non-global-neutral callback.  We will need to
+			// take that into account.  So we cannot assume that if subject_to_mutationEffect_callback_ is
+			// set that mutation type is pure neutral; instead, we then have to additionally consult the
+			// subject_to_non_global_neutral_callback_ flag.  If that is set, we have to call the non-global-neutral
+			// callback; if it is not set, it is subject to a callback that is not non-global-neutral, thus it is
+			// global-neutral, thus the mutation type is pure-neutral.  If subject_to_mutationEffect_callback_ is not
+			// set, that mutation type has no callback, and so we can again consult the mutation itself.
+			// This regime is thus "we can't skip all callbacks, since some are non-global-neutral, so we have
+			// to do an extra check and potentially actually call a callback."
+			new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kNonNeutralCallbacks;
+			
+			for (auto muttype_iter : mut_types)
+				(muttype_iter.second)->subject_to_mutationEffect_callback_ = false;
+			
+			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
+			{
+				slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+				
+				if (mutation_type_id != -1)
+				{
+					MutationType *found_muttype = MutationTypeWithID(mutation_type_id);
+					
+					if (found_muttype)
+						found_muttype->subject_to_mutationEffect_callback_ = true;
+				}
+			}
+		}
+	}
+	
+	// If we have no non-global-neutral callbacks, we can potentially know with certainty that the model is
+	// completely neutral, either because all mutations are intrinsically neutral and there are no callbacks,
+	// or because all mutation types with non-neutral mutations are made neutral by global-neutral callbacks
+	// and there are no other callbacks present (even overridden).  We detect that special-case situation here.
+	// This regime is thus "all mutations are effectively neutral; genetics can be skipped."  But note that
+	// baseline and individual offsets still affect traits, so we still have to include those.
+	if ((new_trait_calculation_regime_DIPLOID == TraitCalculationRegime::kNoActiveCallbacks) ||
+		(new_trait_calculation_regime_DIPLOID == TraitCalculationRegime::kAllGlobalNeutralCallbacks))
+	{
+		bool all_muttypes_are_pure_neutral = true;
+		
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (!muttype->is_pure_neutral_now_)
+			{
+				all_muttypes_are_pure_neutral = false;
+				break;
+			}
+		}
+		
+		bool all_traits_are_pure_neutral = true;
+		
+		for (Trait *trait : traits)
+		{
+			if (!trait->is_pure_neutral_now_)
+			{
+				all_traits_are_pure_neutral = false;
+				break;
+			}
+		}
+		
+		// Crosscheck to see whether mutation types and traits agree about whether the species is pure-neutral.
+		// A disagreement on this point is not necessarily a problem; the inferences are made differently.
+		// We will infer pure neutrality if either inference chain tells us we can; assuming there is not an
+		// error above, neither inference chain should conclude pure neutrality incorrectly, but one or the
+		// other might eb more powerful in a given circumstance, and so might not be able to draw the inference.
+		// Still, these mismatches point to places where our inferences could perhaps be improved, so we log.
+#if DEBUG_TRAIT_DEMAND()
+		if (all_muttypes_are_pure_neutral != all_traits_are_pure_neutral)
+			std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations(): NOTE: mutation types and traits disagree as to whether the species is pure neutral (muttypes say " << (all_muttypes_are_pure_neutral ? "YES" : "NO") << ", traits say " << (all_traits_are_pure_neutral ? "YES" : "NO") << ").";
+#endif
+		
+		if (all_muttypes_are_pure_neutral || all_traits_are_pure_neutral)
+			new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kPureNeutral;
+	}
+	
+	if (new_trait_calculation_regime_DIPLOID == TraitCalculationRegime::kUndefined)
+		EIDOS_TERMINATION << "ERROR (Species::PrepareForTraitCalculations): (internal error) nonneutral regime was not decided." << EidosTerminate();
+	
+	//
+	//	Figure out how we will handle independent-dominance caches for intrinsically diploid chromosomes
+	//	Depending on this, we might shift into a different trait calculation regime (DIPLOID)
+	//
+	
+	if (new_trait_calculation_regime_DIPLOID != TraitCalculationRegime::kPureNeutral)
+	{
+		// Having determined which traits, if any, exhibit pure independent dominance, we make a vector of them.
+		// This does not affect which mutations are placed into the non-neutral cache, because mutations may be
+		// non-neutral and non-independent-dominance for other traits, and because we need the non-neutral cache
+		// for the hemizygous case anyway.  It does mean that mutations in the non-neutral cache will additionally
+		// be summarized for their independent-dominance effects, after the non-neutral cache itself is built.
+		// We do not do this if we are in the "pure-neutral" regime, since genetic calculations are not needed.
+		// Similarly, we do not do it for any traits that are themselves "pure-neutral".
+		for (Trait *trait : traits)
+			if (trait->is_pure_independent_dominance_now_)
+				pure_independent_dominance_traits.push_back(trait->Index());
+	}
+	
+	// In some cases we can know that the model is completely NON-neutral: all mutations would be copied to the
+	// nonneutral cache, and so we actually don't want to set up the nonneutral mutation buffers at all (but
+	// we might still want to set up the independent-dominance caches, so we might still need to allocate
+	// nonneutral caches just for those).  Here we check for that, and potentially change regimes.
+	// NOTE: the strict correctness of this evaluation is not essential; if we decide not to use the nonneutral
+	// mutation buffers and there are in fact some neutral mutations, they will just be included in the demand
+	// calculations, which is harmless except for wasting time.  But we want to try to be reasonably accurate,
+	// otherwise we undermine the efficacy of the nonneutral caching mechanism.
+	if (new_trait_calculation_regime_DIPLOID != TraitCalculationRegime::kPureNeutral)
+	{
+		bool species_is_all_nonneutral = species_no_neutral_mutations_;
+		
+		if (!species_is_all_nonneutral)
+		{
+			// There are some mutations segregating that are neutral, apparently; but the model might still be
+			// all nonneutral, or close enough, if we can conclude that each mutation type is nonneutral
+			// due to callbacks.  We could go further and track all_nonneutral state for each mutation type,
+			// but that seems like overkill since it isn't clear that any realistic model would be caught by it.
+			bool all_muttypes_are_nonneutral_by_callbacks = true;
+			
+			for (auto muttype_iter : mut_types)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (!muttype->subject_to_non_global_neutral_callback_)
+				{
+					all_muttypes_are_nonneutral_by_callbacks = false;
+					break;
+				}
+			}
+			
+			if (all_muttypes_are_nonneutral_by_callbacks)
+				species_is_all_nonneutral = true;
+		}
+		
+		// Now we try to eliminate models where at least one mutation type has been made pure neutral by a
+		// callback and is not subject to a callback that needs to be called due to possible side effects.
+		// If we find such a mutation type, the model is not really all nonneutral; mutations of that mutation
+		// type would probably be excluded from the nonneutral cache, so we want to allow the nonneutral caches
+		// to be constructed.  Remember that this heuristic does not need to be exact; see above.
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (muttype->is_pure_neutral_now_ && !muttype->subject_to_non_global_neutral_callback_)
+			{
+				species_is_all_nonneutral = false;
+				break;
+			}
+		}
+		
+		if (species_is_all_nonneutral)
+		{
+			// OK, we have concluded that the model is mostly or entirely composed of mutations that would need
+			// to be copied into nonneutral mutation buffers, so our goal now is to skip building the nonneutral
+			// mutation buffers and just use the main mutation buffers instead; no point in wasting time copying.
+			// We do that by switching to a new regime.  The properties of the regime that we selected above
+			// (kNoActiveCallbacks, kAllGlobalNeutralCallbacks, kNonNeutralCallbacks) are unimportant; we just
+			// want to select a regime that doesn't copy anything at all.  The only question remaining is: if
+			// a mutrun has not yet allocated a nonneutral cache at all (i.e., is nullptr), do we want it to
+			// allocate a nonneutral cache now, so it has a place to put independent-dominance caches, or can
+			// we just leave it unallocated (because the independent-dominance caches aren't needed)?
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+			if (pure_independent_dominance_traits.size() == 0)
+				new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kAllNonNeutralNoIndDomCaches;
+			else
+				new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kAllNonNeutralWithIndDomCaches;
+#else
+			new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kAllNonNeutralNoIndDomCaches;
+#endif
+		}
+	}
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if DEBUG_TRAIT_DEMAND()
+	if (pure_independent_dominance_traits.size())
+	{
+		std::cout << "# " << community_.Tick() << " +++ making independent dominance caches for traits {";
+		for (slim_trait_index_t trait_index : pure_independent_dominance_traits)
+			std::cout << " " << Traits()[trait_index]->Name();
+		std::cout << " }" << std::endl;
+	}
+	else
+	{
+		std::cout << "# " << community_.Tick() << " +++ making independent dominance caches for NO traits" << std::endl;
+	}
+#endif
+#endif
+	
+	//
+	//	Shift to the new trait calculation regime (DIPLOID)
+	//
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations() old regime (DIPLOID) " << last_trait_calculation_regime_DIPLOID_ << ", new regime " << new_trait_calculation_regime_DIPLOID;
+	std::cout << ((last_trait_calculation_regime_DIPLOID_ != new_trait_calculation_regime_DIPLOID) ? " -- CHANGED" : " -- unchanged") << std::endl;
+#endif
+	
+	current_trait_calculation_regime_DIPLOID_ = new_trait_calculation_regime_DIPLOID;
+	
+	//
+	//	Determine the trait calculation regime (HAPLOID)
+	//
+#if SLIM_USE_HAPLOID_CACHES()
+	bool all_muttypes_subject_to_callbacks = true;
+	bool any_muttypes_subject_to_callbacks = false;
+	
+	for (auto muttype_iter : mut_types)
+	{
+		MutationType *muttype = muttype_iter.second;
+		
+		if (muttype->subject_to_mutationEffect_callback_)
+			any_muttypes_subject_to_callbacks = true;
+		else
+			all_muttypes_subject_to_callbacks = false;
+	}
+	
+	if (current_trait_calculation_regime_DIPLOID_ == TraitCalculationRegime::kPureNeutral)
+	{
+		// If we determined that the model is pure neutral, the same is true for the haploid case.  This
+		// will avoid doing any caching work, or allocating any caches at all.
+		new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kPureNeutral;
+	}
+	else if (!any_muttypes_subject_to_callbacks)
+	{
+		// With no active callbacks, we want to cache all mutation effects for haploids; the only question is
+		// whether all mutations are non-neutral (so we cache them all), or some are neutral (so we check for
+		// neutrality as we cache, to save work caching the per-trait effects of mutations that are neutral).
+		if (species_no_neutral_mutations_)
+			new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks;
+		else
+			new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kHaploidNoCallbacks;
+	}
+	else
+	{
+		// With active callbacks, mutations of muttypes subject to callbacks will go into the nonneutral
+		// mutation buffers, and only mutations not subject to callbacks will get cached for haploids.
+		if (all_muttypes_subject_to_callbacks)
+		{
+			// Here we use the same regime as for diploid chromosomes; that code has already determined
+			// characteristics of the active callbacks and determined an optimal treatment for them.
+			// We want to skip haploid caching entirely; nothing would get cached anyway.  The only
+			// tweak we make to the regime here is that haploids never use independent dominance caches.
+			if (current_trait_calculation_regime_DIPLOID_ == TraitCalculationRegime::kAllNonNeutralWithIndDomCaches)
+				new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kAllNonNeutralNoIndDomCaches;
+			else
+				new_trait_calculation_regime_HAPLOID = current_trait_calculation_regime_DIPLOID_;
+		}
+		else
+		{
+			// Only some mutation types are subject to callbacks, so we cache what we can.  We again choose
+			// between regimes based on whether some mutations are neutral, or all are known to be nonneutral.
+			if (species_no_neutral_mutations_)
+				new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks;
+			else
+				new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kHaploidWithCallbacks;
+		}
+	}
+#else
+	// With no haploid caches, use the same regime as diploids, except never with ind-dom caches
+	if (current_trait_calculation_regime_DIPLOID_ == TraitCalculationRegime::kAllNonNeutralWithIndDomCaches)
+		new_trait_calculation_regime_HAPLOID = TraitCalculationRegime::kAllNonNeutralNoIndDomCaches;
+	else
+		new_trait_calculation_regime_HAPLOID = current_trait_calculation_regime_DIPLOID_;
+#endif
+	
+	//
+	//	Shift to the new trait calculation regime (HAPLOID)
+	//
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations() old regime (HAPLOID) " << last_trait_calculation_regime_HAPLOID_ << ", new regime " << new_trait_calculation_regime_HAPLOID;
+	std::cout << ((last_trait_calculation_regime_HAPLOID_ != new_trait_calculation_regime_HAPLOID) ? " -- CHANGED" : " -- unchanged") << std::endl;
+#endif
+	
+	current_trait_calculation_regime_HAPLOID_ = new_trait_calculation_regime_HAPLOID;
+	
+	//
+	//	We have now determined all of our policies for this trait calculation; now we can validate nonneutral
+	//	caches, fill independent-dominance caches, precalculate haploid cached values, and so forth.  Note
+	//	that if nonneutral caches are off, we skip this step, and so some of the work above will be redundant.
+	//	Trait calculations will then be done using the main mutation buffers of mutation runs, without the use
+	//	of the nonneutral caches.
+	//
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	_ValidateNonNeutralCaches(pure_independent_dominance_traits);
+#endif
+}
+
+bool Species::_CallbackMakesMutationTypeGloballyNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref)
+{
+	// This method checks whether a mutationEffect() callback makes the mutation type that it refers to neutral.
+	// The callback has to apply globally: to all subpopulations, and to all traits.  We could try to piece the
+	// effects of multiple callbacks together to see whether, in concert, they make a mutation type neutral, but
+	// that gets a lot more complicated and I think it would apply to few, if any, real-world models.
+	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+	
+#if DEBUG
+	if (mutation_type_id == -1)
+		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesMutationTypeGloballyNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
+#endif
+	
+	// if the callback refers to a subpop that doesn't currently exist, it doesn't make anything neutral
+	if (mutationEffect_callback->subpopulation_id_ != -1)
+	{
+		Subpopulation *subpop = SubpopulationWithID(mutationEffect_callback->subpopulation_id_);
+		
+		if (!subpop)
+		{
+			mut_type_ptr_ref = nullptr;
+			return false;
+		}
+	}
+	
+	// find the callback's mutation type; this could be nullptr, if the referenced muttype has not been defined
+	mut_type_ptr_ref = MutationTypeWithID(mutation_type_id);
+	
+	// if the callback refers to a mutation type that is not defined, it doesn't make anything neutral
+	if (!mut_type_ptr_ref)
+		return false;
+	
+	bool makes_neutral = false;		// it is non-global-neutral if it doesn't apply to all subpops and traits
+	
+	if ((mutationEffect_callback->subpopulation_id_ == -1) && (mutationEffect_callback->trait_index_ == -1))
+	{
+		const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+		
+		if (compound_statement_node->cached_return_value_)
+		{
+			// The script is a constant expression such as "{ return 1.1; }"
+			EidosValue *result = compound_statement_node->cached_return_value_.get();
+			
+			if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+			{
+				if (result->FloatData()[0] == 1.0)
+				{
+					// the callback returns 1.0; this makes the muttype neutral if all traits are multiplicative
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kAdditive) {
+							makes_neutral = false;
+							break;
+						}
+				}
+				else if (result->FloatData()[0] == 0.0)
+				{
+					// the callback returns 0.0; this makes the muttype neutral if all traits are additive
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kMultiplicative) {
+							makes_neutral = false;
+							break;
+						}
+				}
+			}
+			else if (result->Type() == EidosValueType::kValueNULL)
+			{
+				// the callback returns NULL; this makes the muttype neutral in all cases
+				makes_neutral = true;
+			}
+		}
+	}
+	
+	return makes_neutral;
+}
+	
+bool Species::_CallbackMakesMutationTypeNonNeutral(SLiMEidosBlock *mutationEffect_callback, MutationType *&mut_type_ptr_ref)
+{
+	// This method checks whether a mutationEffect() callback makes the mutation type it refers to nonneutral.
+	// The callback can apply to any/all subpopulations/traits; in any case it renders the muttype nonneutral.
+	// Note that there is an in-between space between this method and the previous one, when a callback returns
+	// a constant neutral value, but does not apply to all subpopulations/traits.
+	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+	
+#if DEBUG
+	if (mutation_type_id == -1)
+		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesMutationTypeNonNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
+#endif
+	
+	// if the callback refers to a subpop that doesn't currently exist, it doesn't make anything non-neutral
+	if (mutationEffect_callback->subpopulation_id_ != -1)
+	{
+		Subpopulation *subpop = SubpopulationWithID(mutationEffect_callback->subpopulation_id_);
+		
+		if (!subpop)
+		{
+			mut_type_ptr_ref = nullptr;
+			return false;
+		}
+	}
+	
+	// find the callback's mutation type; this could be nullptr, if the referenced muttype has not been defined
+	mut_type_ptr_ref = MutationTypeWithID(mutation_type_id);
+	
+	// if the callback refers to a mutation type that is not defined, it doesn't make anything non-neutral
+	if (!mut_type_ptr_ref)
+		return false;
+	
+	bool makes_neutral = false;			// it is non-neutral if it doesn't have a cached return value
+	Trait *affected_trait = nullptr;
+	
+	if (mutationEffect_callback->trait_index_ != -1)
+		affected_trait = traits_[mutationEffect_callback->trait_index_];
+	
+	const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+	
+	if (compound_statement_node->cached_return_value_)
+	{
+		// The script is a constant expression such as "{ return 1.1; }"
+		EidosValue *result = compound_statement_node->cached_return_value_.get();
+		
+		if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+		{
+			if (result->FloatData()[0] == 1.0)
+			{
+				// the callback returns 1.0; this makes the muttype neutral if all traits are multiplicative
+				makes_neutral = true;
+				
+				if (affected_trait)
+				{
+					if (affected_trait->Type() == TraitType::kAdditive)
+						makes_neutral = false;
+				}
+				else
+				{
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kAdditive) {
+							makes_neutral = false;
+							break;
+						}
+				}
+			}
+			else if (result->FloatData()[0] == 0.0)
+			{
+				// the callback returns 0.0; this makes the muttype neutral if all traits are additive
+				makes_neutral = true;
+				
+				if (affected_trait)
+				{
+					if (affected_trait->Type() == TraitType::kMultiplicative)
+						makes_neutral = false;
+				}
+				else
+				{
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kMultiplicative) {
+							makes_neutral = false;
+							break;
+						}
+				}
+			}
+		}
+		else if (result->Type() == EidosValueType::kValueNULL)
+		{
+			// the callback returns NULL; this makes the muttype neutral in all cases
+			makes_neutral = true;
+		}
+	}
+	
+	return !makes_neutral;
+}
+	
+bool Species::_CallbackMakesTraitGloballyNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref, MutationType *&mut_type_ptr_ref)
+{
+	// This method checks whether a mutationEffect() callback makes the trait that it refers to neutral.
+	// The callback has to apply globally to all subpopulations (but not necessarily to all traits).
+	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+	
+#if DEBUG
+	if (mutation_type_id == -1)
+		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesTraitGloballyNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
+#endif
+	
+	// find the callback's trait; this could be nullptr, if the callback is not specific to one trait
+	slim_trait_index_t trait_index = mutationEffect_callback->trait_index_;
+	
+	if (trait_index == -1)
+		trait_ptr_ref = nullptr;
+	else
+		trait_ptr_ref = traits_[trait_index];
+	
+	// if the callback refers to a subpop that doesn't currently exist, it doesn't make anything neutral
+	if (mutationEffect_callback->subpopulation_id_ != -1)
+	{
+		Subpopulation *subpop = SubpopulationWithID(mutationEffect_callback->subpopulation_id_);
+		
+		if (!subpop)
+		{
+			mut_type_ptr_ref = nullptr;
+			return false;
+		}
+	}
+	
+	// find the callback's mutation type; this could be nullptr, if the referenced muttype has not been defined
+	mut_type_ptr_ref = MutationTypeWithID(mutation_type_id);
+	
+	// if the callback refers to a mutation type that is not defined, it doesn't make anything non-neutral
+	if (!mut_type_ptr_ref)
+		return false;
+	
+	bool makes_neutral = false;		// we consider it non-neutral if it doesn't apply to all subpops
+	
+	if (mutationEffect_callback->subpopulation_id_ == -1)
+	{
+		const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+		
+		if (compound_statement_node->cached_return_value_)
+		{
+			// The script is a constant expression such as "{ return 1.1; }"
+			EidosValue *result = compound_statement_node->cached_return_value_.get();
+			
+			if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+			{
+				if (result->FloatData()[0] == 1.0)
+				{
+					// the callback returns 1.0; this makes the muttype neutral if all traits are multiplicative
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kAdditive) {
+							makes_neutral = false;
+							break;
+						}
+				}
+				else if (result->FloatData()[0] == 0.0)
+				{
+					// the callback returns 0.0; this makes the muttype neutral if all traits are additive
+					makes_neutral = true;
+					
+					for (Trait *trait : traits_)
+						if (trait->Type() == TraitType::kMultiplicative) {
+							makes_neutral = false;
+							break;
+						}
+				}
+			}
+			else if (result->Type() == EidosValueType::kValueNULL)
+			{
+				// the callback returns NULL; this makes the muttype neutral in all cases
+				makes_neutral = true;
+			}
+		}
+	}
+	
+	return makes_neutral;
+}
+
+bool Species::_CallbackMakesTraitNonNeutral(SLiMEidosBlock *mutationEffect_callback, Trait *&trait_ptr_ref, MutationType *&mut_type_ptr_ref)
+{
+	// This method checks whether a mutationEffect() callback makes the trait that it refers to nonneutral.
+	// The callback can apply to any/all subpopulations/traits; in any case it renders the muttype nonneutral.
+	// Note that there is an in-between space between this method and the previous one, when a callback returns
+	// a constant neutral value, but does not apply to all subpopulations.
+	slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
+	
+#if DEBUG
+	if (mutation_type_id == -1)
+		EIDOS_TERMINATION << "ERROR (Population::_CallbackMakesTraitNonNeutral): (internal error) mutationEffect() callback has no mutation type id." << EidosTerminate();
+#endif
+	
+	// find the callback's trait; this could be nullptr, if the callback is not specific to one trait
+	slim_trait_index_t trait_index = mutationEffect_callback->trait_index_;
+	
+	if (trait_index == -1)
+		trait_ptr_ref = nullptr;
+	else
+		trait_ptr_ref = traits_[trait_index];
+	
+	// if the callback refers to a subpop that doesn't currently exist, it doesn't make anything nonneutral
+	if (mutationEffect_callback->subpopulation_id_ != -1)
+	{
+		Subpopulation *subpop = SubpopulationWithID(mutationEffect_callback->subpopulation_id_);
+		
+		if (!subpop)
+		{
+			mut_type_ptr_ref = nullptr;
+			return false;
+		}
+	}
+	
+	// find the callback's mutation type; this could be nullptr, if the referenced muttype has not been defined
+	mut_type_ptr_ref = MutationTypeWithID(mutation_type_id);
+	
+	// if the callback refers to a mutation type that is not defined, it doesn't make anything non-neutral
+	if (!mut_type_ptr_ref)
+		return false;
+	
+	bool makes_neutral = false;		// it is non-neutral if it doesn't have a cached return value
+	const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
+	
+	if (compound_statement_node->cached_return_value_)
+	{
+		// The script is a constant expression such as "{ return 1.1; }"
+		EidosValue *result = compound_statement_node->cached_return_value_.get();
+		
+		if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
+		{
+			if (result->FloatData()[0] == 1.0)
+			{
+				// the callback returns 1.0; this makes the muttype neutral if all traits are multiplicative
+				makes_neutral = true;
+				
+				for (Trait *trait : traits_)
+					if (trait->Type() == TraitType::kAdditive) {
+						makes_neutral = false;
+						break;
+					}
+			}
+			else if (result->FloatData()[0] == 0.0)
+			{
+				// the callback returns 0.0; this makes the muttype neutral if all traits are additive
+				makes_neutral = true;
+				
+				for (Trait *trait : traits_)
+					if (trait->Type() == TraitType::kMultiplicative) {
+						makes_neutral = false;
+						break;
+					}
+			}
+		}
+		else if (result->Type() == EidosValueType::kValueNULL)
+		{
+			// the callback returns NULL; this makes the muttype neutral in all cases
+			makes_neutral = true;
+		}
+	}
+	
+	return !makes_neutral;
+}
+
+#if SLIM_USE_NONNEUTRAL_CACHES()
+void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &pure_independent_dominance_traits)
+{
+	// This method validates all nonneutral caches for the current regime.  It might seem better to do this on
+	// demand -- only validate them if they are about to be used.  That would involve a lot more overhead per
+	// cache, however, and would be much harder to parallelize or otherwise make efficient.  In general, we
+	// tend to assume that the genetics will be used, and so validating all of these caches up front will tend
+	// to be more efficient than doing it one at a time.  Of course some models will be exceptions to this.
+	// It is also worth noting that invalidation of nonneutral caches is uncommon, since MutationRuns are
+	// generally immutable after they are done being created, so we spend much time re-validating runs that
+	// we validated before, except when the trait calculation regime changes.
+	MutationBlock *mutation_block = mutation_block_;
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
+	
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		bool f_haploid_chromosome = true;
+		
+		if ((chromosome->Type() == ChromosomeType::kA_DiploidAutosome) ||
+			(chromosome->Type() == ChromosomeType::kX_XSexChromosome) ||
+			(chromosome->Type() == ChromosomeType::kZ_ZSexChromosome))
+			f_haploid_chromosome = false;
+		
+		TraitCalculationRegime last_trait_calculation_regime_for_chromosome;
+		TraitCalculationRegime trait_calculation_regime_for_chromosome;
+		
+		if (f_haploid_chromosome)
+		{
+			last_trait_calculation_regime_for_chromosome = last_trait_calculation_regime_HAPLOID_;
+			trait_calculation_regime_for_chromosome = current_trait_calculation_regime_HAPLOID_;
+		}
+		else
+		{
+			last_trait_calculation_regime_for_chromosome = last_trait_calculation_regime_DIPLOID_;
+			trait_calculation_regime_for_chromosome = current_trait_calculation_regime_DIPLOID_;
+		}
+		
+		bool all_nonneutral_caches_invalid_for_chromosome = chromosome->all_nonneutral_caches_invalid_for_chromosome_;
+		
+		// The final caching policy is a combination of the global policy represented by non_neutral_cache_policy
+		// and the status of each mutation type as represented by the muttype's subject_to_mutationEffect_callback_
+		// and is_pure_neutral_now_ flags (the latter being relevant only for some nonneutral cache policy values).
+		// At this point we need to determine: have we changed final caching policies, compared to the previous tick?
+		// If so, we will need to throw out all existing non-neutral caches and recache from scratch, because the
+		// very criteria upon which the existing caches were built has changed.  See mutation_run.h.
+		if (trait_calculation_regime_for_chromosome != last_trait_calculation_regime_for_chromosome)
+		{
+			// Changing from one regime to another demands a full recache, by definition.  This implies that if
+			// last_trait_calculation_regime is TraitCalculationRegime::kUndefined we always recache.
+			all_nonneutral_caches_invalid_for_chromosome = true;
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches for chromosome '" << chromosome->Symbol() << "' due to regime change" << std::endl;
+#endif
+		}
+		else if (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kPureNeutral)
+		{
+			// This regime is "all mutations are effectively neutral; genetics can be skipped".
+			// MutationType flags therefore don't matter; whatever the situation might be, we're skipping it all.
+			// Note that baseline and individual offsets still need to be included, however.
+		}
+		else if (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kNoActiveCallbacks)
+		{
+			// This regime is "no active callbacks, so you don't have to look at the mutation type at all, it doesn't
+			// matter; just look at the mutations themselves to determine which go into the non-neutral cache".
+			// MutationType flags therefore don't matter.  If mutations changed, that invalidated those runs.
+		}
+		else if (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kAllGlobalNeutralCallbacks)
+		{
+			// This regime is "we can skip all callbacks, since they are all global-neutral on some or all mutation
+			// types".  The *same* mutation types need to be made global-neutral as last time, however, for us to
+			// carry over any non-neutral caches.  We therefore have to check subject_to_mutationEffect_callback_.
+			bool callback_state_identical = true;
+			
+			for (auto muttype_iter : mut_types)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
+				{
+					callback_state_identical = false;
+					break;
+				}
+			}
+			
+			if (!callback_state_identical)
+			{
+				all_nonneutral_caches_invalid_for_chromosome = true;
+#if DEBUG_TRAIT_DEMAND()
+				std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches due to state change in kAllGlobalNeutralCallbacks" << std::endl;
+#endif
+			}
+		}
+		else if (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kNonNeutralCallbacks)
+		{
+			// This regime is "we can't skip all callbacks, since some are non-global-neutral, so we have to do an
+			// extra check and potentially actually call a callback."  Here, subject_to_mutationEffect_callback_
+			// and subject_to_non_global_neutral_callback_ both have to be the same for us to carry over nonneutral caches.
+			bool callback_state_identical = true;
+			
+			for (auto muttype_iter : mut_types)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
+					callback_state_identical = false;
+				if (muttype->subject_to_non_global_neutral_callback_ != muttype->previous_subject_to_non_global_neutral_callback_)
+					callback_state_identical = false;
+			}
+			
+			if (!callback_state_identical)
+			{
+				all_nonneutral_caches_invalid_for_chromosome = true;
+#if DEBUG_TRAIT_DEMAND()
+				std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches due to state change in kNonNeutralCallbacks" << std::endl;
+#endif
+			}
+		}
+		else if (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kAllNonNeutralNoIndDomCaches)
+		{
+			// This regime is "everything belongs in the non-neutral cache"; whatever the situation might be, we're
+			// including it all, so we should be able to keep any existing caches (which we don't actually create).
+		}
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+		else if (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kAllNonNeutralWithIndDomCaches)
+		{
+			// This regime is "everything belongs in the non-neutral cache"; whatever the situation might be, we're
+			// including it all, so we should be able to keep any existing caches (which we don't actually create).
+		}
+#endif
+#if SLIM_USE_HAPLOID_CACHES()
+		else if ((trait_calculation_regime_for_chromosome == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+				 (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kHaploidNoCallbacks))
+		{
+			// This regime is "everything gets cached, no callbacks"; whatever the situation might be, we're
+			// caching it all, so we should be able to keep any existing caches (which we don't actually create).
+		}
+		else if ((trait_calculation_regime_for_chromosome == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+				 (trait_calculation_regime_for_chromosome == TraitCalculationRegime::kHaploidWithCallbacks))
+		{
+			// This regime is "muttypes with no callbacks get cached", so we need to check that the state of
+			// all mutationEffect() callbacks is the same as it was in the previous tick.  Furthermore, these
+			// regimes check for mutations that are subject only to global neutral callbacks and skip them,
+			// so subject_to_mutationEffect_callback_ and subject_to_non_global_neutral_callback_ both have
+			// to be the same for us to carry over our cached values.
+			bool callback_state_identical = true;
+			
+			for (auto muttype_iter : mut_types)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
+					callback_state_identical = false;
+				if (muttype->subject_to_non_global_neutral_callback_ != muttype->previous_subject_to_non_global_neutral_callback_)
+					callback_state_identical = false;
+			}
+			
+			if (!callback_state_identical)
+			{
+				all_nonneutral_caches_invalid_for_chromosome = true;
+#if DEBUG_TRAIT_DEMAND()
+				std::cout << "# " << community_.Tick() << " !!! _ValidateNonNeutralCaches() invalidating all nonneutral caches for chromosome '" << chromosome->Symbol() << "' due to state change in " << trait_calculation_regime_for_chromosome << std::endl;
+#endif
+			}
+		}
+#endif
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+		
+		static const std::vector<slim_trait_index_t> no_inddom_traits;
+		bool independent_dominance_present_for_chromosome = (f_haploid_chromosome ? false : pure_independent_dominance_traits.size());
+		const std::vector<slim_trait_index_t> &pure_independent_dominance_traits_for_chromosome = (f_haploid_chromosome ? no_inddom_traits : pure_independent_dominance_traits);
+		
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+		// PROFILING
+		int64_t recached_run_count = 0, total_run_count = 0;
+		int64_t mutations_cached = 0, mutations_omitted = 0, mutations_summarized = 0;
+#endif
+		
+		if (DoingAnyMutationRunExperiments()) chromosome->StartMutationRunExperimentClock();
+		
+		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
+		
+		// FIXME PARALLEL this should be parallelized, one thread per context
+		for (int mutrun_context_index = 0; mutrun_context_index < mutrun_context_count; ++mutrun_context_index)
+		{
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(mutrun_context_index);
+			MutationRunPool &mutrun_pool = mutrun_context.in_use_pool_;
+			
+			void (Species::*_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED)(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *metrics) = nullptr;
+			
+			if (f_haploid_chromosome)
+			{
+				if (independent_dominance_present_for_chromosome)
+				{
+					EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) independent dominance caches should not be used for haploid chromosomes." << EidosTerminate();
+				} else {
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, true>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, true>; break;
+							case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, true>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, true>; break;
+							case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, true>; break;
+							case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, true>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, true>; break;
+							case TraitCalculationRegime::kHaploidNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, false, true>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, true>; break;
+							case TraitCalculationRegime::kHaploidWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, false, true>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, true>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, true>; break;
+							case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, true>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, true>; break;
+							case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, true>; break;
+							case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, true>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, true>; break;
+							case TraitCalculationRegime::kHaploidNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, false, true>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, true>; break;
+							case TraitCalculationRegime::kHaploidWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, false, true>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
+				}
+			}
+			else
+			{
+				if (independent_dominance_present_for_chromosome)
+				{
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, false>; break;
+							case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, true, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, true, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, true, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, true, false>; break;
+							case TraitCalculationRegime::kHaploidNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, true, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, true, false>; break;
+							case TraitCalculationRegime::kHaploidWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, true, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, false>; break;
+							case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, true, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, true, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, true, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, true, false>; break;
+							case TraitCalculationRegime::kHaploidNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, true, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, true, false>; break;
+							case TraitCalculationRegime::kHaploidWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, true, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
+				} else {
+					if (all_nonneutral_caches_invalid_for_chromosome) {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, false>; break;
+							case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, false>; break;
+							case TraitCalculationRegime::kHaploidNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, false, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, false>; break;
+							case TraitCalculationRegime::kHaploidWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, false, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					} else {
+						switch (trait_calculation_regime_for_chromosome) {
+							case TraitCalculationRegime::kPureNeutral:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, false>; break;
+							case TraitCalculationRegime::kNoActiveCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, false>; break;
+							case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, false>; break;
+							case TraitCalculationRegime::kNonNeutralCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, false>; break;
+							case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, false>; break;
+							case TraitCalculationRegime::kHaploidNoCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, false, false>; break;
+							case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, false>; break;
+							case TraitCalculationRegime::kHaploidWithCallbacks:
+								_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED = &Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, false, false>; break;
+							default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+						}
+					}
+				}
+			}
+			
+			NonNeutralValidationMetrics metrics;
+			
+			(this->*(_ValidateNonNeutralCachesForMutationRunPool_TEMPLATED))(mutrun_pool, mut_block_ptr, pure_independent_dominance_traits_for_chromosome, &metrics);
+			
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+			// PROFILING
+			recached_run_count += metrics.recached_run_count_;
+			total_run_count += metrics.total_run_count_;
+			mutations_cached += metrics.mutations_cached_;
+			mutations_omitted += metrics.mutations_omitted_;
+			mutations_summarized += metrics.mutations_summarized_;
+#endif
+		}
+		
+		if (DoingAnyMutationRunExperiments()) chromosome->StopMutationRunExperimentClock("ValidateNonNeutralCaches()");
+		
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
+		// FIXME MULTITRAIT: would be nice to use total_run_count in the profile output too!
+		chromosome->profile_mutrun_nonneutral_recache_total_ += recached_run_count;
+#endif
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "   _ValidateNonNeutralCaches() validated " << recached_run_count << " of " << total_run_count << " nonneutral caches for chromosome '" << chromosome->Symbol() << "' under regime " << trait_calculation_regime_for_chromosome << " (forced == " << (all_nonneutral_caches_invalid_for_chromosome ? "T" : "F") << ")" << std::endl;
+		
+		if (recached_run_count > 0)
+		{
+			switch (trait_calculation_regime_for_chromosome) {
+				case TraitCalculationRegime::kPureNeutral:
+				case TraitCalculationRegime::kNoActiveCallbacks:
+				case TraitCalculationRegime::kAllGlobalNeutralCallbacks:
+				case TraitCalculationRegime::kNonNeutralCallbacks:
+				case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:
+				case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:
+					std::cout << "      " << mutations_cached << " mutations added to nonneutral buffers (" << mutations_summarized << " effects summarized in independent-dominance caches), " << mutations_omitted << " mutations omitted" << std::endl;
+					break;
+				case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:
+				case TraitCalculationRegime::kHaploidNoCallbacks:
+				case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:
+				case TraitCalculationRegime::kHaploidWithCallbacks:
+					std::cout << "      " << mutations_omitted << " mutations omitted from nonneutral buffers (" << mutations_summarized << " mutations summarized in haploid caches), " << mutations_cached << " mutations cached due to callback influences" << std::endl;
+					break;
+				default: EIDOS_TERMINATION << "ERROR (Species::ValidateNonNeutralCaches): (internal error) unrecognized regime." << EidosTerminate();
+			}
+		}
+#endif
+		
+		// NONNEUTRAL CACHE INVALIDATION: All nonneutral caches for this chromosome were just validated,
+		// so we reset the chromosome's invalidation flag.
+		chromosome->all_nonneutral_caches_invalid_for_chromosome_ = false;
+	}
+}
+
+template <const bool f_all_caches_for_pool_invalid, const TraitCalculationRegime f_nonneutral_cache_regime, const bool f_independent_dominance_present, const bool f_haploid_chromosome>
+void Species::_ValidateNonNeutralCachesForMutationRunPool(MutationRunPool &p_mutrun_pool, Mutation *p_mut_block_ptr, __attribute__ ((unused)) const std::vector<slim_trait_index_t> &pure_independent_dominance_traits, __attribute__ ((unused)) NonNeutralValidationMetrics *metrics)
+{
+#if DEBUG
+	// Check template flags
+	if (f_haploid_chromosome && (f_nonneutral_cache_regime != current_trait_calculation_regime_HAPLOID_))
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_nonneutral_cache_regime is incorrect (HAPLOID)." << EidosTerminate();
+	if (!f_haploid_chromosome && (f_nonneutral_cache_regime != current_trait_calculation_regime_DIPLOID_))
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_nonneutral_cache_regime is incorrect (DIPLOID)." << EidosTerminate();
+	if (f_independent_dominance_present != (pure_independent_dominance_traits.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present is incorrect." << EidosTerminate();
+	if (f_haploid_chromosome && f_independent_dominance_present)
+		EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present is incompatible with haploid chromosomes, which use haploid caches instead." << EidosTerminate();
+	if (f_haploid_chromosome) {
+		if (f_nonneutral_cache_regime == TraitCalculationRegime::kAllNonNeutralWithIndDomCaches)
+			EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) diploid-only TraitCalculationRegime used with f_haploid_chromosome == true." << EidosTerminate();
+	} else {
+		if ((f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+			(f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidNoCallbacks) ||
+			(f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+			(f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidWithCallbacks))
+			EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) haploid-only TraitCalculationRegime used with f_haploid_chromosome == false." << EidosTerminate();
+	}
+#endif
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+	// note that `metrics` only contains valid return values in this case
+	metrics->mutations_cached_ = 0;
+	metrics->mutations_omitted_ = 0;
+	metrics->mutations_summarized_ = 0;
+#endif
+	
+	// This applies the specified nonneutral cache regime to all mutation runs in p_mutrun_pool, producing
+	// nonneutral mutation caches and then optionally computing cached independent dominance summaries.
+	size_t mutrun_count = p_mutrun_pool.size();
+	const MutationRun **mutrun_pointers = p_mutrun_pool.data();
+	
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+	int64_t recached_run_count = 0, total_run_count = 0;
+#endif
+	
+	for (size_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+	{
+		const MutationRun *mutrun = mutrun_pointers[mutrun_index];
+		
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+		total_run_count++;
+#endif
+		
+		if (f_all_caches_for_pool_invalid || mutrun->nonneutral_cache_invalid())
+		{
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+			// In this version of this code, we keep metrics regarding what was done
+			switch (f_nonneutral_cache_regime)
+			{
+				case TraitCalculationRegime::kPureNeutral:							mutrun->cache_nonneutral_mutations_REGIME_kPureNeutral(metrics); break;
+				case TraitCalculationRegime::kNoActiveCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kNoActiveCallbacks(p_mut_block_ptr, f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount(), metrics); break;
+				case TraitCalculationRegime::kAllGlobalNeutralCallbacks:			mutrun->cache_nonneutral_mutations_REGIME_kAllGlobalNeutralCallbacks(p_mut_block_ptr, f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount(), metrics); break;
+				case TraitCalculationRegime::kNonNeutralCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kNonNeutralCallbacks(p_mut_block_ptr, f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount(), metrics); break;
+				case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:			mutrun->cache_nonneutral_mutations_REGIME_kAllNonNeutralNoIndDomCaches(metrics); break;
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+				case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:		mutrun->cache_nonneutral_mutations_REGIME_kAllNonNeutralWithIndDomCaches(f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount(), metrics); break;
+#endif
+#if SLIM_USE_HAPLOID_CACHES()
+				case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:		mutrun->cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralNoCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_, metrics); break;
+				case TraitCalculationRegime::kHaploidNoCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kHaploidNoCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_, metrics); break;
+				case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralWithCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_, metrics); break;
+				case TraitCalculationRegime::kHaploidWithCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kHaploidWithCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_, metrics); break;
+#endif
+				default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
+			}
+#else	// !(SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND())
+			// In this version of this code, we do not keep metrics (for speed)
+			switch (f_nonneutral_cache_regime)
+			{
+				case TraitCalculationRegime::kPureNeutral:							mutrun->cache_nonneutral_mutations_REGIME_kPureNeutral(); break;
+				case TraitCalculationRegime::kNoActiveCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kNoActiveCallbacks(p_mut_block_ptr, f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount()); break;
+				case TraitCalculationRegime::kAllGlobalNeutralCallbacks:			mutrun->cache_nonneutral_mutations_REGIME_kAllGlobalNeutralCallbacks(p_mut_block_ptr, f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount()); break;
+				case TraitCalculationRegime::kNonNeutralCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kNonNeutralCallbacks(p_mut_block_ptr, f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount()); break;
+				case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:			mutrun->cache_nonneutral_mutations_REGIME_kAllNonNeutralNoIndDomCaches(); break;
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+				case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:		mutrun->cache_nonneutral_mutations_REGIME_kAllNonNeutralWithIndDomCaches(f_haploid_chromosome ? HaploidEffectsCacheCount() : IndependentDominanceCacheCount()); break;
+#endif
+#if SLIM_USE_HAPLOID_CACHES()
+				case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:		mutrun->cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralNoCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_); break;
+				case TraitCalculationRegime::kHaploidNoCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kHaploidNoCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_); break;
+				case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:	mutrun->cache_nonneutral_mutations_REGIME_kHaploidAllNonNeutralWithCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_); break;
+				case TraitCalculationRegime::kHaploidWithCallbacks:					mutrun->cache_nonneutral_mutations_REGIME_kHaploidWithCallbacks(mutation_block_, HaploidEffectsCacheCount(), traits_); break;
+#endif
+				default: EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) unrecognized regime." << EidosTerminate();
+			}
+#endif
+			
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+			// we count a mutrun as "recached" if it ends up allocated, with its nonneutral mutation buffer in use
+			if (mutrun->nonneutral_cache_in_use())
+				recached_run_count++;
+#endif
+			
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+			if (f_independent_dominance_present)
+			{
+#if DEBUG
+				// The haploid trait calculation regimes do their own caching of effects inside the regime
+				// nonneutral caching code above, so independent dominance caching here should never be enabled.
+				if ((f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks) ||
+					(f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidNoCallbacks) ||
+					(f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks) ||
+					(f_nonneutral_cache_regime == TraitCalculationRegime::kHaploidWithCallbacks))
+					EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present should be false when in a haploid-specific trait calculation regime." << EidosTerminate();
+				if (f_haploid_chromosome)
+					EIDOS_TERMINATION << "ERROR (Species::_ValidateNonNeutralCachesForMutationRunPool): (internal error) f_independent_dominance_present should always be false for haploid chromosomes." << EidosTerminate();
+#endif
+				
+				// Now we calculate cached values for pure independent dominance traits.  Note that the existence of these traits does not change
+				// our non-neutral caching behavior in any way; this mechanism simply piggybacks on top of the non-neutral mutation buffer.  For
+				// independent dominance traits, the values we cache here will be used to calculate individual trait values in most cases (but not
+				// for individuals that are hemizygous for the mutation run; hemizygous mutations have a different dominance and are not cached here).
+				// We do this caching immediately after non-neutral caching for each mutrun, in the hopes of getting some memory locality benefits.
+				for (slim_trait_index_t independent_dominance_trait_index : pure_independent_dominance_traits)
+				{
+					Trait *independent_dominance_trait = traits_[independent_dominance_trait_index];
+					MutRunInternalCacheIndex inddom_cache_index = IndependentDominanceCacheIndexForTraitIndex(independent_dominance_trait_index);
+					
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+					if (independent_dominance_trait->Type() == TraitType::kAdditive)
+						mutrun->validate_independent_dominance_cache_for_trait<true, f_haploid_chromosome>(independent_dominance_trait_index, inddom_cache_index, IndependentDominanceCacheCount(), mutation_block_, metrics);
+					else
+						mutrun->validate_independent_dominance_cache_for_trait<false, f_haploid_chromosome>(independent_dominance_trait_index, inddom_cache_index, IndependentDominanceCacheCount(), mutation_block_, metrics);
+#else	// !(SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND())
+					if (independent_dominance_trait->Type() == TraitType::kAdditive)
+						mutrun->validate_independent_dominance_cache_for_trait<true, f_haploid_chromosome>(independent_dominance_trait_index, inddom_cache_index, IndependentDominanceCacheCount(), mutation_block_);
+					else
+						mutrun->validate_independent_dominance_cache_for_trait<false, f_haploid_chromosome>(independent_dominance_trait_index, inddom_cache_index, IndependentDominanceCacheCount(), mutation_block_);
+#endif	// SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+				}
+			}
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+		}
+	}
+	
+#if SLIM_PROFILE_NONNEUTRAL_CACHES() || DEBUG_TRAIT_DEMAND()
+	// note that `metrics` only contains valid return values in this case
+	metrics->recached_run_count_ = recached_run_count;
+	metrics->total_run_count_ = total_run_count;
+#endif
+}
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, false, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, true, false>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, false, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kPureNeutral, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNoActiveCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllGlobalNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kNonNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidNoCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<false, TraitCalculationRegime::kHaploidWithCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kPureNeutral, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNoActiveCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllGlobalNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kNonNeutralCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralNoIndDomCaches, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kAllNonNeutralWithIndDomCaches, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidNoCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+template void Species::_ValidateNonNeutralCachesForMutationRunPool<true, TraitCalculationRegime::kHaploidWithCallbacks, true, true>(MutationRunPool &, Mutation *, const std::vector<slim_trait_index_t> &, NonNeutralValidationMetrics *);
+
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+
+
+// Chromosome management
+#pragma mark -
+#pragma mark Chromosome management
+#pragma mark -
 
 Chromosome *Species::ChromosomeFromID(int64_t p_id)
 {
@@ -513,6 +2577,267 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 			EIDOS_TERMINATION << "ERROR (Species::GetChromosomeIndicesFromEidosValue): (internal error) unexpected type for parameter chromosome." << EidosTerminate();
 	}
 }
+
+// Trait management
+#pragma mark -
+#pragma mark Trait management
+#pragma mark -
+
+Trait *Species::TraitFromName(const std::string &p_name) const
+{
+	auto iter = trait_from_name.find(p_name);
+	
+	if (iter == trait_from_name.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
+void Species::MakeImplicitTrait(void)
+{
+	if (has_implicit_trait_)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitTrait): (internal error) implicit trait already exists." << EidosTerminate();
+	if (num_trait_inits_ != 0)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitTrait): (internal error) explicit trait already exists." << EidosTerminate();
+	
+	// Create an implicit Trait object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	// Mirroring SLiM versions prior to multi-trait support, the implicit trait is a multiplicative trait with
+	// no baselines (1.0, since it is multiplicative) and a direct effect from phenotype on fitness.
+	std::string trait_name = name_ + "T";
+	Trait *trait = new Trait(*this, trait_name,
+							 /* p_type */					TraitType::kMultiplicative,
+							 /* p_logistic_post */			false,
+							 /* p_baselineOffset */			1.0,
+							 /* p_individualOffsetMean */	0.0,
+							 /* p_individualOffsetSD */		0.0,
+							 /* directFitnessEffect */		true,
+							 /* baselineAccumulation */		false);
+	
+	// Add it to our registry; AddTrait() takes its retain count
+	AddTrait(trait);
+	has_implicit_trait_ = true;
+}
+
+void Species::AddTrait(Trait *p_trait)
+{
+	if (p_trait->Index() != -1)
+		EIDOS_TERMINATION << "ERROR (Species::AddTrait): (internal error) attempt to add a trait with index != -1." << EidosTerminate();
+	
+	std::string name = p_trait->Name();
+	EidosGlobalStringID name_string_id = EidosStringRegistry::GlobalStringIDForString(name);
+	
+	// this is the main registry, and owns the retain count on every trait; it takes the caller's retain here
+	p_trait->SetIndex((slim_trait_index_t)(traits_.size()));
+	traits_.push_back(p_trait);
+	
+	// these are secondary indices that do not keep a retain on the traits
+	trait_from_name.emplace(name, p_trait);
+	trait_from_string_id.emplace(name_string_id, p_trait);
+}
+
+// This returns the trait index for a single trait, represented by an EidosValue with an integer index, a
+// string name, a Trait object, or -- only in single-trait models -- NULL to represent the single trait.
+slim_trait_index_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name)
+{
+	int64_t trait_index;
+	
+	if (trait_value->Type() == EidosValueType::kValueNULL)
+	{
+		if (TraitCount() != 1)
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() allows NULL to be passed for trait only in single-trait models, since only a single trait may be specified." << EidosTerminate(nullptr);
+		
+		return (slim_trait_index_t)0;
+	}
+	
+	if (trait_value->Count() != 1)
+		EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires that only a single trait may be specified." << EidosTerminate(nullptr);
+	
+	switch (trait_value->Type())
+	{
+		case EidosValueType::kValueInt:
+		{
+			trait_index = trait_value->IntAtIndex_NOCAST(0, nullptr);
+			
+			if ((trait_index < 0) || (trait_index >= TraitCount()))
+				EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+			break;
+		}
+		case EidosValueType::kValueString:
+		{
+			const std::string trait_name = trait_value->StringAtIndex_NOCAST(0, nullptr);
+			Trait *trait = TraitFromName(trait_name);
+			
+			if (trait == nullptr)
+				EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): unrecognized trait name in " << p_method_name << "(); trait name " << trait_name << " is not defined for the species." << EidosTerminate(nullptr);
+			
+			trait_index = trait->Index();
+			break;
+		}
+		case EidosValueType::kValueObject:
+		{
+			const Trait *trait = (const Trait *)trait_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			if (&trait->species_ != this)
+				EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+			
+			trait_index = trait->Index();
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): (internal error) unexpected type for triat_value." << EidosTerminate(nullptr);
+	}
+	
+	return (slim_trait_index_t)trait_index;
+}
+
+// This returns trait indices, represented by an EidosValue with integer indices, string names, or Trait objects, or NULL for all traits
+void Species::GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name)
+{
+	EidosValueType traits_value_type = traits_value->Type();
+	int traits_value_count = traits_value->Count();
+	slim_trait_index_t trait_count = TraitCount();
+	
+	switch (traits_value_type)
+	{
+			// NULL means "all traits", unlike for GetTraitIndexFromEidosValue()
+		case EidosValueType::kValueNULL:
+		{
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				trait_indices.push_back(trait_index);
+			break;
+		}
+		case EidosValueType::kValueInt:
+		{
+			const int64_t *indices_data = traits_value->IntData();
+			
+			for (int indices_index = 0; indices_index < traits_value_count; indices_index++)
+			{
+				int64_t trait_index = indices_data[indices_index];
+				
+				if ((trait_index < 0) || (trait_index >= TraitCount()))
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back((slim_trait_index_t)trait_index);
+			}
+			break;
+		}
+		case EidosValueType::kValueString:
+		{
+			const std::string *indices_data = traits_value->StringData();
+			
+			for (int names_index = 0; names_index < traits_value_count; names_index++)
+			{
+				const std::string &trait_name = indices_data[names_index];
+				Trait *trait = TraitFromName(trait_name);
+				
+				if (trait == nullptr)
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): unrecognized trait name in " << p_method_name << "(); trait name " << trait_name << " is not defined for the species." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait->Index());
+			}
+			break;
+		}
+		case EidosValueType::kValueObject:
+		{
+			Trait * const *traits_data = (Trait * const *)traits_value->ObjectData();
+			
+			for (int traits_index = 0; traits_index < traits_value_count; ++traits_index)
+			{
+				Trait *trait = traits_data[traits_index];
+				
+				if (&trait->species_ != this)
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait->Index());
+			}
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): (internal error) unexpected type for parameter trait." << EidosTerminate();
+	}
+}
+
+void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution)
+{
+	// When a new substitution object is created from a mutation, this method is called to do "baseline offset
+	// accumulation", the moving of the effect of the mutation from the mutation itself (which is no longer
+	// segregating) into the baseline offsets of traits.  This is enabled by default for all traits created
+	// with initializeTrait(), but disabled for the default trait for backward compatibility.  This is not
+	// terribly lightweight, since we have to loop through all the traits, but substitution is not very common
+	// so it is not worth trying to optimize with summary flags etc.
+	bool have_fetched_callbacks = false;
+	std::vector<SLiMEidosBlock*> callbacks;		// invalid when have_fetched_callbacks is false; see below
+	
+	for (Trait *trait : traits_)
+	{
+		slim_trait_index_t trait_index = trait->Index();
+		SubstitutionTraitInfo &trait_info = p_substitution->trait_info_[trait_index];
+		
+		if (trait->HasBaselineAccumulation())
+		{
+			if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
+				EIDOS_TERMINATION << "ERROR (Species::DoBaselineAccumulationForSubstitution): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
+			
+			slim_effect_t effect_size = trait_info.effect_size_;
+			
+			if (trait->Type() == TraitType::kMultiplicative)
+			{
+				// the homozygous effect is 1+s for multiplicative traits
+				slim_trait_offset_t homozygous_effect = 1.0 + (slim_trait_offset_t)effect_size;
+				
+				trait->SetBaselineOffset(trait->BaselineOffset() * homozygous_effect);
+			}
+			else
+			{
+				// the homozygous effect is 2a for additive and logistic traits
+				slim_trait_offset_t homozygous_effect = (slim_trait_offset_t)effect_size + (slim_trait_offset_t)effect_size;
+				
+				trait->SetBaselineOffset(trait->BaselineOffset() + homozygous_effect);
+			}
+		}
+		else
+		{
+			// When baseline accumulation is OFF, we need to invalidate all cached values for the trait, because
+			// the effect of the mutation has disappeared and will not be compensated for by the baseline offset.
+			// We technically don't need to do this if the mutation was neutral, but if there was a callback that
+			// gave the mutation a non-neutral effect, then we *do* need to do it.  To be safe, we just invalidate
+			// if any mutationEffect() callbacks exist at all, in any tick, that affect this trait; it's hard to
+			// check whether a callback was in effect the last time the trait was cached, and the timing of that
+			// might differ among individuals.
+			if (trait_info.effect_size_ == (slim_effect_t)0.0)
+			{
+				if (!have_fetched_callbacks)
+				{
+					callbacks = CallbackBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, false);
+					have_fetched_callbacks = true;
+				}
+				
+				bool callback_affecting_trait_exists = false;
+				
+				for (SLiMEidosBlock *callback : callbacks)
+				{
+					if ((callback->trait_index_ == -1) || (callback->trait_index_ == trait_index))
+					{
+						callback_affecting_trait_exists = true;
+						break;
+					}
+				}
+				
+				// if no callback exists that could have affected this trait, we can skip the invalidation
+				if (!callback_affecting_trait_exists)
+					continue;
+			}
+			
+			// ok, we have invalidate individuals for this trait; see this method for comments
+			trait->InvalidateTraitValuesForAllIndividuals();
+		}
+	}
+}
+
+// Input/output
+#pragma mark -
+#pragma mark Input/output
+#pragma mark -
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
 void GetInputLine(std::istream &p_input_file, std::string &p_line);
@@ -1162,11 +3487,12 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): a Mutations section must follow each Chromosome line." << EidosTerminate();
 		
 		// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 		robin_hood::unordered_flat_map<slim_polymorphismid_t,MutationIndex> mutations;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 		std::unordered_map<slim_polymorphismid_t,MutationIndex> mutations;
 #endif
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		
 		while (!infile.eof()) 
 		{
@@ -1205,10 +3531,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 			
 			iss >> sub;
-			double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			slim_effect_t selection_coeff = static_cast<slim_effect_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
-			iss >> sub;		// dominance coefficient, which is given in the mutation type; we check below that the value read matches the mutation type
-			double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			iss >> sub;
+			slim_effect_t dominance_coeff = static_cast<slim_effect_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
 			iss >> sub;
 			slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
@@ -1236,10 +3562,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			
 			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -1247,31 +3573,23 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			mutations.emplace(polymorphism_id, new_mut_index);
-			population_.MutationRegistryAdd(new_mut);
+			population_.MutationRegistryAdd(new_mut, /* p_autogenerated */ false);
 			
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
-			if (selection_coeff != 0.0)
-			{
-				pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DFE_ = false;
-			}
 		}
 		
 		population_.InvalidateMutationReferencesCache();
 		
 		// Now we are in the Haplosomes section, which should take us to the end of the chromosome unless there is an Ancestral Sequence section
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 #ifndef _OPENMP
 		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
@@ -1519,8 +3837,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		int32_t double_size;
 		double double_test;
 		int64_t flags = 0;
-		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size, slim_usertag_t_size;
-		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(flags) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size) + sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t_size) + sizeof(slim_usertag_t_size) + sizeof(file_tick) + sizeof(file_cycle) + sizeof(section_end_tag);
+		// FIXME MULTITRAIT: add new sizes here like slim_fitness_t
+		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_effect_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size, slim_usertag_t_size;
+		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(flags) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_effect_t_size) + sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size) + sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t_size) + sizeof(slim_usertag_t_size) + sizeof(file_tick) + sizeof(file_cycle) + sizeof(section_end_tag);
 		
 		// this is how to add more header tags in future versions
 		//if (file_version >= 9)
@@ -1561,8 +3880,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		memcpy(&slim_refcount_t_size, p, sizeof(slim_refcount_t_size));
 		p += sizeof(slim_refcount_t_size);
 		
-		memcpy(&slim_selcoeff_t_size, p, sizeof(slim_selcoeff_t_size));
-		p += sizeof(slim_selcoeff_t_size);
+		memcpy(&slim_effect_t_size, p, sizeof(slim_effect_t_size));
+		p += sizeof(slim_effect_t_size);
 		
 		memcpy(&slim_mutationid_t_size, p, sizeof(slim_mutationid_t_size));
 		p += sizeof(slim_mutationid_t_size);
@@ -1618,7 +3937,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
 			(slim_popsize_t_size != sizeof(slim_popsize_t)) ||
 			(slim_refcount_t_size != sizeof(slim_refcount_t)) ||
-			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)) ||
+			(slim_effect_t_size != sizeof(slim_effect_t)) ||
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)) ||
 			(slim_age_t_size != sizeof(slim_age_t)) ||
@@ -1918,6 +4237,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		// Mutations section
 		std::unique_ptr<MutationIndex[]> raii_mutations(new MutationIndex[mutation_map_size]);
 		MutationIndex *mutations = raii_mutations.get();
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		
 		if (!mutations)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
@@ -1929,8 +4249,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			slim_mutationid_t mutation_id;
 			slim_objectid_t mutation_type_id;
 			slim_position_t position;
-			slim_selcoeff_t selection_coeff;
-			slim_selcoeff_t dominance_coeff;
+			slim_effect_t selection_coeff;
+			slim_effect_t dominance_coeff;
 			slim_objectid_t subpop_index;
 			slim_tick_t tick;
 			slim_refcount_t prevalence;
@@ -1995,10 +4315,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			
 			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -2006,9 +4326,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// read the tag value, if present
 			if (has_object_tags)
@@ -2019,19 +4339,12 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			mutations[polymorphism_id] = new_mut_index;
-			population_.MutationRegistryAdd(new_mut);
+			population_.MutationRegistryAdd(new_mut, /* p_autogenerated */ false);
 			
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-			
-			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
-			if (selection_coeff != 0.0)
-			{
-				pure_neutral_ = false;
-				mutation_type_ptr->all_pure_neutral_DFE_ = false;
-			}
 		}
 		
 		population_.InvalidateMutationReferencesCache();
@@ -2048,7 +4361,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		
 		// Haplosomes section
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
 		std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
 		MutationIndex *haplosomebuf = raii_haplosomebuf.get();
@@ -2231,8 +4543,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			slim_mutationid_t mutation_id;
 			slim_objectid_t mutation_type_id;
 			slim_position_t position;
-			slim_selcoeff_t selection_coeff;
-			slim_selcoeff_t dominance_coeff;
+			slim_effect_t selection_coeff;
+			slim_effect_t dominance_coeff;
 			slim_objectid_t subpop_index;
 			slim_tick_t origin_tick;
 			slim_tick_t fixation_tick;
@@ -2300,10 +4612,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			
 			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -2311,7 +4623,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new substitution
-			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
+			// BCH 1/26/2026: note that this does NOT do baseline accumulation, because it is assumed that the
+			// baseline offset recorded in the file already contains such effects as needed; FIXME MULTITRAIT
+			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
 			
 			// read its tag, if requested
 			if (has_object_tags)
@@ -2362,40 +4676,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	population_.InvalidateMutationReferencesCache();	// force a retally
 	population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 	
-	if (file_version <= 2)
-	{
-		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next cycle
-		// used to be generation + 1; removing that 18 Feb 2016 BCH
-		
-		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
-		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
-		
-		for (auto muttype_iter : mutation_types_)
-			(muttype_iter.second)->subject_to_mutationEffect_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
-		
-		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
-		community_.executing_species_ = this;
-		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-		{
-			slim_objectid_t subpop_id = subpop_pair.first;
-			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1);
-			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1);
-			
-			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks);
-		}
-		
-		community_.executing_block_type_ = old_executing_block_type;
-		community_.executing_species_ = nullptr;
-		
-#ifdef SLIMGUI
-		// Let SLiMgui survey the population for mean fitness and such, if it is our target
-		population_.SurveyPopulation();
-#endif
-	}
-	
 	return file_tick;
 }
 #else
@@ -2420,16 +4700,6 @@ void Species::DeleteAllMutationRuns(void)
 	}
 }
 
-Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) {
-	for (auto subpop_iter : population_.subpops_)
-	{
-		Subpopulation *subpop = subpop_iter.second;
-		if (subpop->name_ == p_subpop_name)
-			return subpop;
-	}
-	return nullptr;
-}
-
 
 //
 // Running cycles
@@ -2438,22 +4708,24 @@ Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) 
 #pragma mark Running cycles
 #pragma mark -
 
-std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id)
+std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, bool p_active_only)
 {
 	// Callbacks are species-specific; this method calls up to the community, which manages script blocks,
 	// but does a species-specific search.
-	return community_.ScriptBlocksMatching(p_tick, p_event_type, p_mutation_type_id, p_interaction_type_id, p_subpopulation_id, p_chromosome_id, this);
+	return community_.ScriptBlocksMatching(p_tick, p_event_type, p_mutation_type_id, p_interaction_type_id, p_subpopulation_id, p_trait_index, p_chromosome_id, this, p_active_only);
 }
 
 void Species::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
+	// FIXME: doing this here is error-prone; the species object should zero-initialize all of this stuff instead!
 	num_species_inits_ = 0;
 	num_slimoptions_inits_ = 0;
 	num_mutation_type_inits_ = 0;
 	num_ge_type_inits_ = 0;
 	num_sex_inits_ = 0;
 	num_treeseq_inits_ = 0;
+	num_trait_inits_ = 0;
 	num_chromosome_inits_ = 0;
 	
 	num_mutrate_inits_ = 0;
@@ -2463,10 +4735,11 @@ void Species::RunInitializeCallbacks(void)
 	num_ancseq_inits_ = 0;
 	num_hotmap_inits_ = 0;
 	
+	has_implicit_trait_ = false;
 	has_implicit_chromosome_ = false;
 	
 	// execute initialize() callbacks, which should always have a tick of 0 set
-	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
 	
 	for (auto script_block : init_blocks)
 		community_.ExecuteEidosEvent(script_block);
@@ -2554,6 +4827,7 @@ void Species::RunInitializeCallbacks(void)
 				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): reproduction() callbacks may not be limited by sex in non-sexual models." << EidosTerminate(script_block->identifier_token_);
 	}
 	{
+		// validate recombination() callbacks --  particularly their chromosome specifier, which is deferred to here
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
 		for (auto script_block : script_blocks)
@@ -2578,6 +4852,42 @@ void Species::RunInitializeCallbacks(void)
 			}
 		}
 	}
+	{
+		// validate mutationEffect() callbacks --  particularly their trait specifier, which is deferred to here
+		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
+		
+		for (auto script_block : script_blocks)
+		{
+			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && (script_block->trait_index_ == -2))
+			{
+				if (script_block->trait_identifier_.length() == 0)
+					EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) missing mutationEffect() trait specifier." << EidosTerminate(script_block->identifier_token_);
+				
+				Trait *trait;
+				
+				if (script_block->trait_identifier_ == "NULL")
+				{
+					// SLiMEidosBlock::SLiMEidosBlock() could take care of this, I think, but we handle it here since this is the funnel for fixing up these callbacks
+					script_block->trait_index_ = -1;
+					script_block->trait_identifier_ = "NULL";
+					continue;
+				}
+				else
+				{
+					if (has_implicit_trait_)
+						EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): mutationEffect() callbacks may only use a non-NULL trait specifier in models with explicitly declared traits." << EidosTerminate(script_block->identifier_token_);
+					trait = TraitFromName(script_block->trait_identifier_);
+				}
+				
+				if (!trait)
+					EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): mutationEffect() callback declaration references a trait with identifier '" << script_block->trait_identifier_ << "' that has not been declared." << EidosTerminate(script_block->identifier_token_);
+				
+				// translate the identifier into an index, which is what the rest of the SLiM core uses
+				script_block->trait_index_ = trait->Index();
+				script_block->trait_identifier_ = trait->Name();
+			}
+		}
+	}
 	
 	if (nucleotide_based_)
 	{
@@ -2590,6 +4900,10 @@ void Species::RunInitializeCallbacks(void)
 	}
 	
 	CheckMutationStackPolicy();
+	
+	// Except in no-genetics species, make a MutationBlock object to keep our mutations in
+	if (has_genetics_)
+		CreateAndPromulgateMutationBlock();
 	
 	// In nucleotide-based models, process the mutationMatrix parameters for genomic element types to calculate the maximum mutation rate
 	if (nucleotide_based_)
@@ -2644,13 +4958,92 @@ void Species::RunInitializeCallbacks(void)
 				
 				for (auto muttype : getype->mutation_type_ptrs_)
 				{
-					if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
+					if (muttype->all_neutral_DES_)
 						using_neutral_muttype = true;
 				}
 			}
 			
 			if (using_neutral_muttype && !gEidosSuppressWarnings)
 				SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined and used; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
+		}
+	}
+	
+	// Defining all traits with baseline accumulation indicates a desire to have substitution occur, with mutational effects accumulated into
+	// baseline offset values, in at least some cases.  If convertToSubstitution is F for all mutation types, indicating a desire that no
+	// mutation be substitution, a mistake has probably been made that is worth calling to the user's attention.
+	if (!has_implicit_trait_ && (traits_.size() > 0))
+	{
+		bool all_traits_baseline_accumulate = true;
+		
+		for (const Trait *trait : traits_)
+			if (!trait->HasBaselineAccumulation())
+				all_traits_baseline_accumulate = false;
+		
+		if (all_traits_baseline_accumulate)
+		{
+			bool no_traits_substitute = true;
+			
+			for (auto mut_type_iter : mutation_types_)
+				if (mut_type_iter.second->convert_to_substitution_)
+					no_traits_substitute = false;
+			
+			if (no_traits_substitute && !gEidosSuppressWarnings)
+				SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): all traits are set with baselineAccumulate=T, but there is no mutation type with convertToSubstitution=T, so substitution will probably never occur; this typically indicates a mistake -- either baseline accumulation should be turned off for clarity, or convertToSubstitution should be turned on for at least one mutation type so that substitution occurs in at least some cases.  This typically happens when an older SLiM model is converted from using the default trait to explicitly calling initializeTrait()." << std::endl;
+		}
+	}
+	
+	// Defining an additive (or logistic) trait with a default dominance of 0.5 for the trait for all mutation types indicates that
+	// the trait is probably intended to have independent-dominance effects but has just not been configured in that manner, which
+	// will result in lower performance; this is probably a mistake that is worth calling to the user's attention.
+	if (!has_implicit_trait_ && (traits_.size() > 0))
+	{
+		for (const Trait *trait : traits_)
+		{
+			if (trait->Type() == TraitType::kAdditive)
+			{
+				slim_trait_index_t trait_index = trait->Index();
+				bool all_muttypes_intermediate_dominance = true;
+				bool muttype_independent_dominance_seen = false;
+				bool any_relevant_muttype = false;
+				
+				for (auto mut_type_iter : mutation_types_)
+				{
+					MutationType *muttype = mut_type_iter.second;
+					
+					// mutation types with a neutral DES for the trait don't matter for this determination
+					// BCH 3/30/2026: I'm not entirely happy with this condition, because it is commonplace
+					// to have a neutral DES and then set effect sizes in a mutation() callback; in that
+					// configuration, you might well want to use independent dominance rather than 0.5, so
+					// it would be useful to see this warning.  However, we don't want to urge users with
+					// a completely neutral trait to set independent dominance for that trait; that will
+					// just result in allocating an independent-dominance cache that is not needed.  I think
+					// users using a mutation() callback can be regarded as knowing what they are doing.
+					if (muttype->effect_size_distributions_[trait_index].DES_type_ == DESType::kFixed)
+						if (muttype->effect_size_distributions_[trait_index].DES_parameters_[0] == 0.0)
+							continue;
+					
+					any_relevant_muttype = true;
+					
+					slim_effect_t default_dominance = muttype->DefaultDominanceForTrait(trait_index);
+					
+					if (std::isnan(default_dominance))
+					{
+						// if NAN is used anywhere, that is an indication that the user is aware of the
+						// independent-dominance feature and has configured it as they wish
+						muttype_independent_dominance_seen = true;
+						break;
+					}
+					
+					if (default_dominance != (slim_effect_t)0.5)
+					{
+						all_muttypes_intermediate_dominance = false;
+						break;
+					}
+				}
+				
+				if (any_relevant_muttype && !muttype_independent_dominance_seen && all_muttypes_intermediate_dominance && !gEidosSuppressWarnings)
+					SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): trait '" << trait->Name() << "' is " << (trait->HasLogisticPostTransform() ? "logistic" : "additive") << ", and every non-neutral mutation type has a default dominance of 0.5 for this trait.  This suggests that the effects of mutations will exhibit independent dominance for trait '" << trait->Name() << "', but the trait is not configured to exhibit independent dominance; this may result in significantly reduced performance.  Using NAN as the default dominance for this trait, for every non-neutral mutation type, would configure the trait to exhibit independent dominance, likely providing a performance improvement with no change in the behavior of the model." << std::endl;
+			}
 		}
 	}
 	
@@ -2662,6 +5055,89 @@ void Species::RunInitializeCallbacks(void)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << chromosome->last_position_ + 1 << " base" << (chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome->ancestral_seq_buffer_->size() << " base" << (chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
 	
+	// Notify the species that the mutation autogeneration configuration has changed; rather than
+	// calling this for each change during initialize(), we call it once here at the end.  Note
+	// that this design means that the flags managed by this method will be incorrect until here.
+	RecalculateOptimizationFlags();
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+#if SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+	// Now we assess which traits we will turn on independent dominance for, based upon the configuration
+	// of things at the end of initialize() callbacks.  This decision is made just once, right now, and
+	// takes effect for the entire run.  If we decide not to turn on the cache for a given traits, we can
+	// avoid allocating extra memory per mutation run for it.  We decide this per trait, and so we also
+	// need a mapping from trait index to index into MutationRun's independent dominance cache array, and
+	// a total count of the number of traits for which independent dominance caches are being kept.  Note
+	// that making a wrong decision here is not catastrophic; if we decide yes and the cache never gets
+	// used, it's wasted memory but otherwise harmless, and if we decide no but it turns out independent
+	// dominance does get used for a given trait, we just don't get the optimization for that trait.
+	for (Trait *trait : traits_)
+	{
+		// First of all, the trait must be configured for independent dominance for all non-neutral muttypes.
+		if (!trait->trait_all_mutations_independent_dominance_)
+		{
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "### initialize(): trait '" << trait->Name() << "' is not eligible for independent-dominance caching (not configured for independent dominance)" << std::endl;
+#endif
+			inddom_cache_indices_.push_back(static_cast<MutRunInternalCacheIndex>(-1));		// "the trait at this index has no inddom cache"
+			continue;
+		}
+		
+#if 0
+		// BCH 3/30/2026: I'm disabling this logic, because it is flawed.  We can't draw an inference about
+		// whether or not an ind-dom cache will be needed based on the DESs set up at initialize() time,
+		// because it will be commonplace for people to use a mutation() callback to calculate effect sizes
+		// at runtime, overriding the default DESs for the trait.  We just have to assume: if NAN is set as
+		// the default dominance for all mutation types for the trait, then the user has expressed the intent
+		// to use independent dominance, and so we need to set up a cache for it.  The doc should emphasize
+		// that NAN should not be used as the default dominance if the intention is to have the trait be
+		// entirely neutral (genetically).  Incidentally, this is a good reason not to use NAN as the default
+		// value for the mutation type default dominance; we really do need to make the user specify it.
+		// If they don't want/need independent dominance, they should not pass NAN.
+		//
+		// -----------------------------------------------------------------------------------------------
+		
+		// The trait_all_mutations_independent_dominance_ flag indicates that all *non-neutral* mutations
+		// for the trait are set up for independent dominance.  But if the trait is set up to be entirely
+		// neutral, trait_all_mutations_independent_dominance_ will be true and yet we need no cached values
+		// for it; so we check that here as an additional condition.
+		if (trait->trait_all_neutral_mutations_)
+		{
+			// BCH 3/30/2026: If we decide not to make an inddom cache for a trait for any reason, this flag
+			// needs to be set to false; it is the indicator that an inddom cache has been set up for the trait.
+			trait->trait_all_mutations_independent_dominance_ = false;
+			
+#if DEBUG_TRAIT_DEMAND()
+			std::cout << "### initialize(): trait '" << trait->Name() << "' is not eligible for independent-dominance caching (all muttypes have a neutral DES for it)" << std::endl;
+#endif
+			inddom_cache_indices_.push_back(static_cast<MutRunInternalCacheIndex>(-1));		// "the trait at this index has no inddom cache"
+			continue;
+		}
+#endif
+		
+		// This trait will have space allocated for a independent-dominance cache in each MutationRun.
+#if DEBUG_TRAIT_DEMAND()
+		std::cout << "### initialize(): trait '" << trait->Name() << "' IS ELIGIBLE for independent-dominance caching" << std::endl;
+#endif
+		inddom_cache_indices_.push_back(inddom_cache_count_);
+		inddom_cache_count_ = static_cast<MutRunInternalCacheIndex>(static_cast<slim_trait_index_t>(inddom_cache_count_) + 1);
+	}
+	
+#if DEBUG_TRAIT_DEMAND()
+	std::cout << "### initialize(): " << static_cast<slim_trait_index_t>(inddom_cache_count_) << " traits (of " << TraitCount() << ") will receive independent-dominance cache space";
+	if (static_cast<slim_trait_index_t>(inddom_cache_count_) > 0)
+	{
+		std::cout << " : { ";
+		for (Trait *trait : traits_)
+			if (static_cast<slim_trait_index_t>(inddom_cache_indices_[trait->Index()]) != -1)
+				std::cout << trait->Name() << " ";
+		std::cout << "}";
+	}
+	std::cout << std::endl;
+#endif	// DEBUG_TRAIT_DEMAND()
+#endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+	
 	// always start at cycle 1, regardless of what the starting tick value might be
 	SetCycle(1);
 	
@@ -2672,6 +5148,32 @@ void Species::RunInitializeCallbacks(void)
 	// TREE SEQUENCE RECORDING
 	if (RecordingTreeSequence())
 		AllocateTreeSequenceTables();
+}
+
+void Species::CreateAndPromulgateMutationBlock(void)
+{
+	// This creates a new MutationBlock and gives pointers to it to various sub-components of the species.  This
+	// is called toward the end of initialize() callbacks; note that pointers will be nullptr until then.  That
+	// is because we can't allocate the MutationBlock until we know how many traits there are.
+	if (mutation_block_)
+		EIDOS_TERMINATION << "ERROR (Species::CreateAndPromulgateMutationBlock): (internal error) a mutation block has already been allocated." << EidosTerminate();
+	
+	// first we make a new MutationBlock object for ourselves
+	mutation_block_ = new MutationBlock(*this, TraitCount());
+	
+	// then we promulgate it to the masses, so that they have it on hand (avoiding the non-local memory access
+	// of getting it from us), since it is referred to very actively in many places
+	
+	// give it to all MutationType objects in this species
+	for (auto muttype_iter : mutation_types_)
+		muttype_iter.second->mutation_block_ = mutation_block_;
+	
+	// give it to all Chromosome objects in this species
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->mutation_block_ = mutation_block_;
+	
+	// give it to the Population object in this species
+	population_.mutation_block_ = mutation_block_;
 }
 
 void Species::EndCurrentChromosome(bool starting_new_chromosome)
@@ -2757,20 +5259,41 @@ bool Species::HasDoneAnyInitialization(void)
 void Species::PrepareForCycle(void)
 {
 	// Called by Community at the very start of each cycle, whether WF or nonWF (but not before initialize() callbacks)
+	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-		// Optimization; see mutation_type.h for an explanation of what this counter is used for
-		if (population_.any_muttype_call_count_used_)
-		{
-			for (auto muttype_iter : mutation_types_)
-				(muttype_iter.second)->muttype_registry_call_count_ = 0;
-			
-			population_.any_muttype_call_count_used_ = false;
-		}
+	// Optimization; see mutation_type.h for an explanation of what this counter is used for
+	if (population_.any_muttype_call_count_used_)
+	{
+		for (auto muttype_iter : mutation_types_)
+			(muttype_iter.second)->muttype_registry_call_count_ = 0;
+		
+		population_.any_muttype_call_count_used_ = false;
+	}
 #endif
+	
+	// Every once in a while, we do a sweep through the whole mutation registry to see whether we have reverted
+	// back to pure neutral or similar transitions; this could be fairly expensive, so we don't do it every tick.
+	// Even for a pretty big model, though, this takes about one one-hundredth of a second, so not a big deal.
+	if (community_.Tick() % 10 == 0)
+	{
+		//std::clock_t begin_cpu = std::clock();
+		
+		RecalculateOptimizationFlags(/* p_sweep_registry */ true);
+		
+		//std::clock_t end_cpu = std::clock();
+		//double cpu_time_secs = static_cast<double>(end_cpu - begin_cpu) / CLOCKS_PER_SEC;
+		//SLIM_ERRSTREAM << "// ********** CPU time for RecalculateOptimizationFlags(): " << cpu_time_secs << std::endl;
+	}
 	
 	// zero out clock accumulators for mutation run experiments; we will add to these as we do work later
 	for (Chromosome *chromosome : chromosomes_)
 		chromosome->ZeroMutationRunExperimentClock();
+}
+
+void Species::FinishCycle(void)
+{
+	// Called by Community at the very end of each cycle, whether WF or nonWF
+	FinishMutationRunExperimentTimings();
 }
 
 void Species::MaintainMutationRegistry(void)
@@ -2791,9 +5314,9 @@ void Species::MaintainMutationRegistry(void)
 	}
 }
 
-void Species::RecalculateFitness(void)
+void Species::RecalculateFitness(bool p_force_trait_recalculation)
 {
-	population_.RecalculateFitness(cycle_);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
+	population_.RecalculateFitness(cycle_, p_force_trait_recalculation);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
 }
 
 void Species::MaintainTreeSequence(void)
@@ -2838,19 +5361,19 @@ void Species::EmptyGraveyard(void)
 void Species::WF_GenerateOffspring(void)
 {
 	slim_tick_t tick = community_.Tick();
-	std::vector<SLiMEidosBlock*> mate_choice_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mate_choice_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
+	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
+	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
+	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
 	bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 	bool modify_child_callbacks_present = modify_child_callbacks.size();
 	bool recombination_callbacks_present = recombination_callbacks.size();
 	bool mutation_callbacks_present = mutation_callbacks.size();
 	bool no_active_callbacks = true;
 	
-	// a type 's' DFE needs to count as an active callback; it could activate other callbacks,
+	// a type 's' DES needs to count as an active callback; it could activate other callbacks,
 	// and in any case we need EvolveSubpopulation() to take the non-parallel code path
-	if (type_s_dfes_present_)
+	if (type_s_DESs_present_)
 		no_active_callbacks = false;
 	
 	// if there are no active callbacks of any type, we can pretend there are no callbacks at all
@@ -2950,7 +5473,7 @@ void Species::WF_GenerateOffspring(void)
 		
 		// then evolve each subpop
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present_);
+			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_DESs_present_);
 	}
 }
 
@@ -2967,7 +5490,7 @@ void Species::WF_SwitchToChildGeneration(void)
 	// BCH 10/15/2024: I realized that clearing the haplosomes is no longer needed at all; we can
 	// just remove our requirement that the haplosomes be cleared, and overwrite the stale pointers
 	// when we reuse a haplosome.  I am relegating haplosome clearing to a debugging flag.
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	population_.ClearParentalHaplosomes();
 #endif
 }
@@ -2980,10 +5503,10 @@ void Species::WF_SwapGenerations(void)
 void Species::nonWF_GenerateOffspring(void)
 {
 	slim_tick_t tick = community_.Tick();
-	std::vector<SLiMEidosBlock*> reproduction_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosReproductionCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> reproduction_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosReproductionCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
+	std::vector<SLiMEidosBlock*> modify_child_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
+	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
+	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
 	
 	// choose templated variants for GenerateIndividualsX() methods of Subpopulation, called during reproduction() callbacks
 	// this is an optimization technique that lets us optimize away unused cruft at compile time
@@ -2997,7 +5520,7 @@ void Species::nonWF_GenerateOffspring(void)
 	// note this optimization depends upon the fact that none of these flags can change during one reproduction() stage!
 	bool pedigrees_enabled = PedigreesEnabled();
 	bool recording_tree_sequence = RecordingTreeSequence();
-	bool has_reproduction_callbacks = ((reproduction_callbacks.size() > 0) || (modify_child_callbacks.size() > 0) || (recombination_callbacks.size() > 0) || (mutation_callbacks.size() > 0));
+	bool has_callbacks = ((reproduction_callbacks.size() > 0) || (modify_child_callbacks.size() > 0) || (recombination_callbacks.size() > 0) || (mutation_callbacks.size() > 0));
 	bool is_spatial = (SpatialDimensionality() >= 1);
 	
 	if (DoingAnyMutationRunExperiments())
@@ -3006,7 +5529,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
+				if (has_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
 				{
 					if (is_spatial)
 					{
@@ -3039,7 +5562,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3075,7 +5598,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3108,7 +5631,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3147,7 +5670,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3180,7 +5703,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3216,7 +5739,7 @@ void Species::nonWF_GenerateOffspring(void)
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3249,7 +5772,7 @@ void Species::nonWF_GenerateOffspring(void)
 			}
 			else
 			{
-				if (has_reproduction_callbacks)
+				if (has_callbacks)
 				{
 					if (is_spatial)
 					{
@@ -3286,7 +5809,7 @@ void Species::nonWF_GenerateOffspring(void)
 	// similarly, choose templated variants for the HaplosomeCrossed()/HaplosomeCloned()/HaplosomeRecombined() methods of Population
 	if (recording_tree_sequence)
 	{
-		if (has_reproduction_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
+		if (has_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
 		{
 			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
 			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
@@ -3301,7 +5824,7 @@ void Species::nonWF_GenerateOffspring(void)
 	}
 	else
 	{
-		if (has_reproduction_callbacks)
+		if (has_callbacks)
 		{
 			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
 			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
@@ -3421,7 +5944,7 @@ void Species::nonWF_MergeOffspring(void)
 void Species::nonWF_ViabilitySurvival(void)
 {
 	slim_tick_t tick = community_.Tick();
-	std::vector<SLiMEidosBlock*> survival_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosSurvivalCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> survival_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosSurvivalCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
 	bool survival_callbacks_present = survival_callbacks.size();
 	bool no_active_callbacks = true;
 	
@@ -4186,7 +6709,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					{
 						mutrun_objectCount++;
 						mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
-						mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
+						mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches(TraitCount());
 					}
 				}
 			}
@@ -4213,7 +6736,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					{
 						mutrun_unusedCount++;
 						mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
-						mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+						mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches(TraitCount());
 					}
 				}
 			}
@@ -4256,8 +6779,8 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			
 			if (subpop.cached_parental_fitness_)
 				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
-			if (subpop.cached_male_fitness_)
-				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
+			if (subpop.mate_choice_weights_)
+				p_usage->subpopulationFitnessCaches += subpop.mate_choice_weights_->Count() * sizeof(double);
 			
 			p_usage->subpopulationParentTables += subpop.MemoryUsageForParentTables();
 			
@@ -4274,8 +6797,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					else if (map.spatiality_ == 3)
 						p_usage->subpopulationSpatialMaps += map.grid_size_[0] * map.grid_size_[1] * map.grid_size_[2] * sizeof(double);
 				}
-				if (map.red_components_)
-					p_usage->subpopulationSpatialMaps += map.n_colors_ * sizeof(float) * 3;
+				// FIXME we skip adding in the memory usage of palette_, which should be counted...
 #if defined(SLIMGUI)
 				if (map.display_buffer_)
 					p_usage->subpopulationSpatialMapsDisplay += (size_t)map.buffer_width_ * (size_t)map.buffer_height_ * sizeof(uint8_t) * 3;
@@ -4289,9 +6811,9 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	/*
 	 Subpopulation:
 	 
-	gsl_ran_discrete_t *lookup_parent_ = nullptr;			// OWNED POINTER: lookup table for drawing a parent based upon fitness
-	gsl_ran_discrete_t *lookup_female_parent_ = nullptr;	// OWNED POINTER: lookup table for drawing a female parent based upon fitness, SEX ONLY
-	gsl_ran_discrete_t *lookup_male_parent_ = nullptr;		// OWNED POINTER: lookup table for drawing a male parent based upon fitness, SEX ONLY
+	gsl_ran_discrete_t *lookup_parent_ = nullptr;
+	gsl_ran_discrete_t *lookup_female_parent_ = nullptr;
+	gsl_ran_discrete_t *lookup_male_parent_ = nullptr;
 
 	 */
 	
@@ -4314,7 +6836,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 	if (shuffle_buf_borrowed_)
 		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer already borrowed." << EidosTerminate();
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// guarantee allocation of a buffer, even with a requested size of 0, so we have a place to put our overrun barriers
 	if ((p_buffer_size > shuffle_buf_capacity_) || !shuffle_buffer_)
 #else
@@ -4324,7 +6846,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		if (shuffle_buffer_)
 			free(shuffle_buffer_);
 		shuffle_buf_capacity_ = p_buffer_size * 2;		// double capacity so we reallocate less often
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 		// room for an extra value at the start and end
 		shuffle_buffer_ = (slim_popsize_t *)malloc((shuffle_buf_capacity_ + 2) * sizeof(slim_popsize_t));
 #else
@@ -4336,7 +6858,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 			EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): allocation failed (requested size " << p_buffer_size << " entries, allocation size " << (shuffle_buf_capacity_ * sizeof(slim_popsize_t)) << " bytes); you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// put flag values in to detect an overrun
 	slim_popsize_t *buffer_contents = shuffle_buffer_ + 1;
 	
@@ -4379,7 +6901,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		}
 	}
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// check for correct setup of flag values; entries 1:shuffle_buf_size_ are used
 	if (shuffle_buffer_[0] != (slim_popsize_t)0xDEADD00D)
 		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer overrun at start." << EidosTerminate();
@@ -4396,7 +6918,7 @@ void Species::ReturnShuffleBuffer(void)
 	if (!shuffle_buf_borrowed_)
 		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer was not borrowed." << EidosTerminate();
 	
-#if DEBUG_SHUFFLE_BUFFER
+#if DEBUG_SHUFFLE_BUFFER()
 	// check for correct setup of flag values; entries 1:shuffle_buf_size_ are used
 	if (shuffle_buffer_[0] != (slim_popsize_t)0xDEADD00D)
 		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer overrun at start." << EidosTerminate();
@@ -4409,11 +6931,12 @@ void Species::ReturnShuffleBuffer(void)
 
 #if (SLIMPROFILING == 1)
 // PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 void Species::CollectMutationProfileInfo(void)
 {
 	// maintain our history of the nonneutral regime
-	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
+	// FIXME MULTITRAIT: This now only keeps a history of diploid regimes
+	profile_trait_calculation_regime_history_.emplace_back(current_trait_calculation_regime_DIPLOID_);
 	
 	// track the maximum number of mutations in existence at one time
 	int registry_size;
@@ -4422,7 +6945,7 @@ void Species::CollectMutationProfileInfo(void)
 	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
 	// tally per-chromosome information
-	int64_t operation_id = MutationRun::GetNextOperationID();
+	slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
 	
 	for (Chromosome *chromosome : Chromosomes())
 	{
@@ -4463,8 +6986,7 @@ void Species::CollectMutationProfileInfo(void)
 							
 							// tally the total and nonneutral mutations
 							mutrun->tally_nonneutral_mutations(&chromosome->profile_mutation_total_usage_,
-															   &chromosome->profile_nonneutral_mutation_total_,
-															   &chromosome->profile_mutrun_nonneutral_recache_total_);
+															   &chromosome->profile_nonneutral_mutation_total_);
 						}
 					}
 				}
@@ -4622,6 +7144,8 @@ void Species::AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVI
 	for (tsk_size_t individual_index = 0; individual_index < num_rows; individual_index++)
 	{
 		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+		
+		// note that IndividualMetadataRec is variable-length now, but we only use the fixed-size header portion here
 		IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
 		slim_pedigreeid_t pedigree_p1 = metadata_rec->pedigree_p1_;
 		slim_pedigreeid_t pedigree_p2 = metadata_rec->pedigree_p2_;
@@ -4678,6 +7202,7 @@ void Species::BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIV
 	
 	for (tsk_size_t individual_index = 0; individual_index < num_rows; individual_index++)
 	{
+		// note that IndividualMetadataRec is variable-length now, but we only use the fixed-size header portion here
 		IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(metadata_base + metadata_offset[individual_index]);
 		slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
 		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
@@ -5057,10 +7582,10 @@ void Species::SimplifyAllTreeSequences(void)
 	// I think; otherwise we could just throw the remembered nodes and extant individuals into `samples`
 	// with no lookup table complication.
 	{
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
 		//typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 		std::unordered_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
 		//typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
 #endif
@@ -5321,6 +7846,88 @@ void Species::SimplifyAllTreeSequences(void)
 	
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
+	
+	// after simplification, we check for any retained mutations that are no longer refenced by the tree sequence
+	// and remove their retains; this can happen for mutations that were removed by script or stacking policy, if
+	// all branches they were on were simplified away, and can also happen for mutations that were in remembered
+	// individuals if they were remembered with permanent=F; this shouldn't take too long and will save memory,
+	// but there is no real harm to not doing it besides wasted memory/disk, so to save effort we skip it if
+	// there are fewer than 10,000 retained mutations -- about 360K of table space for a one-trait model.
+	if (any_muts_retained_impermanently_ && (muts_retained_by_treeseq_.size() > 10000))
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+		
+		// first mark all retained mutations 0, and build a hash table to look them up by mutation ID
+		for (MutationIndex mut_index : muts_retained_by_treeseq_)
+		{
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			mut->scratch_ = 0;
+			
+			// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
+			// is in the list; it has been marked for removal, probably because it was substituted
+			// in that case, we don't add it to the hash table, so it will be swept at the end
+			if (mut->retained_by_treeseq_)
+				mutid_to_mutation.insert(std::pair<slim_mutationid_t, Mutation *>(mut->mutation_id_, mut));
+		}
+		
+		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+			slim_mutationid_t *derived_states = (slim_mutationid_t *)chromosome_tables.mutations.derived_state;
+			tsk_size_t derived_state_length = chromosome_tables.mutations.derived_state_length;
+			
+#if DEBUG
+			if (derived_state_length % sizeof(slim_mutationid_t) != 0)
+				EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): (internal error) derived state length is not a multiple of the mutation id size." << EidosTerminate();
+#endif
+			
+			size_t derived_state_count = derived_state_length / sizeof(slim_mutationid_t);
+			
+			for (size_t derived_state_index = 0; derived_state_index < derived_state_count; ++derived_state_index)
+			{
+				slim_mutationid_t mut_id = derived_states[derived_state_index];
+				auto iter = mutid_to_mutation.find(mut_id);
+				
+				// the mutation referenced by the derived state is not retained; unsurprising
+				if (iter == mutid_to_mutation.end())
+					continue;
+				
+				// mark the retained mutation 1, since it is referenced by a derived state
+				Mutation *retained_mutation = iter->second;
+				
+				retained_mutation->scratch_ = 1;
+			}
+		}
+		
+		// unmarked mutations can be released and compacted out of muts_retained_by_treeseq_
+		size_t retained_count = muts_retained_by_treeseq_.size();
+		size_t last_valid_index = retained_count - 1;
+		
+		for (size_t retained_index = 0; retained_index < retained_count; )
+		{
+			MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			if (mut->scratch_ == 0)
+			{
+				// this element is no longer needed, so we backfill from the end and repeat this index
+				muts_retained_by_treeseq_[retained_index] = muts_retained_by_treeseq_[last_valid_index];
+				last_valid_index--;
+				retained_count--;
+				mut->retained_by_treeseq_ = false;
+				mut->Release();
+				continue;
+			}
+			
+			// this element is needed, so we don't need to touch it, we just move on
+			retained_index++;
+		}
+	}
 	
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
 	// this could potentially be parallelized, but it's kind of a fringe feature, and not that slow...
@@ -5897,17 +8504,10 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::RecordNewDerivedState(): usage of statics");
 	
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
-	static std::vector<MutationMetadataRec> mutation_metadata;
-	MutationMetadataRec metadata_rec;
 	
 	derived_mutation_ids.resize(0);
-	mutation_metadata.resize(0);
 	for (Mutation *mutation : p_derived_mutations)
-	{
 		derived_mutation_ids.emplace_back(mutation->mutation_id_);
-		MetadataForMutation(mutation, &metadata_rec);
-		mutation_metadata.emplace_back(metadata_rec);
-	}
 	
 	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
 	// BCH 5/14/2019: Note that this means that derived states will be recorded that look "stacked" even when those mutations would
@@ -5923,8 +8523,6 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 		Substitution *substitution = position_iter->second;
 		
 		derived_mutation_ids.emplace_back(substitution->mutation_id_);
-		MetadataForSubstitution(substitution, &metadata_rec);
-		mutation_metadata.emplace_back(metadata_rec);
 	}
 	
 	// check for time consistency, using the shared node table in treeseq_[0]; this used to be a DEBUG check, but
@@ -5940,13 +8538,11 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	// add the mutation table row with the final derived state and metadata
 	char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
 	size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
-	char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
-	size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 	
 	int ret = tsk_mutation_table_add_row(&tsinfo.tables_.mutations, site_id, haplosomeTSKID, TSK_NULL, 
 					time,
 					derived_muts_bytes, (tsk_size_t)derived_state_length,
-					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
+					NULL, (tsk_size_t)0);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 }
 
@@ -6182,8 +8778,13 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		location.emplace_back(ind->spatial_y_);
 		location.emplace_back(ind->spatial_z_);
 		
-		IndividualMetadataRec metadata_rec;
-		MetadataForIndividual(ind, &metadata_rec);
+		// the IndividualMetadataRec struct is now variable-size; we want to make a struct of the appropriate
+		// size for the amount of per-trait metadata that will be present for individuals of this species
+		slim_trait_index_t trait_count = TraitCount();
+		size_t total_metadata_size = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * (trait_count - 1);
+		uint8_t metadata_buffer[total_metadata_size];	// assumes compiler extension for variable-size stack allocation
+		IndividualMetadataRec &metadata_rec = *(IndividualMetadataRec *)metadata_buffer;
+		MetadataForIndividual(ind, &metadata_rec);		// requires a metadata record of the appropriate size
 		
 		// do a fast lookup to see whether this individual is already in the individuals table
 		auto ind_pos = p_individuals_hash->find(ped_id);
@@ -6193,7 +8794,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			tsk_id_t tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
 					p_flags, location.data(), (uint32_t)location.size(), 
                     NULL, 0, // individual parents
-					(char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
+					(char *)&metadata_rec, (uint32_t)total_metadata_size);
 			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
 			
 			// Add the new individual to our hash table, for fast lookup as done above
@@ -6220,7 +8821,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 				   && (location.size()
 					   == (p_tables->individuals.location_offset[tsk_individual + 1]
 						   - p_tables->individuals.location_offset[tsk_individual]))
-				   && (sizeof(IndividualMetadataRec)
+				   && (total_metadata_size
 					   == (p_tables->individuals.metadata_offset[tsk_individual + 1]
 						   - p_tables->individuals.metadata_offset[tsk_individual])));
 			
@@ -6240,7 +8841,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 				   location.data(), location.size() * sizeof(double));
 			memcpy(p_tables->individuals.metadata
 					+ p_tables->individuals.metadata_offset[tsk_individual],
-					&metadata_rec, sizeof(IndividualMetadataRec));
+					&metadata_rec, total_metadata_size);
 			p_tables->individuals.flags[tsk_individual] |= p_flags;
 			
 			// Check node table
@@ -6536,13 +9137,18 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 
 	//////
 	// Top-level (tree sequence) metadata:
-	// In the future, we might need to *add* to the metadata *and also* the schema,
-	// leaving other keys that might already be there.
-	// But that's being a headache, so we're skipping it.
+	//
+	// SLiM now writes top-level metadata with the new "json+struct" codec.  So we assemble a JSON string and
+	// a binary struct, and put them together with a magic byte string, a version number, a header, and schemas.
+	// See https://github.com/tskit-dev/tskit/pull/3306 for the PR for the json+struct codec and discussion.
+	//
+	// NOTE: In the future, we might need to *add* to the metadata *and also* the schema, leaving other keys
+	// that might already be there.  But that's being a headache, so we're skipping it.
 	
+	// First generate our JSON string, as we did in SLiM 5.1 and earlier:
 	// BCH 3/9/2025: This is now wrapped in try/catch because the JSON library might raise, especially if it dislikes
 	// the model string we try to put in metadata for p_include_model; see https://github.com/MesserLab/SLiM/issues/488
-	std::string new_metadata_str;
+	std::string metadata_JSON_str;
 	
 	try {
 		nlohmann::json metadata;
@@ -6644,59 +9250,346 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			}
 		}
 		
-		new_metadata_str = metadata.dump();
+		metadata["SLiM"]["traits"] = nlohmann::json::array();
+		for (Trait *trait : traits_)
+		{
+			nlohmann::json trait_info;
+			
+			trait_info["index"] = trait->Index();
+			trait_info["name"] = trait->Name();
+			
+			if (trait->HasLogisticPostTransform())
+				trait_info["type"] = "logistic";
+			else if (trait->Type() == TraitType::kAdditive)
+				trait_info["type"] = "additive";
+			else
+				trait_info["type"] = "multiplicative";
+			
+			trait_info["baselineOffset"] = trait->BaselineOffset();
+			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
+			
+			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
+			trait_info["individualOffsetSD"] = trait->IndividualOffsetDistributionSD();
+			
+			trait_info["directFitnessEffect"] = trait->HasDirectFitnessEffect();
+			
+			metadata["SLiM"]["traits"].push_back(trait_info);
+		}
+		
+		metadata_JSON_str = metadata.dump();
 	} catch (const std::exception &e) {
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): a JSON string could not be generated for tree-sequence metadata due to an error: '" << e.what() << "'." << EidosTerminate();
 	} catch (...) {
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): a JSON string could not be generated for tree-sequence metadata due to an unknown error." << EidosTerminate();
 	}
 	
-	ret = tsk_table_collection_set_metadata(
-			p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
+	// Then figure out how large our binary data will be (but don't generate the data yet; we will write it
+	// directly into the buffer that we allocate below, to avoid copying and increased memory overhead)
+	int registry_size;
+	const MutationIndex *register_iter = population_.MutationRegistry(&registry_size);
+	
+	const std::vector<Substitution*> substitutions = population_.substitutions_;
+	size_t substitution_count = substitutions.size();
+	
+	size_t retained_muts_count = muts_retained_by_treeseq_.size();
+	
+	size_t estimated_row_count = registry_size + substitution_count + retained_muts_count;
+	slim_trait_index_t trait_count = TraitCount();
+	size_t size_for_additional_trait_info = sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
+	size_t size_for_one_muttable_row = sizeof(MutationTableMetadataRec) + size_for_additional_trait_info;
+	size_t estimated_mutation_table_size = estimated_row_count * size_for_one_muttable_row;
+	
+	// Then assemble those two components into a json+struct metadata chunk:
+	const uint8_t TSK_JSON_BINARY_MAGIC[4] = { 'J', 'B', 'L', 'B' };
+	size_t header_length = 4 + 1 + 8 + 8;
+	size_t json_length = metadata_JSON_str.length();
+	size_t estimated_binary_length = estimated_mutation_table_size;
+	
+	// Insert null bytes as needed to align the binary chunk to an 8-byte boundary
+	size_t aligner_length = (8 - ((header_length + json_length) & 0x07)) % 8;
+	
+	size_t estimated_total_length = header_length + json_length + aligner_length + estimated_binary_length;
+	uint8_t *metadata_buffer = (uint8_t *)malloc(estimated_total_length);
+	
+	if (!metadata_buffer)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+	
+	metadata_buffer[0] = TSK_JSON_BINARY_MAGIC[0];
+	metadata_buffer[1] = TSK_JSON_BINARY_MAGIC[1];
+	metadata_buffer[2] = TSK_JSON_BINARY_MAGIC[2];
+	metadata_buffer[3] = TSK_JSON_BINARY_MAGIC[3];
+	
+	metadata_buffer[4] = 1;		// version number for the json_blob codec
+	
+	memcpy(metadata_buffer + header_length, metadata_JSON_str.data(), json_length);
+	
+	for (size_t aligner_index = 0; aligner_index < aligner_length; ++aligner_index)
+		metadata_buffer[header_length + json_length + aligner_index] = 0;
+	
+	// Write mutation metadata into the binary section
+	uint8_t *base_row_pointer = metadata_buffer + header_length + json_length + aligner_length;
+	uint8_t *row_pointer = base_row_pointer;
+	
+	// First we write substitutions; these are guaranteed not to be in the muts_retained_by_treeseq_ vector
+	for (Substitution *sub : substitutions)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		
+		metadata_row->mutation_id_ = sub->mutation_id_;
+		metadata_row->mutation_type_id_ = sub->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = sub->subpop_index_;
+		metadata_row->origin_tick_ = sub->origin_tick_;
+		metadata_row->nucleotide_ = sub->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		SubstitutionTraitInfo *sub_trait_info_array = sub->trait_info_;
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			SubstitutionTraitInfo *sub_trait_info = sub_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = sub_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = sub_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = sub_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// Then we write mutations that were retained for us, because they were associated with individuals that
+	// were remembered, or because they were removed in script or by stacking policy; these mutations might
+	// no longer be in SLiM's mutation registry, but they need to be in the mutation metadata table.
+	int retained_count = (int)muts_retained_by_treeseq_.size();
+	
+	for (int retained_index = 0; retained_index < retained_count; ++retained_index)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
+		
+		// Mutations can be in muts_retained_by_treeseq_ and yet no longer be retained; we skip them.
+		// This occurs if a mutation is turned into a substitution; a retain is then no longer needed,
+		// and here we treat the mutation as if it was not in muts_retained_by_treeseq_ to begin with.
+		if (!mut->retained_by_treeseq_)
+			continue;
+		
+		metadata_row->mutation_id_ = mut->mutation_id_;
+		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
+		metadata_row->nucleotide_ = mut->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// Finally we write mutations in the registry, as long as they were not already written
+	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+	{
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
+		MutationIndex mut_index = register_iter[registry_index];
+		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
+		
+		// mutations in the retained list were already handled
+		if (mut->retained_by_treeseq_)
+			continue;
+		
+		// mutations that are not segregating do not get persisted
+		MutationState mut_state = (MutationState)mut->state_;
+		
+		if ((mut_state == MutationState::kLostAndRemoved) || (mut_state == MutationState::kFixedAndSubstituted) || (mut_state == MutationState::kRemovedWithSubstitution))
+			continue;
+		
+		metadata_row->mutation_id_ = mut->mutation_id_;
+		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
+		metadata_row->subpop_index_ = mut->subpop_index_;
+		metadata_row->origin_tick_ = mut->origin_tick_;
+		metadata_row->nucleotide_ = mut->nucleotide_;
+		
+		metadata_row->unused_[0] = 0;
+		metadata_row->unused_[1] = 0;
+		metadata_row->unused_[2] = 0;
+		
+		MutationTraitInfo *mut_trait_info_array = mutation_block_->TraitInfoForIndex(mut_index);
+		_MutationPerTraitMetadata *metadata_trait_info_array = metadata_row->per_trait_;
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			MutationTraitInfo *mut_trait_info = mut_trait_info_array + trait_index;
+			_MutationPerTraitMetadata *metadata_trait_info = metadata_trait_info_array + trait_index;
+			
+			metadata_trait_info->effect_size_ = mut_trait_info->effect_size_;
+			metadata_trait_info->dominance_coeff_ = mut_trait_info->dominance_coeff_UNSAFE_;
+			metadata_trait_info->hemizygous_dominance_coeff_ = mut_trait_info->hemizygous_dominance_coeff_;
+		}
+		
+		row_pointer += size_for_one_muttable_row;
+	}
+	
+	// we set size information at the end because we might not use all of the mutation table space
+	// if that is the case, we realloc here to free up the unused space
+	if ((row_pointer - base_row_pointer) % size_for_one_muttable_row != 0)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) count of rows filled is not an integer." << EidosTerminate();
+	
+	size_t actual_row_count = (row_pointer - base_row_pointer) / size_for_one_muttable_row;
+	size_t actual_mutation_table_size = actual_row_count * size_for_one_muttable_row;
+	size_t actual_binary_length = actual_mutation_table_size;
+	size_t actual_total_length = header_length + json_length + aligner_length + actual_binary_length;
+	
+	if (actual_total_length != estimated_total_length)
+	{
+		metadata_buffer = (uint8_t *)realloc(metadata_buffer, actual_total_length);
+		if (!metadata_buffer)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+	}
+	
+	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
+	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)(actual_mutation_table_size + aligner_length));
+	
+#if DEBUG
+	//std::cout << "WriteTreeSequenceMetadata(): wrote binary mutation table with row size " << size_for_one_muttable_row << " and " << row_count << " rows." << std::endl;
+#endif
+	
+	// Write out the metadata chunk to the table collection:
+	ret = tsk_table_collection_set_metadata(p_tables, (const char *)metadata_buffer, (tsk_size_t)actual_total_length);
 	if (ret != 0)
 		handle_error("tsk_table_collection_set_metadata", ret);
-
-	// As above, we maybe ought to edit the metadata schema adding our keys,
+	
+	// And finally, generate the bipartite schema for the json+struct metadata chunk:
+	//
+	// NOTE: As above, we maybe ought to edit the metadata schema adding our keys,
 	// but then comparing tables is a headache; see tskit#763
+	std::string jps_metadata_schema;
+	
+	jps_metadata_schema = R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json+struct","json":)V0G0N";
+	jps_metadata_schema += gSLiM_tsk_metadata_JSON_schema;
+	jps_metadata_schema += R"V0G0N(,"struct":)V0G0N";
+	jps_metadata_schema += gSLiM_tsk_metadata_binary_schema_FORMAT;
+	jps_metadata_schema += R"V0G0N(})V0G0N";
+	
+	{
+		// fix "%d1" to have the count of padding bytes needed for 8-byte alignment
+		size_t d1_pos = jps_metadata_schema.find("\"%d1\"");
+		
+		if (d1_pos == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) substring \"%d1\" for replacement in schema not found." << EidosTerminate();
+		else
+			jps_metadata_schema.replace(d1_pos, 5, "\"" + std::to_string(aligner_length) + "x\"");	// e.g., "%d1" -> "5x"
+	}
+	{
+		// fix "%d2" to have the number of traits in this species
+		size_t d2_pos = jps_metadata_schema.find("\"%d2\"");
+		
+		if (d2_pos == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) substring \"%d2\" for replacement in schema not found." << EidosTerminate();
+		else
+			jps_metadata_schema.replace(d2_pos, 5, std::to_string(trait_count));	// e.g., "%d2" -> 3
+	}
+	
+#if 0
+	// DEBUG: dump the json+struct metadata schema to std::cout
+	std::cout << std::endl << "jps_metadata_schema == " << std::endl << jps_metadata_schema << std::endl << std::endl;
+	
+	nlohmann::json jps_metadata_schema_JSON;
+	
+	try {
+		jps_metadata_schema_JSON = nlohmann::json::parse(jps_metadata_schema);
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) jps_metadata_schema must be a JSON string." << EidosTerminate();
+	}
+	
+	std::cout << "jps_metadata_schema == " << std::endl << jps_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
+	
 	ret = tsk_table_collection_set_metadata_schema(
-			p_tables, gSLiM_tsk_metadata_schema.c_str(), (tsk_size_t)gSLiM_tsk_metadata_schema.length());
+			p_tables, jps_metadata_schema.data(), (tsk_size_t)jps_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_table_collection_set_metadata_schema", ret);
-
+	
 	////////////
 	// Set metadata schema on each table
+	
 	ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
 			gSLiM_tsk_edge_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_edge_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_edge_table_set_metadata_schema", ret);
+	
 	ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
 			gSLiM_tsk_site_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_site_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_site_table_set_metadata_schema", ret);
+	
 	ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
 			gSLiM_tsk_mutation_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_mutation_table_set_metadata_schema", ret);
-	ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
-			gSLiM_tsk_individual_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
-	if (ret != 0)
-		handle_error("tsk_individual_table_set_metadata_schema", ret);
+	
+	{
+		// fix "%d" in the individual metadata to have the number of traits in the species
+		std::string tsk_individual_metadata_schema = gSLiM_tsk_individual_metadata_schema_FORMAT;
+		size_t d_pos = tsk_individual_metadata_schema.find("\"%d\"");
+		
+		if (d_pos == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) \"%d\" substring missing from gSLiM_tsk_individual_metadata_schema_FORMAT." << EidosTerminate();
+		else
+			tsk_individual_metadata_schema.replace(d_pos, 4, std::to_string(TraitCount()));	// e.g., "%d" -> 4
+		
+#if 0
+		// DEBUG: dump the metadata schema to std::cout
+		std::cout << std::endl << "tsk_individual_metadata_schema == " << std::endl << tsk_individual_metadata_schema << std::endl << std::endl;
+		
+		nlohmann::json tsk_individual_metadata_schema_JSON;
+		
+		try {
+			tsk_individual_metadata_schema_JSON = nlohmann::json::parse(tsk_individual_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) tsk_individual_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		
+		std::cout << "tsk_individual_metadata_schema == " << std::endl << tsk_individual_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
+		
+		ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
+													   tsk_individual_metadata_schema.c_str(),
+													   (tsk_size_t)tsk_individual_metadata_schema.length());
+		if (ret != 0)
+			handle_error("tsk_individual_table_set_metadata_schema", ret);
+	}
+	
 	ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
 			gSLiM_tsk_population_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_population_table_set_metadata_schema", ret);
 	
-	// For the node table the schema we save out depends upon the number of
-	// bits needed to represent the null haplosome structure of the model.
-	// We allocate one bit per chromosome, in each node table entry (note
-	// there are two entries per individual, so it ends up being two bits
-	// of information per chromosome, across the two node table entries.)
-	// See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
+	// For the node table the schema we save out depends upon the number of bits needed to represent the null
+	// haplosome structure of the model.  We allocate one bit per chromosome, in each node table entry (note
+	// there are two entries per individual, so it ends up being two bits of information per chromosome, across
+	// the two node table entries).  See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
 	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
 	size_t pos = tsk_node_metadata_schema.find("\"%d\"");
 	std::string count_string = std::to_string(haplosome_metadata_is_vacant_bytes_);
@@ -6705,6 +9598,21 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
 	
 	tsk_node_metadata_schema.replace(pos, 4, count_string);		// replace %d in the format string with the byte count
+	
+#if 0
+	// DEBUG: dump the metadata schema to std::cout
+	std::cout << std::endl << "tsk_node_metadata_schema == " << std::endl << tsk_node_metadata_schema << std::endl << std::endl;
+	
+	nlohmann::json tsk_node_metadata_schema_JSON;
+	
+	try {
+		tsk_node_metadata_schema_JSON = nlohmann::json::parse(tsk_node_metadata_schema);
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) tsk_node_metadata_schema must be a JSON string." << EidosTerminate();
+	}
+	
+	std::cout << "tsk_node_metadata_schema == " << std::endl << tsk_node_metadata_schema_JSON.dump(4) << std::endl << std::endl;
+#endif
 	
 	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
 			tsk_node_metadata_schema.c_str(),
@@ -6717,7 +9625,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 {
 	int ret = 0;
 	time_t timer;
-	size_t timestamp_size = 64;
+	const size_t timestamp_size = 64;
 	char buffer[timestamp_size];
 	struct tm* tm_info;
 	// NOTE: since file version 0.5, we do *not* read information
@@ -6851,6 +9759,32 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 			}
 		}
 		
+		j["parameters"]["traits"] = nlohmann::json::array();
+		for (Trait *trait : traits_)
+		{
+			nlohmann::json trait_info;
+			
+			trait_info["index"] = trait->Index();
+			trait_info["name"] = trait->Name();
+			
+			if (trait->HasLogisticPostTransform())
+				trait_info["type"] = "logistic";
+			else if (trait->Type() == TraitType::kAdditive)
+				trait_info["type"] = "additive";
+			else
+				trait_info["type"] = "multiplicative";
+			
+			trait_info["baselineOffset"] = trait->BaselineOffset();
+			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
+			
+			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
+			trait_info["individualOffsetSD"] = trait->IndividualOffsetDistributionSD();
+			
+			trait_info["directFitnessEffect"] = trait->HasDirectFitnessEffect();
+			
+			j["parameters"]["traits"].push_back(trait_info);
+		}
+		
 		if (p_include_model)
 			j["parameters"]["model"] = scriptString;				// made model optional in file_version 0.4
 		j["parameters"]["model_hash"] = scriptHashString;			// added model_hash in file_version 0.4
@@ -6924,7 +9858,7 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 		
 		// check that the length is sufficient for the bits of original_index
 		if (node_metadata_length < expected_min_metadata_length)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_MungeIsNullNodeMetadataToIndex0): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 		
 		HaplosomeMetadataRec *node_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[row]);
 		HaplosomeMetadataRec *new_metadata = new_metadata_buffer + row;
@@ -6963,11 +9897,8 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 		handle_error("tsk_node_table_set_metadata_schema", ret);
 }
 
-void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version)
+void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version, MutationMetadataTable &p_mut_metadata_table)
 {
-	// New provenance reading code, using the JSON for Modern C++ library (json.hpp); this
-	// applies to file versions > 0.1.  The version 0.1 code was removed 24 Feb. 2025.
-	
 	tsk_table_collection_t &p_tables = p_treeseq.tables_;
 	std::string model_type_str;
 	std::string cycle_stage_str;
@@ -6978,147 +9909,268 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	std::string this_chromosome_type;
 	bool chomosomes_key_present = false;
 	
-	try {
-		////////////
-		// Format 0.5 and later: using top-level metadata
-		
-		// Note: we *could* parse the metadata schema, but instead we'll just try parsing the metadata.
-		// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
-		// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
-
-		std::string metadata_str(p_tables.metadata, p_tables.metadata_length);
-		auto metadata = nlohmann::json::parse(metadata_str);
-		
-		//std::cout << metadata.dump(4) << std::endl;
-		
-		if (!metadata["SLiM"].contains("file_version"))
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'file_version' is missing; this file cannot be read." << EidosTerminate();
-		
-		auto file_version = metadata["SLiM"]["file_version"];
-		
-		if ((file_version == SLIM_TREES_FILE_VERSION_PRENUC) ||
-			(file_version == SLIM_TREES_FILE_VERSION_POSTNUC) ||
-			(file_version == SLIM_TREES_FILE_VERSION_HASH) ||
-			(file_version == SLIM_TREES_FILE_VERSION_META) ||
-			(file_version == SLIM_TREES_FILE_VERSION_PREPARENT) ||
-			(file_version == SLIM_TREES_FILE_VERSION_PRESPECIES) ||
-			(file_version == SLIM_TREES_FILE_VERSION_SPECIES))
-		{
-			// SLiM 5.0 breaks backward compatibility with earlier file versions
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM or pyslim." << EidosTerminate();
-		}
-		else if (file_version == SLIM_TREES_FILE_VERSION)
-		{
-			*p_file_version = 9;
-		}
-		else
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim (internal file version " << file_version << "); this file cannot be read." << EidosTerminate();
-		
-		// We test for some keys if they are new or optional, but assume that others must be there, such as "model_type".
-		// If we fetch a key and it is missing, nhlohmann::json raises and we end up in the provenance fallback code below.
-		// That indicates that we're reading an old file version, which we no longer support in SLiM 5.
-		// BCH 2/24/2025: I'm shifting towards testing for every key before fetching, in order to give better error messages.
-		if (!metadata["SLiM"].contains("model_type"))
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'model_type' is missing; this file cannot be read." << EidosTerminate();
-		
-		model_type_str = metadata["SLiM"]["model_type"];
-		
-		if (!metadata["SLiM"].contains("tick"))
-			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'tick' is missing; this file cannot be read." << EidosTerminate();
-		
-		tick_ll = metadata["SLiM"]["tick"];
-		
-		// "cycle" is optional and now defaults to the tick (it used to fall back to the old "generation" key)
-		if (metadata["SLiM"].contains("cycle"))
-			gen_ll = metadata["SLiM"]["cycle"];
-		else
-			gen_ll = tick_ll;
-		
-		// "stage" is optional, and is used below only for validation; it provides an extra layer of safety
-		if (metadata["SLiM"].contains("stage"))
-			cycle_stage_str = metadata["SLiM"]["stage"];
-		
-		/*if (metadata["SLiM"].contains("name"))
-		{
-			// If a species name is present, it must match our own name; can't load data across species, as a safety measure
-			// If users find this annoying, it can be relaxed; nothing really depends on it
-			// BCH 5/12/2022: OK, it is already annoying; disabling this check for now
-			std::string metadata_name = metadata["SLiM"]["name"];
-			
-			if (metadata_name != name_)
-				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file represents a species named " << metadata_name << ", which does not match the name of the target species, " << name_ << "; species names must match." << EidosTerminate();
-		}*/
-		
-		if (metadata["SLiM"].contains("description"))
-		{
-			// If a species description is present and non-empty, it replaces our own description
-			std::string metadata_description = metadata["SLiM"]["description"];
-			
-			if (metadata_description.length())
-				description_ = metadata_description;
-		}
-		
-		// The "this_chromosome" key is required, as are the keys within it
-		auto &this_chromosome_metadata = metadata["SLiM"]["this_chromosome"];
-		
-		if (!this_chromosome_metadata.is_object())
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'this_chromosome' metadata key must be a JSON object." << std::endl;
-		if (!this_chromosome_metadata.contains("id"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		if (!this_chromosome_metadata.contains("index"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'index' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		if (!this_chromosome_metadata.contains("symbol"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		if (!this_chromosome_metadata.contains("type"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from the 'this_chromosome' metadata entry." << std::endl;
-		
-		this_chromosome_id = this_chromosome_metadata["id"];
-		this_chromosome_index = this_chromosome_metadata["index"];
-		this_chromosome_symbol = this_chromosome_metadata["symbol"];
-		this_chromosome_type = this_chromosome_metadata["type"];
-		
-		// The "chromosomes" key is optional, but if provided, it has to make sense
-		if (metadata["SLiM"].contains("chromosomes"))
-		{
-			chomosomes_key_present = true;
-			
-			// We validate the whole "chromosomes" key against the whole model, to make sure everything is as expected
-			auto &chromosomes_metadata = metadata["SLiM"]["chromosomes"];
-			
-			if (!chromosomes_metadata.is_array())
-				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'chromosomes' metadata key must be an array." << std::endl;
-			if (chromosomes_metadata.size() != Chromosomes().size())
-				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'chromosomes' metadata key does not match the number of chromosomes in the model." << std::endl;
-			
-			for (std::size_t chromosomes_index = 0; chromosomes_index < Chromosomes().size(); ++chromosomes_index)
-			{
-				Chromosome *chromosome = Chromosomes()[chromosomes_index];
-				auto &one_chromosome_metadata = chromosomes_metadata[chromosomes_index];
-				
-				if (!one_chromosome_metadata.contains("id"))
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
-				if (!one_chromosome_metadata.contains("symbol"))
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
-				if (!one_chromosome_metadata.contains("type"))
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
-				
-				int one_chromosome_id = one_chromosome_metadata["id"];
-				std::string one_chromosome_symbol = one_chromosome_metadata["symbol"];
-				std::string one_chromosome_type = one_chromosome_metadata["type"];
-				
-				if (one_chromosome_id != chromosome->ID())
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the id for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
-				if (one_chromosome_symbol != chromosome->Symbol())
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the symbol for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
-				if (one_chromosome_type != chromosome->TypeString())
-					SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
-			}
-		}
-	} catch (...) {
-		///////////////////////
-		// Previous formats: everything is in provenance
-		
+	// BCH 2/13/2026: This code was inside a big try/catch block that didn't make sense to me, since it replaced
+	// the useful error messages here with an uninformative catch-all error message; so I removed it.
+	
+	////////////
+	// Format 1.0 and later: reading top-level metadata using tskit's `json+struct` codec
+	char *top_level_json_buffer;
+	tsk_size_t top_level_json_length;
+	char *top_level_binary_buffer;
+	tsk_size_t top_level_binary_length;
+	
+	int ret = tsk_json_struct_metadata_get_blob(p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
+	if ((ret == TSK_ERR_FILE_FORMAT) || (ret == TSK_ERR_FILE_VERSION_TOO_NEW))
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
+	if (ret != 0)
+		handle_error("tsk_json_struct_metadata_get_blob", ret);
+	
+	// adjust the binary pointer to account for alignment
+	size_t aligner_length = (8 - (reinterpret_cast<std::uintptr_t>(top_level_binary_buffer) & 0x07)) % 8;
+	
+	std::string metadata_schema_str(p_tables.metadata_schema, p_tables.metadata_schema_length);
+	std::string schema_aligner_prefix = "aligner\":{\"binaryFormat\":\"";
+	size_t schema_aligner_position = metadata_schema_str.find(schema_aligner_prefix);
+	
+	if (schema_aligner_position == std::string::npos)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level metadata schema is non-compliant; this file cannot be read." << EidosTerminate();
+	
+	char schema_aligner_char = metadata_schema_str.at(schema_aligner_position + schema_aligner_prefix.length());
+	
+	if ((schema_aligner_char < '0') || (schema_aligner_char > '7'))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level metadata schema is non-compliant; this file cannot be read." << EidosTerminate();
+	
+	size_t schema_aligner_length = (schema_aligner_char - '0');
+	
+	if (aligner_length != schema_aligner_length)
+	{
+		std::cout << "#WARNING (Species::ReadTreeSequenceMetadata): the alignment byte count for the top-level binary metadata is unexpected (the schema says " << schema_aligner_length << " but the reality is " << aligner_length << ")." << std::endl;
+		aligner_length = schema_aligner_length;
+	}
+	
+	top_level_binary_buffer = top_level_binary_buffer + aligner_length;
+	top_level_binary_length -= aligner_length;
+	
+	size_t trait_count = Traits().size();
+	size_t binary_row_length = sizeof(MutationTableMetadataRec) + sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
+	
+	if (top_level_binary_length % binary_row_length != 0)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata does not comprise an integral number of rows (binary_row_length == " << binary_row_length << ", top_level_binary_length == " << top_level_binary_length << "); this file cannot be read." << EidosTerminate();
+	
+	// pass information on the binary mutation metadata table back to the caller
+	p_mut_metadata_table.table_buffer = (uint8_t *)top_level_binary_buffer;
+	p_mut_metadata_table.row_size = binary_row_length;
+	p_mut_metadata_table.row_count = top_level_binary_length / binary_row_length;
+	
+#if DEBUG
+	//std::cout << "ReadTreeSequenceMetadata(): read binary mutation table with row size " << p_mut_metadata_table.row_size << " and " << p_mut_metadata_table.row_count << " rows." << std::endl;
+#endif
+	
+	// Note: we *could* parse the metadata schema, but instead we'll just try parsing the metadata.
+	// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
+	// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
+	
+	std::string top_level_json_str(top_level_json_buffer, top_level_json_length);
+	auto top_level_json = nlohmann::json::parse(top_level_json_str);
+	
+	//std::cout << top_level_json.dump(4) << std::endl;
+	
+	if (!top_level_json["SLiM"].contains("file_version"))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'file_version' is missing; this file cannot be read." << EidosTerminate();
+	
+	auto file_version = top_level_json["SLiM"]["file_version"];
+	
+	if ((file_version == SLIM_TREES_FILE_VERSION_PRENUC) ||
+		(file_version == SLIM_TREES_FILE_VERSION_POSTNUC) ||
+		(file_version == SLIM_TREES_FILE_VERSION_HASH) ||
+		(file_version == SLIM_TREES_FILE_VERSION_META) ||
+		(file_version == SLIM_TREES_FILE_VERSION_PREPARENT) ||
+		(file_version == SLIM_TREES_FILE_VERSION_PRESPECIES) ||
+		(file_version == SLIM_TREES_FILE_VERSION_SPECIES) ||
+		(file_version == SLIM_TREES_FILE_VERSION_MULTICHROM))
+	{
+		// SLiM 5.2 breaks backward compatibility with earlier file versions
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM or pyslim." << EidosTerminate();
+	}
+	else if (file_version == SLIM_TREES_FILE_VERSION)
+	{
+		*p_file_version = 10;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim (internal file version " << file_version << "); this file cannot be read." << EidosTerminate();
+	
+	// We test for some keys if they are new or optional, but assume that others must be there, such as "model_type".
+	// If we fetch a key and it is missing, nhlohmann::json raises and we end up in the provenance fallback code below.
+	// That indicates that we're reading an old file version, which we no longer support in SLiM 5.
+	// BCH 2/24/2025: I'm shifting towards testing for every key before fetching, in order to give better error messages.
+	if (!top_level_json["SLiM"].contains("model_type"))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'model_type' is missing; this file cannot be read." << EidosTerminate();
+	
+	model_type_str = top_level_json["SLiM"]["model_type"];
+	
+	if (!top_level_json["SLiM"].contains("tick"))
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'tick' is missing; this file cannot be read." << EidosTerminate();
+	
+	tick_ll = top_level_json["SLiM"]["tick"];
+	
+	// "cycle" is optional and now defaults to the tick (it used to fall back to the old "generation" key)
+	if (top_level_json["SLiM"].contains("cycle"))
+		gen_ll = top_level_json["SLiM"]["cycle"];
+	else
+		gen_ll = tick_ll;
+	
+	// "stage" is optional, and is used below only for validation; it provides an extra layer of safety
+	if (top_level_json["SLiM"].contains("stage"))
+		cycle_stage_str = top_level_json["SLiM"]["stage"];
+	
+	/*if (metadata["SLiM"].contains("name"))
+	 {
+	 // If a species name is present, it must match our own name; can't load data across species, as a safety measure
+	 // If users find this annoying, it can be relaxed; nothing really depends on it
+	 // BCH 5/12/2022: OK, it is already annoying; disabling this check for now
+	 std::string metadata_name = metadata["SLiM"]["name"];
+	 
+	 if (metadata_name != name_)
+	 EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file represents a species named " << metadata_name << ", which does not match the name of the target species, " << name_ << "; species names must match." << EidosTerminate();
+	 }*/
+	
+	if (top_level_json["SLiM"].contains("description"))
+	{
+		// If a species description is present and non-empty, it replaces our own description
+		std::string metadata_description = top_level_json["SLiM"]["description"];
+		
+		if (metadata_description.length())
+			description_ = metadata_description;
+	}
+	
+	// The "this_chromosome" key is required, as are the keys within it
+	auto &this_chromosome_metadata = top_level_json["SLiM"]["this_chromosome"];
+	
+	if (!this_chromosome_metadata.is_object())
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'this_chromosome' metadata key must be a JSON object." << std::endl;
+	if (!this_chromosome_metadata.contains("id"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	if (!this_chromosome_metadata.contains("index"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'index' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	if (!this_chromosome_metadata.contains("symbol"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	if (!this_chromosome_metadata.contains("type"))
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from the 'this_chromosome' metadata entry." << std::endl;
+	
+	this_chromosome_id = this_chromosome_metadata["id"];
+	this_chromosome_index = this_chromosome_metadata["index"];
+	this_chromosome_symbol = this_chromosome_metadata["symbol"];
+	this_chromosome_type = this_chromosome_metadata["type"];
+	
+	// The "chromosomes" key is optional, but if provided, it has to make sense
+	if (top_level_json["SLiM"].contains("chromosomes"))
+	{
+		chomosomes_key_present = true;
+		
+		// We validate the whole "chromosomes" key against the whole model, to make sure everything is as expected
+		auto &chromosomes_metadata = top_level_json["SLiM"]["chromosomes"];
+		
+		if (!chromosomes_metadata.is_array())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'chromosomes' metadata key must be an array." << std::endl;
+		if (chromosomes_metadata.size() != Chromosomes().size())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'chromosomes' metadata key does not match the number of chromosomes in the model." << std::endl;
+		
+		for (std::size_t chromosomes_index = 0; chromosomes_index < Chromosomes().size(); ++chromosomes_index)
+		{
+			Chromosome *chromosome = Chromosomes()[chromosomes_index];
+			auto &one_chromosome_metadata = chromosomes_metadata[chromosomes_index];
+			
+			if (!one_chromosome_metadata.contains("id"))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'id' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
+			if (!one_chromosome_metadata.contains("symbol"))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'symbol' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
+			if (!one_chromosome_metadata.contains("type"))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from a 'chromosomes' metadata entry; if 'chromosomes' is provided at all, it must be complete." << std::endl;
+			
+			int one_chromosome_id = one_chromosome_metadata["id"];
+			std::string one_chromosome_symbol = one_chromosome_metadata["symbol"];
+			std::string one_chromosome_type = one_chromosome_metadata["type"];
+			
+			if (one_chromosome_id != chromosome->ID())
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the id for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
+			if (one_chromosome_symbol != chromosome->Symbol())
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the symbol for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
+			if (one_chromosome_type != chromosome->TypeString())
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
+		}
+	}
+	
+	// The new "traits" key is required, and we need to check its contents
+	auto &traits_metadata = top_level_json["SLiM"]["traits"];
+	
+	if (!traits_metadata.is_array())
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'traits' metadata key must be an array." << std::endl;
+	if (traits_metadata.size() != Traits().size())
+		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'traits' metadata key does not match the number of traits in the model." << std::endl;
+	
+	for (size_t traits_index = 0; traits_index < Traits().size(); ++traits_index)
+	{
+		Trait *trait = Traits()[traits_index];
+		auto &one_trait_metadata = traits_metadata[traits_index];
+		
+		// check required keys; they must match the simulation
+		if (!one_trait_metadata.contains("index"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'index' is missing from a 'traits' metadata entry." << std::endl;
+		if (!one_trait_metadata.contains("name"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'name' is missing from a 'traits' metadata entry." << std::endl;
+		if (!one_trait_metadata.contains("type"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the required metadata key 'type' is missing from a 'traits' metadata entry." << std::endl;
+		
+		int one_trait_index = one_trait_metadata["index"];
+		std::string one_trait_name = one_trait_metadata["name"];
+		std::string one_trait_type = one_trait_metadata["type"];
+		
+		if (one_trait_index != trait->Index())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the index for the entry at index " << traits_index << " in the 'traits' metadata key does not match the corresponding trait in the model." << std::endl;
+		if (one_trait_name != trait->Name())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the name for the entry at index " << traits_index << " in the 'traits' metadata key does not match the corresponding trait in the model." << std::endl;
+		if (one_trait_type != trait->UserVisibleType())
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << traits_index << " in the 'traits' metadata key does not match the corresponding trait in the model." << std::endl;
+		
+		// check optional keys for read-write properties; if present, we will bounds-check them and adopt their values
+		if (one_trait_metadata.contains("baselineOffset"))
+		{
+			slim_trait_offset_t new_baseline_offset = one_trait_metadata["baselineOffset"];
+			
+			if (!std::isfinite(new_baseline_offset))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffset provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset << " provided)." << EidosTerminate();
+			
+			trait->SetBaselineOffset(new_baseline_offset);
+		}
+		
+		if (one_trait_metadata.contains("individualOffsetMean"))
+		{
+			slim_trait_offset_t new_offset_mean = one_trait_metadata["individualOffsetMean"];
+			
+			if (!std::isfinite(new_offset_mean))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait individualOffsetMean provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_offset_mean << " provided)." << EidosTerminate();
+			
+			trait->SetIndividualOffsetDistributionMean(new_offset_mean);
+		}
+		
+		if (one_trait_metadata.contains("individualOffsetSD"))
+		{
+			slim_trait_offset_t new_offset_SD = one_trait_metadata["individualOffsetSD"];
+			
+			if (!std::isfinite(new_offset_SD) || (new_offset_SD < 0.0))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait individualOffsetSD provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite and nonnegative (" << new_offset_SD << " provided)." << EidosTerminate();
+			
+			trait->SetIndividualOffsetDistributionSD(new_offset_SD);
+		}
+		
+		// check optional keys for read-only propoerties; if present, they must match the simulation
+		if (one_trait_metadata.contains("baselineAccumulation"))
+			if (one_trait_metadata["baselineAccumulation"] != trait->HasBaselineAccumulation())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineAccumulation provided in the 'traits' metadata key (" << one_trait_metadata["baselineAccumulation"] << ") for trait index " << traits_index << " (trait name " << one_trait_name << ") does not match the configuration (" << trait->HasBaselineAccumulation() << ") of the corresponding trait in the model." << EidosTerminate();
+		
+		if (one_trait_metadata.contains("directFitnessEffect"))
+			if (one_trait_metadata["directFitnessEffect"] != trait->HasDirectFitnessEffect())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait directFitnessEffect provided in the 'traits' metadata key (" << one_trait_metadata["directFitnessEffect"] << ") for trait index " << traits_index << " (trait name " << one_trait_name << ") does not match the configuration (" << trait->HasDirectFitnessEffect() << ") of the corresponding trait in the model." << EidosTerminate();
 	}
 	
 	// check the model type; at the moment we do not require the model type to match what we are running, but we issue a warning on a mismatch
@@ -7175,11 +10227,11 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	Chromosome *chromosome = Chromosomes()[chromosome_index];
 	
 	if (this_chromosome_id != chromosome->ID())
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome id provided in the 'this_chromosome' key (" << this_chromosome_id << ") does not match the id (" << chromosome->ID() << ") of the corresponding chromosome in the model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome id provided in the 'this_chromosome' metadata key (" << this_chromosome_id << ") does not match the id (" << chromosome->ID() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	if (this_chromosome_type != chromosome->TypeString())
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome type provided in the 'this_chromosome' key (" << this_chromosome_type << ") does not match the type (" << chromosome->TypeString() << ") of the corresponding chromosome in the model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome type provided in the 'this_chromosome' metadata key (" << this_chromosome_type << ") does not match the type (" << chromosome->TypeString() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	if (this_chromosome_symbol != chromosome->Symbol())
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome symbol provided in the 'this_chromosome' key (" << this_chromosome_symbol << ") does not match the symbol (" << chromosome->Symbol() << ") of the corresponding chromosome in the model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome symbol provided in the 'this_chromosome' metadata key (" << this_chromosome_symbol << ") does not match the symbol (" << chromosome->Symbol() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	
 	// Check the chromosome index; when loading a multi-chromosome set, we normally require indices to match
 	// - one exception is that you can load a chromosome from any index into a single-chromosome model
@@ -7649,40 +10701,131 @@ void Species::RecordAllDerivedStatesFromSLiM(void)
 	}
 }
 
-void Species::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata)
+void Species::_MakeHaplosomeMetadataRecords(void)
 {
-	static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
+	// Set up our default metadata records for haplosomes, which are variable-length.  The default records
+	// are used as the initial configuration of the nodes for new individuals; then, as haplosomes are
+	// added to the new individual, the is_vacant_ bits get tweaked as needed in the recorded metadata, which
+	// is a bit gross, but necessary; the node metadata is recorded before the haplosomes are created.
+	// See HaplosomeMetadataRec for comments on this design.
 	
-	if (!p_mutation || !p_metadata)
-		EIDOS_TERMINATION << "ERROR (Species::MetadataForMutation): (internal error) bad parameters to MetadataForMutation()." << EidosTerminate();
+	// First, calculate how many bytes we need
+	size_t bits_needed_for_is_vacant = chromosomes_.size();					// each chromosome needs one bit per node table entry
+	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_vacant_[1] in the record
+	haplosome_metadata_is_vacant_bytes_ = ((bits_needed_for_is_vacant + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
+	haplosome_metadata_size_ += haplosome_metadata_is_vacant_bytes_;
 	
-	p_metadata->mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
-	p_metadata->selection_coeff_ = p_mutation->selection_coeff_;
-	p_metadata->subpop_index_ = p_mutation->subpop_index_;
-	p_metadata->origin_tick_ = p_mutation->origin_tick_;
-	p_metadata->nucleotide_ = p_mutation->nucleotide_;
-}
-
-void Species::MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata)
-{
-	static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
+	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
+	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
+	hap_metadata_1M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
+	hap_metadata_2F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
+	hap_metadata_2M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
 	
-	if (!p_substitution || !p_metadata)
-		EIDOS_TERMINATION << "ERROR (Species::MetadataForSubstitution): (internal error) bad parameters to MetadataForSubstitution()." << EidosTerminate();
+	// Then set the is_vacant_ bits for the default state for males and females; this is the state in which
+	// all chromosomes that dictate the is_vacant_ state by sex have that dictated state, while all others
+	// (types "A", "H", and "H-" only) are assumed to be non-null.  Any positions that are unused for a
+	// given chromosome type (like the second position for type "Y") are given as 1 here, "vacant", by
+	// definition; "vacant" is either "unused" or "null haplosome".  We go from least-significant bit
+	// to most-significant bit, byte by byte, with each chromosome using two bits.  The less significant
+	// of those two bits is is_vacant_ for haplosome 1 for that chromosome; the more significant of those
+	// two bits is is_vacant_ for haplosome 2 for that chromosome.
+	IndividualSex sex = IndividualSex::kFemale;
+	HaplosomeMetadataRec *focal_metadata_1 = hap_metadata_1F_;
+	HaplosomeMetadataRec *focal_metadata_2 = hap_metadata_2F_;
 	
-	p_metadata->mutation_type_id_ = p_substitution->mutation_type_ptr_->mutation_type_id_;
-	p_metadata->selection_coeff_ = p_substitution->selection_coeff_;
-	p_metadata->subpop_index_ = p_substitution->subpop_index_;
-	p_metadata->origin_tick_ = p_substitution->origin_tick_;
-	p_metadata->nucleotide_ = p_substitution->nucleotide_;
+	while (true)
+	{
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			bool haplosome_1_is_vacant = false, haplosome_2_is_vacant = false;
+			
+			switch (chromosome->Type())
+			{
+				case ChromosomeType::kA_DiploidAutosome:
+					haplosome_1_is_vacant = false;								// always present (by default)
+					haplosome_2_is_vacant = false;								// always present (by default)
+					break;
+					
+				case ChromosomeType::kH_HaploidAutosome:
+				case ChromosomeType::kHF_HaploidFemaleInherited:
+				case ChromosomeType::kHM_HaploidMaleInherited:
+					haplosome_1_is_vacant = false;								// always present (by default)
+					haplosome_2_is_vacant = true;								// always unused
+					break;
+					
+				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+					haplosome_1_is_vacant = false;								// always present
+					haplosome_2_is_vacant = true;								// always null
+					break;
+					
+				case ChromosomeType::kX_XSexChromosome:
+					haplosome_1_is_vacant = false;								// always present
+					haplosome_2_is_vacant = (sex == IndividualSex::kMale);		// null in males
+					break;
+					
+				case ChromosomeType::kY_YSexChromosome:
+				case ChromosomeType::kML_HaploidMaleLine:
+					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_vacant = true;								// always unused
+					break;
+					
+				case ChromosomeType::kZ_ZSexChromosome:
+					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_vacant = false;								// always present
+					break;
+					
+				case ChromosomeType::kW_WSexChromosome:
+				case ChromosomeType::kFL_HaploidFemaleLine:
+					haplosome_1_is_vacant = (sex == IndividualSex::kMale);		// null in males
+					haplosome_2_is_vacant = true;								// always unused
+					break;
+					
+				case ChromosomeType::kNullY_YSexChromosomeWithNull:
+					haplosome_1_is_vacant = true;								// always null
+					haplosome_2_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					break;
+			}
+			
+			// set the appropriate bits in the focal metadata, which we know was cleared to zero initially
+			int byte_index = chromosome_index / 8;
+			int bit_shift = chromosome_index % 8;
+			
+			if (haplosome_1_is_vacant)
+				focal_metadata_1->is_vacant_[byte_index] |= (0x01 << bit_shift);
+			
+			if (haplosome_2_is_vacant)
+				focal_metadata_2->is_vacant_[byte_index] |= (0x01 << bit_shift);
+		}
+		
+		// loop from female to male, then break out
+		if (sex_enabled_ && (sex == IndividualSex::kFemale))
+		{
+			sex = IndividualSex::kMale;
+			focal_metadata_1 = hap_metadata_1M_;
+			focal_metadata_2 = hap_metadata_2M_;
+			continue;
+		}
+		break;
+	}
+	
+//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_vacant_[0]);
+//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_vacant_[0]);
+//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_vacant_[0]);
+//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_vacant_[0]);
 }
 
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
 {
-	static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	// We check the struct size here to detect changes that would need to be responded to here; but it is
+	// very important to note that the caller guarantees that the actual size of p_metadata is large enough
+	// to accommodate all of the per-trait metadata, which is variable-length!
+	static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
+#if DEBUG
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (Species::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
+#endif
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
 	p_metadata->pedigree_p1_ = p_individual->Parent1PedigreeID();
@@ -7694,6 +10837,20 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->flags_ = 0;
 	if (p_individual->migrant_)
 		p_metadata->flags_ |= SLIM_INDIVIDUAL_METADATA_MIGRATED;
+	
+	// write per-trait metadata
+	int trait_count = TraitCount();
+	_IndividualPerTraitMetadata *per_trait_metadata_array = p_metadata->per_trait_;
+	IndividualTraitInfo *per_trait_info_array = p_individual->trait_info_;
+	
+	for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		_IndividualPerTraitMetadata &per_trait_metadata = per_trait_metadata_array[trait_index];
+		IndividualTraitInfo &per_trait_info = per_trait_info_array[trait_index];
+		
+		per_trait_metadata.phenotype_ = per_trait_info.phenotype_;
+		per_trait_metadata.offset_ = per_trait_info.offset_;
+	}
 }
 
 void Species::CheckTreeSeqIntegrity(void)
@@ -8065,6 +11222,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		for (tsk_size_t individual_index = 0; individual_index < shared_individuals_table.num_rows; individual_index++)
 		{
 			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+			
+			// note that IndividualMetadataRec is variable-length now, but we only use the fixed-size header portion here
 			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(shared_individuals_table.metadata + shared_individuals_table.metadata_offset[tsk_individual]);
 			slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
 			auto lookup = tabled_individuals_hash_.find(pedigree_id);
@@ -8113,13 +11272,13 @@ void Species::__CheckPopulationMetadata(TreeSeqInfo &p_treeseq)
 }
 
 // We need a reverse hash to construct the remapped population table
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 typedef robin_hood::unordered_flat_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 typedef std::unordered_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
 #endif
 
-void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, __attribute__ ((unused)) int p_file_version)
+void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, __attribute__ ((unused)) int p_file_version)
 {
 	// If we have been given a remapping table, this method munges all of the data
 	// and metadata in the treeseq tables to accomplish that remapping.  It is gross
@@ -8394,32 +11553,21 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 		
 		// Remap subpop_index_ in the mutation metadata, in place
 		{
-			std::size_t metadata_rec_size = sizeof(MutationMetadataRec);
-			tsk_mutation_table_t &mut_table = tables.mutations;
-			tsk_size_t num_rows = mut_table.num_rows;
+			// BCH 2/13/2026: mutation metadata is now in a binary table stored in the top-level `json+struct` codec and passed in to us
+			uint8_t *table_buffer = p_mut_metadata_table.table_buffer;
+			size_t row_size = p_mut_metadata_table.row_size;
+			tsk_size_t row_count = p_mut_metadata_table.row_count;
 			
-			for (tsk_size_t mut_index = 0; mut_index < num_rows; ++mut_index)
+			for (tsk_size_t mut_index = 0; mut_index < row_count; ++mut_index)
 			{
-				char *metadata_bytes = mut_table.metadata + mut_table.metadata_offset[mut_index];
-				tsk_size_t metadata_length = mut_table.metadata_offset[mut_index + 1] - mut_table.metadata_offset[mut_index];
+				MutationTableMetadataRec *metadata = (MutationTableMetadataRec *)(table_buffer + mut_index * row_size);
+				slim_objectid_t old_subpop = metadata->subpop_index_;
+				auto remap_iter = subpop_map.find(old_subpop);
 				
-				if (metadata_length % metadata_rec_size != 0)
-					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
+				if (remap_iter == subpop_map.end())
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
 				
-				int stack_count = (int)(metadata_length / metadata_rec_size);
-				
-				for (int stack_index = 0; stack_index < stack_count; ++stack_index)
-				{
-					// Here we have to deal with the metadata format
-					MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_bytes + stack_index;
-					slim_objectid_t old_subpop = metadata->subpop_index_;
-					auto remap_iter = subpop_map.find(old_subpop);
-					
-					if (remap_iter == subpop_map.end())
-						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
-					
-					metadata->subpop_index_ = remap_iter->second;
-				}
+				metadata->subpop_index_ = remap_iter->second;
 			}
 		}
 		
@@ -8433,7 +11581,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 				char *metadata_bytes = ind_table.metadata + ind_table.metadata_offset[ind_index];
 				tsk_size_t metadata_length = ind_table.metadata_offset[ind_index + 1] - ind_table.metadata_offset[ind_index];
 				
-				if (metadata_length != sizeof(IndividualMetadataRec))
+				// BCH 2/11/2026: the IndividualMetadataRec struct is now variable-length, but we only need to
+				// work with the first part of it; so now we just require the size to be >= the base size
+				if (metadata_length >= sizeof(IndividualMetadataRec))
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 				
 				IndividualMetadataRec *metadata = (IndividualMetadataRec *)metadata_bytes;
@@ -8500,16 +11650,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
-	std::vector<IndividualSex> sex_;
 	std::vector<tsk_id_t> nodes_;
-	std::vector<slim_pedigreeid_t> pedigreeID_;
-	std::vector<slim_pedigreeid_t> pedigreeP1_;
-	std::vector<slim_pedigreeid_t> pedigreeP2_;
-	std::vector<slim_age_t> age_;
-	std::vector<double> spatial_x_;
-	std::vector<double> spatial_y_;
-	std::vector<double> spatial_z_;
-	std::vector<uint32_t> flags_;
+	std::vector<const double*> spatial_positions_;			// points into the locations column of the individual table
+	std::vector<const IndividualMetadataRec*> metadata_;	// points into the metadata column of the individual table
 } ts_subpop_info;
 
 void Species::__PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, TreeSeqInfo &p_treeseq)
@@ -8560,10 +11703,14 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): loaded tree sequence files must contain a non-empty individuals table." << EidosTerminate();
 	
 	tsk_individual_t individual;
+	slim_trait_index_t trait_count = TraitCount();
+	size_t expected_metadata_length = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * (trait_count - 1);
 	int ret = 0;
 	
 	for (size_t individual_index = 0; individual_index < individual_count; individual_index++)
 	{
+		// this tsk_treeseq_get_individual() call entails some copying, but it is much simpler than accessing
+		// columns in the individual table, and it also fetches node information for us through private API
 		ret = tsk_treeseq_get_individual(p_ts, (tsk_id_t)individual_index, &individual);
 		if (ret != 0) handle_error("__TabulateSubpopulationsFromTreeSequence tsk_treeseq_get_individual", ret);
 		
@@ -8572,7 +11719,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			continue;
 		
 		// fetch the metadata for this individual
-		if (individual.metadata_length != sizeof(IndividualMetadataRec))
+		if (individual.metadata_length != expected_metadata_length)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 		
 		IndividualMetadataRec *metadata = (IndividualMetadataRec *)(individual.metadata);
@@ -8585,6 +11732,10 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individual has a subpopulation id (" << subpop_id << ") that is not described by the population table." << EidosTerminate();
 		
 		ts_subpop_info &subpop_info = subpop_info_iter->second;
+		
+		// remember our metadata pointer, we will fetch information from it later; below we check metadata for
+		// correctness, and even edit it, but we do not copy its values, we just keep the metadata pointer
+		subpop_info.metadata_.push_back(metadata);
 		
 		// check and tabulate sex within each subpop
 		IndividualSex sex = (IndividualSex)metadata->sex_;			// IndividualSex, but int32_t in the record
@@ -8610,56 +11761,51 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unrecognized individual sex value " << sex << "." << EidosTerminate();
 		}
 		
-		subpop_info.sex_.emplace_back(sex);
-		
-		// check that the individual has exactly two nodes; we are always diploid in terms of nodes, regardless of the chromosome type
-		if (individual.nodes_length != 2)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node count; this file cannot be read." << EidosTerminate();
-		
-		subpop_info.nodes_.emplace_back(individual.nodes[0]);
-		subpop_info.nodes_.emplace_back(individual.nodes[1]);
-		
 		// bounds-check and save off the pedigree ID, which we will use again; note that parent pedigree IDs are allowed to be -1
 		if (metadata->pedigree_id_ < 0)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have pedigree IDs >= 0." << EidosTerminate();
-		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
 		
 		if ((metadata->pedigree_p1_ < -1) || (metadata->pedigree_p2_ < -1))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have parent pedigree IDs >= -1." << EidosTerminate();
-		subpop_info.pedigreeP1_.push_back(metadata->pedigree_p1_);
-		subpop_info.pedigreeP2_.push_back(metadata->pedigree_p2_);
 
-		// save off the flags for later use
-		subpop_info.flags_.push_back(metadata->flags_);
-		
 		// bounds-check ages; we cross-translate ages of 0 and -1 if the model type has been switched
 		slim_age_t age = metadata->age_;
 		
 		if ((p_file_model_type == SLiMModelType::kModelTypeNonWF) && (model_type_ == SLiMModelType::kModelTypeWF) && (age == 0))
+		{
 			age = -1;
+			metadata->age_ = -1;
+		}
 		if ((p_file_model_type == SLiMModelType::kModelTypeWF) && (model_type_ == SLiMModelType::kModelTypeNonWF) && (age == -1))
+		{
 			age = 0;
+			metadata->age_ = 0;
+		}
 		
 		if (((age < 0) || (age > SLIM_MAX_ID_VALUE)) && (model_type_ == SLiMModelType::kModelTypeNonWF))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a nonWF model must have age values >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
 		if ((age != -1) && (model_type_ == SLiMModelType::kModelTypeWF))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have age values == -1." << EidosTerminate();
 		
-		subpop_info.age_.emplace_back(age);
-		
 		// no bounds-checks for spatial position
 		if (individual.location_length != 3)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected individual location length; this file cannot be read." << EidosTerminate();
 		
-		subpop_info.spatial_x_.emplace_back(individual.location[0]);
-		subpop_info.spatial_y_.emplace_back(individual.location[1]);
-		subpop_info.spatial_z_.emplace_back(individual.location[2]);
+		subpop_info.spatial_positions_.emplace_back(individual.location);
+		
+		// check that the individual has exactly two nodes; we are always diploid in terms of nodes, regardless of the chromosome type
+		if (individual.nodes_length != 2)
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node count; this file cannot be read." << EidosTerminate();
+		
+		const tsk_id_t node0 = individual.nodes[0];
+		const tsk_id_t node1 = individual.nodes[1];
+		
+		subpop_info.nodes_.push_back(node0);
+		subpop_info.nodes_.push_back(node1);
 		
 		// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 		// here we crosscheck the node information against expected values from other places in the tables or the model
 		tsk_node_table_t &node_table = tables.nodes;
-		tsk_id_t node0 = individual.nodes[0];
-		tsk_id_t node1 = individual.nodes[1];
 		
 		if (((node_table.flags[node0] & TSK_NODE_IS_SAMPLE) == 0) || ((node_table.flags[node1] & TSK_NODE_IS_SAMPLE) == 0))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): nodes for individual are not in-sample; this file cannot be read." << EidosTerminate();
@@ -8829,7 +11975,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					
 					if (tabulation_index >= subpop_size)
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): (internal error) ran out of tabulated individuals." << EidosTerminate();
-				} while (subpop_info.sex_[tabulation_index] != generating_sex);
+				} while ((IndividualSex)subpop_info.metadata_[tabulation_index]->sex_ != generating_sex);
 				
 				Individual *individual = new_subpop->parent_individuals_[ind_index];
 				
@@ -8844,21 +11990,21 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				individual->SetTskitNodeIdBase(node_id_0);
 				
-				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
+				slim_pedigreeid_t pedigree_id = subpop_info.metadata_[tabulation_index]->pedigree_id_;
 				individual->SetPedigreeID(pedigree_id);
 				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 
-				individual->SetParentPedigreeID(subpop_info.pedigreeP1_[tabulation_index], subpop_info.pedigreeP2_[tabulation_index]);
+				individual->SetParentPedigreeID(subpop_info.metadata_[tabulation_index]->pedigree_p1_, subpop_info.metadata_[tabulation_index]->pedigree_p2_);
 				
-				uint32_t flags = subpop_info.flags_[tabulation_index];
+				uint32_t flags = subpop_info.metadata_[tabulation_index]->flags_;
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
 					individual->migrant_ = true;
 				
-				individual->age_ = subpop_info.age_[tabulation_index];
-				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
-				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
-				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
+				individual->age_ = subpop_info.metadata_[tabulation_index]->age_;
+				individual->spatial_x_ = subpop_info.spatial_positions_[tabulation_index][0];
+				individual->spatial_y_ = subpop_info.spatial_positions_[tabulation_index][1];
+				individual->spatial_z_ = subpop_info.spatial_positions_[tabulation_index][2];
 				
 				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosomes_[first_haplosome_index]);
 				slim_haplosomeid_t haplosome_id = pedigree_id * 2;
@@ -8998,7 +12144,7 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					
 					if (tabulation_index >= subpop_size)
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): (internal error) ran out of tabulated individuals." << EidosTerminate();
-				} while (subpop_info.sex_[tabulation_index] != generating_sex);
+				} while ((IndividualSex)subpop_info.metadata_[tabulation_index]->sex_ != generating_sex);
 				
 				Individual *individual = new_subpop->parent_individuals_[ind_index];
 				
@@ -9014,23 +12160,23 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 				if (individual->TskitNodeIdBase() != node_id_0)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): tskit node id mismatch between chromosomes read." << EidosTerminate();
 				
-				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
+				slim_pedigreeid_t pedigree_id = subpop_info.metadata_[tabulation_index]->pedigree_id_;
 				
 				if (individual->PedigreeID() != pedigree_id)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): pedigree id mismatch between chromosomes read." << EidosTerminate();
-				if ((individual->Parent1PedigreeID() != subpop_info.pedigreeP1_[tabulation_index]) ||
-					(individual->Parent2PedigreeID() != subpop_info.pedigreeP2_[tabulation_index]))
+				if ((individual->Parent1PedigreeID() != subpop_info.metadata_[tabulation_index]->pedigree_p1_) ||
+					(individual->Parent2PedigreeID() != subpop_info.metadata_[tabulation_index]->pedigree_p2_))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): parent pedigree id mismatch between chromosomes read." << EidosTerminate();
 				
-				uint32_t flags = subpop_info.flags_[tabulation_index];
+				uint32_t flags = subpop_info.metadata_[tabulation_index]->flags_;
 				if ((flags & SLIM_INDIVIDUAL_METADATA_MIGRATED) && !individual->migrant_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual migrant flag mismatch between chromosomes read." << EidosTerminate();
 				
-				if (individual->age_ != subpop_info.age_[tabulation_index])
+				if (individual->age_ != subpop_info.metadata_[tabulation_index]->age_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual age mismatch between chromosomes read." << EidosTerminate();
-				if ((individual->spatial_x_ != subpop_info.spatial_x_[tabulation_index]) ||
-					(individual->spatial_y_ != subpop_info.spatial_y_[tabulation_index]) ||
-					(individual->spatial_z_ != subpop_info.spatial_z_[tabulation_index]))
+				if ((individual->spatial_x_ != subpop_info.spatial_positions_[tabulation_index][0]) ||
+					(individual->spatial_y_ != subpop_info.spatial_positions_[tabulation_index][1]) ||
+					(individual->spatial_z_ != subpop_info.spatial_positions_[tabulation_index][2]))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual spatial position mismatch between chromosomes read." << EidosTerminate();
 				
 				// the haplosomes we're setting up are different from the haplosomes previously set up,
@@ -9488,37 +12634,47 @@ void Species::__ConfigureSubpopulationsFromTables_SECONDARY(__attribute__((unuse
 
 typedef struct ts_mut_info {
 	slim_position_t position;
-	MutationMetadataRec metadata;
+	MutationTableMetadataRec *metadata;
 	slim_refcount_t ref_count;
 } ts_mut_info;
 
-void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, __attribute__ ((unused)) int p_file_version)
+void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, __attribute__ ((unused)) int p_file_version)
 {
 	tsk_table_collection_t &tables = p_treeseq.tables_;
-	std::size_t metadata_rec_size = sizeof(MutationMetadataRec);
 	tsk_mutation_table_t &mut_table = tables.mutations;
 	tsk_size_t mut_count = mut_table.num_rows;
 	
 	if ((mut_count > 0) && !recording_mutations_)
 		EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): cannot load mutations when mutation recording is disabled." << EidosTerminate();
 	
+	// we need a hash table into the mutation metadata table, to look up metadata records by mutation ID
+	std::unordered_map<slim_mutationid_t, MutationTableMetadataRec *> metadata_map;
+	uint8_t *mutation_table_buffer = p_mut_metadata_table.table_buffer;
+	size_t row_size = p_mut_metadata_table.row_size;
+	size_t row_count = p_mut_metadata_table.row_count;
+	
+	for (size_t row_index = 0; row_index < row_count; ++row_index)
+	{
+		MutationTableMetadataRec *metadata_rec = (MutationTableMetadataRec *)(mutation_table_buffer + row_index * row_size);
+		slim_mutationid_t mut_id = metadata_rec->mutation_id_;
+		
+		if (metadata_map.find(mut_id) != metadata_map.end())
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): mutation id " << mut_id << " was duplicated in the mutation metadata table." << EidosTerminate();
+		
+		metadata_map.insert(std::pair<slim_mutationid_t, MutationTableMetadataRec *>(mut_id, metadata_rec));
+	}
+	
+	// now we go through the mutation table's derived state column and make ts_mut_info entries for each referenced mutation
 	for (tsk_size_t mut_index = 0; mut_index < mut_count; ++mut_index)
 	{
 		const char *derived_state_bytes = mut_table.derived_state + mut_table.derived_state_offset[mut_index];
 		tsk_size_t derived_state_length = mut_table.derived_state_offset[mut_index + 1] - mut_table.derived_state_offset[mut_index];
-		const char *metadata_bytes = mut_table.metadata + mut_table.metadata_offset[mut_index];
-		tsk_size_t metadata_length = mut_table.metadata_offset[mut_index + 1] - mut_table.metadata_offset[mut_index];
 		
 		if (derived_state_length % sizeof(slim_mutationid_t) != 0)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): unexpected mutation derived state length; this file cannot be read." << EidosTerminate();
-		if (metadata_length % metadata_rec_size != 0)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
-		if (derived_state_length / sizeof(slim_mutationid_t) != metadata_length / metadata_rec_size)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): (internal error) mutation metadata length does not match derived state length." << EidosTerminate();
 		
 		int stack_count = (int)(derived_state_length / sizeof(slim_mutationid_t));
 		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
-		const void *metadata_vec = metadata_bytes;	// either const MutationMetadataRec* or const MutationMetadataRec_PRENUC*
 		tsk_id_t site_id = mut_table.site[mut_index];
 		double position_double = tables.sites.position[site_id];
 		double position_double_round = round(position_double);
@@ -9543,19 +12699,25 @@ void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 				mut_info = &((mut_info_insert.first)->second);
 				
 				mut_info->position = position;
+				
+				// get a pointer into the mutation metadata table, and keep that pointer in our ts_mut_info
+				// note that we don't want to copy the data here because it is variable-size and can be large
+				auto metadata_iter = metadata_map.find(mut_id);
+				
+				if (metadata_iter == metadata_map.end())
+					EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): mutation id " << mut_id << " referenced by a derived state is not in the mutation metadata table." << EidosTerminate();
+				
+				mut_info->metadata = metadata_iter->second;
 			}
 			else
 			{
 				// entry already present; check that it refers to the same mutation, using its position (see https://github.com/MesserLab/SLiM/issues/179)
+				// we used to update the metadata here, to use the last recorded metadata record, but now we have one canonical metadata entry
 				mut_info = &(mut_info_find->second);
 				
 				if (mut_info->position != position)
 					EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): inconsistent mutation position observed reading tree sequence data; this may indicate that mutation IDs are not unique." << EidosTerminate();
 			}
-			
-			MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_vec + stack_index;
-			
-			mut_info->metadata = *metadata;
 		}
 	}
 }
@@ -9676,12 +12838,13 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	}
 	
 	// instantiate mutations
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+	
 	for (auto mut_info_iter : p_mutInfoMap)
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
 		ts_mut_info &mut_info = mut_info_iter.second;
-		MutationMetadataRec *metadata_ptr = &mut_info.metadata;
-		MutationMetadataRec metadata;
+		MutationTableMetadataRec *metadata_ptr = mut_info.metadata;
 		slim_position_t position = mut_info.position;
 		
 		// BCH 4 Feb 2020: bump the next mutation ID counter as needed here, so that this happens in all cases – even if
@@ -9695,51 +12858,53 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if (mut_info.ref_count == 0)
 			continue;
 		
-		// BCH 4/25/2019: copy the metadata with memcpy(), avoiding a misaligned pointer access; this is needed because
-		// sizeof(MutationMetadataRec) is odd, according to Xcode.  Actually I think this might be a bug in Xcode's runtime
-		// checking, because MutationMetadataRec is defined as packed so the compiler should not use aligned reads for it...?
-		// Anyway, it's a safe fix and will probably get optimized away by the compiler, so whatever...
-		memcpy(&metadata, metadata_ptr, sizeof(MutationMetadataRec));
+#if DEBUG
+		// BCH 2/13/2026: We used to do a memcpy() here to give us an aligned copy of metadata_ptr, but in the
+		// new metadata design the pointer should always be to an aligned address; we error here if not
+		// (we are only guaranteed aligned to a 4-byte boundary since _MutationPerTraitMetadata is 12 bytes)
+		if ((reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x03) != 0)
+			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) misaligned pointer to mutation metadata (misalignment == " << (int)(reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x07) << ")." << EidosTerminate();
+#endif
 		
 		// look up the mutation type from its index
-		MutationType *mutation_type_ptr = MutationTypeWithID(metadata.mutation_type_id_);
+		MutationType *mutation_type_ptr = MutationTypeWithID(metadata_ptr->mutation_type_id_);
 		
 		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined for this species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): mutation type m" << metadata_ptr->mutation_type_id_ << " has not been defined for this species." << EidosTerminate();
 		
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
+			// BCH 1/26/2026: note that this code path does NOT do baseline accumulation, because it is assumed
+			// that the baseline offset recorded in the file already contains such effects as needed
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr, community_.Tick());
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
 			
 			// add -1 to our local map, so we know there's an entry but we also know it's a substitution
 			p_mutIndexMap[mutation_id] = -1;
+			
+			// FIXME MULTITRAIT: non-neutral substitutions don't make the simulation non-neutral, so no
+			// NoteMutationAdded() type of call is needed, I think?  But what if substitution effects
+			// are merged into baseline offsets?  Might require more thought here.  See also where
+			// new substitutions are created by readFromPopulationFile()...
 		}
 		else
 		{
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
+			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;
-			population_.MutationRegistryAdd(new_mut);
+			population_.MutationRegistryAdd(new_mut, /* p_autogenerated */ false);
 			
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 			if (population_.keeping_muttype_registries_)
 				EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-		}
-		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
-		if (metadata.selection_coeff_ != 0.0)
-		{
-			pure_neutral_ = false;
-			mutation_type_ptr->all_pure_neutral_DFE_ = false;
 		}
 	}
 }
@@ -10076,7 +13241,7 @@ void _ComparePopulationTables(tsk_population_table_t &population0, tsk_populatio
 		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata_schema column differs)." << EidosTerminate();
 }
 
-void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq)
+void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table)
 {
 	// NOTE: This method handles the first (or only) chromosome being read in.  A parallel method,
 	// _InstantiateSLiMObjectsFromTables_SECONDARY(), handles the second and onward.  The code is
@@ -10106,7 +13271,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	
 	// check/rewrite the incoming tree-seq information in various ways
 	__CheckPopulationMetadata(p_treeseq);
-	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_file_version);
+	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_mut_metadata_table, p_file_version);
 	
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
@@ -10138,7 +13303,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	{
 		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
 		
-		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_file_version);
+		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_mut_metadata_table, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
 		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
 	}
@@ -10153,7 +13318,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	p_treeseq.last_coalescence_state_ = false;
 }
 
-void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq)
+void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table)
 {
 	// NOTE: _InstantiateSLiMObjectsFromTables() handles the first (or only) chromosome being read in.  This
 	// method handles the second and onward.  The code is quite similar, and should be maintained in parallel!
@@ -10184,7 +13349,7 @@ void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_in
 	
 	// check/rewrite the incoming tree-seq information in various ways
 	__CheckPopulationMetadata(p_treeseq);
-	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_file_version);
+	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_mut_metadata_table, p_file_version);
 	
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
@@ -10216,7 +13381,7 @@ void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_in
 	{
 		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
 		
-		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_file_version);
+		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_mut_metadata_table, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
 		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
 	}
@@ -10379,8 +13544,9 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
+	MutationMetadataTable mut_metadata_table;
 	
-	ReadTreeSequenceMetadata(treeSeqInfo, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
+	ReadTreeSequenceMetadata(treeSeqInfo, &metadata_tick, &metadata_cycle, &file_model_type, &file_version, mut_metadata_table);
 	
 	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
 	DerivedStatesFromAscii(&treeSeqInfo.tables_);
@@ -10390,7 +13556,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	_ReadAncestralSequence(p_file, p_chromosome);
 	
 	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map, treeSeqInfo);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map, treeSeqInfo, mut_metadata_table);
 	
 	// cleanup such as handling remembered haplosomes and the individuals table, mutation tallying, and integrity checks
 	// this incorporates all of the post-load work that spans the whole set of chromosomes in the model
@@ -10519,8 +13685,9 @@ slim_tick_t Species::_InitializePopulationFromTskitDirectory(std::string p_direc
 		slim_tick_t this_metadata_cycle;
 		SLiMModelType this_file_model_type;
 		int this_file_version;
+		MutationMetadataTable mut_metadata_table;
 		
-		ReadTreeSequenceMetadata(treeSeqInfo, &this_metadata_tick, &this_metadata_cycle, &this_file_model_type, &this_file_version);
+		ReadTreeSequenceMetadata(treeSeqInfo, &this_metadata_tick, &this_metadata_cycle, &this_file_model_type, &this_file_version, mut_metadata_table);
 		
 		if (is_first_chromosome)
 		{
@@ -10548,9 +13715,9 @@ slim_tick_t Species::_InitializePopulationFromTskitDirectory(std::string p_direc
 		// as needed.  The remaining chromosomes use _InstantiateSLiMObjectsFromTables_SECONDARY(), which
 		// checks against the population structure that was created; it should always match exactly.
 		if (is_first_chromosome)
-			_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo);
+			_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo, mut_metadata_table);
 		else
-			_InstantiateSLiMObjectsFromTables_SECONDARY(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo);
+			_InstantiateSLiMObjectsFromTables_SECONDARY(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo, mut_metadata_table);
 	}
 	
 	// cleanup such as handling remembered haplosomes and the individuals table, mutation tallying, and integrity checks

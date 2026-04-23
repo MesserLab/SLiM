@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -395,10 +395,12 @@ void _RunFunctionFilesystemTests(const std::string &temp_path)
 		return;
 	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
-	EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
+	// BCH 1/3/2025: I'm commenting out the tests that call filesAtPath() on the temporary directory; that
+	// can contain a very large number of files, and is showing up as a major time-sink for self-tests.
+	//EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
 	// these always fail on Windows and I can't think of any good easy replacement
 	#ifndef _WIN32
-	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
+	//EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("sum(filesAtPath('/', T) == '/bin');", gStaticEidosValue_Integer1);
 	#endif
@@ -1196,9 +1198,9 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", false);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("Dictionary(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 100, "be a singleton");
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "keys be of type string or integer");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "did not match any of its defined variants");
 	
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3)); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 13, c(1.1, 2.2, 3.3)); x.identicalContents(y);", false);
@@ -1207,9 +1209,9 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", false);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("Dictionary(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 93, "be a singleton");
-	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 93, "keys be of type string or integer");
+	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 93, "did not match any of its defined variants");
 	
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 2); y = Dictionary(); y.setValue('a', 'foo'); x.identicalContents(y);", false);
 	EidosAssertScriptRaise("x = Dictionary(5, 1:10, 'a', 1:10);", 4, "string key");
@@ -1463,10 +1465,10 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4));", 4, "inconsistent column sizes");
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("DataFrame(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("DataFrame(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(c(y,y));", 94, "be a singleton");
-	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "keys be of type string or integer");
-	EidosAssertScriptRaise("x = DataFrame(5, 1:10, 'a', 1:10);", 4, "always uses string keys");
+	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "did not match any of its defined variants");
+	EidosAssertScriptRaise("x = DataFrame(5, 1:10, 'a', 1:10);", 4, "did not match any of its defined variants");
 	EidosAssertScriptRaise("x = DataFrame('a', 1:10, 5, 1:10);", 4, "always uses string keys");
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:10); y = DataFrame(x); z = DataFrame('a', 1:10); y.identicalContents(z);", true);
 	EidosAssertScriptRaise("x = Dictionary(5, 1:10); y = DataFrame(x);", 29, "always uses string keys");
@@ -1824,8 +1826,8 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo();", 35, "missing required argument 'x'");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5, 6);", 35, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5);", 35, "return value cannot be type integer");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument 'y' skipped over required argument 'x'");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 39, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 44, "unrecognized named argument 'y'");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", 16);

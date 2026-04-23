@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/12/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -320,7 +320,7 @@
 	NSRegularExpression *topicGenericItemRegex = [NSRegularExpression regularExpressionWithPattern:@"^((?:[0-9]+\\.)*[0-9]+)\\.?  ITEM: ((?:[0-9]+\\.? )?)(.+)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 3 captures
 	NSRegularExpression *topicFunctionRegex = [NSRegularExpression regularExpressionWithPattern:@"^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];						// 1 capture
 	NSRegularExpression *topicMethodRegex = [NSRegularExpression regularExpressionWithPattern:@"^([-–+])[ \u00A0]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];			// 2 captures
-	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[ \u00A0]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 2 captures
+	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9<>-]+)[ \u00A0]((?:<[-–]>)|(?:=>)) (\\([a-zA-Z<>\\*+$]+\\))$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 3 captures
 	
 	// Scan through the file one line at a time, parsing out topic headers
 	NSString *topicFileString = [topicFileAttrString string];
@@ -537,49 +537,108 @@
 			NSString *callName = [line substringWithRange:callNameRange];
 			NSRange readOnlyRange = [match rangeAtIndex:2];
 			NSString *readOnlyName = [line substringWithRange:readOnlyRange];
+			NSRange resultRange = [match rangeAtIndex:3];
+			NSString *resultName = [line substringWithRange:resultRange];
 			
 			//NSLog(@"topic property name: %@, line: %@", callName, line);
 			
-			// Check for a built-in property signature that matches and substitute it in.  Note that we accept a match from any property in any class
-			// API as long as the signature matches; we do not rigorously check that the API within a given class matches between signature and doc.
-			// This is mostly not a problem because it is quite rare for the same property name to be used with more than one signature.
-			if (propertyList)
+			if ([callName hasPrefix:@"<"])
 			{
+				// BCH 1/7/2026: This case is hit for dynamic properties, which are present in the doc with names like <trait-name>EffectSize.  We don't want to
+				// check for a match, we just want to accept the property as it is.  We do want to reformat it, though; we make a temporary signature for that.
 				std::string property_name([callName UTF8String]);
-				bool found_match = false, found_mismatch = false;
-				NSString *oldSignatureString = nullptr;
-				NSString *newSignatureString = nullptr;
+				bool property_read_only = true;
 				
-				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
-					if ((*signature_iter)->property_name_.compare(property_name) == 0)
-					{
-						EidosPropertySignature_CSP candidate_signature = *signature_iter;
-						NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:candidate_signature.get() size:11.0];
-						
-						oldSignatureString = [lineAttrString string];
-						newSignatureString = [attrSig string];
-						
-						if ([oldSignatureString isEqualToString:newSignatureString])
+				if ([readOnlyName isEqualToString:@"=>"])
+					property_read_only = true;
+				else if ([readOnlyName isEqualToString:@"<->"] || [readOnlyName isEqualToString:@"<–>"])
+					property_read_only = false;
+				else
+					NSLog(@"*** unrecognized readOnlyName %@ parsing %@", readOnlyName, callName);
+				
+				EidosValueMask property_mask = kEidosValueMaskInt | kEidosValueMaskSingleton;
+				NSString *property_class_name = @"";
+				
+				if ([resultName isEqualToString:@"(float$)"])
+					property_mask = kEidosValueMaskFloat | kEidosValueMaskSingleton;
+				else if ([resultName isEqualToString:@"(object<Trait>$)"])
+				{
+					property_mask = kEidosValueMaskObject | kEidosValueMaskSingleton;
+					property_class_name = @"Trait";
+				}
+				else
+					NSLog(@"*** unrecognized resultName %@ parsing %@", resultName, callName);
+				
+				EidosPropertySignature_CSP dynamic_signature = EidosPropertySignature_CSP(new EidosPropertySignature(property_name, property_read_only, property_mask));
+				NSMutableAttributedString *attrSig = [[[NSAttributedString eidosAttributedStringForPropertySignature:dynamic_signature.get() size:11.0] mutableCopy] autorelease];
+				
+				// substitute in a class name if we have one; the classes are in SLiM so we don't have access to them here
+				if ([property_class_name length] > 0)
+				{
+					NSRange originalRange = [[attrSig string] rangeOfString:@"object"];
+					
+					if (originalRange.location != NSNotFound)
+						[attrSig replaceCharactersInRange:originalRange withString:[NSString stringWithFormat:@"object<%@>", property_class_name]];
+				}
+				
+				NSString *oldSignatureString = [lineAttrString string];
+				NSString *newSignatureString = [attrSig string];
+				
+				if ([oldSignatureString isEqualToString:newSignatureString])
+				{
+					//NSLog(@"signature match for method %@", callName);
+					
+					// Replace the signature line from the RTF file with the syntax-colored version
+					lineAttrString = attrSig;
+				}
+				else
+				{
+					NSLog(@"*** signature mismatch for dynamic property %@", callName);
+				}
+			}
+			else
+			{
+				// Check for a built-in property signature that matches and substitute it in.  Note that we accept a match from any property in any class
+				// API as long as the signature matches; we do not rigorously check that the API within a given class matches between signature and doc.
+				// This is mostly not a problem because it is quite rare for the same property name to be used with more than one signature.
+				if (propertyList)
+				{
+					std::string property_name([callName UTF8String]);
+					bool found_match = false, found_mismatch = false;
+					NSString *oldSignatureString = nullptr;
+					NSString *newSignatureString = nullptr;
+					
+					for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
+						if ((*signature_iter)->property_name_.compare(property_name) == 0)
 						{
-							//NSLog(@"signature match for method %@", callName);
+							EidosPropertySignature_CSP candidate_signature = *signature_iter;
+							NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:candidate_signature.get() size:11.0];
 							
-							// Replace the signature line from the RTF file with the syntax-colored version
-							lineAttrString = attrSig;
-							found_match = true;
-							break;
+							oldSignatureString = [lineAttrString string];
+							newSignatureString = [attrSig string];
+							
+							if ([oldSignatureString isEqualToString:newSignatureString])
+							{
+								//NSLog(@"signature match for method %@", callName);
+								
+								// Replace the signature line from the RTF file with the syntax-colored version
+								lineAttrString = attrSig;
+								found_match = true;
+								break;
+							}
+							else
+							{
+								// If we find a mismatched signature but no matching signature, that's probably an error in either the doc or
+								// the signature, unless we find a match later on with a different signature for the same property name.
+								found_mismatch = true;
+							}
 						}
-						else
-						{
-							// If we find a mismatched signature but no matching signature, that's probably an error in either the doc or
-							// the signature, unless we find a match later on with a different signature for the same property name.
-							found_mismatch = true;
-						}
-					}
-				
-				if (found_mismatch && !found_match)
-					NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
-				else if (!found_match)
-					NSLog(@"*** no property signature found for property name %@", callName);
+					
+					if (found_mismatch && !found_match)
+						NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					else if (!found_match)
+						NSLog(@"*** no property signature found for property name %@", callName);
+				}
 			}
 			
 			topicItemKey = [NSString stringWithFormat:@"%@ %@", callName, readOnlyName];
@@ -639,26 +698,33 @@
 				
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-					std::string &&connector_string = propertySignature->PropertySymbol();
-					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
 					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
-					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
-					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
 					
-					if (docIndex != NSNotFound)
+					if (![propertyNameString hasPrefix:@"_"])
 					{
-						// If the property is defined in this class doc, consider it documented
-						[docProperties removeObjectAtIndex:docIndex];
-					}
-					else
-					{
-						// If the property is not defined in this class doc, then that is an error unless it is a superclass property
-						bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+						std::string &&connector_string = propertySignature->PropertySymbol();
+						NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
+						NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
+						NSUInteger docIndex = [docProperties indexOfObject:propertyString];
 						
-						if (!isSuperclassProperty)
-							NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						if (docIndex != NSNotFound)
+						{
+							// If the property is defined in this class doc, consider it documented
+							[docProperties removeObjectAtIndex:docIndex];
+						}
+						else
+						{
+							// If the property is not defined in this class doc, then that is an error unless it is a superclass property
+							bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+							
+							if (!isSuperclassProperty)
+								NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						}
 					}
 				}
+				
+				// BCH 1/7/2026: Remove dynamic properties like "<trait-name>EffectSize" from the excess documentation list; they are not expected to have a match
+				[docProperties filterUsingPredicate:[NSPredicate predicateWithFormat:@"! SELF beginswith '<'"]];
 				
 				if ([docProperties count])
 					NSLog(@"*** excess documentation found for class %@ properties %@", classString, docProperties);

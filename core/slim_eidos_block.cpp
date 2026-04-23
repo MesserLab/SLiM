@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/7/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -447,6 +447,35 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 						{
 							if (!parse_make_bad_nodes_)
 								EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << EidosTerminate(current_token_);
+							
+							// Make a placeholder bad node, to be error-tolerant
+							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
+							EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+							callback_info_node->AddChild(bad_node);
+						}
+					}
+					
+					if (current_token_type_ == EidosTokenType::kTokenComma)
+					{
+						// A (optional) trait identifier is present, which must be either NULL or a string trait name; add it
+						Match(EidosTokenType::kTokenComma, "SLiM mutationEffect() callback");
+						
+						if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "NULL"))
+						{
+							callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+							
+							Match(EidosTokenType::kTokenIdentifier, "SLiM mutationEffect() callback");
+						}
+						else if (current_token_type_ == EidosTokenType::kTokenString)
+						{
+							callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+							
+							Match(EidosTokenType::kTokenString, "SLiM mutationEffect() callback");
+						}
+						else
+						{
+							if (!parse_make_bad_nodes_)
+								EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; trait identifier expected." << EidosTerminate(current_token_);
 							
 							// Make a placeholder bad node, to be error-tolerant
 							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
@@ -1111,19 +1140,41 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mutationEffect) == 0))
 				{
-					if ((n_callback_children != 1) && (n_callback_children != 2))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() callback needs 1 or 2 parameters." << EidosTerminate(callback_token);
+					if ((n_callback_children != 1) && (n_callback_children != 2) && (n_callback_children != 3))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() callback needs 1, 2, or 3 parameters." << EidosTerminate(callback_token);
 					
 					EidosToken *mutation_type_id_token = callback_children[0]->token_;
 					
 					mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
 					type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
 					
-					if (n_callback_children == 2)
+					if (n_callback_children >= 2)
 					{
 						EidosToken *subpop_id_token = callback_children[1]->token_;
 						
-						subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						if (subpop_id_token->token_string_ == gEidosStr_NULL)
+							subpopulation_id_ = -1;	// special placeholder that indicates a NULL subpopulation identifier
+						else
+							subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						
+						if (n_callback_children == 3)
+						{
+							EidosToken *trait_identifier_token = callback_children[2]->token_;
+							
+							if ((trait_identifier_token->token_type_ == EidosTokenType::kTokenIdentifier) && (trait_identifier_token->token_string_ == "NULL"))
+							{
+								trait_index_ = -2;
+								trait_identifier_ = "NULL";
+							}
+							else if (trait_identifier_token->token_type_ == EidosTokenType::kTokenString)
+							{
+								trait_index_ = -2;
+								trait_identifier_ = trait_identifier_token->token_string_;
+							}
+							
+							if (!EidosScript::Eidos_IsIdentifier(trait_identifier_))
+								EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() trait identifier must be a valid Eidos identifier." << EidosTerminate(callback_token);
+						}
 					}
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mutation) == 0))
@@ -1364,6 +1415,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_self) == 0)				contains_self_ = true;
 		
 		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
+		if (token_string.compare(gStr_trait) == 0)				contains_trait_ = true;
 		if (token_string.compare(gStr_effect) == 0)				contains_effect_ = true;
 		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
 		if (token_string.compare(gStr_element) == 0)			contains_element_ = true;
@@ -1402,6 +1454,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 	{
 		contains_self_ = true;
 		contains_mut_ = true;
+		contains_trait_ = true;
 		contains_effect_ = true;
 		contains_individual_ = true;
 		contains_element_ = true;
@@ -1493,10 +1546,14 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			
 		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 		{
-			// mutationEffect(<mutTypeId> [, <subpopId>])
+			// mutationEffect(<mutTypeId> [, <subpopId> [, <traitName>]])
 			p_out << "mutationEffect(m" << mutation_type_id_;
 			if (subpopulation_id_ != -1)
 				p_out << ", p" << subpopulation_id_;
+			else if (trait_index_ != -1)
+				p_out << ", NULL";
+			if (trait_identifier_.length())
+				p_out << ", '" << trait_identifier_ << "'";
 			p_out << ")";
 			break;
 		}
@@ -1540,7 +1597,7 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			else if (chromosome_id_ != -1)
 				p_out << "NULL";
 			if (chromosome_id_ != -1)
-				p_out << ", \"" << chromosome_id_ << "\"";
+				p_out << ", " << chromosome_id_ << "";
 			p_out << ")";
 			break;
 		}
@@ -1750,8 +1807,23 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 			if (value && ((species_spec_ && !species_spec_->Active()) || (ticks_spec_ && !ticks_spec_->Active())))
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): property active cannot be used to activate a block that is inactive because of a 'species' or 'ticks' specifier in its declaration, or because it was deactivated by a call to skipTick()." << EidosTerminate();
 			
-			block_active_ = value;
+			// TIMING RESTRICTION
+			// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+			// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+			if (species_spec_ && ((type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
+			{
+				if (species_spec_->InsideTraitOrFitnessCalculation())
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+				if (species_spec_->Active() && ((species_spec_->community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (species_spec_->community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): the active property of fitnessEffect() and mutationEffect() callback script blocks may not be set during the fitness recalculation tick cycle stage." << EidosTerminate();
+			}
 			
+			// TRAIT INVALIDATION: If the activation state of a mutationEffect() callback is changed, we need to
+			// invalidate all trait values that that callback would potentially affect, to force recalculation
+			if ((value != block_active_) && (type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && ActiveInTick(species_spec_->community_.Tick()))
+				species_spec_->NoteChangedMutationEffectCallback(this);
+			
+			block_active_ = value;
 			return;
 		}
 	
@@ -1777,10 +1849,10 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 #pragma mark SLiMEidosBlock_Class
 #pragma mark -
 
-EidosClass *gSLiM_SLiMEidosBlock_Class = nullptr;
+SLiMEidosBlock_Class *gSLiM_SLiMEidosBlock_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1788,7 +1860,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("SLiMEidosBlock_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_active,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
@@ -1806,6 +1878,9 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	return properties;
 }
 
+
+#ifdef EIDOS_GUI
+// SLiMTypeTable and SLiMTypeInterpreter are only used in SLiMgui and QtSLiM
 
 //
 //	SLiMTypeTable
@@ -1996,6 +2071,44 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'i', gSLiM_InteractionType_Class);
 	}
+	else if ((p_function_name == "initializeTrait") && (argument_count >= 1))
+	{
+		EidosASTNode *trait_name_node = p_arguments[0];
+		const EidosToken *trait_name_token = trait_name_node->token_;
+		
+		if (trait_name_token->token_type_ == EidosTokenType::kTokenString)
+		{
+			// initializeTrait() has the side effect of defining dynamic properties on various classes;
+			// we need to set up the information needed to make that work with code completion.  We do that
+			// with AddSignatureForProperty_TYPE_INTERPRETER(), a version of AddSignatureForProperty() that
+			// uses scratch space belonging only to us, so we don't interfere with anything in SLiM itself.
+			const std::string &trait_name = trait_name_token->token_string_;
+			const std::string &traitEffectSize_name = trait_name + "EffectSize";
+			const std::string &traitDominance_name = trait_name + "Dominance";
+			const std::string &traitHemizygousDominance_name = trait_name + "HemizygousDominance";
+			const std::string &traitOffset_name = trait_name + "Offset";
+			
+			EidosPropertySignature_CSP species_trait_signature((new EidosPropertySignature(trait_name, true, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP individual_trait_signature((new EidosPropertySignature(trait_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP individual_traitOffset_signature((new EidosPropertySignature(traitOffset_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitEffectSize_signature((new EidosPropertySignature(traitEffectSize_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitDominance_signature((new EidosPropertySignature(traitDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP mutation_traitHemizygousDominance_signature((new EidosPropertySignature(traitHemizygousDominance_name, false, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitEffectSize_signature((new EidosPropertySignature(traitEffectSize_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitDominance_signature((new EidosPropertySignature(traitDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			EidosPropertySignature_CSP substitution_traitHemizygousDominance_signature((new EidosPropertySignature(traitHemizygousDominance_name, true, kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkAsDynamicWithOwner("Trait"));
+			
+			gSLiM_Species_Class->AddSignatureForProperty_TYPE_INTERPRETER(species_trait_signature);
+			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_trait_signature);
+			gSLiM_Individual_Class->AddSignatureForProperty_TYPE_INTERPRETER(individual_traitOffset_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitEffectSize_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitDominance_signature);
+			gSLiM_Mutation_Class->AddSignatureForProperty_TYPE_INTERPRETER(mutation_traitHemizygousDominance_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitEffectSize_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitDominance_signature);
+			gSLiM_Substitution_Class->AddSignatureForProperty_TYPE_INTERPRETER(substitution_traitHemizygousDominance_signature);
+		}
+	}
 	
 	return ret;
 }
@@ -2053,6 +2166,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 	return ret;
 }
 
+#endif // EIDOS_GUI
 
 
 
