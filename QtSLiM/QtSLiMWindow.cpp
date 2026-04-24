@@ -2126,12 +2126,13 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
         return offerAndExecuteAutofix(selection, "outputHaplosomesToVCF", "The `outputVCF()` method of Haplosome has been renamed to `outputHaplosomesToVCF()`.", terminationMessage);
     
     //
-    //  Shift from one trait to multitrait for SLiM 5.1
+    //  Shift from one trait to multitrait for SLiM 6.0
     //
     
     if (terminationMessage.contains("property dominanceCoeff is not defined for object element type MutationType") &&
             (selectionString == "dominanceCoeff"))
     {
+        // if the user is accessing dominanceCoeff, it needs to be corrected to be a call to defaultDominanceForTrait()
         // if the user is assigning into dominanceCoeff, it needs to be corrected to be a call to setDefaultDominanceForTrait()
         if (terminationMessage.contains("GetPropertyOfElements"))
             return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "Reading the `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
@@ -2182,6 +2183,7 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("property hemizygousDominanceCoeff is not defined for object element type MutationType") &&
             (selectionString == "hemizygousDominanceCoeff"))
     {
+        // if the user is accessing hemizygousDominanceCoeff, it needs to be corrected to be a call to defaultHemizygousDominanceForTrait()
         // if the user is assigning into hemizygousDominanceCoeff, it needs to be corrected to be a call to setDefaultHemizygousDominanceForTrait()
         if (terminationMessage.contains("GetPropertyOfElements"))
             return offerAndExecuteAutofix(selection, "defaultHemizygousDominanceForTrait()", "The `hemizygousDominanceCoeff` property of MutationType has become the method `defaultHemizygousDominanceForTrait()`.", terminationMessage);
