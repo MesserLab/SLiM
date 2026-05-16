@@ -176,29 +176,6 @@ endif()
 if(WIN32)
     set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
-    set(GNULIB_NAMESPACE_SOURCES "${PROJECT_SOURCE_DIR}/core/chromosome.cpp" 
-        "${PROJECT_SOURCE_DIR}/core/haplosome.cpp" 
-        "${PROJECT_SOURCE_DIR}/core/individual.cpp" 
-        "${PROJECT_SOURCE_DIR}/core/population.cpp"
-        "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
-        "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"
-        "${PROJECT_SOURCE_DIR}/core/slim_sim.cpp"
-        "${PROJECT_SOURCE_DIR}/core/species.cpp"
-        "${PROJECT_SOURCE_DIR}/core/species_eidos.cpp"
-        "${PROJECT_SOURCE_DIR}/core/subpopulation.cpp"
-        "${PROJECT_SOURCE_DIR}/eidos/eidos_functions_files.cpp"
-        "${PROJECT_SOURCE_DIR}/eidos/eidos_functions_other.cpp"
-        "${PROJECT_SOURCE_DIR}/eidos/eidos_globals.cpp"
-        "${PROJECT_SOURCE_DIR}/eidos/eidos_class_DataFrame.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAbout.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAppDelegate.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMFindRecipe.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMGraphView.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMHaplotypeOptions.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMHelpWindow.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMScriptTextEdit.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMVariableBrowser.cpp"
-        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMWindow.cpp")
 endif()
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1")
@@ -418,8 +395,7 @@ if(PARALLEL)
 	#target_link_libraries(${TARGET_NAME_SLIM} PUBLIC omp)
 endif()
 if(WIN32)
-    set_source_files_properties(${SLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
-    set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+    set_source_files_properties(${SLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
     target_include_directories(${TARGET_NAME_SLIM} BEFORE PUBLIC ${GNU_DIR})
     target_link_libraries(${TARGET_NAME_SLIM} PUBLIC gnu PRIVATE bcrypt)
 endif()
@@ -440,8 +416,7 @@ if(PARALLEL)
 	#target_link_libraries(${TARGET_NAME_EIDOS} PUBLIC omp)
 endif()
 if(WIN32)
-    set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
-    set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+    set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
     target_include_directories(${TARGET_NAME_EIDOS} BEFORE PUBLIC ${GNU_DIR})
     target_link_libraries(${TARGET_NAME_EIDOS} PUBLIC gnu PRIVATE bcrypt)
 endif()
@@ -514,8 +489,7 @@ if(BUILD_SLIMGUI)
     target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib )
   else()
     if(WIN32)
-      set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
-      set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+      set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
       target_include_directories(${TARGET_NAME_SLIMGUI} BEFORE PUBLIC ${GNU_DIR})
       target_link_libraries(${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib gnu PRIVATE bcrypt)
     else()
