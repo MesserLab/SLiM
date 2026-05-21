@@ -1305,9 +1305,8 @@ static void _TestAtan2SimdFunction(const double *y_values, const double *x_value
 
 void _RunSIMDMathTests(void)
 {
-#if !defined(EIDOS_SLEEF_AVAILABLE) || !EIDOS_SLEEF_AVAILABLE
-	std::cout << "NOTE: SLEEF is not available in this build; SIMD math tests will compare scalar fallback against std:: (trivially identical)." << std::endl;
-#endif
+	if (!Eidos_SIMD_SLEEFActive())
+		std::cout << "NOTE: SLEEF is not used by the active SIMD tier (" << Eidos_SIMD_ActiveTierName() << "); SIMD math tests will compare scalar fallback against std:: (trivially identical)." << std::endl;
 
 	// Test values for trigonometric functions (in radians)
 	// Include various edge cases and values that span multiple SIMD vector widths

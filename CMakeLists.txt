@@ -294,77 +294,57 @@ if(BUILD_LTO)
 endif()
 
 #
-# SIMD SUPPORT (independent of OpenMP)
+# SIMD SUPPORT (runtime CPU dispatch)
 #
+# SLiM's SIMD kernels live in eidos_simd_*.cpp, compiled once per instruction-
+# set tier: scalar, SSE4.2, and AVX2+FMA on x86_64, and NEON on ARM64.  Only
+# the per-tier files are given instruction-set-specific compiler flags (below);
+# every other translation unit, and the dispatcher, is compiled at the plain
+# baseline ABI.  At startup Eidos_SIMD_Init() probes the CPU and points the
+# kernels at the fastest tier the hardware supports, so a single binary is
+# correct on any CPU, from pre-AVX2 hardware up.  Applying -mavx2 globally (the
+# previous approach) let the compiler emit AVX2 throughout the whole binary and
+# caused SIGILL crashes on older CPUs (issue #628).
 
-# Option to disable SIMD entirely
-option(USE_SIMD "Enable SIMD optimizations (SSE4.2/AVX2 on x86_64, NEON on ARM64)" ON)
+option(USE_SIMD "Enable SIMD-accelerated kernels with runtime CPU dispatch" ON)
 
-# Check architecture
-# CMAKE_SYSTEM_PROCESSOR is "x86_64" on Intel Macs and Linux x86_64, "arm64"/"aarch64" on ARM
+# Detect x86 so the SSE4.2/AVX2 tier files can be given their ISA flags.  NEON
+# needs no flag (it is baseline on ARM64); other architectures use the scalar
+# tier only.
 set(IS_X86_64 FALSE)
-set(IS_ARM64 FALSE)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64|i686|i386")
     set(IS_X86_64 TRUE)
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64|ARM64")
-    set(IS_ARM64 TRUE)
 endif()
 
-if(USE_SIMD AND NOT WIN32 AND IS_X86_64)
-    include(CheckCXXCompilerFlag)
-
-    # Check for AVX2 support
-    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
-    check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE42)
-    check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
-
-    if(COMPILER_SUPPORTS_AVX2)
-        message(STATUS "SIMD: AVX2 support detected")
-        add_compile_definitions(EIDOS_HAS_AVX2=1)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-        if(COMPILER_SUPPORTS_FMA)
-            message(STATUS "SIMD: FMA support detected")
-            add_compile_definitions(EIDOS_HAS_FMA=1)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
-        endif()
-    elseif(COMPILER_SUPPORTS_SSE42)
-        message(STATUS "SIMD: SSE4.2 support detected (no AVX2)")
-        add_compile_definitions(EIDOS_HAS_SSE42=1)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
-    else()
-        message(STATUS "SIMD: No x86 SIMD support detected, using scalar fallback")
-    endif()
-elseif(USE_SIMD AND NOT WIN32 AND IS_ARM64)
-    # ARM64 NEON is always available on ARM64, no compiler flag needed
-    message(STATUS "SIMD: ARM64 NEON support enabled")
-    add_compile_definitions(EIDOS_HAS_NEON=1)
-elseif(USE_SIMD AND NOT WIN32)
-    message(STATUS "SIMD: Unknown architecture (${CMAKE_SYSTEM_PROCESSOR}), using scalar fallback")
-elseif(USE_SIMD AND WIN32)
-    # Windows SIMD detection - MinGW uses GCC, so we can use the same flags as Linux
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if(USE_SIMD)
+    if(IS_X86_64 AND NOT MSVC)
         include(CheckCXXCompilerFlag)
-        check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2_WIN)
-        check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA_WIN)
+        check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+        check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE42)
 
-        if(COMPILER_SUPPORTS_AVX2_WIN)
-            message(STATUS "SIMD: AVX2 support detected (Windows/MinGW)")
-            add_compile_definitions(EIDOS_HAS_AVX2=1)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-            if(COMPILER_SUPPORTS_FMA_WIN)
-                message(STATUS "SIMD: FMA support detected (Windows/MinGW)")
-                add_compile_definitions(EIDOS_HAS_FMA=1)
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
-            endif()
+        if(COMPILER_SUPPORTS_AVX2 AND COMPILER_SUPPORTS_SSE42)
+            message(STATUS "SIMD: runtime dispatch enabled (scalar / SSE4.2 / AVX2+FMA selected per-CPU at startup)")
+            # Confine each tier's instruction set to its own translation unit;
+            # no other source file receives these flags.
+            set_source_files_properties("${PROJECT_SOURCE_DIR}/eidos/eidos_simd_avx2.cpp"
+                PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
+            set_source_files_properties("${PROJECT_SOURCE_DIR}/eidos/eidos_simd_sse42.cpp"
+                PROPERTIES COMPILE_FLAGS "-msse4.2")
         else()
-            message(STATUS "SIMD: No AVX2 support on Windows/MinGW, using scalar fallback")
+            message(STATUS "SIMD: compiler lacks -mavx2/-msse4.2; building scalar kernels only")
+            add_compile_definitions(EIDOS_SUPPRESS_SIMD_DISPATCH=1)
         endif()
+    elseif(MSVC)
+        message(STATUS "SIMD: runtime dispatch not implemented for MSVC; building scalar kernels only")
+        add_compile_definitions(EIDOS_SUPPRESS_SIMD_DISPATCH=1)
     else()
-        # MSVC path - not currently used but could be added in the future
-        message(STATUS "SIMD: MSVC SIMD detection not yet implemented, using scalar fallback")
+        # ARM64 (NEON, baseline) or any other architecture (scalar fallback):
+        # the tier files need no instruction-set flags.
+        message(STATUS "SIMD: runtime dispatch enabled (NEON or scalar kernels selected at startup)")
     endif()
 else()
-    message(STATUS "SIMD: Disabled by user")
+    message(STATUS "SIMD: disabled (USE_SIMD=OFF); all math uses scalar kernels")
+    add_compile_definitions(EIDOS_SUPPRESS_SIMD_DISPATCH=1)
 endif()
 
 # GSL - adding /usr/local/include so all targets that use GSL_INCLUDES get omp.h
