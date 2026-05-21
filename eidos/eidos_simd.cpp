@@ -27,6 +27,8 @@
 
 #include "eidos_simd.h"
 
+#include <cstring>
+
 
 // The public kernel pointers.  They are statically initialized to the scalar
 // tier so that a call is well-defined even if it somehow happens before
@@ -44,43 +46,70 @@ enum class Eidos_SIMD_Tier { kScalar, kSSE42, kAVX2_FMA, kNEON };
 static Eidos_SIMD_Tier sActiveTier = Eidos_SIMD_Tier::kScalar;
 
 
-void Eidos_SIMD_Init(void)
+bool Eidos_SIMD_SelectTier(const char *tier_name)
 {
-	static bool initialized = false;
-	
-	if (initialized)
-		return;
-	initialized = true;
-	
+	// The scalar tier is built on every platform and always available.
+	if (std::strcmp(tier_name, "scalar") == 0)
+	{
+		Eidos_SIMD_Fill_scalar();
+		sActiveTier = Eidos_SIMD_Tier::kScalar;
+		return true;
+	}
+
 #if EIDOS_SIMD_DISPATCH_X86
 	// __builtin_cpu_supports() reads CPUID; it is available on GCC and Clang
 	// for x86 and works regardless of the flags this file was compiled with.
 	// AVX2 and FMA shipped together (Haswell), but we require both explicitly
 	// since the AVX2 tier and SLEEF both use FMA instructions.
-	if (__builtin_cpu_supports("avx2") && __builtin_cpu_supports("fma"))
+	if (std::strcmp(tier_name, "AVX2+FMA") == 0)
 	{
+		if (!(__builtin_cpu_supports("avx2") && __builtin_cpu_supports("fma")))
+			return false;
 		Eidos_SIMD_Fill_avx2();
 		sActiveTier = Eidos_SIMD_Tier::kAVX2_FMA;
-		return;
+		return true;
 	}
-	if (__builtin_cpu_supports("sse4.2"))
+	if (std::strcmp(tier_name, "SSE4.2") == 0)
 	{
+		if (!__builtin_cpu_supports("sse4.2"))
+			return false;
 		Eidos_SIMD_Fill_sse42();
 		sActiveTier = Eidos_SIMD_Tier::kSSE42;
-		return;
+		return true;
 	}
 #endif
-	
+
 #if EIDOS_SIMD_DISPATCH_ARM
-	// NEON is baseline on every ARM64 CPU, so no detection is needed.
-	Eidos_SIMD_Fill_neon();
-	sActiveTier = Eidos_SIMD_Tier::kNEON;
-#else
-	// The scalar tier: the fallback for pre-AVX2/pre-SSE4.2 x86, unknown
-	// architectures, MSVC, and USE_SIMD=OFF builds.  It runs on any CPU.
-	Eidos_SIMD_Fill_scalar();
-	sActiveTier = Eidos_SIMD_Tier::kScalar;
+	// NEON is baseline on every ARM64 CPU, so it is always available here.
+	if (std::strcmp(tier_name, "NEON") == 0)
+	{
+		Eidos_SIMD_Fill_neon();
+		sActiveTier = Eidos_SIMD_Tier::kNEON;
+		return true;
+	}
 #endif
+
+	return false;
+}
+
+void Eidos_SIMD_Init(void)
+{
+	// Install the fastest tier the CPU supports. This is idempotent: calling it
+	// again re-runs detection and re-installs the same tier, which is how the
+	// SIMD self-tests restore normal dispatch after cycling through every tier.
+#if EIDOS_SIMD_DISPATCH_X86
+	if (Eidos_SIMD_SelectTier("AVX2+FMA"))
+		return;
+	if (Eidos_SIMD_SelectTier("SSE4.2"))
+		return;
+#endif
+#if EIDOS_SIMD_DISPATCH_ARM
+	if (Eidos_SIMD_SelectTier("NEON"))
+		return;
+#endif
+	// Fallback for pre-AVX2/pre-SSE4.2 x86, unknown architectures, MSVC, and
+	// USE_SIMD=OFF builds: the scalar tier, which runs on any CPU.
+	Eidos_SIMD_SelectTier("scalar");
 }
 
 const char *Eidos_SIMD_ActiveTierName(void)

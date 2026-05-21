@@ -1303,11 +1303,34 @@ static void _TestAtan2SimdFunction(const double *y_values, const double *x_value
 	}
 }
 
-void _RunSIMDMathTests(void)
+// Test a reduction SIMD function (sum, product) against a scalar reference
+template<typename ScalarReduce, typename SimdReduce>
+static void _TestReductionSimdFunction(const char *name, ScalarReduce scalar_reduce, SimdReduce simd_reduce,
+									   const double *test_values, int num_values, double tolerance = 1e-12)
 {
-	if (!Eidos_SIMD_SLEEFActive())
-		std::cout << "NOTE: SLEEF is not used by the active SIMD tier (" << Eidos_SIMD_ActiveTierName() << "); SIMD math tests will compare scalar fallback against std:: (trivially identical)." << std::endl;
+	double scalar_result = scalar_reduce(test_values, num_values);
+	double simd_result = simd_reduce(test_values, num_values);
+	double diff = std::abs(simd_result - scalar_result);
+	double max_val = std::max(std::abs(scalar_result), std::abs(simd_result));
+	if (max_val > 1.0)
+		diff /= max_val;
 
+	if (diff <= tolerance)
+	{
+		gEidosTestSuccessCount++;
+	}
+	else
+	{
+		gEidosTestFailureCount++;
+		std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD " << name << "() test failed (scalar=" << scalar_result << ", simd=" << simd_result << ")" << std::endl;
+	}
+}
+
+// Run the full SIMD math test battery against whichever tier is currently
+// installed in the Eidos_SIMD dispatch table.  _RunSIMDMathTests() calls this
+// once for each instruction-set tier the CPU supports.
+static void _RunSIMDMathTests_CurrentTier(void)
+{
 	// Test values for trigonometric functions (in radians)
 	// Include various edge cases and values that span multiple SIMD vector widths
 	const double trig_test_values[] = {
@@ -1529,6 +1552,179 @@ void _RunSIMDMathTests(void)
 			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD pow_scalar_base() test failed" << std::endl;
 		}
 	}
+
+	// Non-transcendental kernels: sqrt, abs, the rounding family, the reductions,
+	// and the convolution helpers each have distinct SSE4.2 / AVX2 / NEON code,
+	// so cycling the tiers in _RunSIMDMathTests() is what covers all of them.
+	_TestUnarySimdFunction("sqrt", [](double x) { return std::sqrt(x); },
+						   Eidos_SIMD::sqrt_float64, trig_test_values, num_trig_values);
+	_TestUnarySimdFunction("abs", [](double x) { return std::fabs(x); },
+						   Eidos_SIMD::abs_float64, trig_test_values, num_trig_values);
+	_TestUnarySimdFunction("floor", [](double x) { return std::floor(x); },
+						   Eidos_SIMD::floor_float64, trig_test_values, num_trig_values);
+	_TestUnarySimdFunction("ceil", [](double x) { return std::ceil(x); },
+						   Eidos_SIMD::ceil_float64, trig_test_values, num_trig_values);
+	_TestUnarySimdFunction("trunc", [](double x) { return std::trunc(x); },
+						   Eidos_SIMD::trunc_float64, trig_test_values, num_trig_values);
+
+	// round() test values deliberately avoid exact halves: the SIMD path rounds
+	// half-to-even while std::round() rounds half-away-from-zero, so the two
+	// agree only away from the .5 tie point.
+	const double round_test_values[] = {
+		0.0, 7.0, -7.0,
+		0.3, 0.7, 1.2, 1.8, 2.4, 2.9, 3.1, 3.6,
+		-0.3, -0.7, -1.2, -1.8, -2.4, -2.9, -3.1, -3.6,
+		100.4, 100.7, -100.4, -100.7
+	};
+	const int num_round_values = (int)(sizeof(round_test_values) / sizeof(double));
+	_TestUnarySimdFunction("round", [](double x) { return std::round(x); },
+						   Eidos_SIMD::round_float64, round_test_values, num_round_values);
+
+	// Reductions: sum and product
+	const double reduction_test_values[] = {
+		0.5, 1.5, 2.0, 0.25, 1.0, 3.0, 0.8, 1.2, 2.5, 0.4, 1.1, 0.9, 2.0, 0.6
+	};
+	const int num_reduction_values = (int)(sizeof(reduction_test_values) / sizeof(double));
+	_TestReductionSimdFunction("sum",
+							   [](const double *v, int n) { double s = 0.0; for (int i = 0; i < n; i++) s += v[i]; return s; },
+							   Eidos_SIMD::sum_float64, reduction_test_values, num_reduction_values);
+	_TestReductionSimdFunction("product",
+							   [](const double *v, int n) { double p = 1.0; for (int i = 0; i < n; i++) p *= v[i]; return p; },
+							   Eidos_SIMD::product_float64, reduction_test_values, num_reduction_values);
+
+	// Convolution dot products (used by SpatialMap::smooth())
+	{
+		const double conv_kernel[] = { 0.1, 0.2, 0.15, 0.05, 0.25, 0.1, 0.3, 0.2, 0.12, 0.18, 0.22, 0.08, 0.14, 0.16 };
+		const double conv_pixel[]  = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0 };
+		const int num_conv = (int)(sizeof(conv_kernel) / sizeof(double));
+		double ref_ksum = 0.0, ref_csum = 0.0;
+		for (int i = 0; i < num_conv; i++) { ref_ksum += conv_kernel[i]; ref_csum += conv_kernel[i] * conv_pixel[i]; }
+		double simd_ksum = 0.0, simd_csum = 0.0;
+		Eidos_SIMD::convolve_dot_product_float64(conv_kernel, conv_pixel, num_conv, simd_ksum, simd_csum);
+		if ((std::abs(simd_ksum - ref_ksum) <= 1e-9) && (std::abs(simd_csum - ref_csum) <= 1e-9))
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD convolve_dot_product() test failed" << std::endl;
+		}
+		const double coverage = 0.75;
+		double ref_sksum = 0.0, ref_scsum = 0.0;
+		for (int i = 0; i < num_conv; i++) { double sk = conv_kernel[i] * coverage; ref_sksum += sk; ref_scsum += sk * conv_pixel[i]; }
+		double simd_sksum = 0.0, simd_scsum = 0.0;
+		Eidos_SIMD::convolve_dot_product_scaled_float64(conv_kernel, conv_pixel, num_conv, coverage, simd_sksum, simd_scsum);
+		if ((std::abs(simd_sksum - ref_sksum) <= 1e-9) && (std::abs(simd_scsum - ref_scsum) <= 1e-9))
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD convolve_dot_product_scaled() test failed" << std::endl;
+		}
+	}
+
+	// Single-precision exponential
+	{
+		const float exp_f_values[] = {
+			0.0f, 0.1f, 0.5f, 1.0f, 2.0f, 5.0f, -0.1f, -0.5f, -1.0f, -2.0f, -5.0f, 0.01f, 3.3f, -3.3f
+		};
+		const int num_exp_f = (int)(sizeof(exp_f_values) / sizeof(float));
+		std::vector<float> exp_f_out(num_exp_f);
+		Eidos_SIMD::exp_float32(exp_f_values, exp_f_out.data(), num_exp_f);
+		bool all_match = true;
+		for (int i = 0; i < num_exp_f; i++)
+		{
+			float ref = std::exp(exp_f_values[i]);
+			float fdiff = std::fabs(exp_f_out[i] - ref);
+			float fmax = std::max(std::fabs(ref), std::fabs(exp_f_out[i]));
+			if (fmax > 1.0f)
+				fdiff /= fmax;
+			if (fdiff > 1e-5f)
+				all_match = false;
+		}
+		if (all_match)
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD exp_float32() test failed" << std::endl;
+		}
+	}
+
+	// Single-precision spatial-interaction kernels (in-place transforms)
+	{
+		const float kdist[] = {
+			0.0f, 0.1f, 0.25f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 0.33f, 0.66f, 1.1f, 1.7f
+		};
+		const int num_k = (int)(sizeof(kdist) / sizeof(float));
+		const float kfmax = 1.5f;
+		struct KernelCase { const char *name; int which; float p1, p2; };
+		const KernelCase kernels[] = {
+			{ "exp_kernel_float32",    0, 0.7f, 0.0f },
+			{ "normal_kernel_float32", 1, 2.0f, 0.0f },
+			{ "tdist_kernel_float32",  2, 3.0f, 1.2f },
+			{ "cauchy_kernel_float32", 3, 0.9f, 0.0f },
+			{ "linear_kernel_float32", 4, 5.0f, 0.0f }
+		};
+		for (const KernelCase &k : kernels)
+		{
+			std::vector<float> ref(kdist, kdist + num_k);
+			std::vector<float> simd(kdist, kdist + num_k);
+			for (int i = 0; i < num_k; i++)
+			{
+				float d = ref[i];
+				if (k.which == 0) ref[i] = kfmax * std::exp(-k.p1 * d);
+				else if (k.which == 1) ref[i] = kfmax * std::exp(-(d * d) / k.p1);
+				else if (k.which == 2) { float dt = d / k.p2; ref[i] = kfmax * std::pow(1.0f + dt * dt / k.p1, -(k.p1 + 1.0f) / 2.0f); }
+				else if (k.which == 3) { float dl = d / k.p1; ref[i] = kfmax / (1.0f + dl * dl); }
+				else ref[i] = kfmax - d * (kfmax / k.p1);
+			}
+			if (k.which == 0) Eidos_SIMD::exp_kernel_float32(simd.data(), num_k, kfmax, k.p1);
+			else if (k.which == 1) Eidos_SIMD::normal_kernel_float32(simd.data(), num_k, kfmax, k.p1);
+			else if (k.which == 2) Eidos_SIMD::tdist_kernel_float32(simd.data(), num_k, kfmax, k.p1, k.p2);
+			else if (k.which == 3) Eidos_SIMD::cauchy_kernel_float32(simd.data(), num_k, kfmax, k.p1);
+			else Eidos_SIMD::linear_kernel_float32(simd.data(), num_k, kfmax, k.p1);
+			bool all_match = true;
+			for (int i = 0; i < num_k; i++)
+			{
+				float diff = std::fabs(simd[i] - ref[i]);
+				float mx = std::max(std::fabs(ref[i]), std::fabs(simd[i]));
+				if (mx > 1.0f)
+					diff /= mx;
+				if (diff > 1e-4f)
+					all_match = false;
+			}
+			if (all_match)
+				gEidosTestSuccessCount++;
+			else
+			{
+				gEidosTestFailureCount++;
+				std::cerr << EIDOS_OUTPUT_FAILURE_TAG << " : SIMD " << k.name << "() test failed" << std::endl;
+			}
+		}
+	}
+}
+
+void _RunSIMDMathTests(void)
+{
+	// The SIMD kernels are compiled once per instruction-set tier (scalar,
+	// SSE4.2, AVX2+FMA, NEON); normal execution only runs the single tier the
+	// CPU selected at startup.  To test, and cover, every tier's kernels, cycle
+	// through all tiers available on this CPU, then restore the best one.
+	static const char * const tier_names[] = { "scalar", "SSE4.2", "AVX2+FMA", "NEON" };
+
+	for (const char * const tier_name : tier_names)
+	{
+		if (!Eidos_SIMD_SelectTier(tier_name))
+			continue;
+		std::cout << "Testing SIMD kernels: " << Eidos_SIMD_ActiveTierName() << " tier";
+		if (!Eidos_SIMD_SLEEFActive())
+			std::cout << " (transcendentals use the std:: fallback)";
+		std::cout << std::endl;
+		_RunSIMDMathTests_CurrentTier();
+	}
+
+	// Restore the fastest tier for this CPU, undoing the cycling above.
+	Eidos_SIMD_Init();
 }
 
 

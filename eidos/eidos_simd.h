@@ -144,6 +144,13 @@ void Eidos_SIMD_Fill_neon(void);
 // Eidos_WarmUp() does this.  It is idempotent.
 void Eidos_SIMD_Init(void);
 
+// Force a specific SIMD tier by name ("scalar", "SSE4.2", "AVX2+FMA", "NEON")
+// instead of the auto-selected best tier.  Returns false, leaving the active
+// tier unchanged, if the named tier is unavailable on this CPU or in this
+// build.  Used by the SIMD self-tests to exercise every tier; calling
+// Eidos_SIMD_Init() afterward restores the best tier for the CPU.
+bool Eidos_SIMD_SelectTier(const char *tier_name);
+
 // The name of the SIMD tier selected at startup: "scalar", "SSE4.2",
 // "AVX2+FMA", or "NEON".  Valid only after Eidos_SIMD_Init() has run.
 const char *Eidos_SIMD_ActiveTierName(void);
