@@ -2,7 +2,7 @@
 //  eidos_simd_avx2.cpp
 //  Eidos
 //
-//  Created by Andrew Kern on 11/26/2025.
+//  Created by Andrew Kern on 5/21/2026.
 //  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
