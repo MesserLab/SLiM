@@ -298,9 +298,10 @@ endif()
 #
 # SLiM's SIMD kernels live in eidos_simd_*.cpp, compiled once per instruction-
 # set tier: scalar, SSE4.2, and AVX2+FMA on x86_64, and NEON on ARM64.  Only
-# the per-tier files are given instruction-set-specific compiler flags (below);
-# every other translation unit, and the dispatcher, is compiled at the plain
-# baseline ABI.  At startup Eidos_SIMD_Init() probes the CPU and points the
+# the per-tier files are given instruction-set-specific compiler flags (those
+# are applied at the end of this file); every other translation unit, and the
+# dispatcher, is compiled at the plain baseline ABI.  At startup
+# Eidos_SIMD_Init() probes the CPU and points the
 # kernels at the fastest tier the hardware supports, so a single binary is
 # correct on any CPU, from pre-AVX2 hardware up.  Applying -mavx2 globally (the
 # previous approach) let the compiler emit AVX2 throughout the whole binary and
@@ -324,12 +325,12 @@ if(USE_SIMD)
 
         if(COMPILER_SUPPORTS_AVX2 AND COMPILER_SUPPORTS_SSE42)
             message(STATUS "SIMD: runtime dispatch enabled (scalar / SSE4.2 / AVX2+FMA selected per-CPU at startup)")
-            # Confine each tier's instruction set to its own translation unit;
-            # no other source file receives these flags.
-            set_source_files_properties("${PROJECT_SOURCE_DIR}/eidos/eidos_simd_avx2.cpp"
-                PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
-            set_source_files_properties("${PROJECT_SOURCE_DIR}/eidos/eidos_simd_sse42.cpp"
-                PROPERTIES COMPILE_FLAGS "-msse4.2")
+            # The avx2/sse42 tier files need -mavx2 -mfma / -msse4.2.  The flags
+            # are applied at the end of this file rather than here, because the
+            # Windows target blocks below overwrite COMPILE_FLAGS on every
+            # source file with "-include config.h"; applying our flags last,
+            # with APPEND_STRING, lets the two coexist (issue #628).
+            set(SIMD_TIER_FLAGS_X86 TRUE)
         else()
             message(STATUS "SIMD: compiler lacks -mavx2/-msse4.2; building scalar kernels only")
             add_compile_definitions(EIDOS_SUPPRESS_SIMD_DISPATCH=1)
@@ -513,6 +514,20 @@ if(BUILD_SLIMGUI)
 
   install(TARGETS ${TARGET_NAME_SLIMGUI} DESTINATION bin)
 endif(BUILD_SLIMGUI)
+
+
+# Apply the per-tier SIMD instruction-set flags to the avx2/sse42 tier files.
+# This is deliberately done here, after the WIN32 blocks above: those run
+# set_source_files_properties(... COMPILE_FLAGS "-include config.h") over every
+# source file, and COMPILE_FLAGS is a single string that gets overwritten, not
+# appended.  Setting our flags last with APPEND_STRING preserves the Windows
+# "-include config.h" while still confining AVX2/SSE4.2 to these two files.
+if(SIMD_TIER_FLAGS_X86)
+    set_property(SOURCE "${PROJECT_SOURCE_DIR}/eidos/eidos_simd_avx2.cpp"
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -mavx2 -mfma")
+    set_property(SOURCE "${PROJECT_SOURCE_DIR}/eidos/eidos_simd_sse42.cpp"
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -msse4.2")
+endif()
 
 
 # Deal with the PROFILE and PARALLEL flags, which interact and are handled in a complex way.
