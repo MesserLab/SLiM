@@ -121,6 +121,7 @@ tsk_generate_uuid(char *dest, int TSK_UNUSED(flags))
 out:
     return ret;
 }
+
 static const char *
 tsk_strerror_internal(int err)
 {
@@ -883,8 +884,8 @@ tsk_search_sorted(const double *restrict array, tsk_size_t size, double value)
             upper = mid;
         }
     }
-    offset = (int64_t)(array[lower] < value);
-    return (tsk_size_t)(lower + offset);
+    offset = (int64_t) (array[lower] < value);
+    return (tsk_size_t) (lower + offset);
 }
 
 /* Rounds the specified double to the closest multiple of 10**-num_digits. If
@@ -1041,7 +1042,7 @@ FILE *
 tsk_get_debug_stream(void)
 {
     if (_tsk_debug_stream == NULL) {
-        _tsk_debug_stream = stdout;
+        _tsk_debug_stream = TSK_DEFAULT_DEBUG_STREAM;
     }
     return _tsk_debug_stream;
 }

@@ -7,6 +7,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 development head (in the master branch):
 	add a rmultinom() function to draw from a multinomial distribution, matching rmultinom() in R
+	update to tskit 1.0.3, kastore 0.3.5, to get final changes for the json_struct codec stuff (no longer directly supported in C)
 
 
 version 5.2 (Eidos version 4.2):

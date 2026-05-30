@@ -4607,7 +4607,7 @@ tsk_id_t tsk_table_collection_check_integrity(
 /* Undocumented methods */
 
 /* Flags for ibd_segments */
-#define TSK_IBD_STORE_PAIRS (1 << 0)
+#define TSK_IBD_STORE_PAIRS    (1 << 0)
 #define TSK_IBD_STORE_SEGMENTS (1 << 1)
 
 /* TODO be systematic about where "result" should be in the params

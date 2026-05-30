@@ -100,7 +100,7 @@ check_offset_overflow(tsk_size_t current_size, tsk_size_t additional_elements)
            || current_size > (max_val - additional_elements);
 }
 
-#define TSK_NUM_ROWS_UNSET ((tsk_size_t) -1)
+#define TSK_NUM_ROWS_UNSET   ((tsk_size_t) - 1)
 #define TSK_MAX_COL_NAME_LEN 64
 
 static int
@@ -8255,8 +8255,8 @@ pair_to_integer(tsk_id_t a, tsk_id_t b, tsk_size_t N)
 static inline void
 integer_to_pair(int64_t index, tsk_size_t N, tsk_id_t *a, tsk_id_t *b)
 {
-    *a = (tsk_id_t)(index / (int64_t) N);
-    *b = (tsk_id_t)(index % (int64_t) N);
+    *a = (tsk_id_t) (index / (int64_t) N);
+    *b = (tsk_id_t) (index % (int64_t) N);
 }
 
 static int64_t
@@ -8997,7 +8997,7 @@ simplifier_check_state(simplifier_t *self)
     for (j = 0; j < self->input_tables.nodes.num_rows; j++) {
         last_position = -1;
         for (list_node = self->node_mutation_list_map_head[j]; list_node != NULL;
-             list_node = list_node->next) {
+            list_node = list_node->next) {
             tsk_bug_assert(
                 self->input_tables.mutations.node[list_node->mutation] == (tsk_id_t) j);
             site = self->input_tables.mutations.site[list_node->mutation];
@@ -9028,7 +9028,7 @@ simplifier_check_state(simplifier_t *self)
         child = self->buffered_children[j];
         tsk_bug_assert(self->child_edge_map_head[child] != NULL);
         for (int_list = self->child_edge_map_head[child]; int_list != NULL;
-             int_list = int_list->next) {
+            int_list = int_list->next) {
             tsk_bug_assert(int_list->left < int_list->right);
             if (int_list->next != NULL) {
                 tsk_bug_assert(int_list->right < int_list->next->left);
@@ -9108,7 +9108,7 @@ simplifier_print_state(simplifier_t *self, FILE *out)
         child = self->buffered_children[j];
         fprintf(out, "%lld -> ", (long long) j);
         for (int_list = self->child_edge_map_head[child]; int_list != NULL;
-             int_list = int_list->next) {
+            int_list = int_list->next) {
             fprintf(out, "(%f, %f), ", int_list->left, int_list->right);
         }
         fprintf(out, "\n");
@@ -9123,7 +9123,7 @@ simplifier_print_state(simplifier_t *self, FILE *out)
         if (self->node_mutation_list_map_head[j] != NULL) {
             fprintf(out, "%lld\t-> [", (long long) j);
             for (list_node = self->node_mutation_list_map_head[j]; list_node != NULL;
-                 list_node = list_node->next) {
+                list_node = list_node->next) {
                 fprintf(out, "%lld,", (long long) list_node->mutation);
             }
             fprintf(out, "]\n");
@@ -10187,7 +10187,7 @@ simplifier_insert_input_roots(simplifier_t *self)
     const double *node_time = self->tables->nodes.time;
 
     for (input_id = 0; input_id < (tsk_id_t) self->input_tables.nodes.num_rows;
-         input_id++) {
+        input_id++) {
         x = self->ancestor_map_head[input_id];
         if (x != NULL) {
             output_id = self->node_id_map[input_id];
@@ -10736,11 +10736,11 @@ tsk_table_collection_check_individual_integrity(
 
     for (j = 0; j < (tsk_size_t) num_individuals; j++) {
         for (k = individuals.parents_offset[j]; k < individuals.parents_offset[j + 1];
-             k++) {
+            k++) {
             /* Check parent references are valid */
             if (individuals.parents[k] != TSK_NULL
                 && (individuals.parents[k] < 0
-                       || individuals.parents[k] >= num_individuals)) {
+                    || individuals.parents[k] >= num_individuals)) {
                 ret = tsk_trace_error(TSK_ERR_INDIVIDUAL_OUT_OF_BOUNDS);
                 goto out;
             }
@@ -11250,20 +11250,20 @@ tsk_table_collection_equals(const tsk_table_collection_t *self,
     if (!(options & TSK_CMP_IGNORE_TABLES)) {
         ret = ret
               && tsk_individual_table_equals(
-                     &self->individuals, &other->individuals, options)
+                  &self->individuals, &other->individuals, options)
               && tsk_node_table_equals(&self->nodes, &other->nodes, options)
               && tsk_edge_table_equals(&self->edges, &other->edges, options)
               && tsk_migration_table_equals(
-                     &self->migrations, &other->migrations, options)
+                  &self->migrations, &other->migrations, options)
               && tsk_site_table_equals(&self->sites, &other->sites, options)
               && tsk_mutation_table_equals(&self->mutations, &other->mutations, options)
               && tsk_population_table_equals(
-                     &self->populations, &other->populations, options);
+                  &self->populations, &other->populations, options);
         /* TSK_CMP_IGNORE_TABLES implies TSK_CMP_IGNORE_PROVENANCE */
         if (!(options & TSK_CMP_IGNORE_PROVENANCE)) {
             ret = ret
                   && tsk_provenance_table_equals(
-                         &self->provenances, &other->provenances, options);
+                      &self->provenances, &other->provenances, options);
         }
     }
     /* TSK_CMP_IGNORE_TS_METADATA is implied by TSK_CMP_IGNORE_METADATA */
@@ -11273,19 +11273,19 @@ tsk_table_collection_equals(const tsk_table_collection_t *self,
     if (!(options & TSK_CMP_IGNORE_TS_METADATA)) {
         ret = ret
               && (self->metadata_length == other->metadata_length
-                     && self->metadata_schema_length == other->metadata_schema_length
-                     && tsk_memcmp(self->metadata, other->metadata,
-                            self->metadata_length * sizeof(char))
-                            == 0
-                     && tsk_memcmp(self->metadata_schema, other->metadata_schema,
-                            self->metadata_schema_length * sizeof(char))
-                            == 0);
+                  && self->metadata_schema_length == other->metadata_schema_length
+                  && tsk_memcmp(self->metadata, other->metadata,
+                         self->metadata_length * sizeof(char))
+                         == 0
+                  && tsk_memcmp(self->metadata_schema, other->metadata_schema,
+                         self->metadata_schema_length * sizeof(char))
+                         == 0);
     }
 
     if (!(options & TSK_CMP_IGNORE_REFERENCE_SEQUENCE)) {
         ret = ret
               && tsk_reference_sequence_equals(
-                     &self->reference_sequence, &other->reference_sequence, options);
+                  &self->reference_sequence, &other->reference_sequence, options);
     }
     return ret;
 }
@@ -12057,7 +12057,7 @@ tsk_table_collection_dumpf(
         { "format/name", (const void *) &TSK_FILE_FORMAT_NAME,
             TSK_FILE_FORMAT_NAME_LENGTH, KAS_INT8 },
         { "format/version",
-            (const void *) &(uint32_t[]){
+            (const void *) &(uint32_t[]) {
                 TSK_FILE_FORMAT_VERSION_MAJOR, TSK_FILE_FORMAT_VERSION_MINOR },
             2, KAS_UINT32 },
         { "sequence_length", (const void *) &self->sequence_length, 1, KAS_FLOAT64 },
@@ -13302,7 +13302,7 @@ tsk_table_collection_union(tsk_table_collection_t *self,
     /* Now we know the full individual map we can remap the parents of the new
      * individuals*/
     for (k = (tsk_id_t) self->individuals.parents_offset[num_individuals_self];
-         k < (tsk_id_t) self->individuals.parents_length; k++) {
+        k < (tsk_id_t) self->individuals.parents_length; k++) {
         if (self->individuals.parents[k] != TSK_NULL) {
             self->individuals.parents[k] = individual_map[self->individuals.parents[k]];
         }
