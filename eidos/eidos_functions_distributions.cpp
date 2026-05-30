@@ -1656,6 +1656,108 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_a
 	return result_SP;
 }
 
+// (integer)rmultinom(integer$ n, integer$ size, numeric prob)
+EidosValue_SP Eidos_ExecuteFunction_rmultinom(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_n = p_arguments[0].get();
+	EidosValue *arg_size = p_arguments[1].get();
+	EidosValue *arg_prob = p_arguments[2].get();
+	
+	// get and bounds-check the number of draws we will do
+	int64_t num_draws = arg_n->IntAtIndex_NOCAST(0, nullptr);
+	
+	if (num_draws < 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires n to be greater than or equal to 1 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	
+	// get and check the size of each multinomial draw
+	// the upper limit is because the GSL requires size to be cast down to unsigned int
+	int64_t size = arg_size->IntAtIndex_NOCAST(0, nullptr);
+	
+	if (size < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires size to be greater than or equal to 0." << EidosTerminate(nullptr);
+	if (size > 1000000000)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires size to be less than or equal to 1000000000." << EidosTerminate(nullptr);
+	
+	// get and check the number of "boxes", i.e., the number of probabilities supplied
+	// the upper limit is arbitrary, but it seems wise to have a limit
+	int k = arg_prob->Count();
+	
+	if (k <= 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires prob to be of length 1 or greater." << EidosTerminate(nullptr);
+	if (k > 1000000)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires prob to be of length 1000000 or less." << EidosTerminate(nullptr);
+	
+	// fetch the probability vector into a local static buffer, checking as we go; note the gsl normalizes prob_vec for us
+	double prob_sum = 0.0;
+	static std::vector<double> prob_vec;
+	prob_vec.reserve(k);
+	prob_vec.resize(0);
+	
+	for (int prob_index = 0; prob_index < k; ++prob_index)
+	{
+		double prob = arg_prob->FloatAtIndex_CAST(prob_index, nullptr);
+		
+		if (prob < 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires all probabilities in prob to be >= 0.0." << EidosTerminate(nullptr);
+		if (!std::isfinite(prob))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires all probabilities in prob to be finite (not INF or NAN)." << EidosTerminate(nullptr);
+		
+		prob_sum += prob;
+		prob_vec.push_back(prob);
+	}
+	
+	if (prob_sum == 0.0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() requires the sum of prob to be greater than zero; there must be at least one non-zero probability." << EidosTerminate(nullptr);
+	if (!std::isfinite(prob_sum))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmultinom): function rmultinom() could not compute the multinomial draws because the sum of prob overflowed to infinity." << EidosTerminate(nullptr);
+	
+	if (k == 1)
+	{
+		// If k == 1, every object goes into the same single box, so the result is trivial
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			int_result->set_int_no_check(size, draw_index);
+	}
+	else if (size == 0)
+	{
+		// if size == 0, zero objects are drawn in each multinomial trial, so the result is trivial
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->reserve((int)num_draws * k);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int k_index = 0; k_index < k; ++k_index)
+				int_result->push_int_no_check(0);
+	}
+	else
+	{
+		// the main case, where we need to call gsl_ran_multinomial() to do the work
+		// we put the drawn values into a local static buffer, and then copy them into the Eidos result
+		static std::vector<unsigned int> draw_vec;
+		draw_vec.resize(k);
+		
+		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->reserve((int)num_draws * k);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		{
+			gsl_ran_multinomial(rng_gsl, k, (unsigned int)size, prob_vec.data(), draw_vec.data());
+			
+			for (int k_index = 0; k_index < k; ++k_index)
+				int_result->push_int_no_check(draw_vec[k_index]);
+		}
+	}
+	
+	int64_t dim_buffer[2] = {k, num_draws};
+	result_SP->SetDimensions(2, dim_buffer);
+	
+	return result_SP;
+}
+
 // (float)rmvnorm(integer$ n, numeric mu, numeric sigma)
 EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
