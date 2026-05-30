@@ -309,26 +309,6 @@ not found in the file.
 An unsupported type was provided for a column in the file.
 */
 #define TSK_ERR_BAD_COLUMN_TYPE                                     -105
-
-/**
-The JSON binary struct metadata does not begin with the expected magic bytes.
-*/
-#define TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC                      -106
-
-/**
-The JSON binary struct metadata is shorter than the expected size.
-*/
-#define TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED                      -107
-
-/**
-A length field in the JSON binary struct metadata header is invalid.
-*/
-#define TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH                 -108
-
-/**
-The JSON binary struct metadata uses an unsupported version number.
-*/
-#define TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION                    -109
 /** @} */
 
 /**
@@ -1131,31 +1111,6 @@ bool tsk_isfinite(double val);
 
 #define TSK_UUID_SIZE 36
 int tsk_generate_uuid(char *dest, int flags);
-
-/**
-@brief Extract the binary payload from ``json+struct`` encoded metadata.
-
-@rst
-Metadata produced by the JSONStructCodec consists of a fixed-size
-header followed by canonical JSON bytes and an optional binary payload. This helper
-validates the framing, returning pointers to the embedded JSON and binary sections
-without copying.
-
-The output pointers reference memory owned by the caller and remain valid only while
-the original metadata buffer is alive.
-@endrst
-
-@param[in] metadata Pointer to the encoded metadata bytes.
-@param[in] metadata_length Number of bytes available at ``metadata``.
-@param[out] json On success, set to the start of the JSON bytes.
-@param[out] json_length On success, set to the JSON length in bytes.
-@param[out] blob On success, set to the start of the binary payload.
-@param[out] blob_length On success, set to the payload length in bytes.
-@return Return 0 on success or a negative value on failure.
-*/
-int tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
-    char **json, tsk_size_t *json_length, char **blob,
-    tsk_size_t *blob_length);
 
 /* TODO most of these can probably be macros so they compile out as no-ops.
  * Lets do the 64 bit tsk_size_t switch first though. */

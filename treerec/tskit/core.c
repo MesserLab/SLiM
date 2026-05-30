@@ -32,10 +32,7 @@
 #include <kastore.h>
 #include <tskit/core.h>
 
-#define UUID_NUM_BYTES              16
-#define TSK_JSON_BINARY_HEADER_SIZE 21
-
-static const uint8_t _tsk_json_binary_magic[4] = { 'J', 'B', 'L', 'B' };
+#define UUID_NUM_BYTES 16
 
 #if defined(_WIN32)
 
@@ -97,22 +94,6 @@ out:
 }
 
 #endif
-
-static uint64_t
-tsk_load_u64_le(const uint8_t *p)
-{
-    uint64_t value;
-
-    value = (uint64_t) p[0];
-    value |= (uint64_t) p[1] << 8;
-    value |= (uint64_t) p[2] << 16;
-    value |= (uint64_t) p[3] << 24;
-    value |= (uint64_t) p[4] << 32;
-    value |= (uint64_t) p[5] << 40;
-    value |= (uint64_t) p[6] << 48;
-    value |= (uint64_t) p[7] << 56;
-    return value;
-}
 
 /* Generate a new UUID4 using a system-generated source of randomness.
  * Note that this function writes a NULL terminator to the end of this
@@ -207,22 +188,6 @@ tsk_strerror_internal(int err)
         case TSK_ERR_BAD_COLUMN_TYPE:
             ret = "An incompatible type for a column was found in the file. "
                   "(TSK_ERR_BAD_COLUMN_TYPE)";
-            break;
-        case TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC:
-            ret = "JSON binary struct metadata does not begin with the expected "
-                  "magic bytes. (TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC)";
-            break;
-        case TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED:
-            ret = "JSON binary struct metadata is shorter than the expected size. "
-                  "(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED)";
-            break;
-        case TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH:
-            ret = "A length field in the JSON binary struct metadata header is invalid. "
-                  "(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH)";
-            break;
-        case TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION:
-            ret = "JSON binary struct metadata uses an unsupported version number. "
-                  "(TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION)";
             break;
 
         /* Out of bounds errors */
