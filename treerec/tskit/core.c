@@ -141,66 +141,6 @@ out:
     return ret;
 }
 
-int
-tsk_json_struct_metadata_get_blob(char *metadata, tsk_size_t metadata_length,
-    char **json, tsk_size_t *json_length, char **blob,
-    tsk_size_t *blob_length)
-{
-    int ret;
-    uint8_t version;
-    uint64_t json_length_u64;
-    uint64_t binary_length_u64;
-    uint64_t header_and_json_length;
-    uint64_t total_length;
-    uint8_t *bytes;
-    char *blob_start;
-    char *json_start;
-
-    if (metadata == NULL || json == NULL || json_length == NULL || blob == NULL
-        || blob_length == NULL) {
-        ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
-        goto out;
-    }
-    bytes = (uint8_t *) metadata;
-    if (metadata_length < TSK_JSON_BINARY_HEADER_SIZE) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED);
-        goto out;
-    }
-    if (memcmp(bytes, _tsk_json_binary_magic, sizeof(_tsk_json_binary_magic)) != 0) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_BAD_MAGIC);
-        goto out;
-    }
-    version = bytes[4];
-    if (version != 1) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_BAD_VERSION);
-        goto out;
-    }
-    json_length_u64 = tsk_load_u64_le(bytes + 5);
-    binary_length_u64 = tsk_load_u64_le(bytes + 13);
-    if (json_length_u64 > UINT64_MAX - (uint64_t) TSK_JSON_BINARY_HEADER_SIZE) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH);
-        goto out;
-    }
-    header_and_json_length = (uint64_t) TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
-    if (binary_length_u64 > UINT64_MAX - header_and_json_length) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_INVALID_LENGTH);
-        goto out;
-    }
-    total_length = header_and_json_length + binary_length_u64;
-    if ((uint64_t) metadata_length < total_length) {
-        ret = tsk_trace_error(TSK_ERR_JSON_STRUCT_METADATA_TRUNCATED);
-        goto out;
-    }
-    json_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE;
-    blob_start = (char *) bytes + TSK_JSON_BINARY_HEADER_SIZE + json_length_u64;
-    *json = json_start;
-    *json_length = (tsk_size_t) json_length_u64;
-    *blob = blob_start;
-    *blob_length = (tsk_size_t) binary_length_u64;
-    ret = 0;
-out:
-    return ret;
-}
 static const char *
 tsk_strerror_internal(int err)
 {

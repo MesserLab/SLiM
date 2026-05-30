@@ -572,7 +572,7 @@ static inline bool
 element_in(
     const uint64_t *restrict A, tsk_id_t u, const tsk_id_t state, tsk_size_t num_words)
 {
-    tsk_size_t index = ((tsk_size_t) u) * num_words + (tsk_size_t)(state / 64);
+    tsk_size_t index = ((tsk_size_t) u) * num_words + (tsk_size_t) (state / 64);
     return (A[index] & (1ULL << (state % 64))) != 0;
 }
 
@@ -580,7 +580,7 @@ static inline void
 set_optimal_value(
     uint64_t *restrict A, tsk_id_t u, const tsk_size_t num_words, tsk_id_t state)
 {
-    tsk_size_t index = ((tsk_size_t) u) * num_words + (tsk_size_t)(state / 64);
+    tsk_size_t index = ((tsk_size_t) u) * num_words + (tsk_size_t) (state / 64);
     tsk_bug_assert(((tsk_size_t) state) / 64 < num_words);
     A[index] |= 1ULL << (state % 64);
 }
@@ -815,7 +815,7 @@ tsk_ls_hmm_redistribute_transitions(tsk_ls_hmm_t *self)
      * iterating over the roots. See the existing parsimony implementations
      * for an example. */
     for (root = tsk_tree_get_left_root(&self->tree); root != TSK_NULL;
-         root = right_sib[root]) {
+        root = right_sib[root]) {
         stack[0].tree_node = root;
         stack[0].old_state = T_old[T_index[root]].value_index;
         stack[0].new_state
@@ -966,7 +966,7 @@ tsk_ls_hmm_run_forward(tsk_ls_hmm_t *self, int32_t *haplotype)
     }
 
     for (t_ret = tsk_tree_first(&self->tree); t_ret == TSK_TREE_OK;
-         t_ret = tsk_tree_next(&self->tree)) {
+        t_ret = tsk_tree_next(&self->tree)) {
         ret = tsk_ls_hmm_update_tree(self, TSK_DIR_FORWARD);
         if (ret != 0) {
             goto out;
@@ -1166,7 +1166,7 @@ tsk_ls_hmm_run_backward(
     }
 
     for (t_ret = tsk_tree_last(&self->tree); t_ret == TSK_TREE_OK;
-         t_ret = tsk_tree_prev(&self->tree)) {
+        t_ret = tsk_tree_prev(&self->tree)) {
         ret = tsk_ls_hmm_update_tree(self, TSK_DIR_REVERSE);
         if (ret != 0) {
             goto out;
@@ -1492,7 +1492,7 @@ tsk_compressed_matrix_decode(tsk_compressed_matrix_t *self, double *values)
     }
 
     for (t_ret = tsk_tree_first(&tree); t_ret == TSK_TREE_OK;
-         t_ret = tsk_tree_next(&tree)) {
+        t_ret = tsk_tree_next(&tree)) {
         ret = tsk_tree_get_sites(&tree, &sites, &num_tree_sites);
         if (ret != 0) {
             goto out;
