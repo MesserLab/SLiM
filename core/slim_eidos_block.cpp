@@ -239,6 +239,11 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
 			}
 			
+			if (current_token_->token_type_ == EidosTokenType::kTokenLBrace)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), a function declaration, or a tick range specifier.  Note that early() is no longer a default script block type that may be omitted; it must now be specified explicitly." << EidosTerminate(current_token_);
+			if (current_token_->token_type_ == EidosTokenType::kTokenRBrace)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), a function declaration, or a tick range specifier.  An extra closing brace might be present at the end of the preceding script block." << EidosTerminate(current_token_);
+			
 			// Next comes an optional tick X, or a tick range X:Y, X:, or :Y (a lone : is not legal).
 			// We don't parse this as if the : were an operator, since we have to allow for a missing start or end;
 			// for this reason, we make the : into a node of its own, with no children, so X:Y, X:, and :Y are distinct.
@@ -744,7 +749,16 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			else
 			{
 				if (!parse_make_bad_nodes_)
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), or a function declaration.  Note that early() is no longer a default script block type that may be omitted; it must now be specified explicitly." << EidosTerminate(current_token_);
+				{
+					if (current_token_->token_type_ == EidosTokenType::kTokenLBrace)
+					{
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), or a function declaration.  Note that early() is no longer a default script block type that may be omitted; it must now be specified explicitly." << EidosTerminate(current_token_);
+					}
+					else
+					{
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), or a function declaration." << EidosTerminate(current_token_);
+					}
+				}
 				
 				// Consume the stray identifier, to be error-tolerant
 				Consume();
