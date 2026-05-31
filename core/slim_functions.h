@@ -27,7 +27,7 @@
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
 
-#include "core.h"	// for tsk_size_t
+#include "../treerec/tskit/core.h"	// for tsk_size_t
 
 
 extern void SLiM_json_struct_metadata_get_components(uint8_t *metadata, tsk_size_t metadata_length,
