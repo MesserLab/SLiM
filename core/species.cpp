@@ -91,7 +91,7 @@ static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onwa
 static const char *SLIM_TREES_FILE_VERSION_PRESPECIES = "0.7";	// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
 static const char *SLIM_TREES_FILE_VERSION_SPECIES = "0.8";		// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
 static const char *SLIM_TREES_FILE_VERSION_MULTICHROM = "0.9";	// SLiM 5.0 onward, for multichrom (haplosomes not genomes, and `chromosomes` key)
-static const char *SLIM_TREES_FILE_VERSION = "1.0";				// SLiM 5.2 onward, for multitrait (per-trait metadata, `traits` key)
+static const char *SLIM_TREES_FILE_VERSION = "1.0";				// SLiM 6.0 onward, for multitrait (per-trait metadata, `traits` key)
 
 #pragma mark -
 #pragma mark Species
@@ -9140,7 +9140,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	//
 	// SLiM now writes top-level metadata with the new "json+struct" codec.  So we assemble a JSON string and
 	// a binary struct, and put them together with a magic byte string, a version number, a header, and schemas.
-	// See https://github.com/tskit-dev/tskit/pull/3306 for the PR for the json+struct codec and discussion.
+	// See https://tskit.dev/tskit/docs/stable/c-api.html#reading-and-writing-metadata for example code.
 	//
 	// NOTE: In the future, we might need to *add* to the metadata *and also* the schema, leaving other keys
 	// that might already be there.  But that's being a headache, so we're skipping it.
@@ -9300,34 +9300,28 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	size_t estimated_mutation_table_size = estimated_row_count * size_for_one_muttable_row;
 	
 	// Then assemble those two components into a json+struct metadata chunk:
-	const uint8_t TSK_JSON_BINARY_MAGIC[4] = { 'J', 'B', 'L', 'B' };
+	const uint8_t json_struct_codec_magic[4] = { 'J', 'B', 'L', 'B' };
 	size_t header_length = 4 + 1 + 8 + 8;
 	size_t json_length = metadata_JSON_str.length();
 	size_t estimated_binary_length = estimated_mutation_table_size;
 	
 	// Insert null bytes as needed to align the binary chunk to an 8-byte boundary
-	size_t aligner_length = (8 - ((header_length + json_length) & 0x07)) % 8;
+	size_t padding_length = (8 - ((header_length + json_length) & 0x07)) % 8;
 	
-	size_t estimated_total_length = header_length + json_length + aligner_length + estimated_binary_length;
+	size_t estimated_total_length = header_length + json_length + padding_length + estimated_binary_length;
 	uint8_t *metadata_buffer = (uint8_t *)malloc(estimated_total_length);
 	
 	if (!metadata_buffer)
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	
-	metadata_buffer[0] = TSK_JSON_BINARY_MAGIC[0];
-	metadata_buffer[1] = TSK_JSON_BINARY_MAGIC[1];
-	metadata_buffer[2] = TSK_JSON_BINARY_MAGIC[2];
-	metadata_buffer[3] = TSK_JSON_BINARY_MAGIC[3];
-	
-	metadata_buffer[4] = 1;		// version number for the json_blob codec
+	memcpy(metadata_buffer, json_struct_codec_magic, 4);	// magic bytes identifying correct codec data
+	metadata_buffer[4] = 1;									// version number for the json+struct codec
 	
 	memcpy(metadata_buffer + header_length, metadata_JSON_str.data(), json_length);
-	
-	for (size_t aligner_index = 0; aligner_index < aligner_length; ++aligner_index)
-		metadata_buffer[header_length + json_length + aligner_index] = 0;
+	memset(metadata_buffer + header_length + json_length, 0, padding_length);
 	
 	// Write mutation metadata into the binary section
-	uint8_t *base_row_pointer = metadata_buffer + header_length + json_length + aligner_length;
+	uint8_t *base_row_pointer = metadata_buffer + header_length + json_length + padding_length;
 	uint8_t *row_pointer = base_row_pointer;
 	
 	// First we write substitutions; these are guaranteed not to be in the muts_retained_by_treeseq_ vector
@@ -9455,7 +9449,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	size_t actual_row_count = (row_pointer - base_row_pointer) / size_for_one_muttable_row;
 	size_t actual_mutation_table_size = actual_row_count * size_for_one_muttable_row;
 	size_t actual_binary_length = actual_mutation_table_size;
-	size_t actual_total_length = header_length + json_length + aligner_length + actual_binary_length;
+	size_t actual_total_length = header_length + json_length + padding_length + actual_binary_length;
 	
 	if (actual_total_length != estimated_total_length)
 	{
@@ -9465,7 +9459,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	}
 	
 	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
-	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)(actual_mutation_table_size + aligner_length));
+	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)actual_mutation_table_size);
 	
 #if DEBUG
 	//std::cout << "WriteTreeSequenceMetadata(): wrote binary mutation table with row size " << size_for_one_muttable_row << " and " << row_count << " rows." << std::endl;
@@ -9489,22 +9483,13 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	jps_metadata_schema += R"V0G0N(})V0G0N";
 	
 	{
-		// fix "%d1" to have the count of padding bytes needed for 8-byte alignment
+		// fix "%d1" to have the number of traits in this species
 		size_t d1_pos = jps_metadata_schema.find("\"%d1\"");
 		
 		if (d1_pos == std::string::npos)
 			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) substring \"%d1\" for replacement in schema not found." << EidosTerminate();
 		else
-			jps_metadata_schema.replace(d1_pos, 5, "\"" + std::to_string(aligner_length) + "x\"");	// e.g., "%d1" -> "5x"
-	}
-	{
-		// fix "%d2" to have the number of traits in this species
-		size_t d2_pos = jps_metadata_schema.find("\"%d2\"");
-		
-		if (d2_pos == std::string::npos)
-			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) substring \"%d2\" for replacement in schema not found." << EidosTerminate();
-		else
-			jps_metadata_schema.replace(d2_pos, 5, std::to_string(trait_count));	// e.g., "%d2" -> 3
+			jps_metadata_schema.replace(d1_pos, 5, std::to_string(trait_count));	// e.g., "%d1" -> 3
 	}
 	
 #if 0
@@ -9913,43 +9898,15 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	// the useful error messages here with an uninformative catch-all error message; so I removed it.
 	
 	////////////
-	// Format 1.0 and later: reading top-level metadata using tskit's `json+struct` codec
-	char *top_level_json_buffer;
+	// Format 1.0 and later: as of SLiM 6.0, reading top-level metadata using tskit's `json+struct` codec.
+	// Note that SLiM_json_struct_metadata_get_components() handles the padding bytes for us, because the
+	// requirement for padding is part of the `json_struct` codec definition.
+	uint8_t *top_level_json_buffer;
 	tsk_size_t top_level_json_length;
-	char *top_level_binary_buffer;
+	uint8_t *top_level_binary_buffer;
 	tsk_size_t top_level_binary_length;
 	
-	int ret = tsk_json_struct_metadata_get_blob(p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length);
-	if ((ret == TSK_ERR_FILE_FORMAT) || (ret == TSK_ERR_FILE_VERSION_TOO_NEW))
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
-	if (ret != 0)
-		handle_error("tsk_json_struct_metadata_get_blob", ret);
-	
-	// adjust the binary pointer to account for alignment
-	size_t aligner_length = (8 - (reinterpret_cast<std::uintptr_t>(top_level_binary_buffer) & 0x07)) % 8;
-	
-	std::string metadata_schema_str(p_tables.metadata_schema, p_tables.metadata_schema_length);
-	std::string schema_aligner_prefix = "aligner\":{\"binaryFormat\":\"";
-	size_t schema_aligner_position = metadata_schema_str.find(schema_aligner_prefix);
-	
-	if (schema_aligner_position == std::string::npos)
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level metadata schema is non-compliant; this file cannot be read." << EidosTerminate();
-	
-	char schema_aligner_char = metadata_schema_str.at(schema_aligner_position + schema_aligner_prefix.length());
-	
-	if ((schema_aligner_char < '0') || (schema_aligner_char > '7'))
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level metadata schema is non-compliant; this file cannot be read." << EidosTerminate();
-	
-	size_t schema_aligner_length = (schema_aligner_char - '0');
-	
-	if (aligner_length != schema_aligner_length)
-	{
-		std::cout << "#WARNING (Species::ReadTreeSequenceMetadata): the alignment byte count for the top-level binary metadata is unexpected (the schema says " << schema_aligner_length << " but the reality is " << aligner_length << ")." << std::endl;
-		aligner_length = schema_aligner_length;
-	}
-	
-	top_level_binary_buffer = top_level_binary_buffer + aligner_length;
-	top_level_binary_length -= aligner_length;
+	SLiM_json_struct_metadata_get_components((uint8_t *)p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length, "Species::ReadTreeSequenceMetadata");
 	
 	size_t trait_count = Traits().size();
 	size_t binary_row_length = sizeof(MutationTableMetadataRec) + sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
@@ -9970,7 +9927,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
 	// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
 	
-	std::string top_level_json_str(top_level_json_buffer, top_level_json_length);
+	std::string top_level_json_str((const char *)top_level_json_buffer, top_level_json_length);
 	auto top_level_json = nlohmann::json::parse(top_level_json_str);
 	
 	//std::cout << top_level_json.dump(4) << std::endl;
@@ -9989,7 +9946,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		(file_version == SLIM_TREES_FILE_VERSION_SPECIES) ||
 		(file_version == SLIM_TREES_FILE_VERSION_MULTICHROM))
 	{
-		// SLiM 5.2 breaks backward compatibility with earlier file versions
+		// SLiM 6.0 breaks backward compatibility with earlier file versions
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM or pyslim." << EidosTerminate();
 	}
 	else if (file_version == SLIM_TREES_FILE_VERSION)

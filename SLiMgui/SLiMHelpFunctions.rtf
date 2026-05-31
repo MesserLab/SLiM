@@ -1498,7 +1498,7 @@ The
 \f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [float$\'a0individualOffsetMean\'a0=\'a00.0], [float$\'a0individualOffsetSD\'a0=\'a00.0], [logical$\'a0directFitnessEffect\'a0=\'a0F], [logical$\'a0baselineAccumulation\'a0=\'a0T])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calling this function, added in SLiM 5.2, configures a phenotypic trait in the species being initialized.  The new 
+\f2\fs20 \cf2 Calling this function, added in SLiM 6.0, configures a phenotypic trait in the species being initialized.  The new 
 \f1\fs18 Trait
 \f2\fs20  object is returned.  For more details on the way that traits work in SLiM, beyond what is given below, see the 
 \f1\fs18 Trait
@@ -1609,7 +1609,7 @@ Finally, the
 \f1\fs18 baselineAccumulation
 \f2\fs20  is 
 \f1\fs18 F
-\f2\fs20 , no special action is taken upon substitution, and so the effect of the substituted mutation will no longer be present; this was the behavior of SLiM prior to SLiM 5.2, and remains the behavior of the default trait for backward compatibility.  If 
+\f2\fs20 , no special action is taken upon substitution, and so the effect of the substituted mutation will no longer be present; this was the behavior of SLiM prior to SLiM 6.0, and remains the behavior of the default trait for backward compatibility.  If 
 \f1\fs18 baselineAccumulation
 \f2\fs20  is 
 \f1\fs18 T
@@ -1642,7 +1642,7 @@ The use of the
 \f1\fs18 baselineAccumulation
 \f2\fs20 , which is 
 \f1\fs18 F
-\f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 5.2.  The creation of the default trait occurs as a side effect of the first call to 
+\f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 6.0.  The creation of the default trait occurs as a side effect of the first call to 
 \f1\fs18 initializeMutationType()
 \f2\fs20 , if 
 \f1\fs18 initializeTrait()
