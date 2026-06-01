@@ -2,7 +2,7 @@
 //  eidos_simd_neon.cpp
 //  Eidos
 //
-//  Created by Andrew Kern on 5/21/2026.
+//  Created by Andrew Kern in 2026.
 //  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
