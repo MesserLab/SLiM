@@ -9454,14 +9454,14 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	size_t actual_binary_length = actual_mutation_table_size;
 	size_t actual_total_length = header_length + json_length + padding_length + actual_binary_length;
 	
+	*(uint64_t *)row_count_pointer = (uint64_t)actual_row_count;
+	
 	if (actual_total_length != estimated_total_length)
 	{
 		metadata_buffer = (uint8_t *)realloc(metadata_buffer, actual_total_length);
 		if (!metadata_buffer)
 			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
-	
-	*(uint64_t *)row_count_pointer = (uint64_t)actual_row_count;
 	
 	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
 	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)actual_mutation_table_size);
