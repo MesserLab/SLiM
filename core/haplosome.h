@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -46,16 +46,15 @@
 #include "../treerec/tskit/tables.h"
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<const MutationRun*, const MutationRun*> SLiMBulkOperationHashTable;
 typedef robin_hood::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<const MutationRun*, const MutationRun*> SLiMBulkOperationHashTable;
 typedef std::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
 #endif
-
 
 class Species;
 class Population;
@@ -63,9 +62,11 @@ class Subpopulation;
 class Individual;
 class Individual_Class;
 class HaplosomeWalker;
+class MutationBlock;
 
 
-extern EidosClass *gSLiM_Haplosome_Class;
+class Haplosome_Class;
+extern Haplosome_Class *gSLiM_Haplosome_Class;
 
 
 // Haplosome now keeps an array of MutationRun objects, and those objects actually hold the mutations of the haplosome.  This design
@@ -133,7 +134,8 @@ private:
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all haplosomes with the same initial MutationRun (since
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).  Note this is shared by all species.
-	static int64_t s_bulk_operation_id_;
+	static bool s_bulk_operation_in_progress_;
+	static slim_operation_id_t s_bulk_operation_id_;
 	static slim_mutrun_index_t s_bulk_operation_mutrun_index_;
 	static SLiMBulkOperationHashTable s_bulk_operation_runs_;
 	
@@ -162,13 +164,13 @@ public:
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
 			mutruns_ = run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 		}
 		else
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 #else
 			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
@@ -280,12 +282,12 @@ public:
 	// nothing about the operation being performed; it just plays around with MutationRun pointers, recognizing when the runs are
 	// identical.  The first call for a new operation ID will always return a pointer, and the caller will then perform the operation;
 	// subsequent calls for haplosomes with the same starting MutationRun will substitute the same final MutationRun and return nullptr.
-	static void BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
-	MutationRun *WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context);
-	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	static void BulkOperationStart(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	MutationRun *WillModifyRunForBulkOperation(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context);
+	static void BulkOperationEnd(slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	
 	// Remove all mutations in p_haplosome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
-	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+	inline __attribute__((always_inline)) void RemoveFixedMutations(Mutation *p_mut_block_ptr, slim_operation_id_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
@@ -297,11 +299,11 @@ public:
 		// Population::RemoveAllFixedMutations() for further context on this.
 		MutationRun *mutrun = const_cast<MutationRun *>(mutruns_[p_mutrun_index]);
 		
-		mutrun->RemoveFixedMutations(p_operation_id);
+		mutrun->RemoveFixedMutations(p_mut_block_ptr, p_operation_id);
 	}
 	
 	// TallyHaplosomeReferences_Checkback() counts up the total MutationRun references, using their usage counts, as a checkback
-	void TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
+	void TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, slim_operation_id_t p_operation_id);
 	
 	inline __attribute__((always_inline)) int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{
@@ -324,7 +326,7 @@ public:
 		}
 	}
 	
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	// BCH 10/15/2024: clearing haplosomes to nullptr is no longer required; it just slows us down.
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{
@@ -393,20 +395,20 @@ public:
 		// subpop_ = p_source_haplosome.subpop_;
 	}
 	
-	inline const std::vector<Mutation *> *derived_mutation_ids_at_position(slim_position_t p_position) const
+	inline const std::vector<Mutation *> *derived_mutation_ids_at_position(Mutation *p_mut_block_ptr, slim_position_t p_position) const
 	{
 		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(p_position / mutrun_length_);
 		
-		return mutruns_[run_index]->derived_mutation_ids_at_position(p_position);
+		return mutruns_[run_index]->derived_mutation_ids_at_position(p_mut_block_ptr, p_position);
 	}
 	
 	void record_derived_states(Species *p_species) const;
 	
 	// print the sample represented by haplosomes, using SLiM's own format
-	static void PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags);
+	static void PrintHaplosomes_SLiM(std::ostream &p_out, Species &p_species, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags);
 	
 	// print the sample represented by haplosomes, using "ms" format
-	static void PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
+	static void PrintHaplosomes_MS(std::ostream &p_out, Species &p_species, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
 	
 	// print the sample represented by haplosomes, using "vcf" format
 	static void PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs);
@@ -429,22 +431,22 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	static EidosValue_SP ExecuteMethod_Accelerated_containsMarkerMutation(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_containsMutations(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_containsMarkerMutation(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_containsMutations(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_haplosomePedigreeID(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_chromosomeSubposition(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_isNullHaplosome(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomePedigreeID(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_chromosomeSubposition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isNullHaplosome(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
-	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
 	friend class Haplosome_Class;
 	
@@ -473,7 +475,7 @@ public:
 	Haplosome_Class& operator=(const Haplosome_Class&) = delete;	// no copying
 	inline Haplosome_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
@@ -495,13 +497,14 @@ private:
 	const MutationIndex *mutrun_ptr_;			// a pointer to the current element in the mutation run
 	const MutationIndex *mutrun_end_;			// an end pointer for the mutation run
 	Mutation *mutation_;						// the current mutation pointer, or nullptr if we have reached the end of the haplosome
+	Mutation *mut_block_ptr_;					// a cached mutation block buffer pointer for our haplosome's species
 	
 public:
 	HaplosomeWalker(void) = delete;
 	HaplosomeWalker(const HaplosomeWalker &p_original) = default;
 	HaplosomeWalker& operator= (const HaplosomeWalker &p_original) = default;
 	
-	inline HaplosomeWalker(Haplosome *p_haplosome) : haplosome_(p_haplosome), mutrun_index_(-1), mutrun_ptr_(nullptr), mutrun_end_(nullptr), mutation_(nullptr) { NextMutation(); };
+	explicit HaplosomeWalker(Haplosome *p_haplosome);
 	HaplosomeWalker(HaplosomeWalker&&) = default;
 	inline ~HaplosomeWalker(void) {};
 	

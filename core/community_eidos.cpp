@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/28/2022.
-//  Copyright (c) 2022-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2022-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,7 @@
 
 #include "community.h"
 
+#include "trait.h"
 #include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
@@ -89,6 +90,7 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);			// NOLINT(*-branch-clone) : intentional consecutive branches
 	else if (p_function_name.compare(gStr_initializeMutationTypeNuc) == 0)		return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)	return active_species_->ExecuteContextFunction_initializeRecombinationRate(p_function_name, p_arguments, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeTrait) == 0)				return active_species_->ExecuteContextFunction_initializeTrait(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeChromosome) == 0)			return active_species_->ExecuteContextFunction_initializeChromosome(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)		return active_species_->ExecuteContextFunction_initializeGeneConversion(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return active_species_->ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_interpreter);
@@ -119,11 +121,12 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, "SLiM"))
 										->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocal, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+									   ->AddIntString_S("id")->AddNumeric_S("defaultDominance")->AddString_OSN("distributionType", gStaticEidosValueNULL)->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationTypeNuc, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+									   ->AddIntString_S("id")->AddNumeric_S("defaultDominance")->AddString_OSN("distributionType", gStaticEidosValueNULL)->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTrait, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Trait_Class, "SLiM"))->AddString_S("name")->AddString_S("type")->AddFloat_OSN("baselineOffset", gStaticEidosValueNULL)->AddFloat_OS("individualOffsetMean", gStaticEidosValue_Float0)->AddFloat_OS("individualOffsetSD", gStaticEidosValue_Float0)->AddLogical_OS("directFitnessEffect", gStaticEidosValue_LogicalF)->AddLogical_OS("baselineAccumulation", gStaticEidosValue_LogicalT));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeChromosome, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class, "SLiM"))->AddInt_S("id")->AddInt_OSN("length", gStaticEidosValueNULL)->AddString_OS("type", gStaticEidosValue_StringA)->AddString_OSN("symbol", gStaticEidosValueNULL)->AddString_OSN("name", gStaticEidosValueNULL)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric_S("nonCrossoverFraction")->AddNumeric_S("meanLength")->AddNumeric_S("simpleConversionFraction")->AddNumeric_OS("bias", gStaticEidosValue_Integer0)->AddLogical_OS("redrawLengthsOnFailure", gStaticEidosValue_LogicalF));
@@ -186,6 +189,32 @@ EidosSymbolTable *Community::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_sym
 		EIDOS_TERMINATION << "ERROR (Community::SymbolsFromBaseSymbols): (internal error) SLiM requires that its parent symbol table be the standard Eidos symbol table." << EidosTerminate();
 	
 	return simulation_constants_;
+}
+
+void Community::EnforceTimingRestriction_EventBlockOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
+{
+	// TIMING RESTRICTION
+	// must be called directly from an event block -- not from a callback, even if the callback was triggered inside the event block
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called directly from a first(), early(), or late() event" << p_addendum << "." << EidosTerminate();
+}
+
+void Community::EnforceTimingRestriction_ReproductionCallbackOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
+{
+	// TIMING RESTRICTION
+	// must be called directly from a reproduction() callback -- not from another callback, even if the callback was triggered inside the event block
+	if (executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called directly from a reproduction() callback" << p_addendum << "." << EidosTerminate();
+}
+
+void Community::EnforceTimingRestriction_FirstEventStageOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
+{
+	SLiMCycleStage cycle_stage = CycleStage();
+	
+	// TIMING RESTRICTION
+	// must be called during the first() event tick cycle stage, but can be within a called block during that stage
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts))
+		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called from a first() event" << p_addendum << "." << EidosTerminate();
 }
 
 //	*********************	(void)initializeSLiMModelType(string$ modelType)
@@ -386,6 +415,17 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_allTraits:
+		{
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto species : all_species_)
+				for (auto trait : species->Traits())
+					vec->push_object_element_RR(trait);
+			
+			return result_SP;
+		}
 		case gID_logFiles:
 		{
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_LogFile_Class);
@@ -462,7 +502,16 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 			slim_tick_t old_tick = tick_;
 			slim_tick_t new_tick = SLiMCastToTickTypeOrRaise(value);
 			
+			// BCH 2/25/2026: If the tick value is not actually changing, ignore the property set
+			if (old_tick == new_tick)
+				return;
+			
 			SetTick(new_tick);
+			
+			// TRAIT INVALIDATION: If the tick changes arbitrarily, we invalidate all trait values in all species.
+			// This seems wise since the mutationEffect() callback milieu might have shifted arbitrarily, etc.
+			for (Species *species : AllSpecies())
+				species->InvalidateAllTraitValues();
 			
 			// Setting the tick into the future is generally harmless; the simulation logic is designed to handle that anyway, since
 			// that happens every tick.  Setting the tick into the past is a bit tricker, since some things that have already
@@ -495,7 +544,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 								old_last_valid_history_index = history_record.history_length_ - 1;
 							
 							for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
-								history[entry_index] = NAN;
+								history[entry_index] = std::numeric_limits<double>::quiet_NaN();
 						}
 					}
 					
@@ -707,11 +756,33 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 		}
 		else
 		{
+			// TIMING RESTRICTION
+			// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+			// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+			if (block->species_spec_ && ((block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
+			{
+				if (block->species_spec_->InsideTraitOrFitnessCalculation())
+					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+				if (block->species_spec_->Active() && ((cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be deregistered during the fitness recalculation tick cycle stage." << EidosTerminate();
+			}
+			
 			// all other script blocks go on the main list and get cleared out at the end of each cycle stage
 			if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
 			scheduled_deregistrations_.emplace_back(block);
+			
+			// TRAIT INVALIDATION: If the block being deregistered is a mutationEffect() callback, we need to
+			// invalidate all trait values that that callback would potentially affect, to force recalculation
+			// FIXME MULTITRAIT: I think there is a small bug here.  If a mutationEffect() callback is deregistered
+			// during, say, an early() event and then demand is expressed immediately after, that deregistered
+			// block will still be in effect and will be used in the demand (this is technically not a bug, I think,
+			// as this behavior of deregistration is documented), and then when the block is actually deregistered
+			// at the end of the tick cycle stage the trait values will not be invalidated to reflect that the
+			// callback is now no longer in effect (this is the bug).  I'm not sure what I want to do with this.
+			if ((block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && block->ActiveInTick(Tick()))
+				block->species_spec_->NoteChangedMutationEffectCallback(block);
 			
 #if DEBUG_BLOCK_REG_DEREG
 			std::cout << "deregisterScriptBlock() called for block:" << std::endl;
@@ -971,6 +1042,7 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	// Mutation
 	out << "   Mutation objects (" << usage_all_species.mutationObjects_count << "): " << PrintBytes(usage_all_species.mutationObjects) << std::endl;
 	out << "      Refcount buffer: " << PrintBytes(usage_community.mutationRefcountBuffer) << std::endl;
+	out << "      Per-trait buffer: " << PrintBytes(usage_community.mutationPerTraitBuffer) << std::endl;
 	out << "      Unused pool space: " << PrintBytes(usage_community.mutationUnusedPoolSpace) << std::endl;
 	
 	// MutationRun
@@ -1150,7 +1222,22 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
 	}
 	
+	// TIMING RESTRICTION
+	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
+	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
+	if (block->species_spec_ && ((block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback) || (block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)))
+	{
+		if (block->species_spec_->InsideTraitOrFitnessCalculation())
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+		if (block->species_spec_->Active() && ((cycle_stage_ == SLiMCycleStage::kWFStage6CalculateFitness) || (cycle_stage_ == SLiMCycleStage::kNonWFStage3CalculateFitness)))
+				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): fitnessEffect() and mutationEffect() callback script blocks may not be rescheduled during the fitness recalculation tick cycle stage." << EidosTerminate();
+	}
+	
+	// remember whether the block is currently active in this tick, for use below
+	bool block_active_now = block->ActiveInTick(Tick());
+	
 	SLiMCycleStage stage = CycleStageForScriptBlockType(block->type_);
+	EidosValue_SP retval;
 	
 	if ((!start_null || !end_null) && ticks_null)
 	{
@@ -1180,7 +1267,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		gSLiMScheduling << std::endl;
 #endif
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
+		retval = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
 	}
 	else if (!ticks_null && (start_null && end_null))
 	{
@@ -1268,12 +1355,26 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		gSLiMScheduling << std::endl;
 #endif
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
+		retval = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
 	}
 	else
 	{
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires that either start/end or ticks be supplied, but not both." << EidosTerminate();
 	}
+	
+	// TRAIT INVALIDATION: If the block being rescheduled is a mutationEffect() callback, we need to
+	// invalidate all trait values that that callback would potentially affect, to force recalculation
+	if ((block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && block->block_active_)
+	{
+		bool block_active_when_rescheduled = block->ActiveInTick(Tick());
+		
+		// we invalidate specifically if the block was active in the current tick and now is inactive, or
+		// if it was inactive in the current tick and now is active, such that trait values will change
+		if (block_active_now != block_active_when_rescheduled)
+			block->species_spec_->NoteChangedMutationEffectCallback(block);
+	}
+	
+	return retval;
 }
 
 //	*********************	- (void)simulationFinished(void)
@@ -1332,10 +1433,10 @@ EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, co
 #pragma mark Community_Class
 #pragma mark -
 
-EidosClass *gSLiM_Community_Class = nullptr;
+Community_Class *gSLiM_Community_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Community_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1343,7 +1444,7 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Community_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allGenomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allInteractionTypes,	true,	kEidosValueMaskObject, gSLiM_InteractionType_Class)));
@@ -1351,6 +1452,7 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allScriptBlocks,		true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allSpecies,				true,	kEidosValueMaskObject, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allSubpopulations,		true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allTraits,				true,	kEidosValueMaskObject, gSLiM_Trait_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logFiles,				true,	kEidosValueMaskObject, gSLiM_LogFile_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tick,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

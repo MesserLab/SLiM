@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -544,7 +544,7 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess_L("function (void)mod(void) { defineGlobal('x', rbind(x, 2)); } x = 1; mod(); identical(x, rbind(1, 2));", true);
 	EidosAssertScriptSuccess_L("function (void)mod(void) { defineGlobal('x', rbind(x, 2.0)); } x = 1.0; mod(); identical(x, rbind(1.0, 2.0));", true);
 	
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("x = 5e18; x = x + 5e18;", 16, "overflow with the binary");
 	EidosAssertScriptRaise("x = c(5e18, 0); x = x + 5e18;", 22, "overflow with the binary");
 	EidosAssertScriptRaise("x = -5e18; x = x - 5e18;", 17, "overflow with the binary");

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -45,7 +45,8 @@ class Species;
 class Individual;
 
 
-extern EidosClass *gSLiM_Chromosome_Class;
+class Chromosome_Class;
+extern Chromosome_Class *gSLiM_Chromosome_Class;
 
 
 class Chromosome : public EidosDictionaryRetained
@@ -198,6 +199,7 @@ public:
 	
 	Community &community_;
 	Species &species_;
+	MutationBlock *mutation_block_ = nullptr;				// NOT OWNED; a pointer to the MutationBlock from the species
 	
 	// the total haplosome count depends on the chromosome; it will be different for an autosome versus a sex chromosome, for example
 	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count
@@ -279,16 +281,24 @@ public:
 	// a user-defined tag value
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
+	// OPTIMIZATION FLAGS
+	
+#if SLIM_USE_NONNEUTRAL_CACHES()
+	// this flag is set whenever a change invalidates all non-neutral caches in the chromosome; the caches will be re-validated the next time they are used
+	// note that there are finer-grained invalidation flags elsewhere that should be used if a total invalidation is not actually necessary, to save work
+	bool all_nonneutral_caches_invalid_for_chromosome_ = true;
+#endif	// SLIM_USE_NONNEUTRAL_CACHES()
+	
 	// PROFILING : Chromosome keeps track of some additional profile information that is per-chromosome
 #if (SLIMPROFILING == 1)
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
 	int64_t profile_mutation_total_usage_ = 0;										// how many (non-unique) mutations were used by mutation runs, summed across cycles
 	int64_t profile_nonneutral_mutation_total_ = 0;									// of profile_mutation_total_usage_, how many were deemed to be nonneutral
 	int64_t profile_mutrun_total_usage_ = 0;										// how many (non-unique) mutruns were used by haplosomes, summed across cycles
 	int64_t profile_unique_mutrun_total_ = 0;										// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
 	int64_t profile_mutrun_nonneutral_recache_total_ = 0;							// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
-#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 #endif	// (SLIMPROFILING == 1)
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
@@ -431,6 +441,7 @@ public:
 	void FinishMutationRunExperimentTiming(void);
 	void PrintMutationRunExperimentSummary(void);
 	inline __attribute__((always_inline)) bool MutationRunExperimentsEnabled(void) { return x_experiments_enabled_; }
+	inline __attribute__((always_inline)) bool WithinMutationRunExperimentPeriod(void) { return x_within_measurement_period_; }
 	
 	// Mutation run experiment timing.  We use these methods to accumulate clocks taken in critical sections of the code.
 	// Note that this design does NOT include time taken in first()/early()/late() events; since script blocks can do very
@@ -742,13 +753,13 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 			{
 				back->mutruns_ = back->run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 				EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
 			}
 			else
 			{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 				back->mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 #else
 				back->mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
@@ -757,7 +768,7 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 		}
 		else
 		{
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 			// the number of mutruns is unchanged, but we need to zero out the reused buffer here
 			EIDOS_BZERO(back->mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 #endif
@@ -780,7 +791,7 @@ inline __attribute__((always_inline)) void Chromosome::FreeHaplosome(Haplosome *
 #if DEBUG
 	p_haplosome->individual_ = nullptr;		// crash if anybody tries to use this pointer after the free
 #endif
-#if SLIM_CLEAR_HAPLOSOMES
+#if SLIM_CLEAR_HAPLOSOMES()
 	p_haplosome->clear_to_nullptr();
 #endif
 	
@@ -807,7 +818,7 @@ public:
 	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
 	inline Chromosome_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 

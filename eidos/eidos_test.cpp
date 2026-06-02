@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -293,7 +293,7 @@ int RunEidosTests(void)
 	gEidosTestSuccessCount = 0;
 	gEidosTestFailureCount = 0;
 	
-#if (!EIDOS_HAS_OVERFLOW_BUILTINS)
+#if !EIDOS_HAS_OVERFLOW_BUILTINS()
 	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
 #endif
 	
@@ -1967,10 +1967,10 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptRaise("abs(-10, -10);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("abs(x=-10, -10);", 0, "too many arguments supplied");
 	EidosAssertScriptSuccess_I("abs(x=-10);", 10);
-	EidosAssertScriptRaise("abs(y=-10);", 0, "skipped over required argument");
+	EidosAssertScriptRaise("abs(y=-10);", 4, "unrecognized named argument 'y'");
 	EidosAssertScriptRaise("abs(x=-10, x=-10);", 0, "supplied more than once");
-	EidosAssertScriptRaise("abs(x=-10, y=-10);", 0, "unrecognized named argument 'y'");
-	EidosAssertScriptRaise("abs(y=-10, x=-10);", 0, "skipped over required argument");
+	EidosAssertScriptRaise("abs(x=-10, y=-10);", 11, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("abs(y=-10, x=-10);", 4, "unrecognized named argument 'y'");
 	
 	EidosAssertScriptSuccess_I("integerDiv(6, 3);", 2);
 	EidosAssertScriptRaise("integerDiv(6, 3, 3);", 0, "too many arguments supplied");
@@ -1999,17 +1999,17 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptSuccess_NULL("c(NULL);");
 	EidosAssertScriptSuccess_I("c(2);", 2);
 	EidosAssertScriptSuccess_IV("c(1, 2, 3);", {1, 2, 3});
-	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument 'x'");
-	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "unrecognized named argument 'x'");
-	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "unrecognized named argument 'x'");
-	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(x=2);", 2, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(x=1, 2, 3);", 2, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(1, x=2, 3);", 5, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(1, 2, x=3);", 8, "unrecognized named argument 'x'");
 	
 	EidosAssertScriptSuccess_I("doCall('abs', -10);", 10);
 	EidosAssertScriptSuccess_I("doCall(functionName='abs', -10);", 10);
-	EidosAssertScriptRaise("doCall(x='abs', -10);", 0, "skipped over required argument");
-	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("doCall(x='abs', -10);", 7, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("doCall('abs', x=-10);", 14, "unrecognized named argument 'x'");
 	EidosAssertScriptRaise("doCall('abs', functionName=-10);", 0, "could not be matched");
-	EidosAssertScriptRaise("doCall(x='abs');", 0, "skipped over required argument");
+	EidosAssertScriptRaise("doCall(x='abs');", 7, "unrecognized named argument 'x'");
 	EidosAssertScriptRaise("doCall(functionName='abs');", 0, "requires 1 argument(s), but 0 are supplied");
 	
 	EidosAssertScriptRaise("foobaz();", 0, "unrecognized function name");

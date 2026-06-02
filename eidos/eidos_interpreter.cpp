@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/4/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -958,10 +958,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_nod
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NullStatement()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NullStatement", 0);
 	
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -1179,7 +1176,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 	std::vector<uint8_t> &no_fill_index = argument_cache->no_fill_index_;
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
-	std::vector<uint8_t> filled_explicitly;		// locally, we need a vector that tells us whether an index was filed explicitly or by default
+	std::vector<uint8_t> filled_explicitly;		// locally, we need a vector that tells us whether an index was filled explicitly or by default
 	
 	// Run through the argument nodes, reserve space for them in the arguments buffer, and evaluate default/constant values once for all calls
 	auto node_children_end = node_children.end();
@@ -1276,7 +1273,18 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 							
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							// Special error-handling for evaluate() because its immediate parameter was removed in SLiM 3.5
+							if ((p_call_signature->call_name_ == "evaluate") && (named_arg == "immediate"))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The evaluate() method was changed in SLiM 4.0, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							
+							// Check whether this named argument exists in the call signature, but is skipping over a required argument, or if it doesn't
+							// match any named argument in the call.  If the latter, we emit a more specific error message now.  To help with autofixing,
+							// it marks the position of the argument name as the error position, which is not how most errors here are reported.
+							for (int sig_check_index = 0; sig_check_index < sig_arg_count; ++sig_check_index)
+								if (p_call_signature->arg_names_[sig_check_index] == named_arg)
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "(); check that the argument name is spelled correctly." << EidosTerminate(named_arg_name_node->token_);
 						}
 						
 						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1374,7 +1382,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument '" << named_arg << "' to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
+				// BCH 11/2/2025: Changing this to highlight the named argument, rather than the call, to help with autofixing
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "(); check that the argument name is spelled correctly." << EidosTerminate(named_arg_name_node->token_);
 			}
 			else
 			{
@@ -1419,9 +1428,257 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 	}
 }
 
+std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
+{
+	EidosASTNode_ArgumentCache *argument_cache = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+	
+#if DEBUG
+	if (argument_cache)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList_CREATE): (internal) argument cache exists." << EidosTerminate(nullptr);
+#endif
+	
+	std::vector<EidosValue_SP> *argument_buffer = nullptr;
+	
+	// We don't already have an argument cache, so create one and use it
+	
+	// If the call has an ellipsis and variants, find the variant that applies and switch to it
+	// The first variant that the call complies with is the variant that is used to generate the argument cache
+	// Note that this is a modification of the main path for _ProcessArgumentList_CREATE(), but inside a loop!
+	// See the main code path for comments; comments here will only note differences from the main path.
+	if (p_call_signature->has_ellipsis_ && (p_call_signature->ellipsis_variants_.size() > 0))
+	{
+		// We want to throw exceptions, even in SLiM, so that we can catch them here
+		bool save_throws = gEidosTerminateThrows;
+		
+		// a vector of evaluated arguments that is filled lazily; this is necessary because we only want to
+		// evaluate the arguments once, and only *after* we find an otherwise viable candidate signature
+		std::vector<EidosValue_SP> evaluated_arguments;
+		const std::vector<EidosCallSignature *> &ellipsis_variants = p_call_signature->ellipsis_variants_;
+		size_t variant_count = ellipsis_variants.size();
+		std::string variant_errors;		// accumulates error messages from variants that are rejected
+		
+		variant_errors = "ERROR (EidosInterpreter::_ProcessArgumentList): the arguments of the call to ";
+		variant_errors += p_call_signature->call_name_;
+		variant_errors += "() did not match any of its defined variants:\n";
+		
+		for (size_t variant_index = 0; variant_index < variant_count; ++variant_index)
+		{
+			EidosCallSignature *variant_signature = ellipsis_variants[variant_index];
+			
+			gEidosTerminateThrows = true;
+			
+			try {
+				// note that ellipsis variants can contain an ellipsis, but cannot contain ellipsis variants
+				// (the logic here is not recursive); we don't check for that, we just ignore any present
+				_CreateArgumentList(p_node, variant_signature);
+			}
+			catch (...)		// NOLINT(*-empty-catch) : intentional empty catch
+			{
+				// if an error is caught, we just move silently on to trying the next variant; but we
+				// need to clean up the mess we made above first, to reset to the uninitialized state
+				free(p_node->argument_cache_);
+				p_node->argument_cache_ = nullptr;
+				
+				// accumulate the error message for this variant into variant_errors
+				variant_errors += "\nvariant ";
+				variant_errors += std::to_string(variant_index);
+				variant_errors += ": ";
+				variant_errors += Eidos_string_getRemainder(gEidosTermination.str(), "): ");
+				
+				// clean up the error state since we don't want this throw to be reported
+				gEidosTermination.clear();
+				gEidosTermination.str("");
+				gEidosTerminateThrows = save_throws;
+				continue;
+			}
+			
+			gEidosTerminateThrows = save_throws;
+			
+			argument_cache = p_node->argument_cache_;
+			assert(argument_cache);
+			argument_buffer = &argument_cache->argument_buffer_;
+			argument_cache->argument_buffer_in_use_ = true;
+			
+			// now fill arguments, which might or might not have already been evaluated; we might
+			// evaluate two arguments and then fail the typecheck, loop to the next variant, and
+			// try again, in which case two arguments will have been evaluated and cached so far
+			std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+			size_t fill_info_index = 0;
+			
+			for (const EidosASTNode_ArgumentFill &fill : fill_info)
+			{
+				EidosValue_SP arg_value;
+				
+				if (fill_info_index < evaluated_arguments.size())
+				{
+					// we have this argument cached already, from a previous (rejected) variant
+					arg_value = evaluated_arguments[fill_info_index];
+				}
+				else
+				{
+					// we do not have this argument cached already, so evaluate and cache it; note that
+					// this can raise, and we don't catch it; if evaluating an argument raises, that is
+					// an error that has nothing to do with variants, and should be shown to the user
+					arg_value = FastEvaluateNode(fill.fill_node_);
+					
+					evaluated_arguments.push_back(arg_value);	// takes its own shared pointer
+				}
+				
+				gEidosTerminateThrows = true;
+				
+				try {
+					variant_signature->CheckArgument(arg_value.get(), fill.signature_index_);
+				}
+				catch (...)		// NOLINT(*-empty-catch) : intentional empty catch
+				{
+					// if an error is caught, we just move silently on to trying the next variant; but we
+					// need to clean up the mess we made above first, to reset to the uninitialized state
+					free(p_node->argument_cache_);
+					p_node->argument_cache_ = nullptr;
+					argument_cache = nullptr;
+					argument_buffer = nullptr;
+					
+					// accumulate the error message for this variant into variant_errors
+					variant_errors += "\nvariant ";
+					variant_errors += std::to_string(variant_index);
+					variant_errors += ": ";
+					variant_errors += Eidos_string_getRemainder(gEidosTermination.str(), "): ");
+					
+					// clean up the error state since we don't want this throw to be reported
+					gEidosTermination.clear();
+					gEidosTermination.str("");
+					gEidosTerminateThrows = save_throws;
+					goto tryNextVariant;	// can't use continue because we're in a nested loop
+				}
+				
+				gEidosTerminateThrows = save_throws;
+				
+				(*argument_buffer)[fill.fill_index_] = std::move(arg_value);
+				fill_info_index++;
+			}
+			
+#if DEBUG
+			// now the argument should check against the variant signature, which we have matched
+			variant_signature->CheckArguments(*argument_buffer);
+#endif
+			
+			{
+				// OK, at this point we have a variant that matches, so we're happy with it; however, the
+				// argument buffer's fill_info is set up for the variant signature, and from now on we're
+				// going to be using the base signature to check the arguments for this call.  (We don't
+				// want to actually label this call as being associated with this variant signature, because
+				// that would lock that decision in place; we want to use the base signature to preserve
+				// the full dynamic character of the language, in case the user is doing something tricky
+				// with a dynamically typed argument at runtime that can fit different variants.)  So here
+				// we need to translate argument indices in the variant signature down to argument indices
+				// in the base signature.  This is actually easy: everything corresponding to the base
+				// signature's ellipsis gets mapped to that position, and everything after gets shifted down.
+				int base_ellipsis_index = -1;
+				
+				for (auto base_arg_name : p_call_signature->arg_names_) {
+					++base_ellipsis_index;
+					if (base_arg_name == gEidosStr_ELLIPSIS)
+						break;
+				}
+				
+				// The first argument in the variant signature that corresponds to the base signature's ellipsis
+				// is at the same index as the base signature ellipsis; it takes its place in the signature.
+				int first_variant_ellipsis_arg = base_ellipsis_index;
+				
+				// Arguments are allowed to follow the base signature's ellipsis; they must be the same in every variant.
+				// If there is one argument, which is the ellipsis at position 0, then there are 1 - 0 - 1 == 0 args after.
+				int args_after_ellipsis = (int)p_call_signature->arg_names_.size() - base_ellipsis_index - 1;
+				
+				// The last argument in the variant signature that corresponds to the base signature's ellipsis preserves
+				// the args_after_ellipsis entries; if there are two, for example, then the last ellipsis arg is two back
+				int variant_arg_count = (int)variant_signature->arg_names_.size();
+				int last_variant_ellipsis_arg = (variant_arg_count - 1) - args_after_ellipsis;
+				
+				// For those args_after_ellipsis entries, their index in the base signature differs from their index in
+				// the variant signature by the number of ellipsis args in the variant, *plus one* for the ellipsis itself
+				int shift_after_ellipsis = last_variant_ellipsis_arg - first_variant_ellipsis_arg;
+				
+				//std::cout << "remapping of arguments to " << p_call_signature->call_name_ << "() : " << std::endl;
+				//std::cout << "   base_ellipsis_index == " << base_ellipsis_index << std::endl;
+				//std::cout << "   first_variant_ellipsis_arg == " << first_variant_ellipsis_arg << std::endl;
+				//std::cout << "   args_after_ellipsis == " << args_after_ellipsis << std::endl;
+				//std::cout << "   variant_arg_count == " << variant_arg_count << std::endl;
+				//std::cout << "   last_variant_ellipsis_arg == " << last_variant_ellipsis_arg << std::endl;
+				//std::cout << "   shift_after_ellipsis == " << shift_after_ellipsis << std::endl;
+				
+				for (EidosASTNode_ArgumentFill &fill : fill_info)
+				{
+					uint8_t variant_sig_index = fill.signature_index_;
+					
+					if (variant_sig_index >= first_variant_ellipsis_arg)
+					{
+						if (variant_sig_index <= last_variant_ellipsis_arg)
+						{
+							//std::cout << "      fill arg at index " << fill.fill_index_ << " (variant signature index " << (int)variant_sig_index << ") is within the ellipsis range -> " << base_ellipsis_index << std::endl;
+							fill.signature_index_ = (uint8_t)base_ellipsis_index;	// use the base ellipsis index for all variant ellipsis args
+						}
+						else
+						{
+							//std::cout << "      fill arg at index " << fill.fill_index_ << " (variant signature index " << (int)variant_sig_index << ") is after the ellipsis, so shifts to " << (fill.signature_index_ - shift_after_ellipsis) << std::endl;
+							fill.signature_index_ -= shift_after_ellipsis;			// shift by shift_after_ellipsis for args after the variant args
+						}
+					}
+					else
+					{
+						//std::cout << "      fill arg at index " << fill.fill_index_ << " (variant signature index " << (int)variant_sig_index << ") is before the ellipsis, so is untransformed" << std::endl;
+					}
+				}
+				
+#if DEBUG
+				// now the arguments should check against the base signature, which will be used henceforth
+				p_call_signature->CheckArguments(*argument_buffer);
+#endif
+			}
+			
+			return argument_buffer;
+			
+		tryNextVariant:
+			;
+		}
+		
+		if (Eidos_string_hasSuffix(variant_errors, "\n"))
+			variant_errors.pop_back();
+		EIDOS_TERMINATION << variant_errors << EidosTerminate(nullptr);
+	}
+	
+	// This is the main code path, for a signature without ellipsis variants
+	_CreateArgumentList(p_node, p_call_signature);
+	argument_cache = p_node->argument_cache_;
+	assert(argument_cache);		// static analyzer doesn't understand that _CreateArgumentList() created the cache
+	argument_buffer = &argument_cache->argument_buffer_;
+	argument_cache->argument_buffer_in_use_ = true;
+	
+	std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+	
+	// Now our argument cache is all ready to use; we just need to fill and type-check arguments
+	for (const EidosASTNode_ArgumentFill &fill : fill_info)
+	{
+		// Get the argument value by evaluating the AST node responsible for providing it
+		EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
+		
+		// Type-check the value; note that default/constant arguments are type-checked during signature construction
+		p_call_signature->CheckArgument(arg_value.get(), fill.signature_index_);
+		
+		// Move the argument value into the argument buffer
+		(*argument_buffer)[fill.fill_index_] = std::move(arg_value);
+	}
+	
+	// call CheckArguments() to double-check for errors when in DEBUG; this can be removed eventually, it's just for the transition to the new argument buffers
+#if DEBUG
+	p_call_signature->CheckArguments(*argument_buffer);
+#endif
+	
+	return argument_buffer;
+}
+
 EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments)
 {
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -1620,7 +1877,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, function_signature);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -1670,7 +1927,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) function " << *function_name << " returned nullptr." << EidosTerminate(call_identifier_token);
 #endif
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -1746,7 +2003,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, method_signature);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -1779,7 +2036,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		_DeprocessArgumentList(p_node, argument_buffer);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -2171,7 +2428,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 	}
 	else
 	{
-		// binary plus is legal either between two numeric types, or between a string and any other non-NULL operand
+		// binary plus is legal either between two numeric types, or between logical and logical, or between integer and logical, or between a string and any other non-NULL operand
 		EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 		EidosValueType first_child_type = first_child_value->Type();
 		
@@ -2328,6 +2585,138 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					int_result->set_int_no_check(add_result, value_index);
 				}
+				
+				result_SP = int_result_SP;
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+			}
+		}
+		else if ((first_child_type == EidosValueType::kValueLogical) && (second_child_type == EidosValueType::kValueLogical))
+		{
+			// both operands are logical, so we are computing an integer result
+			if (first_child_count == second_child_count)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (first_child_count == 1)
+			{
+				eidos_logical_t singleton_logical = first_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				
+				for (int value_index = 0; value_index < second_child_count; ++value_index)
+					int_result->set_int_no_check(singleton_logical + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (second_child_count == 1)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				eidos_logical_t singleton_logical = second_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + singleton_logical, value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+			}
+		}
+		else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueLogical))
+		{
+			// integer + logical -> integer result; we will gloss over the possibility of overflow here since it is so remote
+			if (first_child_count == second_child_count)
+			{
+				const int64_t *first_child_data = first_child_value->IntData();
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (first_child_count == 1)
+			{
+				int64_t singleton_integer = first_child_value->IntAtIndex_NOCAST(0, operator_token);
+				const eidos_logical_t *second_child_data = second_child_value->LogicalData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				
+				for (int value_index = 0; value_index < second_child_count; ++value_index)
+					int_result->set_int_no_check(singleton_integer + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (second_child_count == 1)
+			{
+				const int64_t *first_child_data = first_child_value->IntData();
+				eidos_logical_t singleton_logical = second_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + singleton_logical, value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+			}
+		}
+		else if ((first_child_type == EidosValueType::kValueLogical) && (second_child_type == EidosValueType::kValueInt))
+		{
+			// logical + integer -> integer result; we will gloss over the possibility of overflow here since it is so remote
+			if (first_child_count == second_child_count)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				const int64_t *second_child_data = second_child_value->IntData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (first_child_count == 1)
+			{
+				eidos_logical_t singleton_logical = first_child_value->LogicalAtIndex_NOCAST(0, operator_token);
+				const int64_t *second_child_data = second_child_value->IntData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				
+				for (int value_index = 0; value_index < second_child_count; ++value_index)
+					int_result->set_int_no_check(singleton_logical + second_child_data[value_index], value_index);
+				
+				result_SP = int_result_SP;
+			}
+			else if (second_child_count == 1)
+			{
+				const eidos_logical_t *first_child_data = first_child_value->LogicalData();
+				int64_t singleton_logical = second_child_value->IntAtIndex_NOCAST(0, operator_token);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					int_result->set_int_no_check(first_child_data[value_index] + singleton_logical, value_index);
 				
 				result_SP = int_result_SP;
 			}
@@ -4038,7 +4427,7 @@ compoundAssignmentSkip:
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		EidosValue_SP rvalue = FastEvaluateNode(p_node->children_[1]);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -5322,7 +5711,7 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	EidosASTNode *condition_node = p_node->children_[0];
 	EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -5438,7 +5827,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -5500,7 +5889,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[1];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
@@ -5572,7 +5961,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[0];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 		// SLiMgui debugging point
 		EidosDebugPointIndent indenter;
 		
@@ -5869,7 +6258,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	{
 		for (int range_index = 0; range_index < iteration_count; ++range_index)
 		{
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			bool log_debug_point = false;
@@ -5918,7 +6307,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						*int_data = iterator_int_value;
 					}
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 					// SLiMgui debugging point
 					if (log_debug_point)
 					{
@@ -6017,7 +6406,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						}
 					}
 					
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 					// SLiMgui debugging point
 					if (log_debug_point)
 					{
@@ -6031,7 +6420,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 #endif
 				}
 				
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				if (log_debug_point)
 				{
@@ -6124,7 +6513,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Next()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Next", 0);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6152,7 +6541,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Break()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Break", 0);
 
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6196,7 +6585,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	else
 		result_SP = FastEvaluateNode(p_node->children_[0]);
 	
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	

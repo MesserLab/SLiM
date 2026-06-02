@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/1/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -78,8 +78,9 @@ EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 		return super::GetProperty(p_property_id);
 }
 
-EidosValue *EidosTestElement::GetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size)
+EidosValue *EidosTestElement::GetProperty_Accelerated__yolk(EidosGlobalStringID p_property_id, EidosObject **p_elements, size_t p_elements_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
@@ -105,8 +106,9 @@ void EidosTestElement::SetProperty(EidosGlobalStringID p_property_id, const Eido
 		return super::SetProperty(p_property_id, p_value);
 }
 
-void EidosTestElement::SetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size)
+void EidosTestElement::SetProperty_Accelerated__yolk(EidosGlobalStringID p_property_id, EidosObject **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_property_id)
 	if (p_source_size == 1)
 	{
 		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
@@ -192,10 +194,10 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 #pragma mark EidosTestElement_Class
 #pragma mark -
 
-EidosClass *gEidosTestElement_Class = nullptr;
+EidosTestElement_Class *gEidosTestElement_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -203,7 +205,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Propertie
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElement_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(EidosTestElement::GetProperty_Accelerated__yolk)->DeclareAcceleratedSet(EidosTestElement::SetProperty_Accelerated__yolk));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class)));
@@ -336,10 +338,10 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElementNRR(const std::vector<Eid
 #pragma mark EidosTestElementNRR_Class
 #pragma mark -
 
-EidosClass *gEidosTestElementNRR_Class = nullptr;
+EidosTestElementNRR_Class *gEidosTestElementNRR_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -347,7 +349,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Proper
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElementNRR_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		

@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/8/16.
-//  Copyright (c) 2016-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2016-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -17,6 +17,9 @@
 //
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
+
+#ifdef EIDOS_GUI
+// EidosTypeTable and EidosTypeInterpreter are only used in EidosScribe, SLiMguiLegacy, and QtSLiM
 
 #include "eidos_type_table.h"
 
@@ -165,6 +168,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTypeTable &p_symb
 	return p_outstream;
 }
 
+#endif // EIDOS_GUI
 
 
 

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -23,6 +23,7 @@
 #import "CocoaExtra.h"
 
 #include "community.h"
+#include "mutation_block.h"
 
 
 NSString *SLiMChromosomeSelectionChangedNotification = @"SLiMChromosomeSelectionChangedNotification";
@@ -156,6 +157,102 @@ static const int spaceBetweenChromosomes = 5;
 	slim_position_t base = (slim_position_t)floor(fraction * (displayedRange.length + 1) + displayedRange.location);
 	
 	return base;
+}
+
+static double MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info)
+{
+	// This calculates the composite fitness effect of a mutation for all traits that have a direct fitness effect.
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	double fitnessEffect = 1.0;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+			fitnessEffect *= (double)mut_trait_info[trait_index].homozygous_effect_;
+	}
+	
+	return fitnessEffect;
+}
+
+static double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_)
+{
+	// This calculates the composite fitness effect of a substitution for all traits that have a direct fitness effect.
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	double fitnessEffect = 1.0;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			if (trait->Type() == TraitType::kMultiplicative)
+				fitnessEffect *= (1.0 + (double)sub_trait_info_[trait_index].effect_size_);     // 1+s
+			else
+				fitnessEffect *= 2.0 * (double)sub_trait_info_[trait_index].effect_size_;       // 2a
+		}
+	}
+	
+	return fitnessEffect;
+}
+
+static double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type)
+{
+	// This calculates the composite fitness effect of a mutation type for all traits that have a direct fitness effect,
+	// using the mutation type's fixed (type 'f') effect; if a direct fitness effect is not type 'f', NAN is returned.
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	double fitnessEffect = 1.0;
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
+			
+			if (DES_info.DES_type_ != DESType::kFixed)
+				return std::numeric_limits<double>::quiet_NaN();
+			
+			double fixed_effect = DES_info.DES_parameters_[trait_index];
+			
+			if (trait->Type() == TraitType::kMultiplicative)
+				fitnessEffect *= (1.0 + fixed_effect);          // 1+s
+			else
+				fitnessEffect *= 2.0 * fixed_effect;            // 2a
+		}
+	}
+	
+	return fitnessEffect;
+}
+
+static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info)
+{
+	// This checks that a given mutation matches its mutation type's fixed effects (see MutTypeFixedFitnessEffect())
+	slim_trait_index_t trait_count = displaySpecies->TraitCount();
+	const std::vector<Trait *> &traits = displaySpecies->Traits();
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		Trait *trait = traits[trait_index];
+		
+		if (trait->HasDirectFitnessEffect())
+		{
+			// all direct fitness effects are guaranteed by MutTypeFixedFitnessEffect() to be type 'f'
+			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
+			double fixed_effect = DES_info.DES_parameters_[trait_index];
+			
+			if ((slim_effect_t)fixed_effect != mut_trait_info[trait_index].effect_size_)
+				return false;
+		}
+	}
+	
+	return true;
 }
 
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
@@ -471,7 +568,6 @@ static const int spaceBetweenChromosomes = 5;
 
 - (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
@@ -511,7 +607,10 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						double mut_fitness = SubstitutionFitnessEffect(displaySpecies, substitution->trait_info_);
+						
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_fitness, &colorRed, &colorGreen, &colorBlue);
+						
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 				}
@@ -583,7 +682,10 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						double mut_fitness = SubstitutionFitnessEffect(displaySpecies, substitution->trait_info_);
+						
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_fitness, &colorRed, &colorGreen, &colorBlue);
+						
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -632,21 +734,22 @@ static const int spaceBetweenChromosomes = 5;
 
 - (void)drawMutationsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
 	slim_chromosome_index_t chromosome_index = chromosome->Index();
 	Population &pop = displaySpecies->population_;
 	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	if ((registry_size < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
 		// This is the simple version of the display code, avoiding the memory allocations and such
 		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			const Mutation *mutation = mut_block_ptr + registry[registry_index];
+			MutationIndex mut_index = registry[registry_index];
+			const Mutation *mutation = mut_block_ptr + mut_index;
 			
 			if (mutation->chromosome_index_ == chromosome_index)	// display only mutations in the displayed chromosome
 			{
@@ -664,8 +767,10 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
+						double mut_effect = MutationFitnessEffect(displaySpecies, mutation_block->TraitInfoForIndex(mut_index));
 						float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
-						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_effect, &colorRed, &colorGreen, &colorBlue);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -679,10 +784,10 @@ static const int spaceBetweenChromosomes = 5;
 	{
 		// We have a lot of mutations, so let's try to be smarter.  It's hard to be smarter.  The overhead from allocating the NSColors and such
 		// is pretty negligible; practially all the time is spent in NSRectFill().  Unfortunately, NSRectFillListWithColors() provides basically
-		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DFE,
+		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DES,
 		// and thus a fixed color, we can do a radix sort of mutations into bins corresponding to each pixel in our displayed image.  Then we
-		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DFEs, and mutations which have
-		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
+		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DESs, and mutations which have
+		// had their effect changed, will be drawn at the end in the usual (slow) way.
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		int displayPixelWidth = (int)interiorRect.size.width;
 		int16_t *heightBuffer = (int16_t *)malloc(displayPixelWidth * sizeof(int16_t));
@@ -701,20 +806,21 @@ static const int spaceBetweenChromosomes = 5;
 			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
+				double mut_type_fixed_effect = MutTypeFixedFitnessEffect(displaySpecies, mut_type); // NAN if no fixed effect
 				
-				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-				if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+				// We optimize fixed-DES mutation types only, and those using a fixed color set by the user
+				if (!isnan(mut_type_fixed_effect) || mut_type_fixed_color)
 				{
-					slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)mut_type->dfe_parameters_[0]);
-					
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
-					// Scan through the mutation list for mutations of this type with the right selcoeff
+					// Scan through the mutation list for mutations of this type with the right effect
 					for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 					{
-						const Mutation *mutation = mut_block_ptr + registry[registry_index];
+						MutationIndex mut_index = registry[registry_index];
+						const Mutation *mutation = mut_block_ptr + mut_index;
+						MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
 						
-						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || MutationFitnessEffectMatchesMutType(displaySpecies, mut_type, mut_trait_info)))
 						{
 							if (mutation->chromosome_index_ == chromosome_index)
 							{
@@ -744,7 +850,7 @@ static const int spaceBetweenChromosomes = 5;
 					}
 					else
 					{
-						RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_type_fixed_effect, &colorRed, &colorGreen, &colorBlue);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 					}
 					
@@ -790,16 +896,18 @@ static const int spaceBetweenChromosomes = 5;
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[registry_index])
 					{
-						const Mutation *mutation = mut_block_ptr + registry[registry_index];
+						MutationIndex mut_index = registry[registry_index];
+						const Mutation *mutation = mut_block_ptr + mut_index;
 						
 						if (mutation->chromosome_index_ == chromosome_index)
 						{
+							double mut_effect = MutationFitnessEffect(displaySpecies, mutation_block->TraitInfoForIndex(mut_index));
 							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 							slim_position_t mutationPosition = mutation->position_;
 							NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 							
 							mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-							RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							displaySpecies->fitness_effect_palette_->ColorForValue(mut_effect, &colorRed, &colorGreen, &colorBlue);
 							[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 							NSRectFill(mutationTickRect);
 						}
@@ -851,9 +959,10 @@ static const int spaceBetweenChromosomes = 5;
 					if (height)
 					{
 						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
-						const Mutation *mutation = mut_block_ptr + mutationBuffer[binIndex];
+						MutationIndex mut_index = mutationBuffer[binIndex];
+						double mut_effect = MutationFitnessEffect(displaySpecies, mutation_block->TraitInfoForIndex(mut_index));
 						
-						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						displaySpecies->fitness_effect_palette_->ColorForValue(mut_effect, &colorRed, &colorGreen, &colorBlue);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 						NSRectFill(mutationTickRect);
 					}
@@ -1011,7 +1120,7 @@ static const int spaceBetweenChromosomes = 5;
 			MutationType *muttype = muttype_iter.second;
 			slim_objectid_t muttype_id = muttype->mutation_type_id_;
 			
-			if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+			if (!muttype->all_neutral_DES_)	// judges based on DES, not based on the actual neutrality of the mutations of this type!
 				display_muttypes_.emplace_back(muttype_id);
 		}
 		

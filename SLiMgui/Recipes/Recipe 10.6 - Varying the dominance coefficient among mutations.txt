@@ -12,13 +12,7 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 mutation(m2) {
-	mut.setValue("dom", runif(1));
+	mut.setDominanceForTrait(NULL, runif(1));
 	return T;
-}
-mutationEffect(m2) {
-   if (homozygous)
-      return 1.0 + mut.selectionCoeff;
-   else
-      return 1.0 + mut.getValue("dom") * mut.selectionCoeff;
 }
 100000 late() { sim.outputFixedMutations(); }

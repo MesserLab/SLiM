@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/10/21.
-//  Copyright (c) 2021-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2021-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -692,7 +692,13 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subsetRows(EidosGlobalStringID p_met
 #pragma mark Object instantiation
 #pragma mark -
 
-//	(object<DataFrame>$)DataFrame(...)
+//	*********************	(object<DataFrame>$)DataFrame(...)
+//
+//		variant 1: void
+//		variant 2: s$ key, * value, ...
+//		variant 3: object<Dictionary>$ dictionary
+//		variant 4: string json
+//
 static EidosValue_SP Eidos_Instantiate_EidosDataFrame(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -1262,9 +1268,9 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 #pragma mark EidosDataFrame_Class
 #pragma mark -
 
-EidosClass *gEidosDataFrame_Class = nullptr;
+EidosDataFrame_Class *gEidosDataFrame_Class = nullptr;
 
-const std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -1272,7 +1278,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties(
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("EidosDataFrame_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_colNames,			true,	kEidosValueMaskString)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_dim,				true,	kEidosValueMaskInt)));
@@ -1321,7 +1327,23 @@ const std::vector<EidosFunctionSignature_CSP> *EidosDataFrame_Class::Functions(v
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_DataFrame, Eidos_Instantiate_EidosDataFrame, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddEllipsis());
+		// the DataFrame() constructor has four ellipsis variants
+		{
+			EidosFunctionSignature *ellipsisSignature = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_DataFrame, Eidos_Instantiate_EidosDataFrame, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddEllipsis();
+			
+			EidosFunctionSignature *variant1 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_DataFrame, Eidos_Instantiate_EidosDataFrame, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class));
+			EidosFunctionSignature *variant2 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_DataFrame, Eidos_Instantiate_EidosDataFrame, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddString_S("key")->AddAny("value")->AddEllipsis();
+			EidosFunctionSignature *variant3 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_DataFrame, Eidos_Instantiate_EidosDataFrame, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddObject_S("DataFrame", gEidosDictionaryRetained_Class);
+			EidosFunctionSignature *variant4 = (EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_DataFrame, Eidos_Instantiate_EidosDataFrame, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddString("json");
+			
+			// ownership of these objects is taken from us
+			ellipsisSignature->AddEllipsisVariant(variant1, "new empty");
+			ellipsisSignature->AddEllipsisVariant(variant2, "key-value pairs");
+			ellipsisSignature->AddEllipsisVariant(variant3, "Dictionary copy");
+			ellipsisSignature->AddEllipsisVariant(variant4, "from JSON");
+			
+			functions->emplace_back(ellipsisSignature);
+		}
 		
 		// I'm adding this here rather than in eidos_functions because it feels like a constructor, and thus belongs to the class,
 		// and having the code for it in this source file rather than eidos_functions.cpp feels more cohesive and comprehensible.

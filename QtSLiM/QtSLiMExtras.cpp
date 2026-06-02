@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -54,11 +54,11 @@
 #include "QtSLiMAppDelegate.h"
 
 #include "eidos_value.h"
+#include "slim_globals.h"
 
 
 bool QtSLiMIsMostlyOnScreen(QWidget *window)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     QRect f = window->frameGeometry();
     QScreen *screen1 = QGuiApplication::screenAt(f.topLeft());
     QScreen *screen2 = QGuiApplication::screenAt(f.topRight());
@@ -68,22 +68,14 @@ bool QtSLiMIsMostlyOnScreen(QWidget *window)
     int cornerCount = (!!screen1) + (!!screen2) + (!!screen3) + (!!screen4);
     if (!screen5) cornerCount = 0;
     return (cornerCount >= 2);
-#else
-    Q_UNUSED(window);
-    return true;
-#endif
 }
 
 void QtSLiMRelocateQuietly(QWidget *window)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     QScreen *primary = QGuiApplication::primaryScreen();
     QRect avail = primary ? primary->availableGeometry() : QRect(0,0,1024,768);
     window->resize(window->size().boundedTo(avail.size()));
     window->move(avail.topLeft() + QPoint(50, 50));
-#else
-    Q_UNUSED(window);
-#endif
 }
 
 void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
@@ -122,7 +114,6 @@ void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
     if (!QtSLiMIsMostlyOnScreen(window))
         QtSLiMRelocateQuietly(window);
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     // If still not actually exposed (e.g., exclusive fullscreen), re-check shortly and then try other screens
     if (QWindow *w = window->windowHandle())
     {
@@ -157,7 +148,6 @@ void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
             });
         }
     }
-#endif
 }
 
 void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets)
@@ -241,9 +231,13 @@ QString QtSLiMImagePath(QString baseName, bool highlighted)
 }
 
 
+#if 0
+
+//  old color scale code; the "scalingFactor" parameter used to be 0.8 (and in ancient history it was adjustable)
+
 const double greenBrightness = 0.8;
 
-void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
 	// apply the scaling factor
 	value = (value - 1.0) * scalingFactor + 1.0;
@@ -278,13 +272,10 @@ void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colo
 	}
 }
 
-void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
 {
 	// apply a scaling factor; this could be user-adjustible since different models have different relevant fitness ranges
-	value *= scalingFactor;
-	
-	// and add 1, just so we can re-use the same code as in RGBForFitness()
-	value += 1.0;
+    value = (value - 1.0) * scalingFactor + 1.0;
 	
 	if (value <= 0.0)
 	{
@@ -337,136 +328,210 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	}
 }
 
+void RGBForAdditiveTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+{
+    RGBForFitnessEffect(value + 1, colorRed, colorGreen, colorBlue, scalingFactor);
+}
+
+void RGBForMultiplicativeTraitValue(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+{
+    RGBForFitnessEffect(value, colorRed, colorGreen, colorBlue, scalingFactor);
+}
+
+#endif
+
+
 QtSLiMColorScaleWidget::QtSLiMColorScaleWidget(QWidget *p_parent) : QWidget(p_parent),
+    // these are ranges that seem reasonable as a default, but they are not the bounds of these axes
+    // in general, the effect ranges are half the width of the phenotype ranges (except for logistic)
     fitnessTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
-    effectTicks({"-1.0", "-0.5", "0.0", "0.5", "1.0"})
+    fitnessEffectTicks({"0.5", "0.75", "1.0", "1.25", "1.5"}),
+    multiplicativePhenotypeTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
+    multiplicativeEffectTicks({"×0.5", "×0.75", "×1.0", "×1.25", "×1.5"}),
+    additivePhenotypeTicks({"−1.0", "−0.5", "0.0", "0.5", "1.0"}),
+    additiveEffectTicks({"−0.5", "−0.25", "0.0", "+0.25", "+0.5"}),
+    logisticPhenotypeTicks({"0.0", "0.25", "0.5", "0.75", "1.0"}),
+    logisticEffectTicks({"−0.5", "−0.25", "0.0", "+0.25", "+0.5"}),
+
+    fitnessRange({0.0, 2.0}),
+    fitnessEffectRange({0.5, 1.5}),
+    multiplicativePhenotypeRange({0.0, 2.0}),
+    multiplicativeEffectRange({0.5, 1.5}),
+    additivePhenotypeRange({-1.0, 1.0}),
+    additiveEffectRange({-0.5, 0.5}),
+    logisticPhenotypeRange({0.0, 1.0}),
+    logisticEffectRange({-0.5, 0.5})
 {
     setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 }
 
+void QtSLiMColorScaleWidget::MeasureOrPaint(QPainter *painter, int *p_panel_width, int *p_panel_height)
+{
+    // fonts and font metrics that we will use are constructed once and cached
+    static QFont *headerFont = nullptr, *labelFont = nullptr, *tickFont = nullptr, *noteFont = nullptr, *noteItalicFont = nullptr;
+    static QFontMetricsF *fontMetrics_headerFont = nullptr, *fontMetrics_labelFont = nullptr, *fontMetrics_tickFont = nullptr, *fontMetrics_noteFont = nullptr, *fontMetrics_noteItalicFont = nullptr;
+    
+    if (!headerFont)
+    {
+        headerFont = new QFont(); labelFont = new QFont(); tickFont = new QFont(); noteFont = new QFont(); noteItalicFont = new QFont();
+
+#ifdef __linux__
+        headerFont->setPointSize(10); labelFont->setPointSize(9); tickFont->setPointSize(8); noteFont->setPointSize(9); noteItalicFont->setPointSize(9);
+#else
+        headerFont->setPointSize(12); labelFont->setPointSize(11); tickFont->setPointSize(10); noteFont->setPointSize(11); noteItalicFont->setPointSize(11);
+#endif
+        headerFont->setBold(true); noteItalicFont->setItalic(true);
+        
+        fontMetrics_headerFont = new QFontMetricsF(*headerFont); fontMetrics_labelFont = new QFontMetricsF(*labelFont); fontMetrics_tickFont = new QFontMetricsF(*tickFont); fontMetrics_noteFont = new QFontMetricsF(*noteFont); fontMetrics_noteItalicFont = new QFontMetricsF(*noteItalicFont);
+    }
+    
+    // long strings are constructed here and measured, to allow us to size the panel correctly
+    static QString headerLine1("SLiM supports eight conceptually distinct color scales, each of which");
+    static QString headerLine2("is configurable.  This panel shows SLiMgui’s default color scales (see");
+    static QString headerLine3("the object tables window for the color scales actually in use).");
+    static QString sectionHeader1("Color scales for fitness and fitness effects:");
+    static QString sectionHeader2("Color scales for multiplicative traits:");
+    static QString sectionHeader3("Color scales for additive traits:");
+    static QString sectionHeader4("Color scales for logistic traits:");
+    static QString sectionSubhead1("fitness and fitness effects are in [0, ∞), with 1.0 being neutral");
+    static QString sectionSubhead2("multiplicative phenotypes/effects are in [0, ∞), with 1.0 neutral");
+    static QString sectionSubhead3("additive phenotypes/effects are in (-∞, ∞), with 0.0 neutral");
+    static QString sectionSubhead4("phenotypes are in [0, 1], 0.5 neutral; effects are in (-∞, ∞), 0.0 neutral");
+    static QString footerLine1("A representative sub-range of each scale is shown, not the full range.");
+    static QString footerLine2("Yellow represents a neutral fitness/phenotype/effect on each scale.");
+    static QString footerLine3("Gray represents NAN (uncalculated) phenotypes (not shown here).");
+    static QString footerLine4("Scales fade towards black/white for values outside the range shown.");
+    static QString footerLine5("Mutation effect scales are based upon homozygous effects (1+s, 2a).");
+    static QString labelLine1("Individual fitness:");
+    static QString labelLine2("Individual phenotype:");
+    static QString labelLine3("Mutation effect:");
+    
+    int leftMargin = 16, rightMargin = 16, topMargin = 16, bottomMargin = 16;
+    int panelWidth = 0;
+    
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteFont->horizontalAdvance(headerLine1) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteFont->horizontalAdvance(headerLine2) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteFont->horizontalAdvance(headerLine3) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_headerFont->horizontalAdvance(sectionHeader1) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_headerFont->horizontalAdvance(sectionHeader2) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_headerFont->horizontalAdvance(sectionHeader3) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_headerFont->horizontalAdvance(sectionHeader4) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(sectionSubhead1) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(sectionSubhead2) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(sectionSubhead3) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(sectionSubhead4) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine1) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine2) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine3) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine4) + rightMargin));
+    panelWidth = std::max(panelWidth, (int)std::ceil(leftMargin + fontMetrics_noteItalicFont->horizontalAdvance(footerLine5) + rightMargin));
+    
+    panelWidth += 20;   // we want the longest line of text to fill the width of the panel with this many pixels to spare, for aesthetics
+    
+    const int stripeLabelInset = 15;
+    const int labelWidth = (int)ceil(stripeLabelInset + fontMetrics_labelFont->horizontalAdvance(labelLine2));  // labelLine2 is clearly the longest label
+    const int xForStripe = leftMargin + labelWidth + 15;                    // 15 is padding between the longest label and the stripes
+    const int labelLineWidthMinusStripe = xForStripe + rightMargin + 5;     // 5 is a little extra space to the right of the stripe for the tick label
+    int stripeWidth = (int)std::floor((panelWidth - labelLineWidthMinusStripe) / 2.0) * 2 + 1;     // odd so we have a central pixel of exactly yellow in each stripe
+    
+    QRect stripe_template = QRect(0, 0, stripeWidth, 15);
+    const double noteTextLineSpacing = fontMetrics_noteFont->lineSpacing();
+    const double sectionHeaderSpacing = 50;
+    const double stripeLineSpacing = 26 + stripe_template.height();
+    const double yOffsetForStripe = -13;
+    qreal x = leftMargin, y = topMargin - 5;
+    
+    // draw the header at the top
+    if (painter) painter->setFont(*noteFont);
+    y += noteTextLineSpacing;   if (painter) painter->drawText(x, y, headerLine1);
+    y += noteTextLineSpacing;   if (painter) painter->drawText(x, y, headerLine2);
+    y += noteTextLineSpacing;   if (painter) painter->drawText(x, y, headerLine3);
+    y -= 20;    // compensate for sectionHeaderSpacing, which assumes we're going from one section to the next
+    
+    for (int iter = 1; iter <= 8; ++iter)
+    {
+        QString sectionHeader, sectionSubhead, stripeLabel;
+        std::vector<double> *scaleRange;
+        std::vector<QString> *scaleTickLabels;
+        EidosPalette *stripePalette;
+        
+        if (iter == 1) { sectionHeader = sectionHeader1; sectionSubhead = sectionSubhead1; stripeLabel = labelLine1; scaleRange = &fitnessRange;                 scaleTickLabels = &fitnessTicks;                 stripePalette = gEidos_Palette_IndividualFitness;                 }
+        if (iter == 2) {                                                                   stripeLabel = labelLine3; scaleRange = &fitnessEffectRange;           scaleTickLabels = &fitnessEffectTicks;           stripePalette = gEidos_Palette_MutationFitnessEffect;             }
+        if (iter == 3) { sectionHeader = sectionHeader2; sectionSubhead = sectionSubhead2; stripeLabel = labelLine2; scaleRange = &multiplicativePhenotypeRange; scaleTickLabels = &multiplicativePhenotypeTicks; stripePalette = gEidos_Palette_IndividualMultiplicativePhenotype; }
+        if (iter == 4) {                                                                   stripeLabel = labelLine3; scaleRange = &multiplicativeEffectRange;    scaleTickLabels = &multiplicativeEffectTicks;    stripePalette = gEidos_Palette_MutationMultiplicativeEffect;      }
+        if (iter == 5) { sectionHeader = sectionHeader3; sectionSubhead = sectionSubhead3; stripeLabel = labelLine2; scaleRange = &additivePhenotypeRange;       scaleTickLabels = &additivePhenotypeTicks;       stripePalette = gEidos_Palette_IndividualAdditivePhenotype;       }
+        if (iter == 6) {                                                                   stripeLabel = labelLine3; scaleRange = &additiveEffectRange;          scaleTickLabels = &additiveEffectTicks;          stripePalette = gEidos_Palette_MutationAdditiveEffect;            }
+        if (iter == 7) { sectionHeader = sectionHeader4; sectionSubhead = sectionSubhead4; stripeLabel = labelLine2; scaleRange = &logisticPhenotypeRange;       scaleTickLabels = &logisticPhenotypeTicks;       stripePalette = gEidos_Palette_IndividualLogisticPhenotype;       }
+        if (iter == 8) {                                                                   stripeLabel = labelLine3; scaleRange = &logisticEffectRange;          scaleTickLabels = &logisticEffectTicks;          stripePalette = gEidos_Palette_MutationLogisticEffect;            }
+        
+        // draw the header and subhead, if this line has them
+        if (sectionHeader.length())
+        {
+            y += sectionHeaderSpacing;      if (painter) { painter->setFont(*headerFont);       painter->drawText(x, y, sectionHeader); }
+            y += noteTextLineSpacing + 3;   if (painter) { painter->setFont(*noteItalicFont);   painter->drawText(x, y, sectionSubhead); }
+            y -= 15;
+        }
+        
+        // draw the label to the left of the stripe
+        y += stripeLineSpacing;             if (painter) { painter->setFont(*labelFont);        painter->drawText(x + stripeLabelInset, y, stripeLabel); }
+        
+        // the rest of the loop is all drawing, with no effect on measurement
+        if (!painter)
+            continue;
+        
+        // draw the color stripe itself
+        QRect stripe = stripe_template.adjusted(xForStripe, y + yOffsetForStripe, xForStripe, y + yOffsetForStripe);
+        
+        for (int sliver_x = stripe.left() + 1; sliver_x <= (stripe.left() + 1) + (stripe.width() - 3); ++sliver_x)
+        {
+            QRect sliver(sliver_x, stripe.top() + 1, 1, stripe.height() - 2);
+            double sliverFraction = (sliver_x - (stripe.left() + 1)) / (stripe.width() - 3.0);
+            double value = (*scaleRange)[0] + sliverFraction * ((*scaleRange)[1] - (*scaleRange)[0]);
+            float r, g, b;
+            
+            stripePalette->ColorForValue(value, &r, &g, &b);
+            painter->fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
+        }
+        
+        QtSLiMFrameRect(stripe, Qt::black, *painter);
+        
+        // draw the ticks and tick labels
+        painter->setFont(*tickFont);
+        
+        for (int tickIndex = 0; tickIndex < 5; tickIndex++)
+        {
+            bool longTick = (tickIndex % 2 == 0);
+            int tickX = round(stripe.left() + 1 + (tickIndex / 4.0) * (stripe.width() - 3.0));
+            QString tickLabel = (*scaleTickLabels)[tickIndex];
+            double tickLabelWidth;
+            
+            tickLabelWidth = fontMetrics_tickFont->horizontalAdvance(tickLabel);
+            
+            painter->fillRect(tickX, stripe.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
+            painter->drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe.bottom() + 16), tickLabel);
+        }
+    }
+    
+    y += 30;
+    
+    // draw the footer at the bottom
+    if (painter) painter->setFont(*noteItalicFont);
+    y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine1);
+    y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine2);
+    y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine3);
+    y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine4);
+    y += noteTextLineSpacing + 3;   if (painter) painter->drawText(x, y, footerLine5);
+    
+    // write out the calculated panel size
+    if (p_panel_width)  *p_panel_width = panelWidth;
+    if (p_panel_height) *p_panel_height = y + bottomMargin;
+}
+
 void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
 {
-    // we're designed to fit in a fixed size of 301 x 197; see dispatch_showColorScales()
-    //QRect overallRect = contentsRect();
     QPainter painter(this);
-    QRect stripe1 = QRect(15, 33, 271, 20);     // odd width so we have a central pixel of exactly yellow
-    QRect stripe2 = QRect(15, 105, 271, 20);    // odd width so we have a central pixel of exactly yellow
     
-    static QFont *labelFont = nullptr;
-    
-    if (!labelFont)
-    {
-        labelFont = new QFont();
-#ifdef __linux__
-        labelFont->setPointSize(10);
-#else
-        labelFont->setPointSize(12);
-#endif
-        labelFont->setBold(true);
-    }
-    painter.setFont(*labelFont);
-    
-    const double labelYOffset = -8;
-    
-    // Fitness color scale
-    painter.drawText(stripe1.x(), stripe1.y() + labelYOffset, "Individual fitness scale:");
-    
-    for (int x = stripe1.left() + 1; x <= (stripe1.left() + 1) + (stripe1.width() - 3); ++x)
-    {
-        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
-        QRect sliver(x, stripe1.top() + 1, 1, stripe1.height() - 2);
-        double sliverFraction = (x - (stripe1.left() + 1)) / (stripe1.width() - 3.0);
-        double fitness = sliverFraction * 2.0;     // cover fitness values of 0.0 to 2.0
-        float r, g, b;
-        RGBForFitness(fitness, &r, &g, &b, scalingFactor);
-        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
-    }
-    
-    QtSLiMFrameRect(stripe1, Qt::black, painter);
-    
-    // Mutation effect color scale
-    painter.drawText(stripe2.x(), stripe2.y() + labelYOffset, "Mutation effect scale:");
-    
-    for (int x = stripe2.left() + 1; x <= (stripe2.left() + 1) + (stripe2.width() - 3); ++x)
-    {
-        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
-        QRect sliver(x, stripe2.top() + 1, 1, stripe2.height() - 2);
-        double sliverFraction = (x - (stripe2.left() + 1)) / (stripe2.width() - 3.0);
-        double fitness = sliverFraction * 2.0 - 1;     // cover mutation effect values of -1.0 to 1.0
-        float r, g, b;
-        RGBForSelectionCoeff(fitness, &r, &g, &b, scalingFactor);
-        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
-        
-        //qDebug() << "x =" << x << " << sliverFraction =" << sliverFraction << " fitness =" << fitness;
-    }
-    
-    QtSLiMFrameRect(stripe2, Qt::black, painter);
-    
-    // Draw axis scales
-    static QFont *tickFont = nullptr;
-    
-    if (!tickFont)
-    {
-        tickFont = new QFont();
-#ifdef __linux__
-        tickFont->setPointSize(8);
-#else
-        tickFont->setPointSize(10);
-#endif
-    }
-    painter.setFont(*tickFont);
-    
-    QFontMetricsF fontMetrics(*tickFont);
-    
-    for (int tickIndex = 0; tickIndex < 5; tickIndex++)
-    {
-        bool longTick = (tickIndex % 2 == 0);
-        int tickX = round(stripe1.left() + 1 + (tickIndex / 4.0) * (stripe1.width() - 3.0));
-        QString tickLabel;
-        double tickLabelWidth;
-        
-        // label stripe 1
-        tickLabel = fitnessTicks[tickIndex];
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
-#else
-        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
-#endif
-        
-        painter.fillRect(tickX, stripe1.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
-        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe1.bottom() + 16), tickLabel);
-        
-        // label stripe 2
-        tickLabel = effectTicks[tickIndex];
-        
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
-#else
-        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
-#endif
-        
-        painter.fillRect(tickX, stripe2.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
-        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe2.bottom() + 16), tickLabel);
-    }
-    
-    // add final notes in italic
-    static QFont *noteFont = nullptr;
-    
-    if (!noteFont)
-    {
-        noteFont = new QFont();
-#ifdef __linux__
-        noteFont->setPointSize(9);
-#else
-        noteFont->setPointSize(11);
-#endif
-        noteFont->setItalic(true);
-    }
-    painter.setFont(*noteFont);
-    
-    painter.drawText(stripe1.x(), stripe2.bottom() + 44, "Yellow indicates neutrality on both color scales.");
-    painter.drawText(stripe1.x(), stripe2.bottom() + 58, "Both scales fade out to white for large values.");
+    MeasureOrPaint(&painter, nullptr, nullptr);
 }
 
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
@@ -624,6 +689,19 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 1);
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, typeLength);
     typeCursor.setCharFormat(typeAttrs);
+    
+    // BCH 1/7/2025: For dynamic properties with a name like "<trait-name>EffectSize", italicize the portion in the <>
+    if (Eidos_string_hasPrefix(property_signature->property_name_, "<"))
+    {
+        size_t end_position = property_signature->property_name_.find_first_of('>');
+        QTextCharFormat italicTypeAttrs(functionAttrs);
+        italicTypeAttrs.setFontItalic(true);
+        
+        QTextCursor dynamicCursor(lineCursor);
+        dynamicCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
+        dynamicCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(end_position));
+        dynamicCursor.setCharFormat(italicTypeAttrs);
+    }
 }
 
 void ColorizeCallSignature(const EidosCallSignature *call_signature, double pointSize, QTextCursor lineCursor)

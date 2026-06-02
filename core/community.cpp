@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/28/2022.
-//  Copyright (c) 2022-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2022-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,6 +30,7 @@
 #include "polymorphism.h"
 #include "subpopulation.h"
 #include "interaction_type.h"
+#include "mutation_block.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -52,7 +53,7 @@
 #include <limits>
 
 #include "eidos_globals.h"
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 #endif
 
@@ -556,7 +557,7 @@ void Community::ValidateScriptBlockCaches(void)
 	}
 }
 
-std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id, Species *p_species)
+std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, Species *p_species, bool p_active_only)
 {
 	if (!script_block_types_cached_)
 		ValidateScriptBlockCaches();
@@ -596,16 +597,8 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 #endif
 		
 		// check that the tick is in range
-		if (script_block->tick_range_is_sequence_)
-		{
-			if ((p_tick < script_block->tick_start_) || (p_tick > script_block->tick_end_))
-				continue;
-		}
-		else
-		{
-			if (script_block->tick_set_.find(p_tick) == script_block->tick_set_.end())
-				continue;
-		}
+		if ((p_tick != -1) && !script_block->ActiveInTick(p_tick))
+			continue;
 		
 		// check that the script type matches (event, callback, etc.) - now guaranteed by the caching mechanism
 		//if (script_block->type_ != p_event_type)
@@ -638,6 +631,15 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 				continue;
 		}
 		
+		// check that the trait index matches, if requested
+		if (p_trait_index != -1)
+		{
+			slim_trait_index_t trait_index = script_block->trait_index_;
+			
+			if ((trait_index != -1) && (p_trait_index != trait_index))
+				continue;
+		}
+		
 		// check that the chromosome id matches, if requested
 		if (p_chromosome_id != -1)
 		{
@@ -649,6 +651,12 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 		
 		// check that the species matches; this check is always on, nullptr means check that the species is nullptr
 		if (p_species != script_block->species_spec_)
+			continue;
+		
+		// check that the block is active, if the caller has requested only active script blocks; in general this
+		// is not a good idea, since a callback can change its own active flag or that of another callback unless
+		// there is a specific mechanism preventing that; see SetInsideTraitOrFitnessCalculation() for example
+		if (p_active_only && !script_block->block_active_)
 			continue;
 		
 		// OK, everything matches, so we want to return this script block
@@ -725,7 +733,7 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 					expr_node = expr_node->children_[0];
 					
 					// parse an optional constant at the beginning, like 1.0 + ...
-					double added_constant = NAN;
+					double added_constant = std::numeric_limits<double>::quiet_NaN();
 					
 					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenPlus) && (expr_node->children_.size() == 2))
 					{
@@ -746,7 +754,7 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 					}
 					
 					// parse an optional divisor at the end, ... / div
-					double denominator = NAN;
+					double denominator = std::numeric_limits<double>::quiet_NaN();
 					
 					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
 					{
@@ -1006,6 +1014,13 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to a subpopulation id (" << p_script_block->subpopulation_id_ << ") that belongs to a different species." << EidosTerminate(p_error_token);
 		}
 		
+		if (p_script_block->trait_index_ >= 0)
+		{
+			// if the trait index is specified, we check that it is in range for the specified species
+			if (p_script_block->trait_index_ >= p_script_block->species_spec_->TraitCount())
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to a trait index that is out of range for the species." << EidosTerminate(p_error_token);
+		}
+		
 		if (p_script_block->interaction_type_id_ >= 0)
 		{
 			// interaction() callbacks may not have a specified species
@@ -1040,6 +1055,9 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 		if (p_script_block->subpopulation_id_ != -1)
 			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback or initialize() callback has subpopulation_id_ set." << EidosTerminate(p_error_token);
 		
+		if (p_script_block->trait_index_ != -1)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback or initialize() callback has trait_index_ set." << EidosTerminate(p_error_token);
+		
 		if (p_script_block->chromosome_id_ != -1)
 			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback or initialize() callback has chromosome_id_ set." << EidosTerminate(p_error_token);
 		
@@ -1069,6 +1087,11 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	last_script_block_tick_cached_ = false;
 	script_block_types_cached_ = false;
 	scripts_changed_ = true;
+	
+	// TRAIT INVALIDATION: If the block being registered is a mutationEffect() callback, we need to
+	// invalidate all trait values that that callback would potentially affect, to force recalculation
+	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && p_script_block->ActiveInTick(Tick()))
+		p_script_block->species_spec_->NoteChangedMutationEffectCallback(p_script_block);
 	
 #if DEBUG_BLOCK_REG_DEREG
 	std::cout << "Tick " << tick_ << ": AddScriptBlock() just added a block, script_blocks_ is:" << std::endl;
@@ -2255,6 +2278,39 @@ bool Community::_RunOneTick(void)
 	}
 	else
 	{
+		// TRAIT INVALIDATION: Invalidate trait values as needed in response to mutationEffect() callbacks
+		// becoming active for the first time, or having been active for the last time.  Note that these
+		// mechanics do not take the active property of the script block, or the activation of the species
+		// in a multispecies model, into account; that is intentional and essential.  Other state changes
+		// for mutationEffect() callbacks are handled in various other places.
+		{
+			// These mechanics for searching through script blocks are borrowed from ScriptBlocksMatching()
+			if (!script_block_types_cached_)
+				ValidateScriptBlockCaches();
+			
+			std::vector<SLiMEidosBlock*> &block_list = cached_mutationEffect_callbacks_;
+			
+			for (SLiMEidosBlock *block : block_list)
+			{
+				if (block->type_ != SLiMEidosBlockType::SLiMEidosMutationEffectCallback)
+					continue;
+				
+				if (block->ActiveInTick(Tick()))
+				{
+					// The script block is active this tick, so: was it inactive the previous tick?
+					if (!block->ActiveInTick(Tick() - 1))
+						block->species_spec_->NoteChangedMutationEffectCallback(block);
+				}
+				else
+				{
+					// The script block is inactive this tick, so: was it active the previous tick?
+					if (block->ActiveInTick(Tick() - 1))
+						block->species_spec_->NoteChangedMutationEffectCallback(block);
+				}
+			}
+		}
+		
+		// Tell active species to prepare for the tick cycle to execute
 		for (Species *species : all_species_)
 			if (species->Active())
 				species->PrepareForCycle();
@@ -2272,7 +2328,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// The zero tick is handled here by shared code, since it is the same for WF and nonWF models
 	
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
-	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, -1, nullptr);
+	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 	
 	for (auto script_block : function_blocks)
 		ExecuteFunctionDefinitionBlock(script_block);
@@ -2372,7 +2428,7 @@ void Community::RunInitializeCallbacks(void)
 	num_modeltype_declarations_ = 0;
 	
 	// execute `species all` initialize() callbacks, which should always have a tick of 0 set
-	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, nullptr);
+	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 	
 	for (auto script_block : init_blocks)
 		ExecuteEidosEvent(script_block);
@@ -2396,10 +2452,7 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 	if (!p_script_block->block_active_)
 		return;
 	
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 	// SLiMgui debugging point
 	EidosDebugPointIndent indenter;
 	
@@ -2552,30 +2605,48 @@ void Community::AllSpecies_CheckIntegrity(void)
 		return;
 #endif
 	
-	// Check the integrity of the mutation registry; all MutationIndex values should be in range
 	for (Species *species : all_species_)
 	{
+		// Check the integrity of the mutation registry; all MutationIndex values should be in range
 		int registry_size;
 		const MutationIndex *registry = species->population_.MutationRegistry(&registry_size);
 		std::vector<MutationIndex> indices;
 		
-		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		if (registry_size)
 		{
-			MutationIndex mutation_index = registry[registry_index];
+			MutationBlock *mutationBlock = species->SpeciesMutationBlock();
+			MutationIndex mutBlockCapacity = mutationBlock->capacity_;
 			
-			if ((mutation_index < 0) || (mutation_index >= gSLiM_Mutation_Block_Capacity))
-				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			{
+				MutationIndex mutation_index = registry[registry_index];
+				
+				if ((mutation_index < 0) || (mutation_index >= mutBlockCapacity))
+					EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+				
+				indices.push_back(mutation_index);
+				
+				// check mutation integrity
+				Mutation *mut = mutationBlock->MutationForIndex(mutation_index);
+				
+				mut->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
+			}
 			
-			indices.push_back(mutation_index);
+			size_t original_size = indices.size();
+			
+			std::sort(indices.begin(), indices.end());
+			indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
+			
+			if (indices.size() != original_size)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
 		}
 		
-		size_t original_size = indices.size();
+		// Check the integrity of all substitution objects
+		for (Substitution *sub : species->population_.substitutions_)
+			sub->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
 		
-		std::sort(indices.begin(), indices.end());
-		indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
-		
-		if (indices.size() != original_size)
-			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
+		// Check the integrity of Species optimization flags
+		species->CheckOptimizationFlags();
 	}
 #endif
 }
@@ -2602,7 +2673,7 @@ bool Community::_RunOneTickWF(void)
 {
 #if (SLIMPROFILING == 1)
 	// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	if (gEidosProfilingClientCount)
 		for (Species *species : all_species_)
 			species->CollectMutationProfileInfo();
@@ -2620,7 +2691,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2652,7 +2723,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage1ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2705,6 +2776,7 @@ bool Community::_RunOneTickWF(void)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->WF_GenerateOffspring();
+				species->all_trait_values_NAN_ = true;			// force recalculation next demand, for efficiency
 				species->has_recalculated_fitness_ = false;
 				
 				executing_species_ = nullptr;
@@ -2817,7 +2889,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage5ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2860,18 +2932,20 @@ bool Community::_RunOneTickWF(void)
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
 #endif
-				species->RecalculateFitness();
+				species->RecalculateFitness(/* p_force_trait_recalculation */ false);
 				
 				executing_species_ = nullptr;
 			}
 		
+#if DEBUG
+		// now that fitness calculations are done, do a crosscheck of all trait values
+		// this is disabled by a global flag while we are running some self-tests
+		for (Species *species : all_species_)
+			species->CrosscheckAllTraitValues();
+#endif
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
-		
-		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
-		// FIXME wait, why should this overhead appear in the fitness recalculation step??
-		for (Species *species : all_species_)
-			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2936,6 +3010,12 @@ bool Community::_RunOneTickWF(void)
 			CollectSLiMguiMemoryUsageProfileInfo();
 #endif
 		
+		// Do post-cycle cleanup, such as maintaining our mutation run experiments.
+		// BCH 3/5/2026: Note this used to be in stage 6; moving it here might have unexpected consequences.
+		for (Species *species : all_species_)
+			if (species->Active())
+				species->FinishCycle();
+		
 		// Decide whether the simulation is over.  We need to call EstimatedLastTick() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.
 		bool result;
@@ -2965,7 +3045,7 @@ bool Community::_RunOneTickNonWF(void)
 {
 #if (SLIMPROFILING == 1)
 	// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	if (gEidosProfilingClientCount)
 		for (Species *species : all_species_)
 			species->CollectMutationProfileInfo();
@@ -2983,7 +3063,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3119,7 +3199,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3163,10 +3243,16 @@ bool Community::_RunOneTickNonWF(void)
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
 #endif
-				species->RecalculateFitness();
+				species->RecalculateFitness(/* p_force_trait_recalculation */ false);
 				
 				executing_species_ = nullptr;
 			}
+		
+#if DEBUG
+		// now that fitness calculations are done, do a crosscheck of all trait values
+		for (Species *species : all_species_)
+			species->CrosscheckAllTraitValues();
+#endif
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -3280,7 +3366,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage6ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3406,8 +3492,22 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	p_usage->communityObjects = p_usage->communityObjects_count * sizeof(Community);
 	
 	// Mutation global buffers
-	p_usage->mutationRefcountBuffer = SLiMMemoryUsageForMutationRefcounts();
-	p_usage->mutationUnusedPoolSpace = SLiMMemoryUsageForFreeMutations();		// note that in SLiMgui everybody shares this
+	// FIXME MULTITRAIT need to shift these memory usage metrics down to the species level
+	p_usage->mutationRefcountBuffer = 0.0;
+	p_usage->mutationPerTraitBuffer = 0.0;
+	p_usage->mutationUnusedPoolSpace = 0.0;
+	
+	for (Species *species : all_species_)
+	{
+		if (species->HasGenetics())
+		{
+			MutationBlock *mutation_block = species->SpeciesMutationBlock();
+			
+			p_usage->mutationRefcountBuffer += mutation_block->MemoryUsageForMutationRefcounts();
+			p_usage->mutationPerTraitBuffer += mutation_block->MemoryUsageForTraitInfo();
+			p_usage->mutationUnusedPoolSpace += mutation_block->MemoryUsageForFreeMutations();
+		}
+	}
 	
 	// InteractionType
 	{
@@ -3451,8 +3551,10 @@ void Community::StartProfiling(void)
 	
 	// call this first, purely for its side effect of emptying out any pending profile counts
 	// note that the accumulators governed by this method get zeroed out down below
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	for (Species *focal_species : all_species_)
 		focal_species->CollectMutationProfileInfo();
+#endif
 	
 	// zero out profile counts for cycle stages
 	for (int i = 0; i < 9; ++i)
@@ -3491,11 +3593,11 @@ void Community::StartProfiling(void)
 			signature->body_script_->AST()->ZeroProfileTotals();
 	}
 	
-#if SLIM_USE_NONNEUTRAL_CACHES
+#if SLIM_PROFILE_NONNEUTRAL_CACHES()
 	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
 	for (Species *focal_species : all_species_)
 	{
-		focal_species->profile_nonneutral_regime_history_.clear();
+		focal_species->profile_trait_calculation_regime_history_.clear();
 		focal_species->profile_max_mutation_index_ = 0;
 		
 		for (Chromosome *focal_chromosome : focal_species->Chromosomes())

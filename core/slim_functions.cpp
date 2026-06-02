@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/15/19.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -52,6 +52,7 @@ extern const char *gSLiMSourceCode_calcTajimasD;
 
 extern const char *gSLiMSourceCode_initializeMutationRateFromFile;
 extern const char *gSLiMSourceCode_initializeRecombinationRateFromFile;
+extern const char *gSLiMSourceCode_Plot;
 
 
 const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures(void)
@@ -95,6 +96,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("Plot", gSLiMSourceCode_Plot, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "SLiM"))->AddString_S("title")->AddArg(kEidosValueMaskInt | kEidosValueMaskFloat | kEidosValueMaskObject, "thing", nullptr)->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL));
 		
 		// Internal SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_startBenchmark", SLiM_ExecuteFunction__startBenchmark, kEidosValueMaskVOID, "SLiM"))->AddString_S(gEidosStr_type));
@@ -665,6 +668,9 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
+// FIXME MULTITRAIT: changed selectionCoeff to effect in gSLiMSourceCode_calcInbreedingLoad, but really this
+// needs to somehow be adapted for multitrait models; sum across all multiplicative effects; what about
+// additive effects?  exclude them, or raise an error?  allow the user to pass a vector of traits here?
 #pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
@@ -702,7 +708,7 @@ R"V0G0N({
 	else
 		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
-	muts = muts[muts.selectionCoeff < 0.0];
+	muts = muts[muts.effectSize < 0.0];
 	
 	// get frequencies and focus on those that are in the haplosomes
 	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
@@ -713,7 +719,7 @@ R"V0G0N({
 	
 	// fetch selection coefficients; note that we use the negation of
 	// SLiM's selection coefficient, following Morton et al. 1956's usage
-	s = -muts.selectionCoeff;
+	s = -muts.effectSize;
 	
 	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
 	// than lethal (this can happen when drawing from a gamma distribution)
@@ -721,7 +727,7 @@ R"V0G0N({
 	
 	// get h for each mutation; note that this will not work if changing
 	// h using mutationEffect() callbacks or other scripted approaches
-	h = muts.mutationType.dominanceCoeff;
+	h = muts.dominance;
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
@@ -1094,6 +1100,99 @@ R"V0G0N({
 		ends = c(ends[1:(size(ends)-1)] - base, lastPosition);
 	
 	initializeRecombinationRate(rates * scale, ends, sex);
+})V0G0N";
+
+#pragma mark (No<Plot>$)Plot(string$ title, ifo thing, [Nif$ width = NULL], [Nif$ height = NULL])
+const char *gSLiMSourceCode_Plot = 
+R"V0G0N({
+	// silently return NULL if we are not running under SLiMgui
+	if (!exists("slimgui"))
+		return NULL;
+	
+	// type-check, size-check, and determine the correct plot dimensions
+	if ((type(thing) == "object") & (size(thing) != 1))
+		stop("ERROR (Plot): the Plot() function requires a supplied " + elementType(thing) + " object to be a singleton.");
+	
+	adjustSizeToFit = F;
+	
+	if (elementType(thing) == "Palette")
+	{
+		if (isNULL(width) & isNULL(height)) {
+			width = 500;
+			height = 50;
+		}
+	}
+	else if (elementType(thing) == "SpatialMap")
+	{
+		if (nchar(thing.spatiality) != 2)
+			stop("ERROR (Plot): the Plot() function requires a supplied SpatialMap object to have a two-dimensional spatiality.");
+		
+		if (isNULL(width) & isNULL(height)) {
+			width = thing.gridDimensions[0];
+			height = thing.gridDimensions[1];
+			adjustSizeToFit = T;
+		}
+	}
+	else if (elementType(thing) == "Image")
+	{
+		if (isNULL(width) & isNULL(height)) {
+			width = thing.width;
+			height = thing.height;
+			adjustSizeToFit = T;
+		}
+	}
+	else if (type(thing) == "object")
+	{
+		stop("ERROR (Plot): the Plot() function does not currently support objects of class " + elementType(thing) + ".");
+	}
+	else
+	{
+		if (size(dim(thing)) != 2)
+		stop("ERROR (Plot): the Plot() function requires a supplied integer or float value to be a two-dimensional matrix.");
+		
+		if (isNULL(width) & isNULL(height)) {
+			width = dim(thing)[1];
+			height = dim(thing)[0];
+			adjustSizeToFit = T;
+		}
+		
+		// for a matrix, we normalize the values to span [0, 1]
+		thing = (thing - min(thing)) / (max(thing) - min(thing));
+	}
+	
+	if (adjustSizeToFit)
+	{
+		// here we try to preserve the aspect ratio of thing, while plotting
+		// it at a reasonable size; obviously this is subjective!
+		dmax = max(width, height);
+		width = width * (500.0 / dmax);
+		height = height * (500.0 / dmax);
+		
+		// make sure the dimensions are large enough that SLiMgui won't error
+		if (width < 100) {
+			height = height * (100 / width);
+			width = 100;
+		}
+		if (height < 10) {
+			width = width * (10 / height);
+			height = 10;
+		}
+		
+		width = asInteger(round(width));
+		height = asInteger(round(height));
+	}
+	
+	// create the plot at the given/calculated size, and plot the thing
+	plot = slimgui.createPlot(title, xrange=c(0,1), yrange=c(0,1),
+		xlab="", ylab="", width=width, height=height, fullBox=F);
+	plot.setBorderless();
+	
+	if (type(thing) == "object")
+		plot.image(thing, 0, 0, 1, 1);
+	else
+		plot.matrix(thing, 0, 0, 1, 1);
+	
+	return plot;
 })V0G0N";
 
 
@@ -2575,6 +2674,64 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	return EidosValue_SP(result_vec);
 }
 
+// reading JSON+struct codec metadata; adapted from https://tskit.dev/tskit/docs/stable/c-api.html#reading-and-writing-metadata
+
+// these are properties of the ``json+struct`` codec, documented in tskit
+#define JSON_STRUCT_HEADER_SIZE 21
+
+const uint8_t json_struct_codec_magic[4] = { 'J', 'B', 'L', 'B' };
+const uint8_t json_struct_codec_version = 1;
+
+void SLiM_json_struct_metadata_get_components(uint8_t *metadata, tsk_size_t metadata_length,
+    uint8_t **json, tsk_size_t *json_length, uint8_t **binary, tsk_size_t *binary_length,
+    const char *caller)
+{
+    // check the structure of the codec header and the sizes it specifies
+    if (metadata == NULL || json == NULL || json_length == NULL || binary == NULL || binary_length == NULL)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): (internal error) metadata could not be read; bad parameter value." << EidosTerminate();
+    
+    if (metadata_length < JSON_STRUCT_HEADER_SIZE)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the metadata is truncated." << EidosTerminate();
+	
+    if (memcmp(metadata, json_struct_codec_magic, sizeof(json_struct_codec_magic)) != 0)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; it does not appear to be encoded as `json+struct` codec metadata." << EidosTerminate();
+    
+    uint8_t version = metadata[4];
+    if (version != json_struct_codec_version)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; bad version number (" << json_struct_codec_version << " expected for the `json+struct` codec, but version " << (uint16_t)version << " is present)." << EidosTerminate();
+	
+    uint64_t json_length_u64 = Eidos_load_u64_le(metadata + 5);
+    uint64_t binary_length_u64 = Eidos_load_u64_le(metadata + 13);
+    if (json_length_u64 > UINT64_MAX - (uint64_t)JSON_STRUCT_HEADER_SIZE)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the JSON metadata length is invalid." << EidosTerminate();
+	
+    // determine the number of padding bytes and do more safety checks
+    uint64_t length = (uint64_t)JSON_STRUCT_HEADER_SIZE + json_length_u64;
+    uint64_t padding_length = (8 - (length & 0x07)) % 8;
+    if (padding_length > UINT64_MAX - length)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the metadata length after padding is invalid." << EidosTerminate();
+	
+    length += padding_length;
+    if (binary_length_u64 > UINT64_MAX - length)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the binary length is invalid." << EidosTerminate();
+	
+    length += binary_length_u64;
+    if ((uint64_t) metadata_length != length)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the total metadata length is unexpected." << EidosTerminate();
+	
+    uint8_t *padding_start = metadata + JSON_STRUCT_HEADER_SIZE + json_length_u64;
+    for (uint64_t j = 0; j < padding_length; ++j)
+        if (*(padding_start + j) != 0)
+			EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; padding bytes are nonzero." << EidosTerminate();
+	
+    // the structure of the codec data seems valid; return components
+    *json = metadata + JSON_STRUCT_HEADER_SIZE;
+    *json_length = (tsk_size_t)json_length_u64;
+	
+    *binary = metadata + JSON_STRUCT_HEADER_SIZE + json_length_u64 + padding_length;
+    *binary_length = (tsk_size_t)binary_length_u64;
+}
+
 // (object<Dictionary>$)treeSeqMetadata(string$ filePath, [logical$ userData=T])
 EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -2592,21 +2749,11 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 		tsk_table_collection_free(&temp_tables);
 		
 		// With no schema, error out
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a JSON schema is required." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a `json+struct` schema is required." << EidosTerminate();
 	}
 	
-	if (temp_tables.metadata_length == 0)
-	{
-		tsk_table_collection_free(&temp_tables);
-		
-		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
-		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
-		
-		objectElement->Release();	// retained by result_SP
-		return result_SP;
-	}
-	
+	// BCH 5/31/2026: As of SLiM 6.0, we read top-level metadata using the `json+struct` codec.  Note that the
+	// binary component of the `json+struct` metadata is not used here; we are only concerned with the JSON.
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
 	nlohmann::json metadata_schema;
 	
@@ -2618,10 +2765,29 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	
 	std::string codec = metadata_schema["codec"];
 	
-	if (codec != "json")
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json'." << EidosTerminate();
+	if (codec != "json+struct")
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json+struct'; the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
 	
-	std::string metadata_string(temp_tables.metadata, temp_tables.metadata_length);
+	uint8_t *top_level_json_buffer;
+	tsk_size_t top_level_json_length;
+	uint8_t *top_level_binary_buffer;
+	tsk_size_t top_level_binary_length;
+	
+	SLiM_json_struct_metadata_get_components((uint8_t *)temp_tables.metadata, temp_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length, "SLiM_ExecuteFunction_treeSeqMetadata");
+	
+	if (top_level_json_length == 0)
+	{
+		tsk_table_collection_free(&temp_tables);
+		
+		// With no JSON metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
+		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
+		
+		objectElement->Release();	// retained by result_SP
+		return result_SP;
+	}
+	
+	std::string metadata_string((const char *)top_level_json_buffer, top_level_json_length);
 	nlohmann::json metadata;
 	
 	tsk_table_collection_free(&temp_tables);

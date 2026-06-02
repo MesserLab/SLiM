@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -48,6 +48,7 @@
 #include "subpopulation.h"
 #include "haplosome.h"
 #include "mutation_run.h"
+#include "mutation_block.h"
 
 
 QFont QtSLiMGraphView::labelFontOfPointSize(double size)
@@ -2406,7 +2407,7 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
                 r = 0.25; g = 0.25; b = 1.0;  // a special "no value" color for the 2D SFS plot
             }
             else
-                Eidos_ColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
+				EidosColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
             
             painter.fillRect(patchRect, QtSLiMColorWithRGB(r, g, b, 1.0));
         }
@@ -2551,7 +2552,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     Population &population = graphSpecies->population_;
     size_t subpop_total_haplosome_count = 0;
     
-    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
     {
         int registry_size;
@@ -2618,7 +2619,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Haplosome *
     
     Population &population = graphSpecies->population_;
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
     {
         int registry_size;
