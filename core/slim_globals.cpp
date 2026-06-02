@@ -66,6 +66,8 @@ const std::string gStr_strand3("strand3");
 const std::string gStr_strand4("strand4");
 const std::string gStr_breaks2("breaks2");
 
+void SLiM_TSK_Schema_WarmUp(void);
+
 void SLiM_WarmUp(void)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_WarmUp(): illegal when parallel");
@@ -124,64 +126,8 @@ void SLiM_WarmUp(void)
 		//std::cout << "sizeof(long) == " << sizeof(long) << std::endl;
 		//std::cout << "sizeof(size_t) == " << sizeof(size_t) << std::endl;
 		
-		// Test that our tskit metadata schemas are valid JSON, and print them out formatted for debugging purposes if desired
-		nlohmann::json top_level_JSON_schema, top_level_binary_schema, edge_schema, site_schema, mutation_schema, node_schema, individual_schema, population_schema;
-		
-		try {
-			top_level_JSON_schema = nlohmann::json::parse(gSLiM_tsk_metadata_JSON_schema);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_JSON_schema must be a JSON string." << EidosTerminate();
-		}
-		try {
-			top_level_binary_schema = nlohmann::json::parse(gSLiM_tsk_metadata_binary_schema_FORMAT);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_binary_schema_FORMAT must be a JSON string." << EidosTerminate();
-		}
-		try {
-			if (gSLiM_tsk_edge_metadata_schema.length())
-				edge_schema = nlohmann::json::parse(gSLiM_tsk_edge_metadata_schema);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_edge_metadata_schema must be a JSON string." << EidosTerminate();
-		}
-		try {
-			if (gSLiM_tsk_site_metadata_schema.length())
-				site_schema = nlohmann::json::parse(gSLiM_tsk_site_metadata_schema);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_site_metadata_schema must be a JSON string." << EidosTerminate();
-		}
-		try {
-			if (gSLiM_tsk_mutation_metadata_schema.length())
-				mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_mutation_metadata_schema must be a JSON string." << EidosTerminate();
-		}
-		try {
-			node_schema = nlohmann::json::parse(gSLiM_tsk_node_metadata_schema_FORMAT);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
-		}
-		try {
-			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema_FORMAT);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
-		}
-		try {
-			population_schema = nlohmann::json::parse(gSLiM_tsk_population_metadata_schema);
-		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_population_metadata_schema must be a JSON string." << EidosTerminate();
-		}
-		
-#if 0
-#warning printing of JSON schemas should be disabled in a production build
-		std::cout << "gSLiM_tsk_metadata_JSON_schema == " << std::endl << top_level_JSON_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT == " << std::endl << top_level_binary_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << edge_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << site_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << mutation_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << node_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << population_schema.dump(4) << std::endl << std::endl;
-#endif
+		// Test that our tskit metadata schemas are valid JSON, and then canonicalize them
+		SLiM_TSK_Schema_WarmUp();
 	}
 }
 
@@ -1848,7 +1794,7 @@ EidosPalette *gEidos_Palette_MutationLogisticEffect =
 
 // Note that several schemas now require substitution of a string before they are used, because there are bits
 // of the schemas that need to be customized depending on the context (number of chromosomes, number of traits).
-// The spots where this substitutuon occurs are marked with things like "%d", "%d1", or "%d2", INCLUDING the
+// The spots where this substitution occurs are marked with things like "%d", "%d1", or "%d2", INCLUDING the
 // quotes because the metadata strings given here need to be valid JSON to pass SLiM's internal checks.  Those
 // are then replaced, in some cases by a quoted string, in other cases by an integer.  Schemas that contain
 // substitution strings like this have a variable name here ending in "_FORMAT" to indicate that they cannot
@@ -1867,17 +1813,367 @@ EidosPalette *gEidos_Palette_MutationLogisticEffect =
 
 // BCH 12/9/2024: Added the new optional key `chromosomes`, providing an array of information about chromosomes (to support
 // multiple chromosomes), and the new required key `this_chromosome` specifying information about this file's chromosome.
-const std::string gSLiM_tsk_metadata_JSON_schema =
-R"V0G0N({"codec":"json","examples":[{"SLiM":{"chromosomes":[{"id":1,"name":"autosome_1","symbol":"1","type":"A"},{"id":35,"name":"mtDNA","symbol":"MT","type":"HF"}],"cycle":123,"description":"foxes on Catalina island","file_version":"1.0","model_type":"WF","name":"fox","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x","this_chromosome":{"id":1,"index":0,"name":"autosome_1","symbol":"1","type":"A"},"tick":123,"traits":[{"index":0,"name":"simT","type":"multiplicative"}]}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 1.0","properties":{"chromosomes":{"description":"The chromosomes represented by the collection of tree sequences, of which this tree sequence is one member.","items":{"properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","symbol","type"],"type":"object"},"type":"array"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"},"this_chromosome":{"description":"The chromosome represented by the tree sequence in this file.","properties":{"id":{"description":"An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.","type":"integer"},"index":{"description":"The (zero-based) index of this chromosome in the chromosomes metadata array (if present), which should match the information given here.","type":"integer"},"name":{"description":"A user-specified name for the chromosome, such as an accession identifier.","type":"string"},"symbol":{"description":"A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".","type":"string"},"type":{"description":"The type of chromosome, as specified by SLiM.","type":"string"}},"required":["id","index","symbol","type"],"type":"object"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"traits":{"description":"The traits defined for this tree sequence; each mutation and individual will have per-trait metadata.","items":{"properties":{"baselineAccumulation":{"description":"Whether the baseline offset includes accumulated effects from fixed (substituted) mutations.","type":"boolean"},"baselineOffset":{"description":"The baseline offset of the trait.","type":"number"},"directFitnessEffect":{"description":"Whether the trait's effects are used directly as fitness effects.","type":"boolean"},"index":{"description":"The integer index for the trait; indices must be sequential starting from zero.","type":"integer"},"individualOffsetMean":{"description":"The mean of the trait's individual offset distribution (which might or might not be used).","type":"number"},"individualOffsetSD":{"description":"The standard deviation of the trait's individual offset distribution (which might or might not be used).","type":"number"},"name":{"description":"The string name for the trait.","type":"string"},"type":{"description":"The type of the trait; this must be 'additive', 'multiplicative', or 'logistic'.","enum":["additive","multiplicative","logistic"],"type":"string"}},"required":["index","name","type"],"type":"object"},"type":"array"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","this_chromosome","separate_sexes","nucleotide_based","traits"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+#pragma mark gSLiM_tsk_metadata_JSON_schema_SOURCE
 
-// Note the substituted strings "%d1" (the number of padding bytes used to produce 8-byte alignment of this
-// binary metadata in the json_binary codec) and "%d2" (the number of traits in the focal species).
-const std::string gSLiM_tsk_metadata_binary_schema_FORMAT =
-R"V0G0N({"codec":"struct","description":"SLiM schema for binary top-level metadata.","properties":{"mutation_list":{"index":2,"items":{"additionalProperties":false,"properties":{"mutation_id":{"binaryFormat":"q","description":"The SLiM mutation ID for this mutation.","index":1,"type":"integer"},"mutation_type":{"binaryFormat":"i","description":"The id of this mutation's mutationType.","index":2,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"padding":{"binaryFormat":"3x","description":"Padding bytes for alignment","index":6,"type":"null"},"per_trait":{"index":7,"items":{"additionalProperties":false,"properties":{"dominance":{"binaryFormat":"f","description":"The dominance coefficient for this trait.","index":2,"type":"number"},"effect_size":{"binaryFormat":"f","description":"The effect size for this trait.","index":1,"type":"number"},"hemizygous_dominance":{"binaryFormat":"f","description":"The hemizygous dominance coefficient for this trait.","index":3,"type":"number"}},"required":["dominance","effect_size","hemizygous_dominance"],"type":"object"},"length":"%d1","type":"array"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_id","mutation_type","slim_time","subpopulation","nucleotide","per_trait"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
+const std::string gSLiM_tsk_metadata_JSON_schema_SOURCE = R"V0G0N({
+    "codec": "json",
+    "type": "object",
+    "description": "SLiM schema for JSON top-level metadata.",
+    "examples": [
+        {
+            "SLiM": {
+                "chromosomes": [
+                    {
+                        "id": 1,
+                        "name": "autosome_1",
+                        "symbol": "1",
+                        "type": "A"
+                    },
+                    {
+                        "id": 35,
+                        "name": "mtDNA",
+                        "symbol": "MT",
+                        "type": "HF"
+                    }
+                ],
+                "cycle": 123,
+                "description": "foxes on Catalina island",
+                "file_version": "1.0",
+                "model_type": "WF",
+                "name": "fox",
+                "nucleotide_based": false,
+                "separate_sexes": true,
+                "spatial_dimensionality": "xy",
+                "spatial_periodicity": "x",
+                "this_chromosome": {
+                    "id": 1,
+                    "index": 0,
+                    "name": "autosome_1",
+                    "symbol": "1",
+                    "type": "A"
+                },
+                "tick": 123,
+                "traits": [
+                    {
+                        "index": 0,
+                        "name": "simT",
+                        "type": "multiplicative"
+                    }
+                ]
+            }
+        }
+    ],
+    "properties": {
+        "SLiM": {
+            "type": "object",
+            "description": "Top-level metadata for a SLiM tree sequence, file format version 1.0",
+            "properties": {
+                "chromosomes": {
+                    "type": "array",
+                    "description": "The chromosomes represented by the collection of tree sequences, of which this tree sequence is one member.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "description": "An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1."
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "A user-specified name for the chromosome, such as an accession identifier."
+                            },
+                            "symbol": {
+                                "type": "string",
+                                "description": "A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\"."
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "The type of chromosome, as specified by SLiM."
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "symbol",
+                            "type"
+                        ]
+                    }
+                },
+                "cycle": {
+                    "type": "integer",
+                    "description": "The 'SLiM cycle' counter when this tree sequence was recorded."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A user-configurable description of the species represented by this tree sequence."
+                },
+                "file_version": {
+                    "type": "string",
+                    "description": "The SLiM 'file format version' of this tree sequence."
+                },
+                "model_type": {
+                    "type": "string",
+                    "enum": [
+                        "WF",
+                        "nonWF"
+                    ],
+                    "description": "The model type used for the last part of this simulation (WF or nonWF)."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The SLiM species name represented by this tree sequence."
+                },
+                "nucleotide_based": {
+                    "type": "boolean",
+                    "description": "Whether the simulation was nucleotide-based."
+                },
+                "separate_sexes": {
+                    "type": "boolean",
+                    "description": "Whether the simulation had separate sexes."
+                },
+                "spatial_dimensionality": {
+                    "type": "string",
+                    "enum": [
+                        "",
+                        "x",
+                        "xy",
+                        "xyz"
+                    ],
+                    "description": "The spatial dimensionality of the simulation."
+                },
+                "spatial_periodicity": {
+                    "type": "string",
+                    "enum": [
+                        "",
+                        "x",
+                        "y",
+                        "z",
+                        "xy",
+                        "xz",
+                        "yz",
+                        "xyz"
+                    ],
+                    "description": "The spatial periodicity of the simulation."
+                },
+                "stage": {
+                    "type": "string",
+                    "description": "The stage of the SLiM life cycle when this tree sequence was recorded."
+                },
+                "this_chromosome": {
+                    "type": "object",
+                    "description": "The chromosome represented by the tree sequence in this file.",
+                    "properties": {
+                        "id": {
+                            "description": "An integer identifier for the chromosome, unique within this set of tree sequences; often the chromosome number in the organism being represented, such as 1.",
+                            "type": "integer"
+                        },
+                        "index": {
+                            "description": "The (zero-based) index of this chromosome in the chromosomes metadata array (if present), which should match the information given here.",
+                            "type": "integer"
+                        },
+                        "name": {
+                            "description": "A user-specified name for the chromosome, such as an accession identifier.",
+                            "type": "string"
+                        },
+                        "symbol": {
+                            "description": "A short string symbol for the chromosome, unique within this set of tree sequences, such as \"1\" or \"MT\".",
+                            "type": "string"
+                        },
+                        "type": {
+                            "description": "The type of chromosome, as specified by SLiM.",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "id",
+                        "index",
+                        "symbol",
+                        "type"
+                    ]
+                },
+                "tick": {
+                    "type": "integer",
+                    "description": "The 'SLiM tick' counter when this tree sequence was recorded."
+                },
+                "traits": {
+                    "type": "array",
+                    "description": "The traits defined for this tree sequence; each mutation and individual will have per-trait metadata.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "baselineAccumulation": {
+                                "type": "boolean",
+                                "description": "Whether the baseline offset includes accumulated effects from fixed (substituted) mutations."
+                            },
+                            "baselineOffset": {
+                                "type": "number",
+                                "description": "The baseline offset of the trait."
+                            },
+                            "directFitnessEffect": {
+                                "type": "boolean",
+                                "description": "Whether the trait's effects are used directly as fitness effects."
+                            },
+                            "index": {
+                                "type": "integer",
+                                "description": "The integer index for the trait; indices must be sequential starting from zero."
+                            },
+                            "individualOffsetMean": {
+                                "type": "number",
+                                "description": "The mean of the trait's individual offset distribution (which might or might not be used)."
+                            },
+                            "individualOffsetSD": {
+                                "type": "number",
+                                "description": "The standard deviation of the trait's individual offset distribution (which might or might not be used)."
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "The string name for the trait."
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "additive",
+                                    "multiplicative",
+                                    "logistic"
+                                ],
+                                "description": "The type of the trait; this must be 'additive', 'multiplicative', or 'logistic'."
+                            }
+                        },
+                        "required": [
+                            "index",
+                            "name",
+                            "type"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "model_type",
+                "tick",
+                "file_version",
+                "spatial_dimensionality",
+                "spatial_periodicity",
+                "this_chromosome",
+                "separate_sexes",
+                "nucleotide_based",
+                "traits"
+            ]
+        }
+    },
+    "required": [
+        "SLiM"
+    ]
+})V0G0N";
 
-const std::string gSLiM_tsk_edge_metadata_schema = "";
-const std::string gSLiM_tsk_site_metadata_schema = "";
-const std::string gSLiM_tsk_mutation_metadata_schema = "";		// this is now managed by gSLiM_tsk_metadata_binary_schema in top-level metadata
+// Unlike JSON, the names of keys are not visible in the data that is written out; but they are visible
+// to end users in Python.  Keys here will appear at the top level of the top-level metadata, not inside
+// the "SLiM" key that is used to group SLiM metadata in the JSON schema.  Their names should therefore
+// begin with "SLiM_", to distinguish them as SLiM metadata (or so we have decided for now).
+//
+// Note the substituted string "%d1" (the number of traits in the focal species).
+#pragma mark gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE
+
+const std::string gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE = R"V0G0N({
+    "codec": "struct",
+    "type": "object",
+    "description": "SLiM schema for binary top-level metadata.",
+    "properties": {
+        "SLiM_mutation_list": {
+            "type": "array",
+            "arrayLengthFormat": "Q",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "mutation_id": {
+                        "index": 1,
+                        "type": "integer",
+                        "binaryFormat": "q",
+                        "description": "The SLiM mutation ID for this mutation."
+                    },
+                    "mutation_type": {
+                        "index": 2,
+                        "type": "integer",
+                        "binaryFormat": "i",
+                        "description": "The id of this mutation's mutationType."
+                    },
+                    "subpopulation": {
+                        "index": 3,
+                        "type": "integer",
+                        "binaryFormat": "i",
+                        "description": "The ID of the subpopulation this mutation occurred in."
+                    },
+                    "slim_time": {
+                        "index": 4,
+                        "type": "integer",
+                        "binaryFormat": "i",
+                        "description": "The SLiM tick counter when this mutation occurred."
+                    },
+                    "nucleotide": {
+                        "index": 5,
+                        "type": "integer",
+                        "binaryFormat": "b",
+                        "description": "The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)"
+                    },
+                    "padding": {
+                        "index": 6,
+                        "type": "null",
+                        "binaryFormat": "3x",
+                        "description": "Padding bytes for alignment"
+                    },
+                    "per_trait": {
+                        "index": 7,
+                        "type": "array",
+                        "length": "%d1",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "effect_size": {
+                                    "index": 1,
+                                    "type": "number",
+                                    "binaryFormat": "f",
+                                    "description": "The effect size for this trait."
+                                },
+                                "dominance": {
+                                    "index": 2,
+                                    "type": "number",
+                                    "binaryFormat": "f",
+                                    "description": "The dominance coefficient for this trait."
+                                },
+                                "hemizygous_dominance": {
+                                    "index": 3,
+                                    "type": "number",
+                                    "binaryFormat": "f",
+                                    "description": "The hemizygous dominance coefficient for this trait."
+                                }
+                            },
+                            "required": [
+                                "dominance",
+                                "effect_size",
+                                "hemizygous_dominance"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "mutation_id",
+                    "mutation_type",
+                    "slim_time",
+                    "subpopulation",
+                    "nucleotide",
+                    "per_trait"
+                ]
+            }
+        }
+    },
+    "required": [
+        "SLiM_mutation_list"
+    ]
+})V0G0N";
+
+const std::string gSLiM_tsk_edge_metadata_schema_SOURCE = "";
+const std::string gSLiM_tsk_site_metadata_schema_SOURCE = "";
+const std::string gSLiM_tsk_mutation_metadata_schema_SOURCE = "";		// this is now managed by gSLiM_tsk_metadata_binary_schema in top-level metadata
 
 // BCH 12/10/2024: Removed the type field, and changed the treatment of is_vacant.  We have a tricky problem
 // here, which is that is_vacant is now variable-length and there is no count.  The number of byte (uint8_t)
@@ -1900,24 +2196,441 @@ const std::string gSLiM_tsk_mutation_metadata_schema = "";		// this is now manag
 // https://github.com/tskit-dev/tskit/issues/3088 (released in tskit version Python 0.6.1).  The new syntax for
 // a fixed-length array is: {"type": "array", "length": 3, "items": {"type":"number", "binaryFormat":"B"}}.  The
 // length, 3 here, is encoded with "%d" and replaced at runtime with the correct count.
-const std::string gSLiM_tsk_node_metadata_schema_FORMAT =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"is_vacant":0,"slim_id":123}],"properties":{"is_vacant":{"description":"A vector of byte (uint8_t) values, with each bit representing whether the node represents a vacant position, either unused or a null haplosome (1), or a non-null haplosome (0), in the corresponding chromosome. This field encodes vacancy for all of the chromosomes in the model, not just the chromosome represented in this file (so that the node table is identical across all chromosomes for a multi-chromosome model). Each chromosome receives one bit here; there are two node table entries per individual, used for the two haplosomes of every chromosome, so only one bit is needed in each entry (making two bits total per chromosome, across the two node table entries). The least significant bit of the first byte is used first (for one haplosome of the first chromosome); the most significant bit of the last byte is used last. The number of bytes present in this field is indicated by this schema's 'binaryFormat' field, which is variable (!), and can also be deduced from the number of chromosomes in the model as given in the top-level 'chromosomes' metadata key, which should always be present if this metadata is present.","index":2,"items":{"binaryFormat":"B","type":"number"},"length":"%d","type":"array"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of the haplosomes associated with this node in SLiM.","index":1,"type":"integer"}},"required":["slim_id","is_vacant"],"type":["object","null"]})V0G0N";
+#pragma mark gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE
+
+const std::string gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE = R"V0G0N({
+    "$schema": "http://json-schema.org/schema#",
+    "additionalProperties": false,
+    "codec": "struct",
+    "type": [
+        "object",
+        "null"
+    ],
+    "description": "SLiM schema for node metadata.",
+    "examples": [
+        {
+            "is_vacant": 0,
+            "slim_id": 123
+        }
+    ],
+    "properties": {
+        "slim_id": {
+            "index": 1,
+            "type": "integer",
+            "binaryFormat": "q",
+            "description": "The 'pedigree ID' of the haplosomes associated with this node in SLiM."
+        },
+        "is_vacant": {
+            "index": 2,
+            "type": "array",
+            "length": "%d",
+            "description": "A vector of byte (uint8_t) values, with each bit representing whether the node represents a vacant position, either unused or a null haplosome (1), or a non-null haplosome (0), in the corresponding chromosome. This field encodes vacancy for all of the chromosomes in the model, not just the chromosome represented in this file (so that the node table is identical across all chromosomes for a multi-chromosome model). Each chromosome receives one bit here; there are two node table entries per individual, used for the two haplosomes of every chromosome, so only one bit is needed in each entry (making two bits total per chromosome, across the two node table entries). The least significant bit of the first byte is used first (for one haplosome of the first chromosome); the most significant bit of the last byte is used last. The number of bytes present in this field is indicated by this schema's 'binaryFormat' field, which is variable (!), and can also be deduced from the number of chromosomes in the model as given in the top-level 'chromosomes' metadata key, which should always be present if this metadata is present.",
+            "items": {
+                "binaryFormat": "B",
+                "type": "number"
+            }
+        }
+    },
+    "required": [
+        "slim_id",
+        "is_vacant"
+    ]
+})V0G0N";
 
 // Note the substitute string "%d" (the number of traits in the focal species).
-const std::string gSLiM_tsk_individual_metadata_schema_FORMAT =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0,"per_trait":[{"offset":1.0,"phenotype":1.1}]}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"per_trait":{"index":8,"items":{"additionalProperties":false,"properties":{"offset":{"binaryFormat":"d","description":"The individual offset for this trait.","index":2,"type":"number"},"phenotype":{"binaryFormat":"d","description":"The phenotype for this trait.","index":1,"type":"number"}},"required":["offset","phenotype"],"type":"object"},"length":"%d","type":"array"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags","per_trait"],"type":"object"})V0G0N";
+#pragma mark gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE
+
+const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
+    "$schema": "http://json-schema.org/schema#",
+    "codec": "struct",
+    "type": "object",
+    "description": "SLiM schema for individual metadata.",
+    "examples": [
+        {
+            "age": -1,
+            "flags": 0,
+            "pedigree_id": 123,
+            "pedigree_p1": 12,
+            "pedigree_p2": 23,
+            "per_trait": [
+                {
+                    "offset": 1.0,
+                    "phenotype": 1.1
+                }
+            ],
+            "sex": 0,
+            "subpopulation": 0
+        }
+    ],
+    "flags": {
+        "SLIM_INDIVIDUAL_METADATA_MIGRATED": {
+            "description": "Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).",
+            "value": 1
+        }
+    },
+    "properties": {
+        "pedigree_id": {
+            "index": 1,
+            "type": "integer",
+            "binaryFormat": "q",
+            "description": "The 'pedigree ID' of this individual in SLiM."
+        },
+        "pedigree_p1": {
+            "index": 2,
+            "type": "integer",
+            "binaryFormat": "q",
+            "description": "The 'pedigree ID' of this individual's first parent in SLiM."
+        },
+        "pedigree_p2": {
+            "index": 3,
+            "type": "integer",
+            "binaryFormat": "q",
+            "description": "The 'pedigree ID' of this individual's second parent in SLiM."
+        },
+        "age": {
+            "index": 4,
+            "type": "integer",
+            "binaryFormat": "i",
+            "description": "The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not)."
+        },
+        "subpopulation": {
+            "index": 5,
+            "type": "integer",
+            "binaryFormat": "i",
+            "description": "The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not)."
+        },
+        "sex": {
+            "index": 6,
+            "type": "integer",
+            "binaryFormat": "i",
+            "description": "The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite)."
+        },
+        "flags": {
+            "index": 7,
+            "type": "integer",
+            "binaryFormat": "I",
+            "description": "Other information about the individual: see 'flags'."
+        },
+        "per_trait": {
+            "index": 8,
+            "type": "array",
+            "length": "%d",
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "phenotype": {
+                        "index": 1,
+                        "type": "number",
+                        "binaryFormat": "d",
+                        "description": "The phenotype for this trait."
+                    },
+                    "offset": {
+                        "index": 2,
+                        "type": "number",
+                        "binaryFormat": "d",
+                        "description": "The individual offset for this trait."
+                    }
+                },
+                "required": [
+                    "offset",
+                    "phenotype"
+                ],
+                "type": "object"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "pedigree_id",
+        "pedigree_p1",
+        "pedigree_p2",
+        "age",
+        "subpopulation",
+        "sex",
+        "flags",
+        "per_trait"
+    ]
+})V0G0N";
 
 // This schema was obsoleted in SLiM 3.7; we now use a JSON schema for the population metadata (see below)
-const std::string gSLiM_tsk_population_metadata_schema_PREJSON = 
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"bounds_z0":0.0,"bounds_z1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2}],"properties":{"bounds_x0":{"binaryFormat":"d","description":"The minimum x-coordinate in this subpopulation.","index":6,"type":"number"},"bounds_x1":{"binaryFormat":"d","description":"The maximum x-coordinate in this subpopulation.","index":7,"type":"number"},"bounds_y0":{"binaryFormat":"d","description":"The minimum y-coordinate in this subpopulation.","index":8,"type":"number"},"bounds_y1":{"binaryFormat":"d","description":"The maximum y-coordinate in this subpopulation.","index":9,"type":"number"},"bounds_z0":{"binaryFormat":"d","description":"The minimum z-coordinate in this subpopulation.","index":10,"type":"number"},"bounds_z1":{"binaryFormat":"d","description":"The maximum z-coordinate in this subpopulation.","index":11,"type":"number"},"female_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","index":3,"type":"number"},"male_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","index":4,"type":"number"},"migration_records":{"arrayLengthFormat":"I","index":13,"items":{"additionalProperties":false,"properties":{"migration_rate":{"binaryFormat":"d","description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","index":2,"type":"number"},"source_subpop":{"binaryFormat":"i","description":"The ID of the subpopulation migrants come from (in WF models).","index":1,"type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"selfing_fraction":{"binaryFormat":"d","description":"The frequency with which individuals in this subpopulation self (for WF models).","index":2,"type":"number"},"sex_ratio":{"binaryFormat":"d","description":"This subpopulation's sex ratio (for WF models).","index":5,"type":"number"},"slim_id":{"binaryFormat":"i","description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","index":1,"type":"integer"}},"required":["slim_id","selfing_fraction","female_cloning_fraction","male_cloning_fraction","sex_ratio","bounds_x0","bounds_x1","bounds_y0","bounds_y1","bounds_z0","bounds_z1","migration_records"],"type":["object","null"]})V0G0N";
+const std::string gSLiM_tsk_population_metadata_schema_PREJSON_SOURCE = R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"bounds_z0":0.0,"bounds_z1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2}],"properties":{"bounds_x0":{"binaryFormat":"d","description":"The minimum x-coordinate in this subpopulation.","index":6,"type":"number"},"bounds_x1":{"binaryFormat":"d","description":"The maximum x-coordinate in this subpopulation.","index":7,"type":"number"},"bounds_y0":{"binaryFormat":"d","description":"The minimum y-coordinate in this subpopulation.","index":8,"type":"number"},"bounds_y1":{"binaryFormat":"d","description":"The maximum y-coordinate in this subpopulation.","index":9,"type":"number"},"bounds_z0":{"binaryFormat":"d","description":"The minimum z-coordinate in this subpopulation.","index":10,"type":"number"},"bounds_z1":{"binaryFormat":"d","description":"The maximum z-coordinate in this subpopulation.","index":11,"type":"number"},"female_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","index":3,"type":"number"},"male_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","index":4,"type":"number"},"migration_records":{"arrayLengthFormat":"I","index":13,"items":{"additionalProperties":false,"properties":{"migration_rate":{"binaryFormat":"d","description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","index":2,"type":"number"},"source_subpop":{"binaryFormat":"i","description":"The ID of the subpopulation migrants come from (in WF models).","index":1,"type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"selfing_fraction":{"binaryFormat":"d","description":"The frequency with which individuals in this subpopulation self (for WF models).","index":2,"type":"number"},"sex_ratio":{"binaryFormat":"d","description":"This subpopulation's sex ratio (for WF models).","index":5,"type":"number"},"slim_id":{"binaryFormat":"i","description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","index":1,"type":"integer"}},"required":["slim_id","selfing_fraction","female_cloning_fraction","male_cloning_fraction","sex_ratio","bounds_x0","bounds_x1","bounds_y0","bounds_y1","bounds_z0","bounds_z1","migration_records"],"type":["object","null"]})V0G0N";
 
 // BCH 19 May 2022: removed the `required` status for the "slim_id" key for SLiM 4, to allow "carryover" metadata
 // to validate without errors (but for it to be considered SLiM metadata, "slim_id" must nevertheless be present).
 // This is a change from SLiM 3.7 (and before SLiM 3.7 we were pre-JSON), but we don't need to have the SLiM 3.7
 // schema in SLiM since we don't check/validate schemas anyway in SLiM; we will just write out this new schema in
 // SLiM 4, and on read we won't care whether the schema is the 3.7 or the 4.0 schema.
-const std::string gSLiM_tsk_population_metadata_schema = 
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":true,"codec":"json","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"name":"p2","selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2}],"properties":{"bounds_x0":{"description":"The minimum x-coordinate in this subpopulation.","type":"number"},"bounds_x1":{"description":"The maximum x-coordinate in this subpopulation.","type":"number"},"bounds_y0":{"description":"The minimum y-coordinate in this subpopulation.","type":"number"},"bounds_y1":{"description":"The maximum y-coordinate in this subpopulation.","type":"number"},"bounds_z0":{"description":"The minimum z-coordinate in this subpopulation.","type":"number"},"bounds_z1":{"description":"The maximum z-coordinate in this subpopulation.","type":"number"},"description":{"description":"A description of this subpopulation.","type":"string"},"female_cloning_fraction":{"description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","type":"number"},"male_cloning_fraction":{"description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","type":"number"},"migration_records":{"items":{"properties":{"migration_rate":{"description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","type":"number"},"source_subpop":{"description":"The ID of the subpopulation migrants come from (in WF models).","type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"name":{"description":"A human-readable name for this subpopulation.","type":"string"},"selfing_fraction":{"description":"The frequency with which individuals in this subpopulation self (for WF models).","type":"number"},"sex_ratio":{"description":"This subpopulation's sex ratio (for WF models).","type":"number"},"slim_id":{"description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","type":"integer"}},"required":[],"type":["object","null"]})V0G0N";
+#pragma mark gSLiM_tsk_population_metadata_schema_SOURCE
+
+const std::string gSLiM_tsk_population_metadata_schema_SOURCE = R"V0G0N({
+    "$schema": "http://json-schema.org/schema#",
+    "additionalProperties": true,
+    "codec": "json",
+    "description": "SLiM schema for population metadata.",
+    "examples": [
+        {
+            "bounds_x0": 0.0,
+            "bounds_x1": 100.0,
+            "bounds_y0": 0.0,
+            "bounds_y1": 100.0,
+            "female_cloning_fraction": 0.25,
+            "male_cloning_fraction": 0.0,
+            "migration_records": [
+                {
+                    "migration_rate": 0.9,
+                    "source_subpop": 1
+                },
+                {
+                    "migration_rate": 0.1,
+                    "source_subpop": 2
+                }
+            ],
+            "name": "p2",
+            "selfing_fraction": 0.5,
+            "sex_ratio": 0.5,
+            "slim_id": 2
+        }
+    ],
+    "properties": {
+        "bounds_x0": {
+            "description": "The minimum x-coordinate in this subpopulation.",
+            "type": "number"
+        },
+        "bounds_x1": {
+            "description": "The maximum x-coordinate in this subpopulation.",
+            "type": "number"
+        },
+        "bounds_y0": {
+            "description": "The minimum y-coordinate in this subpopulation.",
+            "type": "number"
+        },
+        "bounds_y1": {
+            "description": "The maximum y-coordinate in this subpopulation.",
+            "type": "number"
+        },
+        "bounds_z0": {
+            "description": "The minimum z-coordinate in this subpopulation.",
+            "type": "number"
+        },
+        "bounds_z1": {
+            "description": "The maximum z-coordinate in this subpopulation.",
+            "type": "number"
+        },
+        "description": {
+            "description": "A description of this subpopulation.",
+            "type": "string"
+        },
+        "female_cloning_fraction": {
+            "description": "The frequency with which females in this subpopulation reproduce clonally (for WF models).",
+            "type": "number"
+        },
+        "male_cloning_fraction": {
+            "description": "The frequency with which males in this subpopulation reproduce clonally (for WF models).",
+            "type": "number"
+        },
+        "migration_records": {
+            "items": {
+                "properties": {
+                    "migration_rate": {
+                        "description": "The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).",
+                        "type": "number"
+                    },
+                    "source_subpop": {
+                        "description": "The ID of the subpopulation migrants come from (in WF models).",
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "source_subpop",
+                    "migration_rate"
+                ],
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "name": {
+            "description": "A human-readable name for this subpopulation.",
+            "type": "string"
+        },
+        "selfing_fraction": {
+            "description": "The frequency with which individuals in this subpopulation self (for WF models).",
+            "type": "number"
+        },
+        "sex_ratio": {
+            "description": "This subpopulation's sex ratio (for WF models).",
+            "type": "number"
+        },
+        "slim_id": {
+            "description": "The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.",
+            "type": "integer"
+        }
+    },
+    "required": [],
+    "type": [
+        "object",
+        "null"
+    ]
+})V0G0N";
+
+
+// BCH 6/2/2026: I've converted the original JSON schemas above to be formatted, for readability, and now use
+// nlohmann to canonicalize them (by alphabetizing keys, which nlohmann does automatically, and removing all
+// whitespace from them, which dump() does by default).  There is a theoretical danger that the canonicalization
+// by nlohmann will not match the canonicalization by Python, but in practice that seems to be a non-issue.
+// The benefit of having these be readable here in the SLiM source code is huge, so I'll do it this way until
+// a problem arises.  See SLiM_TSK_Schema_WarmUp() for the actual canonicalization code.
+
+const std::string *gSLiM_tsk_metadata_JSON_schema = nullptr;
+const std::string *gSLiM_tsk_metadata_binary_schema_FORMAT = nullptr;
+
+const std::string *gSLiM_tsk_edge_metadata_schema = nullptr;
+const std::string *gSLiM_tsk_site_metadata_schema = nullptr;
+const std::string *gSLiM_tsk_mutation_metadata_schema = nullptr;
+const std::string *gSLiM_tsk_node_metadata_schema_FORMAT = nullptr;
+const std::string *gSLiM_tsk_individual_metadata_schema_FORMAT = nullptr;
+const std::string *gSLiM_tsk_population_metadata_schema_PREJSON = nullptr;
+const std::string *gSLiM_tsk_population_metadata_schema = nullptr;
+
+void SLiM_TSK_Schema_WarmUp(void)
+{
+	// Test that our tskit metadata schemas are valid JSON, and then canonicalize them
+	try {
+		nlohmann::json top_level_JSON_schema = nlohmann::json::parse(gSLiM_tsk_metadata_JSON_schema_SOURCE);
+		gSLiM_tsk_metadata_JSON_schema = new std::string(top_level_JSON_schema.dump());
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_JSON_schema_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		nlohmann::json top_level_binary_schema = nlohmann::json::parse(gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE);
+		gSLiM_tsk_metadata_binary_schema_FORMAT = new std::string(top_level_binary_schema.dump());
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		// right now this schema is empty, so we have to handle that
+		if (gSLiM_tsk_edge_metadata_schema_SOURCE.length())
+		{
+			nlohmann::json edge_schema = nlohmann::json::parse(gSLiM_tsk_edge_metadata_schema_SOURCE);
+			gSLiM_tsk_edge_metadata_schema = new std::string(edge_schema.dump());
+		}
+		else
+			gSLiM_tsk_edge_metadata_schema = new std::string;
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_edge_metadata_schema_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		// right now this schema is empty, so we have to handle that
+		if (gSLiM_tsk_site_metadata_schema_SOURCE.length())
+		{
+			nlohmann::json site_schema = nlohmann::json::parse(gSLiM_tsk_site_metadata_schema_SOURCE);
+			gSLiM_tsk_site_metadata_schema = new std::string(site_schema.dump());
+		}
+		else
+			gSLiM_tsk_site_metadata_schema = new std::string;
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_site_metadata_schema_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		// right now this schema is empty, so we have to handle that
+		if (gSLiM_tsk_mutation_metadata_schema_SOURCE.length())
+		{
+			nlohmann::json mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema_SOURCE);
+			gSLiM_tsk_mutation_metadata_schema = new std::string(mutation_schema.dump());
+		}
+		else
+			gSLiM_tsk_mutation_metadata_schema = new std::string;
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_mutation_metadata_schema_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		nlohmann::json node_schema = nlohmann::json::parse(gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE);
+		gSLiM_tsk_node_metadata_schema_FORMAT = new std::string(node_schema.dump());
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		nlohmann::json individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE);
+		gSLiM_tsk_individual_metadata_schema_FORMAT = new std::string(individual_schema.dump());
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		nlohmann::json population_PREJSON_schema = nlohmann::json::parse(gSLiM_tsk_population_metadata_schema_PREJSON_SOURCE);
+		gSLiM_tsk_population_metadata_schema_PREJSON = new std::string(population_PREJSON_schema.dump());
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_population_metadata_schema_PREJSON_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+	try {
+		nlohmann::json population_schema = nlohmann::json::parse(gSLiM_tsk_population_metadata_schema_SOURCE);
+		gSLiM_tsk_population_metadata_schema = new std::string(population_schema.dump());
+	}  catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_population_metadata_schema_SOURCE must be a JSON string." << EidosTerminate();
+	}
+	
+#if 0
+#warning printing of JSON schemas should be disabled in a production build
+	// This prints out final canonicalized schemas.  These are the schema strings that SLiM will actually
+	// output, except that any variable bits ("%d", "%d1", etc.) are still present.
+	std::cout << "gSLiM_tsk_metadata_JSON_schema == " << std::endl << *gSLiM_tsk_metadata_JSON_schema << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT == " << std::endl << *gSLiM_tsk_metadata_binary_schema_FORMAT << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << *gSLiM_tsk_edge_metadata_schema << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << *gSLiM_tsk_site_metadata_schema << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << *gSLiM_tsk_mutation_metadata_schema << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << *gSLiM_tsk_node_metadata_schema_FORMAT << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT == " << std::endl << *gSLiM_tsk_individual_metadata_schema_FORMAT << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << *gSLiM_tsk_population_metadata_schema << std::endl << std::endl;
+#endif
+	
+#if 0
+#warning printing of JSON schemas should be disabled in a production build
+	// This prints out schemas with the order of keys retained as given, but prettyprinted with an indent of 4.
+	// This is useful for re-formatting the schemas above if they get messed up, without munging their custom order.
+	std::cout << "gSLiM_tsk_metadata_JSON_schema == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_metadata_JSON_schema_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE).dump(4) << std::endl << std::endl;
+	//std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_edge_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+	//std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_site_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+	//std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_mutation_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << nlohmann::ordered_json::parse(gSLiM_tsk_population_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+#endif
+	
+#if 0
+#warning printing of JSON schemas should be disabled in a production build
+	// This prints out schemas with a sorted key order, but prettyprinted with an indent of 4.
+	// This is useful for re-generating new formatted strings based upon canonical JSON.
+	std::cout << "gSLiM_tsk_metadata_JSON_schema == " << std::endl << nlohmann::json::parse(gSLiM_tsk_metadata_JSON_schema_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT == " << std::endl << nlohmann::json::parse(gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE).dump(4) << std::endl << std::endl;
+	//std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << nlohmann::json::parse(gSLiM_tsk_edge_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+	//std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << nlohmann::json::parse(gSLiM_tsk_site_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+	//std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << nlohmann::json::parse(gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT == " << std::endl << nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE).dump(4) << std::endl << std::endl;
+	std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << nlohmann::json::parse(gSLiM_tsk_population_metadata_schema_SOURCE).dump(4) << std::endl << std::endl;
+#endif
+	
+#if 0
+#warning checking for correspondence of original and canonicalized schemas should be disabled in a production build
+	// This check is only expected to be successful if the original schema (the _SOURCE version) is already
+	// canonicalized, which is NOT the case now.  This was a temporary crosscheck used as I transitioned the
+	// schemas over to being formatted above; I'm keeping it in the code just in case we experience a problem
+	// with the canonicalization later on.
+	if (*gSLiM_tsk_metadata_JSON_schema != gSLiM_tsk_metadata_JSON_schema_SOURCE) std::cout << "gSLiM_tsk_metadata_JSON_schema MISMATCH" << std::endl;
+	if (*gSLiM_tsk_metadata_binary_schema_FORMAT != gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE) std::cout << "gSLiM_tsk_metadata_binary_schema_FORMAT MISMATCH" << std::endl;
+	if (*gSLiM_tsk_node_metadata_schema_FORMAT != gSLiM_tsk_node_metadata_schema_FORMAT_SOURCE) std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT MISMATCH" << std::endl;
+	if (*gSLiM_tsk_individual_metadata_schema_FORMAT != gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE) std::cout << "gSLiM_tsk_individual_metadata_schema_FORMAT MISMATCH" << std::endl;
+	if (*gSLiM_tsk_population_metadata_schema_PREJSON != gSLiM_tsk_population_metadata_schema_PREJSON_SOURCE) std::cout << "gSLiM_tsk_population_metadata_schema_PREJSON MISMATCH" << std::endl;
+	if (*gSLiM_tsk_population_metadata_schema != gSLiM_tsk_population_metadata_schema_SOURCE) std::cout << "gSLiM_tsk_population_metadata_schema MISMATCH" << std::endl;
+#endif
+}
 
 
 // *************************************

@@ -9297,7 +9297,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	slim_trait_index_t trait_count = TraitCount();
 	size_t size_for_additional_trait_info = sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
 	size_t size_for_one_muttable_row = sizeof(MutationTableMetadataRec) + size_for_additional_trait_info;
-	size_t estimated_mutation_table_size = estimated_row_count * size_for_one_muttable_row;
+	size_t row_count_size = sizeof(uint64_t);
+	size_t estimated_mutation_table_size = row_count_size + estimated_row_count * size_for_one_muttable_row;
 	
 	// Then assemble those two components into a json+struct metadata chunk:
 	const uint8_t json_struct_codec_magic[4] = { 'J', 'B', 'L', 'B' };
@@ -9320,8 +9321,10 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	memcpy(metadata_buffer + header_length, metadata_JSON_str.data(), json_length);
 	memset(metadata_buffer + header_length + json_length, 0, padding_length);
 	
-	// Write mutation metadata into the binary section
-	uint8_t *base_row_pointer = metadata_buffer + header_length + json_length + padding_length;
+	// Write mutation metadata into the binary section.  This is the `SLiM_mutation_list` key in the binary
+	// top-level metadata.  It is an array with a row count of type "Q" (uint64_t), which we set at the end.
+	uint8_t *row_count_pointer = metadata_buffer + header_length + json_length + padding_length;
+	uint8_t *base_row_pointer = row_count_pointer + row_count_size;
 	uint8_t *row_pointer = base_row_pointer;
 	
 	// First we write substitutions; these are guaranteed not to be in the muts_retained_by_treeseq_ vector
@@ -9447,7 +9450,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) count of rows filled is not an integer." << EidosTerminate();
 	
 	size_t actual_row_count = (row_pointer - base_row_pointer) / size_for_one_muttable_row;
-	size_t actual_mutation_table_size = actual_row_count * size_for_one_muttable_row;
+	size_t actual_mutation_table_size = row_count_size + actual_row_count * size_for_one_muttable_row;
 	size_t actual_binary_length = actual_mutation_table_size;
 	size_t actual_total_length = header_length + json_length + padding_length + actual_binary_length;
 	
@@ -9457,6 +9460,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		if (!metadata_buffer)
 			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
+	
+	*(uint64_t *)row_count_pointer = (uint64_t)actual_row_count;
 	
 	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
 	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)actual_mutation_table_size);
@@ -9477,9 +9482,9 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	std::string jps_metadata_schema;
 	
 	jps_metadata_schema = R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json+struct","json":)V0G0N";
-	jps_metadata_schema += gSLiM_tsk_metadata_JSON_schema;
+	jps_metadata_schema += *gSLiM_tsk_metadata_JSON_schema;
 	jps_metadata_schema += R"V0G0N(,"struct":)V0G0N";
-	jps_metadata_schema += gSLiM_tsk_metadata_binary_schema_FORMAT;
+	jps_metadata_schema += *gSLiM_tsk_metadata_binary_schema_FORMAT;
 	jps_metadata_schema += R"V0G0N(})V0G0N";
 	
 	{
@@ -9516,26 +9521,26 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// Set metadata schema on each table
 	
 	ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
-			gSLiM_tsk_edge_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_edge_metadata_schema.length());
+			gSLiM_tsk_edge_metadata_schema->c_str(),
+			(tsk_size_t)gSLiM_tsk_edge_metadata_schema->length());
 	if (ret != 0)
 		handle_error("tsk_edge_table_set_metadata_schema", ret);
 	
 	ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
-			gSLiM_tsk_site_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_site_metadata_schema.length());
+			gSLiM_tsk_site_metadata_schema->c_str(),
+			(tsk_size_t)gSLiM_tsk_site_metadata_schema->length());
 	if (ret != 0)
 		handle_error("tsk_site_table_set_metadata_schema", ret);
 	
 	ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
-			gSLiM_tsk_mutation_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
+			gSLiM_tsk_mutation_metadata_schema->c_str(),
+			(tsk_size_t)gSLiM_tsk_mutation_metadata_schema->length());
 	if (ret != 0)
 		handle_error("tsk_mutation_table_set_metadata_schema", ret);
 	
 	{
 		// fix "%d" in the individual metadata to have the number of traits in the species
-		std::string tsk_individual_metadata_schema = gSLiM_tsk_individual_metadata_schema_FORMAT;
+		std::string tsk_individual_metadata_schema = *gSLiM_tsk_individual_metadata_schema_FORMAT;
 		size_t d_pos = tsk_individual_metadata_schema.find("\"%d\"");
 		
 		if (d_pos == std::string::npos)
@@ -9566,8 +9571,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	}
 	
 	ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
-			gSLiM_tsk_population_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
+			gSLiM_tsk_population_metadata_schema->c_str(),
+			(tsk_size_t)gSLiM_tsk_population_metadata_schema->length());
 	if (ret != 0)
 		handle_error("tsk_population_table_set_metadata_schema", ret);
 	
@@ -9575,7 +9580,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// haplosome structure of the model.  We allocate one bit per chromosome, in each node table entry (note
 	// there are two entries per individual, so it ends up being two bits of information per chromosome, across
 	// the two node table entries).  See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
-	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
+	std::string tsk_node_metadata_schema = *gSLiM_tsk_node_metadata_schema_FORMAT;
 	size_t pos = tsk_node_metadata_schema.find("\"%d\"");
 	std::string count_string = std::to_string(haplosome_metadata_is_vacant_bytes_);
 	
@@ -9866,7 +9871,7 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 	node_table.max_metadata_length = node_table.metadata_length;
 	
 	// need to fix the schema, because the number of bytes may have changed
-	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
+	std::string tsk_node_metadata_schema = *gSLiM_tsk_node_metadata_schema_FORMAT;
 	size_t pos = tsk_node_metadata_schema.find("\"%d\"");
 	std::string count_string = std::to_string(haplosome_metadata_is_vacant_bytes_);
 	
@@ -9911,6 +9916,12 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	size_t trait_count = Traits().size();
 	size_t binary_row_length = sizeof(MutationTableMetadataRec) + sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
 	
+	// extract the encoded mutation metadata table row count
+	uint64_t mutation_table_row_count = *(uint64_t *)top_level_binary_buffer;
+	
+	top_level_binary_buffer += sizeof(uint64_t);
+	top_level_binary_length -= sizeof(uint64_t);
+	
 	if (top_level_binary_length % binary_row_length != 0)
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata does not comprise an integral number of rows (binary_row_length == " << binary_row_length << ", top_level_binary_length == " << top_level_binary_length << "); this file cannot be read." << EidosTerminate();
 	
@@ -9918,6 +9929,9 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	p_mut_metadata_table.table_buffer = (uint8_t *)top_level_binary_buffer;
 	p_mut_metadata_table.row_size = binary_row_length;
 	p_mut_metadata_table.row_count = top_level_binary_length / binary_row_length;
+	
+	if (mutation_table_row_count != p_mut_metadata_table.row_count)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata's specified row count ( " << mutation_table_row_count << ") does not match the number of rows of data present (" << p_mut_metadata_table.row_count << "); this file cannot be read." << EidosTerminate();
 	
 #if DEBUG
 	//std::cout << "ReadTreeSequenceMetadata(): read binary mutation table with row size " << p_mut_metadata_table.row_size << " and " << p_mut_metadata_table.row_count << " rows." << std::endl;
@@ -11204,7 +11218,7 @@ void Species::__CheckPopulationMetadata(TreeSeqInfo &p_treeseq)
 	tsk_size_t pop_schema_len = tables.populations.metadata_schema_length;
 	std::string pop_schema(pop_schema_ptr, pop_schema_len);
 	
-	if (pop_schema == gSLiM_tsk_population_metadata_schema_PREJSON)
+	if (pop_schema == *gSLiM_tsk_population_metadata_schema_PREJSON)
 	{
 		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): the population metadata schema is old; this version of the .trees format is no longer supported by SLiM." << EidosTerminate(nullptr);
 	}
