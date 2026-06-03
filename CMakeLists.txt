@@ -320,10 +320,19 @@ endif()
 if(USE_SIMD)
     if(IS_X86_64 AND NOT MSVC)
         include(CheckCXXCompilerFlag)
+        include(CheckCXXSourceCompiles)
         check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
         check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE42)
+        # The runtime dispatcher needs __builtin_cpu_supports(), a GCC/Clang
+        # builtin.  GCC has had it since 4.8 (required for C++11 anyway), but
+        # older Clang versions, some vendored toolchains, and various compilers
+        # that claim __GNUC__/__clang__ compatibility don't.  If the builtin
+        # doesn't compile, suppress dispatch and use the scalar tier instead.
+        check_cxx_source_compiles(
+            "int main() { return __builtin_cpu_supports(\"avx2\") ? 1 : 0; }"
+            COMPILER_HAS_BUILTIN_CPU_SUPPORTS)
 
-        if(COMPILER_SUPPORTS_AVX2 AND COMPILER_SUPPORTS_SSE42)
+        if(COMPILER_SUPPORTS_AVX2 AND COMPILER_SUPPORTS_SSE42 AND COMPILER_HAS_BUILTIN_CPU_SUPPORTS)
             message(STATUS "SIMD: runtime dispatch enabled (scalar / SSE4.2 / AVX2+FMA selected per-CPU at startup)")
             # The avx2/sse42 tier files need -mavx2 -mfma / -msse4.2.  The flags
             # are applied at the end of this file rather than here, because the
@@ -332,7 +341,7 @@ if(USE_SIMD)
             # with APPEND_STRING, lets the two coexist (issue #628).
             set(SIMD_TIER_FLAGS_X86 TRUE)
         else()
-            message(STATUS "SIMD: compiler lacks -mavx2/-msse4.2; building scalar kernels only")
+            message(STATUS "SIMD: compiler lacks -mavx2/-msse4.2 or __builtin_cpu_supports; building scalar kernels only")
             add_compile_definitions(EIDOS_SUPPRESS_SIMD_DISPATCH=1)
         endif()
     elseif(MSVC)

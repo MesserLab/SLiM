@@ -1711,17 +1711,19 @@ void _RunSIMDMathTests(void)
 	// CPU selected at startup.  To test, and cover, every tier's kernels, cycle
 	// through all tiers available on this CPU, then restore the best one.
 	static const char * const tier_names[] = { "scalar", "SSE4.2", "AVX2+FMA", "NEON" };
+	std::string tiers_tested;
 
 	for (const char * const tier_name : tier_names)
 	{
 		if (!Eidos_SIMD_SelectTier(tier_name))
 			continue;
-		std::cout << "Testing SIMD kernels: " << Eidos_SIMD_ActiveTierName() << " tier";
-		if (!Eidos_SIMD_SLEEFActive())
-			std::cout << " (transcendentals use the std:: fallback)";
-		std::cout << std::endl;
+		if (!tiers_tested.empty())
+			tiers_tested += ", ";
+		tiers_tested += Eidos_SIMD_ActiveTierName();
 		_RunSIMDMathTests_CurrentTier();
 	}
+
+	std::cout << "SIMD self-tests cycled tiers: " << tiers_tested << std::endl;
 
 	// Restore the fastest tier for this CPU, undoing the cycling above.
 	Eidos_SIMD_Init();
