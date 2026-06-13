@@ -1914,11 +1914,26 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token)
 {
 	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
+	{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosTerminate::EidosTerminate(): terminating with token `" << p_error_token->token_string_ << "`." << std::endl;
+#endif
+		
 		PushErrorPositionFromToken(p_error_token);
+	}
 }
 
 EidosTerminate::EidosTerminate(const EidosErrorPosition &p_error_position)
 {
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "EidosTerminate::EidosTerminate(): terminating with error position {" <<
+		p_error_position.characterStartOfError << ", " <<
+		p_error_position.characterEndOfError << ", " <<
+		p_error_position.characterEndOfError << ", " <<
+		p_error_position.characterEndOfError <<
+		"} (gEidosErrorContext.currentScript == " << gEidosErrorContext.currentScript << ")." << std::endl;
+#endif
+	
 	gEidosErrorContext.errorPosition = p_error_position;
 }
 
@@ -1930,7 +1945,13 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token, bool p_print_bac
 {
 	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
+	{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosTerminate::EidosTerminate(): terminating with token `" << p_error_token->token_string_ << "`." << std::endl;
+#endif
+		
 		PushErrorPositionFromToken(p_error_token);
+	}
 }
 
 void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)

@@ -150,6 +150,15 @@ inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromTo
 	gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 = p_naughty_token_->token_UTF16_start_;
 	gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 = p_naughty_token_->token_UTF16_end_;
 	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   PushErrorPositionFromToken(): setting error position from token `" << p_naughty_token_->token_string_ << "` at {" <<
+		gEidosErrorContext.errorPosition.characterStartOfError << ", " <<
+		gEidosErrorContext.errorPosition.characterEndOfError << ", " <<
+		gEidosErrorContext.errorPosition.characterEndOfError << ", " <<
+		gEidosErrorContext.errorPosition.characterEndOfError <<
+		"} (currentScript == " << gEidosErrorContext.currentScript << ")." << std::endl;
+#endif
+	
 	return old_position;
 }
 

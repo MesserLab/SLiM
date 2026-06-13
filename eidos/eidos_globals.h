@@ -133,84 +133,6 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 
 // *******************************************************************************************************************
 //
-//	Error tracking
-//
-#pragma mark -
-#pragma mark Error tracking
-#pragma mark -
-
-// The part of the input file that caused an error; used to highlight the token or text that caused the error.
-// Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.  The
-// error tracking and reporting stuff is unfortunately very fragile, because it is based on global variables
-// that get magically set up in various places and then get used in various completely different places.  This
-// is a big reason why Eidos is not thread-safe at present, and it's one of the trickiest parts of the code,
-// for no very good reason except that I haven't yet figured out the right way to fix it.  FIXME
-
-// A small struct used for saving and restoring the error position in a stack-like manner.  Positions of -1
-// in this struct always mean "not a valid error position"; that is legal, but the error position is unknown.
-typedef struct
-{
-	int characterStartOfError;
-	int characterEndOfError;
-	int characterStartOfErrorUTF16;
-	int characterEndOfErrorUTF16;
-} EidosErrorPosition;
-
-// A bigger struct used when saving and restoring not only the error position but also the script context.
-// When an occur occurs, currentScript will usually point to a script.  The state inside currentScript
-// tells us what's going on.  If its offsets (like user_script_offset_UTF16_) are -1, that means the script
-// is independent of the user's script, such as a lambda; there's no way to translate error positions back,
-// so any error we show must be within the context of currentScript itself (e.g., within the lambda string).
-// If its offsets are not -1, the script is in some way derived from the user script, and there are two
-// possibilities.  One is that the offsets are 0 and the user_script_ pointer inside currentScript is
-// nullptr; this says "I *am* the user script".  The offsets can be used; since they are zero, no harm will
-// occur.  The other is that the offsets are (probably) non-zero, and the user_script_ pointer is (certainly)
-// non-nullptr, pointing to the user script.  This says "I am a subset of the user script".  The offsets
-// will translate a given error position back into the corresponding position in the user script.  That
-// translation is done by operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) when an error
-// is raised.  (I think currentScript is nullptr only when executing statements in the Eidos console.)
-typedef struct {
-	EidosErrorPosition errorPosition;
-	EidosScript *currentScript;
-} EidosErrorContext;
-
-// this global struct contains the current error context
-extern EidosErrorContext gEidosErrorContext;
-
-// declared in eidos_token.h due to EidosToken dependency:
-// inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
-
-inline __attribute__((always_inline)) void RestoreErrorPosition(const EidosErrorPosition &p_saved_position)
-{
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("RestoreErrorPosition(): gEidosErrorContext change");
-	
-	gEidosErrorContext.errorPosition = p_saved_position;
-}
-
-inline __attribute__((always_inline)) void ClearErrorPosition(void)
-{
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorPosition(): gEidosErrorContext change");
-	
-	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
-}
-
-inline __attribute__((always_inline)) void ClearErrorContext(void)
-{
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorContext(): gEidosErrorContext change");
-	
-	// Note that this clears to an illegal state; an error cannot be thrown in this state.
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr};
-}
-
-// Attempt to translate an error position from the current script to the user script.
-void TranslateErrorContextToUserScript(const char *p_caller);
-
-// Warnings: consult this flag before emitting a warning
-extern bool gEidosSuppressWarnings;
-
-
-// *******************************************************************************************************************
-//
 //	Debugging support
 //
 #pragma mark -
@@ -278,6 +200,98 @@ public:
 // (except local temporaries) without calling this function first.  This allows internal bookkeeping
 // to check for violations of the long-term boundary conventions.
 void CheckLongTermBoundary();
+
+
+// *******************************************************************************************************************
+//
+//	Error tracking
+//
+#pragma mark -
+#pragma mark Error tracking
+#pragma mark -
+
+// The part of the input file that caused an error; used to highlight the token or text that caused the error.
+// Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.  The
+// error tracking and reporting stuff is unfortunately very fragile, because it is based on global variables
+// that get magically set up in various places and then get used in various completely different places.  This
+// is a big reason why Eidos is not thread-safe at present, and it's one of the trickiest parts of the code,
+// for no very good reason except that I haven't yet figured out the right way to fix it.  FIXME
+
+// A small struct used for saving and restoring the error position in a stack-like manner.  Positions of -1
+// in this struct always mean "not a valid error position"; that is legal, but the error position is unknown.
+typedef struct
+{
+	int characterStartOfError;
+	int characterEndOfError;
+	int characterStartOfErrorUTF16;
+	int characterEndOfErrorUTF16;
+} EidosErrorPosition;
+
+// A bigger struct used when saving and restoring not only the error position but also the script context.
+// When an occur occurs, currentScript will usually point to a script.  The state inside currentScript
+// tells us what's going on.  If its offsets (like user_script_offset_UTF16_) are -1, that means the script
+// is independent of the user's script, such as a lambda; there's no way to translate error positions back,
+// so any error we show must be within the context of currentScript itself (e.g., within the lambda string).
+// If its offsets are not -1, the script is in some way derived from the user script, and there are two
+// possibilities.  One is that the offsets are 0 and the user_script_ pointer inside currentScript is
+// nullptr; this says "I *am* the user script".  The offsets can be used; since they are zero, no harm will
+// occur.  The other is that the offsets are (probably) non-zero, and the user_script_ pointer is (certainly)
+// non-nullptr, pointing to the user script.  This says "I am a subset of the user script".  The offsets
+// will translate a given error position back into the corresponding position in the user script.  That
+// translation is done by operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) when an error
+// is raised.  (I think currentScript is nullptr only when executing statements in the Eidos console.)
+typedef struct {
+	EidosErrorPosition errorPosition;
+	EidosScript *currentScript;
+} EidosErrorContext;
+
+// this global struct contains the current error context
+extern EidosErrorContext gEidosErrorContext;
+
+// declared in eidos_token.h due to EidosToken dependency:
+// inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
+
+inline __attribute__((always_inline)) void RestoreErrorPosition(const EidosErrorPosition &p_saved_position)
+{
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("RestoreErrorPosition(): gEidosErrorContext change");
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   RestoreErrorPosition(): restoring a saved position of {" << p_saved_position.characterStartOfError <<
+		", " << p_saved_position.characterEndOfError << ", " << p_saved_position.characterEndOfError <<
+		", " << p_saved_position.characterEndOfError << "}." << std::endl;
+#endif
+	
+	gEidosErrorContext.errorPosition = p_saved_position;
+}
+
+inline __attribute__((always_inline)) void ClearErrorPosition(void)
+{
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorPosition(): gEidosErrorContext change");
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   ClearErrorPosition(): clearing to an unknown position of {-1, -1, -1, -1}." << std::endl;
+#endif
+	
+	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
+}
+
+inline __attribute__((always_inline)) void ClearErrorContext(void)
+{
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorContext(): gEidosErrorContext change");
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   ClearErrorContext(): clearing to an illegal state." << std::endl;
+#endif
+	
+	// Note that this clears to an illegal state; an error cannot be thrown in this state.
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr};
+}
+
+// Attempt to translate an error position from the current script to the user script.
+void TranslateErrorContextToUserScript(const char *p_caller);
+
+// Warnings: consult this flag before emitting a warning
+extern bool gEidosSuppressWarnings;
 
 
 // *******************************************************************************************************************

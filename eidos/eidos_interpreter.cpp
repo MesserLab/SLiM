@@ -1450,6 +1450,18 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 		// We want to throw exceptions, even in SLiM, so that we can catch them here
 		bool save_throws = gEidosTerminateThrows;
 		
+		// We don't want failed attempts to fit variants to alter the error position
+		EidosErrorPosition error_pos_save = gEidosErrorContext.errorPosition;
+		
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::_ProcessArgumentList_CREATE(): saving error position {" <<
+			error_pos_save.characterStartOfError << ", " <<
+			error_pos_save.characterEndOfError << ", " <<
+			error_pos_save.characterEndOfError << ", " <<
+			error_pos_save.characterEndOfError <<
+			"} (currentScript == " << gEidosErrorContext.currentScript << ")." << std::endl;
+#endif
+		
 		// a vector of evaluated arguments that is filled lazily; this is necessary because we only want to
 		// evaluate the arguments once, and only *after* we find an otherwise viable candidate signature
 		std::vector<EidosValue_SP> evaluated_arguments;
@@ -1635,11 +1647,23 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 #endif
 			}
 			
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "EidosInterpreter::_ProcessArgumentList_CREATE(): restoring saved error position (a matching variant was found)." << std::endl;
+#endif
+			
+			RestoreErrorPosition(error_pos_save);
+			
 			return argument_buffer;
 			
 		tryNextVariant:
 			;
 		}
+		
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::_ProcessArgumentList_CREATE(): restoring saved error position (a matching variant was NOT found)." << std::endl;
+#endif
+		
+		RestoreErrorPosition(error_pos_save);
 		
 		if (Eidos_string_hasSuffix(variant_errors, "\n"))
 			variant_errors.pop_back();
@@ -1872,6 +1896,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::Evaluate_Call(): setting the error position for call to function `" << function_signature->call_name_ << "`." << std::endl;
+#endif
+		
 		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
@@ -1957,6 +1985,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		function_signature->CheckReturn(*result_SP);
 		
 		// Forget the function token, since it is not responsible for any future errors
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::Evaluate_Call(): restoring the error position after call to function `" << function_signature->call_name_ << "`." << std::endl;
+#endif
+		
 		RestoreErrorPosition(error_pos_save);
 	}
 	else if (call_name_token_type == EidosTokenType::kTokenDot)
@@ -1998,6 +2030,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::Evaluate_Call(): setting the error position for call to method `" << method_signature->call_name_ << "`." << std::endl;
+#endif
+		
 		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
@@ -2063,6 +2099,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 #endif
 		
 		// Forget the function token, since it is not responsible for any future errors
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::Evaluate_Call(): restoring the error position after call to method `" << method_signature->call_name_ << "`." << std::endl;
+#endif
+		
 		RestoreErrorPosition(error_pos_save);
 	}
 	else
@@ -4410,9 +4450,17 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 			// a non-nullptr return means that a new value had to be created for x = c(x,y), so we need to replace
 			// the value of x with that new value; std::swap(lvalue_SP, result_SP) does not do it because lvalue_SP
 			// is not the EidosValue_SP that is inside the symbol table, it just points to the same EidosValue!
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "EidosInterpreter::Evaluate_Assign(): setting the error position for assignment." << std::endl;
+#endif
+		
 			EidosErrorPosition error_pos_save = PushErrorPositionFromToken(p_node->token_);
 			
 			global_symbols_->SetValueForSymbolNoCopy(lvalue_node->cached_stringID_, std::move(result_SP));
+			
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "EidosInterpreter::Evaluate_Assign(): restoring the error position after assignment." << std::endl;
+#endif
 			
 			RestoreErrorPosition(error_pos_save);
 			goto compoundAssignmentSuccess;
@@ -4455,9 +4503,17 @@ compoundAssignmentSkip:
 		}
 #endif
 		
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::Evaluate_Assign(): setting the error position for assignment." << std::endl;
+#endif
+		
 		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(operator_token);
 		
 		_AssignRValueToLValue(std::move(rvalue), lvalue_node);
+		
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		std::cout << "EidosInterpreter::Evaluate_Assign(): restoring the error position after assignment." << std::endl;
+#endif
 		
 		RestoreErrorPosition(error_pos_save);
 	}
@@ -6527,6 +6583,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	next_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "EidosInterpreter::Evaluate_Next(): setting the error position for `next`." << std::endl;
+#endif
+	
 	PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
@@ -6555,6 +6615,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	break_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "EidosInterpreter::Evaluate_Break(): setting the error position for `break`." << std::endl;
+#endif
+	
 	PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
@@ -6576,6 +6640,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	return_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "EidosInterpreter::Evaluate_Return(): setting the error position for `return`." << std::endl;
+#endif
+	
 	PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue_SP result_SP;
