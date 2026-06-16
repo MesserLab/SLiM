@@ -823,35 +823,62 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		// Variant 2: overall range, and a bunch of colors
 		//
 		//		(object<Palette>$)Palette(numeric range, fs colors)
-		EidosValue *range_value = p_arguments[0].get();
-		EidosValue *color_value = p_arguments[1].get();
-		
-		if (p_arguments[0]->Count() != 2)
-			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): range must be a vector of length two, containing the start and end of the range." << EidosTerminate();
-		
-		double start_value = range_value->FloatAtIndex_CAST(0, nullptr);
-		double end_value = range_value->FloatAtIndex_CAST(1, nullptr);
-		
-		if (!std::isfinite(start_value) || !std::isfinite(end_value) || (start_value >= end_value))
-			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): with a value range, the start and end values must both be finite, and the start value must be less than the end value." << EidosTerminate();
-		
-		// we subdivide the value range into equal-length segments and distribute the given colors across it
-		int color_count = CountFromColorValue(color_value, /* p_singleton_required */ false);
-		
-		if (color_count < 2)
-			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): with a value range, at least two colors must be specified." << EidosTerminate();
-		
-		for (int color_index = 0; color_index < color_count; ++color_index)
+		//
+		// So, a bit of weirdness.  Variant 3 with the `transition` and `blend` parameters left unspecified is
+		// indistinguishable from variant 2, and will end up here.  So we need to handle that gracefully here.
+		if (p_arguments[0]->Count() == 2)
 		{
-			double value = start_value + color_index * ((end_value - start_value) / (color_count - 1));
-			double r, g, b;
+			// This is Variant 2
+			EidosValue *range_value = p_arguments[0].get();
+			EidosValue *color_value = p_arguments[1].get();
 			
-			ColorFromColorValue(color_value, color_index, &r, &g, &b, /* p_singleton_required */ false);
+			double start_value = range_value->FloatAtIndex_CAST(0, nullptr);
+			double end_value = range_value->FloatAtIndex_CAST(1, nullptr);
 			
-			if (color_index == 0)
-				objectElement = new EidosPalette(value, r, g, b);
-			else
-				objectElement->AddNode(value, r, g, b, PaletteTransition::kLinear, PaletteBlend::kHSVShortest);
+			if (!std::isfinite(start_value) || !std::isfinite(end_value) || (start_value >= end_value))
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): with a value range, the start and end values must both be finite, and the start value must be less than the end value." << EidosTerminate();
+			
+			// we subdivide the value range into equal-length segments and distribute the given colors across it
+			int color_count = CountFromColorValue(color_value, /* p_singleton_required */ false);
+			
+			if (color_count < 2)
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): with a value range, at least two colors must be specified." << EidosTerminate();
+			
+			for (int color_index = 0; color_index < color_count; ++color_index)
+			{
+				double value = start_value + color_index * ((end_value - start_value) / (color_count - 1));
+				double r, g, b;
+				
+				ColorFromColorValue(color_value, color_index, &r, &g, &b, /* p_singleton_required */ false);
+				
+				if (color_index == 0)
+					objectElement = new EidosPalette(value, r, g, b);
+				else
+					objectElement->AddNode(value, r, g, b, PaletteTransition::kLinear, PaletteBlend::kHSVShortest);
+			}
+		}
+		else
+		{
+			// This is Variant 3
+			EidosValue *value_value = p_arguments[0].get();
+			EidosValue *color_value = p_arguments[1].get();
+			int value_count = value_value->Count();
+			
+			if (CountFromColorValue(color_value, /* p_singleton_required */ false) != value_count)
+				EIDOS_TERMINATION << "ERROR (EidosPalette::Eidos_Instantiate_EidosPalette): the Palette() constructor requires either one color string per value, or one float RGB triplet per value." << EidosTerminate();
+			
+			for (int value_index = 0; value_index < value_count; value_index++)
+			{
+				double value = value_value->FloatAtIndex_CAST(value_index, nullptr);
+				double r, g, b;
+				
+				ColorFromColorValue(color_value, value_index, &r, &g, &b, /* p_singleton_required */ false);
+				
+				if (value_index == 0)
+					objectElement = new EidosPalette(value, r, g, b);
+				else
+					objectElement->AddNode(value, r, g, b, PaletteTransition::kLinear, PaletteBlend::kHSVShortest);
+			}
 		}
 	}
 	else if ((p_arguments.size() == 4) &&
@@ -945,9 +972,9 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		EidosValue *range_value = p_arguments[1].get();
 		EidosValue *sourceRange_value = p_arguments[2].get();
 		
-		if (p_arguments[1]->Count() == 2)
+		if (range_value->Count() != 2)
 			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): range must be a vector of length two, containing the start and end of the range." << EidosTerminate();
-		if ((p_arguments[2]->Type() != EidosValueType::kValueNULL) && (p_arguments[2]->Count() == 2))
+		if ((sourceRange_value->Type() != EidosValueType::kValueNULL) && (sourceRange_value->Count() != 2))
 			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): sourceRange must be a vector of length two, containing the start and end of the source range (or it may be NULL)." << EidosTerminate();
 		
 		const std::string &colors = colors_value->StringRefAtIndex_NOCAST(0, nullptr);
@@ -968,6 +995,9 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		{
 			source_start = sourceRange_value->FloatAtIndex_CAST(0, nullptr);
 			source_end = sourceRange_value->FloatAtIndex_CAST(1, nullptr);
+			
+			if (!std::isfinite(source_start) || !std::isfinite(source_end))
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): for Palette() variant 4, sourceRange must be a two-element float vector, [start, end], and start and end must be finite values." << EidosTerminate();
 		}
 		
 		int color_count = 256;	// matches the number of steps in many of the palettes in eidos_tinycolormap
@@ -995,6 +1025,12 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		EidosValue *palette_value = p_arguments[0].get();
 		EidosValue *rescaledRange_value = p_arguments[1].get();
 		EidosValue *existingRange_value = p_arguments[2].get();
+		
+		if (rescaledRange_value->Count() != 2)
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): rescaledRange must be a vector of length two, containing the start and end of the rescaled range." << EidosTerminate();
+		if ((existingRange_value->Type() != EidosValueType::kValueNULL) && (existingRange_value->Count() != 2))
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): existingRange must be a vector of length two, containing the start and end of the existing range (or it may be NULL)." << EidosTerminate();
+		
 		EidosValue *fullPalette_value = p_arguments[3].get();
 		
 		EidosPalette *existingPalette = dynamic_cast<EidosPalette *>(palette_value->ObjectElementAtIndex_NOCAST(0, nullptr));
@@ -1024,7 +1060,7 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 			existingRange_start = existingRange_value->FloatAtIndex_NOCAST(0, nullptr);
 			existingRange_end = existingRange_value->FloatAtIndex_NOCAST(1, nullptr);
 			
-			if (!std::isfinite(existingRange_start) || !std::isfinite(existingRange_end) || (rescaledRange_start == rescaledRange_end))
+			if (!std::isfinite(existingRange_start) || !std::isfinite(existingRange_end) || (existingRange_start == existingRange_end))
 				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosPalette): for Palette() variant 5, existingRange must be a two-element float vector, [start, end], and start and end must be finite values with start != end." << EidosTerminate();
 			
 			if ((existingRange_start == existingFull_start) && (existingRange_end == existingFull_end))
@@ -1089,10 +1125,9 @@ static EidosValue_SP Eidos_Instantiate_EidosPalette(const std::vector<EidosValue
 		// transfer the fixed point of the existing palette, if it is within range
 		double fixed_value;
 		float fixed_r, fixed_g, fixed_b;
+		bool hasFixedValue = existingPalette->GetFixedValue(&fixed_value, &fixed_r, &fixed_g, &fixed_b);
 		
-		existingPalette->GetFixedValue(&fixed_value, &fixed_r, &fixed_g, &fixed_b);
-		
-		if (!std::isnan(fixed_value))
+		if (hasFixedValue)
 		{
 			// use our remapping to remap the fixed value to the rescaled coordinate system
 			double rescaled_fixed_value = (fixed_value + translation_to_zero) * rescaling_factor + translation_to_rescaled_start;

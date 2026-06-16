@@ -1720,6 +1720,70 @@ void _RunClassTests(const std::string &temp_path)
 	{
 		EidosAssertScriptSuccess_L("m = matrix(0:14, nrow=3, ncol=5); i = Image(m); path = '" + temp_path + "/image_write.png'; i.write(path); i2 = Image(path); identical(m, i2.integerK);", true);
 	}
+	
+	// Test Palette(numeric$ value, fs color) (variant 1: single node)
+	EidosAssertScriptSuccess_L("p = Palette(10.0, 'red'); identical(p.range, c(10.0, 10.0));", true);
+	EidosAssertScriptSuccess_L("p = Palette(10.0, c(0.1, 0.5, 0.9)); identical(p.range, c(10.0, 10.0));", true);
+	EidosAssertScriptRaise("p = Palette(NAN, 'red');", 4, "to be finite");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2));", 4, "multiple of three");
+	EidosAssertScriptRaise("p = Palette(10.0, float(0));", 4, "single color");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2, NAN));", 4, "to be finite");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2, INF));", 4, "to be finite");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2, 1.1));", 4, "to be in [0, 1]");
+	EidosAssertScriptRaise("p = Palette(10.0, c('red', 'green'));", 4, "single color");
+	
+	// Test Palette(numeric range, fs colors) (variant 2: range and colors)
+	EidosAssertScriptSuccess_L("p = Palette(c(10.0, 15.0), c('red', 'blue')); identical(p.range, c(10.0, 15.0));", true);
+	EidosAssertScriptSuccess_L("p = Palette(c(10.0, 15.0), c('red', 'blue', 'green')); identical(p.range, c(10.0, 15.0));", true);
+	EidosAssertScriptRaise("p = Palette(c(INF, 15.0), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(10.0, INF), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(NAN, 15.0), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(10.0, NAN), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(15.0, 10.0), c('red', 'blue'));", 4, "must be less than");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0), 'red');", 4, "at least two colors");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0), string(0));", 4, "at least two colors");
+	
+	// Test Palette(numeric values, fs colors, [string transition = "linear"], [string blend = "hsvShortest"]) (variant 3: values and colors)
+	EidosAssertScriptSuccess_L("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green')); identical(p.range, c(10.0, 20.0));", true);
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green', 'yellow'));", 4, "one color string per value");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), transition=c('a', 'b', 'c'));", 4, "requires transition to be");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), transition=c('a', 'b'));", 4, "must be one of");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), blend=c('a', 'b', 'c'));", 4, "requires blend to be");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), blend=c('a', 'b'));", 4, "must be one of");
+	
+	// Test Palette(string$ colors, numeric range, [Nif sourceRange = NULL]) (variant 4: from a colors() palette)
+	EidosAssertScriptSuccess_L("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); identical(p.range, c(10.0, 20.0));", true);
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0), c(0.3, 0.8)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0, 30.0), c(0.3, 0.8)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8, 0.9)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('argentina', c(10.0, 20.0), c(0.3, 0.8)); ", 4, "color palette name");
+	EidosAssertScriptRaise("p = Palette('parula', c(INF, 20.0), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, INF), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(NAN, 20.0), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, NAN), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(20.0, 10.0), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(NAN, 0.8)); ", 4, "must be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, INF)); ", 4, "must be finite");
+	
+	// Test Palette(object<Palette>$ palette, float rescaledRange, [Nf existingRange = NULL], [logical$ fullPalette = T]) (variant 5: from a Palette object)
+	EidosAssertScriptSuccess_L("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, 17.0), fullPalette=F); identical(q.range, c(10.0, 20.0));", true);
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0), c(13.0, 17.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0, 30.0), c(13.0, 17.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(NAN, 20.0), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, NAN), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(INF, 20.0), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, INF), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(20.0, 10.0), c(13.0, 17.0), fullPalette=F);", 55, "start < end");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, 17.0, 18.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(NAN, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, NAN), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(INF, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, INF), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, 13.0), fullPalette=F);", 55, "start != end");
+	
+	EidosAssertScriptRaise("p = Palette(notAParameterInAnyVariant=5);", 4, "did not match any of its defined variants");
 }
 
 #pragma mark code examples
