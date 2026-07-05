@@ -190,6 +190,31 @@ void _RunMutationTypeTests(void)
 	)V0G0N";
 	
 	SLiMAssertScriptSuccess(data_recording);
+	
+	// Test mutation type registries -- see SLIM_KEEP_MUTTYPE_REGISTRIES and issue https://github.com/MesserLab/SLiM/issues/638
+	SLiMAssertScriptSuccess(R"V0G0N(
+initialize() {
+	for (i in 0:2) initializeMutationType(i, 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", 0:2, rep(1.0, 3));
+	initializeGenomicElement(g1, 0, 9);
+	initializeRecombinationRate(0.0);
+	initializeMutationRate(0.0);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	for (i in 0:9)
+		sample(p1.individuals.haplosomes, 10).addNewDrawnMutation(m0, i);
+	sim.mutations[0:4].setMutationType(m1);
+	// trigger mutation type registries
+	for (i in 0:1) sim.countOfMutationsOfType(i);
+	for (i in 0:1) sim.countOfMutationsOfType(i);
+	sim.mutations[c(0,2,4,6,8)].setMutationType(m2);
+	c1 = length(sim.mutations);
+	c2 = sim.countOfMutationsOfType(m0) + sim.countOfMutationsOfType(m1) + sim.countOfMutationsOfType(m2);
+	if (c1 != c2)
+		stop("count mismatch; muttype registries are not behaving (" + c1 + " != " + c2 + ")");
+}
+)V0G0N", __LINE__);
 }
 
 #pragma mark GenomicElementType tests

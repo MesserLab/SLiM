@@ -1609,8 +1609,30 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "setMutationType()");		// SPECIES CONSISTENCY CHECK
 	
+	// if the type is not actually changing, this is a no-op
+	if (mutation_type_ptr == mutation_type_ptr_)
+		return gStaticEidosValueVOID;
+	
 	if (mutation_type_ptr->nucleotide_based_ != mutation_type_ptr_->nucleotide_based_)
 		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): setMutationType() does not allow a mutation to be changed from nucleotide-based to non-nucleotide-based or vice versa." << EidosTerminate();
+	
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+	if (species.population_.keeping_muttype_registries_)
+	{
+		MutationBlock &mutation_block = *species.mutation_block_;
+		
+		// if the old mutation type is keeping a registry, we are in it but shouldn't be; invalidate it
+		if (mutation_type_ptr_->keeping_muttype_registry_)
+		{
+			mutation_type_ptr_->muttype_registry_.clear();
+			mutation_type_ptr_->keeping_muttype_registry_ = false;
+		}
+		
+		// if the new mutation type is keeping a registry, we should be in it; add ourselves
+		if (mutation_type_ptr->keeping_muttype_registry_)
+			mutation_type_ptr->muttype_registry_.emplace_back(mutation_block.IndexInBlock(this));
+	}
+#endif
 	
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;
