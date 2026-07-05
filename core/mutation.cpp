@@ -1619,7 +1619,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	if (species.population_.keeping_muttype_registries_)
 	{
-		MutationBlock &mutation_block = *species.mutation_block_;
+		MutationBlock &mutation_block = *species.SpeciesMutationBlock();
 		
 		// if the old mutation type is keeping a registry, we are in it but shouldn't be; invalidate it
 		if (mutation_type_ptr_->keeping_muttype_registry_)
