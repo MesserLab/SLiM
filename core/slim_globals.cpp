@@ -2259,7 +2259,19 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
                 }
             ],
             "sex": 0,
-            "subpopulation": 0
+            "subpopulation": 0,
+            "tag": 1,
+            "tagF": 5.5,
+            "tagL0_set": true,
+            "tagL0": true,
+            "tagL1_set": true,
+            "tagL1": false,
+            "tagL2_set": false,
+            "tagL2": false,
+            "tagL3_set": false,
+            "tagL3": false,
+            "tagL4_set": false,
+            "tagL4": false
         }
     ],
     "flags": {
@@ -2311,8 +2323,80 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
             "binaryFormat": "I",
             "description": "Other information about the individual: see 'flags'."
         },
+        "tag": {
+			"index": 8,
+			"type": "integer",
+			"binaryFormat": "q",
+			"description": "The `tag` property of this individual; INT64_MIN if unset."
+        },
+        "tagF": {
+			"index": 9,
+			"type": "float",
+			"binaryFormat": "d",
+			"description": "The `tagF` property of this individual; -DBL_MAX if unset."
+        },
+        "tagL0_set": {
+			"index": 10,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "A flag indicating whether the `tagL0` property is set; if false, accessing `tagL0` is invalid."
+        },
+        "tagL0": {
+			"index": 11,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "The `tagL0` property of this individual; only valid if `tagL0_set` is true."
+        },
+        "tagL1_set": {
+			"index": 12,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "A flag indicating whether the `tagL1` property is set; if false, accessing `tagL1` is invalid."
+        },
+        "tagL1": {
+			"index": 13,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "The `tagL1` property of this individual; only valid if `tagL1_set` is true."
+        },
+        "tagL2_set": {
+			"index": 14,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "A flag indicating whether the `tagL2` property is set; if false, accessing `tagL2` is invalid."
+        },
+        "tagL2": {
+			"index": 15,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "The `tagL2` property of this individual; only valid if `tagL2_set` is true."
+        },
+        "tagL3_set": {
+			"index": 16,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "A flag indicating whether the `tagL3` property is set; if false, accessing `tagL3` is invalid."
+        },
+        "tagL3": {
+			"index": 17,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "The `tagL3` property of this individual; only valid if `tagL3_set` is true."
+        },
+        "tagL4_set": {
+			"index": 18,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "A flag indicating whether the `tagL4` property is set; if false, accessing `tagL4` is invalid."
+        },
+        "tagL4": {
+			"index": 19,
+			"type": "bool",
+			"binaryFormat": "?",
+			"description": "The `tagL4` property of this individual; only valid if `tagL4_set` is true."
+        },
         "per_trait": {
-            "index": 8,
+            "index": 20,
             "type": "array",
             "length": "%d",
             "items": {
@@ -2347,6 +2431,18 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
         "age",
         "subpopulation",
         "sex",
+        "tag",
+        "tagF",
+        "tagL0_set",
+        "tagL0",
+        "tagL1_set",
+        "tagL1",
+        "tagL2_set",
+        "tagL2",
+        "tagL3_set",
+        "tagL3",
+        "tagL4_set",
+        "tagL4",
         "flags",
         "per_trait"
     ]

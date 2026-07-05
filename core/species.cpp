@@ -10791,7 +10791,7 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	// We check the struct size here to detect changes that would need to be responded to here; but it is
 	// very important to note that the caller guarantees that the actual size of p_metadata is large enough
 	// to accommodate all of the per-trait metadata, which is variable-length!
-	static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(IndividualMetadataRec) == 82, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
 #if DEBUG
 	if (!p_individual || !p_metadata)
@@ -10808,6 +10808,21 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->flags_ = 0;
 	if (p_individual->migrant_)
 		p_metadata->flags_ |= SLIM_INDIVIDUAL_METADATA_MIGRATED;
+	
+	// tag values added to the metadata in SLiM 6.0; we write false for unset values
+	// to avoid accessing unwritten memory, which would be flagged by UBSan
+	p_metadata->tag_ = p_individual->tag_value_;
+	p_metadata->tagF_ = p_individual->tagF_value_;
+	p_metadata->tagL0_set_ = p_individual->tagL0_set_;
+	p_metadata->tagL0_ = p_individual->tagL0_set_ ? p_individual->tagL0_value_ : false;
+	p_metadata->tagL1_set_ = p_individual->tagL1_set_;
+	p_metadata->tagL1_ = p_individual->tagL1_set_ ? p_individual->tagL1_value_ : false;
+	p_metadata->tagL2_set_ = p_individual->tagL2_set_;
+	p_metadata->tagL2_ = p_individual->tagL2_set_ ? p_individual->tagL2_value_ : false;
+	p_metadata->tagL3_set_ = p_individual->tagL3_set_;
+	p_metadata->tagL3_ = p_individual->tagL3_set_ ? p_individual->tagL3_value_ : false;
+	p_metadata->tagL4_set_ = p_individual->tagL4_set_;
+	p_metadata->tagL4_ = p_individual->tagL4_set_ ? p_individual->tagL4_value_ : false;
 	
 	// write per-trait metadata
 	int trait_count = TraitCount();
@@ -11961,18 +11976,55 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				individual->SetTskitNodeIdBase(node_id_0);
 				
-				slim_pedigreeid_t pedigree_id = subpop_info.metadata_[tabulation_index]->pedigree_id_;
+				const IndividualMetadataRec *ind_metadata = subpop_info.metadata_[tabulation_index];
+				slim_pedigreeid_t pedigree_id = ind_metadata->pedigree_id_;
 				individual->SetPedigreeID(pedigree_id);
 				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 
-				individual->SetParentPedigreeID(subpop_info.metadata_[tabulation_index]->pedigree_p1_, subpop_info.metadata_[tabulation_index]->pedigree_p2_);
+				individual->SetParentPedigreeID(ind_metadata->pedigree_p1_, ind_metadata->pedigree_p2_);
 				
-				uint32_t flags = subpop_info.metadata_[tabulation_index]->flags_;
+				uint32_t flags = ind_metadata->flags_;
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
 					individual->migrant_ = true;
 				
-				individual->age_ = subpop_info.metadata_[tabulation_index]->age_;
+				individual->age_ = ind_metadata->age_;
+				
+				// tag values added to the metadata in SLiM 6.0; we avoid writing values for the logical tags if
+				// the flag indicates that they have not been set, preserving the unused state of the memory for UBSan
+				individual->tag_value_ = ind_metadata->tag_;
+				individual->tagF_value_ = ind_metadata->tagF_;
+				if (ind_metadata->tagL0_set_) {
+					individual->tagL0_set_ = true;
+					individual->tagL0_value_ = ind_metadata->tagL0_;
+				} else {
+					individual->tagL0_set_ = false;
+				}
+				if (ind_metadata->tagL1_set_) {
+					individual->tagL1_set_ = true;
+					individual->tagL1_value_ = ind_metadata->tagL1_;
+				} else {
+					individual->tagL1_set_ = false;
+				}
+				if (ind_metadata->tagL2_set_) {
+					individual->tagL2_set_ = true;
+					individual->tagL2_value_ = ind_metadata->tagL2_;
+				} else {
+					individual->tagL2_set_ = false;
+				}
+				if (ind_metadata->tagL3_set_) {
+					individual->tagL3_set_ = true;
+					individual->tagL3_value_ = ind_metadata->tagL3_;
+				} else {
+					individual->tagL3_set_ = false;
+				}
+				if (ind_metadata->tagL4_set_) {
+					individual->tagL4_set_ = true;
+					individual->tagL4_value_ = ind_metadata->tagL4_;
+				} else {
+					individual->tagL4_set_ = false;
+				}
+				
 				individual->spatial_x_ = subpop_info.spatial_positions_[tabulation_index][0];
 				individual->spatial_y_ = subpop_info.spatial_positions_[tabulation_index][1];
 				individual->spatial_z_ = subpop_info.spatial_positions_[tabulation_index][2];
@@ -12131,20 +12183,39 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 				if (individual->TskitNodeIdBase() != node_id_0)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): tskit node id mismatch between chromosomes read." << EidosTerminate();
 				
-				slim_pedigreeid_t pedigree_id = subpop_info.metadata_[tabulation_index]->pedigree_id_;
+				const IndividualMetadataRec *ind_metadata = subpop_info.metadata_[tabulation_index];
+				slim_pedigreeid_t pedigree_id = ind_metadata->pedigree_id_;
 				
 				if (individual->PedigreeID() != pedigree_id)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): pedigree id mismatch between chromosomes read." << EidosTerminate();
-				if ((individual->Parent1PedigreeID() != subpop_info.metadata_[tabulation_index]->pedigree_p1_) ||
-					(individual->Parent2PedigreeID() != subpop_info.metadata_[tabulation_index]->pedigree_p2_))
+				if ((individual->Parent1PedigreeID() != ind_metadata->pedigree_p1_) ||
+					(individual->Parent2PedigreeID() != ind_metadata->pedigree_p2_))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): parent pedigree id mismatch between chromosomes read." << EidosTerminate();
 				
-				uint32_t flags = subpop_info.metadata_[tabulation_index]->flags_;
+				uint32_t flags = ind_metadata->flags_;
 				if ((flags & SLIM_INDIVIDUAL_METADATA_MIGRATED) && !individual->migrant_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual migrant flag mismatch between chromosomes read." << EidosTerminate();
 				
-				if (individual->age_ != subpop_info.metadata_[tabulation_index]->age_)
+				if (individual->age_ != ind_metadata->age_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual age mismatch between chromosomes read." << EidosTerminate();
+				
+				// tag values added to the metadata in SLiM 6.0; we avoid checking values for the logical tags if
+				// the flag indicates that they have not been set, so the values do not have to match in that case
+				if (individual->tag_value_ != ind_metadata->tag_)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tag` mismatch between chromosomes read." << EidosTerminate();
+				if ((std::isnan(individual->tagF_value_) != std::isnan(ind_metadata->tagF_)) || (!std::isnan(individual->tagF_value_) && (individual->tagF_value_ != ind_metadata->tagF_)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tagF` mismatch between chromosomes read." << EidosTerminate();
+				if ((ind_metadata->tagL0_set_ != individual->tagL0_set_) || (ind_metadata->tagL0_set_ && (ind_metadata->tagL0_ != individual->tagL0_value_)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tagL0` mismatch between chromosomes read." << EidosTerminate();
+				if ((ind_metadata->tagL1_set_ != individual->tagL1_set_) || (ind_metadata->tagL1_set_ && (ind_metadata->tagL1_ != individual->tagL1_value_)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tagL1` mismatch between chromosomes read." << EidosTerminate();
+				if ((ind_metadata->tagL2_set_ != individual->tagL2_set_) || (ind_metadata->tagL2_set_ && (ind_metadata->tagL2_ != individual->tagL2_value_)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tagL2` mismatch between chromosomes read." << EidosTerminate();
+				if ((ind_metadata->tagL3_set_ != individual->tagL3_set_) || (ind_metadata->tagL3_set_ && (ind_metadata->tagL3_ != individual->tagL3_value_)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tagL3` mismatch between chromosomes read." << EidosTerminate();
+				if ((ind_metadata->tagL4_set_ != individual->tagL4_set_) || (ind_metadata->tagL4_set_ && (ind_metadata->tagL4_ != individual->tagL4_value_)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual `tagL4` mismatch between chromosomes read." << EidosTerminate();
+				
 				if ((individual->spatial_x_ != subpop_info.spatial_positions_[tabulation_index][0]) ||
 					(individual->spatial_y_ != subpop_info.spatial_positions_[tabulation_index][1]) ||
 					(individual->spatial_z_ != subpop_info.spatial_positions_[tabulation_index][2]))

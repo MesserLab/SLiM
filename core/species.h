@@ -150,6 +150,21 @@ typedef struct __attribute__((__packed__)) {
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
 	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
+	int64_t tag_;							// 8 bytes (int64_t): the `tag` property value
+	double tagF_;							// 8 bytes (double): the `tagF` property value
+	uint8_t tagL0_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL0` is set
+	uint8_t tagL0_;							// 1 byte (uint8_t): the `tagL0` property value
+	uint8_t tagL1_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL1` is set
+	uint8_t tagL1_;							// 1 byte (uint8_t): the `tagL1` property value
+	uint8_t tagL2_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL2` is set
+	uint8_t tagL2_;							// 1 byte (uint8_t): the `tagL2` property value
+	uint8_t tagL3_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL3` is set
+	uint8_t tagL3_;							// 1 byte (uint8_t): the `tagL3` property value
+	uint8_t tagL4_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL4` is set
+	uint8_t tagL4_;							// 1 byte (uint8_t): the `tagL4` property value
+	
+	// NOTE: after this point the packed struct is only aligned to a two-byte boundary!
+	
 	_IndividualPerTraitMetadata per_trait_[1];	// 16 bytes per entry: 1 or more per-trait entries (count determined by the schema!)
 } IndividualMetadataRec;
 
@@ -161,7 +176,7 @@ static_assert(sizeof(_MutationPerTraitMetadata) == 12, "_MutationPerTraitMetadat
 static_assert(sizeof(MutationTableMetadataRec) == 36, "MutationTableMetadataRec is not 36 bytes!");
 static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");
 static_assert(sizeof(_IndividualPerTraitMetadata) == 16, "_IndividualPerTraitMetadata is not 16 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 56, "IndividualMetadataRec is not 56 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 82, "IndividualMetadataRec is not 82 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
