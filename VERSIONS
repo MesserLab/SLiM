@@ -175,6 +175,7 @@ multitrait branch:
 	fix recipes that re-seed the RNG to use rdunif64() now: 9.2, 9.3, 9.6.2
 	fix #638: in some cases, setMutationType() produces an inconsistent internal state
 	add the Individual properties tag, tagF, tagL0, tagL1, tagL2, tagL3, tagL4, tagL5 to tree sequence metadata to persist them
+	new recipes for chapter 13, which has been entirely restructured and rewritten
 
 
 version 5.2 (Eidos version 4.2):

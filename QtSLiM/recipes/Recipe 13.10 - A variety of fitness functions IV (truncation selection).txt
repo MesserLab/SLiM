@@ -1,24 +1,25 @@
 // Keywords: quantitative trait
 
 initialize() {
-	initializeMutationRate(1e-7);
-	initializeMutationType("m1", 0.5, "f", 0.0);       // neutral
-	initializeMutationType("m2", 0.5, "n", 0.0, 0.15);  // QTLs
-	m2.convertToSubstitution = F;
+	initializeTrait("quant", "additive");
+	initializeMutationType("m1", NAN, "f", 0.0);       // neutral
+	initializeMutationType("m2", NAN, "n", 0.0, 0.15);  // QTLs
 	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.1));
 	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
 	initializeRecombinationRate(1e-8);
 }
-mutationEffect(m2) { return 1.0; }
 1 early() { sim.addSubpop("p1", 5000); }
 10000 late() {
+	sim.demandPhenotype(NULL, "quant");
 	inds = sim.subpopulations.individuals;
-	phenotypes = inds.sumOfMutationsOfType(m2);
+	phenotypes = inds.quant;
 	cat("Phenotypes: " + mean(phenotypes));
 }
 10001: late() {
+	sim.demandPhenotype(NULL, "quant");
 	inds = sim.subpopulations.individuals;
-	phenotypes = inds.sumOfMutationsOfType(m2);
+	phenotypes = inds.quant;
 	inds.fitnessScaling = ifelse(phenotypes < 0.0, 0.0, 1.0);
 	
 	if (sim.cycle % 10 == 0)
@@ -27,7 +28,7 @@ mutationEffect(m2) { return 1.0; }
 15000 late() {
 	m2muts = sim.mutationsOfType(m2);
 	freqs = sim.mutationFrequencies(NULL, m2muts);
-	effects = m2muts.selectionCoeff;
+	effects = m2muts.quantEffectSize;
 	catn();
 	print(cbind(freqs, effects));
 }

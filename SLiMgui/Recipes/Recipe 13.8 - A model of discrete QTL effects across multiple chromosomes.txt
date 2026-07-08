@@ -1,13 +1,18 @@
 // Keywords: migration, dispersal, QTL, quantitative trait loci
 
 initialize() {
+	setSeed(2171809990916551048);
+	t = initializeTrait("trait1", "additive");
+	t.individualPhenotypePalette = Palette(c(-10,10), c("red", "green"));
+	t.mutationEffectPalette = Palette(c(-2,2), c("red", "green"));
+	
 	// neutral mutations in non-coding regions
-	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m1", NAN, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
 	
 	// mutations representing alleles in QTLs
 	scriptForQTLs = "if (runif(1) < 0.5) -1; else 1;";
-	initializeMutationType("m2", 0.5, "s", scriptForQTLs);
+	initializeMutationType("m2", NAN, "s", scriptForQTLs);
 	initializeGenomicElementType("g2", m2, 1.0);
 	m2.convertToSubstitution = F;
 	m2.mutationStackPolicy = "l";
@@ -47,21 +52,19 @@ initialize() {
 		g[!isPlus].addNewMutation(m2, -1.0, W);
 	}
 }
-mutationEffect(m2) { return 1.0; }
 1: late() {
-	// evaluate and save the additive effects of QTLs
-	for (subpop in c(p1,p2))
+	// evaluate trait values and calculate fitness effects
+	sim.demandPhenotype(NULL, "trait1");
+	
+	for (subpop in c(p1,p2), optimum in c(10.0, -10.0))
 	{
 		inds = subpop.individuals;
-		phenotype = inds.sumOfMutationsOfType(m2);
-		optimum = (subpop == p1 ? 10.0 else -10.0);
-		inds.fitnessScaling = 1.0 + dnorm(optimum - phenotype, 0.0, 5.0);
-		inds.tagF = phenotype;
+		inds.fitnessScaling = 1.0 + dnorm(inds.trait1, optimum, 5.0);
 	}
 }
 mateChoice() {
-	phenotype = individual.tagF;
-	others = sourceSubpop.individuals.tagF;
+	phenotype = individual.trait1;
+	others = sourceSubpop.individuals.trait1;
 	return weights * dnorm(others, phenotype, 5.0);
 }
 c(2,2001) early() {
@@ -73,13 +76,13 @@ c(2,2001) early() {
 	cat("p2 mean fitness = " + mean(p2.cachedFitness(NULL)) + "\n");
 	
 	// Output population additive QTL-based phenotypes
-	cat("p1 mean phenotype = " + mean(p1.individuals.tagF) + "\n");
-	cat("p2 mean phenotype = " + mean(p2.individuals.tagF) + "\n");
+	cat("p1 mean phenotype = " + mean(p1.individuals.trait1) + "\n");
+	cat("p2 mean phenotype = " + mean(p2.individuals.trait1) + "\n");
 	
 	// Output frequencies of +1/-1 alleles at the QTLs
 	muts = sim.mutationsOfType(m2);
-	plus = muts[muts.selectionCoeff == 1.0];
-	minus = muts[muts.selectionCoeff == -1.0];
+	plus = muts[muts.effectSize == 1.0];
+	minus = muts[muts.effectSize == -1.0];
 	
 	cat("\nOverall frequencies:\n\n");
 	for (i in 1:C)
@@ -95,6 +98,6 @@ c(2,2001) early() {
 		
 		cat("   QTL " + i + ": f(+) == " + pf + ", f(-) == " + mf + "\n");
 		cat("         in p1: f(+) == " + pf1 + ", f(-) == " + mf1 + "\n");
-		cat("         in p2: f(+) == " + pf2 + ", f(-) == " + mf2 + "\n\n");
+		cat("         in p2: f(+) == " + pf2 + ", f(-) == " + mf2 + "\n");
 	}
 }
