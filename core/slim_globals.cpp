@@ -2337,61 +2337,61 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
         },
         "tagL0_set": {
 			"index": 10,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL0` property is set; if false, accessing `tagL0` is invalid."
         },
         "tagL0": {
 			"index": 11,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL0` property of this individual; only valid if `tagL0_set` is true."
         },
         "tagL1_set": {
 			"index": 12,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL1` property is set; if false, accessing `tagL1` is invalid."
         },
         "tagL1": {
 			"index": 13,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL1` property of this individual; only valid if `tagL1_set` is true."
         },
         "tagL2_set": {
 			"index": 14,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL2` property is set; if false, accessing `tagL2` is invalid."
         },
         "tagL2": {
 			"index": 15,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL2` property of this individual; only valid if `tagL2_set` is true."
         },
         "tagL3_set": {
 			"index": 16,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL3` property is set; if false, accessing `tagL3` is invalid."
         },
         "tagL3": {
 			"index": 17,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL3` property of this individual; only valid if `tagL3_set` is true."
         },
         "tagL4_set": {
 			"index": 18,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL4` property is set; if false, accessing `tagL4` is invalid."
         },
         "tagL4": {
 			"index": 19,
-			"type": "bool",
+			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL4` property of this individual; only valid if `tagL4_set` is true."
         },
