@@ -2331,7 +2331,7 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
         },
         "tagF": {
 			"index": 9,
-			"type": "float",
+			"type": "number",
 			"binaryFormat": "d",
 			"description": "The `tagF` property of this individual; -DBL_MAX if unset."
         },
