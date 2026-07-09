@@ -595,12 +595,14 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
                         
                         switch (DES_info.DES_type_)
                         {
+                            // the s-bar is achieved with U+0305, combining overline; see https://codepoints.net/U+0305?lang=en
+                            // other Unicode overlines, like the combining macron, do not seem to work well, so let's try this...
                             case DESType::kFixed:			paramSymbol = "s"; break;
-                            case DESType::kGamma:			paramSymbol = (paramIndex == 0 ? "s̄" : "α"); break;
-                            case DESType::kExponential:		paramSymbol = "s̄"; break;
-                            case DESType::kNormal:			paramSymbol = (paramIndex == 0 ? "s̄" : "σ"); break;
+                            case DESType::kGamma:			paramSymbol = (paramIndex == 0 ? "s̅" : "α"); break;
+                            case DESType::kExponential:		paramSymbol = "s̅"; break;
+                            case DESType::kNormal:			paramSymbol = (paramIndex == 0 ? "s̅" : "σ"); break;
                             case DESType::kWeibull:			paramSymbol = (paramIndex == 0 ? "λ" : "k"); break;
-                            case DESType::kLaplace:			paramSymbol = (paramIndex == 0 ? "s̄" : "b"); break;
+                            case DESType::kLaplace:			paramSymbol = (paramIndex == 0 ? "s̅" : "b"); break;
                             case DESType::kScript:			break;
                         }
                         
