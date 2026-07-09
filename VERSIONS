@@ -177,6 +177,7 @@ multitrait branch:
 	add the Individual properties tag, tagF, tagL0, tagL1, tagL2, tagL3, tagL4, tagL5 to tree sequence metadata to persist them
 	new recipes for chapter 13, which has been entirely restructured and rewritten
 	update recipes for multitrait: 15.8, 15.9, 17.6, 17.7, 17.8, 17.9, 17.11, 18.3, 20.6 (recipes involving QTLs and sumOfMutationsOfType())
+	deprecate sumOfMutationsOfType() since it is now wholly supplanted by the new multitrait architecture
 
 
 version 5.2 (Eidos version 4.2):

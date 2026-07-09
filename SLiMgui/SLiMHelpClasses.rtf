@@ -2164,10 +2164,6 @@ See the
 \f3\fs18 Mutation
 \f4\fs20  objects, use 
 \f3\fs18 -positionsOfMutationsOfType()
-\f4\fs20 ; and if you are aiming for a sum of the effect sizes of matching 
-\f3\fs18 Mutation
-\f4\fs20  objects, use 
-\f3\fs18 -sumOfMutationsOfType()
 \f5\fs20 .
 \f4   This method is provided for speed; it is much faster than the corresponding Eidos code.\cf2   See also 
 \f3\fs18 substitutionsOfType()
@@ -2749,7 +2745,9 @@ The optional parameter
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the sum of the effect sizes of all mutations that are of the type specified by 
+\f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
+\f4\b0   Its functionality was replaced by the trait-based architecture of SLiM 6.0.\
+Returns the sum of the effect sizes of all mutations that are of the type specified by 
 \f3\fs18 mutType
 \f4\fs20 , out of all of the mutations in the haplosome, for the trait specified by 
 \f3\fs18 trait
@@ -2764,7 +2762,7 @@ The optional parameter
 \f4\fs20  can be used to represent the one defined trait in a single-trait species.\
 Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
-\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has largely been superseded, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has been deprecated, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Individual
 \f4\fs20 , for cases in which the sum across both haplosomes of an individual is desired.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
@@ -4595,7 +4593,9 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the sum of the effect sizes of all mutations that are of the type specified by 
+\f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
+\f4\b0   Its functionality was replaced by the trait-based architecture of SLiM 6.0.\
+Returns the sum of the effect sizes of all mutations that are of the type specified by 
 \f3\fs18 mutType
 \f4\fs20 , out of all of the mutations in the haplosomes of the individual, for the trait specified by 
 \f3\fs18 trait
@@ -4610,7 +4610,7 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \f4\fs20  can be used to represent the one defined trait in a single-trait species.\
 Historically, this method was often useful in models that used a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
-\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has largely been superseded, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f4\fs20  provides the sum of the additive effects of the QTLs for the given mutation type.  With the support for quantitative traits that is now built into SLiM this method has been deprecated, and is now provided mostly for backward compatibility.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Haplosome
 \f4\fs20 , for cases in which the sum for just one haplosome is desired.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -7428,7 +7428,7 @@ The thing to be plotted passed to the constructor through the parameter
 \f3\fs18 Plot()
 \f4\fs20  that fits the thing being plotted (at a reasonable size, preserving any intrinsic aspect ratio, and so forth).  See the 
 \f3\fs18 createPlot()
-\f4\fs20  method in section 26.14.2 for further discussion of 
+\f4\fs20  method for further discussion of 
 \f3\fs18 title
 \f4\fs20 , 
 \f3\fs18 width
