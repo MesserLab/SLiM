@@ -1,7 +1,6 @@
-// Keywords: migration, dispersal, QTL, quantitative trait loci
+// Keywords: additive trait, quantitative trait, quantitative genetics, migration, dispersal, QTL, quantitative trait loci
 
 initialize() {
-	setSeed(2171809990916551048);
 	t = initializeTrait("trait1", "additive");
 	t.individualPhenotypePalette = Palette(c(-10,10), c("red", "green"));
 	t.mutationEffectPalette = Palette(c(-2,2), c("red", "green"));

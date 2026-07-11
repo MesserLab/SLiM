@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting, mutation()
+// Keywords: additive trait, quantitative trait, QTL, pleiotropy, M-matrix, G-matrix, mutation(), adaptive walk
 
 function (void)updatePlot(void)
 {
@@ -17,7 +17,6 @@ function (void)updatePlot(void)
 }
 
 initialize() {
-	setSeed(233031862457444003);
 	defineConstant("START1", -5.0);
 	defineConstant("START2", 5.0);
 	defineConstant("OPT1", 20.0);

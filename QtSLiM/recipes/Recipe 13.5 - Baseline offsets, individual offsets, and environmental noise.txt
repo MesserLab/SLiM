@@ -1,5 +1,6 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, baseline offset, individual offset, environmental variance
+
 initialize() {
-	setSeed(103274700477985469);
 	defineConstant("BASELINE", 15.20);  // baseline body length without mutations
 	defineConstant("OPT", 17.16);       // optimum body length
 	defineConstant("END", 10000);       // final tick

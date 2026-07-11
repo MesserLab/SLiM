@@ -1,3 +1,5 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, trait expression, sexual dimorphism
+
 initialize() {
 	initializeSex();
 	initializeTrait("plumage", "additive");

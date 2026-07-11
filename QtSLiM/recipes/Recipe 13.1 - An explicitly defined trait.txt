@@ -1,3 +1,5 @@
+// Keywords: explicit trait, direct fitness effect, multiplicative trait, baseline offset, baseline accumulation
+
 initialize() {
 	initializeTrait("trait1", "multiplicative", directFitnessEffect=T);
 	initializeMutationType("m1", 0.5, "f", 0.0);

@@ -1,5 +1,6 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, multiplicative trait, pleiotropy
+
 initialize() {
-	setSeed(593302730697691011);
 	initializeTrait("popgen", "multiplicative", directFitnessEffect=T);
 	initializeTrait("quantgen", "additive", directFitnessEffect=F);
 	

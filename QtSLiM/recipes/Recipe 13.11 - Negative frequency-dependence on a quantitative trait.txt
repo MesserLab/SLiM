@@ -1,4 +1,4 @@
-// Keywords: quantitative trait, negative frequency-dependence, squashed stabilizing selection
+// Keywords: additive trait, quantitative trait, quantitative genetics, fitness function, negative frequency-dependence, squashed stabilizing selection
 
 initialize() {
 	defineConstant("COMP", T);	// is competition enabled?

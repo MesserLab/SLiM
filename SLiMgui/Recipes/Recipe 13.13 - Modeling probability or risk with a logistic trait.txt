@@ -1,5 +1,6 @@
+// Keywords: logistic trait, disease risk, polygenic risk score, polygenic score, genetic risk, polygenic score, probability trait
+
 initialize() {
-	setSeed(1062215995687622136);
 	initializeTrait("severity", "logistic", baselineOffset=-1.5,
 		individualOffsetMean=0.0, individualOffsetSD=0.3);
 	initializeTrait("pleiotropy", "multiplicative", directFitnessEffect=T);

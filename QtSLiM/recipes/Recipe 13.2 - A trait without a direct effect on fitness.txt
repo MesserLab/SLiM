@@ -1,3 +1,5 @@
+// Keywords: direct fitness effect, multiplicative trait, NAN, phenotype demand, trait demand
+
 initialize() {
 	initializeTrait("trait1", "multiplicative", directFitnessEffect=F);
 	initializeMutationType("m1", 0.5, "f", 0.0);
