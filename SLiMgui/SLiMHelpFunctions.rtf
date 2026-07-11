@@ -3382,13 +3382,13 @@ There is one last twist, if
 \f1\fs18 userData
 \f2\fs20  is 
 \f1\fs18 F
-\f2\fs20 , the entire top-level metadata 
+\f2\fs20 , the entire top-level JSON metadata 
 \f1\fs18 Dictionary
 \f2\fs20  object is returned; this can be useful for examining the values of other keys under the 
 \f1\fs18 SLiM
-\f2\fs20  key, or values inside the top-level dictionary itself that might have been placed there by 
+\f2\fs20  key (see chapter 29), or values inside the top-level dictionary itself that might have been placed there by 
 \f1\fs18 msprime
-\f2\fs20  or other software.\
+\f2\fs20  or other software.  (Note that binary top-level metadata is not accessible in SLiM; only JSON metadata is provided.)\
 This function can be used to read in parameter values or other saved state (
 \f1\fs18 tag
 \f2\fs20  property values, for example), in order to resuscitate the complete state of a simulation that was written to a 
