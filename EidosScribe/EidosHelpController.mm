@@ -462,7 +462,7 @@
 					}
 					else
 					{
-						NSLog(@"*** function signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+						NSLog(@"*** function signature mismatch:\ndocumentation: %@\nsignature:     %@", oldSignatureString, newSignatureString);
 					}
 				}
 				else
