@@ -443,7 +443,7 @@ R"V0G0N({
 const char *gSLiMSourceCode_calcVG = 
 R"V0G0N({
 	// VG = VA + VD (+ VI, but we ignore epistasis here since we don't know anything about it)
-	return calcVA2(individuals, mutType, trait) + calcVD2(individuals, mutType, trait);
+	return calcVA(individuals, mutType, trait) + calcVD(individuals, mutType, trait);
 })V0G0N";
 
 #pragma mark (float)calcLD_D(object<Mutation>$ mut1, [No<Mutation> mut2 = NULL], [No<Haplosome> haplosomes = NULL])
