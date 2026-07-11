@@ -1417,12 +1417,12 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 ) with the mutation returned; the offspring haplosomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
-The callback may perform a variety of actions related to the generated mutation.  The selection coefficient of the mutation can be changed with 
-\f3\fs18 setSelectionCoefficient()
+The callback may perform a variety of actions related to the generated mutation.  The effect size (e.g., selection coefficient) of the mutation can be changed with 
+\f3\fs18 setEffectSizeForTrait()
 \f2\fs22 , and the mutation type of the mutation can be changed with 
 \f3\fs18 setMutationType()
 \f2\fs22 ; the 
-\f3\fs18 drawSelectionCoefficient()
+\f3\fs18 drawEffectSizeForTrait()
 \f2\fs22  method of 
 \f3\fs18 MutationType
 \f2\fs22  may also be useful here.  A 

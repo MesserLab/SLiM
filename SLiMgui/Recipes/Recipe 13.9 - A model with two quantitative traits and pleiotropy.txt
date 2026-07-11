@@ -47,9 +47,9 @@ initialize() {
 	defineConstant("QTL_cov", 0.25);
 	defineConstant("QTL_sigma", matrix(c(1,QTL_cov,QTL_cov,1), nrow=2));
 	
-	catn("\nQTL DFE means: ");
+	catn("\nQTL DES means: ");
 	print(QTL_mu);
-	catn("\nQTL DFE variance-covariance matrix: ");
+	catn("\nQTL DES variance-covariance matrix: ");
 	print(QTL_sigma);
 }
 
@@ -136,7 +136,7 @@ late() {
 	cov_fixed = cov(ft1, ft2);
 	
 	catn("\nCovariance of effects among fixed QTLs: " + cov_fixed);
-	catn("\nCovariance of effects specified by the QTL DFE: " + QTL_cov);
+	catn("\nCovariance of effects specified by the QTL DES: " + QTL_cov);
 	
 	if (exists("slimgui"))
 	{

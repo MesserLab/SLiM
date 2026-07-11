@@ -36,7 +36,7 @@ multitrait branch:
 		remove MutationType properties dominanceCoeff, distributionType, and distributionParams properties
 		add MutationType methods defaultDominanceForTrait([Nio<Trait> trait = NULL]), effectDistributionTypeForTrait([Nio<Trait> trait = NULL]), and effectDistributionParamsForTrait([Nio<Trait> trait = NULL])
 		change MutationType method setDistribution() to setEffectDistributionForTrait(Nio<Trait> trait, string$ distributionType, ...)
-		change MutationType method drawSelectionCoefficient() to drawEffectForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
+		change MutationType method drawSelectionCoefficient() to drawEffectSizeForTrait([Nio<Trait> trait = NULL], [integer$ n = 1])
 		add SLiMgui autofixing for all of the above changes in QtSLiMWindow::checkTerminationForAutofix()
 		add MutationType method setDefaultDominanceForTrait(Nio<Trait> trait, float dominance) (approximately replacing writing into the dominanceCoeff property, but this should not autofix)
 		transition MutationType's internals to keep a separate DE for each trait using a new EffectSizeDistributionInfo struct
@@ -178,6 +178,8 @@ multitrait branch:
 	new recipes for chapter 13, which has been entirely restructured and rewritten
 	update recipes for multitrait: 15.8, 15.9, 17.6, 17.7, 17.8, 17.9, 17.11, 18.3, 20.6 (recipes involving QTLs and sumOfMutationsOfType())
 	deprecate sumOfMutationsOfType() since it is now wholly supplanted by the new multitrait architecture
+	minor fixes for more recipes for multitrait: 13.5, 18.7, 19.2
+	add recipe 13.14: a sexually dimorphic quantitative trait
 
 
 version 5.2 (Eidos version 4.2):
