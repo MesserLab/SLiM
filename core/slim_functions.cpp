@@ -39,6 +39,8 @@
 extern const char *gSLiMSourceCode_calcDxy;
 extern const char *gSLiMSourceCode_calcFST;
 extern const char *gSLiMSourceCode_calcVA;
+extern const char *gSLiMSourceCode_calcVD;
+extern const char *gSLiMSourceCode_calcVG;
 extern const char *gSLiMSourceCode_calcLD_D;
 extern const char *gSLiMSourceCode_calcLD_Rsquared;
 extern const char *gSLiMSourceCode_calcMeanFroh;
@@ -78,14 +80,16 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		// Population genetics utilities (implemented with Eidos code)
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcDxy", gSLiMSourceCode_calcDxy, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("normalize", gStaticEidosValue_LogicalF));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVD", gSLiMSourceCode_calcVD, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVG", gSLiMSourceCode_calcVG, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_D", gSLiMSourceCode_calcLD_D, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_Rsquared", gSLiMSourceCode_calcLD_Rsquared, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddLogical_OS("squared", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcMeanFroh", gSLiMSourceCode_calcMeanFroh, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt_OS("minimumLength", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1000000)))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("haplosome1", gSLiM_Haplosome_Class)->AddObject_S("haplosome2", gSLiM_Haplosome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPi", gSLiMSourceCode_calcPi, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcSFS", gSLiMSourceCode_calcSFS, kEidosValueMaskNumeric, "SLiM"))->AddInt_OSN("binCount", gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddString_OS("metric", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("density")))->AddLogical_OS("fold", gStaticEidosValue_LogicalF));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcTajimasD", gSLiMSourceCode_calcTajimasD, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -281,17 +285,14 @@ R"V0G0N({
 	return fst;
 })V0G0N";
 
-#pragma mark (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
+#pragma mark (float$)calcVA(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL])
 const char *gSLiMSourceCode_calcVA = 
 R"V0G0N({
-	if (individuals.length() < 2)
-		stop("ERROR (calcVA): individuals must contain at least two elements.");
-	
 	// look up an integer mutation type id from the community
 	if (type(mutType) == "integer") {
 		mutTypes = community.allMutationTypes;
 		mutTypeForID = mutTypes[mutTypes.id == mutType];
-		assert(length(mutTypeForID) == 1, "calcVA() did not find a mutation type with id " + mutType);
+		assert(length(mutTypeForID) == 1, "ERROR (calcVA): did not find a mutation type with id " + mutType + ".");
 		mutType = mutTypeForID;
 	}
 	
@@ -299,11 +300,150 @@ R"V0G0N({
 	species = mutType.species;
 	
 	// all individuals must belong to the focal species
+	if (individuals.length() < 2)
+		stop("ERROR (calcVA): individuals must contain at least two elements.");
+	
 	if (community.allSpecies.length() > 1)
 		if (!all(individuals.subpopulation.species == species))
 			stop("ERROR (calcVA): all individuals must belong to the same species as mutType.");
 	
-	return var(individuals.sumOfMutationsOfType(mutType));
+	haplosomes = individuals.haplosomes;   // we calculate variance among haplosomes, not individuals
+	
+	// figure out the traits we are referencing
+	traits = species.traits;
+	
+	if (type(trait) == "integer") {
+		trait = traits[traits.index == trait];
+		assert(length(trait) == 1, "ERROR (calcVA): did not find a trait with index " + trait + " in species " + species.name + ".");
+	} else if (type(trait) == "string") {
+		trait = traits[traits.name == trait];
+		assert(length(trait) == 1, "ERROR (calcVA): did not find a trait with name " + trait + " in species " + species.name + ".");
+	} else if (isNULL(trait)) {
+		trait = traits[traits.type == "additive"];
+		assert(length(trait) == 1, "ERROR (calcVA): species " + species.name + " does not contain exactly one additive trait.");
+	} else {
+		if (trait.species != species)
+			stop("ERROR (calcVA): trait must belong to the same species as mutType.");
+	}
+	
+	if (trait.type != "additive")
+		stop("ERROR (calcVA): trait must be additive (since the calculation involves quantitative effect sizes).");
+	
+	// get the focal mutations
+	if (isNULL(mutType))
+		muts = species.mutations;
+	else
+		muts = species.mutationsOfType(mutType);
+	
+	// p and q are the frequencies of a given mutation (p+q == 1)
+	// a is the midpoint between the two homozygous phenotypes, (0 + 2a) / 2
+	//    so a here is the same as a for SLiM; it is the mutation effect size,
+	//    which is half of the homozygote phenotype 2a
+	// d is the deviation of the heterozygous phenotype from a; so in SLiM
+	//    terms, since the heterozygote value is 2ha, d = 2ha - a
+	
+	// narrow down to the mutations that are non-neutral for the trait
+	muts = muts[muts.effectSizeForTrait(trait) != 0.0];
+	
+	// get frequencies and focus on those that are in the haplosomes
+	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
+	inHaplosomes = (q > 0);
+	
+	muts = muts[inHaplosomes];
+	q = q[inHaplosomes];
+	p = 1.0 - q;
+	
+	// fetch selection coefficients and dominance coefficients
+	a = muts.effectSizeForTrait(trait);
+	h = muts.dominanceForTrait(trait);
+	d = 2 * h * a - a;
+	
+	// calculate VA == 2pq[a + d(q-p)]^2
+	return 2 * sum(p * q * (a + d * (q - p))^2);
+})V0G0N";
+
+#pragma mark (float$)calcVD(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL])
+const char *gSLiMSourceCode_calcVD = 
+R"V0G0N({
+	// look up an integer mutation type id from the community
+	if (type(mutType) == "integer") {
+		mutTypes = community.allMutationTypes;
+		mutTypeForID = mutTypes[mutTypes.id == mutType];
+		assert(length(mutTypeForID) == 1, "ERROR (calcVD): did not find a mutation type with id " + mutType + ".");
+		mutType = mutTypeForID;
+	}
+	
+	// the mutation type dictates the focal species
+	species = mutType.species;
+	
+	// all individuals must belong to the focal species
+	if (individuals.length() < 2)
+		stop("ERROR (calcVD): individuals must contain at least two elements.");
+	
+	if (community.allSpecies.length() > 1)
+		if (!all(individuals.subpopulation.species == species))
+			stop("ERROR (calcVD): all individuals must belong to the same species as mutType.");
+	
+	haplosomes = individuals.haplosomes;   // we calculate variance among haplosomes, not individuals
+	
+	// figure out the traits we are referencing
+	traits = species.traits;
+	
+	if (type(trait) == "integer") {
+		trait = traits[traits.index == trait];
+		assert(length(trait) == 1, "ERROR (calcVD): did not find a trait with index " + trait + " in species " + species.name + ".");
+	} else if (type(trait) == "string") {
+		trait = traits[traits.name == trait];
+		assert(length(trait) == 1, "ERROR (calcVD): did not find a trait with name " + trait + " in species " + species.name + ".");
+	} else if (isNULL(trait)) {
+		trait = traits[traits.type == "additive"];
+		assert(length(trait) == 1, "ERROR (calcVD): species " + species.name + " does not contain exactly one additive trait.");
+	} else {
+		if (trait.species != species)
+			stop("ERROR (calcVD): trait must belong to the same species as mutType.");
+	}
+	
+	if (trait.type != "additive")
+		stop("ERROR (calcVD): trait must be additive (since the calculation involves quantitative effect sizes).");
+	
+	// get the focal mutations
+	if (isNULL(mutType))
+		muts = species.mutations;
+	else
+		muts = species.mutationsOfType(mutType);
+	
+	// p and q are the frequencies of a given mutation (p+q == 1)
+	// a is the midpoint between the two homozygous phenotypes, (0 + 2a) / 2
+	//    so a here is the same as a for SLiM; it is the mutation effect size,
+	//    which is half of the homozygote phenotype 2a
+	// d is the deviation of the heterozygous phenotype from a; so in SLiM
+	//    terms, since the heterozygote value is 2ha, d = 2ha - a
+	
+	// narrow down to the mutations that are non-neutral for the trait
+	muts = muts[muts.effectSizeForTrait(trait) != 0.0];
+	
+	// get frequencies and focus on those that are in the haplosomes
+	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
+	inHaplosomes = (q > 0);
+	
+	muts = muts[inHaplosomes];
+	q = q[inHaplosomes];
+	p = 1.0 - q;
+	
+	// fetch selection coefficients and dominance coefficients
+	a = muts.effectSizeForTrait(trait);
+	h = muts.dominanceForTrait(trait);
+	d = 2 * h * a - a;
+	
+	// calculate VD == (2pqd)^2
+	return 2 * sum((p * q * d)^2);
+})V0G0N";
+
+#pragma mark (float$)calcVG(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL])
+const char *gSLiMSourceCode_calcVG = 
+R"V0G0N({
+	// VG = VA + VD (+ VI, but we ignore epistasis here since we don't know anything about it)
+	return calcVA2(individuals, mutType, trait) + calcVD2(individuals, mutType, trait);
 })V0G0N";
 
 #pragma mark (float)calcLD_D(object<Mutation>$ mut1, [No<Mutation> mut2 = NULL], [No<Haplosome> haplosomes = NULL])
@@ -668,17 +808,14 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
-// FIXME MULTITRAIT: changed selectionCoeff to effect in gSLiMSourceCode_calcInbreedingLoad, but really this
-// needs to somehow be adapted for multitrait models; sum across all multiplicative effects; what about
-// additive effects?  exclude them, or raise an error?  allow the user to pass a vector of traits here?
-#pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
+#pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
 	// look up an integer mutation type id from the community
 	if (type(mutType) == "integer") {
 		mutTypes = community.allMutationTypes;
 		mutTypeForID = mutTypes[mutTypes.id == mutType];
-		assert(length(mutTypeForID) == 1, "calcInbreedingLoad() did not find a mutation type with id " + mutType);
+		assert(length(mutTypeForID) == 1, "ERROR (calcInbreedingLoad): did not find a mutation type with id " + mutType);
 		mutType = mutTypeForID;
 	}
 	
@@ -702,32 +839,67 @@ R"V0G0N({
 			stop("ERROR (calcInbreedingLoad): all haplosomes must be associated with the same chromosome.");
 	}
 	
-	// get the focal mutations and narrow down to those that are deleterious
+	// figure out the traits we are referencing
+	traits = species.traits;
+	
+	if (type(trait) == "integer") {
+		traits = traits[traits.index == trait];
+		assert(length(traits) == 1, "ERROR (calcInbreedingLoad): did not find a trait with index " + trait + " in species " + species.name);
+	} else if (type(trait) == "string") {
+		traits = traits[traits.name == trait];
+		assert(length(traits) == 1, "ERROR (calcInbreedingLoad): did not find a trait with name " + trait + " in species " + species.name);
+	} else if (isNULL(trait)) {
+		traits = traits[traits.type == "multiplicative"];
+	} else {
+		traits = trait;
+		if (any(traits.species != species))
+			stop("ERROR (calcInbreedingLoad): traits must belong to the same species as the haplosomes.");
+	}
+	
+	if (size(traits) == 0)
+		stop("ERROR (calcInbreedingLoad): at least one multiplicative trait must be chosen.");
+	if (any(traits.type != "multiplicative"))
+		stop("ERROR (calcInbreedingLoad): all chosen traits must be multiplicative (since inbreeding load involves selection coefficients).");
+	
+	// get the focal mutations
 	if (isNULL(mutType))
 		muts = species.subsetMutations(chromosome=chromosome);
 	else
 		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
-	muts = muts[muts.effectSize < 0.0];
+	// we will accumulate information about mutations into q, s, and h
+	q = float(0);
+	s = float(0);
+	h = float(0);
 	
-	// get frequencies and focus on those that are in the haplosomes
-	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
-	inHaplosomes = (q > 0);
-	
-	muts = muts[inHaplosomes];
-	q = q[inHaplosomes];
-	
-	// fetch selection coefficients; note that we use the negation of
-	// SLiM's selection coefficient, following Morton et al. 1956's usage
-	s = -muts.effectSize;
-	
-	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
-	// than lethal (this can happen when drawing from a gamma distribution)
-	s[s > 1.0] = 1.0;
-	
-	// get h for each mutation; note that this will not work if changing
-	// h using mutationEffect() callbacks or other scripted approaches
-	h = muts.dominance;
+	// loop over the traits we are evaluating, and accumulate information for each trait
+	for (trait in traits)
+	{
+		// narrow down to the mutations that are deleterious
+		trait_muts = muts[muts.effectSizeForTrait(trait) < 0.0];
+		
+		// get frequencies and focus on those that are in the haplosomes
+		trait_q = haplosomes.mutationFrequenciesInHaplosomes(trait_muts);
+		inHaplosomes = (trait_q > 0);
+		
+		trait_muts = trait_muts[inHaplosomes];
+		trait_q = trait_q[inHaplosomes];
+		
+		// fetch selection coefficients; note that we use the negation of
+		// SLiM's selection coefficient, following Morton et al. 1956's usage
+		trait_s = -trait_muts.effectSizeForTrait(trait);
+		
+		// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
+		// than lethal (this can happen when drawing from a gamma distribution)
+		trait_s[trait_s > 1.0] = 1.0;
+		
+		// get h for each mutation
+		trait_h = trait_muts.dominanceForTrait(trait);
+		
+		q = c(q, trait_q);
+		s = c(s, trait_s);
+		h = c(h, trait_h);
+	}
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956

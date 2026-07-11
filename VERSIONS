@@ -180,6 +180,11 @@ multitrait branch:
 	deprecate sumOfMutationsOfType() since it is now wholly supplanted by the new multitrait architecture
 	minor fixes for more recipes for multitrait: 13.5, 18.7, 19.2
 	add recipe 13.14: a sexually dimorphic quantitative trait
+	fix calcInbreedingLoad() for multitrait: add a parameter [Niso<Trait>$ trait = NULL] to choose one (multiplicative) trait, or NULL to use all (multiplicative) traits
+	fix calcVA() for multitrait, and add calcVD() and calcVG(): (this breaks backward compatibility; calcVA() in SLiM < 6.0 seems to have been calcVP() really, if even that...)
+		(float$)calcVA(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): additive genetic variance
+		(float$)calcVD(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): dominance genetic variance
+		(float$)calcVG(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): total genetic variance
 
 
 version 5.2 (Eidos version 4.2):
