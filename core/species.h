@@ -165,7 +165,7 @@ typedef struct __attribute__((__packed__)) {
 	
 	// NOTE: after this point the packed struct is only aligned to a two-byte boundary!
 	
-	_IndividualPerTraitMetadata per_trait_[1];	// 16 bytes per entry: 1 or more per-trait entries (count determined by the schema!)
+	_IndividualPerTraitMetadata per_trait_[];	// 16 bytes per entry: 0 or more per-trait entries (count determined by the schema!)
 } IndividualMetadataRec;
 
 #define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this cycle
@@ -176,7 +176,7 @@ static_assert(sizeof(_MutationPerTraitMetadata) == 12, "_MutationPerTraitMetadat
 static_assert(sizeof(MutationTableMetadataRec) == 36, "MutationTableMetadataRec is not 36 bytes!");
 static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");
 static_assert(sizeof(_IndividualPerTraitMetadata) == 16, "_IndividualPerTraitMetadata is not 16 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 82, "IndividualMetadataRec is not 82 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 66, "IndividualMetadataRec is not 66 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)

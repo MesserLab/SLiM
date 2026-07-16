@@ -8785,7 +8785,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		// the IndividualMetadataRec struct is now variable-size; we want to make a struct of the appropriate
 		// size for the amount of per-trait metadata that will be present for individuals of this species
 		slim_trait_index_t trait_count = TraitCount();
-		size_t total_metadata_size = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * (trait_count - 1);
+		size_t total_metadata_size = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * trait_count;
 		uint8_t metadata_buffer[total_metadata_size];	// assumes compiler extension for variable-size stack allocation
 		IndividualMetadataRec &metadata_rec = *(IndividualMetadataRec *)metadata_buffer;
 		MetadataForIndividual(ind, &metadata_rec);		// requires a metadata record of the appropriate size
@@ -10795,7 +10795,7 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	// We check the struct size here to detect changes that would need to be responded to here; but it is
 	// very important to note that the caller guarantees that the actual size of p_metadata is large enough
 	// to accommodate all of the per-trait metadata, which is variable-length!
-	static_assert(sizeof(IndividualMetadataRec) == 82, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(IndividualMetadataRec) == 66, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
 #if DEBUG
 	if (!p_individual || !p_metadata)
@@ -11573,7 +11573,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 				
 				// BCH 2/11/2026: the IndividualMetadataRec struct is now variable-length, but we only need to
 				// work with the first part of it; so now we just require the size to be >= the base size
-				if (metadata_length >= sizeof(IndividualMetadataRec))
+				if (metadata_length < sizeof(IndividualMetadataRec))
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 				
 				IndividualMetadataRec *metadata = (IndividualMetadataRec *)metadata_bytes;
@@ -11694,7 +11694,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 	
 	tsk_individual_t individual;
 	slim_trait_index_t trait_count = TraitCount();
-	size_t expected_metadata_length = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * (trait_count - 1);
+	size_t expected_metadata_length = sizeof(IndividualMetadataRec) + sizeof(_IndividualPerTraitMetadata) * trait_count;
 	int ret = 0;
 	
 	for (size_t individual_index = 0; individual_index < individual_count; individual_index++)
