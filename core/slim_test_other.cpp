@@ -2958,10 +2958,13 @@ initialize() {
 	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals, 2); }", "did not find a mutation type", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals[integer(0)], m1); }", "at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals[0], m1); }", "at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
-	SLiMAssertScriptSuccess(base_script + "calcVA(p1.individuals[0:1], m1); }", __LINE__);
-	SLiMAssertScriptSuccess(base_script + "calcVA(p1.individuals, m1); }", __LINE__);
-	SLiMAssertScriptSuccess(base_script + "calcVA(p2.individuals, 1); }", __LINE__);
-	SLiMAssertScriptSuccess(base_script + "calcVA(sim.subpopulations.individuals, m1); }", __LINE__);
+	
+	// BCH 7/16/2026: Commenting out calcVA() tests based upon the old implementation of calcVA() using sumOfMutationsOfType().
+	// FIXME: New tests for calcVA() and related functions are needed that are based on the new multitrait design.
+	//SLiMAssertScriptSuccess(base_script + "calcVA(p1.individuals[0:1], m1); }", __LINE__);
+	//SLiMAssertScriptSuccess(base_script + "calcVA(p1.individuals, m1); }", __LINE__);
+	//SLiMAssertScriptSuccess(base_script + "calcVA(p2.individuals, 1); }", __LINE__);
+	//SLiMAssertScriptSuccess(base_script + "calcVA(sim.subpopulations.individuals, m1); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p1_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p2_ch1); }", __LINE__);
