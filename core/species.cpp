@@ -11912,6 +11912,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	ChromosomeType chromosomeType = chromosome->Type();
 	int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
 	int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
+	slim_trait_index_t trait_count = TraitCount();
 	
 	// We will keep track of all pedigree IDs used, and check at the end that they do not collide; faster than checking as we go
 	// This could be done with a hash table, but I imagine that would be slower until the number of individuals becomes very large
@@ -12027,6 +12028,16 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					individual->tagL4_value_ = ind_metadata->tagL4_;
 				} else {
 					individual->tagL4_set_ = false;
+				}
+				
+				// trait values and offsets added to the metadata in SLiM 6.0; see MetadataForIndividual()
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					const _IndividualPerTraitMetadata &per_trait_metadata = ind_metadata->per_trait_[trait_index];
+					IndividualTraitInfo &per_trait_info = individual->trait_info_[trait_index];
+					
+					per_trait_info.phenotype_ = per_trait_metadata.phenotype_;
+					per_trait_info.offset_ = per_trait_metadata.offset_;
 				}
 				
 				individual->spatial_x_ = subpop_info.spatial_positions_[tabulation_index][0];

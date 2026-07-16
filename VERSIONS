@@ -187,6 +187,7 @@ multitrait branch:
 		(float$)calcVG(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): total genetic variance
 	fix #641, a crash related to expanding the mutation block buffers when reading in from a file (whether .trees, VCF, MS, or SLiM format), or inside addNew[Drawn]Mutation() (new in multitrait)
 	fix #642, mutations retained by the tree not re-retained by the tree when a saved tree sequence file is reloaded (new in multitrait)
+	fix #643, phenotypes not initialized from TreeSeq file
 
 
 version 5.2 (Eidos version 4.2):
