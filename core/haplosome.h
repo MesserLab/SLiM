@@ -489,6 +489,7 @@ public:
 };
 
 // This class allows clients of Haplosome to walk the mutations inside a haplosome without needing to know about MutationRun.
+// BEWARE: HaplosomeWalker caches mutation_buffer_, and thus is invalidated if NewMutationFromBlock() is called!
 class HaplosomeWalker
 {
 private:

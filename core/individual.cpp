@@ -5323,7 +5323,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): " << "readIndividualsFromVCF() requires that all target individuals belong to the same species." << EidosTerminate();
 	
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
-	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	Individual * const *individuals_data = (Individual * const *)p_target->ObjectData();
 	int individuals_size = p_target->Count();
 	
@@ -5804,7 +5803,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				}
 				
 				// instantiate the mutation with the values decided upon
+				// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+				Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 				Mutation *new_mut;
 				
 				if (info_mutids.size() > 0)
@@ -5830,6 +5831,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			
 			// read the genotype data for each sample id, which might be diploid or haploid, and might have data beyond GT
 			// NOTE: unlike readHaplosomesFromVCF(), we place the mutations directly into the haplosomes, rather than using a genotype_calls vector
+			Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			int haplosomes_index = 0;
 			
 			for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)
@@ -6102,6 +6104,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	}
 	
 	// Return the instantiated mutations
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 	int mutation_count = (int)mutation_indices.size();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	

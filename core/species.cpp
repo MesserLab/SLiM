@@ -3492,7 +3492,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #elif STD_UNORDERED_MAP_HASHING()
 		std::unordered_map<slim_polymorphismid_t,MutationIndex> mutations;
 #endif
-		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		
 		while (!infile.eof()) 
 		{
@@ -3573,7 +3572,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+			// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
@@ -3594,6 +3595,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
 		slim_popsize_t previous_individual_index = -1;	// detect the first/second haplosome for intrinsically diploid chromosomes
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 		
 		while (!infile.eof())
 		{
@@ -4237,7 +4239,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		// Mutations section
 		std::unique_ptr<MutationIndex[]> raii_mutations(new MutationIndex[mutation_map_size]);
 		MutationIndex *mutations = raii_mutations.get();
-		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		
 		if (!mutations)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
@@ -4326,7 +4327,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+			// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
@@ -4361,6 +4364,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		
 		// Haplosomes section
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 		bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
 		std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
 		MutationIndex *haplosomebuf = raii_haplosomebuf.get();
@@ -12880,8 +12884,6 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	}
 	
 	// instantiate mutations
-	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-	
 	for (auto mut_info_iter : p_mutInfoMap)
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
@@ -12935,7 +12937,9 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		else
 		{
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+			// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr);
 			

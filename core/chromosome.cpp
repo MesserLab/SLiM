@@ -1035,6 +1035,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
+	// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 	MutationBlock *mutation_block = mutation_block_;
 	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	
@@ -1402,6 +1403,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
+	// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 	MutationBlock *mutation_block = mutation_block_;
 	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;

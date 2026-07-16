@@ -2674,7 +2674,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	Community &community = species->community_;
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
-	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// All haplosomes must belong to the same chromosome.  It's important that a mismatch result in an error;
 	// attempts to add mutations to chromosomes inconsistently should be flagged.
@@ -2978,7 +2977,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 						nucleotide = nucleotide_lookup[(unsigned char)(arg_nucleotide->StringAtIndex_NOCAST(mut_parameter_index, nullptr)[0])];
 				}
 				
+				// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 				MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+				Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 				Mutation *new_mut;
 				
 				if (p_method_id == gID_addNewDrawnMutation)
@@ -3018,6 +3019,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		
 		// BCH 18 January 2020: If a vector of positions was provided, mutations_to_add might be out of sorted
 		// order, which is expected below by clear_set_and_merge(), so we sort here
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
+		
 		if ((position_count != 1) && (mutations_to_add.size() > 1))
 			std::sort(mutations_to_add.begin(), mutations_to_add.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 		
@@ -3365,7 +3368,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromMS");
 	
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// For MS input, we need to know the chromosome to calculate positions from the normalized interval [0, 1].
 	// We infer it from the haplosomes, and in a multi-chromosome species all the haplosomes must belong to it.
@@ -3509,7 +3511,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 				nucleotide++;
 		}
 		
+		// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 		
 		// FIXME MULTITRAIT: This needs to pass in a whole vector of effect sizes and dominance coefficients now... and hemizygous dominance...
 		// FIXME MULTITRAIT this code will also now need to handle the independent dominance case
@@ -3521,6 +3525,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	}
 	
 	// Sort the mutations by position so we can add them in order, and make an "order" vector for accessing calls in the sorted order
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 	std::vector<int64_t> order_vec = EidosSortIndexes(positions);
 	
 	std::sort(mutation_indices.begin(), mutation_indices.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
@@ -3614,7 +3619,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF");
 	
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
-	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	
 	// All haplosomes must belong to the same chromosome, and in multichrom models the CHROM field must match its symbol
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
@@ -4146,7 +4150,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			}
 			
 			// instantiate the mutation with the values decided upon
+			// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
 			MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+			Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			Mutation *new_mut;
 			
 			if (info_mutids.size() > 0)
@@ -4170,6 +4176,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 		}
 		
 		// add the mutations to the appropriate haplosomes and record the new derived states
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
+		
 		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
 			int call = genotype_calls[haplosome_index];
@@ -4209,6 +4217,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 	}
 	
 	// Return the instantiated mutations
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 	int mutation_count = (int)mutation_indices.size();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
