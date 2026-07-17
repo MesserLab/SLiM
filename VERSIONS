@@ -190,6 +190,7 @@ multitrait branch:
 	fix #643, phenotypes not initialized from TreeSeq file
 	fix #644, "unexpected individual metadata length" when remapping subpopulations
 	fix #645, save-and-reload can remove mutations
+	update recipe 13.9 to use the logMutationData() facility of MutationType
 
 
 version 5.2 (Eidos version 4.2):

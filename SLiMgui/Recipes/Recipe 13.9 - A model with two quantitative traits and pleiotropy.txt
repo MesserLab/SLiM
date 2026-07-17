@@ -27,6 +27,7 @@ initialize() {
 	initializeMutationType("m1", NAN, "f", 0.0);   // neutral
 	initializeMutationType("m2", NAN, "f", 0.0);   // QTLs
 	m2.color = "red";
+	m2.logMutationData(enable=T, effectSize=T);
 	
 	// g1 is a neutral region, g2 is a QTL
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -55,7 +56,6 @@ initialize() {
 1 late() {
 	sim.addSubpop("p1", 500);
 	defineGlobal("HIST", matrix(c(sim.traits).baselineOffset, nrow=1));
-	defineGlobal("EFFECTS", NULL);
 	updatePlot();
 }
 
@@ -63,10 +63,6 @@ mutation(m2) {
 	// draw mutational effects for the new m2 mutation
 	effects = rmvnorm(1, QTL_mu, QTL_sigma);
 	mut.setEffectSizeForTrait(NULL, effects);
-	
-	// remember all drawn effects, for our final output
-	defineGlobal("EFFECTS", rbind(EFFECTS, effects));
-	
 	return T;
 }
 
@@ -140,8 +136,9 @@ late() {
 	if (exists("slimgui"))
 	{
 		// make a plot showing effects sizes drawn vs. fixed
-		dt1 = drop(EFFECTS[,0]);
-		dt2 = drop(EFFECTS[,1]);
+		effectData = m2.loggedData(kind="values", effectSize=T);
+		dt1 = effectData.getValue("trait1EffectSize");
+		dt2 = effectData.getValue("trait2EffectSize");
 		
 		plot = slimgui.createPlot("Effect Sizes",
 			xrange=c(-4.0, 4.0), yrange=c(-4.0, 4.0),
