@@ -189,6 +189,7 @@ multitrait branch:
 	fix #642, mutations retained by the tree not re-retained by the tree when a saved tree sequence file is reloaded (new in multitrait)
 	fix #643, phenotypes not initialized from TreeSeq file
 	fix #644, "unexpected individual metadata length" when remapping subpopulations
+	fix #645, save-and-reload can remove mutations
 
 
 version 5.2 (Eidos version 4.2):

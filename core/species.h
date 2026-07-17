@@ -753,7 +753,7 @@ public:
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void _SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_id_t> &samples);
-	void SimplifyAllTreeSequences(void);
+	void SimplifyAllTreeSequences(bool p_force_filter_retained_muts = false);
 	void CheckCoalescenceAfterSimplification(TreeSeqInfo &tsinfo);
 	void CheckAutoSimplification(void);
 	void FreeTreeSequence();

@@ -7563,7 +7563,7 @@ void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_i
 	// need to be filtered!  that is the responsibility of the caller -- i.e., SimplifyAllTreeSequences().
 }
 
-void Species::SimplifyAllTreeSequences(void)
+void Species::SimplifyAllTreeSequences(bool p_force_filter_retained_muts)
 {
 #if DEBUG
 	if (!recording_tree_)
@@ -7856,8 +7856,10 @@ void Species::SimplifyAllTreeSequences(void)
 	// all branches they were on were simplified away, and can also happen for mutations that were in remembered
 	// individuals if they were remembered with permanent=F; this shouldn't take too long and will save memory,
 	// but there is no real harm to not doing it besides wasted memory/disk, so to save effort we skip it if
-	// there are fewer than 10,000 retained mutations -- about 360K of table space for a one-trait model.
-	if (any_muts_retained_impermanently_ && (muts_retained_by_treeseq_.size() > 10000))
+	// there are fewer than 10,000 retained mutations -- about 360K of table space for a one-trait model.  To
+	// provide consistencxy for the user, we always force filtering here when we are simplifying because we are
+	// saving out to a .trees file; see #645.
+	if (any_muts_retained_impermanently_ && ((muts_retained_by_treeseq_.size() > 10000) || p_force_filter_retained_muts))
 	{
 		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
@@ -7910,7 +7912,6 @@ void Species::SimplifyAllTreeSequences(void)
 		
 		// unmarked mutations can be released and compacted out of muts_retained_by_treeseq_
 		size_t retained_count = muts_retained_by_treeseq_.size();
-		size_t last_valid_index = retained_count - 1;
 		
 		for (size_t retained_index = 0; retained_index < retained_count; )
 		{
@@ -7920,9 +7921,8 @@ void Species::SimplifyAllTreeSequences(void)
 			if (mut->scratch_ == 0)
 			{
 				// this element is no longer needed, so we backfill from the end and repeat this index
-				muts_retained_by_treeseq_[retained_index] = muts_retained_by_treeseq_[last_valid_index];
-				last_valid_index--;
 				retained_count--;
+				muts_retained_by_treeseq_[retained_index] = muts_retained_by_treeseq_[retained_count];
 				mut->retained_by_treeseq_ = false;
 				mut->Release();
 				continue;
@@ -7931,6 +7931,9 @@ void Species::SimplifyAllTreeSequences(void)
 			// this element is needed, so we don't need to touch it, we just move on
 			retained_index++;
 		}
+		
+		if (retained_count != muts_retained_by_treeseq_.size())
+			muts_retained_by_treeseq_.resize(retained_count);
 	}
 	
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
@@ -10445,7 +10448,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 	// it *does* change the order of the rows; see https://github.com/MesserLab/SLiM/issues/209
 	if (p_simplify)
 	{
-		SimplifyAllTreeSequences();
+		SimplifyAllTreeSequences(/* p_force_filter_retained_muts */ true);
 	}
 	
 	for (Chromosome *chromosome : chromosomes_)
