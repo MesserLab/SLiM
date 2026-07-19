@@ -782,6 +782,8 @@ public:
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap, Chromosome &p_chromosome);	// initialize the population from an tskit binary file
 	slim_tick_t _InitializePopulationFromTskitDirectory(std::string p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from a multi-chromosome directory
 	
+	std::vector<MutationIndex> &MutationsTrackedByTreeSeq(void) { return muts_tracked_by_treeseq_; }
+	
 	size_t MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables);
 	void TSXC_Enable(void);
 	void TSF_Enable(void);
