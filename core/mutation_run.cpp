@@ -437,18 +437,11 @@ bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim
 		}
 		
 		// If we found any, we now scan forward and remove them, in anticipation of the new mutation being added
+		// BCH 7/19/2026: Note that if a removed mutation is removed entirely, it will become "retained
+		// by the tree sequence" in RemoveAllFixedMutations() when it is removed from the registry.
 		if (first_match_ptr)
 		{
 			MutationIndex *replace_ptr = first_match_ptr;	// replace at the first match position
-			
-			// BCH 7/8/2026: the first match mutation would still be present in the tree sequence, so it needs to be retained by the species
-			{
-				MutationIndex mut_index = *replace_ptr;
-				Mutation *mut = p_mut_block_ptr + mut_index;
-				
-				mut->mutation_type_ptr_->species_.NotifyMutationRemoved(mut);
-			}
-			
 			MutationIndex *mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
 			
 			for ( ; mut_ptr < end_ptr; ++mut_ptr)
@@ -460,8 +453,6 @@ bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim
 				if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				{
 					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
-					// BCH 2/14/2026: this mutation would still be present in the tree sequence, so it needs to be retained by the species
-					mut->mutation_type_ptr_->species_.NotifyMutationRemoved(mut);
 					continue;
 				}
 				else

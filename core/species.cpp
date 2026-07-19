@@ -136,16 +136,8 @@ Species::~Species(void)
 	
 	DeleteAllMutationRuns();
 	
-	// release mutations retained by the tree sequence
-	if (muts_retained_by_treeseq_.size())
-	{
-		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-		
-		for (MutationIndex mut_index : muts_retained_by_treeseq_)
-			(mut_block_ptr + mut_index)->Release();
-		
-		muts_retained_by_treeseq_.clear();
-	}
+	// release all mutations retained by the tree sequence
+	_PurgeTrackedMutations();
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
@@ -7563,7 +7555,111 @@ void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_i
 	// need to be filtered!  that is the responsibility of the caller -- i.e., SimplifyAllTreeSequences().
 }
 
-void Species::SimplifyAllTreeSequences(bool p_force_filter_retained_muts)
+void Species::_MarkAndSweepTrackedMutations(void)
+{
+	if (muts_tracked_by_treeseq_.size() > 0)
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+#if EIDOS_ROBIN_HOOD_HASHING()
+		robin_hood::unordered_flat_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+#elif STD_UNORDERED_MAP_HASHING()
+		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+#endif
+		
+		// first mark all tracked mutations 0, and build a hash table to look them up by mutation ID
+		// in this pass we also compact out entries in muts_tracked_by_treeseq_ that are duplicates,
+		// which can happen under certain circumstances (see the comment on retained_by_treeseq_)
+		size_t tracked_count = muts_tracked_by_treeseq_.size();
+		
+		for (size_t tracked_index = 0; tracked_index < tracked_count; )
+		{
+			MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			mut->scratch_ = 0;
+			
+			// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
+			// is in the list; it has been marked for removal, probably because it was substituted
+			// in that case, we don't add it to the hash table, so it will be swept at the end
+			if (mut->retained_by_treeseq_)
+			{
+				auto emplace_result = mutid_to_mutation.emplace(mut->mutation_id_, mut);
+				
+				if (emplace_result.second == false)
+				{
+					// the emplace did not happen, because an entry for this mutation already existed;
+					// so we want to compact out this entry in muts_tracked_by_treeseq_ as a duplicate
+					--tracked_count;
+					muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
+					continue;
+				}
+				
+				++tracked_index;
+			}
+		}
+		
+		muts_tracked_by_treeseq_.resize(tracked_count);
+		
+		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+			slim_mutationid_t *derived_states = (slim_mutationid_t *)chromosome_tables.mutations.derived_state;
+			tsk_size_t derived_state_length = chromosome_tables.mutations.derived_state_length;
+			
+#if DEBUG
+			if (derived_state_length % sizeof(slim_mutationid_t) != 0)
+				EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): (internal error) derived state length is not a multiple of the mutation id size." << EidosTerminate();
+#endif
+			
+			size_t derived_state_count = derived_state_length / sizeof(slim_mutationid_t);
+			
+			for (size_t derived_state_index = 0; derived_state_index < derived_state_count; ++derived_state_index)
+			{
+				slim_mutationid_t mut_id = derived_states[derived_state_index];
+				auto iter = mutid_to_mutation.find(mut_id);
+				
+				// the mutation referenced by the derived state is not retained; unsurprising
+				if (iter == mutid_to_mutation.end())
+					continue;
+				
+				// mark the retained mutation 1, since it is referenced by a derived state
+				Mutation *retained_mutation = iter->second;
+				
+				retained_mutation->scratch_ = 1;
+			}
+		}
+		
+		// unmarked mutations can be released and compacted out of muts_tracked_by_treeseq_
+		size_t retained_count = muts_tracked_by_treeseq_.size();
+		
+		for (size_t retained_index = 0; retained_index < retained_count; )
+		{
+			MutationIndex mut_index = muts_tracked_by_treeseq_[retained_index];
+			Mutation *mut = mut_block_ptr + mut_index;
+			
+			if (mut->scratch_ == 0)
+			{
+				// this element is no longer needed, so we backfill from the end and repeat this index
+				retained_count--;
+				muts_tracked_by_treeseq_[retained_index] = muts_tracked_by_treeseq_[retained_count];
+				mut->retained_by_treeseq_ = false;
+				mut->Release();
+				continue;
+			}
+			
+			// this element is needed, so we don't need to touch it, we just move on
+			retained_index++;
+		}
+		
+		if (retained_count != muts_tracked_by_treeseq_.size())
+			muts_tracked_by_treeseq_.resize(retained_count);
+	}
+}
+
+void Species::SimplifyAllTreeSequences(void)
 {
 #if DEBUG
 	if (!recording_tree_)
@@ -7851,90 +7947,9 @@ void Species::SimplifyAllTreeSequences(bool p_force_filter_retained_muts)
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
 	
-	// after simplification, we check for any retained mutations that are no longer refenced by the tree sequence
-	// and remove their retains; this can happen for mutations that were removed by script or stacking policy, if
-	// all branches they were on were simplified away, and can also happen for mutations that were in remembered
-	// individuals if they were remembered with permanent=F; this shouldn't take too long and will save memory,
-	// but there is no real harm to not doing it besides wasted memory/disk, so to save effort we skip it if
-	// there are fewer than 10,000 retained mutations -- about 360K of table space for a one-trait model.  To
-	// provide consistencxy for the user, we always force filtering here when we are simplifying because we are
-	// saving out to a .trees file; see #645.
-	if (any_muts_retained_impermanently_ && ((muts_retained_by_treeseq_.size() > 10000) || p_force_filter_retained_muts))
-	{
-		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
-		
-		// first mark all retained mutations 0, and build a hash table to look them up by mutation ID
-		for (MutationIndex mut_index : muts_retained_by_treeseq_)
-		{
-			Mutation *mut = mut_block_ptr + mut_index;
-			
-			mut->scratch_ = 0;
-			
-			// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
-			// is in the list; it has been marked for removal, probably because it was substituted
-			// in that case, we don't add it to the hash table, so it will be swept at the end
-			if (mut->retained_by_treeseq_)
-				mutid_to_mutation.insert(std::pair<slim_mutationid_t, Mutation *>(mut->mutation_id_, mut));
-		}
-		
-		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
-		for (Chromosome *chromosome : chromosomes_)
-		{
-			slim_chromosome_index_t chromosome_index = chromosome->Index();
-			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
-			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
-			slim_mutationid_t *derived_states = (slim_mutationid_t *)chromosome_tables.mutations.derived_state;
-			tsk_size_t derived_state_length = chromosome_tables.mutations.derived_state_length;
-			
-#if DEBUG
-			if (derived_state_length % sizeof(slim_mutationid_t) != 0)
-				EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): (internal error) derived state length is not a multiple of the mutation id size." << EidosTerminate();
-#endif
-			
-			size_t derived_state_count = derived_state_length / sizeof(slim_mutationid_t);
-			
-			for (size_t derived_state_index = 0; derived_state_index < derived_state_count; ++derived_state_index)
-			{
-				slim_mutationid_t mut_id = derived_states[derived_state_index];
-				auto iter = mutid_to_mutation.find(mut_id);
-				
-				// the mutation referenced by the derived state is not retained; unsurprising
-				if (iter == mutid_to_mutation.end())
-					continue;
-				
-				// mark the retained mutation 1, since it is referenced by a derived state
-				Mutation *retained_mutation = iter->second;
-				
-				retained_mutation->scratch_ = 1;
-			}
-		}
-		
-		// unmarked mutations can be released and compacted out of muts_retained_by_treeseq_
-		size_t retained_count = muts_retained_by_treeseq_.size();
-		
-		for (size_t retained_index = 0; retained_index < retained_count; )
-		{
-			MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
-			Mutation *mut = mut_block_ptr + mut_index;
-			
-			if (mut->scratch_ == 0)
-			{
-				// this element is no longer needed, so we backfill from the end and repeat this index
-				retained_count--;
-				muts_retained_by_treeseq_[retained_index] = muts_retained_by_treeseq_[retained_count];
-				mut->retained_by_treeseq_ = false;
-				mut->Release();
-				continue;
-			}
-			
-			// this element is needed, so we don't need to touch it, we just move on
-			retained_index++;
-		}
-		
-		if (retained_count != muts_retained_by_treeseq_.size())
-			muts_retained_by_treeseq_.resize(retained_count);
-	}
+	// BCH 7/19/2026: after simplify, we check for mutations retained by the tree sequence that are no longer
+	// refenced and remove their retains; this can happen for mutations on branches that got simplified away
+	_MarkAndSweepTrackedMutations();
 	
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
 	// this could potentially be parallelized, but it's kind of a fringe feature, and not that slow...
@@ -7951,6 +7966,51 @@ void Species::SimplifyAllTreeSequences(bool p_force_filter_retained_muts)
 			if (tsinfo.chromosome_index_ != 0)
 				DisconnectCopiedSharedTables(tsinfo.tables_);
 		}
+	}
+}
+
+void Species::_PurgeTrackedMutations(void)
+{
+	// This releases all mutations retained by the tree sequence and purges the tracked mutations list.
+	// Mutations might be listed more than once, so the code here has to be careful to release each mutation
+	// only once, and not to look at the memory of a mutation after it has been released.  We do that by
+	// compacting down the muts_tracked_by_treeseq_ vector to contain each retained mutation just once.
+	size_t tracked_count = muts_tracked_by_treeseq_.size();
+	
+	if (tracked_count)
+	{
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		
+		for (size_t tracked_index = 0; tracked_index < tracked_count; )
+		{
+			MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
+			Mutation *mut = (mut_block_ptr + mut_index);
+			
+			if (mut->retained_by_treeseq_)
+			{
+				// This mutation is retained, so we keep it in the vector to be released at the end.
+				// We mark it as unretained here so that any extra references to it get compacted out.
+				mut->retained_by_treeseq_ = false;
+				tracked_index++;
+			}
+			else
+			{
+				// This mutation is not retained, so it needs to be compacted out.  We shift the last
+				// element of muts_tracked_by_treeseq_ back and then check this element again.
+				tracked_count--;
+				muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
+			}
+		}
+		
+		// now we can resize the vector to the number of retained mutations kept
+		muts_tracked_by_treeseq_.resize(tracked_count);
+		
+		// and then loop through those and release them all, without duplicates
+		for (MutationIndex mut_index : muts_tracked_by_treeseq_)
+			(mut_block_ptr + mut_index)->Release();
+		
+		// and now we're done, and can empty out the tracked list altogether
+		muts_tracked_by_treeseq_.clear();
 	}
 }
 
@@ -9297,10 +9357,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	
 	const std::vector<Substitution*> substitutions = population_.substitutions_;
 	size_t substitution_count = substitutions.size();
-	
-	size_t retained_muts_count = muts_retained_by_treeseq_.size();
-	
-	size_t estimated_row_count = registry_size + substitution_count + retained_muts_count;
+	size_t tracked_muts_count = muts_tracked_by_treeseq_.size();
+	size_t estimated_row_count = registry_size + substitution_count + tracked_muts_count;
 	slim_trait_index_t trait_count = TraitCount();
 	size_t size_for_additional_trait_info = sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
 	size_t size_for_one_muttable_row = sizeof(MutationTableMetadataRec) + size_for_additional_trait_info;
@@ -9334,7 +9392,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	uint8_t *base_row_pointer = row_count_pointer + row_count_size;
 	uint8_t *row_pointer = base_row_pointer;
 	
-	// First we write substitutions; these are guaranteed not to be in the muts_retained_by_treeseq_ vector
+	// First we write substitutions; the corresponding mutations are guaranteed to have
+	// retained_by_treeseq_ == false, so they will not be written out below.
 	for (Substitution *sub : substitutions)
 	{
 		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
@@ -9365,22 +9424,20 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		row_pointer += size_for_one_muttable_row;
 	}
 	
-	// Then we write mutations that were retained for us, because they were associated with individuals that
-	// were remembered, or because they were removed in script or by stacking policy; these mutations might
-	// no longer be in SLiM's mutation registry, but they need to be in the mutation metadata table.
-	int retained_count = (int)muts_retained_by_treeseq_.size();
-	
-	for (int retained_index = 0; retained_index < retained_count; ++retained_index)
+	// Then we write mutations that are retained by the tree sequence, because they were lost/removed
+	// but are still referenced by an ancestral derived state; these mutations are guaranteed not to be
+	// in SLiM's mutation registry, but they need to be in the mutation metadata table.
+	for (size_t tracked_index = 0; tracked_index < tracked_muts_count; ++tracked_index)
 	{
-		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
-		MutationIndex mut_index = muts_retained_by_treeseq_[retained_index];
+		MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
 		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
 		
-		// Mutations can be in muts_retained_by_treeseq_ and yet no longer be retained; we skip them.
-		// This occurs if a mutation is turned into a substitution; a retain is then no longer needed,
-		// and here we treat the mutation as if it was not in muts_retained_by_treeseq_ to begin with.
+		// Mutations can be in muts_tracked_by_treeseq_ and yet not be retained by the tree sequence; we skip
+		// them.  See the comment on retained_by_treeseq_ for discussion of tracked vs. retained here.
 		if (!mut->retained_by_treeseq_)
 			continue;
+		
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
 		
 		metadata_row->mutation_id_ = mut->mutation_id_;
 		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
@@ -9408,22 +9465,25 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		row_pointer += size_for_one_muttable_row;
 	}
 	
-	// Finally we write mutations in the registry, as long as they were not already written
+	// Finally we write mutations that are in the registry, which are guaranteed not to already be written
 	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 	{
-		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
 		MutationIndex mut_index = register_iter[registry_index];
 		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
 		
-		// mutations in the retained list were already handled
+#if DEBUG
+		// BCH 7/19/2026: mutations retained by the tree sequence should never be in the registry
 		if (mut->retained_by_treeseq_)
-			continue;
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) mutation is both in the registry and retained by the tree sequence." << EidosTerminate();
 		
 		// mutations that are not segregating do not get persisted
 		MutationState mut_state = (MutationState)mut->state_;
 		
 		if ((mut_state == MutationState::kLostAndRemoved) || (mut_state == MutationState::kFixedAndSubstituted) || (mut_state == MutationState::kRemovedWithSubstitution))
-			continue;
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) mutation is in the registry but has a bad state." << EidosTerminate();
+#endif
+		
+		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
 		
 		metadata_row->mutation_id_ = mut->mutation_id_;
 		metadata_row->mutation_type_id_ = mut->mutation_type_ptr_->mutation_type_id_;
@@ -10448,7 +10508,13 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 	// it *does* change the order of the rows; see https://github.com/MesserLab/SLiM/issues/209
 	if (p_simplify)
 	{
-		SimplifyAllTreeSequences(/* p_force_filter_retained_muts */ true);
+		SimplifyAllTreeSequences();
+	}
+	else
+	{
+		// BCH 7/19/2026: If we're not simplifying, we do a mark and sweep to clear out unused entries in
+		// the tracked mutations vector so that unreferenced and duplicate entries don't get written out.
+		_MarkAndSweepTrackedMutations();
 	}
 	
 	for (Chromosome *chromosome : chromosomes_)
@@ -12898,6 +12964,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	}
 	
 	// instantiate mutations
+	bool make_unreferenced_mutations = RecordingTreeSequenceMutations();
+	
 	for (auto mut_info_iter : p_mutInfoMap)
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
@@ -12918,6 +12986,13 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x03) != 0)
 			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) misaligned pointer to mutation metadata (misalignment == " << (int)(reinterpret_cast<std::uintptr_t>(metadata_ptr) & 0x07) << ")." << EidosTerminate();
 #endif
+		
+		// a mutation might not be referenced by any extant haplosome; it might be present in an ancestral
+		// node, but have been lost in all descendants, in which case we do not need to instantiate it
+		// BCH 7/19/2026: the exception is if tree-sequence recording is enabled and is recording mutations;
+		// such mutations need to be created and "retained by the tree sequence" to preserve their metadata
+		if (!make_unreferenced_mutations && (mut_info.ref_count == 0))
+			continue;
 		
 		// look up the mutation type from its index
 		MutationType *mutation_type_ptr = MutationTypeWithID(metadata_ptr->mutation_type_id_);
@@ -12952,22 +13027,17 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr);
 			
-			// a mutation might not be referenced by any extant haplosome; it might be present in an ancestral node,
-			// but have been lost in all descendants, in which case we do not need to instantiate it
-			// BCH 7/16/2026: Now we DO instantiate such mutations; they are "retained by the tree",
-			// since they are referenced by an ancestral derived state somewhere in the tree sequence
+			// BCH 7/19/2026: if we reached this point with a refcount of 0, make_unreferenced_mutations is true
+			// and we need to set up the mutation to be "retained by the tree sequence" to preserve its metadata
 			if (mut_info.ref_count == 0)
 			{
-				// it is legal to read a .trees file in without tree-seq mutations enabled; in that case,
-				// there is no such thing as "retained by the tree" so we can just ignore these mutations
-				if (RecordingTreeSequenceMutations())
-				{
-					muts_retained_by_treeseq_.push_back(new_mut_index);
-					any_muts_retained_impermanently_ = true;			// we don't know here, so we assume true
-					
-					//new_mut->Retain();	// new mutations already have a retain count of 1; we take that over here, as MutationRegistryAdd() does
-					new_mut->retained_by_treeseq_ = true;
-				}
+				new_mut->state_ = MutationState::kLostAndRemoved;
+				
+				muts_tracked_by_treeseq_.push_back(new_mut_index);
+				new_mut->retained_by_treeseq_ = true;
+				
+				// new mutations already have a retain count of 1; we take that over here, as MutationRegistryAdd() does
+				//new_mut->Retain();
 			}
 			else
 			{

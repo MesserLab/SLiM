@@ -497,7 +497,6 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // Debugging #defines that can be turned on
 //
 // Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
-#define DEBUG_MUTATION_ZOMBIES		0		// avoid destroying Mutation objects; keep them as zombies
 #define SLIM_DEBUG_MUTATION_RUNS	0		// turn on to get logging about mutation run uniquing and usage
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
 #define DEBUG_SHUFFLE_BUFFER()		1		// debug memory overruns with the shuffle buffer

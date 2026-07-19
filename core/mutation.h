@@ -119,10 +119,67 @@ public:
 	int state_ : 4;										// see MutationState above; 4 bits so we can represent -1
 	unsigned int scratch_ : 4;							// temporary scratch space for use by algorithms; regard as volatile outside your own code block
 	
-	// This flag indicates that the mutation has been retained by the species because it belonged to a haplosome
-	// that was remembered by treeSeqRememberIndividuals(), or because it was removed in script or by stacking
-	// policy (and might therefore still be referenced by the tree sequence).  This flag is used by Species for
-	// bookkeeping.  It is used only when tree-sequence recording is enabled.
+	// This flag tracks whether the mutation is "retained by the tree sequence".  It is used only when tree-seq
+	// recording is enabled AND mutations are being recorded in the tree sequence; otherwise it should be false.
+	// This flag interacts with the "muts_tracked_by_treeseq_" vector kept by the Species in a specific way that
+	// is detailed below.
+	//
+	// First of all, if a mutation is still in SLiM's mutation registry then it is "retained by SLiM", meaning
+	// that one of the retain counts on the mutation is owned by the SLiM core.  Here, retained_by_treeseq_ is
+	// guaranteed to be false; the mutation is NOT "retained by the tree sequence".  (A given mutation is never
+	// owned both by SLiM and by the tree sequence.)  If the mutation is lost or removed by the user (but not if
+	// it is substituted!), it transitions to being "retained by the tree sequence".  This state means that it
+	// might be referenced by an ancestral derived state, and thus needs to be held on to (so that the mutation's
+	// metadata is still available).  In this state, retained_by_treeseq_ is true AND the mutation is added to
+	// the "muts_tracked_by_treeseq_" vector, and the mutation's state should be marked lost/removed.  These
+	// are the two primary states: either (a) retained_by_treeseq_ == false and not in muts_tracked_by_treeseq_,
+	// or (b) retained_by_treeseq_ == true and in muts_tracked_by_treeseq_.
+	//
+	// There are a few other states to worry about.  In (c) the mutation has been lost/removed from SLiM and is
+	// subsequently found not to be referenced by a derived state either, so retained_by_treeseq_ will be set to
+	// false and the mutation will be removed from muts_tracked_by_treeseq_, just as in state (a), but here the
+	// mutation is also not retained by the SLiM core.  If it has not been freed, that is because it has been
+	// retained by the user, in an EidosValue.  This condition can be distinguished from (a), if necessary,
+	// because the mutation is marked as lost/removed; mutations in that state are not retained by the SLiM core.
+	//
+	// And (d) if the mutation was retained by the tree sequence, and then transitioned back to being retained
+	// by SLiM because the user added it back in with addMutation(), retained_by_treeseq_ will be set to false,
+	// but the mutation will remain in the "tracked" vector for some period of time.  This is indistinguishable
+	// from state (a) except by searching through the "tracked" vector for the mutation, so it is generally
+	// treated the same as state (a).  The "tracked" vector thus means "these mutations _could_ be retained by
+	// the tree sequence", but the retained_by_treeseq_ flag of the mutations is the true arbiter of that.  (It
+	// is never legal for retained_by_treeseq_ == true to be set for a mutation that is NOT in the "tracked"
+	// vector, though; all mutations retained by treeseq must be "tracked".)  Note that if a mutation in state
+	// (d) is then removed/lost by SLiM again, it will again be set to retained_by_treeseq_ == true and added to
+	// the "tracked" vector, and SLiM's retain on the mutation will again be transferred to the tree sequence;
+	// this is, in practical terms, unavoidable since state (d) cannot be easily distinguished from state (a).
+	// In this way, mutations can potentially be in the "tracked" vector more than once, under very unusual
+	// circumstances, but when this happens, they are still retained only once because the retain just gets
+	// handed back and forth, conceptually, between SLiM and the tree sequence.  All code paths that reference
+	// the "tracked" vector must be robust to this possibility.
+	//
+	// State (d) gets cleaned up at simplify time, when the tracked and retained-by-treeseq state gets cleaned
+	// up by a mark-and-sweep operation.  Mutations that are no longer set to retained_by_treeseq_ == true will
+	// be swept out, as will mutations that are no longer referenced by a derived state.  Until then, state (d)
+	// can persist, so it needs to be handled carefully.  This somewhat confusing system exists for efficiency
+	// reasons; we want to sweep mutations out of the "tracked" vector in bulk, in a single pass, at simplify
+	// time only.  The mark-and-sweep algorithm will correct the problem of multiple occurrences of a mutation
+	// in the "tracked" vector, either sweeping such mutations out entirely (if they are no longer referenced by
+	// a derived state) or sweeping out all but one occurrence of them (if they are still referenced by a derived
+	// state).  If a tree sequence is saved out without simplification the mark-and-sweep algorithm will still
+	// be run, so multiple occurrences of a mutation should never be visible in the metadata table saved out to
+	// a .trees file.
+	//
+	// All of this is quite complicated.  The alternative design, of having the retains by the SLiM core and by
+	// the tree sequence be orthogonal and independent (such that a segregating mutation would be retained by
+	// both), might seem like it would be simpler than transferring the retain back and forth.  However, since
+	// mutations that have been lost can be added back in with addMutation(), and those mutations might have been
+	// lost only by SLiM or might have also been simplified out of the tree sequence, and so the retains from
+	// both sides would still have to be tracked separately... the design would actually be just as much of a
+	// rat's nest.  Allowing the user to do that just forces the design to be complicated, because the lifetime
+	// of mutation objects is so flexible and undefined, and yet we have to ensure that the mutation is retained
+	// whenever it is referenced, and freed whenever it is no longer referenced.  I don't see a better design.
+	//
 	unsigned int retained_by_treeseq_ : 1;
 	
 	// NOTE: there are three bits free here
