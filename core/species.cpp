@@ -7598,9 +7598,9 @@ void Species::_MarkAndSweepTrackedMutations(void)
 					muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
 					continue;
 				}
-				
-				++tracked_index;
 			}
+			
+			++tracked_index;
 		}
 		
 		muts_tracked_by_treeseq_.resize(tracked_count);
