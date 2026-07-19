@@ -7557,6 +7557,11 @@ void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_i
 
 void Species::_MarkAndSweepTrackedMutations(void)
 {
+#if DEBUG_MUTATION_RETAINS
+	std::cout << "Species::_MarkAndSweepTrackedMutations():" << std::endl;
+	std::cout << "   muts_tracked_by_treeseq_.size() == " << muts_tracked_by_treeseq_.size() << std::endl;
+#endif
+	
 	if (muts_tracked_by_treeseq_.size() > 0)
 	{
 		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
@@ -7600,6 +7605,10 @@ void Species::_MarkAndSweepTrackedMutations(void)
 		
 		muts_tracked_by_treeseq_.resize(tracked_count);
 		
+#if DEBUG_MUTATION_RETAINS
+		std::cout << "   after compaction, muts_tracked_by_treeseq_.size() == " << muts_tracked_by_treeseq_.size() << std::endl;
+#endif
+		
 		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
 		for (Chromosome *chromosome : chromosomes_)
 		{
@@ -7633,29 +7642,30 @@ void Species::_MarkAndSweepTrackedMutations(void)
 		}
 		
 		// unmarked mutations can be released and compacted out of muts_tracked_by_treeseq_
-		size_t retained_count = muts_tracked_by_treeseq_.size();
-		
-		for (size_t retained_index = 0; retained_index < retained_count; )
+		for (size_t tracked_index = 0; tracked_index < tracked_count; )
 		{
-			MutationIndex mut_index = muts_tracked_by_treeseq_[retained_index];
+			MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
 			Mutation *mut = mut_block_ptr + mut_index;
 			
 			if (mut->scratch_ == 0)
 			{
 				// this element is no longer needed, so we backfill from the end and repeat this index
-				retained_count--;
-				muts_tracked_by_treeseq_[retained_index] = muts_tracked_by_treeseq_[retained_count];
+#if DEBUG_MUTATION_RETAINS
+				std::cout << "   unreferenced mutation ID " << mut->mutation_id_ << " removed by sweep" << std::endl;
+#endif
+				
+				tracked_count--;
+				muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
 				mut->retained_by_treeseq_ = false;
 				mut->Release();
 				continue;
 			}
 			
 			// this element is needed, so we don't need to touch it, we just move on
-			retained_index++;
+			tracked_index++;
 		}
 		
-		if (retained_count != muts_tracked_by_treeseq_.size())
-			muts_tracked_by_treeseq_.resize(retained_count);
+		muts_tracked_by_treeseq_.resize(tracked_count);
 	}
 }
 
@@ -7976,6 +7986,10 @@ void Species::_PurgeTrackedMutations(void)
 	// only once, and not to look at the memory of a mutation after it has been released.  We do that by
 	// compacting down the muts_tracked_by_treeseq_ vector to contain each retained mutation just once.
 	size_t tracked_count = muts_tracked_by_treeseq_.size();
+	
+#if DEBUG_MUTATION_RETAINS
+	std::cout << "Species::_PurgeTrackedMutations(): will purge " << tracked_count << " mutation references" << std::endl;
+#endif
 	
 	if (tracked_count)
 	{
@@ -9386,6 +9400,11 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	memcpy(metadata_buffer + header_length, metadata_JSON_str.data(), json_length);
 	memset(metadata_buffer + header_length + json_length, 0, padding_length);
 	
+#if DEBUG_MUTATION_RETAINS
+	std::cout << "Species::WriteTreeSequenceMetadata():" << std::endl;
+	std::cout << "   estimated row count " << estimated_row_count << " (registry_size == " << registry_size << ", substitution_count == " << substitution_count << ", tracked_muts_count == " << tracked_muts_count << ")" << std::endl;
+#endif
+	
 	// Write mutation metadata into the binary section.  This is the `SLiM_mutation_list` key in the binary
 	// top-level metadata.  It is an array with a row count of type "Q" (uint64_t), which we set at the end.
 	uint8_t *row_count_pointer = metadata_buffer + header_length + json_length + padding_length;
@@ -9396,6 +9415,10 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// retained_by_treeseq_ == false, so they will not be written out below.
 	for (Substitution *sub : substitutions)
 	{
+#if DEBUG_MUTATION_RETAINS
+		std::cout << "   writing substitution with id " << sub->mutation_id_ << std::endl;
+#endif
+		
 		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
 		
 		metadata_row->mutation_id_ = sub->mutation_id_;
@@ -9436,6 +9459,10 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		// them.  See the comment on retained_by_treeseq_ for discussion of tracked vs. retained here.
 		if (!mut->retained_by_treeseq_)
 			continue;
+		
+#if DEBUG_MUTATION_RETAINS
+		std::cout << "   writing treeseq-tracked mutation with id " << mut->mutation_id_ << std::endl;
+#endif
 		
 		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
 		
@@ -9481,6 +9508,10 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		
 		if ((mut_state == MutationState::kLostAndRemoved) || (mut_state == MutationState::kFixedAndSubstituted) || (mut_state == MutationState::kRemovedWithSubstitution))
 			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) mutation is in the registry but has a bad state." << EidosTerminate();
+#endif
+		
+#if DEBUG_MUTATION_RETAINS
+		std::cout << "   writing registry mutation with id " << mut->mutation_id_ << std::endl;
 #endif
 		
 		MutationTableMetadataRec *metadata_row = (MutationTableMetadataRec *)row_pointer;
@@ -9529,6 +9560,10 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		if (!metadata_buffer)
 			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
+	
+#if DEBUG_MUTATION_RETAINS
+	std::cout << "   actual_row_count == " << actual_row_count << std::endl;
+#endif
 	
 	Eidos_set_u64_le(metadata_buffer + 5, (uint64_t)json_length);
 	Eidos_set_u64_le(metadata_buffer + 13, (uint64_t)actual_mutation_table_size);
@@ -13017,6 +13052,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// NoteMutationAdded() type of call is needed, I think?  But what if substitution effects
 			// are merged into baseline offsets?  Might require more thought here.  See also where
 			// new substitutions are created by readFromPopulationFile()...
+			
+#if DEBUG_MUTATION_RETAINS
+			std::cout << "Species::__CreateMutationsFromTabulation(): creating substitution with id " << mutation_id << std::endl;
+#endif
 		}
 		else
 		{
@@ -13038,6 +13077,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 				
 				// new mutations already have a retain count of 1; we take that over here, as MutationRegistryAdd() does
 				//new_mut->Retain();
+				
+#if DEBUG_MUTATION_RETAINS
+				std::cout << "Species::__CreateMutationsFromTabulation(): creating treeseq-retained mutation with id " << mutation_id << std::endl;
+#endif
 			}
 			else
 			{
@@ -13048,6 +13091,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 				if (population_.keeping_muttype_registries_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
+#endif
+				
+#if DEBUG_MUTATION_RETAINS
+				std::cout << "Species::__CreateMutationsFromTabulation(): creating registry mutation with id " << mutation_id << std::endl;
 #endif
 			}
 		}

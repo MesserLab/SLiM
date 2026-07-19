@@ -503,6 +503,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #define DEBUG_TICK_RANGES			0		// debug tick range parsing and evaluation
 #define DEBUG_TRAIT_DEMAND()		0		// enable debugging logs about the trait "demand" evalutation process
 #define DEBUG_LESS_INTENSIVE		0		// decrease the frequency of some very intensive DEBUG checks
+#define DEBUG_MUTATION_RETAINS		0		// debug the dynamics of mutations "retained by the tree sequence"
 
 #if DEBUG_TRAIT_DEMAND()
 #warning DEBUG_TRAIT_DEMAND() enabled!
