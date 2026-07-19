@@ -7782,7 +7782,7 @@ void Population::RemoveAllFixedMutations(void)
 	
 	if (removed_mutation_accumulator.size() > 0)
 	{
-		if (!species_.RecordingTreeSequenceMutations())
+		if (species_.RecordingTreeSequenceMutations())
 		{
 			// When recording tree-sequence mutations, mutations that have been lost or removed need to be
 			// "retained by the tree sequence" since they are still present in derived states, so that their
