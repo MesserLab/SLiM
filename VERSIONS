@@ -191,7 +191,9 @@ multitrait branch:
 	fix #644, "unexpected individual metadata length" when remapping subpopulations
 	fix #645, save-and-reload can remove mutations
 	update recipe 13.9 to use the logMutationData() facility of MutationType
-	fix #648: saving without simplification results in mutations without metadata; this required a full re-architecture of how mutations get "retained by the tree sequence"
+	did a full re-architecture of how mutations get "retained by the tree sequence" to fix remaining issues:
+		fix #646: saved mutations can be added later and bypass retained_by_treeseq_
+		fix #648: saving without simplification results in mutations without metadata
 
 
 version 5.2 (Eidos version 4.2):
