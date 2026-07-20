@@ -25,7 +25,7 @@ The file Comeron_100kb_chr2L.txt provided here is part of the supplemental data 
 
 Comeron, J.M., Ratnappan, R., and Bailin, S. (2012). The many landscapes of recombination in Drosophila melanogaster. PLoS Genetics 8(10), e1002905.
 
-This data file is used by recipe 6.1.2.
+This data file is used by recipe 8.2.2.
 
 --------------------------------------------------------------
 
