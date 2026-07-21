@@ -7408,10 +7408,11 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
 	// so that each one can do a single timing for mutrun experiments.
 	int haplosome_index = 0;
+	bool local_doing_mutrun_experiments = species->DoingAnyMutationRunExperiments();
 	
 	for (Chromosome *chromosome : species->Chromosomes())
 	{
-		if (species->DoingAnyMutationRunExperiments())
+		if (local_doing_mutrun_experiments)
 			chromosome->StartMutationRunExperimentClock();
 		
 		switch (chromosome->Type())
@@ -7562,7 +7563,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			}
 		}
 		
-		if (species->DoingAnyMutationRunExperiments())
+		if (local_doing_mutrun_experiments)
 			chromosome->StopMutationRunExperimentClock("DemandPhenotype_INDIVIDUALS()");
 		
 		haplosome_index += chromosome->IntrinsicPloidy();
@@ -7866,10 +7867,11 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	// ploidy and callbacks as needed.  It is very nice to have the top-level loop be over the chromosomes,
 	// so that each one can do a single timing for mutrun experiments.
 	int haplosome_index = 0;
+	bool local_doing_mutrun_experiments = species->DoingAnyMutationRunExperiments();
 	
 	for (Chromosome *chromosome : species->Chromosomes())
 	{
-		if (species->DoingAnyMutationRunExperiments())
+		if (local_doing_mutrun_experiments)
 			chromosome->StartMutationRunExperimentClock();
 		
 		for (int trait_indices_index = 0; trait_indices_index < trait_indices_count; trait_indices_index++)
@@ -8219,7 +8221,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			}
 		}
 		
-		if (species->DoingAnyMutationRunExperiments())
+		if (local_doing_mutrun_experiments)
 			chromosome->StopMutationRunExperimentClock("DemandPhenotype_SUBPOP()");
 		
 		haplosome_index += chromosome->IntrinsicPloidy();

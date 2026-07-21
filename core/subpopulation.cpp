@@ -10555,7 +10555,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 	
 	// TIMING RESTRICTION
 	if (community_.executing_species_ == &species_)
-		community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_removeSubpopulation", "removeSubpopulation()", "");
+		community_.EnforceTimingRestriction_EventBlockOnly("Subpopulation::ExecuteMethod_removeSubpopulation", "removeSubpopulation()", ", when called on the currently executing species");
 	
 	population_.RemoveSubpopulation(*this);
 	

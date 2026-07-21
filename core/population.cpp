@@ -1303,13 +1303,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	bool recording_tree_sequence = species_.RecordingTreeSequence();
 	bool has_munge_callback = (p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present);
 	bool is_spatial = (species_.SpatialDimensionality() >= 1);
-	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
+	bool local_doing_mutrun_experiments = species_.DoingAnyMutationRunExperiments();
+	bool do_mutrun_exp_timing_per_individual = local_doing_mutrun_experiments && (species_.Chromosomes().size() > 1);
+	bool do_mutrun_exp_timing_once = local_doing_mutrun_experiments && (species_.Chromosomes().size() == 1);
 	
 	bool (Subpopulation::*MungeIndividualCrossed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	bool (Subpopulation::*MungeIndividualSelfed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	bool (Subpopulation::*MungeIndividualCloned_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	
-	if (mutrun_exp_timing_per_individual)
+	if (do_mutrun_exp_timing_per_individual)
 	{
 		if (pedigrees_enabled)
 		{
@@ -1593,7 +1595,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	}
 	
 	// refine the above choice with a custom version of optimizations for simple "A" and "H" cases
-	if (!mutrun_exp_timing_per_individual && !has_munge_callback && (species_.Chromosomes().size() == 1))
+	if (!do_mutrun_exp_timing_per_individual && !has_munge_callback && (species_.Chromosomes().size() == 1))
 	{
 		Chromosome *chromosome = species_.Chromosomes()[0];
 		ChromosomeType chromosome_type = chromosome->Type();
@@ -1807,7 +1809,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	// are various ways that could potentially be cut down.  (a) not measure in every tick, (b) stop measuring
 	// once you've settled down into stasis, (c) measure a subset of all reproductions.  This should be done in
 	// future, but we're out of time for now.
-	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
+	if (do_mutrun_exp_timing_once)
 		species_.Chromosomes()[0]->StartMutationRunExperimentClock();
 	
 	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_DES_present)
@@ -2746,7 +2748,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
 	// To avoid that overhead, in single-chromosome models we just time across the whole round of reproduction
 	// instead.  Note that in this case we chose a template above for the Munge...() methods that does not time.
-	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
+	if (do_mutrun_exp_timing_once)
 		species_.Chromosomes()[0]->StopMutationRunExperimentClock("EvolveSubpopulation()");
 }
 

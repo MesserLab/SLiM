@@ -327,7 +327,7 @@ private:
 	
 	// mutation run timing experiment configuration
 	bool do_mutrun_experiments_ = true;				// user-level flag in initializeSLiMOptions(); if false, experiments are never run
-	bool doing_any_mutrun_experiments_ = false;		// is any chromosome actually running mutation run timing experiments?
+	bool doing_any_mutrun_experiments_ = false;		// is any chromosome actually running mutation run timing experiments?  DO NOT USE DIRECTLY!
 	
 	// nucleotide-based models
 	bool nucleotide_based_ = false;
@@ -709,7 +709,7 @@ public:
 	
 	inline __attribute__((always_inline)) bool UserWantsMutrunExperiments(void) const										{ return do_mutrun_experiments_; }
 	inline __attribute__((always_inline)) void DoingMutrunExperimentsForChromosome(void)									{ doing_any_mutrun_experiments_ = true; }
-	inline __attribute__((always_inline)) bool DoingAnyMutationRunExperiments(void) const									{ return doing_any_mutrun_experiments_; }
+	bool DoingAnyMutationRunExperiments(void) const;
 	
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
 	

@@ -1723,6 +1723,7 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 	MutationBlock *mutation_block = mutation_block_;
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
+	bool local_doing_mutrun_experiments = DoingAnyMutationRunExperiments();
 	
 	for (Chromosome *chromosome : chromosomes_)
 	{
@@ -1888,7 +1889,7 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 		int64_t mutations_cached = 0, mutations_omitted = 0, mutations_summarized = 0;
 #endif
 		
-		if (DoingAnyMutationRunExperiments()) chromosome->StartMutationRunExperimentClock();
+		if (local_doing_mutrun_experiments) chromosome->StartMutationRunExperimentClock();
 		
 		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
 		
@@ -2077,7 +2078,7 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 #endif
 		}
 		
-		if (DoingAnyMutationRunExperiments()) chromosome->StopMutationRunExperimentClock("ValidateNonNeutralCaches()");
+		if (local_doing_mutrun_experiments) chromosome->StopMutationRunExperimentClock("ValidateNonNeutralCaches()");
 		
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 		// FIXME MULTITRAIT: would be nice to use total_run_count in the profile output too!
@@ -5346,8 +5347,6 @@ void Species::MaintainTreeSequence(void)
 void Species::EmptyGraveyard(void)
 {
 	// Individuals end up in graveyard_ due to killIndividuals(); they get disposed of here.
-	// It's not necessary that FreeSubpopIndividual() be called on the correct subpopulation, really,
-	// but that API is at the Subpopulation level instead of in Species for efficiency, so...
 	for (Individual *individual : graveyard_)
 		individual->subpopulation_->FreeSubpopIndividual(individual);
 	
@@ -5518,8 +5517,9 @@ void Species::nonWF_GenerateOffspring(void)
 	bool recording_tree_sequence = RecordingTreeSequence();
 	bool has_callbacks = ((reproduction_callbacks.size() > 0) || (modify_child_callbacks.size() > 0) || (recombination_callbacks.size() > 0) || (mutation_callbacks.size() > 0));
 	bool is_spatial = (SpatialDimensionality() >= 1);
+	bool local_doing_mutrun_experiments = DoingAnyMutationRunExperiments();
 	
-	if (DoingAnyMutationRunExperiments())
+	if (local_doing_mutrun_experiments)
 	{
 		if (pedigrees_enabled)
 		{
@@ -6003,6 +6003,17 @@ void Species::nonWF_ViabilitySurvival(void)
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
 	population_.InvalidateMutationReferencesCache();
+}
+
+bool Species::DoingAnyMutationRunExperiments(void) const
+{
+	// BCH 7/21/2026: We want to allow some operations to be done in the Eidos console that would normally
+	// be measured for mutrun experiments, so here we disable mutrun experiments when between ticks.
+	// NOTE: For this reason, doing_any_mutrun_experiments_ should not be consulted directly!
+	if (community_.CycleStage() == SLiMCycleStage::kStagePostCycle)
+		return false;
+	
+	return doing_any_mutrun_experiments_;
 }
 
 void Species::FinishMutationRunExperimentTimings(void)

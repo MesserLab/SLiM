@@ -193,8 +193,14 @@ EidosSymbolTable *Community::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_sym
 
 void Community::EnforceTimingRestriction_EventBlockOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum)
 {
+	SLiMCycleStage cycle_stage = CycleStage();
+	
 	// TIMING RESTRICTION
 	// must be called directly from an event block -- not from a callback, even if the callback was triggered inside the event block
+	// BCH 7/21/2026: It is now also legal to call a method with this restriction from the Eidos console in SLiMgui; that is very similar to an event.
+	if ((cycle_stage == SLiMCycleStage::kStagePostCycle) && (executing_block_type_ == SLiMEidosBlockType::SLiMEidosNoBlockType))
+		return;
+	
 	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (" << p_method_name << "): " << p_eidos_name << " must be called directly from a first(), early(), or late() event" << p_addendum << "." << EidosTerminate();
 }
