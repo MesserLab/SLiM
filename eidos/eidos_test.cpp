@@ -136,7 +136,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 		gEidosTestFailureCount--;	// correct for our assumption of failure above
 		gEidosTestSuccessCount++;
 		
-		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
+		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : " << EIDOS_OUTPUT_SUCCESS_TAG << std::endl;
 	}
 	
 	ClearErrorContext();

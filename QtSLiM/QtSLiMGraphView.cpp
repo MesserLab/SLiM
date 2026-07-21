@@ -663,7 +663,7 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
                     double minorTickIndex = fractPart * 9.0;
                     double minorTickOffset = std::log10(minorTickIndex + 1.0);
                     transformedTickValue = intPart + minorTickOffset;
-                    //std::cout << intPart << " , " << fractPart << "\n";
+                    //std::cout << intPart << " , " << fractPart << std::endl;
                 }
                 
                 double yValueForTick;

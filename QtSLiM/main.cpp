@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
         
         if (fabs(0.5 - converted_value) > 1e-10)
         {
-            std::cout << "Locale issue: strtod() is not translating numbers according to the C locale.";
+            std::cout << "Locale issue: strtod() is not translating numbers according to the C locale." << std::endl;
             exit(EXIT_FAILURE);
         }
     }

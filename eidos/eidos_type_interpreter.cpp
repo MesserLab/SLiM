@@ -124,7 +124,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_
 			case EidosTokenType::kTokenReturn:		return TypeEvaluate_Return(p_node);
 			case EidosTokenType::kTokenFunction:	return TypeEvaluate_FunctionDecl(p_node);
 			default:
-				std::cout << "ERROR (EidosTypeInterpreter::TypeEvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << EidosTerminate(p_node->token_);
+				EIDOS_TERMINATION << "ERROR (EidosTypeInterpreter::TypeEvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << EidosTerminate(p_node->token_);
 		}
 	}
 	

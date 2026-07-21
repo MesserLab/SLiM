@@ -453,9 +453,9 @@ public:
 		{
 #if DEBUG
 			if (x_clock_running_)
-				std::cerr << "WARNING: mutation run experiment clock was started when already running!";
+				std::cerr << "WARNING: mutation run experiment clock was started when already running!" << std::endl;
 			if (!x_within_measurement_period_)
-				std::cerr << "WARNING: mutation run experiment clock started outside the measurement period!";
+				std::cerr << "WARNING: mutation run experiment clock started outside the measurement period!" << std::endl;
 #endif
 			x_clock_running_ = true;
 			x_current_clock_ = Eidos_BenchmarkTime();
@@ -470,9 +470,9 @@ public:
 			
 #if DEBUG
 			if (!x_clock_running_)
-				std::cerr << "WARNING: mutation run experiment clock was stopped when not running!";
+				std::cerr << "WARNING: mutation run experiment clock was stopped when not running!" << std::endl;
 			if (!x_within_measurement_period_)
-				std::cerr << "WARNING: mutation run experiment clock stopped outside the measurement period!";
+				std::cerr << "WARNING: mutation run experiment clock stopped outside the measurement period!" << std::endl;
 #endif
 			
 #if MUTRUN_EXPERIMENT_TIMING_OUTPUT

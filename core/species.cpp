@@ -1147,7 +1147,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 		// Still, these mismatches point to places where our inferences could perhaps be improved, so we log.
 #if DEBUG_TRAIT_DEMAND()
 		if (all_muttypes_are_pure_neutral != all_traits_are_pure_neutral)
-			std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations(): NOTE: mutation types and traits disagree as to whether the species is pure neutral (muttypes say " << (all_muttypes_are_pure_neutral ? "YES" : "NO") << ", traits say " << (all_traits_are_pure_neutral ? "YES" : "NO") << ").";
+			std::cout << "# " << community_.Tick() << " +++ PrepareForTraitCalculations(): NOTE: mutation types and traits disagree as to whether the species is pure neutral (muttypes say " << (all_muttypes_are_pure_neutral ? "YES" : "NO") << ", traits say " << (all_traits_are_pure_neutral ? "YES" : "NO") << ")." << std::endl;
 #endif
 		
 		if (all_muttypes_are_pure_neutral || all_traits_are_pure_neutral)

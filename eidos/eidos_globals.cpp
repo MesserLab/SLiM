@@ -1333,7 +1333,7 @@ void Eidos_WarmUp(void)
 		// Check that class names are pointers to the original global strings, which is required
 		if (&gEidosImage_Class->ClassName() != &gEidosStr_Image)
 		{
-			std::cerr << "***** Class name mismatch in Eidos_WarmUp()!";
+			std::cerr << "***** Class name mismatch in Eidos_WarmUp()!" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 		
@@ -1356,7 +1356,7 @@ void Eidos_WarmUp(void)
 			
 			if ((string_keys_offset != integer_keys_offset) || (string_contains_offset != integer_contains_offset))
 			{
-				std::cerr << "***** EidosDictionaryState layout mismatch in Eidos_WarmUp()!";
+				std::cerr << "***** EidosDictionaryState layout mismatch in Eidos_WarmUp()!" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 			
@@ -2245,7 +2245,7 @@ size_t Eidos_GetMaxRSS(void)
 
 #if defined(_WIN32)
 	// Assume unlimited on Windows with warning
-	std::cerr << "WARNING: Eidos_GetMaxRSS() does not work properly in Windows, so return assumes no limit, which may be incorrect.";
+	std::cerr << "WARNING: Eidos_GetMaxRSS() does not work properly in Windows, so return assumes no limit, which may be incorrect." << std::endl;
 	max_rss = 0;
 
 #else
@@ -2447,7 +2447,7 @@ std::string Eidos_ResolvedPath(const std::string &p_path)
 			
 			if (retval || !result)
 			{
-				std::cerr << "Eidos_ResolvedPath(): Could not resolve ~ in path due to failure of getpwuid_r";
+				std::cerr << "Eidos_ResolvedPath(): Could not resolve ~ in path due to failure of getpwuid_r" << std::endl;
 			}
 			else
 			{
