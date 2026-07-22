@@ -83,6 +83,11 @@ QMAKE_CFLAGS += $$(CFLAGS)
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
 
+# The Qt Creator (qmake) build does not apply per-file SIMD compiler flags, so
+# it builds the scalar SIMD kernels only.  The CMake build provides the full
+# runtime SIMD dispatch (scalar / SSE4.2 / AVX2+FMA / NEON).  See eidos_simd.h.
+DEFINES += EIDOS_SUPPRESS_SIMD_DISPATCH
+
 
 # Uncomment this define to disable the use of OpenGL in SLiMgui completely.  This, plus removing the
 # link dependency on openglwidgets, should allow you to build SLiMgui without linking OpenGL at all.

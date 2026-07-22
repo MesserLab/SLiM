@@ -45,6 +45,11 @@ QMAKE_CXXFLAGS += -Xarch_arm64 -DEIDOS_HAS_NEON=1
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
 
+# The Qt Creator (qmake) build does not apply per-file SIMD compiler flags, so
+# it builds the scalar SIMD kernels only.  The CMake build provides the full
+# runtime SIMD dispatch (scalar / SSE4.2 / AVX2+FMA / NEON).  See eidos_simd.h.
+DEFINES += EIDOS_SUPPRESS_SIMD_DISPATCH
+
 CONFIG -= qt
 CONFIG += c++11
 CONFIG += c11

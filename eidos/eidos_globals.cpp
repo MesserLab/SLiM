@@ -30,6 +30,7 @@
 #include "eidos_class_DataFrame.h"
 #include "eidos_class_Image.h"
 #include "eidos_class_TestElement.h"
+#include "eidos_simd.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -1162,6 +1163,9 @@ void Eidos_WarmUp(void)
 	if (!been_here)
 	{
 		been_here = true;
+		
+		// Detect the CPU and select the SIMD kernel tier; must happen before any Eidos_SIMD kernel is called.
+		Eidos_SIMD_Init();
 		
 		// Initialize the random number generator with a random-ish seed.  This seed may be overridden by the Context downstream.
 		Eidos_InitializeRNG();
