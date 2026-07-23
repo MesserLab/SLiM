@@ -106,12 +106,15 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 	subpops_.clear();
 	
-	// Free all substitutions and clear out the substitution vector
-	for (auto substitution : substitutions_)
-		substitution->Release();
-	
-	substitutions_.resize(0);
-	treeseq_substitutions_map_.clear();
+	// Free all substitutions and clear out the substitution vectors
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+		for (auto substitution : chromosome->substitutions_)
+			substitution->Release();
+		
+		chromosome->substitutions_.resize(0);
+		chromosome->treeseq_substitutions_map_.clear();
+	}
 	
 	// The malloced storage of the mutation registry will be freed when it is destroyed, but it
 	// does not know that the Mutation pointers inside it are owned, so we need to release them.
@@ -7741,8 +7744,8 @@ void Population::RemoveAllFixedMutations(void)
 				Substitution *sub = new Substitution(*mut_to_remove, tick);
 				
 				species_.DoBaselineAccumulationForSubstitution(sub);
-				treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
-				substitutions_.emplace_back(sub);
+				chromosome->treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
+				chromosome->substitutions_.emplace_back(sub);
 			}
 		}
 		else
@@ -7754,7 +7757,7 @@ void Population::RemoveAllFixedMutations(void)
 				Substitution *sub = new Substitution(*mut_to_remove, tick);
 				
 				species_.DoBaselineAccumulationForSubstitution(sub);
-				substitutions_.emplace_back(sub);
+				chromosome->substitutions_.emplace_back(sub);
 			}
 		}
 		
@@ -8380,47 +8383,50 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// New in SLiM 5, output substitutions if requested
 	if (p_output_substitutions)
 	{
-		for (const Substitution *substitution_ptr : substitutions_)
+		for (Chromosome *chromosome : species_.Chromosomes())
 		{
-			const MutationType *mutation_type_ptr = substitution_ptr->mutation_type_ptr_;
-			int64_t mutation_id = substitution_ptr->mutation_id_;
-			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
-			slim_position_t position = substitution_ptr->position_;
-			
-			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
-			slim_effect_t selection_coeff = substitution_ptr->trait_info_[0].effect_size_;
-			slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_UNSAFE_;	// can be NAN
-			
-			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
-			slim_tick_t origin_tick = substitution_ptr->origin_tick_;
-			slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;
-			slim_chromosome_index_t chromosome_index = substitution_ptr->chromosome_index_;
-			int8_t nucleotide = substitution_ptr->nucleotide_;
-			
-			// Write a tag indicating we are starting a new substitution
-			// FIXME MULTITRAIT: we need to write the baseline offset into the file header, so that
-			// baseline accumulation is preserved correctly across a round-trip
-			int32_t substitution_start_tag = 0xFFFF0003;
-			
-			p_out.write(reinterpret_cast<char *>(&substitution_start_tag), sizeof substitution_start_tag);
-			
-			// Write the mutation data
-			p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);
-			p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
-			p_out.write(reinterpret_cast<char *>(&position), sizeof position);
-			p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
-			p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
-			p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
-			p_out.write(reinterpret_cast<char *>(&origin_tick), sizeof origin_tick);
-			p_out.write(reinterpret_cast<char *>(&fixation_tick), sizeof fixation_tick);
-			p_out.write(reinterpret_cast<char *>(&chromosome_index), sizeof chromosome_index);
-			
-			if (has_nucleotides)
-				p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);
-			if (p_output_object_tags)
-				p_out.write(reinterpret_cast<const char *>(&substitution_ptr->tag_value_), sizeof substitution_ptr->tag_value_);
-			
-			// now will come either a mutation start tag, or a section end tag
+			for (const Substitution *substitution_ptr : chromosome->substitutions_)
+			{
+				const MutationType *mutation_type_ptr = substitution_ptr->mutation_type_ptr_;
+				int64_t mutation_id = substitution_ptr->mutation_id_;
+				slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
+				slim_position_t position = substitution_ptr->position_;
+				
+				// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
+				slim_effect_t selection_coeff = substitution_ptr->trait_info_[0].effect_size_;
+				slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_UNSAFE_;	// can be NAN
+				
+				slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
+				slim_tick_t origin_tick = substitution_ptr->origin_tick_;
+				slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;
+				slim_chromosome_index_t chromosome_index = substitution_ptr->chromosome_index_;
+				int8_t nucleotide = substitution_ptr->nucleotide_;
+				
+				// Write a tag indicating we are starting a new substitution
+				// FIXME MULTITRAIT: we need to write the baseline offset into the file header, so that
+				// baseline accumulation is preserved correctly across a round-trip
+				int32_t substitution_start_tag = 0xFFFF0003;
+				
+				p_out.write(reinterpret_cast<char *>(&substitution_start_tag), sizeof substitution_start_tag);
+				
+				// Write the mutation data
+				p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);
+				p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
+				p_out.write(reinterpret_cast<char *>(&position), sizeof position);
+				p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
+				p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
+				p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
+				p_out.write(reinterpret_cast<char *>(&origin_tick), sizeof origin_tick);
+				p_out.write(reinterpret_cast<char *>(&fixation_tick), sizeof fixation_tick);
+				p_out.write(reinterpret_cast<char *>(&chromosome_index), sizeof chromosome_index);
+				
+				if (has_nucleotides)
+					p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);
+				if (p_output_object_tags)
+					p_out.write(reinterpret_cast<const char *>(&substitution_ptr->tag_value_), sizeof substitution_ptr->tag_value_);
+				
+				// now will come either a substitution start tag, or a section end tag
+			}
 		}
 		
 		// Write a tag indicating the section has ended

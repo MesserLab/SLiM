@@ -199,22 +199,21 @@
 		[drawingCache drawInRect:interiorRect];
 	
 	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		
-		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow && (fixation_tick < drawingCacheTick))
-			continue;
-		
-		double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
-		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
-		
-		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
-		NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
-	}
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
+		for (Substitution *substitution : chromosome->substitutions_)
+		{
+			slim_tick_t fixation_tick = substitution->fixation_tick_;
+			
+			// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
+			if (!cachingNow && (fixation_tick < drawingCacheTick))
+				continue;
+			
+			double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
+			NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
+			
+			[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
+			NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
+		}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
@@ -290,17 +289,16 @@
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
-		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
-		
-		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
-		NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
-	}
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
+		for (Substitution *substitution : chromosome->substitutions_)
+		{
+			slim_tick_t fixation_tick = substitution->fixation_tick_;
+			double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
+			NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
+			
+			[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
+			NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
+		}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
@@ -406,14 +404,13 @@
 	// Fixation events
 	[string appendString:@"\n\n# Fixation ticks:\n"];
 	
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		
-		[string appendFormat:@"%lld, ", (long long int)fixation_tick];
-	}
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
+		for (Substitution *substitution : chromosome->substitutions_)
+		{
+			slim_tick_t fixation_tick = substitution->fixation_tick_;
+			
+			[string appendFormat:@"%lld, ", (long long int)fixation_tick];
+		}
 	
 	// Fitness history
 	[string appendString:@"\n\n# Fitness history:\n"];

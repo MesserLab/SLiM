@@ -43,6 +43,7 @@ struct GESubrange;
 class Haplosome;
 class Species;
 class Individual;
+class Substitution;
 
 
 class Chromosome_Class;
@@ -200,6 +201,9 @@ public:
 	Community &community_;
 	Species &species_;
 	MutationBlock *mutation_block_ = nullptr;				// NOT OWNED; a pointer to the MutationBlock from the species
+	
+	std::vector<Substitution*> substitutions_;				// OWNED POINTERS: Substitution objects for all fixed mutations
+	std::unordered_multimap<slim_position_t, Substitution*> treeseq_substitutions_map_;	// TREE SEQUENCE RECORDING; keeps all fixed mutations, hashed by position
 	
 	// the total haplosome count depends on the chromosome; it will be different for an autosome versus a sex chromosome, for example
 	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count

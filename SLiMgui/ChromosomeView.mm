@@ -583,7 +583,7 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 	
 	[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 	
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	std::vector<Substitution*> &substitutions = chromosome->substitutions_;
 	
 	if ((substitutions.size() < 1000) || (displayedRange.length < interiorRect.size.width))
 	{

@@ -4631,14 +4631,16 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				p += sizeof(slim_usertag_t);
 			}
 			
-			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
+			// add it to the chromosome's map, so we can find it when making haplosomes, and to the chromosome's substitution registry
+			Chromosome *chromosome = chromosomes[chromosome_index];
+			
 			// TREE SEQUENCE RECORDING
 			// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 			// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
 			if (RecordingTreeSequence())
-				population_.treeseq_substitutions_map_.emplace(new_substitution->position_, new_substitution);
+				chromosome->treeseq_substitutions_map_.emplace(new_substitution->position_, new_substitution);
 			
-			population_.substitutions_.emplace_back(new_substitution);
+			chromosome->substitutions_.emplace_back(new_substitution);
 		}
 		
 		if (p + sizeof(section_end_tag) > buf_end)
@@ -6824,10 +6826,14 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 
 	 */
 	
-	// Substitution
+	// Substitution (lumped together across chromosomes, for now)
 	{
-		p_usage->substitutionObjects_count = population_.substitutions_.size();
-		p_usage->substitutionObjects = sizeof(Substitution) * p_usage->substitutionObjects_count;
+		p_usage->substitutionObjects_count = 0;
+		
+		for (Chromosome *chromosome : chromosomes_)
+			p_usage->substitutionObjects_count += chromosome->substitutions_.size();
+		
+		p_usage->substitutionObjects += sizeof(Substitution) * p_usage->substitutionObjects_count;
 	}
 	
 	// missing: EidosCallSignature, EidosPropertySignature, EidosScript, EidosToken, function map, global strings and ids and maps, std::strings in various objects
@@ -8582,8 +8588,8 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 		EIDOS_TERMINATION << "ERROR (Species::RecordNewDerivedState): new derived states cannot be recorded for null haplosomes." << EidosTerminate();
 	
 	tsk_id_t haplosomeTSKID = p_haplosome->OwningIndividual()->TskitNodeIdBase() + p_haplosome->chromosome_subposition_;
-	slim_chromosome_index_t index = p_haplosome->chromosome_index_;
-	TreeSeqInfo &tsinfo = treeseq_[index];
+	slim_chromosome_index_t chromosome_index = p_haplosome->chromosome_index_;
+	TreeSeqInfo &tsinfo = treeseq_[chromosome_index];
 
 	// Identify any previous mutations at this site in this haplosome, and add a new site.
 	// This site may already exist, but we add it anyway, and deal with that in deduplicate_sites().
@@ -8608,7 +8614,8 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	// fixed before the other one occurred, so they aren't stacked really, the new one just occurred on the ancestral background of
 	// the old one.  Possibly we ought to do something different about this (and not record a stacked derived state), but that
 	// would be a big change since it has implications for crosscheck, etc.  FIXME
-	auto position_range_iter = population_.treeseq_substitutions_map_.equal_range(p_position);
+	Chromosome *chromosome = chromosomes_[chromosome_index];
+	auto position_range_iter = chromosome->treeseq_substitutions_map_.equal_range(p_position);
 	
 	for (auto position_iter = position_range_iter.first; position_iter != position_range_iter.second; ++position_iter)
 	{
@@ -9380,7 +9387,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	int registry_size;
 	const MutationIndex *register_iter = population_.MutationRegistry(&registry_size);
 	
-	const std::vector<Substitution*> substitutions = population_.substitutions_;
+	Chromosome *chromosome = chromosomes_[p_chromosome_index];
+	const std::vector<Substitution*> substitutions = chromosome->substitutions_;
 	size_t substitution_count = substitutions.size();
 	size_t tracked_muts_count = muts_tracked_by_treeseq_.size();
 	size_t estimated_row_count = registry_size + substitution_count + tracked_muts_count;
@@ -10986,11 +10994,12 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 #endif
 	
 	// first crosscheck the substitutions multimap against SLiM's substitutions vector
+	for (Chromosome *chromosome : chromosomes_)
 	{
-		std::vector<Substitution *> vector_subs = population_.substitutions_;
+		std::vector<Substitution *> vector_subs = chromosome->substitutions_;
 		std::vector<Substitution *> multimap_subs;
 		
-		for (auto entry : population_.treeseq_substitutions_map_)
+		for (auto entry : chromosome->treeseq_substitutions_map_)
 			multimap_subs.emplace_back(entry.second);
 		
 		std::sort(vector_subs.begin(), vector_subs.end());
@@ -11155,7 +11164,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				slim_position_t variant_pos_int = (slim_position_t)variant.site.position;		// should be no loss of precision, fingers crossed
 				
 				// Get all the substitutions involved at this site, which should be present in every sample
-				auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
+				auto substitution_range_iter = chromosome->treeseq_substitutions_map_.equal_range(variant_pos_int);
 				static std::vector<slim_mutationid_t> fixed_mutids;
 				
 				fixed_mutids.resize(0);
@@ -12985,6 +12994,7 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq)
 {
 	slim_chromosome_index_t chromosome_index = p_treeseq.chromosome_index_;
+	Chromosome *chromosome = chromosomes_[chromosome_index];
 	int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
 	int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
 	
@@ -13053,8 +13063,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// that the baseline offset recorded in the file already contains such effects as needed
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr, community_.Tick());
 			
-			population_.treeseq_substitutions_map_.emplace(position, sub);
-			population_.substitutions_.emplace_back(sub);
+			chromosome->treeseq_substitutions_map_.emplace(position, sub);
+			chromosome->substitutions_.emplace_back(sub);
 			
 			// add -1 to our local map, so we know there's an entry but we also know it's a substitution
 			p_mutIndexMap[mutation_id] = -1;

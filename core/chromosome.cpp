@@ -194,6 +194,12 @@ Chromosome::~Chromosome(void)
 {
 	//EIDOS_ERRSTREAM << "Chromosome::~Chromosome" << std::endl;
 	
+	// Species::~Species() calls RemoveAllSubpopulationInfo() which frees all substitutions
+	// in the population; they should therefore already be gone by the time we get called.
+	// This division of responsibilities is somewhat historical, but also convenient, so.
+	if (substitutions_.size() || treeseq_substitutions_map_.size())
+		std::cerr << "Chromosome::~Chromosome() called with substitutions still present; leaking." << std::endl;
+	
 	if (lookup_mutation_H_)
 		gsl_ran_discrete_free(lookup_mutation_H_);
 	

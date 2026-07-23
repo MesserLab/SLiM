@@ -1044,26 +1044,31 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	{
 		p_out << "Substitutions:" << std::endl;
 		
-		std::vector<Substitution*> &subs = population.substitutions_;
+		unsigned int global_substitution_index = 0;
 		
-		for (unsigned int i = 0; i < subs.size(); i++)
+		for (Chromosome *chromosome : species.Chromosomes())
 		{
-			p_out << i << " ";
-			
-			if (p_output_object_tags)
-				subs[i]->PrintForSLiMOutput_Tag(p_out);
-			else
-				subs[i]->PrintForSLiMOutput(p_out);
-			
-#if DO_MEMORY_CHECKS()
-			if (eidos_do_memory_checks)
+			for (const Substitution *sub : chromosome->substitutions_)
 			{
-				mem_check_counter++;
+				p_out << global_substitution_index << " ";
 				
-				if (mem_check_counter % mem_check_mod == 0)
-					Eidos_CheckRSSAgainstMax("Species::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
-			}
+				if (p_output_object_tags)
+					sub->PrintForSLiMOutput_Tag(p_out);
+				else
+					sub->PrintForSLiMOutput(p_out);
+				
+				global_substitution_index++;
+				
+#if DO_MEMORY_CHECKS()
+				if (eidos_do_memory_checks)
+				{
+					mem_check_counter++;
+					
+					if (mem_check_counter % mem_check_mod == 0)
+						Eidos_CheckRSSAgainstMax("Species::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+				}
 #endif
+			}
 		}
 	}
 	

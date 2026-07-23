@@ -2563,13 +2563,8 @@ void Community::AllSpecies_CheckIntegrity(void)
 		if (species->species_id_ != (int)species_index)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->species_id_ mismatch." << EidosTerminate();
 		
-		const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
-		size_t chromosomes_count = chromosomes.size();
-		
-		for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
+		for (Chromosome *chromosome : species->Chromosomes())
 		{
-			Chromosome *chromosome = chromosomes[chromosome_index];
-			
 			if (&chromosome->species_ != species)
 				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->species_ mismatch." << EidosTerminate();
 			
@@ -2642,8 +2637,9 @@ void Community::AllSpecies_CheckIntegrity(void)
 		}
 		
 		// Check the integrity of all substitution objects
-		for (Substitution *sub : species->population_.substitutions_)
-			sub->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
+		for (Chromosome *chromosome : species->Chromosomes())
+			for (const Substitution *sub : chromosome->substitutions_)
+				sub->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
 		
 		// Check the integrity of Species optimization flags
 		species->CheckOptimizationFlags();

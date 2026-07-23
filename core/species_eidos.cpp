@@ -2344,13 +2344,18 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_substitutions:
 		{
-			std::vector<Substitution*> &substitutions = population_.substitutions_;
-			int substitution_count = (int)substitutions.size();
+			int substitution_count = 0;
+			
+			for (Chromosome *chromosome : Chromosomes())
+				substitution_count += chromosome->substitutions_.size();
+			
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Substitution_Class))->resize_no_initialize_RR(substitution_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
+			unsigned int global_substitution_index = 0;
 			
-			for (int sub_index = 0; sub_index < substitution_count; ++sub_index)
-				vec->set_object_element_no_check_no_previous_RR(substitutions[sub_index], sub_index);
+			for (Chromosome *chromosome : Chromosomes())
+				for (Substitution *substitution : chromosome->substitutions_)
+					vec->set_object_element_no_check_no_previous_RR(substitution, global_substitution_index++);
 			
 			return result_SP;
 		}
@@ -3975,26 +3980,31 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	out << "Mutations:" << std::endl;
 	
 	bool output_object_tags = objectTags_value->LogicalAtIndex_NOCAST(0, nullptr);
-	std::vector<Substitution*> &subs = population_.substitutions_;
+	unsigned int global_substitution_index = 0;
 	
-	for (unsigned int i = 0; i < subs.size(); i++)
+	for (Chromosome *chromosome : Chromosomes())
 	{
-		out << i << " ";
-		
-		if (output_object_tags)
-			subs[i]->PrintForSLiMOutput_Tag(out);
-		else
-			subs[i]->PrintForSLiMOutput(out);
-		
-#if DO_MEMORY_CHECKS()
-		if (eidos_do_memory_checks)
+		for (Substitution *sub : chromosome->substitutions_)
 		{
-			mem_check_counter++;
+			out << global_substitution_index << " ";
 			
-			if (mem_check_counter % mem_check_mod == 0)
-				Eidos_CheckRSSAgainstMax("Species::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
-		}
+			if (output_object_tags)
+				sub->PrintForSLiMOutput_Tag(out);
+			else
+				sub->PrintForSLiMOutput(out);
+			
+			global_substitution_index++;
+			
+#if DO_MEMORY_CHECKS()
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Species::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+			}
 #endif
+		}
 	}
 	
 	if (has_file)
@@ -4871,16 +4881,10 @@ EidosValue_SP Species::ExecuteMethod_substitutionsOfType(EidosGlobalStringID p_m
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Substitution_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
 	
-	std::vector<Substitution*> &substitutions = population_.substitutions_;
-	int substitution_count = (int)substitutions.size();
-
-	for (int sub_index = 0; sub_index < substitution_count; ++sub_index)
-	{
-		Substitution *sub = substitutions[sub_index];
-		
-		if (sub->mutation_type_ptr_ == mutation_type_ptr)
-			vec->push_object_element_RR(sub);
-	}
+	for (Chromosome *chromosome : Chromosomes())
+		for (Substitution *sub : chromosome->substitutions_)
+			if (sub->mutation_type_ptr_ == mutation_type_ptr)
+				vec->push_object_element_RR(sub);
 	
 	return result_SP;
 }

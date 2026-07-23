@@ -4539,9 +4539,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 				// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
 				if (species->RecordingTreeSequence())
-					pop.treeseq_substitutions_map_.emplace(mut->position_, sub);
+					chromosome->treeseq_substitutions_map_.emplace(mut->position_, sub);
 				
-				pop.substitutions_.emplace_back(sub);
+				chromosome->substitutions_.emplace_back(sub);
 			}
 			
 			// TREE SEQUENCE RECORDING

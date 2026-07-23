@@ -3112,11 +3112,14 @@
 		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
-		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
-		{
-			SLIM_OUTSTREAM << i << " ";
-			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
-		}
+		unsigned int global_substitution_index = 0;
+		
+		for (Chromosome *chromosome : displaySpecies->Chromosomes())
+			for (const Substitution *substitution : chromosome->substitutions_)
+			{
+				SLIM_OUTSTREAM << global_substitution_index << " ";
+				substitution->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
+			}
 		
 		// now send SLIM_OUTSTREAM to the output textview
 		[self updateOutputTextView];

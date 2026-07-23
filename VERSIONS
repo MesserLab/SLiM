@@ -195,6 +195,8 @@ multitrait branch:
 		fix #646: saved mutations can be added later and bypass retained_by_treeseq_
 		fix #648: saving without simplification results in mutations without metadata
 	tweak timing restrictions to allow some methods -- notably demandPhenotype() -- to be called from the Eidos console in SLiMgui
+	fix #649: mutation registry & metadata, substitutions, and derived states need to be per-chromosome
+		move substitutions_ and treeseq_substitutions_map_ from Species to Chromosome
 
 
 version 5.2 (Eidos version 4.2):
