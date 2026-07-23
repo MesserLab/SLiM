@@ -121,7 +121,7 @@ public:
 	
 	// This flag tracks whether the mutation is "retained by the tree sequence".  It is used only when tree-seq
 	// recording is enabled AND mutations are being recorded in the tree sequence; otherwise it should be false.
-	// This flag interacts with the "muts_tracked_by_treeseq_" vector kept by the Species in a specific way that
+	// This flag interacts with the "muts_tracked_by_treeseq_" vector kept by Chromosome in a specific way that
 	// is detailed below.
 	//
 	// First of all, if a mutation is still in SLiM's mutation registry then it is "retained by SLiM", meaning

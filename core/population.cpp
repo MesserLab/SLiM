@@ -7792,8 +7792,6 @@ void Population::RemoveAllFixedMutations(void)
 			// When recording tree-sequence mutations, mutations that have been lost or removed need to be
 			// "retained by the tree sequence" since they are still present in derived states, so that their
 			// metadata is preserved.  The tree sequence thus takes over their retain here.
-			std::vector<MutationIndex> &muts_tracked_by_treeseq = species_.MutationsTrackedByTreeSeq();
-			
 			for (int i = 0; i < removed_mutation_accumulator.size(); i++)
 			{
 				MutationIndex mutation_index = removed_mutation_accumulator[i];
@@ -7814,7 +7812,7 @@ void Population::RemoveAllFixedMutations(void)
 					std::cout << "   lost/removed mutation with id " << mutation->mutation_id_ << " transferred to being retained by treeseq" << std::endl;
 #endif
 					
-					muts_tracked_by_treeseq.push_back(mutation_index);
+					chromosomes[mutation->chromosome_index_]->muts_tracked_by_treeseq_.push_back(mutation_index);
 					mutation->retained_by_treeseq_ = true;
 				}
 				else

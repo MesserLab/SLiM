@@ -136,9 +136,6 @@ Species::~Species(void)
 	
 	DeleteAllMutationRuns();
 	
-	// release all mutations retained by the tree sequence
-	_PurgeTrackedMutations();
-	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
 	for (auto &element : mutation_types_)
@@ -7576,59 +7573,69 @@ void Species::_MarkAndSweepTrackedMutations(void)
 {
 #if DEBUG_MUTATION_RETAINS
 	std::cout << "Species::_MarkAndSweepTrackedMutations():" << std::endl;
-	std::cout << "   muts_tracked_by_treeseq_.size() == " << muts_tracked_by_treeseq_.size() << std::endl;
 #endif
 	
-	if (muts_tracked_by_treeseq_.size() > 0)
-	{
-		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+	// We share a hash table across all chromosomes, clearing it each time, to avoid reallocs
 #if EIDOS_ROBIN_HOOD_HASHING()
-		robin_hood::unordered_flat_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+	robin_hood::unordered_flat_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
 #elif STD_UNORDERED_MAP_HASHING()
-		std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
+	std::unordered_map<slim_mutationid_t, Mutation *> mutid_to_mutation;
 #endif
-		
-		// first mark all tracked mutations 0, and build a hash table to look them up by mutation ID
-		// in this pass we also compact out entries in muts_tracked_by_treeseq_ that are duplicates,
-		// which can happen under certain circumstances (see the comment on retained_by_treeseq_)
-		size_t tracked_count = muts_tracked_by_treeseq_.size();
-		
-		for (size_t tracked_index = 0; tracked_index < tracked_count; )
-		{
-			MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
-			Mutation *mut = mut_block_ptr + mut_index;
-			
-			mut->scratch_ = 0;
-			
-			// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
-			// is in the list; it has been marked for removal, probably because it was substituted
-			// in that case, we don't add it to the hash table, so it will be swept at the end
-			if (mut->retained_by_treeseq_)
-			{
-				auto emplace_result = mutid_to_mutation.emplace(mut->mutation_id_, mut);
-				
-				if (emplace_result.second == false)
-				{
-					// the emplace did not happen, because an entry for this mutation already existed;
-					// so we want to compact out this entry in muts_tracked_by_treeseq_ as a duplicate
-					--tracked_count;
-					muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
-					continue;
-				}
-			}
-			
-			++tracked_index;
-		}
-		
-		muts_tracked_by_treeseq_.resize(tracked_count);
+	
+	// Each chromosome keeps its own vector of tracked mutations; we sweep them all one by one
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		std::vector<MutationIndex> &muts_tracked_by_treeseq = chromosome->muts_tracked_by_treeseq_;
 		
 #if DEBUG_MUTATION_RETAINS
-		std::cout << "   after compaction, muts_tracked_by_treeseq_.size() == " << muts_tracked_by_treeseq_.size() << std::endl;
+		std::cout << "   muts_tracked_by_treeseq.size() == " << muts_tracked_by_treeseq.size() << std::endl;
 #endif
 		
-		// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
-		for (Chromosome *chromosome : chromosomes_)
+		if (muts_tracked_by_treeseq.size() > 0)
 		{
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+			
+			mutid_to_mutation.clear();
+			
+			// first mark all tracked mutations 0, and build a hash table to look them up by mutation ID
+			// in this pass we also compact out entries in muts_tracked_by_treeseq that are duplicates,
+			// which can happen under certain circumstances (see the comment on retained_by_treeseq_)
+			size_t tracked_count = muts_tracked_by_treeseq.size();
+			
+			for (size_t tracked_index = 0; tracked_index < tracked_count; )
+			{
+				MutationIndex mut_index = muts_tracked_by_treeseq[tracked_index];
+				Mutation *mut = mut_block_ptr + mut_index;
+				
+				mut->scratch_ = 0;
+				
+				// if retained_by_treeseq_ is false, the mutation is not considered retained even though it
+				// is in the list; it has been marked for removal, probably because it was substituted
+				// in that case, we don't add it to the hash table, so it will be swept at the end
+				if (mut->retained_by_treeseq_)
+				{
+					auto emplace_result = mutid_to_mutation.emplace(mut->mutation_id_, mut);
+					
+					if (emplace_result.second == false)
+					{
+						// the emplace did not happen, because an entry for this mutation already existed;
+						// so we want to compact out this entry in muts_tracked_by_treeseq as a duplicate
+						--tracked_count;
+						muts_tracked_by_treeseq[tracked_index] = muts_tracked_by_treeseq[tracked_count];
+						continue;
+					}
+				}
+				
+				++tracked_index;
+			}
+			
+			muts_tracked_by_treeseq.resize(tracked_count);
+			
+#if DEBUG_MUTATION_RETAINS
+			std::cout << "   after compaction, muts_tracked_by_treeseq.size() == " << muts_tracked_by_treeseq.size() << std::endl;
+#endif
+			
+			// then scan through derived states, look up referenced mutations by mutation ID, and mark them 1
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
 			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
 			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
@@ -7656,33 +7663,33 @@ void Species::_MarkAndSweepTrackedMutations(void)
 				
 				retained_mutation->scratch_ = 1;
 			}
-		}
-		
-		// unmarked mutations can be released and compacted out of muts_tracked_by_treeseq_
-		for (size_t tracked_index = 0; tracked_index < tracked_count; )
-		{
-			MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
-			Mutation *mut = mut_block_ptr + mut_index;
 			
-			if (mut->scratch_ == 0)
+			// unmarked mutations can be released and compacted out of muts_tracked_by_treeseq
+			for (size_t tracked_index = 0; tracked_index < tracked_count; )
 			{
-				// this element is no longer needed, so we backfill from the end and repeat this index
-#if DEBUG_MUTATION_RETAINS
-				std::cout << "   unreferenced mutation ID " << mut->mutation_id_ << " removed by sweep" << std::endl;
-#endif
+				MutationIndex mut_index = muts_tracked_by_treeseq[tracked_index];
+				Mutation *mut = mut_block_ptr + mut_index;
 				
-				tracked_count--;
-				muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
-				mut->retained_by_treeseq_ = false;
-				mut->Release();
-				continue;
+				if (mut->scratch_ == 0)
+				{
+					// this element is no longer needed, so we backfill from the end and repeat this index
+#if DEBUG_MUTATION_RETAINS
+					std::cout << "   unreferenced mutation ID " << mut->mutation_id_ << " removed by sweep" << std::endl;
+#endif
+					
+					tracked_count--;
+					muts_tracked_by_treeseq[tracked_index] = muts_tracked_by_treeseq[tracked_count];
+					mut->retained_by_treeseq_ = false;
+					mut->Release();
+					continue;
+				}
+				
+				// this element is needed, so we don't need to touch it, we just move on
+				tracked_index++;
 			}
 			
-			// this element is needed, so we don't need to touch it, we just move on
-			tracked_index++;
+			muts_tracked_by_treeseq.resize(tracked_count);
 		}
-		
-		muts_tracked_by_treeseq_.resize(tracked_count);
 	}
 }
 
@@ -8002,46 +8009,55 @@ void Species::_PurgeTrackedMutations(void)
 	// Mutations might be listed more than once, so the code here has to be careful to release each mutation
 	// only once, and not to look at the memory of a mutation after it has been released.  We do that by
 	// compacting down the muts_tracked_by_treeseq_ vector to contain each retained mutation just once.
-	size_t tracked_count = muts_tracked_by_treeseq_.size();
-	
 #if DEBUG_MUTATION_RETAINS
-	std::cout << "Species::_PurgeTrackedMutations(): will purge " << tracked_count << " mutation references" << std::endl;
+	std::cout << "Species::_PurgeTrackedMutations():" << std::endl;
 #endif
 	
-	if (tracked_count)
+	// Each chromosome keeps its own vector of tracked mutations; we sweep them all one by one
+	for (Chromosome *chromosome : chromosomes_)
 	{
-		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		std::vector<MutationIndex> &muts_tracked_by_treeseq = chromosome->muts_tracked_by_treeseq_;
+		size_t tracked_count = muts_tracked_by_treeseq.size();
 		
-		for (size_t tracked_index = 0; tracked_index < tracked_count; )
+#if DEBUG_MUTATION_RETAINS
+		std::cout << "Species::_PurgeTrackedMutations(): will purge " << tracked_count << " mutation references" << std::endl;
+#endif
+		
+		if (tracked_count)
 		{
-			MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
-			Mutation *mut = (mut_block_ptr + mut_index);
+			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 			
-			if (mut->retained_by_treeseq_)
+			for (size_t tracked_index = 0; tracked_index < tracked_count; )
 			{
-				// This mutation is retained, so we keep it in the vector to be released at the end.
-				// We mark it as unretained here so that any extra references to it get compacted out.
-				mut->retained_by_treeseq_ = false;
-				tracked_index++;
+				MutationIndex mut_index = muts_tracked_by_treeseq[tracked_index];
+				Mutation *mut = (mut_block_ptr + mut_index);
+				
+				if (mut->retained_by_treeseq_)
+				{
+					// This mutation is retained, so we keep it in the vector to be released at the end.
+					// We mark it as unretained here so that any extra references to it get compacted out.
+					mut->retained_by_treeseq_ = false;
+					tracked_index++;
+				}
+				else
+				{
+					// This mutation is not retained, so it needs to be compacted out.  We shift the last
+					// element of muts_tracked_by_treeseq back and then check this element again.
+					tracked_count--;
+					muts_tracked_by_treeseq[tracked_index] = muts_tracked_by_treeseq[tracked_count];
+				}
 			}
-			else
-			{
-				// This mutation is not retained, so it needs to be compacted out.  We shift the last
-				// element of muts_tracked_by_treeseq_ back and then check this element again.
-				tracked_count--;
-				muts_tracked_by_treeseq_[tracked_index] = muts_tracked_by_treeseq_[tracked_count];
-			}
+			
+			// now we can resize the vector to the number of retained mutations kept
+			muts_tracked_by_treeseq.resize(tracked_count);
+			
+			// and then loop through those and release them all, without duplicates
+			for (MutationIndex mut_index : muts_tracked_by_treeseq)
+				(mut_block_ptr + mut_index)->Release();
+			
+			// and now we're done, and can empty out the tracked list altogether
+			muts_tracked_by_treeseq.clear();
 		}
-		
-		// now we can resize the vector to the number of retained mutations kept
-		muts_tracked_by_treeseq_.resize(tracked_count);
-		
-		// and then loop through those and release them all, without duplicates
-		for (MutationIndex mut_index : muts_tracked_by_treeseq_)
-			(mut_block_ptr + mut_index)->Release();
-		
-		// and now we're done, and can empty out the tracked list altogether
-		muts_tracked_by_treeseq_.clear();
 	}
 }
 
@@ -9388,9 +9404,10 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	const MutationIndex *register_iter = population_.MutationRegistry(&registry_size);
 	
 	Chromosome *chromosome = chromosomes_[p_chromosome_index];
-	const std::vector<Substitution*> substitutions = chromosome->substitutions_;
+	const std::vector<Substitution*> &substitutions = chromosome->substitutions_;
+	const std::vector<MutationIndex> &muts_tracked_by_treeseq = chromosome->muts_tracked_by_treeseq_;
 	size_t substitution_count = substitutions.size();
-	size_t tracked_muts_count = muts_tracked_by_treeseq_.size();
+	size_t tracked_muts_count = muts_tracked_by_treeseq.size();
 	size_t estimated_row_count = registry_size + substitution_count + tracked_muts_count;
 	slim_trait_index_t trait_count = TraitCount();
 	size_t size_for_additional_trait_info = sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
@@ -9471,7 +9488,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// in SLiM's mutation registry, but they need to be in the mutation metadata table.
 	for (size_t tracked_index = 0; tracked_index < tracked_muts_count; ++tracked_index)
 	{
-		MutationIndex mut_index = muts_tracked_by_treeseq_[tracked_index];
+		MutationIndex mut_index = muts_tracked_by_treeseq[tracked_index];
 		Mutation *mut = mutation_block_->MutationForIndex(mut_index);
 		
 		// Mutations can be in muts_tracked_by_treeseq_ and yet not be retained by the tree sequence; we skip
@@ -13093,7 +13110,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			{
 				new_mut->state_ = MutationState::kLostAndRemoved;
 				
-				muts_tracked_by_treeseq_.push_back(new_mut_index);
+				chromosome->muts_tracked_by_treeseq_.push_back(new_mut_index);
 				new_mut->retained_by_treeseq_ = true;
 				
 				// new mutations already have a retain count of 1; we take that over here, as MutationRegistryAdd() does

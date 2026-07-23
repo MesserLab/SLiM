@@ -202,6 +202,8 @@ public:
 	Species &species_;
 	MutationBlock *mutation_block_ = nullptr;				// NOT OWNED; a pointer to the MutationBlock from the species
 	
+	std::vector<MutationIndex> muts_tracked_by_treeseq_;	// see comments on Mutation::retained_by_treeseq_ for an explanation of this...
+	
 	std::vector<Substitution*> substitutions_;				// OWNED POINTERS: Substitution objects for all fixed mutations
 	std::unordered_multimap<slim_position_t, Substitution*> treeseq_substitutions_map_;	// TREE SEQUENCE RECORDING; keeps all fixed mutations, hashed by position
 	

@@ -394,8 +394,6 @@ private:
 												// actually be shared by multiple haplosomes in different chromosomes
 	//Individual *current_new_individual_;
 	
-	std::vector<MutationIndex> muts_tracked_by_treeseq_;	// see comments on Mutation::retained_by_treeseq_ for an explanation of this...
-	
 #if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
 #elif STD_UNORDERED_MAP_HASHING()
@@ -781,8 +779,6 @@ public:
 	void _PostInstantiationCleanup(EidosInterpreter *p_interpreter);
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap, Chromosome &p_chromosome);	// initialize the population from an tskit binary file
 	slim_tick_t _InitializePopulationFromTskitDirectory(std::string p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from a multi-chromosome directory
-	
-	std::vector<MutationIndex> &MutationsTrackedByTreeSeq(void) { return muts_tracked_by_treeseq_; }
 	
 	size_t MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables);
 	void TSXC_Enable(void);
