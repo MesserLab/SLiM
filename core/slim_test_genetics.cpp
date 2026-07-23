@@ -2530,14 +2530,21 @@ initialize() {
 20 early() {
 	g1.setMutationFractions(m1, 1);
 }
-301 first() {
-	// by this point we should have reverted back to kPureNeutral, assuming all the m2 mutations fixed
-	// if m2 mutations do not exist, we should be in kPureNeutral now
+21:500 first() {
+	// if m2 mutations do not exist, we should switch to kPureNeutral soon; check that and stop
+	// note that RecalculateOptimizationFlags() does not get called every tick, so we schedule
+	// the first check for the future; we will stay in kNoActiveCallbacks a little while
+	if (sim.countOfMutationsOfType(m2) == 0) {
+		defineConstant("M2_GONE", community.tick + 11:20);
+		community.deregisterScriptBlock(self);
+	}
+}
+M2_GONE first() {
 	if (sim._debugBuild) {
 		if (sim._inUseNonneutralMutationBufferSize != 0)
 			stop("nonneutral caches were non-empty despite no demand");
 		if (sim._traitCalculationRegimeNameDIPLOID != "kPureNeutral")
-			stop("unexpected trait calculation regime");
+			stop("unexpected trait calculation regime " + sim._traitCalculationRegimeNameDIPLOID);
 	}
 }
 		)V0G0N";
