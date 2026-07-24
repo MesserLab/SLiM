@@ -37,7 +37,6 @@
 
 class Species;
 class Mutation;
-class MutationRun;
 
 
 class MutationBlock
@@ -66,7 +65,7 @@ public:
 	~MutationBlock(void);
 	
 	void IncreaseMutationBlockCapacity(void);
-	void ZeroRefcountBlock(MutationRun &p_mutation_registry);
+	void ZeroRefcountBlock(void);
 	
 	inline __attribute__((always_inline)) Mutation *MutationForIndex(MutationIndex p_mutation_index) const { return mutation_buffer_ + p_mutation_index; }
 	inline __attribute__((always_inline)) slim_refcount_t RefcountForIndex(MutationIndex p_mutation_index) const { return refcount_buffer_[p_mutation_index]; }

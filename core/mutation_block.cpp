@@ -202,36 +202,20 @@ void MutationBlock::IncreaseMutationBlockCapacity(void)
 #endif
 }
 
-void MutationBlock::ZeroRefcountBlock(MutationRun &p_mutation_registry)
+void MutationBlock::ZeroRefcountBlock(void)
 {
-#pragma unused (p_mutation_registry)
-	
 	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ZeroRefcountBlock(): mutation_buffer_ change");
 	
-#if 0
-#ifdef SLIMGUI
+#if defined(SLIMGUI) && 0
 	// BCH 11/25/2017: This code path needs to be used in SLiMgui to avoid modifying the refcounts
 	// for mutations in other simulations sharing the mutation block.
+	// BCH 6/8/2023: This is necessary in SLiMgui, as noted above, but also in multispecies sims
+	// so that one species does not step on the toes of another species.
+	// BCH 10/15/2025: This is no longer needed in any case, since we now keep a separate MutationBlock
+	// object for each species in each simulation.  Keeping the code as a record of this policy shift.
+	// BCH 7/24/2026: Now that the mutation run is per-chromosome, the approach of passing in a registry
+	// and zeroing out only those entries makes no sense at all.  That parameter has been removed.
 	p_registry_only = true;
-#endif
-	
-	if (p_registry_only)
-	{
-		// This code path zeros out refcounts just for the mutations currently in use in the registry.
-		// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
-		// BCH 6/8/2023: This is necessary in SLiMgui, as noted above, but also in multispecies sims
-		// so that one species does not step on the toes of another species.
-		// BCH 10/15/2025: This is no longer needed in any case, since we now keep a separate MutationBlock
-		// object for each species in each simulation.  Keeping the code as a record of this policy shift.
-		slim_refcount_t *refcount_block_ptr = refcount_buffer_;
-		const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
-		const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
-		
-		while (registry_iter != registry_iter_end)
-			*(refcount_block_ptr + (*registry_iter++)) = 0;
-		
-		return;
-	}
 #endif
 	
 	// Zero out the whole thing with EIDOS_BZERO(), without worrying about which bits are in use.

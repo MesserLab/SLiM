@@ -736,10 +736,9 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 {
 	Species *displaySpecies = [controller focalDisplaySpecies];
 	slim_chromosome_index_t chromosome_index = chromosome->Index();
-	Population &pop = displaySpecies->population_;
 	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
-	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
+	const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 	MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	

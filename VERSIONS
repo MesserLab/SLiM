@@ -198,6 +198,7 @@ multitrait branch:
 	fix #649: mutation registry & metadata, substitutions, and derived states need to be per-chromosome
 		move substitutions_ and treeseq_substitutions_map_ from Species to Chromosome
 		move muts_tracked_by_treeseq_ from Species to Chromosome
+		move the mutation registry from Population to Chromosome
 
 
 version 5.2 (Eidos version 4.2):

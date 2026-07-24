@@ -2280,13 +2280,28 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutations:
 		{
 			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-			int registry_size;
-			const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(registry_size);
-			EidosValue_SP result_SP = EidosValue_SP(vec);
+			int mutation_count = 0;
 			
-			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
-				vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + registry[registry_index], registry_index);
+			for (Chromosome *chromosome : Chromosomes())
+			{
+				int registry_size;
+				const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+				
+				mutation_count += registry_size;
+			}
+			
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			unsigned int global_mutation_index = 0;
+			
+			for (Chromosome *chromosome : Chromosomes())
+			{
+				int registry_size;
+				const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+				
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+					vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + registry[registry_index], global_mutation_index++);
+			}
 			
 			return result_SP;
 		}
@@ -3775,16 +3790,19 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	// start a registry if appropriate, so we can hit the fast case below
 	if (start_registry && (!population_.keeping_muttype_registries_ || !mutation_type_ptr->keeping_muttype_registry_))
 	{
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-		MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
-		
-		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			MutationIndex mut = registry[registry_index];
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+			MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
 			
-			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				muttype_registry.emplace_back(mut);
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			{
+				MutationIndex mut = registry[registry_index];
+				
+				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+					muttype_registry.emplace_back(mut);
+			}
 		}
 		
 		population_.keeping_muttype_registries_ = true;
@@ -3809,19 +3827,23 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	{
 		// No registry in the muttype; count the number of mutations of the given type, so we can reserve the right vector size
 		// To avoid having to scan the registry twice for the simplest case of a single mutation, we cache the first mutation found
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-		int match_count = 0, registry_index;
+		int match_count = 0;
 		MutationIndex first_match = -1;
 		
-		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			MutationIndex mut = registry[registry_index];
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 			
-			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 			{
-				if (++match_count == 1)
-					first_match = mut;
+				MutationIndex mut = registry[registry_index];
+				
+				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+				{
+					if (++match_count == 1)
+						first_match = mut;
+				}
 			}
 		}
 		
@@ -3839,12 +3861,18 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 			{
 				int set_index = 0;
 				
-				for (registry_index = 0; registry_index < registry_size; ++registry_index)
+				for (Chromosome *chromosome : chromosomes_)
 				{
-					MutationIndex mut = registry[registry_index];
+					int registry_size;
+					const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 					
-					if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-						vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mut, set_index++);
+					for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+					{
+						MutationIndex mut = registry[registry_index];
+						
+						if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+							vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mut, set_index++);
+					}
 				}
 			}
 			
@@ -3871,16 +3899,19 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	// start a registry if appropriate, so we can hit the fast case below
 	if (start_registry && (!population_.keeping_muttype_registries_ || !mutation_type_ptr->keeping_muttype_registry_))
 	{
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-		MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
-		
-		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			MutationIndex mut = registry[registry_index];
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+			MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
 			
-			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				muttype_registry.emplace_back(mut);
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			{
+				MutationIndex mut = registry[registry_index];
+				
+				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+					muttype_registry.emplace_back(mut);
+			}
 		}
 		
 		population_.keeping_muttype_registries_ = true;
@@ -3899,13 +3930,17 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 #endif
 	{
 		// Count the number of mutations of the given type
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 		int match_count = 0;
 		
-		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
-			if ((mut_block_ptr + registry[registry_index])->mutation_type_ptr_ == mutation_type_ptr)
-				++match_count;
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+			
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+				if ((mut_block_ptr + registry[registry_index])->mutation_type_ptr_ == mutation_type_ptr)
+					++match_count;
+		}
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(match_count));
 	}
@@ -4168,13 +4203,16 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		// as we scan through haplosomes building the polymorphism map, we want to process only mutations that are
 		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
 		// first zero out scratch_ in all mutations in the registry...
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-		
-		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			Mutation *mut = mut_block_ptr + registry[registry_index];
-			mut->scratch_ = 0;
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+			
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			{
+				Mutation *mut = mut_block_ptr + registry[registry_index];
+				mut->scratch_ = 0;
+			}
 		}
 		
 		// ...then set scratch_ = 1 for all mutations that have been requested for output
@@ -4735,128 +4773,154 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	// We will scan forward looking for a match, and will keep track of the first match we find.  If we only find one, we return
 	// a singleton; if we find a second, we will start accumulating a vector result.
 	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
-	int registry_size;
-	const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-	int match_count = 0, registry_index;
+	int match_count = 0;
 	Mutation *first_match = nullptr;
 	EidosValue_Object *vec = nullptr;
 	
 	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_chromosome)
 	{
 		// id-only search; nice for this to be fast since people will use it to look up a specific mutation
-		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			Mutation *mut = mut_block_ptr + registry[registry_index];
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 			
-			if (mut->mutation_id_ != id)
-				continue;
-			
-			match_count++;
-			
-			if (match_count == 1)
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 			{
-				first_match = mut;
-			}
-			else if (match_count == 2)
-			{
-				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
-				vec->push_object_element_RR(first_match);
-				vec->push_object_element_RR(mut);
-			}
-			else
-			{
-				vec->push_object_element_RR(mut);
+				Mutation *mut = mut_block_ptr + registry[registry_index];
+				
+				if (mut->mutation_id_ != id)
+					continue;
+				
+				match_count++;
+				
+				if (match_count == 1)
+				{
+					first_match = mut;
+				}
+				else if (match_count == 2)
+				{
+					vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+					vec->push_object_element_RR(first_match);
+					vec->push_object_element_RR(mut);
+				}
+				else
+				{
+					vec->push_object_element_RR(mut);
+				}
 			}
 		}
 	}
 	else if (has_chromosome && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_id)
 	{
 		// chromosome-only search; nice for this to be fast since people will use it to look up all the mutations for a chromosome
-		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			Mutation *mut = mut_block_ptr + registry[registry_index];
-			
-			if (!chromosome_index_included[mut->chromosome_index_])
+			if (!chromosome_index_included[chromosome->Index()])
 				continue;
 			
-			match_count++;
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 			
-			if (match_count == 1)
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 			{
-				first_match = mut;
-			}
-			else if (match_count == 2)
-			{
-				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
-				vec->push_object_element_RR(first_match);
-				vec->push_object_element_RR(mut);
-			}
-			else
-			{
-				vec->push_object_element_RR(mut);
+				Mutation *mut = mut_block_ptr + registry[registry_index];
+				
+				match_count++;
+				
+				if (match_count == 1)
+				{
+					first_match = mut;
+				}
+				else if (match_count == 2)
+				{
+					vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+					vec->push_object_element_RR(first_match);
+					vec->push_object_element_RR(mut);
+				}
+				else
+				{
+					vec->push_object_element_RR(mut);
+				}
 			}
 		}
 	}
 	else if (!exclude && !has_tag && !has_id)
 	{
 		// no exclude, tag, or id; this is expected to be the common case, for the usage patterns I anticipate
-		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			Mutation *mut = mut_block_ptr + registry[registry_index];
+			if (has_chromosome && !chromosome_index_included[chromosome->Index()])
+				continue;
 			
-			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
-			if ((position != -1) && (mut->position_ != position))						continue;
-			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
-			if (has_chromosome && !chromosome_index_included[mut->chromosome_index_])	continue;
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 			
-			match_count++;
-			
-			if (match_count == 1)
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 			{
-				first_match = mut;
-			}
-			else if (match_count == 2)
-			{
-				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
-				vec->push_object_element_RR(first_match);
-				vec->push_object_element_RR(mut);
-			}
-			else
-			{
-				vec->push_object_element_RR(mut);
+				Mutation *mut = mut_block_ptr + registry[registry_index];
+				
+				if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
+				if ((position != -1) && (mut->position_ != position))						continue;
+				if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
+				
+				match_count++;
+				
+				if (match_count == 1)
+				{
+					first_match = mut;
+				}
+				else if (match_count == 2)
+				{
+					vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+					vec->push_object_element_RR(first_match);
+					vec->push_object_element_RR(mut);
+				}
+				else
+				{
+					vec->push_object_element_RR(mut);
+				}
 			}
 		}
 	}
 	else
 	{
 		// GENERAL CASE
-		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			Mutation *mut = mut_block_ptr + registry[registry_index];
+			if (has_chromosome && !chromosome_index_included[chromosome->Index()])
+				continue;
 			
-			if (exclude && (mut == exclude))											continue;
-			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
-			if ((position != -1) && (mut->position_ != position))						continue;
-			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
-			if (has_tag && (mut->tag_value_ != tag))									continue;
-			if (has_id && (mut->mutation_id_ != id))									continue;
-			if (has_chromosome && !chromosome_index_included[mut->chromosome_index_])	continue;
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 			
-			match_count++;
-			
-			if (match_count == 1)
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 			{
-				first_match = mut;
-			}
-			else if (match_count == 2)
-			{
-				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
-				vec->push_object_element_RR(first_match);
-				vec->push_object_element_RR(mut);
-			}
-			else
-			{
-				vec->push_object_element_RR(mut);
+				Mutation *mut = mut_block_ptr + registry[registry_index];
+				
+				if (exclude && (mut == exclude))											continue;
+				if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
+				if ((position != -1) && (mut->position_ != position))						continue;
+				if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
+				if (has_tag && (mut->tag_value_ != tag))									continue;
+				if (has_id && (mut->mutation_id_ != id))									continue;
+				
+				match_count++;
+				
+				if (match_count == 1)
+				{
+					first_match = mut;
+				}
+				else if (match_count == 2)
+				{
+					vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+					vec->push_object_element_RR(first_match);
+					vec->push_object_element_RR(mut);
+				}
+				else
+				{
+					vec->push_object_element_RR(mut);
+				}
 			}
 		}
 	}

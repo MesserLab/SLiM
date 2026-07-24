@@ -2602,44 +2602,49 @@ void Community::AllSpecies_CheckIntegrity(void)
 	
 	for (Species *species : all_species_)
 	{
-		// Check the integrity of the mutation registry; all MutationIndex values should be in range
-		int registry_size;
-		const MutationIndex *registry = species->population_.MutationRegistry(&registry_size);
-		std::vector<MutationIndex> indices;
-		
-		if (registry_size)
+		for (Chromosome *chromosome : species->Chromosomes())
 		{
-			MutationBlock *mutationBlock = species->SpeciesMutationBlock();
-			MutationIndex mutBlockCapacity = mutationBlock->capacity_;
+			// Check the integrity of the mutation registry; all MutationIndex values should be in range
+			int registry_size;
+			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+			std::vector<MutationIndex> indices;
 			
-			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			if (registry_size)
 			{
-				MutationIndex mutation_index = registry[registry_index];
+				MutationBlock *mutationBlock = species->SpeciesMutationBlock();
+				MutationIndex mutBlockCapacity = mutationBlock->capacity_;
 				
-				if ((mutation_index < 0) || (mutation_index >= mutBlockCapacity))
-					EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+				{
+					MutationIndex mutation_index = registry[registry_index];
+					
+					if ((mutation_index < 0) || (mutation_index >= mutBlockCapacity))
+						EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+					
+					indices.push_back(mutation_index);
+					
+					// check mutation integrity
+					Mutation *mut = mutationBlock->MutationForIndex(mutation_index);
+					
+					if (mut->chromosome_index_ != chromosome->Index())
+						EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " is in the wrong chromosome's registry." << EidosTerminate();
+					
+					mut->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
+				}
 				
-				indices.push_back(mutation_index);
+				size_t original_size = indices.size();
 				
-				// check mutation integrity
-				Mutation *mut = mutationBlock->MutationForIndex(mutation_index);
+				std::sort(indices.begin(), indices.end());
+				indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
 				
-				mut->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
+				if (indices.size() != original_size)
+					EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
 			}
 			
-			size_t original_size = indices.size();
-			
-			std::sort(indices.begin(), indices.end());
-			indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
-			
-			if (indices.size() != original_size)
-				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
-		}
-		
-		// Check the integrity of all substitution objects
-		for (Chromosome *chromosome : species->Chromosomes())
+			// Check the integrity of all substitution objects
 			for (const Substitution *sub : chromosome->substitutions_)
 				sub->SelfConsistencyCheck(" in AllSpecies_CheckIntegrity()");
+		}
 		
 		// Check the integrity of Species optimization flags
 		species->CheckOptimizationFlags();
