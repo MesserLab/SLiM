@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.12.1
+        uses: styfle/cancel-workflow-action@d07a454dad7609a92316b57b23c9ccfd4f59af66 # 0.13.1
   coverage:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up GCC
         run: |
           sudo apt-get install gcc-12 g++-12 && \
@@ -37,7 +37,7 @@ jobs:
           lcov --gcov-tool gcov-12 --ignore-errors gcov,mismatch --rc geninfo_unexecuted_blocks=1 --capture --directory Coverage --output-file coverage.info && \
           lcov --gcov-tool gcov-12 --ignore-errors gcov,mismatch,unused --remove coverage.info '/usr/*' '*/gsl/*' '*/eidos_zlib/*' --output-file coverage.info
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.info
@@ -61,9 +61,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Miniforge
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
         with:
           miniforge-version: latest
           activate-environment: anaconda-client-env
@@ -73,7 +73,7 @@ jobs:
         run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache Conda env
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CONDA }}/envs
           key:
@@ -138,9 +138,9 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup MSYS2 ${{matrix.sys}}
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           msystem: ${{matrix.sys}}
           update: true
@@ -151,7 +151,7 @@ jobs:
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
       - name: Setup Miniforge
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
         with:
           miniforge-version: latest
           activate-environment: anaconda-client-env
@@ -162,7 +162,7 @@ jobs:
         run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache Conda env
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         env:
           # Increase this value to reset cache if treerec/tests/environment.yml has not changed
           CACHE_NUMBER: 0
@@ -175,7 +175,7 @@ jobs:
             steps.get-date.outputs.today }}-${{
             hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
         id: cache
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
         with:
           activate-environment: anaconda-client-env
           environment-file: treerec/tests/environment.yml
@@ -243,7 +243,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Workaround for gcc-11
         if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
         run: |
@@ -258,7 +258,7 @@ jobs:
             --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
           version: ${{ matrix.qt }}
       - name: Release build with SLiMGUI
@@ -284,9 +284,9 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup MSYS2 ${{matrix.sys}}
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           msystem: ${{matrix.sys}}
           update: true
@@ -323,9 +323,9 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup MSYS2 ${{matrix.sys}}
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           msystem: ${{matrix.sys}}
           update: true
