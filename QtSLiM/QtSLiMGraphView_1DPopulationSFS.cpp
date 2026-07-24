@@ -95,26 +95,28 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
     MutationBlock *mutation_block = graphSpecies->SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
     slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
-    int registry_size;
-    const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-	
-	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
-	{
-		const Mutation *mutation = mut_block_ptr + registry[registry_index];
-        Chromosome *mut_chromosome = graphSpecies->Chromosomes()[mutation->chromosome_index_];
-        double totalHaplosomeCount = ((mut_chromosome->total_haplosome_count_ == 0) ? 1 : mut_chromosome->total_haplosome_count_);   // prevent a zero count from producing NAN frequencies below
-		
-		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation_block->IndexInBlock(mutation));
-		double mutationFrequency = mutationRefCount / totalHaplosomeCount;
-		int mutationBin = static_cast<int>(floor(mutationFrequency * binCount));
-		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
-		
-		if (mutationBin == binCount)
-			mutationBin = binCount - 1;
-		
-		(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
-	}
-	
+    
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
+    {
+        double totalHaplosomeCount = ((chromosome->total_haplosome_count_ == 0) ? 1 : chromosome->total_haplosome_count_);   // prevent a zero count from producing NAN frequencies below
+        int registry_size;
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+        
+        for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+        {
+            const Mutation *mutation = mut_block_ptr + registry[registry_index];
+            slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation_block->IndexInBlock(mutation));
+            double mutationFrequency = mutationRefCount / totalHaplosomeCount;
+            int mutationBin = static_cast<int>(floor(mutationFrequency * binCount));
+            int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
+            
+            if (mutationBin == binCount)
+                mutationBin = binCount - 1;
+            
+            (spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
+        }
+    }
+    
 	// normalize within each mutation type
 	for (int mutationTypeIndex = 0; mutationTypeIndex < mutationTypeCount; ++mutationTypeIndex)
 	{

@@ -3356,7 +3356,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 	
 	// Get the species of interest from the mutation type; we will check that all target haplosomes belong to it below
 	Species &species = mutation_type_ptr->species_;
-	Population &pop = species.population_;
 	bool recording_mutations = species.RecordingTreeSequenceMutations();
 	bool nucleotide_based = species.IsNucleotideBased();
 	int target_size = p_target->Count();
@@ -3644,7 +3643,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 	}
 	
 	Community &community = species->community_;
-	Population &pop = species->population_;
 	slim_position_t last_position = chromosome->last_position_;
 	bool recording_mutations = species->RecordingTreeSequenceMutations();
 	bool nucleotide_based = species->IsNucleotideBased();

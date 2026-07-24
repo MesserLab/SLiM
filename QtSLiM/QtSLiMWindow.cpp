@@ -3351,10 +3351,13 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
                 
                 for (Species *species : community->AllSpecies())
                 {
-                    int registry_size;
-                    
-                    species->population_.MutationRegistry(&registry_size);
-                    totalRegistrySize += registry_size;
+                    for (Chromosome *chromosome : species->Chromosomes())
+                    {
+                        int registry_size;
+                        
+                        chromosome->MutationRegistry(&registry_size);
+                        totalRegistrySize += registry_size;
+                    }
                 }
                 
                 // Tally up usage across the simulation
@@ -3379,7 +3382,8 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
                 int totalSubstitutions = 0;
                 
                 for (Species *species : community->AllSpecies())
-                    totalSubstitutions += species->population_.substitutions_.size();
+                    for (Chromosome *chromosome : species->Chromosomes())
+                        totalSubstitutions += chromosome->substitutions_.size();
                 
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
                                            .arg(current_memory_MB, 0, 'f', 1)
@@ -6407,7 +6411,7 @@ void QtSLiMWindow::dumpPopulationClicked(void)
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
     try
-	{
+    {
         // BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
         Species *displaySpecies = focalDisplaySpecies();
         
@@ -6416,18 +6420,21 @@ void QtSLiMWindow::dumpPopulationClicked(void)
             slim_tick_t species_cycle = displaySpecies->Cycle();
             
             // dump the population: output spatial positions and ages and tags if available, but not ancestral sequence or substitutions
-			Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, true, false, /* p_focal_chromosome */ nullptr);
+            Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, true, false, /* p_focal_chromosome */ nullptr);
             
             // dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
             SLIM_OUTSTREAM << std::endl;
             SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " F " << std::endl;
             SLIM_OUTSTREAM << "Mutations:" << std::endl;
             
-            for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
-            {
-                SLIM_OUTSTREAM << i << " ";
-                displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
-            }
+            unsigned int global_substitution_index = 0;
+            
+            for (Chromosome *chromosome : displaySpecies->Chromosomes())
+                for (const Substitution *substitution : chromosome->substitutions_)
+                {
+                    SLIM_OUTSTREAM << global_substitution_index << " ";
+                    substitution->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
+                }
             
             // now send SLIM_OUTSTREAM to the output textview
             updateOutputViews();
@@ -6437,10 +6444,10 @@ void QtSLiMWindow::dumpPopulationClicked(void)
             // With no display species, including when on the "all" species tab, we just beep
             qApp->beep();
         }
-	}
-	catch (...)
-	{
-	}
+    }
+    catch (...)
+    {
+    }
 }
 
 void QtSLiMWindow::displayGraphClicked(void)

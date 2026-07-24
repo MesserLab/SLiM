@@ -7352,11 +7352,8 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 				// in this case MutationState::kRemovedWithSubstitution is not possible
 				for (int registry_index = 0; registry_index < registry_size; registry_index++)
 				{
-					MutationIndex mut_index = registry[registry_index];
-					const Mutation *mut = mut_block_ptr + mut_index;
-					double freq;
+					double freq = *(refcount_block_ptr + registry[registry_index]) / tallied_haplosome_count;
 					
-					freq = *(refcount_block_ptr + registry[registry_index]) / tallied_haplosome_count;
 					float_result->set_float_no_check(freq, global_registry_index++);
 				}
 			}

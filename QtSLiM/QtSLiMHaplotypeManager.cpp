@@ -487,17 +487,12 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
     if (!graphSpecies)
         return;
     
-    Population &population = graphSpecies->population_;
     int registry_size;
-    const MutationIndex *registry = population.MutationRegistry(&registry_size);
+    const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 	const MutationIndex *reg_end_ptr = registry + registry_size;
 	MutationIndex biggest_index = 0;
 	
 	// First, find the biggest index presently in use; that's how many entries we need
-    // BCH 12/25/2024: With multiple chromosomes, this is rather wasteful; I think this class
-    // could be redesigned to capture just the subset of mutations that are live for a given
-    // chromosome, essentially re-indexing the mutations, but it's not clear this matters
-    // to performance; we just waste a bit of memory here, but it's not a big deal.
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
 		MutationIndex mut_index = *reg_ptr;

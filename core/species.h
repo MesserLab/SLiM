@@ -211,28 +211,33 @@ private:
 #endif
 	
 	// Species simulation state
-	slim_tick_t cycle_ = 0;													// the current cycle reached in simulation
-	EidosValue_SP cached_value_cycle_;											// a cached value for cycle_; invalidates automatically when used
+	slim_tick_t cycle_ = 0;									// the current cycle reached in simulation
+	EidosValue_SP cached_value_cycle_;						// a cached value for cycle_; invalidates automatically when used
 	
-	bool species_active_ = true;													// the "active" property of the species
-	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
-	slim_tick_t tick_phase_ = 1;													// the species is first active in tick tick_phase_
+	bool species_active_ = true;							// the "active" property of the species
+	slim_tick_t tick_modulo_ = 1;							// the species is active every tick_modulo_ ticks
+	slim_tick_t tick_phase_ = 1;							// the species is first active in tick tick_phase_
 	
-	bool inside_trait_or_fitness_calculation_ = false;								// a flag to prevent re-entry and prohibited operations during trait/fitness calculations
+	bool inside_trait_or_fitness_calculation_ = false;		// a flag to prevent re-entry and prohibited operations during trait/fitness calculations
 	
-	std::string color_;																// color to use when displayed (in SLiMgui)
-	float color_red_, color_green_, color_blue_;									// cached color components from color_; should always be in sync
+	std::string color_;										// color to use when displayed (in SLiMgui)
+	float color_red_, color_green_, color_blue_;			// cached color components from color_; should always be in sync
 	
 	// palettes for coloring things in SLiMgui
-	EidosPalette *fitness_palette_ = nullptr;					// OWNED POINTER: the palette used for coloring individual fitness in SLiMgui; retained
-	EidosPalette *fitness_effect_palette_ = nullptr;           	// OWNED POINTER: the palette used for coloring mutation fitness effects in SLiMgui; retained
+	EidosPalette *fitness_palette_ = nullptr;				// OWNED POINTER: the palette used for coloring individual fitness in SLiMgui; retained
+	EidosPalette *fitness_effect_palette_ = nullptr;		// OWNED POINTER: the palette used for coloring mutation fitness effects in SLiMgui; retained
 	
-	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
+	bool has_genetics_ = true;								// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
 	// We keep a MutationBlock object that stores all of the Mutation objects that belong to this species.
 	// Our mutations get allocated and freed using this block, and we use MutationIndex to reference them.
 	// This remains nullptr in no-genetics species, and is allocated only after initialize() is done.
-	MutationBlock *mutation_block_ = nullptr;			// OWNED; contains all of our mutations
+	// FIXME BCH 7/24/2026: It is an interesting question whether this should move to Chromosome so that
+	// we have a separate mutation block per chromosome.  It would probably increase memory locality,
+	// since we tend to process one chromosome at a time.  For large models there is probably not much
+	// locality among mutations even within one chromosome, though.  Now that the mutation registry is
+	// in Chromosome, moving this would probably be quite easy, so we could try it and see...
+	MutationBlock *mutation_block_ = nullptr;				// OWNED; contains all of our mutations
 	
 	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
 	// as well as hash tables for quick lookup by id and symbol

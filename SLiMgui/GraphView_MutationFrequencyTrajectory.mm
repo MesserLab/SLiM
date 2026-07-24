@@ -443,13 +443,13 @@
 					if (substitution->mutation_id_ == mutationID)
 					{
 						[history addEntry:UINT16_MAX];
-						[frequencyHistoryColdStorageFixed addObject:history];
-						[frequencyHistoryDict removeObjectForKey:key];
-						return;		// return from the lambda here, since we've found a match
+						goto enumerateNext;
 					}
 				}
 				
 				[history addEntry:0];
+				
+			enumerateNext:
 				[frequencyHistoryColdStorageLost addObject:history];
 				[frequencyHistoryDict removeObjectForKey:key];
 			}];

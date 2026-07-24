@@ -6967,10 +6967,17 @@ void Species::CollectMutationProfileInfo(void)
 	profile_trait_calculation_regime_history_.emplace_back(current_trait_calculation_regime_DIPLOID_);
 	
 	// track the maximum number of mutations in existence at one time
-	int registry_size;
-	
-	population_.MutationRegistry(&registry_size);
-	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
+    int64_t global_registry_size = 0;
+    
+    for (Chromosome *chromosome : Chromosomes())
+    {
+        int registry_size;
+        
+        chromosome->MutationRegistry(&registry_size);
+        global_registry_size += registry_size;
+    }
+    
+	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, global_registry_size);
 	
 	// tally per-chromosome information
 	slim_operation_id_t operation_id = MutationRun::GetNextOperationID();

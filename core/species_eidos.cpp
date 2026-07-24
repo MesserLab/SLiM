@@ -2285,7 +2285,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			for (Chromosome *chromosome : Chromosomes())
 			{
 				int registry_size;
-				const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+				chromosome->MutationRegistry(&registry_size);
 				
 				mutation_count += registry_size;
 			}

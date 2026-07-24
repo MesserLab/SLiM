@@ -5338,7 +5338,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	std::string chromosome_symbol;		// used in single-chromosome models to check consistency
 	
 	Community &community = species->community_;
-	Population &pop = species->population_;
 	bool recording_mutations = species->RecordingTreeSequenceMutations();
 	bool nucleotide_based = species->IsNucleotideBased();
 	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));

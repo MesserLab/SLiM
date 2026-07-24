@@ -25,11 +25,9 @@
 #include <QComboBox>
 #include <QDebug>
 
-#include <string>
 #include <vector>
 
 #include "QtSLiMWindow.h"
-#include "subpopulation.h"
 #include "mutation_block.h"
 
 
@@ -112,11 +110,6 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
     if (!graphSpecies)
         return;
     
-    Population &population = graphSpecies->population_;
-    int registry_size;
-    const MutationIndex *registry = population.MutationRegistry(&registry_size);
-    const MutationIndex *registry_iter_end = registry + registry_size;
-    
     // Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
     bool hasSubpop = true, hasMuttype = true;
     
@@ -140,110 +133,108 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
     // Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
     Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
-    for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
     {
-        const Mutation *mutation = mut_block_ptr + *registry_iter;
-        slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
+        int registry_size;
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+        const MutationIndex *registry_iter_end = registry + registry_size;
         
-        if (refcount)
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
-            uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_haplosome_count);
-            slim_mutationid_t mutationID = mutation->mutation_id_;
-            auto history_iter = frequencyHistoryDict_.find(mutationID);
+            const Mutation *mutation = mut_block_ptr + *registry_iter;
+            slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
             
-            //NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, (long long int)mutation->mutation_id_);
-            
-            if (history_iter != frequencyHistoryDict_.end())
+            if (refcount)
             {
-                // We have a history for this mutation, so we just need to add an entry; this sets the updated flag
-                MutationFrequencyHistory *history = history_iter->second;
+                uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_haplosome_count);
+                slim_mutationid_t mutationID = mutation->mutation_id_;
+                auto history_iter = frequencyHistoryDict_.find(mutationID);
                 
-                history->addEntry(value);
-            }
-            else
-            {
-                // No history, so we make one starting at this tick; this also sets the updated flag
-                // Note we use community->Tick() - 1, because the tick counter has already been advanced to the next tick
-                MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, community->Tick() - 1);
+                //NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, (long long int)mutation->mutation_id_);
                 
-                frequencyHistoryDict_.emplace(mutationID, history);
+                if (history_iter != frequencyHistoryDict_.end())
+                {
+                    // We have a history for this mutation, so we just need to add an entry; this sets the updated flag
+                    MutationFrequencyHistory *history = history_iter->second;
+                    
+                    history->addEntry(value);
+                }
+                else
+                {
+                    // No history, so we make one starting at this tick; this also sets the updated flag
+                    // Note we use community->Tick() - 1, because the tick counter has already been advanced to the next tick
+                    MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, community->Tick() - 1);
+                    
+                    frequencyHistoryDict_.emplace(mutationID, history);
+                }
             }
         }
-    }
-    
-    // OK, now every mutation that has frequency >0 in our subpop has got a current entry.  But what about mutations that used to circulate,
-    // but don't any more?  These could still be active in a different subpop, or they might be gone – lost or fixed.  For the former case,
-    // we need to add an entry with frequency zero.  For the latter case, we need to put their history into "cold storage" for efficiency.
-    std::vector<MutationFrequencyHistory *> historiesToAddToColdStorage;
-    
-    for (auto entry_iter : frequencyHistoryDict_)
-    {
-        MutationFrequencyHistory *history = entry_iter.second;
         
-        if (!history->updated)
+        // OK, now every mutation that has frequency >0 in our subpop has got a current entry.  But what about mutations that used to circulate,
+        // but don't any more?  These could still be active in a different subpop, or they might be gone – lost or fixed.  For the former case,
+        // we need to add an entry with frequency zero.  For the latter case, we need to put their history into "cold storage" for efficiency.
+        std::vector<MutationFrequencyHistory *> historiesToAddToColdStorage;
+        
+        for (auto entry_iter : frequencyHistoryDict_)
         {
-            slim_mutationid_t historyID = history->mutationID;
-            bool mutationStillExists = false;
+            MutationFrequencyHistory *history = entry_iter.second;
             
-            for (const MutationIndex *mutation_iter = registry; mutation_iter != registry_iter_end; ++mutation_iter)
+            if (!history->updated)
             {
-                const Mutation *mutation = mut_block_ptr + *mutation_iter;
-                slim_mutationid_t mutationID = mutation->mutation_id_;
+                slim_mutationid_t historyID = history->mutationID;
+                bool mutationStillExists = false;
                 
-                if (historyID == mutationID)
+                for (const MutationIndex *mutation_iter = registry; mutation_iter != registry_iter_end; ++mutation_iter)
                 {
-                    mutationStillExists = true;
-                    break;
+                    const Mutation *mutation = mut_block_ptr + *mutation_iter;
+                    slim_mutationid_t mutationID = mutation->mutation_id_;
+                    
+                    if (historyID == mutationID)
+                    {
+                        mutationStillExists = true;
+                        break;
+                    }
+                }
+                
+                if (mutationStillExists)
+                {
+                    // The mutation is still around, so just add a zero entry for it
+                    history->addEntry(0);
+                }
+                else
+                {
+                    // The mutation is gone, so we need to put its history into cold storage, but we can't modify
+                    // our dictionary since we are enumerating it, so we just make a record and do it below
+                    historiesToAddToColdStorage.emplace_back(history);
+                }
+            }
+        }
+        
+        // Now, if historiesToAddToColdStorage is non-nil, we have histories to put into cold storage; do it now
+        for (MutationFrequencyHistory *history : historiesToAddToColdStorage)
+        {
+            // The remaining tricky bit is that we have to figure out whether the vanished mutation was fixed or lost; we do this by
+            // scanning through all our Substitution objects, which use the same unique IDs as Mutations use.  We need to know this
+            // for two reasons: to add the final entry for the mutation, and to put it into the correct cold storage array.
+            slim_mutationid_t mutationID = history->mutationID;
+            
+            for (const Substitution *substitution : chromosome->substitutions_)
+            {
+                if (substitution->mutation_id_ == mutationID)
+                {
+                    history->addEntry(UINT16_MAX);
+                    goto enumerateNext;
                 }
             }
             
-            if (mutationStillExists)
-            {
-                // The mutation is still around, so just add a zero entry for it
-                history->addEntry(0);
-            }
-            else
-            {
-                // The mutation is gone, so we need to put its history into cold storage, but we can't modify
-                // our dictionary since we are enumerating it, so we just make a record and do it below
-                historiesToAddToColdStorage.emplace_back(history);
-            }
-        }
-    }
-    
-    // Now, if historiesToAddToColdStorage is non-nil, we have histories to put into cold storage; do it now
-    for (MutationFrequencyHistory *history : historiesToAddToColdStorage)
-    {
-        // The remaining tricky bit is that we have to figure out whether the vanished mutation was fixed or lost; we do this by
-        // scanning through all our Substitution objects, which use the same unique IDs as Mutations use.  We need to know this
-        // for two reasons: to add the final entry for the mutation, and to put it into the correct cold storage array.
-        slim_mutationid_t mutationID = history->mutationID;
-        bool wasFixed = false;
-        
-        std::vector<Substitution*> &substitutions = population.substitutions_;
-        
-        for (const Substitution *substitution : substitutions)
-        {
-            if (substitution->mutation_id_ == mutationID)
-            {
-                wasFixed = true;
-                break;
-            }
-        }
-        
-        if (wasFixed)
-        {
-            history->addEntry(UINT16_MAX);
-            frequencyHistoryColdStorageFixed_.emplace_back(history);
-        }
-        else
-        {
             history->addEntry(0);
+            
+        enumerateNext:
             frequencyHistoryColdStorageLost_.emplace_back(history);
+            
+            auto history_iter = frequencyHistoryDict_.find(mutationID);
+            frequencyHistoryDict_.erase(history_iter);
         }
-        
-        auto history_iter = frequencyHistoryDict_.find(mutationID);
-        frequencyHistoryDict_.erase(history_iter);
     }
     
     //NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (long long int)[frequencyHistoryDict count], (long long int)[frequencyHistoryColdStorageLost count], (long long int)[frequencyHistoryColdStorageFixed count]);

@@ -26,7 +26,6 @@
 #include <QDebug>
 
 #include <limits>
-#include <string>
 #include <vector>
 
 #include "QtSLiMWindow.h"
@@ -190,65 +189,64 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
 {
     Community *community = controller_->community;
     Species *graphSpecies = focalDisplaySpecies();
-	Population &pop = graphSpecies->population_;
-	slim_tick_t completedTicks = community->Tick() - 1;
-	
-	// The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
-	// future that may no longer happen.  So we need to detect that case and invalidate our cache.
-	if (!cachingNow_ && drawingCache_ && (drawingCacheTick_ > completedTicks))
-	{
-		//qDebug() << "backward tick change detected, invalidating drawing cache";
-		invalidateDrawingCache();
-	}
-	
-	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-tick boundary since we last cached, cache an image
-	if (!cachingNow_ && (!drawingCache_ || ((completedTicks / 1000) > (drawingCacheTick_ / 1000))))
-	{
+    Population &pop = graphSpecies->population_;
+    slim_tick_t completedTicks = community->Tick() - 1;
+    
+    // The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
+    // future that may no longer happen.  So we need to detect that case and invalidate our cache.
+    if (!cachingNow_ && drawingCache_ && (drawingCacheTick_ > completedTicks))
+    {
+        //qDebug() << "backward tick change detected, invalidating drawing cache";
         invalidateDrawingCache();
-		
-        //qDebug() << "making new cache at tick " << community->Tick();
-		cachingNow_ = true;
+    }
+    
+    // If we're not caching, then: if our cache is invalid OR we have crossed a 1000-tick boundary since we last cached, cache an image
+    if (!cachingNow_ && (!drawingCache_ || ((completedTicks / 1000) > (drawingCacheTick_ / 1000))))
+    {
+        invalidateDrawingCache();
         
-		QPixmap *cache = new QPixmap(interiorRect.size());
+        //qDebug() << "making new cache at tick " << community->Tick();
+        cachingNow_ = true;
+        
+        QPixmap *cache = new QPixmap(interiorRect.size());
         cache->fill(Qt::transparent);   // transparent so grid lines don't get overwritten by drawPixmap()
         
         QPainter cachePainter(cache);
         drawGraph(cachePainter, cache->rect());
         
         drawingCache_ = cache;
-		drawingCacheTick_ = completedTicks;
-		cachingNow_ = false;
-	}
-	
-	// Now draw our cache, if we have one
-	if (drawingCache_)
+        drawingCacheTick_ = completedTicks;
+        cachingNow_ = false;
+    }
+    
+    // Now draw our cache, if we have one
+    if (drawingCache_)
     {
         //qDebug() << "drawing cache:" << drawingCache_->rect() << ", drawingCacheTick_ == " << drawingCacheTick_;
         painter.drawPixmap(interiorRect, *drawingCache_, drawingCache_->rect());
     }
     
-	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		
-		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow_ && (fixation_tick < drawingCacheTick_))
-			continue;
-		
-        double substitutionX = plotToDeviceX(fixation_tick, interiorRect);
-		QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
-		
-        painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
-	}
-	
-	// Draw the fitness history as a scatter plot; better suited to caching of the image
+    // Draw fixation events
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
+        for (Substitution *substitution : chromosome->substitutions_)
+        {
+            slim_tick_t fixation_tick = substitution->fixation_tick_;
+            
+            // If we are caching, draw all events; if we are not, draw only those that are not already in the cache
+            if (!cachingNow_ && (fixation_tick < drawingCacheTick_))
+                continue;
+            
+            double substitutionX = plotToDeviceX(fixation_tick, interiorRect);
+            QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
+            
+            painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
+        }
+    
+    // Draw the fitness history as a scatter plot; better suited to caching of the image
     bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
-	bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
-	
-	// First draw subpops, then draw the mean population fitness
+    bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
+    
+    // First draw subpops, then draw the mean population fitness
     for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
     {
         QColor pointColor = ((iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black);
@@ -287,25 +285,24 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
 {
     Community *community = controller_->community;
     Species *graphSpecies = focalDisplaySpecies();
-	Population &pop = graphSpecies->population_;
-	slim_tick_t completedTicks = community->Tick() - 1;
-	
-	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-        double substitutionX = plotToDeviceX(fixation_tick, interiorRect);
-		QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
-		
-        painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
-	}
-	
-	// Draw the fitness history as a line plot
-	bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
-	bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
-	
+    Population &pop = graphSpecies->population_;
+    slim_tick_t completedTicks = community->Tick() - 1;
+    
+    // Draw fixation events
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
+        for (Substitution *substitution : chromosome->substitutions_)
+        {
+            slim_tick_t fixation_tick = substitution->fixation_tick_;
+            double substitutionX = plotToDeviceX(fixation_tick, interiorRect);
+            QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
+            
+            painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
+        }
+    
+    // Draw the fitness history as a line plot
+    bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
+    bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
+    
     // First draw subpops, then draw the mean population fitness
     for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
     {
@@ -367,26 +364,25 @@ void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
 {
     Community *community = controller_->community;
     Species *graphSpecies = focalDisplaySpecies();
-	Population &pop = graphSpecies->population_;
-	slim_tick_t completedTicks = community->Tick() - 1;
-	
-	// Fixation events
-	string.append("# Fixation ticks:\n");
-	
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		
-		string.append(QString("%1, ").arg(fixation_tick));
-	}
-	
-	// Fitness history
+    Population &pop = graphSpecies->population_;
+    slim_tick_t completedTicks = community->Tick() - 1;
+    
+    // Fixation events
+    string.append("# Fixation ticks:\n");
+    
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
+        for (Substitution *substitution : chromosome->substitutions_)
+        {
+            slim_tick_t fixation_tick = substitution->fixation_tick_;
+            
+            string.append(QString("%1, ").arg(fixation_tick));
+        }
+    
+    // Fitness history
     bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
     
-	string.append("\n\n# Fitness history:\n");
-	
+    string.append("\n\n# Fitness history:\n");
+    
     for (int iter = 0; iter <= (showSubpops ? 1 : 0); ++iter)
     {
         for (auto history_record_iter : pop.fitness_histories_)
@@ -404,9 +400,9 @@ void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
                     string.append(QString("%1, ").arg(history[i], 0, 'f', 4));
                 
                 string.append("\n");
-			}
-		}
-	}
+            }
+        }
+    }
 }
 
 QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)

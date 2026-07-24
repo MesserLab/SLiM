@@ -569,7 +569,6 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 - (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	Species *displaySpecies = [controller focalDisplaySpecies];
-	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
 	
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f;

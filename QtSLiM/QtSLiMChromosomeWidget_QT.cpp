@@ -166,7 +166,6 @@ void QtSLiMChromosomeWidget::qtDrawGenomicElements(QRect &interiorRect, Chromoso
 void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter)
 {
     Species *displaySpecies = &chromosome->species_;
-	Population &pop = displaySpecies->population_;
     double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;            // this includes only haplosomes in the selected subpopulations
     Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
     
@@ -179,20 +178,15 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
     
     {
         int registry_size;
-        const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-        slim_chromosome_index_t chromosome_index = chromosome->Index();
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
         
         for (int registry_index = 0; registry_index < registry_size; ++registry_index)
         {
             const Mutation *mutation = mut_block_ptr + registry[registry_index];
+            const MutationType *mutType = mutation->mutation_type_ptr_;
             
-            if (mutation->chromosome_index_ == chromosome_index)
-            {
-                const MutationType *mutType = mutation->mutation_type_ptr_;
-                
-                if (mutType->mutation_type_displayed_)
-                    mutations.emplace_back(mutation);
-            }
+            if (mutType->mutation_type_displayed_)
+                mutations.emplace_back(mutation);
         }
     }
     
@@ -446,9 +440,8 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 void QtSLiMChromosomeWidget::qtDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter)
 {
     Species *displaySpecies = &chromosome->species_;
-	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	std::vector<Substitution*> &substitutions = chromosome->substitutions_;
     slim_chromosome_index_t chromosome_index = chromosome->Index();
     Trait *displayTrait = controller_->focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
 	

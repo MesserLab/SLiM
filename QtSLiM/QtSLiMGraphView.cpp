@@ -2540,23 +2540,22 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index)
 {
     //
-	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
-	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
-	// BCH 4/21/2023: This could use mutrun use counts to run faster...
-	//
+    // this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
+    // subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+    // BCH 4/21/2023: This could use mutrun use counts to run faster...
+    //
     Species *graphSpecies = focalDisplaySpecies();
     
     if (!graphSpecies)
         return 0;
     
-    Population &population = graphSpecies->population_;
     size_t subpop_total_haplosome_count = 0;
-    
     Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
     {
         int registry_size;
-        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
         const MutationIndex *registry_iter_end = registry + registry_size;
         
         for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
@@ -2608,30 +2607,29 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index)
 {
     //
-	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
-	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
-	// BCH 4/21/2023: This could use mutrun use counts to run faster...
-	//
+    // this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
+    // subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+    // BCH 4/21/2023: This could use mutrun use counts to run faster...
+    //
     Species *graphSpecies = focalDisplaySpecies();
     
     if (!graphSpecies)
         return 0;
     
-    Population &population = graphSpecies->population_;
-	
-	Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
     {
         int registry_size;
-        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
         const MutationIndex *registry_iter_end = registry + registry_size;
         
         for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-	for (const Haplosome *haplosome : haplosomes)
-	{
+    for (const Haplosome *haplosome : haplosomes)
+    {
         if (!haplosome->IsNull())
         {
             int mutrun_count = haplosome->mutrun_count_;
