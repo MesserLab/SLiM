@@ -6384,16 +6384,19 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 	else
 	{
 		// When assessing a vector of mutations, we first determine which chromosomes we need to scan
-		// In this case we also need to check that all mutations belong to the same species as the individuals
-		if (Community::SpeciesForMutations(mutations_value) != species)
-			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_zygosityOfMutations): zygosityOfMutations() requires that all mutations belong to the same species as the target individuals." << EidosTerminate();
+		Mutation **mutations_data = (Mutation **)mutations_value->ObjectData();
+		int mutations_count = mutations_value->Count();
+		
+		if (mutations_count > 0)
+		{
+			// In this case we also need to check that all mutations belong to the same species as the individuals
+			if (Community::SpeciesForMutations(mutations_value) != species)
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_zygosityOfMutations): zygosityOfMutations() requires that all mutations belong to the same species as the target individuals." << EidosTerminate();
+		}
 		
 		// zero out the scratch_ for all chromosomes; 0 indicates the chromosome is not active
 		for (Chromosome *chromosome : chromosomes)
 			chromosome->scratch_ = 0;
-		
-		Mutation **mutations_data = (Mutation **)mutations_value->ObjectData();
-		int mutations_count = mutations_value->Count();
 		
 		focalMutations.resize(mutations_count);
 		

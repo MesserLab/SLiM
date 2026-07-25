@@ -6437,7 +6437,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 							case EidosValueType::kValueString:
 							{
 								EidosValue_String *string_range_value = (EidosValue_String *)(loop_handler.range_value.get());
-								std::string &iterator_logical_value = string_range_value->StringData_Mutable()[range_index];
+								const std::string &iterator_logical_value = string_range_value->StringData()[range_index];
 								
 								*(std::string *)loop_handler.iterator_data = iterator_logical_value;
 								break;
