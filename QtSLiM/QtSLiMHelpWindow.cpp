@@ -38,6 +38,7 @@
 #include "eidos_property_signature.h"
 #include "community.h"
 
+#include "QtSLiMPreferences.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMAppDelegate.h"
 
@@ -337,6 +338,12 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    // Wire up to change the font when the display font pref changes, and fetch that pref
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMHelpWindow::displayFontPrefChanged);
+    displayFontPrefChanged();
 }
 
 void QtSLiMHelpWindow::applicationPaletteChanged(void)
@@ -538,6 +545,21 @@ void QtSLiMHelpWindow::closeEvent(QCloseEvent *p_event)
     
     // use super's default behavior
     QWidget::closeEvent(p_event);
+}
+
+void QtSLiMHelpWindow::displayFontPrefChanged(void)
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    QFont displayFont = prefs.displayFontPref(nullptr);
+    
+    // For reasons that I don't fully understand, this scales the text in the window
+    // to have the same base size, without setting it to the same absolute size (i.e.,
+    // font size changes within the text are still respected), and without actually
+    // changing it to the given font.  I think it has to do with which things are
+    // specified explicitly in the HTML content of the textedit; things specified
+    // explicitly override the global font setting of the textedit.  All that is
+    // left is the base font size.  I'm not sure how the relative size changes work!
+    ui->descriptionTextEdit->setFont(displayFont);
 }
 
 // This is a helper method for addTopicsFromRTFFile:... that finds the right parent item to insert a given section index under.
@@ -804,7 +826,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (function_signature)
-                    ColorizeCallSignature(function_signature, 11.0, lineCursor);
+                    ColorizeCallSignature(function_signature, 0.0, lineCursor);   // 0.0 == do not set a font size
 				else
 					qDebug() << "*** no function signature found for function name " << callName;
 			}
@@ -838,7 +860,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (method_signature)
-                    ColorizeCallSignature(method_signature, 11.0, lineCursor);
+                    ColorizeCallSignature(method_signature, 0.0, lineCursor);   // 0.0 == do not set a font size
 				else
 					qDebug() << "*** no method signature found for method name " << callName;
 			}
@@ -897,7 +919,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
                 if (dynamicSignatureString == oldSignatureString)
                 {
                     // Replace the signature line with the syntax-colored version
-                    ColorizePropertySignature(dynamic_signature.get(), 11.0, lineCursor);
+                    ColorizePropertySignature(dynamic_signature.get(), 0.0, lineCursor);   // 0.0 == do not set a font size
                 }
                 else
                 {
@@ -930,7 +952,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
                                 //qDebug() << "signature match for method" << callName;
                                 
                                 // Replace the signature line with the syntax-colored version
-                                ColorizePropertySignature(property_signature, 11.0, lineCursor);
+                                ColorizePropertySignature(property_signature, 0.0, lineCursor);   // 0.0 == do not set a font size
                                 found_match = true;
                                 break;
                             }

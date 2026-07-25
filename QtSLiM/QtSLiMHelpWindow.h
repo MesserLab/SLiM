@@ -132,6 +132,7 @@ private:
     
     // responding to events
     virtual void closeEvent(QCloseEvent *e) override;
+    void displayFontPrefChanged(void);
     void outlineSelectionChanged(void);
     
     // Internals

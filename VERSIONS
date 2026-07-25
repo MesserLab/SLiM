@@ -200,6 +200,7 @@ multitrait branch:
 		move muts_tracked_by_treeseq_ from Species to Chromosome
 		move the mutation registry from Population to Chromosome
 		get QtSLiM and SLiMguiLegacy working with these changes
+	fix #651, font size in Help window doesn't scale with the user preference
 
 
 version 5.2 (Eidos version 4.2):

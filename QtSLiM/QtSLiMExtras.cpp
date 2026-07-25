@@ -667,9 +667,22 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
     QTextCharFormat ttFormat;
     QFont displayFont(prefs.displayFontPref());
-    displayFont.setPointSizeF(pointSize);
-    ttFormat.setFont(displayFont);
-    lineCursor.setCharFormat(ttFormat);
+    
+    if (pointSize == 0.0)
+    {
+        // we want to adopt everything about the display font except the font size, which we want to scale
+        ttFormat.setFont(displayFont);
+        ttFormat.clearProperty(QTextFormat::FontPointSize);
+        ttFormat.clearProperty(QTextFormat::FontPixelSize);
+    }
+    else
+    {
+        // a font size was specified, so we want to use that
+        displayFont.setPointSizeF(pointSize);
+        ttFormat.setFont(displayFont);
+    }
+    
+    lineCursor.mergeCharFormat(ttFormat);
     
     bool inDarkMode = QtSLiMInDarkMode();
     QTextCharFormat functionAttrs(ttFormat), typeAttrs(ttFormat);
@@ -679,7 +692,7 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     QTextCursor propertyNameCursor(lineCursor);
     propertyNameCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
     propertyNameCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(property_signature->property_name_.length()));
-    propertyNameCursor.setCharFormat(functionAttrs);
+    propertyNameCursor.mergeCharFormat(functionAttrs);
     
     int nameLength = QString::fromStdString(property_signature->property_name_).length();
     int connectorLength = QString::fromStdString(property_signature->PropertySymbol()).length();
@@ -688,7 +701,7 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     typeCursor.setPosition(lineCursor.position(), QTextCursor::MoveAnchor);
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 1);
     typeCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, typeLength);
-    typeCursor.setCharFormat(typeAttrs);
+    typeCursor.mergeCharFormat(typeAttrs);
     
     // BCH 1/7/2025: For dynamic properties with a name like "<trait-name>EffectSize", italicize the portion in the <>
     if (Eidos_string_hasPrefix(property_signature->property_name_, "<"))
@@ -700,7 +713,7 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
         QTextCursor dynamicCursor(lineCursor);
         dynamicCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
         dynamicCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(end_position));
-        dynamicCursor.setCharFormat(italicTypeAttrs);
+        dynamicCursor.mergeCharFormat(italicTypeAttrs);
     }
 }
 
@@ -728,9 +741,22 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
     QTextCharFormat ttFormat;
     QFont displayFont(prefs.displayFontPref());
-    displayFont.setPointSizeF(pointSize);
-    ttFormat.setFont(displayFont);
-    lineCursor.setCharFormat(ttFormat);
+    
+    if (pointSize == 0.0)
+    {
+        // we want to adopt everything about the display font except the font size, which we want to scale
+        ttFormat.setFont(displayFont);
+        ttFormat.clearProperty(QTextFormat::FontPointSize);
+        ttFormat.clearProperty(QTextFormat::FontPixelSize);
+    }
+    else
+    {
+        // a font size was specified, so we want to use that
+        displayFont.setPointSizeF(pointSize);
+        ttFormat.setFont(displayFont);
+    }
+    
+    lineCursor.mergeCharFormat(ttFormat);
     
     bool inDarkMode = QtSLiMInDarkMode();
     QTextCharFormat typeAttrs(ttFormat), functionAttrs(ttFormat), paramAttrs(ttFormat);
@@ -746,12 +772,12 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     QTextCursor scanCursor(lineCursor);
     scanCursor.setPosition(lineCursor.anchor() + prefix_string_len + 1, QTextCursor::MoveAnchor);
     scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, return_type_string_len);
-    scanCursor.setCharFormat(typeAttrs);
+    scanCursor.mergeCharFormat(typeAttrs);
     
     // colorize call name
     scanCursor.setPosition(scanCursor.position() + 1, QTextCursor::MoveAnchor);
     scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, function_name_string_len);
-    scanCursor.setCharFormat(functionAttrs);
+    scanCursor.mergeCharFormat(functionAttrs);
     
     scanCursor.setPosition(scanCursor.position() + 1, QTextCursor::MoveAnchor);
     
@@ -762,7 +788,7 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     {
         // colorize "void"
         scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
-        scanCursor.setCharFormat(typeAttrs);
+        scanCursor.mergeCharFormat(typeAttrs);
     }
     else
     {
@@ -830,14 +856,14 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
                 typeLength++;     // "$"
             
             scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, typeLength);
-            scanCursor.setCharFormat(typeAttrs);
+            scanCursor.mergeCharFormat(typeAttrs);
             scanCursor.setPosition(scanCursor.position(), QTextCursor::MoveAnchor);
             
             if (arg_name.length() > 0)
             {
                 scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 1);    // " "
                 scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, QString::fromStdString(arg_name).length());
-                scanCursor.setCharFormat(paramAttrs);
+                scanCursor.mergeCharFormat(paramAttrs);
                 scanCursor.setPosition(scanCursor.position(), QTextCursor::MoveAnchor);
             }
             
