@@ -202,7 +202,8 @@ bool QtSLiMGraphView::missingFocalDisplaySpecies(void)
 
 void QtSLiMGraphView::updateSpeciesBadge(void)
 {
-    // graphs that do not have a focal species, such as QtSLiMGraphView_MultispeciesPopSizeOverTime, have no species badge
+    // graphs that do not have a focal species, such as QtSLiMGraphView_MultispeciesPopSizeOverTime
+    // and QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime, have no species badge
     if (focalSpeciesName_.length() == 0)
         return;
     

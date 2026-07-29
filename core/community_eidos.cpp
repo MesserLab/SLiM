@@ -535,9 +535,9 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 				// alternative futures of the model.
 				for (Species *species : all_species_)
 				{
-					for (auto history_record_iter : species->population_.fitness_histories_)
+					for (const auto &history_record_iter : species->population_.fitness_histories_)
 					{
-						FitnessHistory &history_record = history_record_iter.second;
+						const FitnessHistory &history_record = history_record_iter.second;
 						double *history = history_record.history_;
 						
 						if (history)
@@ -554,9 +554,9 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 						}
 					}
 					
-					for (auto history_record_iter : species->population_.subpop_size_histories_)
+					for (const auto &history_record_iter : species->population_.subpop_size_histories_)
 					{
-						SubpopSizeHistory &history_record = history_record_iter.second;
+						const SubpopSizeHistory &history_record = history_record_iter.second;
 						slim_popsize_t *history = history_record.history_;
 						
 						if (history)
@@ -570,6 +570,29 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 							
 							for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
 								history[entry_index] = 0;
+						}
+					}
+					
+					for (const auto &one_trait_history : species->population_.subpop_trait_histories_)
+					{
+						// one_trait_history is all the history information for one trait
+						for (const auto &history_record_iter : one_trait_history)
+						{
+							const SubpopTraitHistory &history_record = history_record_iter.second;
+							double *history = history_record.history_;
+							
+							if (history)
+							{
+								int old_last_valid_history_index = std::max(0, old_tick - 2);		// if tick==2, tick 1 was the last valid entry, and it is at index 0
+								int new_last_valid_history_index = std::max(0, tick_ - 2);		// ditto
+								
+								// make sure that we don't overrun the end of the buffer
+								if (old_last_valid_history_index > history_record.history_length_ - 1)
+									old_last_valid_history_index = history_record.history_length_ - 1;
+								
+								for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
+									history[entry_index] = std::numeric_limits<double>::quiet_NaN();
+							}
 						}
 					}
 				}

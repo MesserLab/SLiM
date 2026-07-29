@@ -58,7 +58,7 @@ Population::~Population(void)
 	
 #ifdef SLIMGUI
 	// release malloced storage for SLiMgui statistics collection
-	for (auto history_record_iter : fitness_histories_)
+	for (auto &history_record_iter : fitness_histories_)
 	{
 		FitnessHistory &history_record = history_record_iter.second;
 		
@@ -70,12 +70,24 @@ Population::~Population(void)
 		}
 	}
     
-    for (auto history_record_iter : subpop_size_histories_)
+    for (auto &history_record_iter : subpop_size_histories_)
 	{
 		SubpopSizeHistory &history_record = history_record_iter.second;
 		
 		if (history_record.history_)
 		{
+			free(history_record.history_);
+			history_record.history_ = nullptr;
+			history_record.history_length_ = 0;
+		}
+	}
+	
+	for (auto &one_trait_histories : subpop_trait_histories_)
+	{
+		for (auto &history_record_iter : one_trait_histories)
+		{
+			SubpopTraitHistory &history_record = history_record_iter.second;
+			
 			free(history_record.history_);
 			history_record.history_ = nullptr;
 			history_record.history_length_ = 0;
@@ -5223,6 +5235,60 @@ void Population::RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p
 	}
 }
 
+void Population::RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_mean_trait_value)
+{
+	if (subpop_trait_histories_.size() == 0)
+		return;
+	
+	std::map<slim_objectid_t,SubpopTraitHistory> &one_trait_histories = subpop_trait_histories_[p_trait_index];
+	
+	SubpopTraitHistory *history_rec_ptr = nullptr;
+	
+	// Find the existing history record, if it exists
+	auto history_iter = one_trait_histories.find(p_subpop_id);
+	
+	if (history_iter != one_trait_histories.end())
+		history_rec_ptr = &(history_iter->second);
+	
+	// If not, create a new history record and add it to our vector
+	if (!history_rec_ptr)
+	{
+		SubpopTraitHistory history_record;
+		
+		history_record.history_ = nullptr;
+		history_record.history_length_ = 0;
+		
+		auto emplace_rec = one_trait_histories.emplace(p_subpop_id, history_record);
+		
+		if (emplace_rec.second)
+			history_rec_ptr = &(emplace_rec.first->second);
+	}
+	
+	// Assuming we now have a record, resize it as needed and insert the new value
+	if (history_rec_ptr)
+	{
+		double *history = history_rec_ptr->history_;	// FIXME MULTITRAIT: this should be changed to slim_phenotype_t, and in QtSLiM also
+		slim_tick_t history_length = history_rec_ptr->history_length_;
+		
+		if (p_history_index >= history_length)
+		{
+			slim_tick_t oldHistoryLength = history_length;
+			
+			history_length = p_history_index + 1000;			// give some elbow room for expansion
+			history = (double *)realloc(history, history_length * sizeof(double));
+			
+			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
+				history[i] = std::numeric_limits<double>::quiet_NaN();
+			
+			// Copy the new values back into the history record
+			history_rec_ptr->history_ = history;
+			history_rec_ptr->history_length_ = history_length;
+		}
+		
+		history[p_history_index] = p_mean_trait_value;
+	}
+}
+
 // This method is used to record population statistics that are kept per tick for SLiMgui
 #if defined(__clang__)
 __attribute__((no_sanitize("float-divide-by-zero")))
@@ -5231,36 +5297,85 @@ __attribute__((no_sanitize("integer-divide-by-zero")))
 void Population::SurveyPopulation(void)
 {
 	// Calculate mean fitness for this tick
-	double totalUnscaledFitness = 0.0;
-	slim_popsize_t totalPopSize = 0;
-	slim_tick_t historyIndex = community_.Tick() - 1;	// zero-base: the first tick we put something in is tick 1, and we put it at index 0
-	
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-	{ 
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+	{
+		double totalUnscaledFitness = 0.0;
+		slim_popsize_t totalPopSize = 0;
+		slim_tick_t historyIndex = community_.Tick() - 1;	// zero-base: the first tick we put something in is tick 1, and we put it at index 0
 		
-		// calculate the total fitness across the subpopulation; in nonWF models the population composition can change
-		// late in the cycle, due to mortality and migration, so we postpone this assessment to the end of the tick
-		// we use the fitness without subpop fitnessScaling, to present individual fitness without density effects
-		double subpop_unscaled_total = 0;
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{ 
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+			
+			// calculate the total fitness across the subpopulation; in nonWF models the population composition can change
+			// late in the cycle, due to mortality and migration, so we postpone this assessment to the end of the tick
+			// we use the fitness without subpop fitnessScaling, to present individual fitness without density effects
+			double subpop_unscaled_total = 0;
+			
+			for (Individual *individual : subpop->parent_individuals_)
+				subpop_unscaled_total += (double)individual->cached_unscaled_fitness_;
+			
+			totalUnscaledFitness += subpop_unscaled_total;
+			totalPopSize += subpop_size;
+			
+			double meanUnscaledFitness = subpop_unscaled_total / subpop_size;
+			
+			// Record for SLiMgui display
+			subpop->parental_mean_unscaled_fitness_ = meanUnscaledFitness;
+			RecordFitness(historyIndex, subpop_pair.first, meanUnscaledFitness);
+			RecordSubpopSize(historyIndex, subpop_pair.first, subpop_size);
+		}
 		
-		for (Individual *individual : subpop->parent_individuals_)
-			subpop_unscaled_total += (double)individual->cached_unscaled_fitness_;
-		
-		totalUnscaledFitness += subpop_unscaled_total;
-		totalPopSize += subpop_size;
-		
-		double meanUnscaledFitness = subpop_unscaled_total / subpop_size;
-		
-		// Record for SLiMgui display
-		subpop->parental_mean_unscaled_fitness_ = meanUnscaledFitness;
-		RecordFitness(historyIndex, subpop_pair.first, meanUnscaledFitness);
-		RecordSubpopSize(historyIndex, subpop_pair.first, subpop_size);
+		RecordFitness(historyIndex, -1, totalUnscaledFitness / totalPopSize);
+		RecordSubpopSize(historyIndex, -1, totalPopSize);
 	}
 	
-	RecordFitness(historyIndex, -1, totalUnscaledFitness / totalPopSize);
-	RecordSubpopSize(historyIndex, -1, totalPopSize);
+	// Make the vector of per-trait histories the correct size
+	if (subpop_trait_histories_.size() == 0)
+		subpop_trait_histories_.resize(species_.TraitCount());
+	
+	// Now we do pretty much the same thing, but recording mean trait values for each trait in the species
+	for (slim_trait_index_t trait_index = 0; trait_index < species_.TraitCount(); ++trait_index)
+	{
+		double totalNonnanTraitValue = 0.0;
+		slim_popsize_t totalNonnanPopSize = 0;
+		slim_tick_t historyIndex = community_.Tick() - 1;	// zero-base: the first tick we put something in is tick 1, and we put it at index 0
+		
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{ 
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t nonnan_subpop_size = 0;		// we count the number of non-NAN entries
+			double nonnan_subpop_total = 0;
+			
+			for (Individual *individual : subpop->parent_individuals_)
+			{
+				slim_phenotype_t phenotype = individual->trait_info_[trait_index].phenotype_;
+				
+				if (!std::isnan(phenotype))
+				{
+					nonnan_subpop_total += (double)phenotype;
+					nonnan_subpop_size++;
+				}
+			}
+			
+			totalNonnanTraitValue += nonnan_subpop_total;
+			totalNonnanPopSize += nonnan_subpop_size;
+			
+			// Record for SLiMgui display
+			if (nonnan_subpop_size == 0)
+				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, std::numeric_limits<double>::quiet_NaN());
+			else
+				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, nonnan_subpop_total / nonnan_subpop_size);
+			
+			// FIXME MULTITRAIT: We could extend the Population Visualization plot to show trait values, perhaps, similar to parental_mean_unscaled_fitness_ above
+			//subpop->parental_mean_trait_value_ = meanTraitValue;
+		}
+		
+		if (totalNonnanPopSize == 0)
+			RecordMeanTraitValues(trait_index, historyIndex, -1, std::numeric_limits<double>::quiet_NaN());
+		else
+			RecordMeanTraitValues(trait_index, historyIndex, -1, totalNonnanTraitValue / totalNonnanPopSize);
+	}
 }
 #endif
 

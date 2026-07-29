@@ -166,6 +166,7 @@ public:
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
     void colorForSpecies(Species *species, float *p_red, float *p_green, float *p_blue, float *p_alpha);
     QColor qcolorForSpecies(Species *species);
+    QColor qcolorForIndexInSeries(int index, int count);
     
     std::vector<Subpopulation *> listedSubpopulations(void);
     std::vector<Subpopulation*> selectedSubpopulations(void);

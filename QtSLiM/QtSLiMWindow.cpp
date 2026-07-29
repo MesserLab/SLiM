@@ -46,6 +46,7 @@
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
 #include "QtSLiMGraphView_PopFitnessDist.h"
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
+#include "QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime.h"
 #include "QtSLiMGraphView_MultispeciesPopSizeOverTime.h"
 #include "QtSLiMHaplotypeManager.h"
 #include "QtSLiMGraphView_CustomPlot.h"
@@ -1096,6 +1097,23 @@ QColor QtSLiMWindow::qcolorForSpecies(Species *species)
         return QtSLiMColorWithRGB(species->color_red_, species->color_green_, species->color_blue_, 1.0);
     
     return whiteContrastingColorForIndex(species->species_id_);
+}
+
+QColor QtSLiMWindow::qcolorForIndexInSeries(int index, int count)
+{
+    // with a small count, avoid the ends of the spectrum since they are darker
+    if (count <= 5)
+    {
+        count += 2;
+        index++;
+    }
+    
+    double fraction = index / (double)(count - 1);
+    double red, green, blue;
+    
+    EidosColorPaletteLookup(fraction, EidosColorPalette::kPalette_turbo, red, green, blue);
+    
+    return QtSLiMColorWithRGB(red, green, blue, 1.0);
 }
 
 void QtSLiMWindow::colorForSpecies(Species *species, float *p_red, float *p_green, float *p_blue, float *p_alpha)
@@ -3608,6 +3626,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Population_Size_Time->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Population_Visualization->setEnabled(graphItemsEnabled);
+    ui->actionGraph_Multispecies_Multitrait_Phenotype_Time->setEnabled(!invalidSimulation_);             // displaySpecies not required
     ui->actionGraph_Multispecies_Population_Size_Time->setEnabled(!invalidSimulation_);     // displaySpecies not required
     
     // the haplotype plot menu items are a bit complicated
@@ -6494,34 +6513,37 @@ void QtSLiMWindow::displayGraphClicked(void)
             {
                 if (action == ui->actionGraph_1D_Population_SFS)
                     graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
-                else if (action == ui->actionGraph_1D_Sample_SFS)
+                if (action == ui->actionGraph_1D_Sample_SFS)
                     graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
-                else if (action == ui->actionGraph_2D_Population_SFS)
+                if (action == ui->actionGraph_2D_Population_SFS)
                     graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
-                else if (action == ui->actionGraph_2D_Sample_SFS)
+                if (action == ui->actionGraph_2D_Sample_SFS)
                     graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
-                else if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
+                if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
                     graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
-                else if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
+                if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
                     graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
-                else if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
+                if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
                     graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
-                else if (action == ui->actionGraph_Population_Fitness_Distribution)
+                if (action == ui->actionGraph_Population_Fitness_Distribution)
                     graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
-                else if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
+                if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
                     graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
-                else if (action == ui->actionGraph_Fitness_Time)
+                if (action == ui->actionGraph_Fitness_Time)
                     graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
-                else if (action == ui->actionGraph_Age_Distribution)
+                if (action == ui->actionGraph_Age_Distribution)
                     graphView = new QtSLiMGraphView_AgeDistribution(this, this);
-                else if (action == ui->actionGraph_Lifetime_Reproduce_Output)
+                if (action == ui->actionGraph_Lifetime_Reproduce_Output)
                     graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
-                else if (action == ui->actionGraph_Population_Size_Time)
+                if (action == ui->actionGraph_Population_Size_Time)
                     graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
-                else if (action == ui->actionGraph_Population_Visualization)
+                if (action == ui->actionGraph_Population_Visualization)
                     graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
             }
-            else if (action == ui->actionGraph_Multispecies_Population_Size_Time)
+            
+            if (action == ui->actionGraph_Multispecies_Multitrait_Phenotype_Time)
+                graphView = new QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime(this, this);
+            if (action == ui->actionGraph_Multispecies_Population_Size_Time)
                 graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
             
             if (graphView)
@@ -6960,6 +6982,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     QAction *graphMultispeciesPopSizeVsTime = contextMenu.addAction("Multispecies Population Size ~ Time");
     graphMultispeciesPopSizeVsTime->setEnabled(!invalidSimulation_);
     
+    QAction *graphMultispeciesMultitraitPhenotypeVsTime = contextMenu.addAction("Multispecies Multitrait Phenotype ~ Time");
+    graphMultispeciesMultitraitPhenotypeVsTime->setEnabled(!invalidSimulation_);
+    
     contextMenu.addSeparator();
     
     // the haplotype plot menu items are a bit complicated
@@ -7054,6 +7079,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
                     graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
             }
             
+            if (action == graphMultispeciesMultitraitPhenotypeVsTime)
+                graphView = new QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime(this, this);
             if (action == graphMultispeciesPopSizeVsTime)
                 graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
             

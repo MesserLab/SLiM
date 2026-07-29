@@ -2086,9 +2086,6 @@ QSlider::handle:horizontal:disabled {
    <property name="text">
     <string>Multispecies Population Size ~ Time</string>
    </property>
-   <property name="toolTip">
-    <string>Graph Multispecies Population Size ~ Time</string>
-   </property>
   </action>
   <action name="actionFocusOnScript">
    <property name="text">
@@ -2184,6 +2181,11 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="toolTip">
     <string>Show a chart depicting the color scales used by SLiMgui for mutation effects and individual fitness</string>
+   </property>
+  </action>
+  <action name="actionGraph_Multispecies_Multitrait_Phenotype_Time">
+   <property name="text">
+    <string>Multispecies Multitrait Phenotype ~ Time</string>
    </property>
   </action>
  </widget>

@@ -113,6 +113,12 @@ typedef struct SubpopSizeHistory {
     slim_popsize_t *history_ = nullptr;             // subpop size, recorded per tick; tick 1 goes at index 0
 	slim_tick_t history_length_ = 0;				// the number of entries in the history_ buffer
 } SubpopSizeHistory;
+
+// This struct similarly holds observed subpopulation mean trait values observed during a run, for QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime
+typedef struct SubpopTraitHistory {
+    double *history_ = nullptr;             		// subpop mean trait value, recorded per tick; tick 1 goes at index 0
+	slim_tick_t history_length_ = 0;				// the number of entries in the history_ buffer
+} SubpopTraitHistory;
 #endif
 
 
@@ -164,6 +170,7 @@ public:
 	
 	std::map<slim_objectid_t,FitnessHistory> fitness_histories_;	// fitness histories indexed by subpopulation id (or by -1, for the Population history)
     std::map<slim_objectid_t,SubpopSizeHistory> subpop_size_histories_;	// size histories indexed by subpopulation id (or by -1, for the Population history)
+    std::vector<std::map<slim_objectid_t,SubpopTraitHistory>> subpop_trait_histories_;	// trait histories, similarly indexed but with one vector entry per trait
 #endif
 	
 	Population(const Population&) = delete;					// no copying
@@ -342,6 +349,7 @@ public:
 #ifdef SLIMGUI
 	void RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value);
     void RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size);
+	void RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_mean_trait_value);
 	void SurveyPopulation(void);
 	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_tick_t p_bin_number, slim_tick_t **p_buffer, uint32_t *p_bufferBins);
 #endif
