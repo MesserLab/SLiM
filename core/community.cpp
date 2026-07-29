@@ -2090,6 +2090,10 @@ slim_tick_t Community::FirstTick(void)
 
 slim_tick_t Community::EstimatedLastTick(void)
 {
+	// if simulationFinished() has been called, this is the last tick, and the cache is not used
+	if (sim_declared_finished_)
+		return Tick();
+	
 	// return our cached value if we have one
 	if (last_script_block_tick_cached_)
 		return last_script_block_tick_;
