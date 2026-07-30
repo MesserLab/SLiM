@@ -202,6 +202,7 @@ multitrait branch:
 		get QtSLiM and SLiMguiLegacy working with these changes
 	fix #651, font size in Help window doesn't scale with the user preference
 	add a built-in "Multispecies Multitrait Phenotype ~ Time" plot for phenotype ~ time, with one line per trait across all species
+	add a built-in "Phenotype ~ Time" plot for phenotype ~ time, focusing on a single user-selected trait across subpopulations
 
 
 version 5.2 (Eidos version 4.2):

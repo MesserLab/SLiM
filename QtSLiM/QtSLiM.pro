@@ -202,6 +202,7 @@ SOURCES += \
     QtSLiMGraphView_LifetimeReproduction.cpp \
     QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime.cpp \
     QtSLiMGraphView_MultispeciesPopSizeOverTime.cpp \
+    QtSLiMGraphView_PhenotypeOverTime.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_PopSizeOverTime.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
@@ -254,6 +255,7 @@ HEADERS += \
     QtSLiMGraphView_LifetimeReproduction.h \
     QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime.h \
     QtSLiMGraphView_MultispeciesPopSizeOverTime.h \
+    QtSLiMGraphView_PhenotypeOverTime.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_PopSizeOverTime.h \
     QtSLiMGraphView_SubpopFitnessDists.h \

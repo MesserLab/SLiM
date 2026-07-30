@@ -181,6 +181,7 @@ void QtSLiMWindow::glueUI(void)
 	connect(ui->actionGraph_Population_Fitness_Distribution, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Subpopulation_Fitness_Distributions, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Fitness_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionGraph_Phenotype_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Age_Distribution, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Lifetime_Reproduce_Output, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);

@@ -382,6 +382,9 @@ QtSLiMLegendSpec QtSLiMGraphView_MultispeciesPopSizeOverTime::legendKey(void)
     Community *community = controller_->community;
     QtSLiMLegendSpec legend_key;
     
+    if (community->all_species_.size() < 2)
+        return QtSLiMLegendSpec();
+    
     for (Species *species : community->all_species_)
     {
         QString speciesName = QString::fromStdString(species->name_);

@@ -1480,6 +1480,7 @@ QSlider::handle:horizontal:disabled {
      <addaction name="actionGraph_Population_Fitness_Distribution"/>
      <addaction name="actionGraph_Subpopulation_Fitness_Distributions"/>
      <addaction name="actionGraph_Fitness_Time"/>
+     <addaction name="actionGraph_Phenotype_Time"/>
      <addaction name="separator"/>
      <addaction name="actionGraph_Age_Distribution"/>
      <addaction name="actionGraph_Lifetime_Reproduce_Output"/>
@@ -2085,7 +2086,7 @@ QSlider::handle:horizontal:disabled {
   </action>
   <action name="actionGraph_Multispecies_Population_Size_Time">
    <property name="text">
-    <string>Multispecies Population Size ~ Time</string>
+    <string>Graph Multispecies Population Size ~ Time</string>
    </property>
   </action>
   <action name="actionFocusOnScript">
@@ -2186,7 +2187,12 @@ QSlider::handle:horizontal:disabled {
   </action>
   <action name="actionGraph_Multispecies_Multitrait_Phenotype_Time">
    <property name="text">
-    <string>Multispecies Multitrait Phenotype ~ Time</string>
+    <string>Graph Multispecies Multitrait Phenotype ~ Time</string>
+   </property>
+  </action>
+  <action name="actionGraph_Phenotype_Time">
+   <property name="text">
+    <string>Graph Phenotype ~ Time</string>
    </property>
   </action>
  </widget>

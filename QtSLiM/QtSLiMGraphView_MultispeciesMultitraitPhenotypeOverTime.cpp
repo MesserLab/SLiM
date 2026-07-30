@@ -105,7 +105,7 @@ QString QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::graphTitle(void
 
 QString QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::aboutString(void)
 {
-    return "The Multitrait Phenotype ~ Time graph shows mean phenotypes for all traits, "
+    return "The Multispecies Multitrait Phenotype ~ Time graph shows mean phenotypes for all traits, "
            "for every species (and subpopulation), as a function of time.  The species-"
            "level mean phenotypes are shown with thick bright lines, while those for "
            "subpopulations are shown with thinner pastel lines.";
@@ -229,7 +229,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawPointGraph(QPa
         species_history_count += species->TraitCount();
     }
     
-	// Draw the size history as a scatter plot; better suited to caching of the image
+	// Draw the trait history as a scatter plot; better suited to caching of the image
     int species_history_index = 0;
     
     for (Species *species : community->all_species_)
@@ -300,7 +300,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawLineGraph(QPai
         species_history_count += species->TraitCount();
     }
     
-    // Draw the size history as a line plot, without image caching
+    // Draw the trait history as a line plot, without image caching
     int species_history_index = 0;
     
     for (Species *species : community->all_species_)
@@ -385,7 +385,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::appendStringForDat
     Community *community = controller_->community;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
-    // Size history
+    // Phenotype history
     for (Species *species : community->all_species_)
     {
         QString speciesName = QString::fromStdString(species->name_);
@@ -401,7 +401,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::appendStringForDat
             std::map<slim_objectid_t,SubpopTraitHistory> &one_trait_histories = pop.subpop_trait_histories_[trait_index];
             bool showSubpops = showSubpopulations_ && (one_trait_histories.size() > 2);
             
-            string.append(QString("\n\n# Size history (species %1, trait %2):\n").arg(speciesName, traitName));
+            string.append(QString("\n\n# Phenotype history (species %1, trait %2):\n").arg(speciesName, traitName));
             
             for (int iter = 0; iter <= (showSubpops ? 1 : 0); ++iter)
             {
@@ -414,7 +414,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::appendStringForDat
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         if (iter == 1)
-                            string.append(QString("\n\n# Size history (subpopulation p%1):\n").arg(history_record_iter.first));
+                            string.append(QString("\n\n# Phenotype history (subpopulation p%1):\n").arg(history_record_iter.first));
                         
                         for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                             string.append(QString("%1, ").arg(history[i]));
@@ -445,6 +445,9 @@ QtSLiMLegendSpec QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::legend
         species_history_count += species->TraitCount();
     }
     
+    if (species_history_count <= 1)
+        return QtSLiMLegendSpec();
+    
     // Choose colors for each distinct species/trait history
     int species_history_index = 0;
     
@@ -457,7 +460,12 @@ QtSLiMLegendSpec QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::legend
             Trait *trait = species->Traits()[trait_index];
             QString traitName = QString::fromStdString(trait->Name());
             QColor historyColor = controller_->qcolorForIndexInSeries(species_history_index, species_history_count);
-            QString legendName = QString("%1 (%2)").arg(traitName, speciesName);
+            QString legendName;
+            
+            if (community->all_species_.size() > 1)
+                legendName = QString("%1 (%2)").arg(traitName, speciesName);
+            else
+                legendName = QString("%1").arg(traitName);
             
             legend_key.emplace_back(legendName, historyColor);
             species_history_index++;

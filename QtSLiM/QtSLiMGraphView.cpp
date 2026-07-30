@@ -2417,6 +2417,9 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
 
 bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID)
 {
+    if (!subpopButton)
+        return false;
+    
     Species *graphSpecies = focalDisplaySpecies();
 	slim_objectid_t firstTag = -1;
     
@@ -2480,6 +2483,9 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 
 bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex)
 {
+    if (!mutTypeButton)
+        return false;
+    
     Species *graphSpecies = focalDisplaySpecies();
 	int firstTag = -1;
 	
@@ -2536,6 +2542,68 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	}
 	
 	return hasItems;	// true if we found at least one muttype to add to the menu, false otherwise
+}
+
+bool QtSLiMGraphView::addTraitsToMenu(QComboBox *traitButton, std::string selectedTraitName)
+{
+    if (!traitButton)
+        return false;
+    
+    Species *graphSpecies = focalDisplaySpecies();
+    std::string firstName;
+    
+    // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
+    // allows client code to avoid (over-)reacting to those signals.
+    rebuildingMenu_ = true;
+    
+    // Depopulate and populate the menu
+    traitButton->clear();
+    
+    if (graphSpecies && !graphSpecies->has_implicit_trait_)
+    {
+        const std::vector<Trait *> &traits = graphSpecies->Traits();
+        
+        for (const Trait *trait : traits)
+        {
+            const std::string &traitName = trait->Name();
+            QString qTraitName = QString::fromStdString(traitName);
+            
+            traitButton->addItem(qTraitName, qTraitName);
+            
+            // Remember the first item we add; we will use this item's tag to make a selection if needed
+            if (firstName.length() == 0)
+                firstName = traitName;
+        }
+    }
+    
+    // If it is empty, disable it
+    bool hasItems = (traitButton->count() >= 1);
+    
+    traitButton->setEnabled(hasItems);
+    
+    // Done rebuilding the menu, resume change messages
+    rebuildingMenu_ = false;
+    
+    // Fix the selection and then select the chosen trait
+    if (hasItems)
+    {
+        QString qSelectedTraitName = QString::fromStdString(selectedTraitName);
+        int indexOfName = traitButton->findData(qSelectedTraitName);
+        
+        if (indexOfName == -1)
+            selectedTraitName = "";
+        if (selectedTraitName.length() == 0)
+            selectedTraitName = firstName;
+        
+        qSelectedTraitName = QString::fromStdString(selectedTraitName);
+        
+        traitButton->setCurrentIndex(traitButton->findData(qSelectedTraitName));
+        
+        // this signal, emitted after rebuildingMenu_ is set to false, is the one that sticks
+        emit traitButton->QComboBox::currentIndexChanged(traitButton->currentIndex());
+    }
+    
+    return hasItems;	// true if we found at least one trait to add to the menu, false otherwise
 }
 
 size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index)

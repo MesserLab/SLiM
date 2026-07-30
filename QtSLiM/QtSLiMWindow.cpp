@@ -42,6 +42,7 @@
 #include "QtSLiMGraphView_LifetimeReproduction.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
+#include "QtSLiMGraphView_PhenotypeOverTime.h"
 #include "QtSLiMGraphView_PopSizeOverTime.h"
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
 #include "QtSLiMGraphView_PopFitnessDist.h"
@@ -3622,6 +3623,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 	ui->actionGraph_Population_Fitness_Distribution->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Subpopulation_Fitness_Distributions->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Fitness_Time->setEnabled(graphItemsEnabled);
+    ui->actionGraph_Phenotype_Time->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Age_Distribution->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Population_Size_Time->setEnabled(graphItemsEnabled);
@@ -3700,6 +3702,7 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
 	ui->actionGraph_Population_Fitness_Distribution->setEnabled(false);
 	ui->actionGraph_Subpopulation_Fitness_Distributions->setEnabled(false);
 	ui->actionGraph_Fitness_Time->setEnabled(false);
+    ui->actionGraph_Phenotype_Time->setEnabled(false);
 	ui->actionGraph_Age_Distribution->setEnabled(false);
 	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(false);
 	ui->actionGraph_Population_Size_Time->setEnabled(false);
@@ -6531,6 +6534,8 @@ void QtSLiMWindow::displayGraphClicked(void)
                     graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
                 if (action == ui->actionGraph_Fitness_Time)
                     graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
+                if (action == ui->actionGraph_Phenotype_Time)
+                    graphView = new QtSLiMGraphView_PhenotypeOverTime(this, this);
                 if (action == ui->actionGraph_Age_Distribution)
                     graphView = new QtSLiMGraphView_AgeDistribution(this, this);
                 if (action == ui->actionGraph_Lifetime_Reproduce_Output)
@@ -6963,6 +6968,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     QAction *graphFitnessVsTime = contextMenu.addAction("Graph Fitness ~ Time");
     graphFitnessVsTime->setEnabled(!disableAll);
     
+    QAction *graphPhenotypeVsTime = contextMenu.addAction("Graph Phenotype ~ Time");
+    graphPhenotypeVsTime->setEnabled(!disableAll);
+    
     contextMenu.addSeparator();
     
     QAction *graphAgeDistribution = contextMenu.addAction("Graph Age Distribution");
@@ -7069,6 +7077,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
                     graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
                 if (action == graphFitnessVsTime)
                     graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
+                if (action == graphPhenotypeVsTime)
+                    graphView = new QtSLiMGraphView_PhenotypeOverTime(this, this);
                 if (action == graphAgeDistribution)
                     graphView = new QtSLiMGraphView_AgeDistribution(this, this);
                 if (action == graphLifetimeReproduction)
