@@ -147,13 +147,13 @@ public:
 		}
 	}
 	
-	size_t MemoryUsageForAllNodes(void)
+	size_t MemoryUsageForAllNodes(void) const
 	{
 		size_t usage = 0;
-		_Node *node = &_firstNode;
+		const _Node *node = &_firstNode;
 		while(node)
 		{
-			_Node *nextNode = node->_nextNode;
+			const _Node *nextNode = node->_nextNode;
 			usage += node->_capacity * _itemSize;
 			node = nextNode;
 		}

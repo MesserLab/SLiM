@@ -256,7 +256,7 @@ public:
 	void TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally);
 	void TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
 	
-	slim_refcount_t _CountNonNullHaplosomesForChromosome(Chromosome *p_chromosome);
+	slim_refcount_t _CountNonNullHaplosomesForChromosome(const Chromosome *p_chromosome) const;
 	void _TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments);
 #if DEBUG
 	void _CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count, std::string caller_name);

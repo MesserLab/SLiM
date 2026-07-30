@@ -403,7 +403,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		//	object instantiation – delegated to EidosClass subclasses
 		//
-		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
+		for (const EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 		{
 			const std::vector<EidosFunctionSignature_CSP> *class_functions = eidos_class->Functions();
 			

@@ -889,7 +889,7 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 #pragma mark SLiMEidosBlock
 #pragma mark -
 
-SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_node)
+SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(const EidosASTNode *p_root_node)
 {
 	// Get the block type for a node without actually constructing the block.  This is parallel to the constructor code below,
 	// and the two must be maintained in parallel when new callback types, etc., are added.  Note that we don't do any bounds-
@@ -963,7 +963,7 @@ SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_nod
 	return SLiMEidosBlockType::SLiMEidosNoBlockType;
 }
 
-SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
+SLiMEidosBlock::SLiMEidosBlock(const EidosASTNode *p_root_node) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	root_node_(p_root_node)
@@ -1411,7 +1411,7 @@ void SLiMEidosBlock::TokenizeAndParse(void)
 void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node)
 {
 	// recurse down the tree; determine our children, then ourselves
-	for (EidosASTNode *child : p_scan_node->children_)
+	for (const EidosASTNode *child : p_scan_node->children_)
 		_ScanNodeForIdentifiersUsed(child);
 	
 	if (p_scan_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
@@ -1499,7 +1499,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 
 #ifdef SLIMGUI
 // used by SLiMgui to generate the scheduling log's output
-void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_community)
+void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_community) const
 {
 	if (p_community->is_explicit_species_)
 	{

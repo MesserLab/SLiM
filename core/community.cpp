@@ -204,7 +204,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	std::vector<std::string> explicit_species_decl_names;		// names from "species <name> initialize()" declarations
 	int implied_species_decl_count = 0;							// number of "initialize()" seen without "species <name>"
 	
-	for (EidosASTNode *script_block_node : root_node->children_)
+	for (const EidosASTNode *script_block_node : root_node->children_)
 	{
 		if (script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 		{
@@ -326,7 +326,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	bool last_spec_is_ticks_all = false;	// "ticks all" is a special syntax; there is no species named "all" so it must be tracked with a separate flag
 	bool last_spec_is_species_all = false;	// "species all" is a special syntax; there is no species named "all" so it must be tracked with a separate flag
 	
-	for (EidosASTNode *script_block_node : root_node->children_)
+	for (const EidosASTNode *script_block_node : root_node->children_)
 	{
 		if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
 		{
@@ -493,7 +493,7 @@ void Community::ValidateScriptBlockCaches(void)
 		
 #if DEBUG_BLOCK_REG_DEREG
 		std::cout << "   ValidateScriptBlockCaches() recaching, AllScriptBlocks() is:" << std::endl;
-		for (SLiMEidosBlock *script_block : script_blocks)
+		for (const SLiMEidosBlock *script_block : script_blocks)
 		{
 			std::cout << "      ";
 			script_block->Print(std::cout);
@@ -547,7 +547,7 @@ void Community::ValidateScriptBlockCaches(void)
 		
 #if DEBUG_BLOCK_REG_DEREG
 		std::cout << "   ValidateScriptBlockCaches() recached, late() events cached are:" << std::endl;
-		for (SLiMEidosBlock *script_block : cached_late_events_)
+		for (const SLiMEidosBlock *script_block : cached_late_events_)
 		{
 			std::cout << "      ";
 			script_block->Print(std::cout);
@@ -1095,7 +1095,7 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	
 #if DEBUG_BLOCK_REG_DEREG
 	std::cout << "Tick " << tick_ << ": AddScriptBlock() just added a block, script_blocks_ is:" << std::endl;
-	for (SLiMEidosBlock *script_block : script_blocks_)
+	for (const SLiMEidosBlock *script_block : script_blocks_)
 	{
 		std::cout << "      ";
 		script_block->Print(std::cout);
@@ -1124,7 +1124,7 @@ void Community::DeregisterScheduledScriptBlocks(void)
 	if (scheduled_deregistrations_.size())
 	{
 		std::cout << "Tick " << tick_ << ": DeregisterScheduledScriptBlocks() planning to remove:" << std::endl;
-		for (SLiMEidosBlock *script_block : scheduled_deregistrations_)
+		for (const SLiMEidosBlock *script_block : scheduled_deregistrations_)
 		{
 			std::cout << "      ";
 			script_block->Print(std::cout);
@@ -1167,7 +1167,7 @@ void Community::DeregisterScheduledScriptBlocks(void)
 	if (scheduled_deregistrations_.size())
 	{
 		std::cout << "Tick " << tick_ << ": DeregisterScheduledScriptBlocks() after removal:" << std::endl;
-		for (SLiMEidosBlock *script_block : script_blocks_)
+		for (const SLiMEidosBlock *script_block : script_blocks_)
 		{
 			std::cout << "      ";
 			script_block->Print(std::cout);
@@ -1186,7 +1186,7 @@ void Community::DeregisterScheduledInteractionBlocks(void)
 	if (scheduled_interaction_deregs_.size())
 	{
 		std::cout << "Tick " << tick_ << ": DeregisterScheduledInteractionBlocks() planning to remove:" << std::endl;
-		for (SLiMEidosBlock *script_block : scheduled_interaction_deregs_)
+		for (const SLiMEidosBlock *script_block : scheduled_interaction_deregs_)
 		{
 			std::cout << "      ";
 			script_block->Print(std::cout);
@@ -1229,7 +1229,7 @@ void Community::DeregisterScheduledInteractionBlocks(void)
 	if (scheduled_interaction_deregs_.size())
 	{
 		std::cout << "Tick " << tick_ << ": DeregisterScheduledInteractionBlocks() after removal:" << std::endl;
-		for (SLiMEidosBlock *script_block : script_blocks_)
+		for (const SLiMEidosBlock *script_block : script_blocks_)
 		{
 			std::cout << "      ";
 			script_block->Print(std::cout);
@@ -1269,12 +1269,12 @@ bool Community::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 	// been used, or is reserved for use in some way by, by any SLiM species or by any tree sequence.
 	
 	// First check our own data structures; we now do not allow reuse of subpop ids, even disjoint in time
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 		if (species->used_subpop_ids_.find(p_subpop_id) != species->used_subpop_ids_.end())
 			return true;
 	
 	// Then have each species check for a conflict with its tree-sequence population table
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 		if (species->_SubpopulationIDInUse(p_subpop_id))
 			return true;
 	
@@ -1287,7 +1287,7 @@ bool Community::SubpopulationNameInUse(const std::string &p_subpop_name)
 	// been used, or is reserved for use in some way by, by any SLiM species or by any tree sequence.
 	
 	// First check our own data structures; we now do not allow reuse of subpop names, even disjoint in time
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 		if (species->used_subpop_names_.count(p_subpop_name))
 			return true;
 	
@@ -1298,7 +1298,7 @@ bool Community::SubpopulationNameInUse(const std::string &p_subpop_name)
 
 Subpopulation *Community::SubpopulationWithID(slim_objectid_t p_subpop_id)
 {
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		Subpopulation *found_subpop = species->SubpopulationWithID(p_subpop_id);
 		
@@ -1311,7 +1311,7 @@ Subpopulation *Community::SubpopulationWithID(slim_objectid_t p_subpop_id)
 
 Subpopulation *Community::SubpopulationWithName(const std::string &p_subpop_name)
 {
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		Subpopulation *found_subpop = species->SubpopulationWithName(p_subpop_name);
 		
@@ -1324,7 +1324,7 @@ Subpopulation *Community::SubpopulationWithName(const std::string &p_subpop_name
 
 MutationType *Community::MutationTypeWithID(slim_objectid_t p_muttype_id)
 {
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		MutationType *found_muttype = species->MutationTypeWithID(p_muttype_id);
 		
@@ -1337,7 +1337,7 @@ MutationType *Community::MutationTypeWithID(slim_objectid_t p_muttype_id)
 
 GenomicElementType *Community::GenomicElementTypeWithID(slim_objectid_t p_getype_id)
 {
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		GenomicElementType *found_getype = species->GenomicElementTypeWithID(p_getype_id);
 		
@@ -2043,7 +2043,7 @@ void Community::FlagUnevaluatedScriptBlockTickRanges()
 	
 	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 	
-	for (SLiMEidosBlock *script_block : script_blocks)
+	for (const SLiMEidosBlock *script_block : script_blocks)
 	{
 		if ((script_block->type_ != SLiMEidosBlockType::SLiMEidosInitializeCallback) &&
 			!script_block->tick_range_evaluated_)
@@ -2063,7 +2063,7 @@ slim_tick_t Community::FirstTick(void)
 	
 	// Figure out our first tick; it is the earliest tick in which an Eidos event is set up to run,
 	// since an Eidos event that adds a subpopulation is necessary to get things started
-	for (SLiMEidosBlock *script_block : script_blocks)
+	for (const SLiMEidosBlock *script_block : script_blocks)
 	{
 		if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
 			(script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
@@ -2105,7 +2105,7 @@ slim_tick_t Community::EstimatedLastTick(void)
 	// The estimate is derived from the last tick in which an Eidos block is registered.
 	// Any block type works, since the simulation could plausibly be stopped within a callback.
 	// However, blocks that do not specify an end tick don't count.
-	for (SLiMEidosBlock *script_block : script_blocks)
+	for (const SLiMEidosBlock *script_block : script_blocks)
 	{
 		if (script_block->tick_range_is_sequence_)
 		{
@@ -2235,7 +2235,7 @@ bool Community::_RunOneTick(void)
 		gSLiMScheduling << "# tick " << tick_ << ": ";
 		bool first_species = true;
 		
-		for (Species *species : all_species_)
+		for (const Species *species : all_species_)
 		{
 			if (!first_species)
 				gSLiMScheduling << ", ";
@@ -2360,7 +2360,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	DeregisterScheduledScriptBlocks();
 	
 	// compile results from initialization into our overall state
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
 		const std::map<slim_objectid_t,GenomicElementType*> &getypes = species->GenomicElementTypes();
@@ -2548,7 +2548,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 {
 #if DEBUG
 	// Check the integrity of all the information in the individuals and haplosomes of the parental population
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 		species->Species_CheckIntegrity();
 #endif
 	
@@ -2556,7 +2556,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 	// Check for species consistency across all of the objects in each species
 	for (size_t species_index = 0; species_index < all_species_.size(); ++species_index)
 	{
-		Species *species = all_species_[species_index];
+		const Species *species = all_species_[species_index];
 		
 		if (&species->community_ != this)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->community_ mismatch." << EidosTerminate();
@@ -2567,7 +2567,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 		if (species->species_id_ != (int)species_index)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->species_id_ mismatch." << EidosTerminate();
 		
-		for (Chromosome *chromosome : species->Chromosomes())
+		for (const Chromosome *chromosome : species->Chromosomes())
 		{
 			if (&chromosome->species_ != species)
 				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->species_ mismatch." << EidosTerminate();
@@ -2576,7 +2576,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->community_ mismatch." << EidosTerminate();
 		}
 		
-		Population &population = species->population_;
+		const Population &population = species->population_;
 		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
 		const std::map<slim_objectid_t,GenomicElementType*> &getypes = species->GenomicElementTypes();
 		
@@ -2604,9 +2604,9 @@ void Community::AllSpecies_CheckIntegrity(void)
 		return;
 #endif
 	
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
-		for (Chromosome *chromosome : species->Chromosomes())
+		for (const Chromosome *chromosome : species->Chromosomes())
 		{
 			// Check the integrity of the mutation registry; all MutationIndex values should be in range
 			int registry_size;
@@ -2945,7 +2945,7 @@ bool Community::_RunOneTickWF(void)
 #if DEBUG
 		// now that fitness calculations are done, do a crosscheck of all trait values
 		// this is disabled by a global flag while we are running some self-tests
-		for (Species *species : all_species_)
+		for (const Species *species : all_species_)
 			species->CrosscheckAllTraitValues();
 #endif
 		
@@ -3255,7 +3255,7 @@ bool Community::_RunOneTickNonWF(void)
 		
 #if DEBUG
 		// now that fitness calculations are done, do a crosscheck of all trait values
-		for (Species *species : all_species_)
+		for (const Species *species : all_species_)
 			species->CrosscheckAllTraitValues();
 #endif
 		
@@ -3502,7 +3502,7 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	p_usage->mutationPerTraitBuffer = 0.0;
 	p_usage->mutationUnusedPoolSpace = 0.0;
 	
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		if (species->HasGenetics())
 		{

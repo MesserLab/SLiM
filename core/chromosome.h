@@ -319,7 +319,7 @@ public:
 	~Chromosome(void);
 	
 	// mutation registry
-	inline const MutationIndex *MutationRegistry(int *registry_count)
+	inline const MutationIndex *MutationRegistry(int *registry_count) const
 	{
 		*registry_count = mutation_registry_.size();
 		return mutation_registry_.begin_pointer_const();
@@ -332,7 +332,7 @@ public:
 	
 	void CheckMutationRegistry(bool p_check_haplosomes);		// check the registry for any bad entries (i.e. zombies, mutations with an incorrect state_)
 	inline void SetMutationRegistryNeedsCheck(void) { registry_needs_consistency_check_ = true; }
-	inline bool MutationRegistryNeedsCheck(void) { return registry_needs_consistency_check_; }
+	inline bool MutationRegistryNeedsCheck(void) const { return registry_needs_consistency_check_; }
 	
 	// accessors
 	inline __attribute__((always_inline)) int64_t ID(void) const	{ return id_; }
@@ -404,9 +404,9 @@ public:
 	void RecombinationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 	// Memory usage tallying, for outputUsage()
-	size_t MemoryUsageForMutationMaps(void);
-	size_t MemoryUsageForRecombinationMaps(void);
-	size_t MemoryUsageForAncestralSequence(void);
+	size_t MemoryUsageForMutationMaps(void) const;
+	size_t MemoryUsageForRecombinationMaps(void) const;
+	size_t MemoryUsageForAncestralSequence(void) const;
 	
 	// Make a null haplosome, which is associated with an individual, but has no associated chromosome, or
 	// make a non-null haplosome, which is associated with an individual and has an associated chromosome
@@ -422,7 +422,7 @@ public:
 	void SetUpMutationRunContexts(void);
 	
 #ifndef _OPENMP
-	inline int ChromosomeMutationRunContextCount(void) { return 1; }
+	inline int ChromosomeMutationRunContextCount(void) const { return 1; }
 	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForThread(__attribute__((unused)) int p_thread_num)
 	{
 #if DEBUG
@@ -440,7 +440,7 @@ public:
 		return mutation_run_context_SINGLE_;
 	}
 #else
-	inline int ChromosomeMutationRunContextCount(void) { return mutation_run_context_COUNT_; }
+	inline int ChromosomeMutationRunContextCount(void) const { return mutation_run_context_COUNT_; }
 	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForThread(int p_thread_num)
 	{
 #if DEBUG

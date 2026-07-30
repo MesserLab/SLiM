@@ -2508,7 +2508,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 #ifdef _OPENMP
 		bool can_parallelize = true;
 		
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 			if (chromosome.using_DSB_model_)
 			{
 				can_parallelize = false;
@@ -5119,7 +5119,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	{
 		// We repurpose repair_removals here as a vector of all positions that changed due to heteroduplex repair.
 		// We therefore add in the positions for each entry in repair_additions, then sort and unique.
-		for (Mutation *added_mut : repair_additions)
+		for (const Mutation *added_mut : repair_additions)
 			repair_removals.emplace_back(added_mut->position_);
 		
 		std::sort(repair_removals.begin(), repair_removals.end());
@@ -5312,7 +5312,7 @@ void Population::SurveyPopulation(void)
 			// we use the fitness without subpop fitnessScaling, to present individual fitness without density effects
 			double subpop_unscaled_total = 0;
 			
-			for (Individual *individual : subpop->parent_individuals_)
+			for (const Individual *individual : subpop->parent_individuals_)
 				subpop_unscaled_total += (double)individual->cached_unscaled_fitness_;
 			
 			totalUnscaledFitness += subpop_unscaled_total;
@@ -5347,7 +5347,7 @@ void Population::SurveyPopulation(void)
 			slim_popsize_t nonnan_subpop_size = 0;		// we count the number of non-NAN entries
 			double nonnan_subpop_total = 0;
 			
-			for (Individual *individual : subpop->parent_individuals_)
+			for (const Individual *individual : subpop->parent_individuals_)
 			{
 				slim_phenotype_t phenotype = individual->trait_info_[trait_index].phenotype_;
 				
@@ -5637,7 +5637,7 @@ void Population::UniqueMutationRuns(void)
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
-				Subpopulation *subpop = subpop_pair.second;
+				const Subpopulation *subpop = subpop_pair.second;
 				
 				for (Individual *ind : subpop->parent_individuals_)
 				{
@@ -5767,7 +5767,7 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 		// fix the child haplosomes for the chromosome since they also need to be resized
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
-			Subpopulation *subpop = subpop_pair.second;
+			const Subpopulation *subpop = subpop_pair.second;
 			
 			for (Individual *ind : subpop->child_individuals_)
 			{
@@ -6203,7 +6203,7 @@ void Population::AssessMutationRuns(void)
 	{
 		std::cout << "***** AssessMutationRuns(), tick " << tick << ":" << std::endl;
 		
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
 			int registry_size = 0, registry_count_in_chromosome = 0;
@@ -6595,7 +6595,7 @@ void Population::TallyMutationRunReferencesForSubpopsForChromosome(std::vector<S
 		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
 		
 		// note this is NOT an OpenMP parallel for loop!  each encountering thread runs every iteration!
-		for (Subpopulation *subpop : *p_subpops_to_tally)
+		for (const Subpopulation *subpop : *p_subpops_to_tally)
 		{
 			if (subpop->CouldContainNullHaplosomes())
 			{
@@ -6775,7 +6775,8 @@ void Population::FreeUnusedMutationRuns(void)
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
-		Subpopulation *subpop = subpop_pair.second;
+		const Subpopulation *subpop = subpop_pair.second;
+		
 		{
 			for (Individual *ind : subpop->parent_individuals_)
 			{
@@ -6858,7 +6859,7 @@ void Population::FreeUnusedMutationRuns(void)
 }
 
 // count the number of non-null haplosomes in the population
-slim_refcount_t Population::_CountNonNullHaplosomesForChromosome(Chromosome *p_chromosome)
+slim_refcount_t Population::_CountNonNullHaplosomesForChromosome(const Chromosome *p_chromosome) const
 {
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::_CountNonNullHaplosomesForChromosome): (internal error) called with child generation active!" << EidosTerminate();
@@ -6870,17 +6871,17 @@ slim_refcount_t Population::_CountNonNullHaplosomesForChromosome(Chromosome *p_c
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
-		Subpopulation *subpop = subpop_pair.second;
+		const Subpopulation *subpop = subpop_pair.second;
 		
 		if (subpop->CouldContainNullHaplosomes())
 		{
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome **haplosomes = ind->haplosomes_;
+				const Haplosome * const *haplosomes = ind->haplosomes_;
 				
 				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
+					const Haplosome *haplosome = haplosomes[haplosome_index];
 					
 					if (!haplosome->IsNull())
 						total_haplosome_count++;
@@ -6923,7 +6924,7 @@ void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun
 #endif
 		
 		// check that the cached haplosome count is correct; note that it includes only non-null haplosomes
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			slim_refcount_t tallied_haplosome_count = _CountNonNullHaplosomesForChromosome(chromosome);
 			
@@ -6955,7 +6956,7 @@ doDebugCheck:
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
 				Haplosome **ind_haplosomes = ind->haplosomes_;
 				
@@ -7025,7 +7026,7 @@ void Population::TallyMutationReferencesAcrossPopulation_SLiMgui(void)
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
-	for (Chromosome *chromosome : species_.Chromosomes())
+	for (const Chromosome *chromosome : species_.Chromosomes())
 	{
 		int registry_size;
 		const MutationIndex *registry_iter = chromosome->MutationRegistry(&registry_size);
@@ -7104,15 +7105,15 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 		for (Chromosome *chromosome : species_.Chromosomes())
 			chromosome->tallied_haplosome_count_ = 0;
 		
-		for (Subpopulation *subpop : *p_subpops_to_tally)
+		for (const Subpopulation *subpop : *p_subpops_to_tally)
 		{
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome **ind_haplosomes = ind->haplosomes_;
+				const Haplosome * const *ind_haplosomes = ind->haplosomes_;
 				
 				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					Haplosome *haplosome = ind_haplosomes[haplosome_index];
+					const Haplosome *haplosome = ind_haplosomes[haplosome_index];
 					
 					if (!haplosome->IsNull())
 					{
@@ -7141,11 +7142,11 @@ doDebugCheck:
 	{
 		std::vector<Haplosome *> haplosomes;
 		
-		for (Subpopulation *subpop : *p_subpops_to_tally)
+		for (const Subpopulation *subpop : *p_subpops_to_tally)
 		{
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome **ind_haplosomes = ind->haplosomes_;
+				Haplosome * const *ind_haplosomes = ind->haplosomes_;
 				
 				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
@@ -7322,11 +7323,11 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 {
 	// This does a DEBUG check on the results of mutation reference tallying, done in several spots.
 	// It should be called immediately after tallying, and passed a vector of the haplosomes tallied across.
-	MutationBlock *mutation_block = mutation_block_;
+	const MutationBlock *mutation_block = mutation_block_;
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
-	for (Chromosome *chromosome : species_.Chromosomes())
+	for (const Chromosome *chromosome : species_.Chromosomes())
 	{
 		int registry_count;
 		const MutationIndex *registry_iter = chromosome->MutationRegistry(&registry_count);
@@ -7357,7 +7358,7 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 	}
 	
 	// then loop through the registry and check that all check refcounts match tallied refcounts
-	for (Chromosome *chromosome : species_.Chromosomes())
+	for (const Chromosome *chromosome : species_.Chromosomes())
 	{
 		int registry_count;
 		const MutationIndex *registry_iter = chromosome->MutationRegistry(&registry_count);
@@ -7403,7 +7404,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		tallied_haplosome_counts.resize(0);
 		tallied_haplosome_counts.reserve(chromosomes.size());
 		
-		for (Chromosome *chromosome : chromosomes)
+		for (const Chromosome *chromosome : chromosomes)
 			tallied_haplosome_counts.push_back(chromosome->tallied_haplosome_count_);
 		
 		// a vector of mutations was given, so loop through them and take their tallies
@@ -7414,7 +7415,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			Mutation *mut = (Mutation *)mutations_data[value_index];
+			const Mutation *mut = (Mutation *)mutations_data[value_index];
 			int8_t mut_state = mut->state_;
 			double freq;
 			
@@ -7430,7 +7431,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		// no mutation vector was given, so return all frequencies from the registry
 		int global_registry_size = 0, global_registry_index = 0;
 		
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			int registry_size;
 			
@@ -7441,7 +7442,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(global_registry_size);
 		result_SP = EidosValue_SP(float_result);
 		
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			double tallied_haplosome_count = chromosome->tallied_haplosome_count_;
 			int registry_size;
@@ -7501,7 +7502,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		tallied_haplosome_counts.resize(0);
 		tallied_haplosome_counts.reserve(chromosomes.size());
 		
-		for (Chromosome *chromosome : chromosomes)
+		for (const Chromosome *chromosome : chromosomes)
 			tallied_haplosome_counts.push_back(chromosome->tallied_haplosome_count_);
 		
 		// a vector of mutations was given, so loop through them and take their tallies
@@ -7512,7 +7513,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			Mutation *mut = (Mutation *)mutations_data[value_index];
+			const Mutation *mut = (Mutation *)mutations_data[value_index];
 			int8_t mut_state = mut->state_;
 			slim_refcount_t count;
 			
@@ -7528,7 +7529,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		// no mutation vector was given, so return all frequencies from the registry
 		int global_registry_size = 0, global_registry_index = 0;
 		
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			int registry_size;
 			
@@ -7539,7 +7540,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(global_registry_size);
 		result_SP = EidosValue_SP(int_result);
 		
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -8191,15 +8192,15 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 		{
-			Subpopulation *subpop = subpop_pair.second;
+			const Subpopulation *subpop = subpop_pair.second;
 			
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome **haplosomes = ind->haplosomes_;
+				const Haplosome * const *haplosomes = ind->haplosomes_;
 				
 				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
+					const Haplosome *haplosome = haplosomes[haplosome_index];
 					
 					int mutrun_count = haplosome->mutrun_count_;
 					
@@ -8281,9 +8282,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			Subpopulation *subpop = subpop_pair.second;
 			slim_objectid_t subpop_id = subpop_pair.first + 1;	// + 1 so it doesn't ever collide with the section end tag
 			
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome **haplosomes = ind->haplosomes_;
+				const Haplosome * const *haplosomes = ind->haplosomes_;
 				
 				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
@@ -8388,7 +8389,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// New in SLiM 5, output substitutions if requested
 	if (p_output_substitutions)
 	{
-		for (Chromosome *chromosome : species_.Chromosomes())
+		for (const Chromosome *chromosome : species_.Chromosomes())
 		{
 			for (const Substitution *substitution_ptr : chromosome->substitutions_)
 			{
@@ -8451,7 +8452,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.Index()];
 	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.Index()];
 	
-	for (Individual *ind : subpop_individuals)
+	for (const Individual *ind : subpop_individuals)
 	{
 		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
 			continue;
@@ -8505,7 +8506,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.Index()];
 	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.Index()];
 	
-	for (Individual *ind : subpop_individuals)
+	for (const Individual *ind : subpop_individuals)
 	{
 		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
 			continue;

@@ -278,7 +278,7 @@ public:
 #endif
 	
 	// Fetch specific haplosomes; used by haplosomesForChromosomes()
-	void AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls);
+	void AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls) const;
 	
 	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual() and SharedParentCountWithIndividual;
 	// _Relatedness() and _SharedParentCount() are internal API made public for unit testing.
@@ -433,9 +433,9 @@ public:
 	// Debugging checkback for phenotype calculation; this is very slow, and does not use the non-neutral cache
 	slim_phenotype_t _CheckPhenotypeForTrait(slim_trait_index_t trait_index);
 	
-	void _Check_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	void _Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	void _Check_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	void _Check_IncorporateEffects_Haploid(const Species *species, const Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) const;
+	void _Check_IncorporateEffects_Hemizygous(const Species *species, const Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) const;
+	void _Check_IncorporateEffects_Diploid(const Species *species, const Haplosome *haplosome1, const Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) const;
 	
 	// for Subpopulation::ExecuteMethod_takeMigrants()
 	friend Subpopulation;

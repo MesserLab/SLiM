@@ -133,7 +133,7 @@ void Trait::InvalidateTraitValuesForAllIndividuals(void)
 	// to NAN to preserve their invalidation; but managing that in general seems tricky.  Let's keep it simple.
 	for (const auto &subpop_iter : species_.population_.subpops_)
 	{
-		Subpopulation *subpop = subpop_iter.second;
+		const Subpopulation *subpop = subpop_iter.second;
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{

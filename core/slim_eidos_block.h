@@ -215,13 +215,13 @@ public:
 	double cached_opt_D_ = 0.0;
 	
 	
-	static SLiMEidosBlockType BlockTypeForRootNode(EidosASTNode *p_root_node);		// get the block type for a node without actually constructing the block
+	static SLiMEidosBlockType BlockTypeForRootNode(const EidosASTNode *p_root_node);		// get the block type for a node without actually constructing the block
 	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying
 	SLiMEidosBlock(void) = delete;									// no default constructor
 	
-	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file; species gets set later
+	explicit SLiMEidosBlock(const EidosASTNode *p_root_node);		// initialize from a SLiMEidosBlock root node from the input file; species gets set later
 	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
@@ -232,7 +232,7 @@ public:
 	void _ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node);
 	void ScanTreeForIdentifiersUsed(void);
 	
-	inline bool ActiveInTick(slim_tick_t p_tick) {
+	inline bool ActiveInTick(slim_tick_t p_tick) const {
 		if (tick_range_is_sequence_) {
 			if ((p_tick < tick_start_) || (p_tick > tick_end_))
 				return false;
@@ -243,7 +243,7 @@ public:
 		return true;
 	}
 	
-	void PrintDeclaration(std::ostream& p_out, Community *p_community);
+	void PrintDeclaration(std::ostream& p_out, Community *p_community) const;
 	
 	//
 	// Eidos support

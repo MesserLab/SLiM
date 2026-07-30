@@ -348,7 +348,7 @@ void LogFile::AppendNewRow(void)
 	// Guarantee that we are in the parent generation for all generators, so they don't need to worry
 	const std::vector<Species *> &all_species = community_.AllSpecies();
 	
-	for (Species *species : all_species)
+	for (const Species *species : all_species)
 		if (species->population_.child_generation_valid_)
 			EIDOS_TERMINATION << "ERROR (LogFile::AppendNewRow): (internal error) generating logfile entry with child generation active!" << EidosTerminate();
 	

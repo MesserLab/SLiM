@@ -442,7 +442,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
 		if (start_position <= last_genomic_element_position_)
 		{
-			for (GenomicElement *element : chromosome->GenomicElements())
+			for (const GenomicElement *element : chromosome->GenomicElements())
 			{
 				if ((element->start_position_ <= end_position) && (element->end_position_ >= start_position))
 					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
@@ -573,7 +573,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 			else {
 				bool first_mut_type = true;
 				output_stream << ((mutation_types.size() > 1) ? ", c(" : ", ");
-				for (MutationType *mut_type : mutation_types) {
+				for (const MutationType *mut_type : mutation_types) {
 					output_stream << (first_mut_type ? "m" : ", m") << mut_type->mutation_type_id_;
 					first_mut_type = false;
 				}
@@ -1667,7 +1667,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	if (Eidos_string_hasPrefix(name, "_"))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name does not begin with an underscore ('_')." << EidosTerminate(nullptr);
 	
-	for (Trait *trait : traits_)
+	for (const Trait *trait : traits_)
 		if (trait->Name() == name)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that the trait name is unique within the species; there is already a trait in this species with the name '" << name << "'." << EidosTerminate();
 	
@@ -2282,7 +2282,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
 			int mutation_count = 0;
 			
-			for (Chromosome *chromosome : Chromosomes())
+			for (const Chromosome *chromosome : Chromosomes())
 			{
 				int registry_size;
 				chromosome->MutationRegistry(&registry_size);
@@ -2294,7 +2294,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			unsigned int global_mutation_index = 0;
 			
-			for (Chromosome *chromosome : Chromosomes())
+			for (const Chromosome *chromosome : Chromosomes())
 			{
 				int registry_size;
 				const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -2361,14 +2361,14 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			int substitution_count = 0;
 			
-			for (Chromosome *chromosome : Chromosomes())
+			for (const Chromosome *chromosome : Chromosomes())
 				substitution_count += chromosome->substitutions_.size();
 			
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Substitution_Class))->resize_no_initialize_RR(substitution_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			unsigned int global_substitution_index = 0;
 			
-			for (Chromosome *chromosome : Chromosomes())
+			for (const Chromosome *chromosome : Chromosomes())
 				for (Substitution *substitution : chromosome->substitutions_)
 					vec->set_object_element_no_check_no_previous_RR(substitution, global_substitution_index++);
 			
@@ -3199,7 +3199,7 @@ EidosValue_SP Species::ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_met
 	// count the number of chromosomes of the requested type
 	int chromosome_count = 0;
 	
-	for (Chromosome *chromosome : Chromosomes())
+	for (const Chromosome *chromosome : Chromosomes())
 		if (chromosome->Type() == chromosome_type)
 			chromosome_count++;
 	
@@ -3386,7 +3386,7 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 	for (slim_trait_index_t trait_index : trait_indices)
 		std::cout << " " << Traits()[trait_index]->Name();
 	std::cout << " } in subpops {";
-	for (Subpopulation *subpop : subpops_to_demand)
+	for (const Subpopulation *subpop : subpops_to_demand)
 		std::cout << " p" << subpop->subpopulation_id_;
 	std::cout << " }, forceRecalc == " << (forceRecalc ? "T" : "F") << std::endl;
 #endif
@@ -3486,9 +3486,9 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		{
 			slim_pedigreeid_t pedigree_id = pedigree_id_data[value_index];
 			
-			for (Subpopulation *subpop : subpops_to_search)
+			for (const Subpopulation *subpop : subpops_to_search)
 			{
-				std::vector<Individual *> &inds = subpop->parent_individuals_;
+				const std::vector<Individual *> &inds = subpop->parent_individuals_;
 				
 				for (Individual *ind : inds)
 				{
@@ -3519,9 +3519,9 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 #endif
 		
 		try {
-			for (Subpopulation *subpop : subpops_to_search)
+			for (const Subpopulation *subpop : subpops_to_search)
 			{
-				std::vector<Individual *> &inds = subpop->parent_individuals_;
+				const std::vector<Individual *> &inds = subpop->parent_individuals_;
 				
 				for (Individual *ind : inds)
 					fromIDToIndividual.emplace(ind->PedigreeID(), ind);
@@ -3790,7 +3790,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	// start a registry if appropriate, so we can hit the fast case below
 	if (start_registry && (!population_.keeping_muttype_registries_ || !mutation_type_ptr->keeping_muttype_registry_))
 	{
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -3812,7 +3812,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	if (population_.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
 	{
 		// We're already keeping a separate registry for this mutation type (see mutation_type.h), so we can answer this directly
-		MutationRun &mutation_registry = mutation_type_ptr->muttype_registry_;
+		const MutationRun &mutation_registry = mutation_type_ptr->muttype_registry_;
 		int mutation_count = mutation_registry.size();
 		EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 		EidosValue_SP result_SP = EidosValue_SP(vec);
@@ -3830,7 +3830,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 		int match_count = 0;
 		MutationIndex first_match = -1;
 		
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -3861,7 +3861,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 			{
 				int set_index = 0;
 				
-				for (Chromosome *chromosome : chromosomes_)
+				for (const Chromosome *chromosome : chromosomes_)
 				{
 					int registry_size;
 					const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -3899,7 +3899,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	// start a registry if appropriate, so we can hit the fast case below
 	if (start_registry && (!population_.keeping_muttype_registries_ || !mutation_type_ptr->keeping_muttype_registry_))
 	{
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -3932,7 +3932,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 		// Count the number of mutations of the given type
 		int match_count = 0;
 		
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -4017,9 +4017,9 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	bool output_object_tags = objectTags_value->LogicalAtIndex_NOCAST(0, nullptr);
 	unsigned int global_substitution_index = 0;
 	
-	for (Chromosome *chromosome : Chromosomes())
+	for (const Chromosome *chromosome : Chromosomes())
 	{
-		for (Substitution *sub : chromosome->substitutions_)
+		for (const Substitution *sub : chromosome->substitutions_)
 		{
 			out << global_substitution_index << " ";
 			
@@ -4203,7 +4203,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		// as we scan through haplosomes building the polymorphism map, we want to process only mutations that are
 		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
 		// first zero out scratch_ in all mutations in the registry...
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -4230,13 +4230,13 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			Subpopulation *subpop = subpop_pair.second;
 			PolymorphismMap polymorphisms;
 			
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
 				int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 				
 				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					Haplosome *haplosome = ind->haplosomes_[haplosome_index];
+					const Haplosome *haplosome = ind->haplosomes_[haplosome_index];
 					
 					int mutrun_count = haplosome->mutrun_count_;
 					
@@ -4780,7 +4780,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_chromosome)
 	{
 		// id-only search; nice for this to be fast since people will use it to look up a specific mutation
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			int registry_size;
 			const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
@@ -4814,7 +4814,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	else if (has_chromosome && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_id)
 	{
 		// chromosome-only search; nice for this to be fast since people will use it to look up all the mutations for a chromosome
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			if (!chromosome_index_included[chromosome->Index()])
 				continue;
@@ -4848,7 +4848,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	else if (!exclude && !has_tag && !has_id)
 	{
 		// no exclude, tag, or id; this is expected to be the common case, for the usage patterns I anticipate
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			if (has_chromosome && !chromosome_index_included[chromosome->Index()])
 				continue;
@@ -4886,7 +4886,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	else
 	{
 		// GENERAL CASE
-		for (Chromosome *chromosome : chromosomes_)
+		for (const Chromosome *chromosome : chromosomes_)
 		{
 			if (has_chromosome && !chromosome_index_included[chromosome->Index()])
 				continue;
@@ -4945,7 +4945,7 @@ EidosValue_SP Species::ExecuteMethod_substitutionsOfType(EidosGlobalStringID p_m
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Substitution_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
 	
-	for (Chromosome *chromosome : Chromosomes())
+	for (const Chromosome *chromosome : Chromosomes())
 		for (Substitution *sub : chromosome->substitutions_)
 			if (sub->mutation_type_ptr_ == mutation_type_ptr)
 				vec->push_object_element_RR(sub);

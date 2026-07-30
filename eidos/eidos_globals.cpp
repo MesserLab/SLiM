@@ -5035,7 +5035,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 	}
 	else if (p_color_name.length() > 0)
 	{
-		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
+		for (const EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
 		{
 			if (p_color_name == color_table->name)
 			{
@@ -5076,7 +5076,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, double *p_red_com
 	}
 	else if (p_color_name.length() > 0)
 	{
-		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
+		for (const EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
 		{
 			if (p_color_name == color_table->name)
 			{
@@ -5117,7 +5117,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_co
 	}
 	else if (p_color_name.length() > 0)
 	{
-		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
+		for (const EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
 		{
 			if (p_color_name == color_table->name)
 			{

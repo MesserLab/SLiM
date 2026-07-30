@@ -1445,13 +1445,13 @@ size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 		usage += sizeof(std::vector<SparseVector *>);
 		usage += pool.size() * sizeof(SparseVector);
 		
-		for (SparseVector *free_sv : pool)
+		for (const SparseVector *free_sv : pool)
 			usage += free_sv->MemoryUsage();
 	}
 #else
 	usage = s_freed_sparse_vectors_SINGLE.size() * sizeof(SparseVector);
 	
-	for (SparseVector *free_sv : s_freed_sparse_vectors_SINGLE)
+	for (const SparseVector *free_sv : s_freed_sparse_vectors_SINGLE)
 		usage += free_sv->MemoryUsage();
 #endif
 	

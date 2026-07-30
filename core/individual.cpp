@@ -246,7 +246,7 @@ void Individual::AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
 }
 #endif
 
-void Individual::AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls)
+void Individual::AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls) const
 {
 	Species &species = subpopulation_->species_;
 	
@@ -878,7 +878,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	// Loop over chromosomes and output data for each
 	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
 	
-	for (Chromosome *chromosome : chromosomes)
+	for (const Chromosome *chromosome : chromosomes)
 	{
 		// if we have a focal chromosome, skip all the other chromosomes
 		if (p_focal_chromosome && (chromosome != p_focal_chromosome))
@@ -902,7 +902,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome_index];
 		PolymorphismMap polymorphisms;
-		Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
+		const Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 		
 		// add all polymorphisms for this chromosome
 		for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
@@ -1046,7 +1046,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		
 		unsigned int global_substitution_index = 0;
 		
-		for (Chromosome *chromosome : species.Chromosomes())
+		for (const Chromosome *chromosome : species.Chromosomes())
 		{
 			for (const Substitution *sub : chromosome->substitutions_)
 			{
@@ -1153,7 +1153,7 @@ void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_
 	}
 	p_out << std::endl;
 	
-	for (Chromosome *chromosome : chromosomes)
+	for (const Chromosome *chromosome : chromosomes)
 	{
 		if (p_focal_chromosome && (chromosome != p_focal_chromosome))
 			continue;
@@ -1273,7 +1273,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			Haplosome **haplosomes = haplosomes_;
 			int haplosome_index = 0;
 			
-			for (Chromosome *chromosome : subpopulation_->species_.Chromosomes())
+			for (const Chromosome *chromosome : subpopulation_->species_.Chromosomes())
 			{
 				switch (chromosome->Type())
 				{
@@ -1329,7 +1329,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			Haplosome **haplosomes = haplosomes_;
 			int haplosome_index = 0;
 			
-			for (Chromosome *chromosome : subpopulation_->species_.Chromosomes())
+			for (const Chromosome *chromosome : subpopulation_->species_.Chromosomes())
 			{
 				switch (chromosome->Type())
 				{
@@ -1526,7 +1526,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 			
-			for (Chromosome *chromosome : species.Chromosomes())
+			for (const Chromosome *chromosome : species.Chromosomes())
 			{
 				int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome->Index()];
 				int last_haplosome_index = species.LastHaplosomeIndices()[chromosome->Index()];
@@ -3295,7 +3295,7 @@ void Individual::SetProperty_Accelerated_age(EidosGlobalStringID p_property_id, 
 void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 #pragma unused (p_property_id)
-	const Individual **individuals_buffer = (const Individual **)p_values;
+	Individual **individuals_buffer = (Individual **)p_values;
 	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
 	const double *source_data = p_source.FloatData();
 	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
@@ -3321,7 +3321,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				
 				value->trait_info_[trait_index].phenotype_ = new_phenotype;
 			}
@@ -3330,7 +3330,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 		{
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				slim_phenotype_t new_phenotype = (slim_phenotype_t)source_data[value_index];
 				
 				if (std::isinf(new_phenotype))
@@ -3352,7 +3352,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 			
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				Species &value_species = value->subpopulation_->species_;
 				
 				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
@@ -3372,7 +3372,7 @@ void Individual::SetProperty_Accelerated_TRAIT_VALUE(EidosGlobalStringID p_prope
 		{
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				Species &value_species = value->subpopulation_->species_;
 				
 				// Notify the species that phenotypes have been changed directly by the user, and are thus no longer based on genetics
@@ -3400,7 +3400,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 #pragma unused (p_property_id)
 	const std::string &property_string = EidosStringRegistry::StringForGlobalStringID(p_property_id);
 	std::string trait_name = property_string.substr(0, property_string.length() - 6);
-	const Individual **individuals_buffer = (const Individual **)p_values;
+	Individual **individuals_buffer = (Individual **)p_values;
 	Species *species = Community::SpeciesForIndividualsVector(individuals_buffer, (int)p_values_size);
 	const double *source_data = p_source.FloatData();
 	
@@ -3422,7 +3422,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 			
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				
 				value->trait_info_[trait_index].offset_ = new_offset;
 				
@@ -3434,7 +3434,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 		{
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				slim_trait_offset_t new_offset = (slim_trait_offset_t)source_data[value_index];
 				
 				if (!std::isfinite(new_offset))
@@ -3461,7 +3461,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 			
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				Species &value_species = value->subpopulation_->species_;
 				Trait *trait = value_species.TraitFromName(trait_name);
 				
@@ -3481,7 +3481,7 @@ void Individual::SetProperty_Accelerated_TRAIT_OFFSET(EidosGlobalStringID p_prop
 		{
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				const Individual *value = individuals_buffer[value_index];
+				Individual *value = individuals_buffer[value_index];
 				Species &value_species = value->subpopulation_->species_;
 				Trait *trait = value_species.TraitFromName(trait_name);
 				
@@ -3968,7 +3968,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	bool only_haploid_haplosomes = true;
 	size_t vec_reserve_size = 0;
 	
-	for (Chromosome *chromosome : species.Chromosomes())
+	for (const Chromosome *chromosome : species.Chromosomes())
 	{
 		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome->Index()];
 		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome->Index()];
@@ -4013,7 +4013,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	
 	Mutation *mut_block_ptr = species.SpeciesMutationBlock()->mutation_buffer_;
 	
-	for (Chromosome *chromosome : species.Chromosomes())
+	for (const Chromosome *chromosome : species.Chromosomes())
 	{
 		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome->Index()];
 		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome->Index()];
@@ -6435,7 +6435,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 			mut->scratch_ = 0;
 		
 		// loop over the active chromosomes
-		for (Chromosome *chromosome : chromosomes)
+		for (const Chromosome *chromosome : chromosomes)
 		{
 			if (chromosome->scratch_ == 0)
 				continue;
@@ -6650,7 +6650,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 		if ((hemizygousValue == 1) && (haploidValue == 1))
 		{
 			// simple occurrence counts
-			for (Mutation *mut : focalMutations)
+			for (const Mutation *mut : focalMutations)
 			{
 				int8_t scratch_value = mut->scratch_;
 				
@@ -6665,7 +6665,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_zygosityOfMutations(EidosGlobalStr
 		else
 		{
 			// not simple occurrence counts
-			for (Mutation *mut : focalMutations)
+			for (const Mutation *mut : focalMutations)
 			{
 				int8_t scratch_value = mut->scratch_;
 				
@@ -6898,7 +6898,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	Population &population = species->population_;
 	bool has_active_callbacks = false;
 	
-	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
+	for (const SLiMEidosBlock *callback : mutationEffect_callbacks)
 	{
 		if (callback->block_active_)
 		{
@@ -7709,7 +7709,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	
 	if (!f_force_recalc)
 	{
-		for (SLiMEidosBlock *callback : p_subpop_mutationEffect_callbacks)
+		for (const SLiMEidosBlock *callback : p_subpop_mutationEffect_callbacks)
 		{
 			if (callback->block_active_)
 			{
@@ -9091,7 +9091,7 @@ slim_phenotype_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_in
 	std::vector<SLiMEidosBlock*> subpop_per_trait_mutationEffect_callbacks = species.CallbackBlocksMatching(community.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop->subpopulation_id_, trait_index, -1, /* p_active_only */ true);
 	
 	// then loop over the chromosomes and incorporate trait effects
-	for (Chromosome *chromosome : species.Chromosomes())
+	for (const Chromosome *chromosome : species.Chromosomes())
 	{
 		switch (chromosome->Type())
 		{
@@ -9100,8 +9100,8 @@ slim_phenotype_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_in
 			case ChromosomeType::kX_XSexChromosome:
 			case ChromosomeType::kZ_ZSexChromosome:
 			{
-				Haplosome *haplosome1 = haplosomes_[haplosome_index];
-				Haplosome *haplosome2 = haplosomes_[haplosome_index+1];
+				const Haplosome *haplosome1 = haplosomes_[haplosome_index];
+				const Haplosome *haplosome2 = haplosomes_[haplosome_index+1];
 				
 				if (haplosome1->IsNull())
 				{
@@ -9164,7 +9164,7 @@ slim_phenotype_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_in
 	return trait_value;
 }
 
-void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+void Individual::_Check_IncorporateEffects_Haploid(const Species *species, const Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) const
 {
 #if DEBUG
 	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
@@ -9257,7 +9257,7 @@ void Individual::_Check_IncorporateEffects_Haploid(Species *species, Haplosome *
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-void Individual::_Check_IncorporateEffects_Hemizygous(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+void Individual::_Check_IncorporateEffects_Hemizygous(const Species *species, const Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) const
 {
 #if DEBUG
 	// This method assumes that haplosome is not a null haplosome; the caller needs to guarantee this
@@ -9331,7 +9331,7 @@ void Individual::_Check_IncorporateEffects_Hemizygous(Species *species, Haplosom
 	trait_info_[trait_index].phenotype_ = (slim_phenotype_t)effect_accumulator;
 }
 
-void Individual::_Check_IncorporateEffects_Diploid(Species *species, Haplosome *haplosome1, Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+void Individual::_Check_IncorporateEffects_Diploid(const Species *species, const Haplosome *haplosome1, const Haplosome *haplosome2, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) const
 {
 #if DEBUG
 	// This method assumes that haplosome1 and haplosome2 are not null; the caller needs to guarantee this

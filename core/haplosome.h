@@ -202,7 +202,7 @@ public:
 	
 	// used to re-initialize haplosomes to a new state, reusing them for efficiency
 	void ReinitializeHaplosomeToNull(Individual *individual);
-	void ReinitializeHaplosomeToNonNull(Individual *individual, Chromosome *p_chromosome);
+	void ReinitializeHaplosomeToNonNull(Individual *individual, const Chromosome *p_chromosome);
 	
 #if DEBUG
 	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, Chromosome *p_chromosome)
@@ -415,7 +415,7 @@ public:
 	static void _PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, int64_t p_haplosomes_count, const Chromosome &p_chromosome, bool p_groupAsIndividuals, bool p_simplify_nucs, bool p_output_nonnucs, bool p_output_multiallelics);
 	
 	// Memory usage tallying, for outputUsage()
-	size_t MemoryUsageForMutrunBuffers(void);
+	size_t MemoryUsageForMutrunBuffers(void) const;
 	
 	
 	//
@@ -516,7 +516,7 @@ public:
 	
 	void NextMutation(void);
 	void MoveToPosition(slim_position_t p_position);
-	bool MutationIsStackedAtCurrentPosition(Mutation *p_search_mut);	// scans for the given mutation in any slot at the current position
+	bool MutationIsStackedAtCurrentPosition(const Mutation *p_search_mut);	// scans for the given mutation in any slot at the current position
 	bool IdenticalAtCurrentPositionTo(HaplosomeWalker &p_other_walker);	// compares stacked mutations between walkers (reordered is not identical)
 	int8_t NucleotideAtCurrentPosition(void);
 };

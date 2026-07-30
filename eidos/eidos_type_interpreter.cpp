@@ -60,7 +60,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateInterpreterBlock()
 {
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
-	for (EidosASTNode *child_node : root_node_->children_)
+	for (const EidosASTNode *child_node : root_node_->children_)
 		result_type = TypeEvaluateNode(child_node);
 	
 	return result_type;
@@ -141,7 +141,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_CompoundStatement(const Ei
 {
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNULL, nullptr};
 	
-	for (EidosASTNode *child_node : p_node->children_)
+	for (const EidosASTNode *child_node : p_node->children_)
 		result_type = TypeEvaluateNode(child_node);
 	
 	return result_type;
@@ -468,7 +468,7 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 	// ellipsis variants; so when we see an ellipsis, we then loop over all variants here
 	if (argument_completions_ && p_call_signature->has_ellipsis_ && p_call_signature->ellipsis_variants_.size() && saw_ellipsis_argument)
 	{
-		for (EidosCallSignature *variant : p_call_signature->ellipsis_variants_)
+		for (const EidosCallSignature *variant : p_call_signature->ellipsis_variants_)
 		{
 			int variant_arg_count = (int)variant->arg_name_IDs_.size();
 			
@@ -1128,7 +1128,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 																			return_type.type_mask,
 																			return_type.object_class));
 			
-			for (EidosASTNode *param_node : param_nodes)
+			for (const EidosASTNode *param_node : param_nodes)
 			{
 				const std::vector<EidosASTNode *> &param_children = param_node->children_;
 				int param_children_count = (int)param_children.size();
@@ -1211,7 +1211,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 				
 				gEidosConstantsSymbolTable->AddSymbolsToTypeTable(global_symbols_);
 				
-				for (EidosASTNode *param_node : param_nodes)
+				for (const EidosASTNode *param_node : param_nodes)
 				{
 					const std::vector<EidosASTNode *> &param_children = param_node->children_;
 					int param_children_count = (int)param_children.size();
@@ -1237,7 +1237,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 				EidosTypeTable typeTable(*global_symbols_);
 				EidosCallTypeTable callTypeTable;
 				
-				for (EidosASTNode *param_node : param_nodes)
+				for (const EidosASTNode *param_node : param_nodes)
 				{
 					const std::vector<EidosASTNode *> &param_children = param_node->children_;
 					int param_children_count = (int)param_children.size();

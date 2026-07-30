@@ -78,7 +78,7 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 			Haplosome **haplosomes = individual->haplosomes_;
 			int haplosome_index = 0;
 			
-			for (Chromosome *chromosome : chromosomes)
+			for (const Chromosome *chromosome : chromosomes)
 			{
 				// Determine what kind of haplosomes to make for this chromosome
 				ChromosomeType chromosomeType = chromosome->Type();
@@ -134,7 +134,7 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 			
 			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
 			
-			for (Chromosome *chromosome : chromosomes)
+			for (const Chromosome *chromosome : chromosomes)
 			{
 				// Determine what kind of haplosomes to make for this chromosome
 				ChromosomeType chromosomeType = chromosome->Type();
@@ -414,7 +414,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	}
 }
 
-void Subpopulation::CheckIndividualIntegrity(void)
+void Subpopulation::CheckIndividualIntegrity(void) const
 {
 	ClearErrorPosition();
 	
@@ -430,7 +430,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	if (!has_genetics && (chromosomes_count != 0))
 		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
 	
-	for (Chromosome *chromosome : chromosomes)
+	for (const Chromosome *chromosome : chromosomes)
 	{
 		int32_t mutrun_count = chromosome->mutrun_count_;
 		slim_position_t mutrun_length = chromosome->mutrun_length_;
@@ -1099,7 +1099,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		if (!has_genetics && haplosomes_junkyard_nonnull.size())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the nonnull haplosome junkyard should be empty in no-genetics species." << EidosTerminate();
 		
-		for (Haplosome *haplosome : haplosomes_junkyard_nonnull)
+		for (const Haplosome *haplosome : haplosomes_junkyard_nonnull)
 		{
 			if (haplosome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null haplosome in the nonnull haplosome junkyard." << EidosTerminate();
@@ -1109,7 +1109,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 #endif
 		}
 		
-		for (Haplosome *haplosome : haplosomes_junkyard_null)
+		for (const Haplosome *haplosome : haplosomes_junkyard_null)
 		{
 			if (!haplosome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull haplosome in the null haplosome junkyard." << EidosTerminate();
@@ -1302,7 +1302,7 @@ void Subpopulation::SetName(const std::string &p_name)
 	name_ = p_name;
 }
 
-slim_refcount_t Subpopulation::NullHaplosomeCount(void)
+slim_refcount_t Subpopulation::NullHaplosomeCount(void) const
 {
 	if (population_.child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::NullHaplosomeCount): (internal error) called with child generation active!" << EidosTerminate();
@@ -1310,13 +1310,13 @@ slim_refcount_t Subpopulation::NullHaplosomeCount(void)
 	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
 	slim_refcount_t null_haplosome_count = 0;
 	
-	for (Individual *ind : parent_individuals_)
+	for (const Individual *ind : parent_individuals_)
 	{
-		Haplosome **haplosomes = ind->haplosomes_;
+		const Haplosome * const *haplosomes = ind->haplosomes_;
 		
 		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 		{
-			Haplosome *haplosome = haplosomes[haplosome_index];
+			const Haplosome *haplosome = haplosomes[haplosome_index];
 			
 			if (haplosome->IsNull())
 				null_haplosome_count++;
@@ -1889,7 +1889,7 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 	
 #if DEBUG
 	// this should only be called with callbacks that match the situation; the caller is responsible for weeding the list
-	for (SLiMEidosBlock *callback : p_mutationEffect_callbacks)
+	for (const SLiMEidosBlock *callback : p_mutationEffect_callbacks)
 	{
 		if (callback->species_spec_ != &species_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) incorrect mutationEffect() callback species." << EidosTerminate(callback->identifier_token_);
@@ -2096,7 +2096,7 @@ slim_fitness_t Subpopulation::ApplyFitnessEffectCallbacks(const std::vector<SLiM
 	
 #if DEBUG
 	// this should only be called with callbacks that match the situation; the caller is responsible for weeding the list
-	for (SLiMEidosBlock *callback : p_fitnessEffect_callbacks)
+	for (const SLiMEidosBlock *callback : p_fitnessEffect_callbacks)
 	{
 		if (callback->species_spec_ != &species_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): (internal error) incorrect fitnessEffect() callback species." << EidosTerminate(callback->identifier_token_);
@@ -2287,7 +2287,7 @@ void Subpopulation::TallyLifetimeReproductiveOutput(void)
 		
 		if (species_.SexEnabled())
 		{
-			for (Individual *ind : parent_individuals_)
+			for (const Individual *ind : parent_individuals_)
 			{
 				if (ind->sex_ == IndividualSex::kFemale)
 					lifetime_reproductive_output_F_.emplace_back(ind->reproductive_output_);
@@ -2297,7 +2297,7 @@ void Subpopulation::TallyLifetimeReproductiveOutput(void)
 		}
 		else
 		{
-			for (Individual *ind : parent_individuals_)
+			for (const Individual *ind : parent_individuals_)
 				lifetime_reproductive_output_MH_.emplace_back(ind->reproductive_output_);
 		}
 	}
@@ -5310,7 +5310,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			size_t expected_haplosome_count = parent_individuals_.size() * haplosome_count_per_individual;
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(expected_haplosome_count);
 			
-			for (Individual *ind : parent_individuals_)
+			for (const Individual *ind : parent_individuals_)
 			{
 				Haplosome **haplosomes = ind->haplosomes_;
 				
@@ -5330,7 +5330,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			size_t expected_haplosome_count = parent_individuals_.size() * haplosome_count_per_individual;
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(expected_haplosome_count);
 			
-			for (Individual *ind : parent_individuals_)
+			for (const Individual *ind : parent_individuals_)
 			{
 				Haplosome **haplosomes = ind->haplosomes_;
 				
@@ -7994,7 +7994,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			trait_needs_invalidation.clear();		// ensure that all entries are false by throwing away existing values
 			trait_needs_invalidation.resize(trait_count);
 			
-			for (SLiMEidosBlock *callback : callbacks)
+			for (const SLiMEidosBlock *callback : callbacks)
 			{
 				const EidosASTNode *compound_statement_node = callback->compound_statement_node_;
 				
@@ -8141,7 +8141,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_haplosomesForChromosomes(EidosGlobalS
 	// fetch the requested haplosomes for all individuals
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class));
 	
-	for (Individual *individual : parent_individuals_)
+	for (const Individual *individual : parent_individuals_)
 		individual->AppendHaplosomesForChromosomes(vec, chromosome_indices, index, includeNulls);
 	
 	return EidosValue_SP(vec);

@@ -327,7 +327,7 @@ std::vector<EidosPropertySignature_CSP> EidosClass::RegisteredClassProperties(bo
 	std::vector<EidosPropertySignature_CSP> propertySignatures;
 	std::vector<EidosClass *> classRegistry = EidosClass::RegisteredClasses(p_builtin, p_context);
 	
-	for (EidosClass *class_object : classRegistry)
+	for (const EidosClass *class_object : classRegistry)
 	{
 		const std::vector<EidosPropertySignature_CSP> *properties = class_object->Properties();
 		
@@ -352,7 +352,7 @@ std::vector<EidosMethodSignature_CSP> EidosClass::RegisteredClassMethods(bool p_
 	std::vector<EidosMethodSignature_CSP> methodSignatures;
 	std::vector<EidosClass *> classRegistry = EidosClass::RegisteredClasses(p_builtin, p_context);
 	
-	for (EidosClass *class_object : classRegistry)
+	for (const EidosClass *class_object : classRegistry)
 	{
 		const std::vector<EidosMethodSignature_CSP> *methods = class_object->Methods();
 		

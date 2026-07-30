@@ -249,8 +249,8 @@ public:
 	void SetName(const std::string &p_name);												// change the name property of the subpopulation, handling the uniqueness logic
 	
 	inline __attribute__((always_inline)) int HaplosomeCountPerIndividual(void) { return haplosome_count_per_individual_; }
-	slim_refcount_t NullHaplosomeCount(void);
-	inline bool CouldContainNullHaplosomes(void) {
+	slim_refcount_t NullHaplosomeCount(void) const;
+	inline bool CouldContainNullHaplosomes(void) const {
 #if DEBUG
 		// in DEBUG, check that has_null_haplosomes_ is not false when null haplosomes in fact exist (we allow the opposite case)
 		if (!has_null_haplosomes_ && (NullHaplosomeCount() > 0))
@@ -377,7 +377,7 @@ public:
 	}
 	
 	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
-	void CheckIndividualIntegrity(void);
+	void CheckIndividualIntegrity(void) const;
 	
 	// this is called by Population::RecalculateFitness(); first it expresses demand for traits that have direct fitness effects, then it recalculates fitness values
 	void UpdateFitness(const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks, const std::vector<SLiMEidosBlock*> &p_subpop_fitnessEffect_callbacks, const std::vector<slim_trait_index_t> &p_direct_effect_trait_indices, bool p_force_trait_recalculation);

@@ -265,7 +265,7 @@ void Haplosome::ReinitializeHaplosomeToNull(Individual *individual)
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, Chromosome *p_chromosome)
+void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, const Chromosome *p_chromosome)
 {
 	// Transmogrify a haplosome (which might be null or non-null) into a non-null haplosome with a specific configuration
 	individual_ = individual;
@@ -1835,7 +1835,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				slim_refcount_t total_prevalence[4] = {0, 0, 0, 0};
 				int allele_index_for_nuc[4] = {-1, -1 -1, -1};
 				
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					int derived_nuc_index = (unsigned char)polymorphism->mutation_ptr_->nucleotide_;
 					
@@ -1967,7 +1967,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << "\t";
 				
 				// emit ALT ("T" etc.)
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -1979,7 +1979,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				
 				// emit the INFO fields and the Genotype marker
 				p_out << "MID=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -1988,7 +1988,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << ";";
 				
 				p_out << "S=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -2002,7 +2002,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << ";";
 				
 				p_out << "DOM=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -2021,7 +2021,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << ";";
 				
 				p_out << "PO=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -2030,7 +2030,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << ";";
 				
 				p_out << "TO=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -2039,7 +2039,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << ";";
 				
 				p_out << "MT=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -2048,7 +2048,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				p_out << ";";
 				
 				p_out << "AC=";
-				for (Polymorphism *polymorphism : nuc_based)
+				for (const Polymorphism *polymorphism : nuc_based)
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
@@ -2119,7 +2119,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 		// We do this if outputNonnucleotides==T, or if we are non-nucleotide-based (in which case outputNonnucleotides is ignored)
 		if (p_output_nonnucs || !nucleotide_based)
 		{
-			for (Polymorphism *polymorphism : nonnuc_based)
+			for (const Polymorphism *polymorphism : nonnuc_based)
 			{
 				const Mutation *mutation = polymorphism->mutation_ptr_;
 				
@@ -2227,7 +2227,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 	}
 }
 
-size_t Haplosome::MemoryUsageForMutrunBuffers(void)
+size_t Haplosome::MemoryUsageForMutrunBuffers(void) const
 {
 	if (mutruns_ == run_buffer_)
 		return 0;
@@ -2500,7 +2500,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 			HaplosomeWalker walker(target_haplosome);
 			slim_position_t last_added_pos = -1;
 			
-			for (Mutation *mut : mutations_to_add)
+			for (const Mutation *mut : mutations_to_add)
 			{
 				slim_position_t mut_pos = mut->position_;
 				
@@ -3232,11 +3232,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	// We infer the chromosome from the haplosomes, and in a multi-chrom species all the haplosomes must belong to it.
 	slim_chromosome_index_t chromosome_index = haplosomes[0]->chromosome_index_;
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
-	Chromosome *chromosome = chromosomes[chromosome_index];
+	const Chromosome *chromosome = chromosomes[chromosome_index];
 	
 	if (chromosomes.size() > 1)
 	{
-		for (Haplosome *haplosome : haplosomes)
+		for (const Haplosome *haplosome : haplosomes)
 			if (haplosome->chromosome_index_ != chromosome_index)
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): all haplosomes for output must be associated with the same chromosome." << EidosTerminate();
 	}
@@ -4471,7 +4471,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				HaplosomeWalker walker(target_haplosome);
 				slim_position_t last_added_pos = -1;
 				
-				for (Mutation *mut : mutations_to_remove)
+				for (const Mutation *mut : mutations_to_remove)
 				{
 					slim_position_t mut_pos = mut->position_;
 					
@@ -4577,7 +4577,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				std::vector<slim_position_t> unique_positions;
 				slim_position_t last_pos = -1;
 				
-				for (Mutation *mut : mutations_to_remove)
+				for (const Mutation *mut : mutations_to_remove)
 				{
 					slim_position_t pos = mut->position_;
 					
@@ -4843,7 +4843,7 @@ void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 	while (!Finished() && (Position() < p_position));
 }
 
-bool HaplosomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
+bool HaplosomeWalker::MutationIsStackedAtCurrentPosition(const Mutation *p_search_mut)
 {
 	// We have reached some chromosome position (presumptively the *first mutation* at that position,
 	// which we do not check here), and the caller wants to know if a given mutation, which is

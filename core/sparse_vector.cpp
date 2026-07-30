@@ -83,7 +83,7 @@ void SparseVector::ResizeToFitMaxNNZ(uint32_t max_nnz)
 	}
 }
 
-size_t SparseVector::MemoryUsage(void)
+size_t SparseVector::MemoryUsage(void) const
 {
 	return (sizeof(uint32_t) + sizeof(sv_value_t)) * (nnz_capacity_);
 }

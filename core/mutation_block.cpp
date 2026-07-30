@@ -102,17 +102,17 @@ void MutationBlock::IncreaseMutationBlockCapacity(void)
 	std::vector<EidosValue_Object *> &mutation_object_registry = EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
 	std::vector<std::uintptr_t> locations_to_patch;
 	
-	for (EidosValue_Object *mutation_value : mutation_object_registry)
+	for (const EidosValue_Object *mutation_value : mutation_object_registry)
 	{
-		EidosObject * const *object_buffer = mutation_value->data();
-		Mutation * const *mutation_buffer = (Mutation * const *)object_buffer;
+		const EidosObject * const *object_buffer = mutation_value->data();
+		const Mutation * const *mutation_buffer = (Mutation * const *)object_buffer;
 		int mutation_count = mutation_value->Count();
 		
 		for (int index = 0; index < mutation_count; ++index)
 		{
-			Mutation *mutation = mutation_buffer[index];
-			MutationType *muttype = mutation->mutation_type_ptr_;
-			Species *species = &muttype->species_;
+			const Mutation *mutation = mutation_buffer[index];
+			const MutationType *muttype = mutation->mutation_type_ptr_;
+			const Species *species = &muttype->species_;
 			
 			if (species == &species_)
 			{

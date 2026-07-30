@@ -229,7 +229,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output, bo
 	
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
-	for (EidosASTNode *child_node : root_node_->children_)
+	for (const EidosASTNode *child_node : root_node_->children_)
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -979,7 +979,7 @@ EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p
 	
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
-	for (EidosASTNode *child_node : p_node->children_)
+	for (const EidosASTNode *child_node : p_node->children_)
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -3756,7 +3756,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	EidosValue_SP result_dim_source;
 	EidosValue_SP first_array_operand;
 	
-	for (EidosASTNode *child_node : p_node->children_)
+	for (const EidosASTNode *child_node : p_node->children_)
 	{
 		EidosValue_SP child_result = FastEvaluateNode(child_node);
 		
@@ -3977,7 +3977,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	EidosValue_SP result_dim_source;
 	EidosValue_SP first_array_operand;
 	
-	for (EidosASTNode *child_node : p_node->children_)
+	for (const EidosASTNode *child_node : p_node->children_)
 	{
 		EidosValue_SP child_result = FastEvaluateNode(child_node);
 		
@@ -6713,7 +6713,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 																		return_type.object_class));
 		
 		try {
-			for (EidosASTNode *param_node : param_nodes)
+			for (const EidosASTNode *param_node : param_nodes)
 			{
 				const std::vector<EidosASTNode *> &param_children = param_node->children_;
 				int param_children_count = (int)param_children.size();

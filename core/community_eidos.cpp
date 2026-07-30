@@ -533,7 +533,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 				// Fix fitness histories for SLiMgui.  Note that mutation_loss_times_ and mutation_fixation_times_ are not fixable, since
 				// their entries are not separated out by tick, so we just leave them as is, containing information about
 				// alternative futures of the model.
-				for (Species *species : all_species_)
+				for (const Species *species : all_species_)
 				{
 					for (const auto &history_record_iter : species->population_.fitness_histories_)
 					{
@@ -723,7 +723,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	// Check for duplicate LogFiles using the same path; this is a common error so I'm making it illegal
 	const std::string &resolved_path = logfile->ResolvedFilePath();
 	
-	for (LogFile *existing_log_file : log_file_registry_)
+	for (const LogFile *existing_log_file : log_file_registry_)
 	{
 		if (existing_log_file != logfile)
 		{
@@ -1023,7 +1023,7 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	
 	TabulateSLiMMemoryUsage_Community(&usage_community, &p_interpreter.SymbolTable());
 	
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		SLiMMemoryUsage_Species usage_one_species;
 		
@@ -1439,7 +1439,7 @@ EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, co
 	
 	TabulateSLiMMemoryUsage_Community(&usage_community, &p_interpreter.SymbolTable());
 	
-	for (Species *species : all_species_)
+	for (const Species *species : all_species_)
 	{
 		SLiMMemoryUsage_Species usage_one_species;
 		

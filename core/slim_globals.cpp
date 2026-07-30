@@ -225,7 +225,7 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 		else
 		{
 			// Otherwise, look in all species in the community
-			for (Species *species : p_community->AllSpecies())
+			for (const Species *species : p_community->AllSpecies())
 			{
 				found_muttype = species->MutationTypeWithID(mutation_type_id);
 				
@@ -276,7 +276,7 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 		else
 		{
 			// Otherwise, look in all species in the community
-			for (Species *species : p_community->AllSpecies())
+			for (const Species *species : p_community->AllSpecies())
 			{
 				found_getype = species->GenomicElementTypeWithID(getype_id);
 				

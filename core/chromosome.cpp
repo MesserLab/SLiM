@@ -454,7 +454,7 @@ void Chromosome::InitializeDraws(void)
 	{
 		last_position_ = 0;
 		
-		for (GenomicElement *genomic_element : genomic_elements_)
+		for (const GenomicElement *genomic_element : genomic_elements_)
 		{ 
 			if (genomic_element->end_position_ > last_position_)
 				last_position_ = genomic_element->end_position_;
@@ -1915,7 +1915,7 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 #endif
 }
 
-size_t Chromosome::MemoryUsageForMutationMaps(void)
+size_t Chromosome::MemoryUsageForMutationMaps(void) const
 {
 	size_t usage = 0;
 	
@@ -1937,7 +1937,7 @@ size_t Chromosome::MemoryUsageForMutationMaps(void)
 	return usage;
 }
 
-size_t Chromosome::MemoryUsageForRecombinationMaps(void)
+size_t Chromosome::MemoryUsageForRecombinationMaps(void) const
 {
 	size_t usage = 0;
 	
@@ -1956,7 +1956,7 @@ size_t Chromosome::MemoryUsageForRecombinationMaps(void)
 	return usage;
 }
 
-size_t Chromosome::MemoryUsageForAncestralSequence(void)
+size_t Chromosome::MemoryUsageForAncestralSequence(void) const
 {
 	size_t usage = 0;
 	
@@ -2172,15 +2172,15 @@ void Chromosome::CheckMutationRegistry(bool p_check_haplosomes)
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species_.population_.subpops_)
 		{
-			Subpopulation *subpop = subpop_pair.second;
+			const Subpopulation *subpop = subpop_pair.second;
 			
-			for (Individual *ind : subpop->parent_individuals_)
+			for (const Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome **haplosomes = ind->haplosomes_;
+				const Haplosome * const *haplosomes = ind->haplosomes_;
 				
 				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
+					const Haplosome *haplosome = haplosomes[haplosome_index];
 					
 					int mutrun_count = haplosome->mutrun_count_;
 					
