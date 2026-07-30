@@ -712,7 +712,7 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 		{
 			std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
 			
-			for (auto muttype_iter : muttypes)
+			for (const auto &muttype_iter : muttypes)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
@@ -797,7 +797,7 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
 		
 		// Then loop through the declared mutation types
-		for (auto mutationTypeIter : displaySpecies->mutation_types_)
+		for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
 		{
 			MutationType *mut_type = mutationTypeIter.second;
 			
@@ -1113,7 +1113,7 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 		
 		std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
 		
-		for (auto muttype_iter : muttypes)
+		for (const auto &muttype_iter : muttypes)
 		{
 			MutationType *muttype = muttype_iter.second;
 			slim_objectid_t muttype_id = muttype->mutation_type_id_;
@@ -1153,7 +1153,7 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 				// Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
 				std::vector<slim_objectid_t> all_muttypes;
 				
-				for (auto muttype_iter : muttypes)
+				for (const auto &muttype_iter : muttypes)
 				{
 					MutationType *muttype = muttype_iter.second;
 					slim_objectid_t muttype_id = muttype->mutation_type_id_;

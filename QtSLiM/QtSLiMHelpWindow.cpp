@@ -474,7 +474,7 @@ void QtSLiMHelpWindow::expandToShowItems(const std::vector<QTreeWidgetItem *> &e
         ui->topicOutlineView->expandItem(*iter);
     
     // Select all of the items that matched
-    for (auto item : matchKeys)
+    for (QTreeWidgetItem *item : matchKeys)
         ui->topicOutlineView->setCurrentItem(item, 0, QItemSelectionModel::Select);
     
     // Finish coalescing selection changes

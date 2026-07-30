@@ -85,13 +85,13 @@ QtSLiMGraphView_FrequencyTrajectory::~QtSLiMGraphView_FrequencyTrajectory()
 void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
 {
     // first free all the MutationFrequencyHistory objects we've stored
-    for (auto &item : frequencyHistoryDict_)
+    for (const auto &item : frequencyHistoryDict_)
         delete item.second;
     
-    for (auto &item : frequencyHistoryColdStorageLost_)
+    for (const auto &item : frequencyHistoryColdStorageLost_)
         delete item;
     
-    for (auto &item : frequencyHistoryColdStorageFixed_)
+    for (const auto &item : frequencyHistoryColdStorageFixed_)
         delete item;
     
     // then clear out the storage
@@ -121,7 +121,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
         return;
     
     // Start by zeroing out the "updated" flags; this is how we find dead mutations
-    for (auto &pair_ref : frequencyHistoryDict_)
+    for (const auto &pair_ref : frequencyHistoryDict_)
         pair_ref.second->updated = false;
     
     // Tally reference counts within selectedSubpopulationID_
@@ -175,7 +175,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
         // we need to add an entry with frequency zero.  For the latter case, we need to put their history into "cold storage" for efficiency.
         std::vector<MutationFrequencyHistory *> historiesToAddToColdStorage;
         
-        for (auto entry_iter : frequencyHistoryDict_)
+        for (const auto &entry_iter : frequencyHistoryDict_)
         {
             MutationFrequencyHistory *history = entry_iter.second;
             
@@ -425,7 +425,7 @@ void QtSLiMGraphView_FrequencyTrajectory::drawGraph(QPainter &painter, QRect int
 		if (useColorsForPlotting_)
             painter.setPen(QPen(Qt::black, 1.0));
 		
-        for (auto history_pair : frequencyHistoryDict_)
+        for (const auto &history_pair : frequencyHistoryDict_)
             drawHistory(painter, history_pair.second, interiorRect);
 	}
 }
@@ -533,7 +533,7 @@ void QtSLiMGraphView_FrequencyTrajectory::appendStringForData(QString &string)
         
         std::vector<MutationFrequencyHistory *> allActive;
         
-        for (auto &pair_ref : frequencyHistoryDict_)
+        for (const auto &pair_ref : frequencyHistoryDict_)
             allActive.emplace_back(pair_ref.second);
         
 		appendEntriesToString(allActive, string, completedTicks);

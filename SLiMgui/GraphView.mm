@@ -1141,13 +1141,13 @@
 	NSMutableArray *legendKey = [NSMutableArray array];
 	
 	// first we put in placeholders
-	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
+	for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
 		[legendKey addObject:@"placeholder"];
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
+	for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		NSString *labelString = [NSString stringWithFormat:@"m%lld", (long long int)mutationType->mutation_type_id_];
 		

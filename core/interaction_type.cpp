@@ -569,9 +569,9 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 
 bool InteractionType::AnyEvaluated(void)
 {
-	for (auto &data_iter : data_)
+	for (const auto &data_iter : data_)
 	{
-		InteractionsData &data = data_iter.second;
+		const InteractionsData &data = data_iter.second;
 		
 		if (data.evaluated_)
 			return true;
@@ -1409,7 +1409,7 @@ size_t InteractionType::MemoryUsageForKDTrees(void)
 	size_t usage = 0;
 	
 	// this may be an underestimate, since we overallocate in some cases (exerter constraints)
-	for (auto &iter : data_)
+	for (const auto &iter : data_)
 	{
 		const InteractionsData &data = iter.second;
 		usage += sizeof(SLiM_kdNode) * data.kd_node_count_ALL_;
@@ -1423,7 +1423,7 @@ size_t InteractionType::MemoryUsageForPositions(void)
 {
 	size_t usage = 0;
 	
-	for (auto &iter : data_)
+	for (const auto &iter : data_)
 	{
 		const InteractionsData &data = iter.second;
 		usage += sizeof(double) * data.individual_count_;
@@ -1440,7 +1440,7 @@ size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 	
 #ifdef _OPENMP
 	// When running multithreaded, count all pools
-	for (auto &pool : s_freed_sparse_vectors_PERTHREAD)
+	for (const auto &pool : s_freed_sparse_vectors_PERTHREAD)
 	{
 		usage += sizeof(std::vector<SparseVector *>);
 		usage += pool.size() * sizeof(SparseVector);

@@ -5373,7 +5373,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Int *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto migrant_pair : migrant_fractions_)
+			for (const auto &migrant_pair : migrant_fractions_)
 				vec->push_int(migrant_pair.first);
 			
 			return result_SP;
@@ -5386,7 +5386,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Float *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto migrant_pair : migrant_fractions_)
+			for (const auto &migrant_pair : migrant_fractions_)
 				vec->push_float(migrant_pair.second);
 			
 			return result_SP;
@@ -7963,7 +7963,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		// the migration would be invalidated anyway so this probably isn't even that much overkill in
 		// most models.  Note that the child haplosomes/individuals caches don't need to be thrown away,
 		// because they aren't used in nonWF models and this is a nonWF-only method.
-		for (auto subpop_pair : population_.subpops_)
+		for (const auto &subpop_pair : population_.subpops_)
 			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to

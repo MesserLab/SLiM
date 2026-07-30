@@ -117,10 +117,10 @@
 	{
 		Population &population = displaySpecies->population_;
 		
-		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
+		for (const auto &popIter : population.subpops_)
 		{
-			slim_objectid_t subpopID = popIter->first;
-			//Subpopulation *subpop = popIter->second;
+			slim_objectid_t subpopID = popIter.first;
+			//Subpopulation *subpop = popIter.second;
 			NSString *subpopString = [NSString stringWithFormat:@"p%lld", (long long int)subpopID];
 			
 			[subpopulationButton addItemWithTitle:subpopString];
@@ -170,9 +170,9 @@
 	{
 		std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
 		
-		for (auto mutTypeIter = mutationTypes.begin(); mutTypeIter != mutationTypes.end(); ++mutTypeIter)
+		for (const auto &mutTypeIter : mutationTypes)
 		{
-			MutationType *mutationType = mutTypeIter->second;
+			MutationType *mutationType = mutTypeIter.second;
 			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
 			int mutationTypeIndex = mutationType->mutation_type_index_;
 			NSString *mutationTypeString = [NSString stringWithFormat:@"m%lld", (long long int)mutationTypeID];

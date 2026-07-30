@@ -2272,7 +2272,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElementType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto ge_type : genomic_element_types_)
+			for (const auto &ge_type : genomic_element_types_)
 				vec->push_object_element_NORR(ge_type.second);
 			
 			return result_SP;
@@ -2310,7 +2310,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto mutation_type : mutation_types_)
+			for (const auto &mutation_type : mutation_types_)
 				vec->push_object_element_NORR(mutation_type.second);
 			
 			return result_SP;
@@ -2329,7 +2329,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			const std::vector<SLiMEidosBlock*> &script_blocks = community_.AllScriptBlocksForSpecies(this);		// this will only be species-specific callbacks
 			
-			for (auto script_block : script_blocks)
+			for (SLiMEidosBlock *script_block : script_blocks)
 				vec->push_object_element_NORR(script_block);
 			
 			return result_SP;
@@ -2352,7 +2352,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto pop : population_.subpops_)
+			for (const auto &pop : population_.subpops_)
 				vec->push_object_element_NORR(pop.second);
 			
 			return result_SP;
@@ -3695,7 +3695,7 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 		// First, clear our individual caches in all subpopulations; any subpops involved in
 		// this method would be invalidated anyway so this probably isn't even that much overkill in
 		// most models.
-		for (auto subpop_pair : population_.subpops_)
+		for (const auto &subpop_pair : population_.subpops_)
 			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
@@ -4323,7 +4323,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		
 		const EidosDictionaryHashTable_StringKeys *subpopMap_hash = subpopMap_dict->DictionarySymbols_StringKeys();
 		
-		for (auto &subpopMap_pair : *subpopMap_hash)
+		for (const auto &subpopMap_pair : *subpopMap_hash)
 		{
 			std::string slim_id_string = subpopMap_pair.first;
 			slim_objectid_t slim_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(slim_id_string, 'p', nullptr);

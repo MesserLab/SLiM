@@ -110,12 +110,12 @@
 		double maxHistory = -INFINITY;
 		BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 		
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (showSubpops || (history_record_iter.first == -1))
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
@@ -222,12 +222,12 @@
 	// First draw subpops
 	if (showSubpops)
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				if (drawSubpopsGray)
@@ -254,12 +254,12 @@
 	}
 	
 	// Then draw the mean population fitness
-	for (auto history_record_iter : pop.fitness_histories_)
+	for (const auto &history_record_iter : pop.fitness_histories_)
 	{
 		if (history_record_iter.first == -1)
 		{
-			FitnessHistory &history_record = history_record_iter.second;
-			double *history = history_record.history_;
+			const FitnessHistory &history_record = history_record_iter.second;
+			const double *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			
 			[[NSColor blackColor] set];
@@ -307,12 +307,12 @@
 	// First draw subpops
 	if (showSubpops)
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				NSBezierPath *linePath = [NSBezierPath bezierPath];
 				BOOL startedLine = NO;
@@ -348,12 +348,12 @@
 	}
 	
 	// Then draw the mean population fitness
-	for (auto history_record_iter : pop.fitness_histories_)
+	for (const auto &history_record_iter : pop.fitness_histories_)
 	{
 		if (history_record_iter.first == -1)
 		{
-			FitnessHistory &history_record = history_record_iter.second;
-			double *history = history_record.history_;
+			const FitnessHistory &history_record = history_record_iter.second;
+			const double *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			NSBezierPath *linePath = [NSBezierPath bezierPath];
 			BOOL startedLine = NO;
@@ -415,12 +415,12 @@
 	// Fitness history
 	[string appendString:@"\n\n# Fitness history:\n"];
 	
-	for (auto history_record_iter : pop.fitness_histories_)
+	for (const auto &history_record_iter : pop.fitness_histories_)
 	{
 		if (history_record_iter.first == -1)
 		{
-			FitnessHistory &history_record = history_record_iter.second;
-			double *history = history_record.history_;
+			const FitnessHistory &history_record = history_record_iter.second;
+			const double *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			
 			for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
@@ -435,12 +435,12 @@
 	
 	if (showSubpops)
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				[string appendFormat:@"\n\n# Fitness history (subpopulation p%d):\n", history_record_iter.first];
@@ -479,7 +479,7 @@
 	}
 	else
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{

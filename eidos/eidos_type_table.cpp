@@ -54,7 +54,7 @@ std::vector<std::string> EidosTypeTable::AllSymbols(void) const
 {
 	std::vector<std::string> symbol_names;
 	
-	for (auto symbol_slot_iter : hash_symbols_)
+	for (const auto &symbol_slot_iter : hash_symbols_)
 	{
 		EidosGlobalStringID string_id = symbol_slot_iter.first;
 		const std::string &string_ref = EidosStringRegistry::StringForGlobalStringID(string_id);
@@ -69,7 +69,7 @@ std::vector<EidosGlobalStringID> EidosTypeTable::AllSymbolIDs(void) const
 {
 	std::vector<EidosGlobalStringID> symbol_ids;
 	
-	for (auto symbol_slot_iter : hash_symbols_)
+	for (const auto &symbol_slot_iter : hash_symbols_)
 	{
 		EidosGlobalStringID string_id = symbol_slot_iter.first;
 		

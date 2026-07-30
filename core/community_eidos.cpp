@@ -363,7 +363,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElementType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto getype : all_genomic_element_types_)
+			for (const auto &getype : all_genomic_element_types_)
 				vec->push_object_element_NORR(getype.second);
 			
 			return result_SP;
@@ -373,7 +373,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_InteractionType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto inttype : interaction_types_)
+			for (const auto &inttype : interaction_types_)
 				vec->push_object_element_NORR(inttype.second);
 			
 			return result_SP;
@@ -383,7 +383,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto muttype : all_mutation_types_)
+			for (const auto &muttype : all_mutation_types_)
 				vec->push_object_element_NORR(muttype.second);
 			
 			return result_SP;
@@ -394,7 +394,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 			
-			for (auto script_block : script_blocks)
+			for (SLiMEidosBlock *script_block : script_blocks)
 				if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)		// exclude function blocks; not user-visible
 					vec->push_object_element_NORR(script_block);
 			
@@ -405,7 +405,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Species_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto species : all_species_)
+			for (Species *species : all_species_)
 				vec->push_object_element_NORR(species);
 			
 			return result_SP;
@@ -415,8 +415,8 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto species : all_species_)
-				for (auto pop : species->population_.subpops_)
+			for (Species *species : all_species_)
+				for (const auto &pop : species->population_.subpops_)
 					vec->push_object_element_NORR(pop.second);
 			
 			return result_SP;
@@ -426,8 +426,8 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto species : all_species_)
-				for (auto trait : species->Traits())
+			for (Species *species : all_species_)
+				for (Trait *trait : species->Traits())
 					vec->push_object_element_RR(trait);
 			
 			return result_SP;

@@ -131,7 +131,7 @@ void Trait::InvalidateTraitValuesForAllIndividuals(void)
 	// that is that the flag might get set (invalidating everyone) and then the trait values of just a subset of
 	// individuals might get validated.  The trait values of all remaining individuals would then need to be set
 	// to NAN to preserve their invalidation; but managing that in general seems tricky.  Let's keep it simple.
-	for (auto subpop_iter : species_.population_.subpops_)
+	for (const auto &subpop_iter : species_.population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		

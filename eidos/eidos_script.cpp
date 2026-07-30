@@ -2853,7 +2853,7 @@ void EidosScript::PrintTokens(std::ostream &p_outstream) const
 {
 	if (token_stream_.size())
 	{
-		for (auto &token : token_stream_)
+		for (const auto &token : token_stream_)
 			p_outstream << token << " ";
 		
 		p_outstream << std::endl;

@@ -113,7 +113,7 @@ void Population::RemoveAllSubpopulationInfo(void)
     // Population::~Population(), at which point sim_ no longer exists!
     
 	// Free all subpopulations and then clear out our subpopulation list
-	for (auto subpopulation : subpops_)
+	for (const auto &subpopulation : subpops_)
 		delete subpopulation.second;
 	
 	subpops_.clear();
@@ -121,7 +121,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 	// Free all substitutions and clear out the substitution vectors
 	for (Chromosome *chromosome : species_.Chromosomes())
 	{
-		for (auto substitution : chromosome->substitutions_)
+		for (Substitution *substitution : chromosome->substitutions_)
 			substitution->Release();
 		
 		chromosome->substitutions_.resize(0);
@@ -159,7 +159,7 @@ void Population::RemoveAllSubpopulationInfo(void)
     // This design could probably stand to get cleaned up.  FIXME
 	if (keeping_muttype_registries_)
 	{
-		for (auto muttype_iter : species_.MutationTypes())
+		for (const auto &muttype_iter : species_.MutationTypes())
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -551,7 +551,7 @@ void Population::PurgeRemovedSubpopulations(void)
 {
 	if (removed_subpops_.size())
 	{
-		for (auto removed_subpop : removed_subpops_)
+		for (Subpopulation *removed_subpop : removed_subpops_)
 			delete removed_subpop;
 		
 		removed_subpops_.resize(0);
@@ -7716,7 +7716,7 @@ void Population::RemoveAllFixedMutations(void)
 	// the main registry is in charge of all bookkeeping, substitution, removal, etc.
 	if (keeping_muttype_registries_ && removed_mutation_accumulator.size())
 	{
-		for (auto muttype_iter : species_.MutationTypes())
+		for (const auto &muttype_iter : species_.MutationTypes())
 		{
 			MutationType *muttype = muttype_iter.second;
 			

@@ -54,7 +54,7 @@ public:
     void takeDebugOutput(QString str);
     void takeRunOutput(QString str);
     void takeSchedulingOutput(QString str);
-    void takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path);
+    void takeLogFileOutput(const std::vector<std::string> &lineElements, const std::string &path);
     void takeFileOutput(std::vector<std::string> &lines, bool append, const std::string &path);
     
     EidosValue_SP dataForColumn(LogFile *logFile, int64_t columnIndex);

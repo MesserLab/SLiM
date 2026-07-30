@@ -162,9 +162,9 @@
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	double *plotData = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
-	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
+	for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
 		[string appendFormat:@"\"m%lld\", ", (long long int)mutationType->mutation_type_id_];

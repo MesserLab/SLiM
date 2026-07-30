@@ -414,7 +414,7 @@ public:
 		// When running multithreaded, free all pools
 		for (auto &pool : s_freed_sparse_vectors_PERTHREAD)
 		{
-			for (auto sv : pool)
+			for (SparseVector *sv : pool)
 				delete (sv);
 			
 			pool.resize(0);
@@ -425,7 +425,7 @@ public:
 			count = 0;
 		#endif
 #else
-		for (auto sv : s_freed_sparse_vectors_SINGLE)
+		for (SparseVector *sv : s_freed_sparse_vectors_SINGLE)
 			delete (sv);
 		
 		s_freed_sparse_vectors_SINGLE.resize(0);

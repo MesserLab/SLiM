@@ -971,7 +971,7 @@ EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item : p_init_list)
+	for (eidos_logical_t init_item : p_init_list)
 		push_logical_no_check(init_item);
 }
 
@@ -1314,7 +1314,7 @@ EidosValue_Int::EidosValue_Int(std::initializer_list<int64_t> p_init_list) : Eid
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item : p_init_list)
+	for (int64_t init_item : p_init_list)
 		push_int_no_check(init_item);
 }
 
@@ -1514,7 +1514,7 @@ EidosValue_Float::EidosValue_Float(std::initializer_list<double> p_init_list) : 
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item : p_init_list)
+	for (double init_item : p_init_list)
 		push_float_no_check(init_item);
 }
 
@@ -1835,12 +1835,12 @@ EidosValue_Object::EidosValue_Object(std::initializer_list<EidosObject *> p_init
 	
 	if (class_uses_retain_release_)
 	{
-		for (auto init_item : p_init_list)
+		for (EidosObject *init_item : p_init_list)
 			push_object_element_no_check_RR(init_item);
 	}
 	else
 	{
-		for (auto init_item : p_init_list)
+		for (EidosObject *init_item : p_init_list)
 			push_object_element_no_check_NORR(init_item);
 	}
 }
@@ -2036,7 +2036,7 @@ void EidosValue_Object::SortBy(const std::string &p_property, bool p_ascending)
 			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
+			for (const auto &sorted_pair : sortable_pairs)
 				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;
@@ -2069,7 +2069,7 @@ void EidosValue_Object::SortBy(const std::string &p_property, bool p_ascending)
 			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
+			for (const auto &sorted_pair : sortable_pairs)
 				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;
@@ -2102,7 +2102,7 @@ void EidosValue_Object::SortBy(const std::string &p_property, bool p_ascending)
 			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
+			for (const auto &sorted_pair : sortable_pairs)
 				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;

@@ -170,7 +170,7 @@ void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);
 	
-	for (auto mutationTypeIter : graphSpecies->mutation_types_)
+	for (const auto &mutationTypeIter : graphSpecies->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

@@ -340,7 +340,7 @@ void EidosDataFrame::Print(std::ostream &p_ostream) const
 			// Calculate the column width
 			int max_width = 0;
 			
-			for (auto &col_string : col_output)
+			for (const auto &col_string : col_output)
 				max_width = std::max(max_width, (int)col_string.length());
 			
 			// Save the results

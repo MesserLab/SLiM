@@ -4555,7 +4555,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 				
 				// Mark all non-null haplosomes in the simulation that are not among the target haplosomes
-				for (auto subpop_pair : species->population_.subpops_)
+				for (const auto &subpop_pair : species->population_.subpops_)
 				{
 					Subpopulation *subpop = subpop_pair.second;
 					
@@ -4589,7 +4589,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				}
 				
 				// Loop through those haplosomes and log the new derived state at each (unique) position
-				for (auto subpop_pair : species->population_.subpops_)
+				for (const auto &subpop_pair : species->population_.subpops_)
 				{
 					Subpopulation *subpop = subpop_pair.second;
 					

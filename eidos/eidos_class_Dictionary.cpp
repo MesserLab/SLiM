@@ -94,7 +94,7 @@ std::vector<std::string> EidosDictionaryUnretained::SortedKeys_StringKeys(void) 
 	
 	if (dict_symbols)
 	{
-		for (auto &iter : *dict_symbols)
+		for (const auto &iter : *dict_symbols)
 			string_keys.push_back(iter.first);
 		
 		std::sort(string_keys.begin(), string_keys.end());
@@ -113,7 +113,7 @@ std::vector<int64_t> EidosDictionaryUnretained::SortedKeys_IntegerKeys(void) con
 	
 	if (dict_symbols)
 	{
-		for (auto &iter : *dict_symbols)
+		for (const auto &iter : *dict_symbols)
 			integer_keys.push_back(iter.first);
 		
 		std::sort(integer_keys.begin(), integer_keys.end());
@@ -162,7 +162,7 @@ void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_n
 	{
 		const EidosDictionaryHashTable_StringKeys *dict_symbols = DictionarySymbols_StringKeys();
 		
-		for (auto &iter : *dict_symbols)
+		for (const auto &iter : *dict_symbols)
 		{
 			EidosValue *value = iter.second.get();
 			
@@ -182,7 +182,7 @@ void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_n
 	{
 		const EidosDictionaryHashTable_IntegerKeys *dict_symbols = DictionarySymbols_IntegerKeys();
 		
-		for (auto &iter : *dict_symbols)
+		for (const auto &iter : *dict_symbols)
 		{
 			EidosValue *value = iter.second.get();
 			
@@ -977,7 +977,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 		if (json.is_object())
 		{
 			// iterate over the key-value pairs in the "object"
-			for (auto &element : json.items())
+			for (const auto &element : json.items())
 			{
 				if (!state_ptr)
 				{
@@ -1301,7 +1301,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_compactIndices(EidosGloba
 	else
 	{
 		// if we don't need to preserve the order, we can do it in O(n)
-		for (auto &iter : symbols)
+		for (const auto &iter : symbols)
 		{
 			int64_t key = iter.first;
 			EidosValue *value = iter.second.get();

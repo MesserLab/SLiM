@@ -1624,14 +1624,14 @@ std::vector<Subpopulation *> QtSLiMWindow::listedSubpopulations(void)
     if (displaySpecies)
     {
         // If we have a displaySpecies, we just show all of the subpopulations in the species
-        for (auto &iter : displaySpecies->population_.subpops_)
+        for (const auto &iter : displaySpecies->population_.subpops_)
             listedSubpops.push_back(iter.second);
     }
     else if (!invalidSimulation() && community && community->simulation_valid_)
     {
         // If we don't, then we show all subpopulations of all species; this is the "all" tab
         for (Species *species : community->AllSpecies())
-            for (auto &iter : species->population_.subpops_)
+            for (const auto &iter : species->population_.subpops_)
                 listedSubpops.push_back(iter.second);
         
         // Sort by id, not by species
@@ -1654,7 +1654,7 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
             {
                 Population &population = species->population_;
                 
-                for (auto popIter : population.subpops_)
+                for (const auto &popIter : population.subpops_)
                 {
                     Subpopulation *subpop = popIter.second;
                     
@@ -2783,7 +2783,7 @@ void QtSLiMWindow::updateOutputViews(void)
     {
         for (LogFile *logfile : community->log_file_registry_)
         {
-            for (auto &lineElements : logfile->emitted_lines_)
+            for (const auto &lineElements : logfile->emitted_lines_)
             {
                 // This call takes a vector of string elements comprising one logfile output line
                 debugWindow->takeLogFileOutput(lineElements, logfile->user_file_path_);
@@ -6245,7 +6245,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         parseErrorItem->setEnabled(false);
         
         // contextMenu never took ownership, so we need to dispose of allocated actions
-        for (auto &jump_pair : jumpActions)
+        for (const auto &jump_pair : jumpActions)
             delete jump_pair.second;
     }
     else
@@ -6256,7 +6256,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                   [](const std::pair<int32_t, QAction *> &a1, const std::pair<int32_t, QAction *> &a2) { return a1.first < a2.first; });
         
         // add them all to contextMenu, and give it ownership
-        for (auto &jump_pair : jumpActions)
+        for (const auto &jump_pair : jumpActions)
         {
             contextMenu.addAction(jump_pair.second);
             jump_pair.second->setParent(&contextMenu);

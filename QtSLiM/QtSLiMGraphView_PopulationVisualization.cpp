@@ -677,12 +677,12 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		
 		// in the multipop case, we need to draw migration arrows, too
 		{
-			for (auto destSubpopIter : pop.subpops_)
+			for (const auto &destSubpopIter : pop.subpops_)
 			{
 				Subpopulation *destSubpop = destSubpopIter.second;
 				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
-				for (auto sourceSubpopIter : destMigrants)
+				for (const auto &sourceSubpopIter : destMigrants)
 				{
 					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
                     Subpopulation *sourceSubpop = graphSpecies->SubpopulationWithID(sourceSubpopID);
@@ -735,7 +735,7 @@ void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &cont
     // handle those, and there's no way to revert back after it messes things up, and so forth
     bool userDefinedCenter = false;
     
-    for (auto subpopIter : pop.subpops_)
+    for (const auto &subpopIter : pop.subpops_)
         if (subpopIter.second->gui_center_from_user_)
         {
             userDefinedCenter = true;

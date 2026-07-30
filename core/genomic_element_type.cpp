@@ -262,7 +262,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto mut_type : mutation_type_ptrs_)
+			for (const auto &mut_type : mutation_type_ptrs_)
 				vec->push_object_element_NORR(mut_type);
 			
 			return result_SP;

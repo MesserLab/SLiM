@@ -116,7 +116,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGenerator
 	{
 		slim_popsize_t total_individuals = 0, total_males = 0;
 		
-		for (auto &subpop_iter : species->population_.subpops_)
+		for (const auto &subpop_iter : species->population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_iter.second;
 			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
@@ -143,7 +143,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 	Species *species = all_species[p_generator_info.objectid_];
 	slim_popsize_t total_individuals = 0;
 	
-	for (auto &subpop_iter : species->population_.subpops_)
+	for (const auto &subpop_iter : species->population_.subpops_)
 		total_individuals += (subpop_iter.second)->parent_subpop_size_;
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(total_individuals));

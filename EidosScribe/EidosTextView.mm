@@ -2024,7 +2024,7 @@
 	static const std::string underscore_string = "_";	// we exclude all APIs that start with an underscore, since they are non-public
 	
 	// First, a sorted list of properties
-	for (auto symbol_sig : terminus->Properties_TYPE_INTERPRETER())
+	for (const auto &symbol_sig : terminus->Properties_TYPE_INTERPRETER())
 	{
 		if (!symbol_sig->deprecated_ && !Eidos_string_hasPrefix(symbol_sig->property_name_, underscore_string))
 			[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
@@ -2033,7 +2033,7 @@
 	[candidates sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of methods, with () appended
-	for (auto method_sig : *terminus->Methods())
+	for (const auto &method_sig : *terminus->Methods())
 	{
 		if (!method_sig->deprecated_ && !Eidos_string_hasPrefix(method_sig->call_name_, underscore_string))
 		{

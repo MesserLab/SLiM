@@ -2954,7 +2954,7 @@ bool Eidos_FlushFiles(void)
 	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
 	bool success = true;
 	
-	for (auto &buffer_pair : gEidosBufferedZipAppendData)
+	for (const auto &buffer_pair : gEidosBufferedZipAppendData)
 	{
 		bool result = _Eidos_FlushZipBuffer(buffer_pair.first, buffer_pair.second);
 		
@@ -4229,14 +4229,14 @@ EidosStringRegistry::~EidosStringRegistry(void)
 	// have leaked the global strings that we constructed; apparently unordered_map keeps them in
 	// a way (unaligned?) that Valgrind does not recognize as a reference to the copies, so it
 	// reports them as leaked even though they're not.
-	for (auto gstr_iter : gIDToString_Thunk)
+	for (const _EidosRegisteredString *gstr_iter : gIDToString_Thunk)
 		delete (gstr_iter);
 	
 	gIDToString_Thunk.clear();
 
 	// We also free all the std::strings we allocated in _GlobalStringIDForString() to avoid
 	// them being reported as leaks.
-	for (auto g_string : globalString_Thunk)
+	for (const std::string *g_string : globalString_Thunk)
 		delete (g_string);
 	
 	globalString_Thunk.clear();

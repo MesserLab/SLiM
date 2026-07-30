@@ -244,7 +244,7 @@ QTableWidget *QtSLiMDebugOutputWindow::logFileTableForPath(const std::string &pa
     return table;
 }
 
-void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path)
+void QtSLiMDebugOutputWindow::takeLogFileOutput(const std::vector<std::string> &lineElements, const std::string &path)
 {
     // First, find the index of the log file view we're taking input into
     // If we didn't find one, make a new one

@@ -128,12 +128,12 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
         double maxHistory = -std::numeric_limits<double>::infinity();
         bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
         
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (const auto &history_record_iter : pop.fitness_histories_)
         {
             if (showSubpops || (history_record_iter.first == -1))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 // find the min and max history value
@@ -251,12 +251,12 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
     {
         QColor pointColor = ((iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black);
         
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (const auto &history_record_iter : pop.fitness_histories_)
         {
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
@@ -309,12 +309,12 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
         QColor lineColor = (iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black;
         double lineWidth = (iter == 0) ? 1.0 : 1.5;
         
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (const auto &history_record_iter : pop.fitness_histories_)
         {
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
@@ -385,12 +385,12 @@ void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
     
     for (int iter = 0; iter <= (showSubpops ? 1 : 0); ++iter)
     {
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (const auto &history_record_iter : pop.fitness_histories_)
         {
             if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
@@ -413,7 +413,7 @@ QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)
     Species *graphSpecies = focalDisplaySpecies();
     std::vector<slim_objectid_t> subpopsToDisplay;
     
-    for (auto history_record_iter : graphSpecies->population_.fitness_histories_)
+    for (const auto &history_record_iter : graphSpecies->population_.fitness_histories_)
         subpopsToDisplay.emplace_back(history_record_iter.first);
 
     return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);

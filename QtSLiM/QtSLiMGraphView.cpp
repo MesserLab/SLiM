@@ -1940,7 +1940,7 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
     }
     else
     {
-        for (auto subpop_id : subpopsToDisplay)
+        for (const auto &subpop_id : subpopsToDisplay)
         {
             if (subpop_id != -1)
             {
@@ -1976,7 +1976,7 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
         legend_key.emplace_back("placeholder", QColor());
     
     // then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-    for (auto mutationTypeIter : mutTypes)
+    for (const auto &mutationTypeIter : mutTypes)
     {
         MutationType *mutationType = mutationTypeIter.second;
         int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
@@ -2434,7 +2434,7 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 	{
 		Population &population = graphSpecies->population_;
 		
-		for (auto popIter : population.subpops_)
+		for (const auto &popIter : population.subpops_)
 		{
 			slim_objectid_t subpopID = popIter.first;
 			QString subpopString = QString("p%1").arg(subpopID);
@@ -2500,7 +2500,7 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	{
 		std::map<slim_objectid_t,MutationType*> &mutationTypes = graphSpecies->mutation_types_;
 		
-		for (auto mutTypeIter : mutationTypes)
+		for (const auto &mutTypeIter : mutationTypes)
 		{
 			MutationType *mutationType = mutTypeIter.second;
 			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;

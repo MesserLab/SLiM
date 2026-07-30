@@ -448,7 +448,7 @@ void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_
                 // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
                 std::vector<slim_objectid_t> all_muttypes;
                 
-                for (auto muttype_iter : muttypes)
+                for (const auto &muttype_iter : muttypes)
                 {
                     MutationType *muttype = muttype_iter.second;
                     slim_objectid_t muttype_id = muttype->mutation_type_id_;
@@ -534,7 +534,7 @@ void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_
                     // - (IBAction)filterNonNeutral:(id)sender
                     displayMuttypes_.clear();
                     
-                    for (auto muttype_iter : muttypes)
+                    for (const auto &muttype_iter : muttypes)
                     {
                         MutationType *muttype = muttype_iter.second;
                         slim_objectid_t muttype_id = muttype->mutation_type_id_;
@@ -1602,7 +1602,7 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(Species *displaySpecie
             std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
             std::vector<slim_objectid_t> &displayTypes = displayMuttypes();
             
-            for (auto muttype_iter : muttypes)
+            for (const auto &muttype_iter : muttypes)
             {
                 MutationType *muttype = muttype_iter.second;
                 

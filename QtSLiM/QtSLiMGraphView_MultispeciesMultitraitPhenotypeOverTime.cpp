@@ -135,12 +135,12 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::updateAfterTick(vo
                 std::map<slim_objectid_t,SubpopTraitHistory> &one_trait_histories = pop.subpop_trait_histories_[trait_index];
                 bool showSubpops = showSubpopulations_ && (one_trait_histories.size() > 2);
                 
-                for (auto history_record_iter : one_trait_histories)
+                for (const auto &history_record_iter : one_trait_histories)
                 {
                     if (showSubpops || (history_record_iter.first == -1))
                     {
-                        SubpopTraitHistory &history_record = history_record_iter.second;
-                        double *history = history_record.history_;
+						const SubpopTraitHistory &history_record = history_record_iter.second;
+						const double *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         // find the min and max history value
@@ -252,12 +252,12 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawPointGraph(QPa
                 if (iter == 0)
                     historyColor.setAlphaF(0.6);
                 
-                for (auto history_record_iter : one_trait_histories)
+                for (const auto &history_record_iter : one_trait_histories)
                 {
                     if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
                     {
-                        SubpopTraitHistory &history_record = history_record_iter.second;
-                        double *history = history_record.history_;
+						const SubpopTraitHistory &history_record = history_record_iter.second;
+						const double *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
@@ -328,12 +328,12 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawLineGraph(QPai
                     lineWidth = 1.0;
                 }
                 
-                for (auto history_record_iter : one_trait_histories)
+                for (const auto &history_record_iter : one_trait_histories)
                 {
                     if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
                     {
-                        SubpopTraitHistory &history_record = history_record_iter.second;
-                        double *history = history_record.history_;
+						const SubpopTraitHistory &history_record = history_record_iter.second;
+						const double *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         QPainterPath linePath;
                         bool startedLine = false;
@@ -405,12 +405,12 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::appendStringForDat
             
             for (int iter = 0; iter <= (showSubpops ? 1 : 0); ++iter)
             {
-                for (auto history_record_iter : one_trait_histories)
+                for (const auto &history_record_iter : one_trait_histories)
                 {
                     if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
                     {
-                        SubpopTraitHistory &history_record = history_record_iter.second;
-                        double *history = history_record.history_;
+						const SubpopTraitHistory &history_record = history_record_iter.second;
+						const double *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         if (iter == 1)

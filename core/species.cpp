@@ -136,13 +136,13 @@ Species::~Species(void)
 	
 	DeleteAllMutationRuns();
 	
-	for (auto mutation_type : mutation_types_)
+	for (const auto &mutation_type : mutation_types_)
 		delete mutation_type.second;
 	for (auto &element : mutation_types_)
 		element.second = nullptr;
 	mutation_types_.clear();
 	
-	for (auto genomic_element_type : genomic_element_types_)
+	for (const auto &genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
 	for (auto &element : genomic_element_types_)
 		element.second = nullptr;
@@ -206,7 +206,7 @@ Species::~Species(void)
 		delete mutation_block_;
 		mutation_block_ = nullptr;
 		
-		for (auto muttype_iter : mutation_types_)
+		for (const auto &muttype_iter : mutation_types_)
 			muttype_iter.second->mutation_block_ = nullptr;
 		
 		for (Chromosome *chromosome : chromosomes_)
@@ -228,7 +228,7 @@ Species::~Species(void)
 }
 
 Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) {
-	for (auto subpop_iter : population_.subpops_)
+	for (const auto &subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		if (subpop->name_ == p_subpop_name)
@@ -255,7 +255,7 @@ void Species::RecalculateOptimizationFlags(bool p_sweep_registry /* = false */)
 	// First we loop through all the mutation types (whether in use by a GEType or not) and validate them
 	type_s_DESs_present_ = false;
 	
-	for (auto mut_type_iter : mutation_types_)
+	for (const auto &mut_type_iter : mutation_types_)
 	{
 		MutationType *mutation_type_ptr = mut_type_iter.second;
 		
@@ -290,7 +290,7 @@ void Species::RecalculateOptimizationFlags(bool p_sweep_registry /* = false */)
 		species_all_neutral_mutations_ = true;
 		species_no_neutral_mutations_ = true;
 		
-		for (auto mut_type_iter : mutation_types_)
+		for (const auto &mut_type_iter : mutation_types_)
 		{
 			MutationType *mutation_type_ptr = mut_type_iter.second;
 			
@@ -314,7 +314,7 @@ void Species::RecalculateOptimizationFlags(bool p_sweep_registry /* = false */)
 	// not really true (the GEType might not be used anywhere, or the mutation rate might be 0.0, or all
 	// new mutations of that type might be rejected...).  Also, this logic could be done per-chromosome
 	// for greater accuracy.  FIXME MULTITRAIT
-	for (auto ge_type_iter : genomic_element_types_)
+	for (const auto &ge_type_iter : genomic_element_types_)
 	{
 		GenomicElementType *ge_type_ptr = ge_type_iter.second;
 		
@@ -401,7 +401,7 @@ void Species::CheckOptimizationFlags(void)
 	// are in the correct state; incorrect results will be produced if the optimization flags are wrong!
 	
 	// First check that all mutation types are tracked correctly
-	for (auto mut_type_iter : mutation_types_)
+	for (const auto &mut_type_iter : mutation_types_)
 	{
 		MutationType *mutation_type_ptr = mut_type_iter.second;
 		
@@ -418,7 +418,7 @@ void Species::CheckOptimizationFlags(void)
 	}
 	
 	// Then check that mutation types used by genomic element types have the correct effect on flags
-	for (auto ge_type_iter : genomic_element_types_)
+	for (const auto &ge_type_iter : genomic_element_types_)
 	{
 		GenomicElementType *ge_type_ptr = ge_type_iter.second;
 		
@@ -652,7 +652,7 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 	slim_trait_index_t callback_trait_index = p_callback->trait_index_;
 	slim_trait_index_t trait_count = TraitCount();
 	
-	for (auto subpop_iter : population_.subpops_)
+	for (const auto &subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		
@@ -731,7 +731,7 @@ void Species::InvalidateAllTraitValues(void)
 	// for example.  FIXME MULTITRAIT probably call this after loading data from a file, too.
 	slim_trait_index_t trait_count = TraitCount();
 	
-	for (auto subpop_iter : population_.subpops_)
+	for (const auto &subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		slim_popsize_t individuals_count = subpop->parent_subpop_size_;
@@ -823,7 +823,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	// starting afresh; we will recache completely anyway, and we need to avoid reading uninitialized values.
 	if (last_trait_calculation_regime_DIPLOID_ != TraitCalculationRegime::kUndefined)
 	{
-		for (auto muttype_iter : mut_types)
+		for (const auto &muttype_iter : mut_types)
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -841,7 +841,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 		bool all_muttypes_all_neutral_mutations = true;
 		bool all_traits_all_neutral_mutations = true;
 		
-		for (auto muttype_iter : mut_types)
+		for (const auto &muttype_iter : mut_types)
 			all_muttypes_all_neutral_mutations &= muttype_iter.second->muttype_all_neutral_mutations_;
 		for (Trait *trait : traits)
 			all_traits_all_neutral_mutations &= trait->trait_all_neutral_mutations_;
@@ -857,7 +857,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	
 	// Initially, every mutation type is assumed to be uninfluenced by callbacks, and thus pure-neutral
 	// if all mutations of that type are intrinsically neutral (i.e., have an effect of 0.0), which we track
-	for (auto muttype_iter : mut_types)
+	for (const auto &muttype_iter : mut_types)
 	{
 		MutationType *muttype = muttype_iter.second;
 		
@@ -961,7 +961,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			{
 				// if we know that all mutations are neutral for the trait, we can infer that every muttype is
 				// neutral for the trait (without the effects of callbacks, which we assess below)
-				for (auto muttype_iter : mut_types)
+				for (const auto &muttype_iter : mut_types)
 					trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_] = true;
 			}
 			else
@@ -969,7 +969,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 				// otherwise, we can take the effect of each mutation type of the trait as simply being whether
 				// it is pure neutral across the board; this misses out on per-trait effects, so this could be
 				// refined if we had per-trait information from the mutation type, but we don't have that.
-				for (auto muttype_iter : mut_types)
+				for (const auto &muttype_iter : mut_types)
 					trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_] = muttype_iter.second->is_pure_neutral_now_;
 			}
 			
@@ -1041,7 +1041,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			// now we can draw an inference about whether this trait is pure neutral or not
 			bool pure_neutral_for_all_muttypes = true;
 			
-			for (auto muttype_iter : mut_types)
+			for (const auto &muttype_iter : mut_types)
 				if (!trait_pure_neutral_for_muttype[muttype_iter.second->mutation_type_index_])
 					pure_neutral_for_all_muttypes = false;
 			
@@ -1062,7 +1062,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 		// that since it could have side effects
 		bool all_active_callbacks_are_global_neutral_effects = true;
 		
-		for (auto muttype_iter : mut_types)
+		for (const auto &muttype_iter : mut_types)
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -1097,7 +1097,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			// to do an extra check and potentially actually call a callback."
 			new_trait_calculation_regime_DIPLOID = TraitCalculationRegime::kNonNeutralCallbacks;
 			
-			for (auto muttype_iter : mut_types)
+			for (const auto &muttype_iter : mut_types)
 				(muttype_iter.second)->subject_to_mutationEffect_callback_ = false;
 			
 			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
@@ -1126,7 +1126,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	{
 		bool all_muttypes_are_pure_neutral = true;
 		
-		for (auto muttype_iter : mut_types)
+		for (const auto &muttype_iter : mut_types)
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -1205,7 +1205,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 			// but that seems like overkill since it isn't clear that any realistic model would be caught by it.
 			bool all_muttypes_are_nonneutral_by_callbacks = true;
 			
-			for (auto muttype_iter : mut_types)
+			for (const auto &muttype_iter : mut_types)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
@@ -1225,7 +1225,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 		// If we find such a mutation type, the model is not really all nonneutral; mutations of that mutation
 		// type would probably be excluded from the nonneutral cache, so we want to allow the nonneutral caches
 		// to be constructed.  Remember that this heuristic does not need to be exact; see above.
-		for (auto muttype_iter : mut_types)
+		for (const auto &muttype_iter : mut_types)
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -1292,7 +1292,7 @@ void Species::PrepareForTraitCalculations(std::vector<SLiMEidosBlock*> &mutation
 	bool all_muttypes_subject_to_callbacks = true;
 	bool any_muttypes_subject_to_callbacks = false;
 	
-	for (auto muttype_iter : mut_types)
+	for (const auto &muttype_iter : mut_types)
 	{
 		MutationType *muttype = muttype_iter.second;
 		
@@ -1793,7 +1793,7 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 			// carry over any non-neutral caches.  We therefore have to check subject_to_mutationEffect_callback_.
 			bool callback_state_identical = true;
 			
-			for (auto muttype_iter : mut_types)
+			for (const auto &muttype_iter : mut_types)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
@@ -1819,7 +1819,7 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 			// and subject_to_non_global_neutral_callback_ both have to be the same for us to carry over nonneutral caches.
 			bool callback_state_identical = true;
 			
-			for (auto muttype_iter : mut_types)
+			for (const auto &muttype_iter : mut_types)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
@@ -1866,7 +1866,7 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 			// to be the same for us to carry over our cached values.
 			bool callback_state_identical = true;
 			
-			for (auto muttype_iter : mut_types)
+			for (const auto &muttype_iter : mut_types)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
@@ -4749,7 +4749,7 @@ void Species::RunInitializeCallbacks(void)
 	// execute initialize() callbacks, which should always have a tick of 0 set
 	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1, /* p_active_only */ false);
 	
-	for (auto script_block : init_blocks)
+	for (SLiMEidosBlock *script_block : init_blocks)
 		community_.ExecuteEidosEvent(script_block);
 	
 	//
@@ -4810,7 +4810,7 @@ void Species::RunInitializeCallbacks(void)
 	{
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
-		for (auto script_block : script_blocks)
+		for (SLiMEidosBlock *script_block : script_blocks)
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback)
 				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): mateChoice() callbacks may not be defined in nonWF models." << EidosTerminate(script_block->identifier_token_);
 	}
@@ -4818,7 +4818,7 @@ void Species::RunInitializeCallbacks(void)
 	{
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
-		for (auto script_block : script_blocks)
+		for (SLiMEidosBlock *script_block : script_blocks)
 		{
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback)
 				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): reproduction() callbacks may not be defined in WF models." << EidosTerminate(script_block->identifier_token_);
@@ -4830,7 +4830,7 @@ void Species::RunInitializeCallbacks(void)
 	{
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
-		for (auto script_block : script_blocks)
+		for (SLiMEidosBlock *script_block : script_blocks)
 			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback) && (script_block->sex_specificity_ != IndividualSex::kUnspecified))
 				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): reproduction() callbacks may not be limited by sex in non-sexual models." << EidosTerminate(script_block->identifier_token_);
 	}
@@ -4838,7 +4838,7 @@ void Species::RunInitializeCallbacks(void)
 		// validate recombination() callbacks --  particularly their chromosome specifier, which is deferred to here
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
-		for (auto script_block : script_blocks)
+		for (SLiMEidosBlock *script_block : script_blocks)
 		{
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback)
 			{
@@ -4864,7 +4864,7 @@ void Species::RunInitializeCallbacks(void)
 		// validate mutationEffect() callbacks --  particularly their trait specifier, which is deferred to here
 		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
-		for (auto script_block : script_blocks)
+		for (SLiMEidosBlock *script_block : script_blocks)
 		{
 			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && (script_block->trait_index_ == -2))
 			{
@@ -4960,11 +4960,11 @@ void Species::RunInitializeCallbacks(void)
 		{
 			bool using_neutral_muttype = false;
 			
-			for (auto getype_iter : genomic_element_types_)
+			for (const auto &getype_iter : genomic_element_types_)
 			{
 				GenomicElementType *getype = getype_iter.second;
 				
-				for (auto muttype : getype->mutation_type_ptrs_)
+				for (MutationType *muttype : getype->mutation_type_ptrs_)
 				{
 					if (muttype->all_neutral_DES_)
 						using_neutral_muttype = true;
@@ -4991,7 +4991,7 @@ void Species::RunInitializeCallbacks(void)
 		{
 			bool no_traits_substitute = true;
 			
-			for (auto mut_type_iter : mutation_types_)
+			for (const auto &mut_type_iter : mutation_types_)
 				if (mut_type_iter.second->convert_to_substitution_)
 					no_traits_substitute = false;
 			
@@ -5014,7 +5014,7 @@ void Species::RunInitializeCallbacks(void)
 				bool muttype_independent_dominance_seen = false;
 				bool any_relevant_muttype = false;
 				
-				for (auto mut_type_iter : mutation_types_)
+				for (const auto &mut_type_iter : mutation_types_)
 				{
 					MutationType *muttype = mut_type_iter.second;
 					
@@ -5173,7 +5173,7 @@ void Species::CreateAndPromulgateMutationBlock(void)
 	// of getting it from us), since it is referred to very actively in many places
 	
 	// give it to all MutationType objects in this species
-	for (auto muttype_iter : mutation_types_)
+	for (const auto &muttype_iter : mutation_types_)
 		muttype_iter.second->mutation_block_ = mutation_block_;
 	
 	// give it to all Chromosome objects in this species
@@ -5272,7 +5272,7 @@ void Species::PrepareForCycle(void)
 	// Optimization; see mutation_type.h for an explanation of what this counter is used for
 	if (population_.any_muttype_call_count_used_)
 	{
-		for (auto muttype_iter : mutation_types_)
+		for (const auto &muttype_iter : mutation_types_)
 			(muttype_iter.second)->muttype_registry_call_count_ = 0;
 		
 		population_.any_muttype_call_count_used_ = false;
@@ -6406,7 +6406,7 @@ void Species::_CheckMutationStackPolicy(void)
 	// will verify the setup very quickly.
 	bool stacking_nonstandard = false;
 	
-	for (auto muttype_iter : mutation_types_)
+	for (const auto &muttype_iter : mutation_types_)
 	{
 		MutationType *muttype = muttype_iter.second;
 		
@@ -6427,7 +6427,7 @@ void Species::_CheckMutationStackPolicy(void)
 		// been fixed to use a single mutation stacking group).
 		std::vector<int64_t> checked_groups;
 		
-		for (auto muttype_iter : mutation_types_)
+		for (const auto &muttype_iter : mutation_types_)
 		{
 			MutationType *muttype = muttype_iter.second;
 			int64_t stack_group = muttype->stack_group_;
@@ -6437,7 +6437,7 @@ void Species::_CheckMutationStackPolicy(void)
 				// This stacking group has not been checked yet
 				MutationStackPolicy stack_policy = muttype->stack_policy_;
 				
-				for (auto muttype_iter2 : mutation_types_)
+				for (const auto &muttype_iter2 : mutation_types_)
 				{
 					MutationType *muttype2 = muttype_iter2.second;
 					
@@ -6471,7 +6471,7 @@ void Species::CacheNucleotideMatrices(void)
 	// and find the maximum mutation rate expressed by any genomic element type for any genomic background.
 	max_nucleotide_mut_rate_ = 0.0;
 	
-	for (auto type_entry : genomic_element_types_)
+	for (const auto &type_entry : genomic_element_types_)
 	{
 		GenomicElementType *ge_type = type_entry.second;
 		
@@ -6518,7 +6518,7 @@ void Species::CacheNucleotideMatrices(void)
 	
 	// Now go through the genomic element types again, and calculate normalized mutation rate
 	// threshold values that will allow fast decisions on which derived nucleotide to create
-	for (auto type_entry : genomic_element_types_)
+	for (const auto &type_entry : genomic_element_types_)
 	{
 		GenomicElementType *ge_type = type_entry.second;
 		
@@ -6586,7 +6586,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	size_t haplosome_pool_usage = 0, individual_pool_usage = 0;
 	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 	
-	for (auto iter : population_.subpops_)
+	for (const auto &iter : population_.subpops_)
 	{
 		Subpopulation &subpop = *iter.second;
 		
@@ -6675,7 +6675,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	{
 		int64_t objectCount = 0;
 		
-		for (auto iter : population_.subpops_)
+		for (const auto &iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
 			
@@ -6797,7 +6797,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		p_usage->subpopulationObjects_count = population_.subpops_.size();
 		p_usage->subpopulationObjects = sizeof(Subpopulation) * p_usage->subpopulationObjects_count;
 		
-		for (auto iter : population_.subpops_)
+		for (const auto &iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
 			
@@ -7760,7 +7760,7 @@ void Species::SimplifyAllTreeSequences(void)
 		}
 		
 		// and then come all the nodes of the extant individuals
-		for (auto subpop_iter : population_.subpops_)
+		for (const auto &subpop_iter : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_iter.second;
 			
@@ -7915,7 +7915,7 @@ void Species::SimplifyAllTreeSequences(void)
 			remembered_nodes_[j] = node_id_map[samples[j]];
 		
 		// and update the tskit node id base for all extant individuals, similarly
-		for (auto subpop_iter : population_.subpops_)
+		for (const auto &subpop_iter : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_iter.second;
 			
@@ -8144,7 +8144,7 @@ void Species::CheckCoalescenceAfterSimplification(TreeSeqInfo &tsinfo)
 	int last_haplosome_index = LastHaplosomeIndices()[tsinfo.chromosome_index_];
 	std::vector<tsk_id_t> all_extant_nodes;
 	
-	for (auto subpop_iter : population_.subpops_)
+	for (const auto &subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		
@@ -9000,7 +9000,7 @@ void Species::AddLiveIndividualsToIndividualsTable(tsk_table_collection_t *p_tab
 {
 	// add currently alive individuals to the individuals table, so they persist
 	// through simplify and can be revived when loading saved state
-	for (auto subpop_iter : population_.subpops_)
+	for (const auto &subpop_iter : population_.subpops_)
 	{
 		AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, p_individuals_hash, SLIM_TSK_INDIVIDUAL_ALIVE);
 	}
@@ -9066,7 +9066,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 	// write out an entry for each subpop
 	slim_objectid_t last_id_written = -1;
 	
-	for (auto subpop_iter : population_.subpops_)
+	for (const auto &subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
@@ -11040,7 +11040,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		std::vector<Substitution *> vector_subs = chromosome->substitutions_;
 		std::vector<Substitution *> multimap_subs;
 		
-		for (auto entry : chromosome->treeseq_substitutions_map_)
+		for (const auto &entry : chromosome->treeseq_substitutions_map_)
 			multimap_subs.emplace_back(entry.second);
 		
 		std::sort(vector_subs.begin(), vector_subs.end());
@@ -11062,7 +11062,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		static std::vector<Haplosome *> haplosomes;
 		haplosomes.resize(0);
 		
-		for (auto pop_iter : population_.subpops_)
+		for (const auto &pop_iter : population_.subpops_)
 		{
 			Subpopulation *subpop = pop_iter.second;
 			
@@ -11130,7 +11130,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			{
 				std::vector<tsk_id_t> samples;
 				
-				for (auto iter : population_.subpops_)
+				for (const auto &iter : population_.subpops_)
 				{
 					Subpopulation *subpop = iter.second;
 					
@@ -11468,7 +11468,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 			if (pop_count == 0)
 				EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): the population table is empty, and therefore cannot be remapped." << EidosTerminate(nullptr);
 			
-			for (auto &remap_entry : p_subpop_map)
+			for (const auto &remap_entry : p_subpop_map)
 			{
 				int64_t table_index = remap_entry.first;
 				//slim_objectid_t remapped_index = remap_entry.second;
@@ -12087,10 +12087,10 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	
 	gSLiM_next_pedigree_id = 0;
 	
-	for (auto subpop_info_iter : p_subpopInfoMap)
+	for (const auto &subpop_info_iter : p_subpopInfoMap)
 	{
 		slim_objectid_t subpop_id = subpop_info_iter.first;
-		ts_subpop_info &subpop_info = subpop_info_iter.second;
+		const ts_subpop_info &subpop_info = subpop_info_iter.second;
 		slim_popsize_t subpop_size = sex_enabled_ ? (subpop_info.countMH_ + subpop_info.countF_) : subpop_info.countMH_;
 		double sex_ratio = sex_enabled_ ? (subpop_info.countMH_ / (double)subpop_size) : 0.5;
 		
@@ -12308,10 +12308,10 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 	
 	// We do not check pedigree ids in this secondary pass; __CreateSubpopulationsFromTabulation() set them up.
 	
-	for (auto subpop_info_iter : p_subpopInfoMap)
+	for (const auto &subpop_info_iter : p_subpopInfoMap)
 	{
 		slim_objectid_t subpop_id = subpop_info_iter.first;
-		ts_subpop_info &subpop_info = subpop_info_iter.second;
+		const ts_subpop_info &subpop_info = subpop_info_iter.second;
 		slim_popsize_t subpop_size = sex_enabled_ ? (subpop_info.countMH_ + subpop_info.countF_) : subpop_info.countMH_;
 		
 		// Get the existing subpopulation and check that its size and sex ratio match expectations.
@@ -13042,7 +13042,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	// count the number of non-null haplosomes there are for the focal chromosome; this is the count that would represent fixation
 	slim_refcount_t fixation_count = 0;
 	
-	for (auto pop_iter : population_.subpops_)
+	for (const auto &pop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = pop_iter.second;
 		
@@ -13063,10 +13063,10 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	// instantiate mutations
 	bool make_unreferenced_mutations = RecordingTreeSequenceMutations();
 	
-	for (auto mut_info_iter : p_mutInfoMap)
+	for (const auto &mut_info_iter : p_mutInfoMap)
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
-		ts_mut_info &mut_info = mut_info_iter.second;
+		const ts_mut_info &mut_info = mut_info_iter.second;
 		MutationTableMetadataRec *metadata_ptr = mut_info.metadata;
 		slim_position_t position = mut_info.position;
 		

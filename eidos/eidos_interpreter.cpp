@@ -1587,7 +1587,7 @@ std::vector<EidosValue_SP> *EidosInterpreter::_ProcessArgumentList_CREATE(const 
 				// signature's ellipsis gets mapped to that position, and everything after gets shifted down.
 				int base_ellipsis_index = -1;
 				
-				for (auto base_arg_name : p_call_signature->arg_names_) {
+				for (const auto &base_arg_name : p_call_signature->arg_names_) {
 					++base_ellipsis_index;
 					if (base_arg_name == gEidosStr_ELLIPSIS)
 						break;

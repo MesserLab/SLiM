@@ -1411,7 +1411,7 @@ void SLiMEidosBlock::TokenizeAndParse(void)
 void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node)
 {
 	// recurse down the tree; determine our children, then ourselves
-	for (auto child : p_scan_node->children_)
+	for (EidosASTNode *child : p_scan_node->children_)
 		_ScanNodeForIdentifiersUsed(child);
 	
 	if (p_scan_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)

@@ -120,7 +120,7 @@ Community::~Community(void)
 	all_mutation_types_.clear();
 	all_genomic_element_types_.clear();
 	
-	for (auto interaction_type : interaction_types_)
+	for (const auto &interaction_type : interaction_types_)
 		delete interaction_type.second;
 	interaction_types_.clear();
 	
@@ -132,7 +132,7 @@ Community::~Community(void)
 	
 	simulation_functions_.clear();
 	
-	for (auto script_block : script_blocks_)
+	for (SLiMEidosBlock *script_block : script_blocks_)
 		delete script_block;
 	script_blocks_.clear();
 	
@@ -501,7 +501,7 @@ void Community::ValidateScriptBlockCaches(void)
 		}
 #endif
 		
-		for (auto script_block : script_blocks)
+		for (SLiMEidosBlock *script_block : script_blocks)
 		{
 			// only blocks that have been scheduled are eligible; others have to wait until the next call to EvaluateScriptBlockTickRanges()
 			if (!script_block->tick_range_evaluated_)
@@ -1379,13 +1379,13 @@ Species *Community::SpeciesWithName(const std::string &species_name)
 
 void Community::InvalidateInteractionsForSpecies(Species *p_invalid_species)
 {
-	for (auto iter : interaction_types_)
+	for (const auto &iter : interaction_types_)
 		iter.second->InvalidateForSpecies(p_invalid_species);
 }
 
 void Community::InvalidateInteractionsForSubpopulation(Subpopulation *p_invalid_subpop)
 {
-	for (auto iter : interaction_types_)
+	for (const auto &iter : interaction_types_)
 		iter.second->InvalidateForSubpopulation(p_invalid_subpop);
 }
 
@@ -1741,7 +1741,7 @@ void Community::EvaluateScriptBlockTickRanges()
 	
 	bool any_scheduling_change = false;		// set to true if anything actually gets scheduled
 	
-	for (auto script_block : script_blocks)
+	for (SLiMEidosBlock *script_block : script_blocks)
 	{
 		if ((script_block->type_ != SLiMEidosBlockType::SLiMEidosInitializeCallback) &&
 			!script_block->tick_range_evaluated_)
@@ -2043,7 +2043,7 @@ void Community::FlagUnevaluatedScriptBlockTickRanges()
 	
 	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 	
-	for (auto script_block : script_blocks)
+	for (SLiMEidosBlock *script_block : script_blocks)
 	{
 		if ((script_block->type_ != SLiMEidosBlockType::SLiMEidosInitializeCallback) &&
 			!script_block->tick_range_evaluated_)
@@ -2063,7 +2063,7 @@ slim_tick_t Community::FirstTick(void)
 	
 	// Figure out our first tick; it is the earliest tick in which an Eidos event is set up to run,
 	// since an Eidos event that adds a subpopulation is necessary to get things started
-	for (auto script_block : script_blocks)
+	for (SLiMEidosBlock *script_block : script_blocks)
 	{
 		if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
 			(script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
@@ -2105,7 +2105,7 @@ slim_tick_t Community::EstimatedLastTick(void)
 	// The estimate is derived from the last tick in which an Eidos block is registered.
 	// Any block type works, since the simulation could plausibly be stopped within a callback.
 	// However, blocks that do not specify an end tick don't count.
-	for (auto script_block : script_blocks)
+	for (SLiMEidosBlock *script_block : script_blocks)
 	{
 		if (script_block->tick_range_is_sequence_)
 		{
@@ -2334,7 +2334,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
 	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 	
-	for (auto script_block : function_blocks)
+	for (SLiMEidosBlock *script_block : function_blocks)
 		ExecuteFunctionDefinitionBlock(script_block);
 	
 	if (SLiM_verbosity_level >= 1)
@@ -2434,7 +2434,7 @@ void Community::RunInitializeCallbacks(void)
 	// execute `species all` initialize() callbacks, which should always have a tick of 0 set
 	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 	
-	for (auto script_block : init_blocks)
+	for (SLiMEidosBlock *script_block : init_blocks)
 		ExecuteEidosEvent(script_block);
 	
 	// check for complete initialization
@@ -2698,7 +2698,7 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kWFStage0ExecuteFirstScripts;
 		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
-		for (auto script_block : first_blocks)
+		for (SLiMEidosBlock *script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
 		
 		// the stage is done, so deregister script blocks as requested
@@ -2730,7 +2730,7 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kWFStage1ExecuteEarlyScripts;
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
-		for (auto script_block : early_blocks)
+		for (SLiMEidosBlock *script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
 		
 		// the stage is done, so deregister script blocks as requested
@@ -2896,7 +2896,7 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kWFStage5ExecuteLateScripts;
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
-		for (auto script_block : late_blocks)
+		for (SLiMEidosBlock *script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
 		
 		// the stage is done, so deregister script blocks as requested
@@ -3070,7 +3070,7 @@ bool Community::_RunOneTickNonWF(void)
 		cycle_stage_ = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts;
 		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
-		for (auto script_block : first_blocks)
+		for (SLiMEidosBlock *script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
 		
 		// the stage is done, so deregister script blocks as requested
@@ -3206,7 +3206,7 @@ bool Community::_RunOneTickNonWF(void)
 		cycle_stage_ = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts;
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
-		for (auto script_block : early_blocks)
+		for (SLiMEidosBlock *script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
 		
 		// the stage is done, so deregister script blocks as requested
@@ -3373,7 +3373,7 @@ bool Community::_RunOneTickNonWF(void)
 		cycle_stage_ = SLiMCycleStage::kNonWFStage6ExecuteLateScripts;
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, -1, nullptr, /* p_active_only */ false);
 		
-		for (auto script_block : late_blocks)
+		for (SLiMEidosBlock *script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
 		
 		// the stage is done, so deregister script blocks as requested
@@ -3519,7 +3519,7 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 		p_usage->interactionTypeObjects_count = interaction_types_.size();
 		p_usage->interactionTypeObjects = sizeof(InteractionType) * p_usage->interactionTypeObjects_count;
 		
-		for (auto iter : interaction_types_)
+		for (const auto &iter : interaction_types_)
 		{
 			p_usage->interactionTypeKDTrees += iter.second->MemoryUsageForKDTrees();
 			p_usage->interactionTypePositionCaches += iter.second->MemoryUsageForPositions();

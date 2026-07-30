@@ -689,20 +689,20 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		
 		// in the multipop case, we need to draw migration arrows, too
 		{
-			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
+			for (const auto &destSubpopIter : pop.subpops_)
 			{
-				Subpopulation *destSubpop = (*destSubpopIter).second;
+				Subpopulation *destSubpop = destSubpopIter.second;
 				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
-				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
+				for (const auto &sourceSubpopIter : destMigrants)
 				{
-					slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
+					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
 					auto sourceSubpopPair = pop.subpops_.find(sourceSubpopID);
 					
 					if (sourceSubpopPair != pop.subpops_.end())
 					{
 						Subpopulation *sourceSubpop = sourceSubpopPair->second;
-						double migrantFraction = (*sourceSubpopIter).second;
+						double migrantFraction = sourceSubpopIter.second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
 						if (community.ModelType() == SLiMModelType::kModelTypeNonWF)
