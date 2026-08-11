@@ -40,8 +40,7 @@
 #include "mutation_run.h"
 #include "mutation_block.h"
 
-//TREE SEQUENCE
-//INCLUDE JEROME's TABLES API
+// TREE SEQUENCE RECORDING
 #ifdef __cplusplus
 extern "C" {
 #endif

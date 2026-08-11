@@ -1989,6 +1989,7 @@ EidosValue *Individual::GetProperty_Accelerated_cachedFitness(EidosGlobalStringI
 EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
 #pragma unused (p_property_id)
+	// FIXME: This could be called for a vector of individuals of mixed species, so this check is inadequate, right?
 	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_->species_.PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 	

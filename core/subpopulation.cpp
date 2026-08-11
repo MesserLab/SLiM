@@ -414,6 +414,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	}
 }
 
+#if DEBUG
 void Subpopulation::CheckIndividualIntegrity(void) const
 {
 	ClearErrorPosition();
@@ -1120,6 +1121,7 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 		}
 	}
 }
+#endif
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Subpopulation_Class))), 

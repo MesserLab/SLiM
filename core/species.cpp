@@ -8345,7 +8345,7 @@ void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 		EIDOS_TERMINATION << "ERROR (Species::SetCurrentNewIndividual): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-	// This is called by code where new individuals are created
+	// This is called by code where new individuals are created, when treeseq recording is enabled
 	
 	// Remember the new individual being defined; we don't need this right now,
 	// but it seems to keep coming back, so I've kept the code for it...
@@ -8375,7 +8375,8 @@ void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 	// this code is not thread-safe!  The design is this way because the size of HaplosomeMetadataRec
 	// is determined dynamically at runtime, depending on the number of chromosomes in the model.
 	// (If we want this to run in parallel across chromosomes eventually, we could keep separate
-	// copies of the default haplosome metadata for each chromosome, to make this thread-safe...)
+	// copies of the default haplosome metadata for each chromosome, to make this thread-safe...
+	// but this code adds entries to the shared node table, so that would also need locking, etc.)
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL();
 	static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
 	HaplosomeMetadataRec *metadata1, *metadata2;
@@ -8410,8 +8411,6 @@ void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 	// The individual remembers the tskid of the first node (which is the same across all haplosomes
 	// in 1st position).  For haplosomes in 2nd position, it is first_tsk_node_id + 1.
 	p_individual->SetTskitNodeIdBase(nodeTSKID1);
-	
-	// The haplosome metadata is presently all zero.  FinalizeCurrentNewIndividual() will clean it up.
 }
 
 void Species::RetractNewIndividual()
