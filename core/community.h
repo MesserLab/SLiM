@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/28/2022.
-//  Copyright (c) 2022-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2022-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -38,7 +38,6 @@
 #include "eidos_functions.h"
 #include "slim_eidos_block.h"
 
-
 class EidosInterpreter;
 class Individual;
 class LogFile;
@@ -49,7 +48,9 @@ struct EidosInterpreterDebugPointsSet_struct;
 typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
 #endif
 
-extern EidosClass *gSLiM_Community_Class;
+
+class Community_Class;
+extern Community_Class *gSLiM_Community_Class;
 
 
 #pragma mark -
@@ -213,7 +214,7 @@ public:
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each cycle stage that calls out to script
 	void ValidateScriptBlockCaches(void);
-	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id, Species *p_species);
+	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, slim_trait_index_t p_trait_index, int64_t p_chromosome_id, Species *p_species, bool p_active_only);
 	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
 	std::vector<SLiMEidosBlock*> AllScriptBlocksForSpecies(Species *p_species);
 	void OptimizeScriptBlock(SLiMEidosBlock *p_script_block);
@@ -360,6 +361,11 @@ public:
 	static const std::vector<EidosFunctionSignature_CSP> *SLiMFunctionSignatures(void);		// all non-zero-tick functions
 	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
 	
+	// timing restriction enforcement
+	void EnforceTimingRestriction_EventBlockOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
+	void EnforceTimingRestriction_ReproductionCallbackOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
+	void EnforceTimingRestriction_FirstEventStageOnly(const char *p_method_name, const char *p_eidos_name, const char *p_addendum);
+	
 	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
@@ -399,7 +405,7 @@ public:
 	Community_Class& operator=(const Community_Class&) = delete;	// no copying
 	inline Community_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 

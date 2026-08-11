@@ -1,0 +1,15 @@
+// Keywords: explicit trait, direct fitness effect, multiplicative trait, baseline offset, baseline accumulation
+
+initialize() {
+	initializeTrait("trait1", "multiplicative", directFitnessEffect=T);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "e", 0.01);
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+20000 late() { sim.outputFixedMutations(); }

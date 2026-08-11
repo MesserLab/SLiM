@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/14/2022.
-//  Copyright (c) 2022-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2022-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -103,7 +103,7 @@ public:
 	void Strengths(uint32_t *p_nnz, uint32_t **p_columns, sv_value_t **p_strengths);	// non-const
 	
 	// Memory usage tallying, for outputUsage()
-	size_t MemoryUsage(void);
+	size_t MemoryUsage(void) const;
 	
 	friend std::ostream &operator<<(std::ostream &p_outstream, const SparseVector &p_vector);
 };

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -65,6 +65,7 @@ class QtSLiMChromosomeWidgetController : public QObject
     std::string focalSpeciesName_;                  // we keep the name of our focal species, since a pointer would be unsafe
     std::string focalSpeciesAvatar_;                // cached so we can display it even when the simulation is invalid
     std::string chromosomeSymbol_;                  // a chromosome symbol, or "" for "all chromosomes"
+    std::string focalTraitName_;                    // we keep the name of our focal trait, since a pointer would be unsafe
     bool needsRebuild_ = false;                     // true immediately after recycling
     
 public:
@@ -89,6 +90,7 @@ public:
     bool invalidSimulation(void) { return slimWindow_->invalidSimulation(); }
     Community *community(void) { return slimWindow_->community; }
     Species *focalDisplaySpecies(void);
+    Trait *focalTraitForSpecies(Species *species);  // nullptr represents "fitness"
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha)
         { slimWindow_->colorForGenomicElementType(elementType, elementTypeID, p_red, p_green, p_blue, p_alpha); }
     QtSLiMWindow *slimWindow(void) { return slimWindow_; }
@@ -156,6 +158,13 @@ public:
     Species *focalDisplaySpecies(void);
     void setFocalChromosome(Chromosome *chromosome);
     Chromosome *focalChromosome(void);
+    
+    static double MutationFitnessEffect(Species *displaySpecies, MutationTraitInfo *mut_trait_info);
+    static double SubstitutionFitnessEffect(Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info_);
+    static double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *mut_type);
+    static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, MutationType *mut_type, MutationTraitInfo *mut_trait_info);
+    static void RGBForMutation(Trait *displayTrait, Species *displaySpecies, MutationTraitInfo *mut_trait_info, float *colorRed, float *colorGreen, float *colorBlue);
+    static void RGBForSubstitution(Trait *displayTrait, Species *displaySpecies, SubstitutionTraitInfo *sub_trait_info, float *colorRed, float *colorGreen, float *colorBlue);
     
     void setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget);
     

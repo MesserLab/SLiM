@@ -3,7 +3,7 @@
 //  SLiMgui
 //
 //  Created by Ben Haller on 1/30/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -37,7 +37,8 @@
 @class SLiMWindowController;
 
 
-extern EidosClass *gSLiM_Plot_Class;
+class Plot_Class;
+extern Plot_Class *gSLiM_Plot_Class;
 
 
 class Plot : public EidosDictionaryUnretained
@@ -94,7 +95,7 @@ public:
 	Plot_Class& operator=(const Plot_Class&) = delete;	// no copying
 	inline Plot_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 

@@ -1,0 +1,86 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, phenotypic plasticity, gene by environment, GxE
+
+initialize() {
+	defineConstant("BASELINE", 15.20);  // baseline body length without mutations
+	defineConstant("OPT", 17.16);       // optimum body length
+	defineConstant("END", 10000);       // final tick
+	initializeTrait("bodyLength", "additive", baselineOffset=BASELINE,
+		individualOffsetMean=0.0, individualOffsetSD=0.35);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", NAN, "n", 0.0, 0.1);
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.002));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 1000);
+	
+	palette = Palette(c(15.0, OPT, 18.0), c("red", "green", "blue"));
+	sim.bodyLength.individualPhenotypePalette = palette;
+	
+	defineGlobal("HIST_GENS", NULL);       // history of the generations logged
+	defineGlobal("HIST_MEAN", NULL);       // history of mean phenotype
+	defineGlobal("HIST_25", NULL);         // history of phenotype 25% quantile
+	defineGlobal("HIST_75", NULL);         // history of phenotype 75% quantile
+	defineGlobal("HIST_NONPLASTIC", NULL); // history of non-plastic mean
+	defineGlobal("HIST_NP_25", NULL);      // history of phenotype 25% quantile
+	defineGlobal("HIST_NP_75", NULL);      // history of phenotype 75% quantile
+	defineGlobal("HIST_BASE", NULL);       // history of the baseline offset
+	defineGlobal("HIST_H2", NULL);         // history of the heritability h2
+}
+late() {
+	sim.demandPhenotype(NULL, "bodyLength");
+	
+	inds = p1.individuals;
+	phenotype = inds.bodyLength;
+	additive = phenotype - inds.bodyLengthOffset;	// P = G + E, so G = P - E
+	
+	// add in some adaptive phenotypic plasticity, up to a maximum of 1.23 cm
+	plasticity = pmax(-1.23, pmin(1.23, (OPT - additive) / 2.0));
+	nonplastic = phenotype;
+	phenotype = nonplastic + plasticity;
+	
+	// calculate fitness as a function of phenotype
+	fitness = dnorm(phenotype, OPT, 0.5) / dnorm(OPT, OPT, 2.0);
+	inds.fitnessScaling = fitness;
+	
+	if (community.tick % 10 == 1)
+	{
+		// Track the model over time
+		defineGlobal("HIST_GENS", c(HIST_GENS, community.tick));
+		defineGlobal("HIST_MEAN", c(HIST_MEAN, mean(phenotype)));
+		defineGlobal("HIST_25", c(HIST_25, quantile(phenotype, 0.25)));
+		defineGlobal("HIST_75", c(HIST_75, quantile(phenotype, 0.75)));
+		defineGlobal("HIST_NONPLASTIC", c(HIST_NONPLASTIC, mean(nonplastic)));
+		defineGlobal("HIST_NP_25", c(HIST_NP_25, quantile(nonplastic, 0.25)));
+		defineGlobal("HIST_NP_75", c(HIST_NP_75, quantile(nonplastic, 0.75)));
+		defineGlobal("HIST_BASE", c(HIST_BASE, sim.bodyLength.baselineOffset));
+		defineGlobal("HIST_H2", c(HIST_H2, var(additive) / var(phenotype)));
+		
+		// Plot mean phenotype over time
+		plot = slimgui.createPlot("Phenotype ~ Generation", 
+			xrange=c(1, END), yrange=c(14, 18),
+			xlab="Generation", ylab="Body length",
+			width=600, height=200);
+		plot.abline(h=BASELINE, color="chartreuse3", lwd=1);
+		plot.abline(h=OPT, color="cornflowerblue", lwd=1);
+		plot.lines(HIST_GENS, HIST_MEAN, color="red", lwd=2.0);
+		plot.lines(HIST_GENS, HIST_25, color="pink", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_75, color="pink", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_NONPLASTIC, color="green", lwd=2.0);
+		plot.lines(HIST_GENS, HIST_NP_25, color="lightgreen", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_NP_75, color="lightgreen", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_BASE, color="black", lwd=1.0);
+		
+		// Plot heritability over time
+		plot = slimgui.createPlot("Heritability ~ Generation", 
+			xrange=c(1, END), yrange=c(0.0, 1.0),
+			xlab="Generation", ylab="Heritability (h2)",
+			width=600, height=200);
+		plot.abline(v=sim.substitutionsOfType(m2).originTick, color="gray");
+		plot.lines(HIST_GENS, HIST_H2, color="red", lwd=2.0);
+	}
+}
+END late() { }

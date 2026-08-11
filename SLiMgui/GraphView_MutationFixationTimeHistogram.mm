@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/1/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -137,9 +137,9 @@
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
-	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
+	for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
 		[string appendFormat:@"\"m%lld\", ", (long long int)mutationType->mutation_type_id_];

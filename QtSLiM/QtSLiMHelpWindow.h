@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/19/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -132,6 +132,7 @@ private:
     
     // responding to events
     virtual void closeEvent(QCloseEvent *e) override;
+    void displayFontPrefChanged(void);
     void outlineSelectionChanged(void);
     
     // Internals

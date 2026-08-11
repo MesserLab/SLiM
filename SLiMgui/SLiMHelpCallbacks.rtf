@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fnil\fcharset0 Menlo-Regular;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red28\green0\blue207;\red63\green110\blue116;
@@ -302,78 +302,75 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \f2\fs22  callbacks.\
 A 
 \f3\fs18 mutationEffect()
-\f2\fs22  callback is called by SLiM when it is determining the fitness effect of a mutation carried by an individual.  Normally, the fitness effect of a mutation is determined by the selection coefficient 
+\f2\fs22  callback is called by SLiM when it is determining the effect of a mutation carried by an individual.  Normally, the effect of a mutation on a given trait in an individual is determined by equations built into SLiM that depend upon the type of trait.  This discussion will begin by reviewing exactly how that works.\
+For a multiplicative trait (such as the default trait), the effect is calculated from the selection coefficient 
 \f0\i s
 \f2\i0  of the mutation and the dominance coefficient 
 \f0\i h
-\f2\i0  of the mutation (the latter used only if the individual is heterozygous for the mutation).  More specifically, the standard calculation for the fitness effect of a mutation takes one of two forms.  If the individual is homozygous, then the fitness effect is (1+
+\f2\i0  of the mutation (the latter used only if the individual is heterozygous for the mutation).  More specifically, the standard equation for the effect of a mutation on a multiplicative trait takes one of two forms.  If the individual is homozygous, then the mutation effect is 1+
 \f0\i s
-\f2\i0 ), or:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
-
-\f0\i \cf2 w
-\f2\i0  = 
-\f0\i w
-\f2\i0  * (1.0 + selectionCoefficient),\
-\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
-\cf2 where 
-\f0\i w
-\f2\i0  is the relative fitness of the individual carrying the mutation.  If the individual is heterozygous, then the dominance coefficient enters the picture, and the fitness effect is (1+
+\f2\i0 ; if the individual is heterozygous, then the dominance coefficient enters the picture, and the mutation effect is 1+
 \f0\i hs
-\f2\i0 ) or:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
-
-\f0\i \cf2 w
-\f2\i0  = 
-\f0\i w
-\f2\i0  * (1.0 + dominanceCoeff * selectionCoeff).\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 The dominance coefficient usually comes from the 
-\f3\fs18 dominanceCoeff
-\f2\fs22  property of the mutation\'92s 
-\f3\fs18 MutationType
-\f2\fs22 ; if the focal individual has only one non-null haplosome, however, such that the mutation is paired with a null haplosome (i.e., is actually hemizygous, not heterozygous), the 
-\f3\fs18 hemizygousDominanceCoeff
-\f2\fs22  property of the 
-\f3\fs18 MutationType
-\f2\fs22  is used instead.\
-That is the standard behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
+\f2\i0 .  In either case, since the trait is multiplicative the mutation effect is multiplied together with other effects on the trait (such as the baseline offset and individual offset, as well as effects returned by 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks) to produce the final trait value for the individual.\
+For an additive trait, the effect is calculated from the effect size 
+\f0\i a
+\f2\i0  of the mutation and the dominance coefficient 
+\f0\i h
+\f2\i0  of the mutation (the latter used only if the individual is heterozygous for the mutation).  More specifically, the standard equation for the effect of a mutation on an additive trait takes one of two forms.  If the individual is homozygous, then the mutation effect is 2
+\f0\i a
+\f2\i0 ; if the individual is heterozygous, then the dominance coefficient enters the picture, and the fitness effect is 2
+\f0\i ha
+\f2\i0 .  In either case, since the trait is additive the mutation effect added together with other effects on the trait (such as the baseline offset and individual offset, as well as effects returned by 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks) to produce the final trait value for the individual.  (For a logistic trait, the trait value is computed as for an additive trait and then post-transformed with the standard logistic equation.)\
+Whatever the type of trait, if the trait is configured to have a direct effect on fitness (as for the default trait), that final trait value is then considered to be a \'93fitness effect\'94, and is combined multiplicatively with other fitness effects on the individual to produce the individual\'92s fitness.  In any case \'96 whether the trait has a direct effect on fitness or not \'96 the trait value can be obtained in script and used to influence the simulation in any way desired.\
+The dominance coefficient usually comes from the 
+\f3\fs18 dominance
+\f2\fs22  property of the mutation (or more generally, in a model with multiple traits, from the mutation\'92s dominance for the trait in question, as obtained from the 
+\f3\fs18 dominanceForTrait()
+\f2\fs22  method).  If the dominance of the mutation for the trait is \'93independent\'94 (as expressed by a dominance value of 
+\f3\fs18 NAN
+\f2\fs22 ), the appropriate independent dominance value will be used: 0.5 for additive and logistic traits, or (sqrt(1+
+\f0\i s
+\f2\i0 )\uc0\u8722 1)/
+\f0\i s
+\f2\i0  for multiplicative traits.\
+If the focal individual has only one non-null haplosome, however, such that the mutation is paired with a null haplosome (i.e., is actually hemizygous, not heterozygous), the mutation\'92s 
+\f3\fs18 hemizygousDominance
+\f2\fs22  property is used instead (or more generally, in a model with multiple traits, the mutation\'92s hemizygous dominance for the trait in question, as obtained from the method 
+\f3\fs18 hemizygousDominanceForTrait()
+\f2\fs22 ).  Independent dominance does not apply to this case.\
+Finally, if the focal individual has only one haplosome for the chromosome associated with the mutation in question (i.e., is haploid for that chromosome), dominance is not used at all (since it is not relevant), and the mutation effect is equal to the standard homozygous effect: 1+
+\f0\i s
+\f2\i0  for multiplicative traits, 2
+\f0\i a
+\f2\i0  for additive and logistic traits.\
+All of the above is the default behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
 \f3\fs18 mutationEffect()
-\f2\fs22  callback allows you to substitute any calculation you wish for the relative fitness effect of a mutation; the new relative fitness effect computation becomes:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
-
-\f0\i \cf2 w
-\f2\i0  = 
-\f0\i w
-\f2\i0  * 
-\f3\fs18 mutationEffect()
-\f2\fs22 \
-\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
-\cf2 where 
-\f3\fs18 mutationEffect()
-\f2\fs22  is the value returned by your callback.  This value is a multiplicative fitness effect, so 
+\f2\fs22  callback allows you to substitute any calculation you wish for the effect of a mutation.  That effect will then be used by SLiM in place of the standard effect the mutation would have had; i.e., for a multiplicative trait it will be multiplied together with other effects on the trait, and for an additive or logistic trait it will be added together with other effects on the trait.  Keep in mind that for a multiplicative trait a value of 
 \f3\fs18 1.0
-\f2\fs22  is neutral, unlike the selection coefficient scale where 
+\f2\fs22  is \'93neutral\'94 (i.e., has no effect on the value of the trait), whereas for an additive or logistic trait a value of 
 \f3\fs18 0.0
-\f2\fs22  is neutral; be careful with this distinction!\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 Like Eidos events, 
+\f2\fs22  is \'93neutral\'94, as a consequence of the math involved.\
+Like Eidos events, 
 \f3\fs18 mutationEffect()
 \f2\fs22  callbacks are defined as script blocks in the input file, but they use a variation of the syntax for defining an Eidos event:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 [id] [t1 [: t2]] mutationEffect(<mut-type-id> [, <subpop-id>]) \{ ... \}\
+\f3\fs18 \cf2 [id] [t1 [: t2]] mutationEffect(<mut-type-id> [, <subpop-id> [, <trait-name>])\uc0\u8232 \{\u8232    ...\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 For example, if the callback were defined as:\
+\f2\fs22 \cf2 For example, assuming a single multiplicative trait (such as the default trait), if the callback were defined as:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2 1000:2000 mutationEffect(m2, p3) \{ 1.0; \}\
-\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 then a relative fitness of 
+\f2\fs22 \cf2 then an effect of 
 \f3\fs18 1.0
-\f2\fs22  (i.e. neutral) would be used for all mutations of mutation type 
+\f2\fs22  (i.e., neutral) would be used for all mutations of mutation type 
 \f3\fs18 m2
 \f2\fs22  in subpopulation 
 \f3\fs18 p3
@@ -381,18 +378,65 @@ That is the standard behavior of SLiM, reviewed here to provide a conceptual bas
 \f3\fs18 1000
 \f2\fs22  to tick 
 \f3\fs18 2000
-\f2\fs22 .  The very same mutations, if also present in individuals in other subpopulations, would preserve their normal selection coefficient and dominance coefficient in those other subpopulations; this callback would therefore establish spatial heterogeneity in selection, in which mutation type 
+\f2\fs22 .  The very same mutations, if also present in individuals in other subpopulations, would preserve their normal effects in those other subpopulations.  This callback would therefore establish spatial heterogeneity in the effects of mutations, in which mutation type 
 \f3\fs18 m2
 \f2\fs22  was neutral in subpopulation 
 \f3\fs18 p3
-\f2\fs22  but under selection in other subpopulations, for the range of ticks given.\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 In multispecies models, callbacks must be defined with a 
-\f3\fs18 species
-\f2\fs22  specifier that states the species with which species the callback is associated.  Such a definition looks like this:\
+\f2\fs22  but non-neutral in other subpopulations, for the range of ticks given.  If the trait has a direct effect on fitness, this would lead to spatial heterogeneity in selection.\
+In a multitrait model, a trait name can be specified (as a 
+\f3\fs18 string
+\f2\fs22  value) in the callback definition to make the callback apply to only one trait.  For example, assuming a two-trait model where 
+\f3\fs18 trait2
+\f2\fs22  is multiplicative, if the callback were defined as:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 species species_name [id] [t1 [: t2]] mutationEffect(...) \{ ... \}\
+\f3\fs18 \cf2 1000:2000 mutationEffect(m2, NULL, "trait2") \{ 1.0; \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 then an effect of 
+\f3\fs18 1.0
+\f2\fs22  for 
+\f3\fs18 trait2
+\f2\fs22  (i.e., neutral) would be used for all mutations of mutation type 
+\f3\fs18 m2
+\f2\fs22  in all subpopulations (the meaning of 
+\f3\fs18 NULL
+\f2\fs22  here), from tick 
+\f3\fs18 1000
+\f2\fs22  to tick 
+\f3\fs18 2000
+\f2\fs22 .  This callback would therefore change the effect of all 
+\f3\fs18 m2
+\f2\fs22  mutations to be neutral for 
+\f3\fs18 trait2
+\f2\fs22  (assuming 
+\f3\fs18 trait2
+\f2\fs22  is a multiplicative trait), for the given period of time, without affecting the effect of the 
+\f3\fs18 m2
+\f2\fs22  mutations on other traits (e.g., 
+\f3\fs18 trait1
+\f2\fs22 ).\
+If this trait specifier is omitted in a multitrait model, the callback will be called separately to obtain the effect of each mutation 
+\f0\i on each trait
+\f2\i0  in each individual.  If traits in the model are of different types (e.g., one multiplicative and additive), it can be convenient to return 
+\f3\fs18 NULL
+\f2\fs22  rather than a 
+\f3\fs18 float
+\f2\fs22  effect.  
+\f3\fs18 NULL
+\f2\fs22 , as a return value here, means \'93neutral\'94 regardless of the trait type; it is equivalent to returning 
+\f3\fs18 1.0
+\f2\fs22  for multiplicative traits and 
+\f3\fs18 0.0
+\f2\fs22  for additive traits, simply as a convenience to make it easier to define a 
+\f3\fs18 mutationEffect()
+\f2\fs22  callback that makes a given mutation type neutral for all traits.\
+In multispecies models, callbacks must be defined with a 
+\f3\fs18 species
+\f2\fs22  specifier that states the species with which species the callback is associated.  Showing the optional script block id and the tick range specifier as well, such a definition looks like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 species species_name [id] [t1 [: t2]] mutationEffect(...)\uc0\u8232 \{\u8232    ...\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 It is the same syntax, in other words, except for the 
@@ -419,7 +463,7 @@ In addition to the standard SLiM globals, a
 \f3\fs18 F
 \f2\fs22  (heterozygous), or 
 \f3\fs18 NULL
-\f2\fs22  (it is\uc0\u8232 paired with a null haplosome, and is thus hemizygous or haploid)\
+\f2\fs22  (it is\uc0\u8232 paired with a null haplosome, and is thus hemizygous, or it is haploid)\
 
 \f3\fs18 effect
 \f2\fs22 	The default relative fitness value calculated by SLiM\
@@ -428,17 +472,21 @@ In addition to the standard SLiM globals, a
 \f2\fs22 	The individual carrying this mutation (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
-\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
+\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\partightenfactor0
 
 \f3\fs18 \cf2 subpop
 \f2\fs22 	The subpopulation in which that individual lives\
+\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
+
+\f3\fs18 \cf2 trait
+\f2\fs22 	The trait for which the effect is being evaluated\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
 \f3\fs18 mutationEffect()
-\f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null haplosomes involved, for example, you could do something like this:\
+\f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for a diploid autosomal simulation with no null haplosomes involved, for example, you could do something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
+\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 As mentioned above, a relative fitness of 
@@ -466,42 +514,44 @@ More than one
 \f3\fs18 effect
 \f2\fs22  is not necessarily the default value, in fact, but is the result of all previous 
 \f3\fs18 mutationEffect()
-\f2\fs22  callbacks for that individual in that tick.  In this way, the effects of multiple callbacks can \'93stack\'94.\
-One caveat to be aware of in WF models is that 
+\f2\fs22  callbacks for that individual in that tick.  In this way, the effects of multiple callbacks can be set up to produce a \'93pipeline\'94 of sequential modifications.\
+One caveat to be aware of in WF models is that fitness calculations occur at the end of the tick, just before the next tick begins, and so for traits with a direct effect on fitness (such as the default trait), 
 \f3\fs18 mutationEffect()
-\f2\fs22  callbacks are called at the end of the tick, just before the next tick begins.  If you have a 
+\f2\fs22  callbacks will have their effect on fitness at that time.  If you have a 
 \f3\fs18 mutationEffect()
 \f2\fs22  callback defined for tick 
 \f3\fs18 10
-\f2\fs22 , for example, it will actually be called at the very end of tick 
+\f2\fs22 , for example, it will actually be called by the fitness calculation machinery at the very end of tick 
 \f3\fs18 10
 \f2\fs22 , after child generation has finished, after the new children have been promoted to be the next parental generation, and after 
 \f3\fs18 late()
-\f2\fs22  events have been executed.  The fitness values calculated will thus be used during tick 
+\f2\fs22  events have been executed (see chapter 24).  The resulting fitness values will thus be used during tick 
 \f3\fs18 11
 \f2\fs22 ; the fitness values used in tick 
 \f3\fs18 10
 \f2\fs22  were calculated at the end of tick 
 \f3\fs18 9
-\f2\fs22 .  (This is primarily so that SLiMgui, which refreshes its display in between ticks, has computed fitness values at hand that it can use to display the new parental individuals in the proper colors.)  This is not an issue in nonWF models, since fitness values are used in the same tick in which they are calculated.\
+\f2\fs22 .  (This is primarily so that SLiMgui, which refreshes its display in between ticks, has computed fitness values at hand that it can use to display the new parental individuals in the proper colors.)  This is not as much of an issue in nonWF models, since fitness values are used in the same tick in which they are calculated (see chapter 25).\
 If the 
 \f3\fs18 randomizeCallbacks
 \f2\fs22  parameter to 
 \f3\fs18 initializeSLiMOptions()
 \f2\fs22  is 
 \f3\fs18 T
-\f2\fs22  (the default), the order in which the fitness of individuals is evaluated will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
+\f2\fs22  (the default), the order in which the trait values of individuals are evaluated will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
 \f3\fs18 mutationEffect()
-\f2\fs22  callback are not independent.  If 
+\f2\fs22  callback are not independent of each other.  If 
 \f3\fs18 randomizeCallbacks
 \f2\fs22  is 
 \f3\fs18 F
-\f2\fs22 , the fitness of individuals will be evaluated in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
+\f2\fs22 , the fitness of individuals may be evaluated in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
 Many other possibilities can be implemented with 
 \f3\fs18 mutationEffect()
-\f2\fs22  callbacks.  However, since 
+\f2\fs22  callbacks; chapter 10 introduces 
 \f3\fs18 mutationEffect()
-\f2\fs22  callbacks involve Eidos code being executed for the evaluation of fitness of every mutation of every individual (within the tick range, mutation type, and subpopulation specified), they can slow down a simulation considerably, so use them as sparingly as possible.\
+\f2\fs22  callbacks with several different recipes, and later chapters also use these techniques extensively.  However, since 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks involve Eidos code being executed for the evaluation of the effects of every mutation in every individual (within the tick range, mutation type, subpopulation, and trait specified for the callback), they can slow down a simulation considerably, so use them as sparingly as possible.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i \cf0 5.13.3  ITEM: 4. 
@@ -511,20 +561,21 @@ Many other possibilities can be implemented with
 
 \f2\i0 \cf2 We have already seen 
 \f3\fs18 mutationEffect()
-\f2\fs22  callbacks, which modify the effect of a given mutation in a focal individual.  Sometimes it is desirable to model effects upon individual fitness that are not governed by particular mutations (or not directly, at least); fitness effects due to spatial position, or resource acquisition, or behavior such as competitive or altruistic interactions, for example.  Another situation of this type is when fitness depends upon the overall phenotype of an individual \'96 the height of a tree, say \'96 which might be influenced by genetics, but also by environmental effects, climate, and so forth.  For these sorts of situations, SLiM provides 
+\f2\fs22  callbacks, which modify the effect of a given mutation in a focal individual.  Those callbacks change the effect that mutations have on trait values, which might or might not affect the fitness values of individuals (depending on whether the trait in question is configured to have a direct effect on fitness, for example, or whether the trait values are used in script in a way that affects fitness indirectly).\
+Sometimes it is desirable to model effects upon individual fitness itself, rather than upon trait values.  Such effects might not be influenced by particular mutations at all (or not directly, at least); fitness effects might be a consequence of spatial position, or resource acquisition, or behavior such as competitive or altruistic interactions, for example.  Another situation of this type is when fitness depends upon a trait value of an individual \'96 the height of a tree, say \'96 which might be influenced by genetics, but also by environmental effects, climate, and so forth.  For modeling all of these sorts of situations, SLiM provides 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callbacks.\
 A 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callback is called by SLiM when it is determining the fitness of an individual \'96 typically, but not always, once per tick during the fitness calculation tick cycle stage.  Normally, the fitness of a given individual is determined by multiplying together the fitness effects of all mutations possessed by that individual.  Supplying a 
+\f2\fs22  callback is called by SLiM when it is determining the fitness of an individual \'96 typically, but not always, once per tick during the fitness calculation tick cycle stage.  Normally, the fitness of a given individual is determined by multiplying together the fitness effects for that individual; in particular, if a trait is configured to have a direct effect on fitness then the trait value calculated for that individual for that trait is used directly as a fitness effect.  Supplying a 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callback allows you to add another multiplicative fitness effect into that calculation.  As with 
-\f3\fs18 mutationEffect()
-\f2\fs22  callbacks, the value returned by 
+\f2\fs22  callback allows you to add another multiplicative fitness effect into that calculation.  The value returned by 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callbacks is a fitness effect, so 
+\f2\fs22  callbacks is a multiplicative fitness effect, so 
 \f3\fs18 1.0
-\f2\fs22  is neutral.\
+\f2\fs22  is neutral (just as a mutation effect of 
+\f3\fs18 1.0
+\f2\fs22  is \'93neutral\'94 for a multiplicative trait).\
 The syntax for declaring 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callbacks is similar to that for 
@@ -532,7 +583,7 @@ The syntax for declaring
 \f2\fs22  callbacks, but simpler since no mutation type is needed:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 [id] [t1 [: t2]] fitnessEffect([<subpop-id>]) \{ ... \}\
+\f3\fs18 \cf2 [id] [t1 [: t2]] fitnessEffect([<subpop-id>])\uc0\u8232 \{\u8232    ...\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 (In multispecies models, the definition must be preceded by a 
@@ -552,7 +603,9 @@ For example, if the callback were defined as:\
 \f3\fs18 1000
 \f2\fs22  to tick 
 \f3\fs18 2000
-\f2\fs22 .\
+\f2\fs22 .  This would produce a simple spatial effect on fitness, such that the fitness of all individuals in 
+\f3\fs18 p3
+\f2\fs22  is lower than it would otherwise be.\
 Much more interesting, of course, are 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callbacks that return different fitness effects for different individuals, depending upon their state!  In addition to the standard SLiM globals, a 
@@ -573,12 +626,20 @@ Much more interesting, of course, are
 \f3\fs18 fitnessEffect()
 \f2\fs22  callback to compute a fitness effect that depends upon the state of the focal individual.  The fitness effect for the callback is simply returned as a singleton 
 \f3\fs18 float
-\f2\fs22  value, as usual.\
+\f2\fs22  value.\
 More than one 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callback may be defined to operate in the same tick.  Each such callback will provide an independent fitness effect for the focal individual; the results of each 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callback will be multiplied in to the individual\'92s fitness.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.\
+\f2\fs22  callback will be multiplied into the individual\'92s fitness.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.  Note that if SLiM can determine, from other fitness effects in the model, that the fitness of an individual is 
+\f3\fs18 0.0
+\f2\fs22 , it may skip calling 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks for that individual (since the callback would not be able to change the fitness value of the individual \'96 zero multiplied by anything is still zero).  It is therefore not a good idea to rely upon 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks always being called, or to rely upon side effects caused by a 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback.\
 Beginning in SLiM 3.0, it is also possible to set the 
 \f3\fs18 fitnessScaling
 \f2\fs22  property on a subpopulation to scale the fitness values of every individual in the subpopulation by the same constant amount, or to set the 
@@ -600,20 +661,20 @@ As with
 \f3\fs18 mutationEffect()
 \f2\fs22  callbacks, 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callbacks are called at the end of the tick, just before the next tick begins.  Also, as with 
+\f2\fs22  callbacks are typically called during the fitness recalculation stage of the tick cycle.  In WF models, this means that their effect will not actually influence simulation dynamics until the next tick, when reproduction occurs.  Also, as with 
 \f3\fs18 mutationEffect()
 \f2\fs22  callbacks, the order in which 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callbacks are called will be shuffled when 
 \f3\fs18 randomizeCallbacks
-\f2\fs22  is enabled, as it is by default, partially mitigating order-dependency issues.\
+\f2\fs22  is enabled (the default), partially mitigating order-dependency issues.\
 The 
 \f3\fs18 fitnessEffect()
-\f2\fs22  callback mechanism is quite flexible and useful, although it has been considerably eclipsed by the modern modern and efficient 
+\f2\fs22  callback mechanism is quite flexible and useful, although it has been considerably eclipsed by the newer 
 \f3\fs18 fitnessScaling
-\f2\fs22  property mentioned above.  When efficiency is not at a premium, it remains a clear and expressive paradigm for modeling individual-level fitness effects.  The performance penalty paid is often not large, since these callbacks are called only once per individual per tick, whereas a 
+\f2\fs22  property mentioned above.  When efficiency is not at a premium, it remains a clear and expressive way to model individual-level fitness effects.  The performance penalty paid is often not large, since these callbacks are called only once per individual per tick, whereas a 
 \f3\fs18 mutationEffect()
-\f2\fs22  for a type of mutation that is common in the simulation might be called thousands of times per individual per tick (once per mutation of that type possessed by the focal individual).  The performance penalty typically becomes severe only when the 
+\f2\fs22  for a type of mutation that is common in the simulation might be called thousands of times per individual per tick (once per mutation of that type possessed by each focal individual).  The performance penalty typically becomes significant only when the 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callback needs to perform calculations, once per focal individual, that would vectorize well if performed across a whole vector of individuals.  In such cases, 
 \f3\fs18 fitnessScaling
@@ -1307,7 +1368,7 @@ As with the other callback types, multiple
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 SLiM auto-generates new mutations according to the current mutation rate (or rate map) and the genetic structure defined by genomic elements, their genomic element types, the mutation types those genomic element types draw from, and the distribution of fitness effects defined by those mutation types.  In nucleotide-based models, the nucleotide sequence and the mutation matrix also play a role in determining both the rate of mutation and the nucleotide mutated to.  In some models it can be desirable to modify these dynamics in some way \'96 altering the selection coefficients of new mutations in some way, changing the mutation type used, dictating the nucleotide to be used, replacing the proposed mutation with a pre-existing mutation at the same position, or even suppressing the proposed mutation altogether.  To achieve this, one may define a 
+\f2\i0 \cf2 SLiM auto-generates new mutations according to the current mutation rate (or rate map) and the genetic structure defined by genomic elements, their genomic element types, the mutation types those genomic element types draw from, and the distributions of effect size defined by those mutation types.  In nucleotide-based models, the nucleotide sequence and the mutation matrix also play a role in determining both the rate of mutation and the nucleotide mutated to.  In some models it can be desirable to modify these dynamics in some way \'96 altering the selection coefficients of new mutations in some way, changing the mutation type used, dictating the nucleotide to be used, replacing the proposed mutation with a pre-existing mutation at the same position, or even suppressing the proposed mutation altogether.  To achieve this, one may define a 
 \f3\fs18 mutation()
 \f2\fs22  callback.\
 A 
@@ -1409,12 +1470,12 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 ) with the mutation returned; the offspring haplosomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
-The callback may perform a variety of actions related to the generated mutation.  The selection coefficient of the mutation can be changed with 
-\f3\fs18 setSelectionCoefficient()
+The callback may perform a variety of actions related to the generated mutation.  The effect size (e.g., selection coefficient) of the mutation can be changed with 
+\f3\fs18 setEffectSizeForTrait()
 \f2\fs22 , and the mutation type of the mutation can be changed with 
 \f3\fs18 setMutationType()
 \f2\fs22 ; the 
-\f3\fs18 drawSelectionCoefficient()
+\f3\fs18 drawEffectSizeForTrait()
 \f2\fs22  method of 
 \f3\fs18 MutationType
 \f2\fs22  may also be useful here.  A 

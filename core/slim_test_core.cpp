@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -44,19 +44,19 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, 1.001); stop(); }", "bias must be between -1.0 and 1.0", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", "must be 0.0 in non-nucleotide-based models", __LINE__);
 	
-	// Test (object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
+	// Test (object<MutationType>$)initializeMutationType(is$ id, numeric$ defaultDominance, string$ distributionType, ...)
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeMutationType(1, 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType(-1, 0.5, 'f', 0.0); stop(); }", "identifier value is out of range", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('p2', 0.5, 'f', 0.0); stop(); }", "identifier prefix 'm' was expected", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('mm1', 0.5, 'f', 0.0); stop(); }", "must be a simple integer", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f'); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'p', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f'); stop(); }", "requires exactly 1 DES parameter", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0, 0.0); stop(); }", "requires exactly 1 DES parameter", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 0.0, 0.0); stop(); }", "requires exactly 1 DES parameter", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'p', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0); stop(); }", "requires exactly 2 DES parameters", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 'foo', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", "must be of type numeric", __LINE__);
@@ -1645,9 +1645,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapValue('map', 9.0) == 3.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D x map
@@ -1683,9 +1683,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapValue('map', 9.0) == 3.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D z map
@@ -1721,9 +1721,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapValue('map', 9.0) == 3.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 2D xz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
@@ -1803,9 +1803,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapValue('map', c(9.0, 1.0)) == 5.0) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 3D xyz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
@@ -1882,9 +1882,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapValue('map', c(1.0, 1.0, 1.0)) == 11.0) stop(); }", __LINE__);
 
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', -5.0) == '#FF003F') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', -2.5) == '#804020') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', -2.5) == '#7F401F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 0.0001) == '#007F00') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 2.5) == '#00BF7F') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 }
 
@@ -1953,8 +1953,8 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 135.0; if (all(i.fitnessScaling == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 0.0; if (all(i.fitnessScaling == 0.0)) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be a finite value >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be a finite value >= 0.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.x = 135.0; if (all(i.x == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.y = 135.0; if (all(i.y == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
@@ -1997,8 +1997,8 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 135.0; if (all(i.fitnessScaling == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 0.0; if (all(i.fitnessScaling == 0.0)) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = -0.01; }", "must be a finite value >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = NAN; }", "must be a finite value >= 0.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.x = 135.0; if (all(i.x == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.y = 135.0; if (all(i.y == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
@@ -2235,13 +2235,12 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutationEffect(m1, p1) { stop(); } 100 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect() { stop(); } 100 early() { ; }", "mutation type id is required", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, p1, p2) { stop(); } 100 early() { ; }", "unexpected token", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(p1) { stop(); } 100 early() { ; }", "identifier prefix 'm' was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { ; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return NULL; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { return NULL; } 100 early() { stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return F; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return T; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return 1; } 100 early() { ; }", "return value", __LINE__);
@@ -2249,7 +2248,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return mut; } 100 early() { ; }", "return value", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; ; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return NULL; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return NULL; } 100 early() { stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return F; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return T; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return 1; } 100 early() { ; }", "return value", __LINE__);
@@ -2662,6 +2661,275 @@ void _RunSLiMEidosBlockTests(void)
 		}
 		)V0G0N");
 	SLiMAssertScriptRaise(tickexpr9, "unrecognized function name tuck", __LINE__);
+}
+
+#pragma mark mateChoice() callback tests
+void _RunMateChoiceTests(void)
+{
+	// With the multitrait work, I completely redesigned how mateChoice() callbacks work under the hood.  They
+	// should be much faster, but their logic is a bit tricky, so I'm adding a raft of new tests.
+	
+	// This script tags everybody, and marks one individual as the preferred mate.  It then confirms that that
+	// mate was chosen after mating has completed.  This is the basis of all the mateChoice() tests here.
+	std::string verifiableMating1(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating1);
+	
+	// add a no-op mateChoice() callback before the main one
+	std::string verifiableMating2(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return NULL;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating2);
+	
+	// choose a random mate, and then change our minds
+	std::string verifiableMating3(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.sampleIndividuals(1);
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating3);
+	
+	// return a random weights vector, and then change our minds
+	std::string verifiableMating4(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return runif(subpop.individualCount);
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating4);
+	
+	// do some random action, and then change our minds
+	std::string verifiableMating5(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			if (runif(1) < 0.3)
+				return float(0);
+			if (runif(1) < 0.3)
+				return p1.sampleIndividuals(1);
+			if (runif(1) < 0.3)
+				return runif(subpop.individualCount);
+			if (runif(1) < 0.3)
+				return weights;
+			return NULL;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating5);
+	
+	// choose the right individual, then return a weights vector representing that individual
+	std::string verifiableMating6(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			return weights;
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating6);
+	
+	// choose the right individual, then return a weights vector representing that individual
+	std::string verifiableMating7(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			return weights * runif(subpop.individualCount);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (any(p1.individuals.tag != 1)) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating7);
+	
+	// add a bit of stochasticity to the previous, so that the fly individual isn't always chosen
+	std::string verifiableMating8(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+		}
+		mateChoice() {
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			return weights + runif(subpop.individualCount, max=0.0001);
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (mean(p1.individuals.tag != 1) > 0.1) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating8);
+	
+	// test using a global weights vector
+	std::string verifiableMating9(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+			
+			defineGlobal("WEIGHTS", rep(0.0, p1.individualCount));
+			WEIGHTS[whichMax(p1.individuals.tag)] = 1.0;
+		}
+		mateChoice() {
+			return runif(subpop.individualCount);
+		}
+		mateChoice() {
+			return WEIGHTS;
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() { if (mean(p1.individuals.tag != 1) > 0.1) stop(); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating9);
+	
+	// finally, try to trigger an illegal modification of the global weights vector
+	std::string verifiableMating10(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 50);
+		}
+		early() {
+			p1.individuals.tag = 0;
+			p1.sampleIndividuals(1).tag = 1;
+			
+			defineGlobal("WEIGHTS", rep(0.0, p1.individualCount));
+			WEIGHTS[whichMax(p1.individuals.tag)] = 1.0;
+			defineGlobal("CHECK", WEIGHTS * 2.0);
+		}
+		mateChoice() {
+			// first return the global, which should get shared into returned_weights
+			return WEIGHTS;
+		}
+		mateChoice() {
+			// then return a chosen individual, which should set chosen_mate
+			return p1.subsetIndividuals(tag=1);
+		}
+		mateChoice() {
+			// then use weights, forcing a new build into returned_weights
+			return weights * 10.0;
+		}
+		modifyChild() {
+			child.tag = parent2.tag;
+			return T;
+		}
+		1:100 late() {
+			if (!identical(WEIGHTS * 2.0, CHECK)) stop();
+			if (mean(p1.individuals.tag != 1) > 0.1) stop();
+		}
+		)V0G0N");
+	SLiMAssertScriptSuccess(verifiableMating10);
 }
 
 

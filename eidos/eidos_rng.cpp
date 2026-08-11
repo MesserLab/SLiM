@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -82,6 +82,10 @@ bool gEidos_RNG_Initialized = false;
 Eidos_RNG_State gEidos_RNG_SINGLE;
 #else
 std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
+#endif
+
+#if DEBUG
+bool gEidos_RNG_usageFlag = false;	// see the header for comments
 #endif
 
 
