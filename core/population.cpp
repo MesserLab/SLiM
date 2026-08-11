@@ -150,6 +150,9 @@ void Population::RemoveAllSubpopulationInfo(void)
 	// release all mutations retained by the tree sequence
 	species_._PurgeTrackedMutations();
 	
+	// throw away all pedigree tracking information
+	species_.ClearPedigreeTable();
+	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// If we're keeping any separate registries inside mutation types, clear those now as well
     // NOTE: The access of sim_ here is permissible because it will not happen after sim_ has been

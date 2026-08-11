@@ -2988,7 +2988,14 @@ bool Community::_RunOneTickWF(void)
 		
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
 				species->MaintainTreeSequence();
+				
+				// for now we simplify the pedigree tracking table every 25 cycles
+				if (species->PedigreesEnabled())
+					if (species->Cycle() % 25 == 0)
+						species->SimplifyPedigreeTable();
+			}
 		
 		// LogFile output
 		for (LogFile *log_file : log_file_registry_)
@@ -3422,7 +3429,14 @@ bool Community::_RunOneTickNonWF(void)
 		
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
 				species->MaintainTreeSequence();
+				
+				// for now we simplify the pedigree tracking table every 25 cycles
+				if (species->PedigreesEnabled())
+					if (species->Cycle() % 25 == 0)
+						species->SimplifyPedigreeTable();
+			}
 		
 		// LogFile output
 		for (LogFile *log_file : log_file_registry_)

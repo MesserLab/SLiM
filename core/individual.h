@@ -113,18 +113,18 @@ private:
 	uint8_t colorR_, colorG_, colorB_;				// cached color components from the color property
 #endif
 	
-	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
-	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
+	// Pedigree tracking.  The pedigree id is -1 if unknown, otherwise assigned sequentially from 0 counting upward.  It
+	// uniquely identifies individuals within the simulation, so that relatedness of individuals can be assessed.  It can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
 	// If these are maintained, haplosome pedigree IDs are also maintained in parallel; see haplosome.h.
+	//
+	// Various other features also activate if pedigree tracking is enabled.  Besides the below state, a table mapping
+	// pedigree IDs to parent pedigree IDs is also maintained by the species; see pedigree_table_ in species.h.
 	float mean_parent_age_;				// the mean age of this individual's parents; 0 if parentless, -1 in WF models
+	
 	slim_pedigreeid_t pedigree_id_;		// the id of this individual
-	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
-	slim_pedigreeid_t pedigree_p2_;		// the id of parent 2
-	slim_pedigreeid_t pedigree_g1_;		// the id of grandparent 1
-	slim_pedigreeid_t pedigree_g2_;		// the id of grandparent 2
-	slim_pedigreeid_t pedigree_g3_;		// the id of grandparent 3
-	slim_pedigreeid_t pedigree_g4_;		// the id of grandparent 4
+	int64_t pedigree_row_;				// the row of this individual in the pedigree table
+	
 	int32_t reproductive_output_;		// the number of offspring for which this individual has been a parent, so far
 	
 	// This holds the base tskit id used for haplosomes (nodes) belonging to this individual.  If the haplosome is
@@ -145,8 +145,9 @@ public:
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
 	unsigned int migrant_ : 1;			// T if the individual has migrated in the current cycle, F otherwise
 	unsigned int killed_ : 1;			// T if the individual has been killed by killIndividuals(), F otherwise
+	unsigned int pedigreed_ : 1;		// T if remembered in the pedigree table, in remembered_rows_, F otherwise
 	
-	// note there are 4 bits free here for other logical flags
+	// note there are 3 bits free here for other logical flags
 	
 	unsigned tagL0_set_ : 1;			// T if tagL0 has been set by the user
 	unsigned tagL0_value_ : 1;			// a user-defined tag value of logical type
@@ -209,86 +210,6 @@ public:
 #endif
 	}
 	
-	// PEDIGREE TRACKING
-#pragma mark -
-#pragma mark pedigree tracking
-#pragma mark -
-	
-	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
-	// parental and grandparental information from the supplied parents.
-	inline __attribute__((always_inline)) void TrackParentage_Biparental(slim_pedigreeid_t p_pedigree_id, Individual &p_parent1, Individual &p_parent2)
-	{
-		pedigree_id_ = p_pedigree_id;
-		
-		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
-		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
-		
-		pedigree_p1_ = p_parent1.pedigree_id_;
-		pedigree_p2_ = p_parent2.pedigree_id_;
-		
-		pedigree_g1_ = p_parent1.pedigree_p1_;
-		pedigree_g2_ = p_parent1.pedigree_p2_;
-		pedigree_g3_ = p_parent2.pedigree_p1_;
-		pedigree_g4_ = p_parent2.pedigree_p2_;
-		
-		// Multiple threads might be incrementing these values in parallel, so we need atomicity
-#pragma omp atomic update
-		p_parent1.reproductive_output_++;
-		
-#pragma omp atomic update
-		p_parent2.reproductive_output_++;
-	}
-	
-	inline __attribute__((always_inline)) void RevokeParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
-	{
-		// BCH 8/4/2026: Note that this will only be hit single-threaded, so atomicity and memory ordering
-		// is not important; it happens when modifyChild() rejects a child, which doesn't happen in parallel
-		p_parent1.reproductive_output_--;
-		p_parent2.reproductive_output_--;
-	}
-	
-	inline __attribute__((always_inline)) void TrackParentage_Uniparental(slim_pedigreeid_t p_pedigree_id, Individual &p_parent)
-	{
-		pedigree_id_ = p_pedigree_id;
-		
-		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
-		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
-		
-		pedigree_p1_ = p_parent.pedigree_id_;
-		pedigree_p2_ = p_parent.pedigree_id_;
-		
-		pedigree_g1_ = p_parent.pedigree_p1_;
-		pedigree_g2_ = p_parent.pedigree_p2_;
-		pedigree_g3_ = p_parent.pedigree_p1_;
-		pedigree_g4_ = p_parent.pedigree_p2_;
-		
-		// Multiple threads might be incrementing these values in parallel, so we need atomicity
-#pragma omp atomic update
-		p_parent.reproductive_output_ += 2;
-	}
-	
-	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
-	{
-		// BCH 8/4/2026: Note that this will only be hit single-threaded, so atomicity and memory ordering
-		// is not important; it happens when modifyChild() rejects a child, which doesn't happen in parallel
-		p_parent.reproductive_output_ -= 2;
-	}
-	
-	// This alternative to TrackParentage() is used when the parents are not known, as in
-	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
-	inline __attribute__((always_inline)) void TrackParentage_Parentless(slim_pedigreeid_t p_pedigree_id)
-	{
-		pedigree_id_ = p_pedigree_id;
-		
-		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
-		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
-	}
-	
-	inline __attribute__((always_inline)) void RevokeParentage_Parentless()
-	{
-		// just for parallel design, no parentage to revoke
-	}
-	
 	// In the new multichromosome design, the individual is created with nullptr values for its haplosomes,
 	// and then this method is used to add each new haplosome object after it is generated
 #if DEBUG
@@ -303,22 +224,13 @@ public:
 	// Fetch specific haplosomes; used by haplosomesForChromosomes()
 	void AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls) const;
 	
-	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual() and SharedParentCountWithIndividual;
-	// _Relatedness() and _SharedParentCount() are internal API made public for unit testing.
-	double RelatednessToIndividual(Individual &p_ind, ChromosomeType p_chromosome_type);
-	static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
-							   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-							   IndividualSex A_sex, IndividualSex B_sex, ChromosomeType p_chromosome_type);
-	
-	int SharedParentCountWithIndividual(Individual &p_ind);
-	static int _SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2);
-	
 	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID() const				{ return pedigree_id_; }
-	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)	{ pedigree_id_ = p_new_id; }	// should basically never be called
-	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID() const		{ return pedigree_p1_; }
-	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID() const		{ return pedigree_p2_; }
-	inline __attribute__((always_inline)) void SetParentPedigreeID(slim_pedigreeid_t p1_new_id, slim_pedigreeid_t p2_new_id)		{ pedigree_p1_ = p1_new_id; pedigree_p2_ = p2_new_id; }	// also?
-	inline __attribute__((always_inline)) int32_t ReproductiveOutput()				{ return reproductive_output_; }
+	inline __attribute__((always_inline)) int64_t PedigreeRow() const						{ return pedigree_row_; }
+	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)	{ pedigree_id_ = p_new_id; }	// should be called only from Species::TrackParentage_XXXXX() and when reading a population in
+	inline __attribute__((always_inline)) void SetPedigreeRow(int64_t p_new_row)			{ pedigree_row_ = p_new_row; }	// should be called only from Species::TrackParentage_XXXXX() and when reading a population in
+	
+	// This non-const reference to reproductive_output_ is for the benefit of Species::TrackParentage_XXXXX()
+	inline __attribute__((always_inline)) int32_t &ReproductiveOutput()						{ return reproductive_output_; }
 	
 	// Each individual reserves two consecutive nodes in the node table; these get/set the base tskit id for that 2-node block
 	inline __attribute__((always_inline)) tsk_id_t TskitNodeIdBase(void) const { return tsk_node_id_base_; }

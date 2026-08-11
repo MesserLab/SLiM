@@ -476,6 +476,12 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 		{
 			if (individual->pedigree_id_ == -1)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+			
+			if ((individual->pedigree_row_ == -1) || (individual->pedigree_row_ >= (int64_t)species_.PedigreeTable().size()))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree row." << EidosTerminate();
+			
+			if (species_.PedigreeTable()[individual->pedigree_row_].pedigree_id_ != individual->pedigree_id_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) pedigree row does not match individual." << EidosTerminate();
 		}
 		
 		if (model_type == SLiMModelType::kModelTypeWF)
@@ -805,6 +811,12 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+				
+				if ((individual->pedigree_row_ == -1) || (individual->pedigree_row_ >= (int64_t)species_.PedigreeTable().size()))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree row." << EidosTerminate();
+				
+				if (species_.PedigreeTable()[individual->pedigree_row_].pedigree_id_ != individual->pedigree_id_)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) pedigree row does not match individual." << EidosTerminate();
 			}
 			
 			if (individual->age_ != -1)
@@ -2447,7 +2459,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Biparental(individual_pid, *p_parent1, *p_parent2);
+		species_.TrackParentage_Biparental(individual_pid, *individual, *p_parent1, *p_parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -2734,7 +2746,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 		if (!proposed_child_accepted)
 		{
 			if (f_pedigree_rec)
-				individual->RevokeParentage_Biparental(*p_parent1, *p_parent2);
+				species_.RevokeParentage_Biparental(*p_parent1, *p_parent2);
 			
 			FreeSubpopIndividual(individual);
 			individual = nullptr;
@@ -2831,7 +2843,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Uniparental(individual_pid, *p_parent);
+		species_.TrackParentage_Uniparental(individual_pid, *individual, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -2941,7 +2953,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 		if (!proposed_child_accepted)
 		{
 			if (f_pedigree_rec)
-				individual->RevokeParentage_Uniparental(*p_parent);
+				species_.RevokeParentage_Uniparental(*p_parent);
 			
 			FreeSubpopIndividual(individual);
 			individual = nullptr;
@@ -3032,7 +3044,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Uniparental(individual_pid, *p_parent);
+		species_.TrackParentage_Uniparental(individual_pid, *individual, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -3140,7 +3152,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 		{
 			// revoke parentage
 			if (f_pedigree_rec)
-				individual->RevokeParentage_Uniparental(*p_parent);
+				species_.RevokeParentage_Uniparental(*p_parent);
 			
 			FreeSubpopIndividual(individual);
 			individual = nullptr;
@@ -3196,7 +3208,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 	slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage_Parentless(individual_pid);
+		species_.TrackParentage_Parentless(individual_pid, *individual);
 	
 	// TREE SEQUENCE RECORDING
 	if (p_record_in_treeseq)
@@ -3414,7 +3426,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 			if (!proposed_child_accepted)
 			{
 				if (pedigrees_enabled)
-					individual->RevokeParentage_Parentless();
+					species_.RevokeParentage_Parentless();
 				
 				FreeSubpopIndividual(individual);
 				individual = nullptr;
@@ -3487,7 +3499,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, Individual *p
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Biparental(individual_pid, *p_parent1, *p_parent2);
+		species_.TrackParentage_Biparental(individual_pid, *individual, *p_parent1, *p_parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -3802,7 +3814,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, Individual *p
 			
 			// revoke parentage
 			if (f_pedigree_rec)
-				individual->RevokeParentage_Biparental(*p_parent1, *p_parent2);
+				species_.RevokeParentage_Biparental(*p_parent1, *p_parent2);
 			
 			// TREE SEQUENCE RECORDING
 			if (f_treeseq)
@@ -3886,7 +3898,7 @@ bool Subpopulation::MungeIndividualCrossed_1CH_A(Individual *individual, Individ
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Biparental(individual_pid, *p_parent1, *p_parent2);
+		species_.TrackParentage_Biparental(individual_pid, *individual, *p_parent1, *p_parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -3983,7 +3995,7 @@ bool Subpopulation::MungeIndividualCrossed_1CH_H(Individual *individual, Individ
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Biparental(individual_pid, *p_parent1, *p_parent2);
+		species_.TrackParentage_Biparental(individual_pid, *individual, *p_parent1, *p_parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -4081,7 +4093,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, Individual *p_
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Uniparental(individual_pid, *p_parent);
+		species_.TrackParentage_Uniparental(individual_pid, *individual, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -4205,7 +4217,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, Individual *p_
 			
 			// revoke parentage
 			if (f_pedigree_rec)
-				individual->RevokeParentage_Uniparental(*p_parent);
+				species_.RevokeParentage_Uniparental(*p_parent);
 			
 			// TREE SEQUENCE RECORDING
 			if (f_treeseq)
@@ -4298,7 +4310,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, Individual *p_
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Uniparental(individual_pid, *p_parent);
+		species_.TrackParentage_Uniparental(individual_pid, *individual, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -4510,7 +4522,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, Individual *p_
 			
 			// revoke parentage
 			if (f_pedigree_rec)
-				individual->RevokeParentage_Uniparental(*p_parent);
+				species_.RevokeParentage_Uniparental(*p_parent);
 			
 			// TREE SEQUENCE RECORDING
 			if (f_treeseq)
@@ -4585,7 +4597,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_A(Individual *individual, Individu
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Uniparental(individual_pid, *p_parent);
+		species_.TrackParentage_Uniparental(individual_pid, *individual, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -4682,7 +4694,7 @@ bool Subpopulation::MungeIndividualCloned_1CH_H(Individual *individual, Individu
 	slim_pedigreeid_t individual_pid = f_pedigree_rec ? SLiM_GetNextPedigreeID() : 0;
 	
 	if (f_pedigree_rec)
-		individual->TrackParentage_Uniparental(individual_pid, *p_parent);
+		species_.TrackParentage_Uniparental(individual_pid, *individual, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (f_treeseq)
@@ -6718,11 +6730,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			pid = SLiM_GetNextPedigreeID();
 			
 			if (pedigree_parent1 == nullptr)
-				individual->TrackParentage_Parentless(pid);
+				species_.TrackParentage_Parentless(pid, *individual);
 			else if (pedigree_parent1 == pedigree_parent2)
-				individual->TrackParentage_Uniparental(pid, *pedigree_parent1);
+				species_.TrackParentage_Uniparental(pid, *individual, *pedigree_parent1);
 			else
-				individual->TrackParentage_Biparental(pid, *pedigree_parent1, *pedigree_parent2);
+				species_.TrackParentage_Biparental(pid, *individual, *pedigree_parent1, *pedigree_parent2);
 		}
 		
 		// TREE SEQUENCE RECORDING
@@ -7090,11 +7102,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				if (pedigrees_enabled)
 				{
 					if (pedigree_parent1 == nullptr)
-						individual->RevokeParentage_Parentless();
+						species_.RevokeParentage_Parentless();
 					else if (pedigree_parent1 == pedigree_parent2)
-						individual->RevokeParentage_Uniparental(*pedigree_parent1);
+						species_.RevokeParentage_Uniparental(*pedigree_parent1);
 					else
-						individual->RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
+						species_.RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
 				}
 				
 				FreeSubpopIndividual(individual);
@@ -7532,11 +7544,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
 			
 			if (pedigree_parent1 == nullptr)
-				individual->TrackParentage_Parentless(pid);
+				species_.TrackParentage_Parentless(pid, *individual);
 			else if (pedigree_parent1 == pedigree_parent2)
-				individual->TrackParentage_Uniparental(pid, *pedigree_parent1);
+				species_.TrackParentage_Uniparental(pid, *individual, *pedigree_parent1);
 			else
-				individual->TrackParentage_Biparental(pid, *pedigree_parent1, *pedigree_parent2);
+				species_.TrackParentage_Biparental(pid, *individual, *pedigree_parent1, *pedigree_parent2);
 			
 			haplosome1->haplosome_id_ = pid * 2;
 			if (make_second_haplosome)
@@ -7680,11 +7692,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				if (pedigrees_enabled)
 				{
 					if (pedigree_parent1 == nullptr)
-						individual->RevokeParentage_Parentless();
+						species_.RevokeParentage_Parentless();
 					else if (pedigree_parent1 == pedigree_parent2)
-						individual->RevokeParentage_Uniparental(*pedigree_parent1);
+						species_.RevokeParentage_Uniparental(*pedigree_parent1);
 					else
-						individual->RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
+						species_.RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
 				}
 				
 				FreeSubpopIndividual(individual);

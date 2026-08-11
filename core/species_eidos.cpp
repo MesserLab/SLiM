@@ -5029,6 +5029,10 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	
 	AddIndividualsToTable(ind_buffer, ind_count, &treeseq_[0].tables_, &tabled_individuals_hash_, flag);
 	
+	// we need to remember the given individuals for the pedigree table, too
+	if (PedigreesEnabled())
+		AddIndividualsToPedigreeTable(ind_buffer, ind_count, flag);
+	
 	// BCH 7/19/2026: Note that no special action is needed to make the mutations in the retained individuals
 	// be "retained by the tree sequence".  If they get lost or removed from the SLiM simulation they will
 	// automatically be retained by the tree sequence, and if they are referenced by derived states associated

@@ -34,6 +34,7 @@
 
 #include "slim_globals.h"
 #include "population.h"
+#include "individual.h"
 #include "chromosome.h"
 #include "trait.h"
 #include "eidos_value.h"
@@ -53,7 +54,6 @@ extern "C" {
 
 class Community;
 class EidosInterpreter;
-class Individual;
 class MutationBlock;
 class MutationType;
 class GenomicElementType;
@@ -76,6 +76,21 @@ enum class SLiMFileFormat
 	kFormatTskitBinary_kastore,		// as saved by treeSeqOutput(path)
 	kFormatDirectory,				// a directory, presumed to contain .trees files for multiple chromosomes
 };
+
+
+// This struct is used to record the pedigree information kept by pedigree tracking: the parent
+// pedigree IDs for each descendant pedigree ID.  See Species::pedigree_table_.
+#define SLIM_PEDIGREE_UNUSED_MARK INT64_MAX
+
+typedef struct _SLiMPedigreeTrio {
+	slim_pedigreeid_t pedigree_id_;
+	int64_t parent1_pedigree_row_;
+	int64_t parent2_pedigree_row_;
+	int64_t mark_;		// used in the simplification algorithm in SimplifyPedigreeTable()
+	
+	// note that we always construct a new entry with a mark of SLIM_PEDIGREE_UNUSED_MARK
+	_SLiMPedigreeTrio(slim_pedigreeid_t pid, slim_pedigreeid_t p1_row, slim_pedigreeid_t p2_row) : pedigree_id_(pid), parent1_pedigree_row_(p1_row), parent2_pedigree_row_(p2_row), mark_(SLIM_PEDIGREE_UNUSED_MARK) {}
+} SLiMPedigreeTrio;
 
 
 // We have a defined maximum number of chromosomes that we resize to immediately, so the chromosome vector never reallocs
@@ -143,6 +158,7 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
+#warning DELETE THESE! (AND THE ABOVE?)
 	slim_pedigreeid_t pedigree_p1_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 1
 	slim_pedigreeid_t pedigree_p2_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 2
 	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
@@ -320,6 +336,11 @@ private:
 	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
 	bool pedigrees_enabled_by_SLiM_ = false;		// pedigree tracking has been forced on by tree-seq recording or SLiMgui, which is not user-visible
 	
+	std::vector<SLiMPedigreeTrio> pedigree_table_;	// vector of pedigree information: trios of pedigree ID plus two parental pedigree IDs
+	
+	uint32_t pedigree_recursion_limit = 2;			// 2 is parents, 3 is grandparents, etc.; defaults to 2 for tree-seq, 3 for keepPedigrees=T, but can be set explicitly
+	std::vector<int64_t> pedigree_used_indices_;	// used only in _RecursiveMarkPedigree() and SimplifyPedigreeTable(); kept here to avoid passing it as a parameter
+	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
 	bool periodic_x_ = false;
@@ -396,6 +417,7 @@ private:
 	
 	std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
 												// actually be shared by multiple haplosomes in different chromosomes
+	std::vector<slim_pedigreeid_t> remembered_rows_;	// remembers the rows in the pedigree table for remembered individuals; see SimplifyPedigreeTable()
 	//Individual *current_new_individual_;
 	
 #if EIDOS_ROBIN_HOOD_HASHING()
@@ -715,6 +737,253 @@ public:
 	
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
 	
+	// PEDIGREE TRACKING
+#pragma mark -
+#pragma mark pedigree tracking
+#pragma mark -
+	
+	inline __attribute__((always_inline)) void TrackParentage_Biparental(slim_pedigreeid_t p_pedigree_id, Individual &p_offspring, Individual &p_parent1, Individual &p_parent2)
+	{
+		p_offspring.SetPedigreeID(p_pedigree_id);
+		
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
+		
+#pragma omp critical (PedigreeTable)
+		{
+			// Adding to pedigree_table_ in parallel needs to be arbitrated by a critical section
+			// FIXME PARALLEL maybe we can get a row in pedigree_table_ with an atomic counter and avoid this critical section!
+			p_offspring.SetPedigreeRow(pedigree_table_.size());
+			pedigree_table_.emplace_back(p_pedigree_id, p_parent1.PedigreeRow(), p_parent2.PedigreeRow());
+			
+			// BCH 8/6/2026: Note that with a large number of individuals, the emplace_back() call above can
+			// appear to take a long time.  What is happening under the hood is that pedigree_table_ is growing
+			// to be VERY large, and allocating the physical memory pages for it starts to take a lot of time
+			// in calls to the kernel, so you might see "System CPU time" increase for no apparent reason, even
+			// to 10% or more of total runtime.  We're just spending a lot of time pushing new values into
+			// pedigree_table_, and that really stresses the kernel's memory allocator.  Once the table has
+			// gown to its maximum size, it should keep that capacity and the problem should go away; the pages
+			// have been allocated and now we're just reusing them.  The emplace_back() is still slower than
+			// I'd like here, because it has a conditional to test for adequate capacity; maybe for the WF case
+			// without modifyChild() callbacks we could reserve() adequate space for all the offspring that
+			// will be generated, and then assign new rows in with operator [].  That's a very special-case
+			// optimization, but since the emplace_back() can account for 5% of total runtime even apart from
+			// the page allocation overhead, it might be worth looking into it eventually.  // FIXME
+			// See https://johnnysswlab.com/what-is-faster-vec-emplace_backx-or-vecx/ for very useful analysis!
+		}
+		
+		// Multiple threads might be incrementing these values in parallel, so we need atomicity
+#pragma omp atomic update
+		p_parent1.ReproductiveOutput()++;
+		
+#pragma omp atomic update
+		p_parent2.ReproductiveOutput()++;
+	}
+	
+	inline __attribute__((always_inline)) void RevokeParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
+	{
+		// Note that we leave the entry for the revoked individual in pedigree_table_;
+		// it will be swept away in the next simplification, and is hard/slow to remove
+		
+		// BCH 8/4/2026: Note that this will only be hit single-threaded, so atomicity and memory ordering
+		// is not important; it happens when modifyChild() rejects a child, which doesn't happen in parallel
+		p_parent1.ReproductiveOutput()--;
+		p_parent2.ReproductiveOutput()--;
+	}
+	
+	inline __attribute__((always_inline)) void TrackParentage_Uniparental(slim_pedigreeid_t p_pedigree_id, Individual &p_offspring, Individual &p_parent)
+	{
+		p_offspring.SetPedigreeID(p_pedigree_id);
+		
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
+		
+		slim_pedigreeid_t parent_pedigree_row = p_parent.PedigreeRow();
+		
+#pragma omp critical (PedigreeTable)
+		{
+			// Adding to pedigree_table_ in parallel needs to be arbitrated by a shared mutex
+			// FIXME PARALLEL maybe we can get a row in pedigree_table_ with an atomic counter and avoid this critical section!
+			p_offspring.SetPedigreeRow(pedigree_table_.size());
+			pedigree_table_.emplace_back(p_pedigree_id, parent_pedigree_row, parent_pedigree_row);
+		}
+		
+		// Multiple threads might be incrementing these values in parallel, so we need atomicity
+#pragma omp atomic update
+		p_parent.ReproductiveOutput() += 2;
+	}
+	
+	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
+	{
+		// Note that we leave the entry for the revoked individual in pedigree_table_;
+		// it will be swept away in the next simplification, and is hard/slow to remove
+		
+		// BCH 8/4/2026: Note that this will only be hit single-threaded, so atomicity and memory ordering
+		// is not important; it happens when modifyChild() rejects a child, which doesn't happen in parallel
+		p_parent.ReproductiveOutput() -= 2;
+	}
+	
+	inline __attribute__((always_inline)) void TrackParentage_Parentless(slim_pedigreeid_t p_pedigree_id, Individual &p_offspring)
+	{
+		p_offspring.SetPedigreeID(p_pedigree_id);
+		
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
+		
+#pragma omp critical (PedigreeTable)
+		{
+			// Adding to pedigree_table_ in parallel needs to be arbitrated by a shared mutex
+			// FIXME PARALLEL maybe we can get a row in pedigree_table_ with an atomic counter and avoid this critical section!
+			p_offspring.SetPedigreeRow(pedigree_table_.size());
+			pedigree_table_.emplace_back(p_pedigree_id, -1, -1);
+		}
+	}
+	
+	inline __attribute__((always_inline)) void RevokeParentage_Parentless(void)
+	{
+		// just for parallel design, no parentage to revoke
+		
+		// Note that we leave the entry for the revoked individual in pedigree_table_;
+		// it will be swept away in the next simplification, and is hard/slow to remove
+	}
+	
+	// Operations involving the pedigree tracking table.  The basic design is: entries get added to the table
+	// and do not get removed or changed, except when a SimplifyPedigreeTable() call occurs.
+	void _SingleMarkPedigree(const int64_t individual_row);
+	void _RecursiveMarkPedigree(const int64_t individual_row);
+	void SimplifyPedigreeTable(void);
+	
+	void AddIndividualsToPedigreeTable(Individual * const *p_individual, size_t p_num_individuals, tsk_flags_t p_flags);
+	void ClearPedigreeTable(void) { if (PedigreesEnabled()) pedigree_table_.clear(); }
+	
+#if DEBUG
+	std::vector<SLiMPedigreeTrio> &PedigreeTable(void) { return pedigree_table_; }		// used by CheckIndividualIntegrity()
+#endif
+	
+	inline slim_pedigreeid_t GetParentPedigreeID(const Individual &p_individual, const int p_parent_index)
+	{
+#if DEBUG
+		if (!pedigrees_enabled_)
+			EIDOS_TERMINATION << "ERROR (Species::GetParentPedigreeID): (internal error) called when pedigree tracking is not enabled." << EidosTerminate();
+#endif
+		
+		int64_t ind_row = p_individual.PedigreeRow();
+		
+#if DEBUG
+		// Extant individuals should always be found
+		if (ind_row == -1)
+			EIDOS_TERMINATION << "ERROR (Species::GetParentPedigreeID): (internal error) extant individual not found." << EidosTerminate();
+#endif
+		
+		if (p_parent_index == 0)
+		{
+			int64_t parent1_row = pedigree_table_[ind_row].parent1_pedigree_row_;
+			
+			if (parent1_row != -1)
+				return pedigree_table_[parent1_row].pedigree_id_;
+		}
+		else if (p_parent_index == 1)
+		{
+			int64_t parent2_row = pedigree_table_[ind_row].parent2_pedigree_row_;
+			
+			if (parent2_row != -1)
+				return pedigree_table_[parent2_row].pedigree_id_;
+		}
+#if DEBUG
+		else
+			EIDOS_TERMINATION << "ERROR (Species::GetParentPedigreeID): (internal error) p_parent_index out of range." << EidosTerminate();
+#endif
+		
+		// if a parent is not found, which can legitimately happen, we return -1
+		return -1;
+	}
+	inline slim_pedigreeid_t GetGrandparentPedigreeID(const Individual &p_individual, const int p_grandparent_index)
+	{
+#if DEBUG
+		if (!pedigrees_enabled_)
+			EIDOS_TERMINATION << "ERROR (Species::GetGrandparentPedigreeID): (internal error) called when pedigree tracking is not enabled." << EidosTerminate();
+#endif
+		
+		int64_t ind_row = p_individual.PedigreeRow();
+		
+#if DEBUG
+		// Extant individuals should always be found
+		if (ind_row == -1)
+			EIDOS_TERMINATION << "ERROR (Species::GetGrandparentPedigreeID): (internal error) extant individual not found." << EidosTerminate();
+#endif
+		
+		switch (p_grandparent_index)
+		{
+			case 0:
+			{
+				int64_t parent1_row = pedigree_table_[ind_row].parent1_pedigree_row_;
+				
+				if (parent1_row != -1)
+				{
+					int64_t grandparent_row = pedigree_table_[parent1_row].parent1_pedigree_row_;
+					
+					if (grandparent_row != -1)
+						return pedigree_table_[grandparent_row].pedigree_id_;
+				}
+				break;
+			}
+			case 1:
+			{
+				int64_t parent1_row = pedigree_table_[ind_row].parent1_pedigree_row_;
+				
+				if (parent1_row != -1)
+				{
+					int64_t grandparent_row = pedigree_table_[parent1_row].parent2_pedigree_row_;
+					
+					if (grandparent_row != -1)
+						return pedigree_table_[grandparent_row].pedigree_id_;
+				}
+				break;
+			}
+			case 2:
+			{
+				int64_t parent2_row = pedigree_table_[ind_row].parent2_pedigree_row_;
+				
+				if (parent2_row != -1)
+				{
+					int64_t grandparent_row = pedigree_table_[parent2_row].parent1_pedigree_row_;
+					
+					if (grandparent_row != -1)
+						return pedigree_table_[grandparent_row].pedigree_id_;
+				}
+				break;
+			}
+			case 3:
+			{
+				int64_t parent2_row = pedigree_table_[ind_row].parent2_pedigree_row_;
+				
+				if (parent2_row != -1)
+				{
+					int64_t grandparent_row = pedigree_table_[parent2_row].parent2_pedigree_row_;
+					
+					if (grandparent_row != -1)
+						return pedigree_table_[grandparent_row].pedigree_id_;
+				}
+				break;
+			}
+			default:
+				EIDOS_TERMINATION << "ERROR (Species::GetGrandparentPedigreeID): (internal error) p_grandparent_index out of range." << EidosTerminate();
+		}
+		
+		// if a grandparent is not found, which can legitimately happen, we return -1
+		return -1;
+	}
+	
+	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual() and
+	// SharedParentCountWithIndividual(); _Relatedness() and _SharedParentCount() are internal API
+	// made public for unit testing.
+	double RelatednessToIndividual(Individual &p_indA, Individual &p_indB, ChromosomeType p_chromosome_type);
+	static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
+							   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
+							   IndividualSex A_sex, IndividualSex B_sex, ChromosomeType p_chromosome_type);
+	
+	int SharedParentCount(Individual &p_indX, Individual &p_indY);
+	static int _SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2);
 	
 	// TREE SEQUENCE RECORDING
 #pragma mark -

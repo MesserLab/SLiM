@@ -59,9 +59,8 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 #ifdef SLIMGUI
 	color_set_(false),
 #endif
-	mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
-	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
-	sex_(p_sex), migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
+	mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), reproductive_output_(0),
+	sex_(p_sex), migrant_(false), killed_(false), pedigreed_(false), cached_fitness_UNSAFE_(p_fitness),
 #ifdef SLIMGUI
 	cached_unscaled_fitness_(p_fitness),
 #endif
@@ -102,6 +101,13 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	spatial_x_ = 0.0;
 	spatial_y_ = 0.0;
 	spatial_z_ = 0.0;
+#endif
+	
+#if DEBUG
+	// In release builds we leave pedigree_row_ uninitialized; if pedigree tracking is off it is unused, and
+	// if pedigree tracking is on it should always get set up by a TrackParentage_XXXXX() method.  But in
+	// debug builds it gets set to -1 for CheckIndividualIntegrity() to be able to check that it got set up.
+	SetPedigreeRow(-1);
 #endif
 }
 
@@ -307,325 +313,6 @@ void Individual::AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vec
 			}
 		}
 	}
-}
-
-static inline bool _InPedigree(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4, slim_pedigreeid_t B)
-{
-	if (B == -1)
-		return false;
-	
-	if ((A == B) || (A_P1 == B) || (A_P2 == B) || (A_G1 == B) || (A_G2 == B) || (A_G3 == B) || (A_G4 == B))
-		return true;
-	
-	return false;
-}
-
-static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
-						   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4)
-{
-	if ((A == -1) || (B == -1))
-	{
-		// Unknown pedigree IDs do not match anybody
-		return 0.0;
-	}
-	else if (A == B)
-	{
-		// An individual matches itself with relatedness 1.0
-		return 1.0;
-	}
-	else {
-		double out = 0.0;
-		
-		if (_InPedigree(B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, A))		// if A is in B...
-		{
-			out += _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B_P1, B_G1, B_G2, -1, -1, -1, -1) / 2.0;
-			out += _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B_P2, B_G3, B_G4, -1, -1, -1, -1) / 2.0;
-		}
-		else
-		{
-			out += _Relatedness(A_P1, A_G1, A_G2, -1, -1, -1, -1, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4) / 2.0;
-			out += _Relatedness(A_P2, A_G3, A_G4, -1, -1, -1, -1, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4) / 2.0;
-		}
-		
-		return out;
-	}
-}
-
-double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
-								slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-								IndividualSex A_sex, IndividualSex B_sex, ChromosomeType p_chromosome_type)
-{
-	// This version of _Relatedness() corrects for the sex chromosome case.  It should be regarded as the top-level internal API here.
-	// This is separate from RelatednessToIndividual(), and implemented as a static member function, for unit testing; we want an
-	// API that unit tests can call without needing to actually have a constructed Individual object.
-	
-	// Correct for sex-chromosome simulations; the only individuals that count are those that pass on the sex chromosome to the
-	// child.  We can do that here since we know that the first parent of a given individual is female and the second is male.
-	// If individuals are cloning, then both parents will be the same sex as the offspring, in fact, but we still want to
-	// treat it the same I think (?).  For example, a male offspring from biparental mating inherits an X from its female
-	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
-	// seems appropriate still.
-	
-#if DEBUG
-	if ((p_chromosome_type != ChromosomeType::kA_DiploidAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot exist when modeling a sex chromosome" << EidosTerminate();
-	if (((A_sex == IndividualSex::kHermaphrodite) && (B_sex != IndividualSex::kHermaphrodite)) || ((A_sex != IndividualSex::kHermaphrodite) && (B_sex == IndividualSex::kHermaphrodite)))
-		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot coexist with males and females" << EidosTerminate();
-	if (((A_sex == IndividualSex::kMale) && (B_P1 == A) && (B_P1 != B_P2)) ||
-		((B_sex == IndividualSex::kMale) && (A_P1 == B) && (A_P1 != A_P2)) ||
-		((A_sex == IndividualSex::kFemale) && (B_P2 == A) && (B_P2 != B_P1)) ||
-		((B_sex == IndividualSex::kFemale) && (A_P2 == B) && (A_P2 != A_P1)))
-		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) a male was indicated as a first parent, or a female as second parent, without clonality" << EidosTerminate();
-#endif
-	
-	switch (p_chromosome_type)
-	{
-		case ChromosomeType::kA_DiploidAutosome:
-		case ChromosomeType::kH_HaploidAutosome:
-		{
-			// No intervention needed (we assume that inheritance was normal, without null haplosomes)
-			// For "H", recombination is possible if there are two parents, so this is the same as "A"
-			break;
-		}
-		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-		{
-			// For "H-", the second parent should always match the first (by cloning), but we make sure of it
-			B_P1 = A_P1;
-			B_P2 = A_P2;
-			B_G1 = A_G1;
-			B_G2 = A_G2;
-			B_G3 = A_G3;
-			B_G4 = A_G4;
-			break;
-		}
-		case ChromosomeType::kX_XSexChromosome:
-		{
-			// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
-			A_G4 = A_G3;
-			
-			if (A_sex == IndividualSex::kMale)
-			{
-				// If A is male, its second parent (male) gave it a Y, not an X
-				A_P2 = A_P1;
-				A_G3 = A_G1;
-				A_G4 = A_G2;
-			}
-			
-			// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
-			B_G4 = B_G3;
-			
-			if (B_sex == IndividualSex::kMale)
-			{
-				// If B is male, its second parent (male) gave it a Y, not an X
-				B_P2 = B_P1;
-				B_G3 = B_G1;
-				B_G4 = B_G2;
-			}
-			
-			break;
-		}
-		case ChromosomeType::kY_YSexChromosome:
-		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-		case ChromosomeType::kML_HaploidMaleLine:
-		{
-			// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
-			if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
-			{
-				if (A == B)
-					return 1.0;
-				return 0.0;
-			}
-			
-			// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
-			A_G3 = A_G4;
-			A_P1 = A_P2;
-			A_G1 = A_G3;
-			A_G2 = A_G4;
-			
-			B_G3 = B_G4;
-			B_P1 = B_P2;
-			B_G1 = B_G3;
-			B_G2 = B_G4;
-			break;
-		}
-		case ChromosomeType::kHM_HaploidMaleInherited:
-		{
-			// inherited from the male parent, so only the male (second) parents count
-			// BCH 27 August 2025: Note that HM is now legal in non-sexual models; "male" just means "second"
-			A_G3 = A_G4;
-			A_P1 = A_P2;
-			A_G1 = A_G3;
-			A_G2 = A_G4;
-			
-			B_G3 = B_G4;
-			B_P1 = B_P2;
-			B_G1 = B_G3;
-			B_G2 = B_G4;
-			break;
-		}
-		case ChromosomeType::kZ_ZSexChromosome:
-		{
-			// Whichever sex A is, its first parent (A_P1) is female and so its female parent (A_G1) gave A_P1 a W, not a Z
-			A_G1 = A_G2;
-			
-			if (A_sex == IndividualSex::kFemale)
-			{
-				// If A is female, its first parent (female) gave it a W, not a Z
-				A_P1 = A_P2;
-				A_G1 = A_G3;
-				A_G2 = A_G4;
-			}
-			
-			// Whichever sex B is, its first parent (B_P1) is female and so its female parent (B_G1) gave B_P1 a W, not a Z
-			B_G1 = B_G2;
-			
-			if (B_sex == IndividualSex::kFemale)
-			{
-				// If B is female, its first parent (female) gave it a W, not a Z
-				B_P1 = B_P2;
-				B_G1 = B_G3;
-				B_G2 = B_G4;
-			}
-			
-			break;
-		}
-		case ChromosomeType::kW_WSexChromosome:
-		case ChromosomeType::kFL_HaploidFemaleLine:
-		{
-			// When modeling the W, males have no relatedness to anybody else except themselves, defined as 1.0 for consistency
-			if ((A_sex == IndividualSex::kMale) || (B_sex == IndividualSex::kMale))
-			{
-				if (A == B)
-					return 1.0;
-				return 0.0;
-			}
-			
-			// The male parents (A_P2 and B_P2) and their parents, and male grandparents (A_G2 and B_G2), do not contribute
-			A_G2 = A_G1;
-			A_P2 = A_P1;
-			A_G3 = A_G1;
-			A_G4 = A_G2;
-			
-			B_G2 = B_G1;
-			B_P2 = B_P1;
-			B_G3 = B_G1;
-			B_G4 = B_G2;
-			break;
-		}
-		case ChromosomeType::kHF_HaploidFemaleInherited:
-		{
-			// inherited from the female parent, so only the female (first) parents count
-			// BCH 27 August 2025: Note that HF is now legal in non-sexual models; "female" just means "first"
-			A_G2 = A_G1;
-			A_P2 = A_P1;
-			A_G3 = A_G1;
-			A_G4 = A_G2;
-			
-			B_G2 = B_G1;
-			B_P2 = B_P1;
-			B_G3 = B_G1;
-			B_G4 = B_G2;
-			break;
-		}
-	}
-	
-	return ::_Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4);
-}
-
-double Individual::RelatednessToIndividual(Individual &p_ind, ChromosomeType p_chromosome_type)
-{
-	// So, the goal is to calculate A and B's relatedness, given pedigree IDs for themselves and (perhaps) for their parents and
-	// grandparents.  Note that a pedigree ID of -1 means "no information"; for a given cycle, information should either be
-	// available for everybody, or for nobody (the latter occurs when that cycle is prior to the start of forward simulation).
-	// So we have these ancestry trees:
-	//
-	//         G1  G2 G3  G4     G5  G6 G7  G8
-	//          \  /   \  /       \  /   \  /
-	//           P1     P2         P3     P4
-	//            \     /           \     /
-	//             \   /             \   /
-	//              \ /               \ /
-	//               A                 B
-	//
-	// If A and B are same individual, the relatedness is 1.0.  Otherwise, we need to determine the amount of consanguinity between
-	// A and B.  If A is a parent of B (P3 or P4), their relatedness is 0.5; if A is a grandparent of B (G5/G6/G7/G8), then their
-	// relatedness is 0.25.  A could also appear in B's tree more than once, but A cannot be its own parent.  So if A==P3, then A
-	// cannot also be G5 or G6, and indeed, we do not need to look at G5 or G6 at all; the fact that A==P3 tells us everything we
-	// we need to know about that half of B's tree, with a contribution of 0.5.  But it could *additionally* be true that A==P4,
-	// giving another 0.5 for 1.0 total; or that A==G7, for 0.25; or that A==G8, for 0.25; for that A==G7 *and* A==G8, for 0.5,
-	// making 1.0 total.  Basically, whenever you see A at a given position you do not need to look further upward from that node,
-	// but you must still look at other nodes.  To do this properly, recursion is the simplest approach; this algorithm is thanks
-	// to Peter Ralph.
-	//
-	Individual &indA = *this, &indB = p_ind;
-	
-	slim_pedigreeid_t A = indA.pedigree_id_;
-	slim_pedigreeid_t A_P1 = indA.pedigree_p1_;
-	slim_pedigreeid_t A_P2 = indA.pedigree_p2_;
-	slim_pedigreeid_t A_G1 = indA.pedigree_g1_;
-	slim_pedigreeid_t A_G2 = indA.pedigree_g2_;
-	slim_pedigreeid_t A_G3 = indA.pedigree_g3_;
-	slim_pedigreeid_t A_G4 = indA.pedigree_g4_;
-	slim_pedigreeid_t B = indB.pedigree_id_;
-	slim_pedigreeid_t B_P1 = indB.pedigree_p1_;
-	slim_pedigreeid_t B_P2 = indB.pedigree_p2_;
-	slim_pedigreeid_t B_G1 = indB.pedigree_g1_;
-	slim_pedigreeid_t B_G2 = indB.pedigree_g2_;
-	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
-	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
-	
-	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, p_chromosome_type);
-}
-
-int Individual::_SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2)
-{
-	// This is the top-level internal API here.  It is separate from RelatednessToIndividual(), and
-	// implemented as a static member function, for unit testing; we want an
-	// API that unit tests can call without needing to actually have a constructed Individual object.
-	
-	// If one individual is missing parent information, return 0
-	if ((X_P1 == -1) || (X_P2 == -1) || (Y_P1 == -1) || (Y_P2 == -1))
-		return 0;
-	
-	// If both parents match, in one way or another, then they must be full siblings
-	if ((X_P1 == Y_P1) && (X_P2 == Y_P2))
-		return 2;
-	if ((X_P1 == Y_P2) && (X_P2 == Y_P1))
-		return 2;
-	
-	// Otherwise, if one parent matches, they must be half siblings
-	if ((X_P1 == Y_P1) || (X_P1 == Y_P2) || (X_P2 == Y_P1) || (X_P2 == Y_P2))
-		return 1;
-	
-	// Otherwise, they are not siblings
-	return 0;
-}
-
-int Individual::SharedParentCountWithIndividual(Individual &p_ind)
-{
-	// This is much simpler than Individual::RelatednessToIndividual(); we just want the shared parent count.  That is
-	// defined, for two individuals X and Y with parents in {A, B, C, D}, as:
-	//
-	//	AB CD -> 0 (no shared parents)
-	//	AB CC -> 0 (no shared parents)
-	//	AB AC -> 1 (half siblings)
-	//	AB AA -> 1 (half siblings)
-	//	AA AB -> 1 (half siblings)
-	//	AB AB -> 2 (full siblings)
-	//	AB BA -> 2 (full siblings)
-	//	AA AA -> 2 (full siblings)
-	//
-	// If X is itself a parent of Y, or vice versa, that is irrelevant for this method; we are not measuring
-	// consanguinity here.
-	//
-	Individual &indX = *this, &indY = p_ind;
-	
-	slim_pedigreeid_t X_P1 = indX.pedigree_p1_;
-	slim_pedigreeid_t X_P2 = indX.pedigree_p2_;
-	slim_pedigreeid_t Y_P1 = indY.pedigree_p1_;
-	slim_pedigreeid_t Y_P2 = indY.pedigree_p2_;
-	
-	return _SharedParentCount(X_P1, X_P2, Y_P1, Y_P2);
 }
 
 // print a vector of individuals, with all mutations and all haplosomes, to a stream
@@ -1454,9 +1141,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeParentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			EidosValue_Int *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(2);
+			Species &species = subpopulation_->species_;
 			
-			vec->set_int_no_check(pedigree_p1_, 0);
-			vec->set_int_no_check(pedigree_p2_, 1);
+			vec->set_int_no_check(species.GetParentPedigreeID(*this, 0), 0);
+			vec->set_int_no_check(species.GetParentPedigreeID(*this, 1), 1);
 			
 			return EidosValue_SP(vec);
 		}
@@ -1466,11 +1154,12 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeGrandparentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			EidosValue_Int *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(4);
+			Species &species = subpopulation_->species_;
 			
-			vec->set_int_no_check(pedigree_g1_, 0);
-			vec->set_int_no_check(pedigree_g2_, 1);
-			vec->set_int_no_check(pedigree_g3_, 2);
-			vec->set_int_no_check(pedigree_g4_, 3);
+			vec->set_int_no_check(species.GetGrandparentPedigreeID(*this, 0), 0);
+			vec->set_int_no_check(species.GetGrandparentPedigreeID(*this, 1), 1);
+			vec->set_int_no_check(species.GetGrandparentPedigreeID(*this, 2), 2);
+			vec->set_int_no_check(species.GetGrandparentPedigreeID(*this, 3), 3);
 			
 			return EidosValue_SP(vec);
 		}
@@ -3807,7 +3496,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
 			Individual *ind = individuals_data[value_index];
-			double relatedness = RelatednessToIndividual(*ind, chromosome_type);
+			double relatedness = species->RelatednessToIndividual(*this, *ind, chromosome_type);
 			
 			float_result->set_float_no_check(relatedness, value_index);
 		}
@@ -3835,9 +3524,11 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	int individuals_count = individuals_value->Count();
 	
 	// SPECIES CONSISTENCY CHECK
+	Species *species = nullptr;
+	
 	if (individuals_count > 0)
 	{
-		Species *species = Community::SpeciesForIndividuals(individuals_value);
+		species = Community::SpeciesForIndividuals(individuals_value);
 		
 		if (species != &subpopulation_->species_)
 			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sharedParentCount): sharedParentCount() requires that all individuals belong to the same species as the target individual." << EidosTerminate();
@@ -3853,7 +3544,7 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
 			Individual *ind = individuals[value_index];
-			int shared_count = SharedParentCountWithIndividual(*ind);
+			int shared_count = species->SharedParentCount(*this, *ind);
 			
 			int_result->set_int_no_check(shared_count, value_index);
 		}

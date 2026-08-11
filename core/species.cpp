@@ -3360,8 +3360,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				
 				if (PedigreesEnabled())
 				{
-					// individuals read in this way must be marked as "parentless"
-					individual.TrackParentage_Parentless(pedigree_id);
+					// individuals read in this way must be marked as "parentless" and set up with a pedigree row
+					TrackParentage_Parentless(pedigree_id, individual);
 					
 					max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 					
@@ -4062,8 +4062,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 					
 					memcpy(&pedigree_id, p, sizeof(pedigree_id));
 					
-					// individuals read in this way must be marked as "parentless"
-					individual.TrackParentage_Parentless(pedigree_id);
+					// individuals read in this way must be marked as "parentless" and set up with a pedigree row
+					TrackParentage_Parentless(pedigree_id, individual);
 					
 					max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 					
@@ -6403,6 +6403,26 @@ void Species::Species_CheckIntegrity(void) const
 #endif
 	
 #if DEBUG
+	// Check the integrity of the pedigree table, if it exists
+	if (PedigreesEnabled())
+	{
+		int64_t table_size = (int64_t)pedigree_table_.size();
+		
+		for (const auto &pedigree_row : pedigree_table_)
+		{
+			if (pedigree_row.pedigree_id_ < 0)
+				EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) pedigree table has an invalid pedigree ID (" << pedigree_row.pedigree_id_ << ")." << EidosTerminate();
+			if ((pedigree_row.parent1_pedigree_row_ < -1) || (pedigree_row.parent1_pedigree_row_ >= table_size))
+				EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) pedigree table has an invalid pedigree row (" << pedigree_row.parent1_pedigree_row_ << ", last row is " << (table_size - 1) << ")." << EidosTerminate();
+			if ((pedigree_row.parent2_pedigree_row_ < -1) || (pedigree_row.parent2_pedigree_row_ >= table_size))
+				EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) pedigree table has an invalid pedigree row (" << pedigree_row.parent2_pedigree_row_ << ", last row is " << (table_size - 1) << ")." << EidosTerminate();
+			if (pedigree_row.mark_ != SLIM_PEDIGREE_UNUSED_MARK)
+				EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) pedigree table has an invalid mark (" << pedigree_row.mark_ << ")." << EidosTerminate();
+		}
+	}
+#endif
+
+#if DEBUG
 	// Then check each individual and its haplosomes
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
@@ -7043,6 +7063,671 @@ void Species::CollectMutationProfileInfo(void)
 }
 #endif
 #endif
+
+
+//
+// PEDIGREE TRACKING
+//
+#pragma mark -
+#pragma mark Pedigree tracking
+#pragma mark -
+
+static uint32_t simplify_recursion_level = 0;
+
+void Species::_SingleMarkPedigree(const int64_t individual_row)
+{
+	SLiMPedigreeTrio &pedigree_entry = pedigree_table_[individual_row];
+	int64_t &entry_mark = pedigree_entry.mark_;
+	
+	if (entry_mark <= simplify_recursion_level)
+	{
+		// we visited this id already at the same or shallower depth, so all work for this id has been done
+		return;
+	}
+	else if (entry_mark == SLIM_PEDIGREE_UNUSED_MARK)
+	{
+		// if entry_mark is SLIM_PEDIGREE_UNUSED_MARK, this is our first time visiting this pedigree id
+		// we mark the row with pedigree_recursion_limit to indicate that we have not traced any ancestry
+		// if some other pedigree row traces ancestry through this individual, it will revise this mark
+		entry_mark = pedigree_recursion_limit;
+		pedigree_used_indices_.push_back(individual_row);
+	}
+	else
+	{
+		// we have visited this pedigree id, but we are shallower now, so we don't change the mark
+	}
+}
+
+void Species::_RecursiveMarkPedigree(const int64_t individual_row)
+{
+	SLiMPedigreeTrio &pedigree_entry = pedigree_table_[individual_row];
+	int64_t &entry_mark = pedigree_entry.mark_;
+	
+	if (entry_mark <= simplify_recursion_level)
+	{
+		// we visited this id already at the same or shallower depth, so all work for this id has been done
+		return;
+	}
+	else if (entry_mark == SLIM_PEDIGREE_UNUSED_MARK)
+	{
+		// if entry_mark is SLIM_PEDIGREE_UNUSED_MARK, this is our first time visiting this pedigree id
+		entry_mark = simplify_recursion_level;
+		pedigree_used_indices_.push_back(individual_row);
+	}
+	else
+	{
+		// we have visited this pedigree id, but we are shallower now, so we need to revisit ancestors
+		// again so that we capture all the ancestors down to the maximum recursion depth
+		entry_mark = simplify_recursion_level;
+	}
+	
+	// we need to update the marked recursion depth and recurse into this pedigree id's ancestors
+	if (simplify_recursion_level < pedigree_recursion_limit)
+	{
+		int64_t parent1_row = pedigree_entry.parent1_pedigree_row_;
+		int64_t parent2_row = pedigree_entry.parent2_pedigree_row_;
+		
+		simplify_recursion_level++;
+		
+		if (parent1_row != -1)
+			_RecursiveMarkPedigree(parent1_row);
+		if (parent2_row != -1)
+			_RecursiveMarkPedigree(parent2_row);
+		
+		simplify_recursion_level--;
+	}
+}
+
+// define this to 1 to get LOTS of debug output about the simplification process
+#define DEBUG_PEDIGREE_SIMPLIFY 0
+
+void Species::SimplifyPedigreeTable(void)
+{
+#if DEBUG
+	if (!pedigrees_enabled_)
+		EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) called when pedigree tracking is not enabled." << EidosTerminate();
+#endif
+	
+	// Do a mark-and-sweep of the pedigree tracking information, and remaps rows to compact the table.
+	
+	if (population_.child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) called with the child generation valid." << EidosTerminate();
+	
+	// Every entry should have a mark of SLIM_PEDIGREE_UNUSED_MARK at this point
+#if DEBUG
+	for (const auto &pedigree_entry : pedigree_table_)
+		if (pedigree_entry.mark_ != SLIM_PEDIGREE_UNUSED_MARK)
+			EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) initial pedigree table marks incorrect." << EidosTerminate();
+	
+	if (pedigree_used_indices_.size() != 0)
+		EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) initial used indices non-empty." << EidosTerminate();
+#endif
+	
+#if DEBUG_PEDIGREE_SIMPLIFY
+	std::cout << "SimplifyPedigreeTable() in tick " << community_.Tick() << ":" << std::endl;
+	std::cout << "   initial table size == " << pedigree_table_.size() << std::endl;
+	
+	for (const auto &subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		
+		for (const Individual *ind : subpop->parent_individuals_)
+		{
+			slim_pedigreeid_t individual_row = ind->PedigreeRow();
+			
+			std::cout << "   extant individual " << ind->PedigreeID() << " is at row " << individual_row << std::endl;
+		}
+		
+		// might also print info on remembered individuals
+	}
+#endif
+	
+	// Start at recursion depth 1 for extant individuals
+	simplify_recursion_level = 1;
+	
+	// Loop over all extant individuals and recursively mark them as in use, up to the max recursion depth
+	for (const auto &subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		
+		if (subpop->nonWF_offspring_individuals_.size() > 0)
+			EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) new individuals not yet added to the subpop are present in SimplifyPedigreeTable()." << EidosTerminate();
+		
+		for (const Individual *ind : subpop->parent_individuals_)
+		{
+			// This is an extant individual; we want to keep it, and its ancestors, in the table
+			slim_pedigreeid_t individual_row = ind->PedigreeRow();
+			
+			//simplify_recursion_level++;
+			_RecursiveMarkPedigree(individual_row);
+			//simplify_recursion_level--;
+			
+#if DEBUG
+			if (simplify_recursion_level != 1)
+				EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) recursion level tracked incorrectly." << EidosTerminate();
+#endif
+			
+#if DEBUG_PEDIGREE_SIMPLIFY
+			std::cout << "   extant individual " << ind->PedigreeID() << " at row " << individual_row << " marked " << pedigree_table_[individual_row].mark_ << std::endl;
+#endif
+		}
+		
+		// Mark all remembered individuals as in use, with a single-row "bubble" in the pedigree table; we don't
+		// keep ancestry information for them unless their ancestors happen to also be in the pedigree table;
+		// see https://github.com/MesserLab/SLiM/issues/615 for discussion about this decision
+		for (const slim_pedigreeid_t remembered_row : remembered_rows_)
+		{
+			_SingleMarkPedigree(remembered_row);
+			
+#if DEBUG_PEDIGREE_SIMPLIFY
+			std::cout << "   remembered individual " << pedigree_table_[individual_row].pedigree_id_ << " at row " << individual_row << " marked " << pedigree_table_[individual_row].mark_ << std::endl;
+#endif
+		}
+	}
+	
+	if (simplify_recursion_level != 1)
+		EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) recursion level tracked incorrectly." << EidosTerminate();
+	
+#if DEBUG
+	size_t total_marked = 0;
+	
+	for (const auto &pedigree_entry : pedigree_table_)
+		if (pedigree_entry.mark_ != SLIM_PEDIGREE_UNUSED_MARK)
+		{
+#if DEBUG_PEDIGREE_SIMPLIFY
+			std::cout << "   row with pedigree id " << pedigree_entry.pedigree_id_ << " marked " << pedigree_entry.mark_ << std::endl;
+#endif
+			total_marked++;
+		}
+	
+#if DEBUG_PEDIGREE_SIMPLIFY
+	std::cout << "      total marked == " << total_marked << std::endl;
+#endif
+	
+	if (total_marked != pedigree_used_indices_.size())
+		EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) pedigree_used_indices_ does not match the number of marked entries." << EidosTerminate();
+#endif
+	
+	// Next we go through and change the marks of marked entries to be remapped rows instead
+	{
+		int64_t remapped_index = 0;
+		
+		for (int64_t marked_index : pedigree_used_indices_)
+		{
+			int64_t &pedigree_entry_mark = pedigree_table_[marked_index].mark_;
+			
+#if DEBUG_PEDIGREE_SIMPLIFY
+			std::cout << "   row " << row_index << " will be remapped to " << remapped_index << std::endl;
+#endif
+			pedigree_entry_mark = remapped_index++;
+		}
+	}
+	
+	// Now we can fix the pedigree rows kept by all individuals
+	{
+		for (const auto &subpop_iter : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_iter.second;
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				int64_t pedigree_table_row = ind->PedigreeRow();
+				int64_t remapped_row = pedigree_table_[pedigree_table_row].mark_;
+				
+				ind->SetPedigreeRow(remapped_row);
+				
+#if DEBUG_PEDIGREE_SIMPLIFY
+				std::cout << "   individual at row " << pedigree_table_row << " has been told it will move to " << remapped_row << std::endl;
+#endif
+			}
+			
+			// we might want to fix the row information for remembered individuals here, too
+		}
+	}
+	
+	// And fix the pedigree rows for all remembered individuals
+	{
+		for (slim_pedigreeid_t &remembered_row : remembered_rows_)
+		{
+			int64_t remapped_row = pedigree_table_[remembered_row].mark_;
+			
+#if DEBUG_PEDIGREE_SIMPLIFY
+			std::cout << "   remembered individual at row " << remembered_row << " has been told it will move to " << remapped_row << std::endl;
+#endif
+			
+			remembered_row = remapped_row;
+		}
+	}
+	
+	// We also need to fix all of the row references in the rows being kept in the table; note that some row
+	// references might go to rows that are not being kept, and are thus marked SLIM_PEDIGREE_UNUSED_MARK
+	for (int64_t marked_index : pedigree_used_indices_)
+	{
+		auto &pedigree_entry = pedigree_table_[marked_index];
+		
+		{
+			int64_t old_parent1_row = pedigree_entry.parent1_pedigree_row_;
+			
+			if (old_parent1_row != -1)
+			{
+				int64_t remapped_row = pedigree_table_[old_parent1_row].mark_;
+				
+				if (remapped_row == SLIM_PEDIGREE_UNUSED_MARK)
+					remapped_row = -1;
+				
+				pedigree_entry.parent1_pedigree_row_ = remapped_row;
+			}
+		}
+		{
+			int64_t old_parent2_row = pedigree_entry.parent2_pedigree_row_;
+			
+			if (old_parent2_row != -1)
+			{
+				int64_t remapped_row = pedigree_table_[old_parent2_row].mark_;
+				
+				if (remapped_row == SLIM_PEDIGREE_UNUSED_MARK)
+					remapped_row = -1;
+				
+				pedigree_entry.parent2_pedigree_row_ = remapped_row;
+			}
+		}
+	}
+	
+	// Finally, we can sweep through pedigree_table_ and copy all marked rows to a new table.  This
+	// compacts the rows down to the remapped rows we already calculated.  The copy and swap is essential,
+	// since pedigree_used_indices_ is not sorted by position; if we copied rows in place we would risk
+	// overwrites of other marked rows before they got copied, but copying into a new vector solves that.
+	static std::vector<SLiMPedigreeTrio> new_pedigree_table;
+	
+	{
+		for (int64_t marked_index : pedigree_used_indices_)
+		{
+			const auto &pedigree_entry = pedigree_table_[marked_index];
+			
+#if DEBUG_PEDIGREE_SIMPLIFY
+			std::cout << "   row " << row_index << " is moving to row " << new_pedigree_table.size() << std::endl;
+#endif
+			
+			// note that this resets the mark to SLIM_PEDIGREE_UNUSED_MARK, rather than copying the mark
+			new_pedigree_table.emplace_back(pedigree_entry.pedigree_id_, pedigree_entry.parent1_pedigree_row_, pedigree_entry.parent2_pedigree_row_);
+		}
+	}
+	
+	pedigree_table_.swap(new_pedigree_table);
+	new_pedigree_table.clear();
+	pedigree_used_indices_.clear();
+	
+#if DEBUG
+	// Every individual's row should now point to a row that contains their pedigree id
+	{
+		for (const auto &subpop_iter : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_iter.second;
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				// This is an extant individual; we want to keep it, and its ancestors, in the table
+				slim_pedigreeid_t individual_pid = ind->PedigreeID();
+				int64_t pedigree_table_row = ind->PedigreeRow();
+				
+#if DEBUG_PEDIGREE_SIMPLIFY
+				std::cout << "   individual " << individual_pid << " is now at row " << pedigree_table_row << std::endl;
+#endif
+				
+				slim_pedigreeid_t row_pid = pedigree_table_[pedigree_table_row].pedigree_id_;
+				
+#if DEBUG_PEDIGREE_SIMPLIFY
+				std::cout << "      row " << pedigree_table_row << " now contains pedigree id " << row_pid << std::endl;
+#endif
+				
+				if (individual_pid != row_pid)
+					EIDOS_TERMINATION << "ERROR (Species::SimplifyPedigreeTable): (internal error) mismatch of pedigree IDs in the pedigree table." << EidosTerminate();
+			}
+			
+			// we might want to check the row information for remembered individuals here, too
+		}
+	}
+#endif
+	
+#if DEBUG_PEDIGREE_SIMPLIFY
+	std::cout << "   final table size == " << pedigree_table_.size() << std::endl;
+#endif
+}
+
+void Species::AddIndividualsToPedigreeTable(Individual * const *p_individual, size_t p_num_individuals, __attribute__((unused)) tsk_flags_t p_flags)
+{
+	// This is conceptually parallel to AddIndividualsToTable(), but adds remembered individuals to the
+	// pedigree table.
+	// FIXME: We might need to treat remembering differently than retaining here, with flags...
+	for (size_t j = 0; j < p_num_individuals; j++)
+	{
+		Individual *ind = p_individual[j];
+		
+		// AddIndividualsToTable() has a hash table for tabled individuals, to prevent adding the same
+		// individual twice (and to allow state updates); we use pedigreed_ to prevent duplicate adds
+		if (!ind->pedigreed_)
+		{
+			int64_t ped_row = ind->PedigreeRow();
+			remembered_rows_.push_back(ped_row);
+			ind->pedigreed_ = true;
+		}
+	}
+}
+
+static inline bool _InPedigree(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4, slim_pedigreeid_t B)
+{
+	if (B == -1)
+		return false;
+	
+	if ((A == B) || (A_P1 == B) || (A_P2 == B) || (A_G1 == B) || (A_G2 == B) || (A_G3 == B) || (A_G4 == B))
+		return true;
+	
+	return false;
+}
+
+static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
+						   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4)
+{
+	if ((A == -1) || (B == -1))
+	{
+		// Unknown pedigree IDs do not match anybody
+		return 0.0;
+	}
+	else if (A == B)
+	{
+		// An individual matches itself with relatedness 1.0
+		return 1.0;
+	}
+	else {
+		double out = 0.0;
+		
+		if (_InPedigree(B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, A))		// if A is in B...
+		{
+			out += _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B_P1, B_G1, B_G2, -1, -1, -1, -1) / 2.0;
+			out += _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B_P2, B_G3, B_G4, -1, -1, -1, -1) / 2.0;
+		}
+		else
+		{
+			out += _Relatedness(A_P1, A_G1, A_G2, -1, -1, -1, -1, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4) / 2.0;
+			out += _Relatedness(A_P2, A_G3, A_G4, -1, -1, -1, -1, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4) / 2.0;
+		}
+		
+		return out;
+	}
+}
+
+double Species::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
+								slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
+								IndividualSex A_sex, IndividualSex B_sex, ChromosomeType p_chromosome_type)
+{
+	// This version of _Relatedness() corrects for the sex chromosome case.  It should be regarded as the top-level internal API here.
+	// This is separate from RelatednessToIndividual(), and implemented as a static member function, for unit testing; we want an
+	// API that unit tests can call without needing to actually have a constructed Individual object.
+	
+	// Correct for sex-chromosome simulations; the only individuals that count are those that pass on the sex chromosome to the
+	// child.  We can do that here since we know that the first parent of a given individual is female and the second is male.
+	// If individuals are cloning, then both parents will be the same sex as the offspring, in fact, but we still want to
+	// treat it the same I think (?).  For example, a male offspring from biparental mating inherits an X from its female
+	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
+	// seems appropriate still.
+	
+#if DEBUG
+	if ((p_chromosome_type != ChromosomeType::kA_DiploidAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot exist when modeling a sex chromosome" << EidosTerminate();
+	if (((A_sex == IndividualSex::kHermaphrodite) && (B_sex != IndividualSex::kHermaphrodite)) || ((A_sex != IndividualSex::kHermaphrodite) && (B_sex == IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot coexist with males and females" << EidosTerminate();
+	if (((A_sex == IndividualSex::kMale) && (B_P1 == A) && (B_P1 != B_P2)) ||
+		((B_sex == IndividualSex::kMale) && (A_P1 == B) && (A_P1 != A_P2)) ||
+		((A_sex == IndividualSex::kFemale) && (B_P2 == A) && (B_P2 != B_P1)) ||
+		((B_sex == IndividualSex::kFemale) && (A_P2 == B) && (A_P2 != A_P1)))
+		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) a male was indicated as a first parent, or a female as second parent, without clonality" << EidosTerminate();
+#endif
+	
+	switch (p_chromosome_type)
+	{
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kH_HaploidAutosome:
+		{
+			// No intervention needed (we assume that inheritance was normal, without null haplosomes)
+			// For "H", recombination is possible if there are two parents, so this is the same as "A"
+			break;
+		}
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		{
+			// For "H-", the second parent should always match the first (by cloning), but we make sure of it
+			B_P1 = A_P1;
+			B_P2 = A_P2;
+			B_G1 = A_G1;
+			B_G2 = A_G2;
+			B_G3 = A_G3;
+			B_G4 = A_G4;
+			break;
+		}
+		case ChromosomeType::kX_XSexChromosome:
+		{
+			// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
+			A_G4 = A_G3;
+			
+			if (A_sex == IndividualSex::kMale)
+			{
+				// If A is male, its second parent (male) gave it a Y, not an X
+				A_P2 = A_P1;
+				A_G3 = A_G1;
+				A_G4 = A_G2;
+			}
+			
+			// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
+			B_G4 = B_G3;
+			
+			if (B_sex == IndividualSex::kMale)
+			{
+				// If B is male, its second parent (male) gave it a Y, not an X
+				B_P2 = B_P1;
+				B_G3 = B_G1;
+				B_G4 = B_G2;
+			}
+			
+			break;
+		}
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+		case ChromosomeType::kML_HaploidMaleLine:
+		{
+			// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
+			if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
+			{
+				if (A == B)
+					return 1.0;
+				return 0.0;
+			}
+			
+			// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
+			A_G3 = A_G4;
+			A_P1 = A_P2;
+			A_G1 = A_G3;
+			A_G2 = A_G4;
+			
+			B_G3 = B_G4;
+			B_P1 = B_P2;
+			B_G1 = B_G3;
+			B_G2 = B_G4;
+			break;
+		}
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		{
+			// inherited from the male parent, so only the male (second) parents count
+			// BCH 27 August 2025: Note that HM is now legal in non-sexual models; "male" just means "second"
+			A_G3 = A_G4;
+			A_P1 = A_P2;
+			A_G1 = A_G3;
+			A_G2 = A_G4;
+			
+			B_G3 = B_G4;
+			B_P1 = B_P2;
+			B_G1 = B_G3;
+			B_G2 = B_G4;
+			break;
+		}
+		case ChromosomeType::kZ_ZSexChromosome:
+		{
+			// Whichever sex A is, its first parent (A_P1) is female and so its female parent (A_G1) gave A_P1 a W, not a Z
+			A_G1 = A_G2;
+			
+			if (A_sex == IndividualSex::kFemale)
+			{
+				// If A is female, its first parent (female) gave it a W, not a Z
+				A_P1 = A_P2;
+				A_G1 = A_G3;
+				A_G2 = A_G4;
+			}
+			
+			// Whichever sex B is, its first parent (B_P1) is female and so its female parent (B_G1) gave B_P1 a W, not a Z
+			B_G1 = B_G2;
+			
+			if (B_sex == IndividualSex::kFemale)
+			{
+				// If B is female, its first parent (female) gave it a W, not a Z
+				B_P1 = B_P2;
+				B_G1 = B_G3;
+				B_G2 = B_G4;
+			}
+			
+			break;
+		}
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		{
+			// When modeling the W, males have no relatedness to anybody else except themselves, defined as 1.0 for consistency
+			if ((A_sex == IndividualSex::kMale) || (B_sex == IndividualSex::kMale))
+			{
+				if (A == B)
+					return 1.0;
+				return 0.0;
+			}
+			
+			// The male parents (A_P2 and B_P2) and their parents, and male grandparents (A_G2 and B_G2), do not contribute
+			A_G2 = A_G1;
+			A_P2 = A_P1;
+			A_G3 = A_G1;
+			A_G4 = A_G2;
+			
+			B_G2 = B_G1;
+			B_P2 = B_P1;
+			B_G3 = B_G1;
+			B_G4 = B_G2;
+			break;
+		}
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		{
+			// inherited from the female parent, so only the female (first) parents count
+			// BCH 27 August 2025: Note that HF is now legal in non-sexual models; "female" just means "first"
+			A_G2 = A_G1;
+			A_P2 = A_P1;
+			A_G3 = A_G1;
+			A_G4 = A_G2;
+			
+			B_G2 = B_G1;
+			B_P2 = B_P1;
+			B_G3 = B_G1;
+			B_G4 = B_G2;
+			break;
+		}
+	}
+	
+	return ::_Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4);
+}
+
+double Species::RelatednessToIndividual(Individual &p_indA, Individual &p_indB, ChromosomeType p_chromosome_type)
+{
+	// So, the goal is to calculate A and B's relatedness, given pedigree IDs for themselves and (perhaps) for their parents and
+	// grandparents.  Note that a pedigree ID of -1 means "no information"; for a given cycle, information should either be
+	// available for everybody, or for nobody (the latter occurs when that cycle is prior to the start of forward simulation).
+	// So we have these ancestry trees:
+	//
+	//         G1  G2 G3  G4     G5  G6 G7  G8
+	//          \  /   \  /       \  /   \  /
+	//           P1     P2         P3     P4
+	//            \     /           \     /
+	//             \   /             \   /
+	//              \ /               \ /
+	//               A                 B
+	//
+	// If A and B are same individual, the relatedness is 1.0.  Otherwise, we need to determine the amount of consanguinity between
+	// A and B.  If A is a parent of B (P3 or P4), their relatedness is 0.5; if A is a grandparent of B (G5/G6/G7/G8), then their
+	// relatedness is 0.25.  A could also appear in B's tree more than once, but A cannot be its own parent.  So if A==P3, then A
+	// cannot also be G5 or G6, and indeed, we do not need to look at G5 or G6 at all; the fact that A==P3 tells us everything we
+	// we need to know about that half of B's tree, with a contribution of 0.5.  But it could *additionally* be true that A==P4,
+	// giving another 0.5 for 1.0 total; or that A==G7, for 0.25; or that A==G8, for 0.25; for that A==G7 *and* A==G8, for 0.5,
+	// making 1.0 total.  Basically, whenever you see A at a given position you do not need to look further upward from that node,
+	// but you must still look at other nodes.  To do this properly, recursion is the simplest approach; this algorithm is thanks
+	// to Peter Ralph.
+	//
+	slim_pedigreeid_t A = p_indA.PedigreeID();
+	slim_pedigreeid_t A_P1 = GetParentPedigreeID(p_indA, 0);
+	slim_pedigreeid_t A_P2 = GetParentPedigreeID(p_indA, 1);
+	slim_pedigreeid_t A_G1 = GetGrandparentPedigreeID(p_indA, 0);
+	slim_pedigreeid_t A_G2 = GetGrandparentPedigreeID(p_indA, 1);
+	slim_pedigreeid_t A_G3 = GetGrandparentPedigreeID(p_indA, 2);
+	slim_pedigreeid_t A_G4 = GetGrandparentPedigreeID(p_indA, 3);
+	slim_pedigreeid_t B = p_indB.PedigreeID();
+	slim_pedigreeid_t B_P1 = GetParentPedigreeID(p_indB, 0);
+	slim_pedigreeid_t B_P2 = GetParentPedigreeID(p_indB, 1);
+	slim_pedigreeid_t B_G1 = GetGrandparentPedigreeID(p_indB, 0);
+	slim_pedigreeid_t B_G2 = GetGrandparentPedigreeID(p_indB, 1);
+	slim_pedigreeid_t B_G3 = GetGrandparentPedigreeID(p_indB, 2);
+	slim_pedigreeid_t B_G4 = GetGrandparentPedigreeID(p_indB, 3);
+	
+	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, p_indA.sex_, p_indB.sex_, p_chromosome_type);
+}
+
+int Species::_SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2)
+{
+	// This is the top-level internal API here.  It is separate from RelatednessToIndividual(), and
+	// implemented as a static member function, for unit testing; we want an
+	// API that unit tests can call without needing to actually have a constructed Individual object.
+	
+	// If one individual is missing parent information, return 0
+	if ((X_P1 == -1) || (X_P2 == -1) || (Y_P1 == -1) || (Y_P2 == -1))
+		return 0;
+	
+	// If both parents match, in one way or another, then they must be full siblings
+	if ((X_P1 == Y_P1) && (X_P2 == Y_P2))
+		return 2;
+	if ((X_P1 == Y_P2) && (X_P2 == Y_P1))
+		return 2;
+	
+	// Otherwise, if one parent matches, they must be half siblings
+	if ((X_P1 == Y_P1) || (X_P1 == Y_P2) || (X_P2 == Y_P1) || (X_P2 == Y_P2))
+		return 1;
+	
+	// Otherwise, they are not siblings
+	return 0;
+}
+
+int Species::SharedParentCount(Individual &p_indX, Individual &p_indY)
+{
+	// This is much simpler than Individual::RelatednessToIndividual(); we just want the shared parent count.  That is
+	// defined, for two individuals X and Y with parents in {A, B, C, D}, as:
+	//
+	//	AB CD -> 0 (no shared parents)
+	//	AB CC -> 0 (no shared parents)
+	//	AB AC -> 1 (half siblings)
+	//	AB AA -> 1 (half siblings)
+	//	AA AB -> 1 (half siblings)
+	//	AB AB -> 2 (full siblings)
+	//	AB BA -> 2 (full siblings)
+	//	AA AA -> 2 (full siblings)
+	//
+	// If X is itself a parent of Y, or vice versa, that is irrelevant for this method; we are not measuring
+	// consanguinity here.
+	//
+	slim_pedigreeid_t X_P1 = GetParentPedigreeID(p_indX, 0);
+	slim_pedigreeid_t X_P2 = GetParentPedigreeID(p_indX, 1);
+	slim_pedigreeid_t Y_P1 = GetParentPedigreeID(p_indY, 0);
+	slim_pedigreeid_t Y_P2 = GetParentPedigreeID(p_indY, 1);
+	
+	return _SharedParentCount(X_P1, X_P2, Y_P1, Y_P2);
+}
 
 
 //
@@ -10623,6 +11308,11 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 		_MarkAndSweepTrackedMutations();
 	}
 	
+	// We always want to simplify the pedigree tracking table on write, if pedigree tracking is enabled
+	if (PedigreesEnabled())
+		SimplifyPedigreeTable();
+	
+	// Then we loop over our chromosomes and simplify them all
 	for (const Chromosome *chromosome : chromosomes_)
 	{
 		slim_chromosome_index_t chromosome_index = chromosome->Index();
@@ -10807,6 +11497,7 @@ void Species::FreeTreeSequence()
 		treeseq_.resize(0);
 		
 		remembered_nodes_.clear();
+		remembered_rows_.clear();
 		tabled_individuals_hash_.clear();
 		tables_initialized_ = false;
 	}
@@ -10978,8 +11669,9 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 #endif
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
-	p_metadata->pedigree_p1_ = p_individual->Parent1PedigreeID();
-	p_metadata->pedigree_p2_ = p_individual->Parent2PedigreeID();
+#warning DELETE THIS! (AND THE ABOVE?)
+	p_metadata->pedigree_p1_ = GetParentPedigreeID(*p_individual, 0);
+	p_metadata->pedigree_p2_ = GetParentPedigreeID(*p_individual, 1);
 	p_metadata->age_ = p_individual->age_;
 	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
 	p_metadata->sex_ = (int32_t)p_individual->sex_;		// IndividualSex, but int32_t in the record
@@ -12164,7 +12856,9 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
 				max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 
-				individual->SetParentPedigreeID(ind_metadata->pedigree_p1_, ind_metadata->pedigree_p2_);
+				// this individual has already been given a row in the pedigree table; the pedigree ID in that row needs to be fixed
+				// this is an unusual pattern; it occurs because we are not using the pedigree id given by SLiM, we are setting an id from the file
+				pedigree_table_[individual->PedigreeRow()].pedigree_id_ = pedigree_id;
 				
 				uint32_t flags = ind_metadata->flags_;
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
@@ -12297,6 +12991,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 		}
 	}
 	
+#warning when we read in the pedigree table, that should also push the max pedigree ID!
+#warning as should individual metadata's pedigree IDs even for non-extant individuals, but I think that is already in __CheckNodePedigreeIDs()
 	SLiM_UsedPedigreeID(max_pedigreeID_used);
 	
 	// Check for individual pedigree ID collisions by sorting and looking for duplicates
@@ -12382,9 +13078,6 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 				
 				if (individual->PedigreeID() != pedigree_id)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): pedigree id mismatch between chromosomes read." << EidosTerminate();
-				if ((individual->Parent1PedigreeID() != ind_metadata->pedigree_p1_) ||
-					(individual->Parent2PedigreeID() != ind_metadata->pedigree_p2_))
-					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): parent pedigree id mismatch between chromosomes read." << EidosTerminate();
 				
 				uint32_t flags = ind_metadata->flags_;
 				if ((flags & SLIM_INDIVIDUAL_METADATA_MIGRATED) && !individual->migrant_)
@@ -13703,6 +14396,10 @@ void Species::_PostInstantiationCleanup(EidosInterpreter *p_interpreter)
 			uint32_t flags = tables.individuals.flags[ind];
 			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 				remembered_nodes_.emplace_back(j);
+			
+#warning need to re-add to remembered_rows_ as well, here... and set pedigreed_ = true...
+#warning note that the rows will be added by reading the pedigree table back in; we just need to connect things up
+#warning we will also need to set pedigree_row_ for the extant individuals read in, right?  all the rest can maybe be assumed to be remembered rows?
 		}
 	}
 	assert(remembered_nodes_.size() % 2 == 0);
@@ -14125,6 +14822,7 @@ size_t Species::MemoryUsageForTreeSeqInfo(const TreeSeqInfo &p_tsinfo, bool p_co
 		usage += t.provenances.max_record_length * sizeof(char);
 	
 	usage += remembered_nodes_.size() * sizeof(tsk_id_t);
+	usage += remembered_rows_.size() * sizeof(slim_pedigreeid_t);
 	
 	return usage;
 }

@@ -297,6 +297,7 @@ public:
 			back->sex_ = p_sex;
 			back->migrant_ = false;
 			back->killed_ = false;
+			back->pedigreed_ = false;
 			back->fitness_scaling_ = 1.0;
 			back->cached_fitness_UNSAFE_ = p_fitness;
 #ifdef SLIMGUI
@@ -309,6 +310,10 @@ public:
 			// Draw new individual trait offsets from each trait's individual-offset distribution
 			// Note that we reuse the existing trait_info_ buffer, with the same number of traits
 			back->_InitializePerTraitInformation();
+			
+#if DEBUG
+			back->SetPedigreeRow(-1);
+#endif
 			
 			return back;
 		}

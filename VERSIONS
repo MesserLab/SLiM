@@ -204,6 +204,18 @@ multitrait branch:
 	add a built-in "Multispecies Multitrait Phenotype ~ Time" plot for phenotype ~ time, with one line per trait across all species
 	add a built-in "Phenotype ~ Time" plot for phenotype ~ time, focusing on a single user-selected trait across subpopulations
 	clean up the way pedigree IDs get recorded, for better efficiency and parallelization
+	shift pedigree tracking into a table of pedigree IDs and parent pedigree information (pedigree_table_)
+	x	this table is simplified periodically (every 25 cycles, at present) with a mark-and-sweep algorithm working back from extant and remembered individuals
+	o	the ancestry depth kept should be configurable through the keepPedigrees= parameter to initializeSLiMOptions(), which should become [li$ keepPedigrees = F] allowing an integer depth (-1 says "never simplify the pedigree")
+	o	the pedigree_p1_ and pedigree_p2_ fields in the Individual metadata should be removed in favor of this new scheme (changes schema; breaks backward compatibility for this metadata)
+	o	RecursiveMarkPedigree could be unrolled for the parents-only case to avoid the recursion
+	o	when pedigree tracking is forced on by tree-sequence recording, it should force it on keeping only parents
+	o	need to determine how to handle retained versus remembered individuals
+	o	add API to write out the pedigree tracking table in a standard format (and it'd be nice if it was easy to read in, too, for the example recipes!)
+			shift the pedigree recording/following recipes to also provide an example of using the pedigree tracking table for this purpose, which would be really nice
+	o	add an API to fetch pedigree IDs for all ancestors N generations back; and maybe a parameter to relatedness() that says how many generations back to go, so the user has control over that
+	o	then add persistence of this information in top-level metadata; probably this should be optional, but defaulting to T so that round-trips work correctly
+	o	doc changes -- doc in SLiMgui too; the main user-visible change is to keepPedigrees= now, and to tree-sequence metadata, treeSeqOutput(), etc.
 
 
 version 5.2 (Eidos version 4.2):

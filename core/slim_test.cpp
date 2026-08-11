@@ -1008,7 +1008,7 @@ void _RunRelatednessTests(void)
 		for ( ; p->expectedRelatedness > -1.0; ++p)
 		{
 			try {
-				double rel = Individual::_Relatedness(p->A, p->A_P1, p->A_P2, p->A_G1, p->A_G2, p->A_G3, p->A_G4, p->B, p->B_P1, p->B_P2, p->B_G1, p->B_G2, p->B_G3, p->B_G4, p->A_sex, p->B_sex, p->type);
+				double rel = Species::_Relatedness(p->A, p->A_P1, p->A_P2, p->A_G1, p->A_G2, p->A_G3, p->A_G4, p->B, p->B_P1, p->B_P2, p->B_G1, p->B_G2, p->B_G3, p->B_G4, p->A_sex, p->B_sex, p->type);
 				double expected = p->expectedRelatedness;
 				
 				if (rel == expected)
@@ -1062,7 +1062,7 @@ void _RunRelatednessTests(void)
 		for ( ; p->expectedCount > -1; ++p)
 		{
 			try {
-				int count = Individual::_SharedParentCount(p->X_P1, p->X_P2, p->Y_P1, p->Y_P2);
+				int count = Species::_SharedParentCount(p->X_P1, p->X_P2, p->Y_P1, p->Y_P2);
 				int expected = p->expectedCount;
 				
 				if (count == expected)
