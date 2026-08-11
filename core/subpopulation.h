@@ -409,25 +409,25 @@ public:
 	// these WF-only "munge" variants munge an existing individual into the new child, reusing the individual
 	// and its haplosome objects; they are all templated for speed, providing variants for different milieux
 	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
-	bool MungeIndividualCrossed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	bool MungeIndividualCrossed(Individual *p_child, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	
 	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
-	bool MungeIndividualCrossed_1CH_A(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	bool MungeIndividualCrossed_1CH_A(Individual *p_child, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	
 	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
-	bool MungeIndividualCrossed_1CH_H(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	bool MungeIndividualCrossed_1CH_H(Individual *p_child, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	
 	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
-	bool MungeIndividualSelfed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool MungeIndividualSelfed(Individual *p_child, Individual *p_parent);
 	
 	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
-	bool MungeIndividualCloned(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool MungeIndividualCloned(Individual *p_child, Individual *p_parent);
 	
 	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
-	bool MungeIndividualCloned_1CH_A(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool MungeIndividualCloned_1CH_A(Individual *p_child, Individual *p_parent);
 	
 	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_spatial>
-	bool MungeIndividualCloned_1CH_H(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool MungeIndividualCloned_1CH_H(Individual *p_child, Individual *p_parent);
 	
 	// WF only:
 	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);

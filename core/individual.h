@@ -47,22 +47,40 @@ extern Individual_Class *gSLiM_Individual_Class;
 
 
 // A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
-extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID() instead, for THREAD_SAFETY_IN_ACTIVE_PARALLEL()
+extern slim_pedigreeid_t gSLiM_next_pedigree_id;					// use SLiM_GetNextPedigreeID() instead
 
 inline slim_pedigreeid_t SLiM_GetNextPedigreeID(void)
 {
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_GetNextPedigreeID(): gSLiM_next_pedigree_id change");
-	return gSLiM_next_pedigree_id++;
+	// BCH 8/1/2026: the use of omp atomic should make locking unnecessary; each thread should get a unique value.
+	
+	slim_pedigreeid_t ret;
+	
+#pragma omp atomic capture
+	ret = gSLiM_next_pedigree_id++;
+	
+	return ret;
 }
 
-inline slim_pedigreeid_t SLiM_GetNextPedigreeID_Block(int p_block_size)
+inline void SLiM_ResetPedigreeIDCounter(void)
 {
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_GetNextPedigreeID_Block(): gSLiM_next_pedigree_id change");
-	slim_pedigreeid_t block_base = gSLiM_next_pedigree_id;
+	// BCH 8/4/2026: this resets the pedigree ID counter to 0.  It is called when we load from a file, which
+	// throws out all the old population data and reads new data in (perhaps with explicit pedigree IDs).
+#pragma omp atomic write
+	gSLiM_next_pedigree_id = 0;
+}
+
+inline void SLiM_UsedPedigreeID(slim_pedigreeid_t p_used_id)
+{
+	// BCH 8/4/2026: this updates gSLiM_next_pedigree_id to account for the fact that a given pedigree ID has
+	// been used; the next pedigree ID generated must be at least one greater than the used ID.  This requires
+	// a critical section, since the read-max-write operation cannot be done atomically, unfortunately; but
+	// happily this only occurs in a couple of places in the code.  NOTE: right now this is only called when
+	// single-threaded, so this is kind of moot, but it expresses the correct atomic semantics.
 	
-	gSLiM_next_pedigree_id += p_block_size;
-	
-	return block_base;
+#pragma omp critical (UsedPedigreeID)
+	{
+		gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, p_used_id + 1);
+	}
 }
 
 // This struct contains all information for a single trait in a single individual.  In a multitrait
@@ -191,6 +209,11 @@ public:
 #endif
 	}
 	
+	// PEDIGREE TRACKING
+#pragma mark -
+#pragma mark pedigree tracking
+#pragma mark -
+	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
 	inline __attribute__((always_inline)) void TrackParentage_Biparental(slim_pedigreeid_t p_pedigree_id, Individual &p_parent1, Individual &p_parent2)
@@ -208,17 +231,18 @@ public:
 		pedigree_g3_ = p_parent2.pedigree_p1_;
 		pedigree_g4_ = p_parent2.pedigree_p2_;
 		
-#pragma omp critical (ReproductiveOutput)
-		{
-			p_parent1.reproductive_output_++;
-			p_parent2.reproductive_output_++;
-		}
+		// Multiple threads might be incrementing these values in parallel, so we need atomicity
+#pragma omp atomic update
+		p_parent1.reproductive_output_++;
+		
+#pragma omp atomic update
+		p_parent2.reproductive_output_++;
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
 	{
-		// note this does not need to be in #pragma omp critical (ReproductiveOutput) because it never gets hit when parallel
-		// that is because it only happens when modifyChild() rejects a child, and that does not happen when parallel
+		// BCH 8/4/2026: Note that this will only be hit single-threaded, so atomicity and memory ordering
+		// is not important; it happens when modifyChild() rejects a child, which doesn't happen in parallel
 		p_parent1.reproductive_output_--;
 		p_parent2.reproductive_output_--;
 	}
@@ -238,16 +262,15 @@ public:
 		pedigree_g3_ = p_parent.pedigree_p1_;
 		pedigree_g4_ = p_parent.pedigree_p2_;
 		
-#pragma omp critical (ReproductiveOutput)
-		{
-			p_parent.reproductive_output_ += 2;
-		}
+		// Multiple threads might be incrementing these values in parallel, so we need atomicity
+#pragma omp atomic update
+		p_parent.reproductive_output_ += 2;
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
 	{
-		// note this does not need to be in #pragma omp critical (ReproductiveOutput) because it never gets hit when parallel
-		// that is because it only happens when modifyChild() rejects a child, and that does not happen when parallel
+		// BCH 8/4/2026: Note that this will only be hit single-threaded, so atomicity and memory ordering
+		// is not important; it happens when modifyChild() rejects a child, which doesn't happen in parallel
 		p_parent.reproductive_output_ -= 2;
 	}
 	

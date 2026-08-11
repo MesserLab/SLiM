@@ -1325,9 +1325,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	bool do_mutrun_exp_timing_per_individual = local_doing_mutrun_experiments && (species_.Chromosomes().size() > 1);
 	bool do_mutrun_exp_timing_once = local_doing_mutrun_experiments && (species_.Chromosomes().size() == 1);
 	
-	bool (Subpopulation::*MungeIndividualCrossed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-	bool (Subpopulation::*MungeIndividualSelfed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-	bool (Subpopulation::*MungeIndividualCloned_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool (Subpopulation::*MungeIndividualCrossed_TEMPLATED)(Individual *individual, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	bool (Subpopulation::*MungeIndividualSelfed_TEMPLATED)(Individual *individual, Individual *p_parent);
+	bool (Subpopulation::*MungeIndividualCloned_TEMPLATED)(Individual *individual, Individual *p_parent);
 	
 	if (do_mutrun_exp_timing_per_individual)
 	{
@@ -2049,11 +2049,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						else
 							parent1 = source_subpop.DrawParentUsingFitness(rng_state);
 						
-						slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						child_accepted = (p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1]);
+						child_accepted = (p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -2066,12 +2065,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						if (selfed)
 						{
-							slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-							
 							Individual *new_child = p_subpop.child_individuals_[child_index];
 							new_child->migrant_ = false;
 							
-							child_accepted = (p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1]);
+							child_accepted = (p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1]);
 						}
 						else
 						{
@@ -2104,12 +2101,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								}
 							}
 							
-							slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-							
 							Individual *new_child = p_subpop.child_individuals_[child_index];
 							new_child->migrant_ = false;
 							
-							child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+							child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 						}
 					}
 					
@@ -2159,12 +2154,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						}
 					}
 					
-					slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-					
 					Individual *new_child = p_subpop.child_individuals_[child_count];
 					new_child->migrant_ = false;
 					
-					bool child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], IndividualSex::kHermaphrodite);
+					bool child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], IndividualSex::kHermaphrodite);
 					
 					if (!child_accepted)
 					{
@@ -2410,12 +2403,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else
 						parent1 = source_subpop->DrawParentUsingFitness(rng_state);
 					
-					slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-					
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					child_accepted = (p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, individual_pid, source_subpop->parent_individuals_[parent1]);
+					child_accepted = (p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, source_subpop->parent_individuals_[parent1]);
 				}
 				else
 				{
@@ -2428,12 +2419,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					if (selfed)
 					{
-						slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-						
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = (source_subpop != &p_subpop);
 						
-						child_accepted = (p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, individual_pid, source_subpop->parent_individuals_[parent1]);
+						child_accepted = (p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, source_subpop->parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -2466,12 +2455,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							}
 						}
 						
-						slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-						
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = (source_subpop != &p_subpop);
 						
-						child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, individual_pid, source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2], child_sex);
+						child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2], child_sex);
 					}
 				}
 				
@@ -2577,9 +2564,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else if (cloning_fraction > 0)
 						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(rng_gsl, cloning_fraction, (unsigned int)migrants_to_generate));
 					
-					// We get a whole block of pedigree IDs to use in the loop below, avoiding race conditions / locking
-					// We are also going to use Individual objects from a block starting at base_child_count
-					slim_pedigreeid_t base_pedigree_id = SLiM_GetNextPedigreeID_Block(migrants_to_generate);
+					// We are going to use Individual objects from a block starting at base_child_count.
+					// NOTE: We no longer reserve a block of pedigree IDs with SLiM_GetNextPedigreeID_Block();
+					// the new atomic design for SLiM_GetNextPedigreeID() avoids locking and race conditions.
+					// Getting each pedigree ID separately is probably slower than getting a block, especially
+					// on ARM, but only in the parallel case; in the single-threaded case the new design should
+					// be faster since the MungeIndividualXXXXX() methods can fetch the pedigree ID themselves
+					// rather than receiving it as a parameter.  And the design is much simpler this way.
 					slim_popsize_t base_child_count = child_count;
 					
 					// We need to make sure we have adequate capacity in the global mutation block for new mutations before we go parallel;
@@ -2628,7 +2619,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							EIDOS_BENCHMARK_START(EidosBenchmarkType::k_WF_REPRO);
 							EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 							{
 								Eidos_RNG_State *parallel_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 								
@@ -2642,7 +2633,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
-									(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+									(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 								}
 							}
@@ -2654,7 +2645,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							EIDOS_BENCHMARK_START(EidosBenchmarkType::k_WF_REPRO);
 							EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 							{
 								Eidos_RNG_State *parallel_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 								
@@ -2672,7 +2663,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
-									(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+									(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 								}
 							}
 							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
@@ -2685,7 +2676,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
 						EIDOS_BENCHMARK_START(EidosBenchmarkType::k_WF_REPRO);
 						EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 						{
 							Eidos_RNG_State *parallel_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 							
@@ -2705,7 +2696,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
-									(p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1]);
+									(p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1]);
 								}
 								else
 								{
@@ -2722,7 +2713,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									
 									if (migrant_count < number_to_clone + number_to_self)
 									{
-										(p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1]);
+										(p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1]);
 									}
 									else
 									{
@@ -2739,7 +2730,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 											while (prevent_incidental_selfing && (parent2 == parent1));
 										}
 										
-										(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+										(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 									}
 								}
 							}

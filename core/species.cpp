@@ -3308,8 +3308,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	// Now we are in the Individuals section; handle spatial positions, etc. until we hit a Chromosome line
 	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
-	if (has_individual_pedigree_IDs)
-		gSLiM_next_pedigree_id = 0;
+	slim_pedigreeid_t max_pedigreeID_used = 0;
+	if (has_individual_pedigree_IDs && PedigreesEnabled())
+		SLiM_ResetPedigreeIDCounter();
 	
 	if (line.find("Individuals") != std::string::npos)
 	{
@@ -3359,8 +3360,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				
 				if (PedigreesEnabled())
 				{
-					individual.SetPedigreeID(pedigree_id);
-					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+					// individuals read in this way must be marked as "parentless"
+					individual.TrackParentage_Parentless(pedigree_id);
+					
+					max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 					
 					// we need to fix the haplosome ids for all of the individual's haplosomes
 					int haplosome_index = 0;
@@ -3432,6 +3435,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			}
 		}
 	}
+	
+	if (has_individual_pedigree_IDs && PedigreesEnabled())
+		SLiM_UsedPedigreeID(max_pedigreeID_used);
 	
 	// Now we loop over chromosomes; each starts with a Chromosome line and then contains subsections
 	for (Chromosome *chromosome : chromosomes)
@@ -4028,8 +4034,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	// Individuals section
 	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
-	if (pedigree_output_count)
-		gSLiM_next_pedigree_id = 0;
+	slim_pedigreeid_t max_pedigreeID_used = 0;
+	if (pedigree_output_count && PedigreesEnabled())
+		SLiM_ResetPedigreeIDCounter();
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
@@ -4055,8 +4062,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 					
 					memcpy(&pedigree_id, p, sizeof(pedigree_id));
 					
-					individual.SetPedigreeID(pedigree_id);
-					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+					// individuals read in this way must be marked as "parentless"
+					individual.TrackParentage_Parentless(pedigree_id);
+					
+					max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 					
 					// we need to fix the haplosome ids for all of the individual's haplosomes
 					int haplosome_index = 0;
@@ -4154,6 +4163,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			}
 		}
 	}
+	
+	if (pedigree_output_count && PedigreesEnabled())
+		SLiM_UsedPedigreeID(max_pedigreeID_used);
 	
 	if (p + sizeof(section_end_tag) > buf_end)
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after individuals." << EidosTerminate();
@@ -12085,7 +12097,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	std::vector<slim_pedigreeid_t> pedigree_id_check;
 	std::vector<slim_haplosomeid_t> haplosome_id_check;
 	
-	gSLiM_next_pedigree_id = 0;
+	slim_pedigreeid_t max_pedigreeID_used = 0;
+	SLiM_ResetPedigreeIDCounter();
 	
 	for (const auto &subpop_info_iter : p_subpopInfoMap)
 	{
@@ -12150,7 +12163,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				slim_pedigreeid_t pedigree_id = ind_metadata->pedigree_id_;
 				individual->SetPedigreeID(pedigree_id);
 				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
-				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+				max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 
 				individual->SetParentPedigreeID(ind_metadata->pedigree_p1_, ind_metadata->pedigree_p2_);
 				
@@ -12284,6 +12297,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 			}
 		}
 	}
+	
+	SLiM_UsedPedigreeID(max_pedigreeID_used);
 	
 	// Check for individual pedigree ID collisions by sorting and looking for duplicates
 	std::sort(pedigree_id_check.begin(), pedigree_id_check.end());
@@ -13299,6 +13314,8 @@ void Species::__CheckNodePedigreeIDs(__attribute__((unused)) EidosInterpreter *p
 	tsk_node_table_t &node_table = tables.nodes;
 	tsk_size_t node_count = node_table.num_rows;
 	
+	slim_pedigreeid_t max_pedigreeID_used = 0;
+	
 	for (tsk_size_t j = 0; (size_t)j < node_count; j++)
 	{
 		tsk_size_t offset1 = node_table.metadata_offset[j];
@@ -13312,21 +13329,20 @@ void Species::__CheckNodePedigreeIDs(__attribute__((unused)) EidosInterpreter *p
 			HaplosomeMetadataRec *metadata_rec = (HaplosomeMetadataRec *)(node_table.metadata + offset1);
 			slim_pedigreeid_t pedigree_id = metadata_rec->haplosome_id_ / 2;			// rounds down to integer
 			
-			if (pedigree_id >= gSLiM_next_pedigree_id)
-			{
-				// We tried issuing a warning here:
-				//
-				// p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a haplosome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
-				//
-				// It proved not useful.  It got hit if you remembered an individual and then killed it and ended the sim,
-				// such that that individual's nodes were still in the table, but it was not-alive and was more recently
-				// born than any alive individual.  An uncommon thing to do, but not unreasonable.  On the other hand, this
-				// warning did not flag any actually pathological cases for anyone; and it was a very confusing warning!
-				
-				gSLiM_next_pedigree_id = pedigree_id + 1;
-			}
+			max_pedigreeID_used = std::max(max_pedigreeID_used, pedigree_id);
 		}
 	}
+	
+	// We tried issuing a warning here when a haplosome had a larger pedigree ID than expacted from the nodes:
+	//
+	// p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a haplosome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
+	//
+	// It proved not useful.  It got hit if you remembered an individual and then killed it and ended the sim,
+	// such that that individual's nodes were still in the table, but it was not-alive and was more recently
+	// born than any alive individual.  An uncommon thing to do, but not unreasonable.  On the other hand, this
+	// warning did not flag any actually pathological cases for anyone; and it was a very confusing warning!
+	//
+	SLiM_UsedPedigreeID(max_pedigreeID_used);
 }
 
 void Species::_ReadAncestralSequence(const char *p_file, Chromosome &p_chromosome)
@@ -13683,7 +13699,7 @@ void Species::_PostInstantiationCleanup(EidosInterpreter *p_interpreter)
 	for (tsk_id_t j = 0; (size_t) j < tables.nodes.num_rows; j++)
 	{
 		tsk_id_t ind = tables.nodes.individual[j];
-		if (ind >=0)
+		if (ind >= 0)
 		{
 			uint32_t flags = tables.individuals.flags[ind];
 			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
