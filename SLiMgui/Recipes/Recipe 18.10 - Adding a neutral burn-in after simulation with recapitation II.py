@@ -9,10 +9,11 @@ ts = tskit.load("decap.trees")    # no simplify!
 
 # Calculate tree heights, giving uncoalesced sites the maximum time
 def tree_heights(ts):
+    uncoalesced_height = ts.metadata['SLiM']['tick']
     heights = np.zeros(ts.num_trees + 1)
     for tree in ts.trees():
         if tree.num_roots > 1:  # not fully coalesced
-            heights[tree.index] = ts.metadata['SLiM']['tick']
+            heights[tree.index] = uncoalesced_height
         else:
             children = tree.children(tree.root)
             real_root = tree.root if len(children) > 1 else children[0]
