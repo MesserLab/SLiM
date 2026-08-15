@@ -25,7 +25,8 @@ def tree_heights(ts):
 # Plot tree heights before recapitation
 breakpoints = list(ts.breakpoints())
 heights = tree_heights(ts)
-plt.step(breakpoints, heights, where='post'); plt.show()
+plt.step(breakpoints, heights, where='post');
+plt.show()
 
 # Recapitate!
 recap = pyslim.recapitate(ts, ancestral_Ne=1e5, recombination_rate=3e-10, random_seed=1)
@@ -34,4 +35,5 @@ recap.dump("recap.trees")
 # Plot the tree heights after recapitation
 breakpoints = list(recap.breakpoints())
 heights = tree_heights(recap)
-plt.step(breakpoints, heights, where='post'); plt.show()
+plt.step(breakpoints, heights, where='post');
+plt.show()
