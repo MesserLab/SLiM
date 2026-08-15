@@ -25,7 +25,7 @@ def tree_heights(ts):
 # Plot tree heights before recapitation
 breakpoints = list(ts.breakpoints())
 heights = tree_heights(ts)
-plt.step(breakpoints, heights, where='post');
+plt.step(breakpoints, heights, where='post')
 plt.show()
 
 # Recapitate!
@@ -35,5 +35,5 @@ recap.dump("recap.trees")
 # Plot the tree heights after recapitation
 breakpoints = list(recap.breakpoints())
 heights = tree_heights(recap)
-plt.step(breakpoints, heights, where='post');
+plt.step(breakpoints, heights, where='post')
 plt.show()
