@@ -2004,9 +2004,13 @@ const std::string gSLiM_tsk_metadata_JSON_schema_SOURCE = R"V0G0N({
                                 "type": "boolean",
                                 "description": "Whether the baseline offset includes accumulated effects from fixed (substituted) mutations."
                             },
-                            "baselineOffset": {
+                            "baselineOffsetFromUser": {
                                 "type": "number",
-                                "description": "The baseline offset of the trait."
+                                "description": "The from-user component of the baseline offset of the trait."
+                            },
+                            "baselineOffsetFromSubstitutions": {
+                                "type": "number",
+                                "description": "The from-substitutions component of the baseline offset of the trait."
                             },
                             "directFitnessEffect": {
                                 "type": "boolean",

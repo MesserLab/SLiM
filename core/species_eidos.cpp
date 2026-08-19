@@ -1723,8 +1723,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be representable as a finite single-precision floating-point number; the value given rounded to infinity." << EidosTerminate();
 	}
 	
+	// effects for multiplicative traits clip at 0.0
 	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_trait_offset_t)0.0))
-		baselineOffset = (slim_trait_offset_t)0.0;
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow baselineOffset to be negative for multiplicative traits." << EidosTerminate();
 	
 	// individualOffsetMean
 	double individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);

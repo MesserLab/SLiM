@@ -1557,7 +1557,8 @@ The
 \f2\fs20 , and 
 \f1\fs18 "l"
 \f2\fs20  are also allowed.\
-The 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 baselineOffset
 \f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) to the trait value of every individual.  If 
 \f1\fs18 NULL
@@ -1565,10 +1566,11 @@ The
 \f1\fs18 1.0
 \f2\fs20  for multiplicative traits, 
 \f1\fs18 0.0
-\f2\fs20  for additive and logistic traits, such that the baseline offset has no effect upon the trait value.  Note that for multiplicative traits all effects, including the baseline offset, will be clamped to a minimum of 
+\f2\fs20  for additive and logistic traits, such that the baseline offset has no effect upon the trait value.  Note that for multiplicative traits the baseline offset is required to be 
 \f1\fs18 0.0
-\f2\fs20 .\
-The 
+\f2\fs20  or greater.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 individualOffsetMean
 \f2\fs20  and 
 \f1\fs18 individualOffsetSD

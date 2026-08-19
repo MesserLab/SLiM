@@ -48,6 +48,15 @@ class Trait : public EidosDictionaryRetained
 private:
 	typedef EidosDictionaryRetained super;
 	
+private:
+	// baseline offset, added to the trait value of every individual; internally this is split into a
+	// from-substitution component and a from-user component, but that distinction is not user-visible
+	// except in .trees metadata where it has to be exposed to enable python-side trait calculations
+	slim_trait_offset_t baselineOffsetComposite_;			// from-user combined with from-substitution
+	
+	slim_trait_offset_t baselineOffsetFromUser_;
+	slim_trait_offset_t baselineOffsetFromSubstitutions_;
+	
 #ifdef SLIMGUI
 public:
 #else
@@ -61,9 +70,6 @@ private:
 	// internally here as additive with a logistic post-transformation controlled by a separate flag.
 	TraitType type_;
 	bool logistic_post_;
-	
-	// baseline offset, added to the trait value of every individual
-	slim_trait_offset_t baselineOffset_;
 	
 	// default individual offset distribution parameters, used to generate per-individual offsets
 	double individualOffsetDistributionMean_;
@@ -152,8 +158,62 @@ public:
 	inline __attribute__((always_inline)) const std::string &Name(void) const		{ return name_; }
 	std::string UserVisibleType(void) const;
 	
-	inline __attribute__((always_inline)) slim_trait_offset_t BaselineOffset(void) const { return baselineOffset_; };
-	inline __attribute__((always_inline)) void SetBaselineOffset(slim_trait_offset_t p_baseline) { baselineOffset_ = p_baseline; };
+	inline __attribute__((always_inline)) slim_trait_offset_t BaselineOffset(void) const { return baselineOffsetComposite_; };
+	
+	// accessors that should be regarded as private; the subcomponents of the baseline offset are not public except to tree-seq
+	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffsetFromUser(void) const { return baselineOffsetFromUser_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffsetFromSubstitutions(void) const { return baselineOffsetFromSubstitutions_; };
+	inline __attribute__((always_inline)) void _SetBaselineOffsetFromUser(slim_trait_offset_t p_offset_from_user)
+	{
+#if DEBUG
+		// The caller is expected to clamp these values, or raise their own error
+		if (p_offset_from_user < 0.0)
+			EIDOS_TERMINATION << "ERROR (Trait::_SetBaselineOffsetFromUser): (internal error) p_offset_from_user < 0.0." << EidosTerminate();
+#endif
+		
+		baselineOffsetFromUser_ = p_offset_from_user;
+		
+		// recalculate baselineOffsetComposite_ so it is always up-to-date
+		if (Type() == TraitType::kMultiplicative)
+			baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
+		else
+			baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
+	}
+	inline __attribute__((always_inline)) void _SetBaselineOffsetFromSubstitutions(slim_trait_offset_t p_offset_from_substitutions)
+	{
+#if DEBUG
+		// The caller is expected to clamp these values, or raise their own error
+		if (p_offset_from_substitutions < 0.0)
+			EIDOS_TERMINATION << "ERROR (Trait::_SetBaselineOffsetFromSubstitutions): (internal error) p_offset_from_substitutions < 0.0." << EidosTerminate();
+#endif
+		
+		baselineOffsetFromSubstitutions_ = p_offset_from_substitutions;
+		
+		// recalculate baselineOffsetComposite_ so it is always up-to-date
+		if (Type() == TraitType::kMultiplicative)
+			baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
+		else
+			baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
+	}
+	
+	inline void BaselineAccumulate(slim_effect_t effect_size)
+	{
+		// Accumulate one homozygous effect into the baseline offset
+		if (Type() == TraitType::kMultiplicative)
+		{
+			baselineOffsetFromSubstitutions_ *= (1.0 + (slim_trait_offset_t)effect_size);	// 1+s
+			
+			if (baselineOffsetFromSubstitutions_ < 0.0)
+				baselineOffsetFromSubstitutions_ = 0.0;
+			
+			baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
+		}
+		else
+		{
+			baselineOffsetFromSubstitutions_ += ((slim_trait_offset_t)effect_size + (slim_trait_offset_t)effect_size);	// 2a
+			baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
+		}
+	}
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetDistributionFixed_ and individualOffsetDistributionFixedValue_
 	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetDistributionMean_ and individualOffsetDistributionSD_

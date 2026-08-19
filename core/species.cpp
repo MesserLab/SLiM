@@ -2780,22 +2780,7 @@ void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution
 			if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
 				EIDOS_TERMINATION << "ERROR (Species::DoBaselineAccumulationForSubstitution): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
 			
-			slim_effect_t effect_size = trait_info.effect_size_;
-			
-			if (trait->Type() == TraitType::kMultiplicative)
-			{
-				// the homozygous effect is 1+s for multiplicative traits
-				slim_trait_offset_t homozygous_effect = 1.0 + (slim_trait_offset_t)effect_size;
-				
-				trait->SetBaselineOffset(trait->BaselineOffset() * homozygous_effect);
-			}
-			else
-			{
-				// the homozygous effect is 2a for additive and logistic traits
-				slim_trait_offset_t homozygous_effect = (slim_trait_offset_t)effect_size + (slim_trait_offset_t)effect_size;
-				
-				trait->SetBaselineOffset(trait->BaselineOffset() + homozygous_effect);
-			}
+			trait->BaselineAccumulate(trait_info.effect_size_);
 		}
 		else
 		{
@@ -9416,7 +9401,11 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			else
 				trait_info["type"] = "multiplicative";
 			
-			trait_info["baselineOffset"] = trait->BaselineOffset();
+			// NOTE: we do not write the baseline offset; in python it is calculated from its two components
+			//trait_info["baselineOffset"] = trait->BaselineOffset();
+			
+			trait_info["baselineOffsetFromUser"] = trait->_BaselineOffsetFromUser();
+			trait_info["baselineOffsetFromSubstitutions"] = trait->_BaselineOffsetFromSubstitutions();
 			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
 			
 			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
@@ -9937,7 +9926,11 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 			else
 				trait_info["type"] = "multiplicative";
 			
-			trait_info["baselineOffset"] = trait->BaselineOffset();
+			// NOTE: we do not write the baseline offset; in python it is calculated from its two components
+			//trait_info["baselineOffset"] = trait->BaselineOffset();
+			
+			trait_info["baselineOffsetFromUser"] = trait->_BaselineOffsetFromUser();
+			trait_info["baselineOffsetFromSubstitutions"] = trait->_BaselineOffsetFromSubstitutions();
 			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
 			
 			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
@@ -10278,14 +10271,25 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		
 		// check optional keys for read-write properties; if present, we will bounds-check them and adopt their values
 		if (one_trait_metadata.contains("baselineOffset"))
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the baselineOffset property is obsolete and should not be used; use baselineOffsetFromUser and baselineOffsetFromSubstitutions to specify the two components of the baseline offset separately." << std::endl;
+		
+		if (one_trait_metadata.contains("baselineOffsetFromUser"))
 		{
-			slim_trait_offset_t new_baseline_offset = one_trait_metadata["baselineOffset"];
+			slim_trait_offset_t new_baseline_offset_from_user = one_trait_metadata["baselineOffsetFromUser"];
 			
-			if (!std::isfinite(new_baseline_offset))
-				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffset provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset << " provided)." << EidosTerminate();
+			if (!std::isfinite(new_baseline_offset_from_user))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetFromUser provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset_from_user << " provided)." << EidosTerminate();
 			
-			trait->SetBaselineOffset(new_baseline_offset);
+			if ((trait->Type() == TraitType::kMultiplicative) && (new_baseline_offset_from_user < 0.0))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetFromUser provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be >= 0.0 for multiplicative traits (" << new_baseline_offset_from_user << " provided)." << EidosTerminate();
+			
+			trait->_SetBaselineOffsetFromUser(new_baseline_offset_from_user);
 		}
+		
+		// NOTE: We do NOT adopt the baselineOffsetFromSubstitutions value; it is ignored.  Instead, it is
+		// recalculated from scratch from the tskit-mutations that SLiM decides are substitutions on load.
+		// Here we just reset it to its initial value, into which substitution effects will accumulate.
+		trait->_SetBaselineOffsetFromSubstitutions((trait->Type() == TraitType::kMultiplicative) ? 1.0 : 0.0);
 		
 		if (one_trait_metadata.contains("individualOffsetMean"))
 		{
@@ -13114,9 +13118,37 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			// BCH 1/26/2026: note that this code path does NOT do baseline accumulation, because it is assumed
-			// that the baseline offset recorded in the file already contains such effects as needed
+			
+			// BCH 8/19/2026: Note that this code path does baseline accumulation for all of the substitutions
+			// it creates.  The component of the baseline offset representing the baseline accumulation from
+			// substitutions was reset in ReadTreeSequenceMetadata(), and here we accumulate into it.  This
+			// design allows SLiM to adjust automatically to the fact that which tskit-mutations are considered
+			// SLiM-mutations and which are considered SLiM-substitutions might shift, due to simplification on
+			// the Python side; in effect, we re-tally the effect of baseline accumulation when we reload using
+			// our new assessment of which tskit-mutations are substitutions.  This is not robust to every change
+			// that might occur on the Python side; if the user removes fixed mutations from the tree sequence,
+			// for example (perhaps not being interested in fixed mutation above the MRCA), they would need to
+			// combine the effects of the removed mutations into the from-user component of the baseline offset
+			// in metadata to compensate for that removel, since SLiM has no way to do that itself.  See issue
+			// https://github.com/MesserLab/SLiM/issues/661 for fairly extensive discussion.
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr, community_.Tick());
+			
+			// We don't call DoBaselineAccumulationForSubstitution() here because it does a lot of extra work
+			// sometimes, invalidating trait values, that would be very expensive if done for every substitution
+			// we create here.  Instead, we invalidate trait values just once at the end of this process.
+			for (Trait *trait : traits_)
+			{
+				slim_trait_index_t trait_index = trait->Index();
+				const SubstitutionTraitInfo &trait_info = sub->trait_info_[trait_index];
+				
+				if (trait->HasBaselineAccumulation())
+				{
+					if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
+						EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
+					
+					trait->BaselineAccumulate(trait_info.effect_size_);
+				}
+			}
 			
 			chromosome->treeseq_substitutions_map_.emplace(position, sub);
 			chromosome->substitutions_.emplace_back(sub);
@@ -13175,6 +13207,19 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			}
 		}
 	}
+	
+	// After creating all the substitutions above, we invalidate trait values here just once, for all traits
+	// that do NOT have baseline accumulation; for those traits, any phenotypes that came from the .trees file
+	// are not reliable.  For traits that DO have baseline accumulation, we allow the trait values from the
+	// .trees file to stand, because the procedure followed above should ensure that those trait values have
+	// not changed even if the user did a simplify operation on the Python side.  If the user does something
+	// more extreme that makes the trait values in the .trees metadata invalid, it is their responsibility to
+	// set those trait values to NAN, or to call demandPhenotypes() with forceRecalc=T to make new phenotypes
+	// get calculated.  Note that we invalidate here whether substitutions were present or not, because which
+	// tskit-mutations are substitutions might have changed; the safe thing is just to invalidate always.
+	for (Trait *trait : traits_)
+		if (!trait->HasBaselineAccumulation())
+			trait->InvalidateTraitValuesForAllIndividuals();
 }
 
 void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq)

@@ -31,11 +31,22 @@ Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bo
 	if (p_logistic_post && (type_ != TraitType::kAdditive))
 		EIDOS_TERMINATION << "ERROR (Trait::Trait): (internal error) p_logistic_post is only supported for additive traits." << EidosTerminate();
 	
-	// effects for multiplicative traits clip at 0.0
+	// effects for multiplicative traits clip at 0.0; this should have already been enforced by the caller
 	if ((type_ == TraitType::kMultiplicative) && (p_baselineOffset < (slim_trait_offset_t)0.0))
-		baselineOffset_ = 0.0;
+		EIDOS_TERMINATION << "ERROR (Trait::Trait): (internal error) baseline offset < 0 not allowed for multiplicative traits." << EidosTerminate();
+	
+	if (type_ == TraitType::kMultiplicative)
+	{
+		baselineOffsetFromUser_ = p_baselineOffset;
+		baselineOffsetFromSubstitutions_ = 1.0;
+		baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
+	}
 	else
-		baselineOffset_ = p_baselineOffset;
+	{
+		baselineOffsetFromUser_ = p_baselineOffset;
+		baselineOffsetFromSubstitutions_ = 0.0;
+		baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
+	}
 	
 	_RecacheIndividualOffsetDistribution();
 	
@@ -230,7 +241,8 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gID_baselineOffset:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)baselineOffset_));
+			// The composite baseline offset value is what is user-visible, in the present design
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)baselineOffsetComposite_));
 		}
 		case gID_individualOffsetMean:
 		{
@@ -269,18 +281,34 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property baselineOffset requires a finite value (not NAN or INF)." << EidosTerminate();
 			
 			// effects for multiplicative traits clip at 0.0
-			slim_trait_offset_t new_baseline;
-			
 			if ((type_ == TraitType::kMultiplicative) && (value < 0.0))
-				new_baseline = (slim_trait_offset_t)0.0;
-			else
-				new_baseline = (slim_trait_offset_t)value;
+				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): property baselineOffset may not be set to a negative value for a multiplicative trait." << EidosTerminate();
 			
-			// BCH 2/25/2026: If the baseline value is not actually changing, ignore the property set
-			if (baselineOffset_ == new_baseline)
+			slim_trait_offset_t new_baseline = (slim_trait_offset_t)value;
+			
+			// if the baseline offset is not actually changing, ignore the property set
+			if (baselineOffsetComposite_ == new_baseline)
 				return;
 			
-			baselineOffset_ = new_baseline;
+			// since baseline offset is a composite of from-user and from-substitution baseline effects, we want
+			// to back-calculate a new from-user effect that will achieve the requested baseline
+			if (Type() == TraitType::kMultiplicative)
+			{
+				baselineOffsetFromUser_ = new_baseline /  baselineOffsetFromSubstitutions_;
+				
+				// fix the composite value to be an exact combination, avoiding any weird numerical error issues
+				baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
+			}
+			else
+			{
+				baselineOffsetFromUser_ = new_baseline - baselineOffsetFromSubstitutions_;
+				
+				// fix the composite value to be an exact combination, avoiding any weird numerical error issues
+				baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
+			}
+			
+			if (!std::isfinite(baselineOffsetFromUser_) || !std::isfinite(baselineOffsetComposite_))
+				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): the new baselineOffset value could not be represented due to numerical issues (roundoff, overflow)." << EidosTerminate();
 			
 			// TRAIT INVALIDATION: the trait value for this trait is invalidated in all individuals
 			InvalidateTraitValuesForAllIndividuals();
