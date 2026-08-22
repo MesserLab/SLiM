@@ -208,6 +208,9 @@ multitrait branch:
 	internally, split baselineOffset into a "from substitutions" component and a "from user" component, and expose those components in .trees metadata, to fix #661
 		the top-level JSON schema now has two keys, baselineOffsetFromUser and baselineOffsetFromSubstitutions, that provide these two components
 		SLiM writes both of them, for use on the Python side; when reading a .trees, SLiM uses baselineOffsetFromUser and ignores baselineOffsetFromSubstitutions (calculating that itself)
+	shift to putting binary derived state info in the mutation table metadata, in addition to the ASCII derived state info in its own column, when on disk (i.e., in .trees files); see #664
+		in-memory, the binary derived state info remains in the derived state column and the mutation table metadata is kept empty, as before
+		the schema for the mutation table metadata now encodes an array (of length determined by the metadata itself) of int64_t SLiM mutation IDs
 
 
 version 5.2 (Eidos version 4.2):

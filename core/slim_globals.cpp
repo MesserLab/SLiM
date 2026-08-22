@@ -2177,7 +2177,39 @@ const std::string gSLiM_tsk_metadata_binary_schema_FORMAT_SOURCE = R"V0G0N({
 
 const std::string gSLiM_tsk_edge_metadata_schema_SOURCE = "";
 const std::string gSLiM_tsk_site_metadata_schema_SOURCE = "";
-const std::string gSLiM_tsk_mutation_metadata_schema_SOURCE = "";		// this is now managed by gSLiM_tsk_metadata_binary_schema in top-level metadata
+
+// actual mutation metadata is now kept in the top-level metadata; see gSLiM_tsk_metadata_binary_schema
+// the mutation metadata column now (on disk only) contains binary derived state info, in addition to the
+// ASCII info kept in the derived state column; see DerivedStatesFromMetadata() and DerivedStatesToMetadata()
+#pragma mark gSLiM_tsk_mutation_metadata_schema_SOURCE
+
+const std::string gSLiM_tsk_mutation_metadata_schema_SOURCE = R"V0G0N({
+    "$schema": "http://json-schema.org/schema#",
+    "additionalProperties": false,
+    "codec": "struct",
+    "type": "object",
+    "description": "SLiM schema for representing binary derived state data in mutation metadata (the actual mutation metadata is stored in a table in top-level metadata now).",
+    "examples": [
+        {
+            "derived_states": [0, 1, 17]
+        }
+    ],
+    "properties": {
+        "derived_states": {
+            "index": 1,
+            "type": "array",
+			"noLengthEncodingExhaustBuffer": true,
+            "description": "An array of SLiM mutation IDs (int64t), representing the (stacked) mutations contained by the derived state for the mutation.  This information is also saved as a comma-separated ASCII string in the derived state column.",
+            "items": {
+                "binaryFormat": "q",
+                "type": "number"
+            }
+        }
+    },
+    "required": [
+        "derived_states"
+    ]
+})V0G0N";
 
 // BCH 12/10/2024: Removed the type field, and changed the treatment of is_vacant.  We have a tricky problem
 // here, which is that is_vacant is now variable-length and there is no count.  The number of byte (uint8_t)

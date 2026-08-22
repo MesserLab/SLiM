@@ -728,8 +728,8 @@ public:
 	void DisconnectCopiedSharedTables(tsk_table_collection_t &p_tables);	// zeroes out the shared table copies in p_tables
 	
 	static void handle_error(const std::string &msg, int error) __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
-	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
-	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
+	static void DerivedStatesFromMetadata(tsk_table_collection_t *p_tables);
+	static void DerivedStatesToMetadata(tsk_table_collection_t *p_tables);
 	
 	bool _SubpopulationIDInUse(slim_objectid_t p_subpop_id) const;
 	void RecordTablePosition(void);

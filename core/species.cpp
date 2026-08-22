@@ -8771,115 +8771,101 @@ void Species::CheckAutoSimplification(void)
 	}
 }
 
-void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
+void Species::DerivedStatesFromMetadata(tsk_table_collection_t *p_tables)
 {
-	// This modifies p_tables in place, replacing the derived_state column of p_tables with a binary version.
-	tsk_mutation_table_t mutations_copy;
-	int ret = tsk_mutation_table_copy(&p_tables->mutations, &mutations_copy, 0);
-	if (ret < 0) handle_error("derived_from_ascii", ret);
+	// This is called when reading a .trees file.  On disk, derived state information is kept in the mutation
+	// table's metadata column in binary, AND in the derived state column in ASCII (see #664 for discussion).
+	// Here we convert back to our in-memory format by swapping the derived state column's ASCII data with the
+	// metadata column's binary data, and then purging the ASCII data from the metadata column.
 	
-	{
-		const char *derived_state = p_tables->mutations.derived_state;
-		tsk_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
-		std::vector<slim_mutationid_t> binary_derived_state;
-		std::vector<tsk_size_t> binary_derived_state_offset;
-		size_t derived_state_total_part_count = 0;
-		
-		binary_derived_state_offset.emplace_back(0);
-		
-		try {
-			for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
-			{
-				std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
-				
-				if (string_derived_state.size() == 0)
-				{
-					// nothing to do for an empty derived state
-				}
-				else if (string_derived_state.find(',') == std::string::npos)
-				{
-					// a single mutation can be handled more efficiently, and this is the common case so it's worth optimizing
-					binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(string_derived_state));
-					derived_state_total_part_count++;
-				}
-				else
-				{
-					// stacked mutations require that the derived state be separated to parse it
-					std::vector<std::string> derived_state_parts = Eidos_string_split(string_derived_state, ",");
-					
-					for (std::string &derived_state_part : derived_state_parts)
-						binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
-					
-					derived_state_total_part_count += derived_state_parts.size();
-				}
-				
-				binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
-			}
-		} catch (...) {
-			EIDOS_TERMINATION << "ERROR (Species::DerivedStatesFromAscii): a mutation derived state was not convertible into an int64_t mutation id.  The tree-sequence data may not be annotated for SLiM, or may be corrupted.  If mutations were added in msprime, do you want to use the msprime.SLiMMutationModel?" << EidosTerminate();
-		}
-		
-		if (binary_derived_state.size() == 0)
-			binary_derived_state.resize(1);
-		
-		ret = tsk_mutation_table_set_columns(&p_tables->mutations,
-										 mutations_copy.num_rows,
-										 mutations_copy.site,
-										 mutations_copy.node,
-										 mutations_copy.parent,
-										 mutations_copy.time,
-										 (char *)binary_derived_state.data(),
-										 binary_derived_state_offset.data(),
-										 mutations_copy.metadata,
-										 mutations_copy.metadata_offset);
-		if (ret < 0) handle_error("derived_from_ascii", ret);
-	}
+	// We want to do this efficiently, without making copies of buffers, etc., so we munge around in tskit's
+	// structs.  Maybe there is a way to do this more cleanly and safely?  :-O
 	
-	tsk_mutation_table_free(&mutations_copy);
+	assert(p_tables != nullptr);
+	assert(p_tables->mutations.derived_state != nullptr);
+	assert(p_tables->mutations.metadata != nullptr);
+	assert(p_tables->mutations.metadata_offset != nullptr);
+	
+	// Swap the derived state column and the metadata column; after this, binary derived states will be in the
+	// derived state column and ASCII derived states will be in the metadata column.
+	std::swap(p_tables->mutations.derived_state_length, p_tables->mutations.metadata_length);
+	std::swap(p_tables->mutations.max_derived_state_length, p_tables->mutations.max_metadata_length);
+	std::swap(p_tables->mutations.max_derived_state_length_increment, p_tables->mutations.max_metadata_length_increment);
+	std::swap(p_tables->mutations.derived_state, p_tables->mutations.metadata);
+	std::swap(p_tables->mutations.derived_state_offset, p_tables->mutations.metadata_offset);
+	
+	// Then empty out the metadata column, which we don't use while simulating; we want to free up the buffer
+	// for the metadata, rather than having the (perhaps large capacity) buffer hanging around forever.  The
+	// only way to do that is by freeing the old buffer and mallocing a new minimal buffer.
+	free(p_tables->mutations.metadata);
+	p_tables->mutations.metadata = (char *)malloc(1);	// avoids platform-dependencies on zero-length malloc
+	if (!p_tables->mutations.metadata)
+		EIDOS_TERMINATION << "ERROR (Species::DerivedStatesFromMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	p_tables->mutations.metadata_length = 0;
+	p_tables->mutations.max_metadata_length = 1;
+	
+	// Zero out all the metadata offsets; there is an entry for each row, plus one
+	EIDOS_BZERO(p_tables->mutations.metadata_offset, (p_tables->mutations.num_rows + 1) * sizeof(tsk_size_t));
 }
 
-void Species::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
+void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
 {
-	// This modifies p_tables in place, replacing the derived_state column of p_tables with an ASCII version.
-	tsk_mutation_table_t mutations_copy;
-	int ret = tsk_mutation_table_copy(&p_tables->mutations, &mutations_copy, 0);
-	if (ret < 0) handle_error("derived_to_ascii", ret);
+	// This is called when saving out a .trees file.  On disk, derived state information is kept in the mutation
+	// table's metadata column in binary, AND in the derived state column in ASCII (see #664 for discussion).
+	// Here we convert from our in-memory format by swapping the derived state column's binary data with the
+	// empty metadata column, and then adding ASCII derived state information.
 	
+	// We want to do this efficiently, without making copies of buffers, etc., so we munge around in tskit's
+	// structs.  Maybe there is a way to do this more cleanly and safely?  :-O
+	
+	assert(p_tables != nullptr);
+	assert(p_tables->mutations.derived_state != nullptr);
+	assert(p_tables->mutations.metadata != nullptr);
+	assert(p_tables->mutations.metadata_offset != nullptr);
+	
+	// Generate the ASCII derived state column, for use on disk, and put it into the metadata column.
+	const char *derived_state = p_tables->mutations.derived_state;
+	tsk_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
+	std::string text_derived_state;
+	tsk_size_t *text_derived_state_offset = p_tables->mutations.metadata_offset;
+	
+	text_derived_state_offset[0] = 0;
+	
+	for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
 	{
-		const char *derived_state = p_tables->mutations.derived_state;
-		tsk_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
-		std::string text_derived_state;
-		std::vector<tsk_size_t> text_derived_state_offset;
+		slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
+		size_t cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
 		
-		text_derived_state_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
+		for (size_t i = 0; i < cur_derived_state_length; i++)
 		{
-			slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
-			size_t cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
-			
-			for (size_t i = 0; i < cur_derived_state_length; i++)
-			{
-				if (i != 0) text_derived_state.append(",");
-				text_derived_state.append(std::to_string(int_derived_state[i]));
-			}
-			text_derived_state_offset.emplace_back((tsk_size_t)text_derived_state.size());
+			if (i != 0) text_derived_state.append(",");
+			text_derived_state.append(std::to_string(int_derived_state[i]));
 		}
-		
-		ret = tsk_mutation_table_set_columns(&p_tables->mutations,
-										 mutations_copy.num_rows,
-										 mutations_copy.site,
-										 mutations_copy.node,
-										 mutations_copy.parent,
-										 mutations_copy.time,
-										 text_derived_state.c_str(),
-										 text_derived_state_offset.data(),
-										 mutations_copy.metadata,
-										 mutations_copy.metadata_offset);
-		if (ret < 0) handle_error("derived_to_ascii", ret);
+		text_derived_state_offset[j + 1] = (tsk_size_t)text_derived_state.size();
 	}
 	
-	tsk_mutation_table_free(&mutations_copy);
+	// Copy the ASCII data into a new malloced block and replace any existing metadata with the ASCII.
+	// FIXME it'd be nice to do the work ourselves into a malloced buffer we own, to avoid the copy.
+	tsk_size_t metadata_size = text_derived_state.size() * sizeof(char);
+	char *new_metadata_buffer = (char *)malloc(metadata_size);
+	if (!new_metadata_buffer)
+		EIDOS_TERMINATION << "ERROR (Species::DerivedStatesToMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	memcpy(new_metadata_buffer, text_derived_state.c_str(), metadata_size);
+	
+	free(p_tables->mutations.metadata);
+	p_tables->mutations.metadata = new_metadata_buffer;
+	p_tables->mutations.metadata_length = metadata_size;
+	p_tables->mutations.max_metadata_length = metadata_size;
+	
+	// Swap the derived state column and the metadata column; after this, binary derived states will
+	// be in the metadata column, and ASCII derived states will be in the derived state column.
+	std::swap(p_tables->mutations.derived_state_length, p_tables->mutations.metadata_length);
+	std::swap(p_tables->mutations.max_derived_state_length, p_tables->mutations.max_metadata_length);
+	std::swap(p_tables->mutations.max_derived_state_length_increment, p_tables->mutations.max_metadata_length_increment);
+	std::swap(p_tables->mutations.derived_state, p_tables->mutations.metadata);
+	std::swap(p_tables->mutations.derived_state_offset, p_tables->mutations.metadata_offset);
 }
 
 void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags)
@@ -10749,7 +10735,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 		// Write out the copied tables
 		{
 			// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
-			DerivedStatesToAscii(&output_tables);
+			DerivedStatesToMetadata(&output_tables);
 			
 			// In nucleotide-based models, put an ASCII representation of the reference sequence into the tables
 			if (nucleotide_based_)
@@ -13862,8 +13848,8 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	
 	ReadTreeSequenceMetadata(treeSeqInfo, &metadata_tick, &metadata_cycle, &file_model_type, &file_version, mut_metadata_table);
 	
-	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
-	DerivedStatesFromAscii(&treeSeqInfo.tables_);
+	// shift derived state information from the mutation metadata column to the derived state column
+	DerivedStatesFromMetadata(&treeSeqInfo.tables_);
 	
 	// in nucleotide-based models, read the ancestral sequence; we do this ourselves, directly from kastore, to avoid having
 	// tskit make a full ASCII copy of the reference sequences from kastore into tables_; see tsk_table_collection_load() above
@@ -14022,7 +14008,10 @@ slim_tick_t Species::_InitializePopulationFromTskitDirectory(std::string p_direc
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the .trees files for chromosomes have different file versions (" << file_version << " versus " << this_file_version << ").  This must be consistent across all files." << EidosTerminate();
 		}
 		
-		DerivedStatesFromAscii(&treeSeqInfo.tables_);
+		// shift derived state information from the mutation metadata column to the derived state column
+		DerivedStatesFromMetadata(&treeSeqInfo.tables_);
+		
+		// in nucleotide-based models, read the ancestral sequence
 		_ReadAncestralSequence(expected_path.c_str(), *chromosome);
 		
 		// The first chromosome uses _InstantiateSLiMObjectsFromTables() and creates the subpopulations, etc.,
