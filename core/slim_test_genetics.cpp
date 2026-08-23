@@ -242,8 +242,8 @@ void _RunGenomicElementTypeTests(void)
 	
 	// Test GenomicElementType - (void)setMutationFractions(io<MutationType> mutationTypes, numeric proportions)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { g1.setMutationFractions(object(), integer(0)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { g1.setMutationFractions(m1, 0.0); if (g1.mutationTypes.size() == 0 & size(g1.mutationFractions) == 0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { g1.setMutationFractions(1, 0.0); if (g1.mutationTypes.size() == 0 & size(g1.mutationFractions) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { g1.setMutationFractions(m1, 0.0); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { g1.setMutationFractions(1, 0.0); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.addSubpop('p1', 10); } 1 early() { g1.setMutationFractions(m1, 0.0); } 100 early() {}", "empty mutation type vector", __LINE__, false);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.addSubpop('p1', 10); } 1 early() { g1.setMutationFractions(1, 0.0); } 100 early() {}", "empty mutation type vector", __LINE__, false);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { g1.setMutationFractions(m1, 0.3); if (g1.mutationTypes == m1 & g1.mutationFractions == 0.3) stop(); }", __LINE__);

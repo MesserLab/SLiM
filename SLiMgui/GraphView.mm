@@ -1141,7 +1141,7 @@
 	NSMutableArray *legendKey = [NSMutableArray array];
 	
 	// first we put in placeholders
-	for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
+	for (const auto __attribute__ ((unused)) &mutationTypeIter : displaySpecies->mutation_types_)
 		[legendKey addObject:@"placeholder"];
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values

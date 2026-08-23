@@ -317,9 +317,18 @@ void Species::RecalculateOptimizationFlags(bool p_sweep_registry /* = false */)
 	for (const auto &ge_type_iter : genomic_element_types_)
 	{
 		GenomicElementType *ge_type_ptr = ge_type_iter.second;
+		size_t muttype_count = ge_type_ptr->mutation_type_ptrs_.size();
 		
-		for (const MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+		for (size_t muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 		{
+			double mutation_type_fraction = ge_type_ptr->mutation_fractions_[muttype_index];
+			
+			// filter out mutation types with a fraction of 0.0; they should not affect optimization decisions
+			if (mutation_type_fraction == 0.0)
+				continue;
+			
+			const MutationType *mutation_type_ptr = ge_type_ptr->mutation_type_ptrs_[muttype_index];
+			
 			if (mutation_type_ptr->all_neutral_DES_)
 			{
 				species_no_neutral_mutations_ = false;
@@ -421,9 +430,18 @@ void Species::CheckOptimizationFlags(void) const
 	for (const auto &ge_type_iter : genomic_element_types_)
 	{
 		const GenomicElementType *ge_type_ptr = ge_type_iter.second;
+		size_t muttype_count = ge_type_ptr->mutation_type_ptrs_.size();
 		
-		for (const MutationType *mutation_type_ptr : ge_type_ptr->mutation_type_ptrs_)
+		for (size_t muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 		{
+			double mutation_type_fraction = ge_type_ptr->mutation_fractions_[muttype_index];
+			
+			// filter out mutation types with a fraction of 0.0; they should not affect optimization decisions
+			if (mutation_type_fraction == 0.0)
+				continue;
+			
+			const MutationType *mutation_type_ptr = ge_type_ptr->mutation_type_ptrs_[muttype_index];
+			
 			if (mutation_type_ptr->all_neutral_DES_)
 			{
 				if (species_no_neutral_mutations_ != false)
@@ -4960,9 +4978,18 @@ void Species::RunInitializeCallbacks(void)
 			for (const auto &getype_iter : genomic_element_types_)
 			{
 				const GenomicElementType *getype = getype_iter.second;
+				size_t muttype_count = getype->mutation_type_ptrs_.size();
 				
-				for (const MutationType *muttype : getype->mutation_type_ptrs_)
+				for (size_t muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 				{
+					double mutation_type_fraction = getype->mutation_fractions_[muttype_index];
+					
+					// filter out mutation types with a fraction of 0.0; they should not affect optimization decisions
+					if (mutation_type_fraction == 0.0)
+						continue;
+					
+					const MutationType *muttype = getype->mutation_type_ptrs_[muttype_index];
+					
 					if (muttype->all_neutral_DES_)
 						using_neutral_muttype = true;
 				}
