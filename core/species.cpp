@@ -8774,7 +8774,9 @@ void Species::CheckAutoSimplification(void)
 void Species::DerivedStatesFromMetadata(tsk_table_collection_t *p_tables)
 {
 	// This is called when reading a .trees file.  On disk, derived state information is kept in the mutation
-	// table's metadata column in binary, AND in the derived state column in ASCII (see #664 for discussion).
+	// table's metadata column in binary. When writing out the .trees file we also
+	// put this in the derived state column in ASCII (see #664 for discussion), but we
+	// specifically don't want to assume anything about the derived state column here.
 	// Here we convert back to our in-memory format by swapping the derived state column's ASCII data with the
 	// metadata column's binary data, and then purging the ASCII data from the metadata column.
 	
