@@ -8781,6 +8781,15 @@ void Species::DerivedStatesFromMetadata(tsk_table_collection_t *p_tables)
 	// metadata column.  To do this efficiently, without making copies of buffers, etc., we use a secondary
 	// mutation table with tsk_mutation_table_takeset_columns(), which is a bit tricky.
 	
+	// This code might seem overly complex, but there are reasons.  :->  Munging the tskit data structures more
+	// directly would not be safe, since tskit's internal implementation is not documented and is subject to
+	// change, which would risk breakage that might be silent.  By using a temporary tsk_mutation_table_t with
+	// tsk_mutation_table_init() and tsk_mutation_table_takeset_columns(), we can get tskit to set things up for
+	// us.  We still have to munge the internal data structures by swapping columns around with std::swap(), but
+	// that is relatively safe; it doesn't depend on how tskit is managing the internal state, it is just moving
+	// that internal state around from place to place.  Still unsafe, but _less_ unsafe.  To do this cleanly we
+	// would need new APIs added to tskit.
+	
 	assert(p_tables != nullptr);
 	
 	tsk_mutation_table_t &mutation_table = p_tables->mutations;
@@ -8844,6 +8853,15 @@ void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
 	// table's metadata column in binary, AND in the derived state column in ASCII (see #664 for discussion).
 	// Here we convert from our in-memory format by generating the ASCII column data, and then using a temporary
 	// mutation table with tsk_mutation_table_takeset_columns() to get the column in the right format for us.
+	
+	// This code might seem overly complex, but there are reasons.  :->  Munging the tskit data structures more
+	// directly would not be safe, since tskit's internal implementation is not documented and is subject to
+	// change, which would risk breakage that might be silent.  By using a temporary tsk_mutation_table_t with
+	// tsk_mutation_table_init() and tsk_mutation_table_takeset_columns(), we can get tskit to set things up for
+	// us.  We still have to munge the internal data structures by swapping columns around with std::swap(), but
+	// that is relatively safe; it doesn't depend on how tskit is managing the internal state, it is just moving
+	// that internal state around from place to place.  Still unsafe, but _less_ unsafe.  To do this cleanly we
+	// would need new APIs added to tskit.
 	
 	assert(p_tables != nullptr);
 	
