@@ -8774,70 +8774,102 @@ void Species::CheckAutoSimplification(void)
 void Species::DerivedStatesFromMetadata(tsk_table_collection_t *p_tables)
 {
 	// This is called when reading a .trees file.  On disk, derived state information is kept in the mutation
-	// table's metadata column in binary. When writing out the .trees file we also
-	// put this in the derived state column in ASCII (see #664 for discussion), but we
-	// specifically don't want to assume anything about the derived state column here.
-	// Here we convert back to our in-memory format by swapping the derived state column's ASCII data with the
-	// metadata column's binary data, and then purging the ASCII data from the metadata column.
-	
-	// We want to do this efficiently, without making copies of buffers, etc., so we munge around in tskit's
-	// structs.  Maybe there is a way to do this more cleanly and safely?  :-O
+	// table's metadata column in binary.  When writing out a .trees file we also put this in the derived state
+	// column in ASCII (see #664 for discussion), but we specifically don't want to assume anything about the
+	// derived state column here.  Here we convert back to our in-memory format by swapping the derived state
+	// column's ASCII data with the metadata column's binary data, and then purging the ASCII data from the
+	// metadata column.  To do this efficiently, without making copies of buffers, etc., we use a secondary
+	// mutation table with tsk_mutation_table_takeset_columns(), which is a bit tricky.
 	
 	assert(p_tables != nullptr);
-	assert(p_tables->mutations.derived_state != nullptr);
-	assert(p_tables->mutations.metadata != nullptr);
-	assert(p_tables->mutations.metadata_offset != nullptr);
+	
+	tsk_mutation_table_t &mutation_table = p_tables->mutations;
+	
+	assert(mutation_table.derived_state != nullptr);
+	assert(mutation_table.derived_state_offset != nullptr);
+	assert(mutation_table.metadata != nullptr);
+	assert(mutation_table.metadata_offset != nullptr);
 	
 	// Swap the derived state column and the metadata column; after this, binary derived states will be in the
 	// derived state column and ASCII derived states will be in the metadata column.
-	std::swap(p_tables->mutations.derived_state_length, p_tables->mutations.metadata_length);
-	std::swap(p_tables->mutations.max_derived_state_length, p_tables->mutations.max_metadata_length);
-	std::swap(p_tables->mutations.max_derived_state_length_increment, p_tables->mutations.max_metadata_length_increment);
-	std::swap(p_tables->mutations.derived_state, p_tables->mutations.metadata);
-	std::swap(p_tables->mutations.derived_state_offset, p_tables->mutations.metadata_offset);
+	std::swap(mutation_table.derived_state_length, mutation_table.metadata_length);
+	std::swap(mutation_table.max_derived_state_length, mutation_table.max_metadata_length);
+	std::swap(mutation_table.max_derived_state_length_increment, mutation_table.max_metadata_length_increment);
+	std::swap(mutation_table.derived_state, mutation_table.metadata);
+	std::swap(mutation_table.derived_state_offset, mutation_table.metadata_offset);
 	
 	// Then empty out the metadata column, which we don't use while simulating; we want to free up the buffer
 	// for the metadata, rather than having the (perhaps large capacity) buffer hanging around forever.  The
-	// only way to do that is by freeing the old buffer and mallocing a new minimal buffer.
-	free(p_tables->mutations.metadata);
-	p_tables->mutations.metadata = (char *)malloc(1);	// avoids platform-dependencies on zero-length malloc
-	if (!p_tables->mutations.metadata)
-		EIDOS_TERMINATION << "ERROR (Species::DerivedStatesFromMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	// best way to do this without using (much) private information is to (a) init a new mutation table,
+	// (b) use tsk_mutation_table_takeset_columns() to set up that table with our number of rows but with
+	// empty metadata (setting up whatever internal representation our version of tskit prefers for that),
+	// (c) swap that empty metadata column in to our mutation table, (d) free the metadata column info from the
+	// temporary mutation table (which now contains the old ASCII derived states), and then (e) let that mutation
+	// table go WITHOUT tsk_mutation_table_free().  (It will have pointers to all the same buffers as our own
+	// mutation table, so we don't want to free it!)
+	tsk_mutation_table_t temp_mutation_table;
 	
-	p_tables->mutations.metadata_length = 0;
-	p_tables->mutations.max_metadata_length = 1;
+	tsk_mutation_table_init(&temp_mutation_table, 0);
+	tsk_mutation_table_takeset_columns(&temp_mutation_table,
+									   mutation_table.num_rows,
+									   mutation_table.site,
+									   mutation_table.node,
+									   mutation_table.parent,
+									   mutation_table.time,
+									   mutation_table.derived_state,
+									   mutation_table.derived_state_offset,
+									   /* metadata */ NULL,
+									   /* metadata_offset */ NULL);
 	
-	// Zero out all the metadata offsets; there is an entry for each row, plus one
-	EIDOS_BZERO(p_tables->mutations.metadata_offset, (p_tables->mutations.num_rows + 1) * sizeof(tsk_size_t));
+	std::swap(temp_mutation_table.metadata_length, mutation_table.metadata_length);
+	std::swap(temp_mutation_table.max_metadata_length, mutation_table.max_metadata_length);
+	std::swap(temp_mutation_table.max_metadata_length_increment, mutation_table.max_metadata_length_increment);
+	std::swap(temp_mutation_table.metadata, mutation_table.metadata);
+	std::swap(temp_mutation_table.metadata_offset, mutation_table.metadata_offset);
+	
+	// WE DO NOT DO:
+	// tsk_mutation_table_free(&temp_mutation_table);
+	// INSTEAD WE DO:
+	tsk_safe_free(temp_mutation_table.metadata);			// free the old ASCII derived state data
+	tsk_safe_free(temp_mutation_table.metadata_offset);		// free the offsets for that old data
+	tsk_safe_free(temp_mutation_table.metadata_schema);		// free the schema from tsk_mutation_table_init()
+	// AND THEN WE JUST LET IT GO OUT OF SCOPE AND DISAPPEAR.
+	
+	// Of course the above code will need to be updated if tskit's mutation table implementation changes!
 }
 
 void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
 {
 	// This is called when saving out a .trees file.  On disk, derived state information is kept in the mutation
 	// table's metadata column in binary, AND in the derived state column in ASCII (see #664 for discussion).
-	// Here we convert from our in-memory format by swapping the derived state column's binary data with the
-	// empty metadata column, and then adding ASCII derived state information.
-	
-	// We want to do this efficiently, without making copies of buffers, etc., so we munge around in tskit's
-	// structs.  Maybe there is a way to do this more cleanly and safely?  :-O
+	// Here we convert from our in-memory format by generating the ASCII column data, and then using a temporary
+	// mutation table with tsk_mutation_table_takeset_columns() to get the column in the right format for us.
 	
 	assert(p_tables != nullptr);
-	assert(p_tables->mutations.derived_state != nullptr);
-	assert(p_tables->mutations.metadata != nullptr);
-	assert(p_tables->mutations.metadata_offset != nullptr);
 	
-	// Generate the ASCII derived state column, for use on disk, and put it into the metadata column.
-	const char *derived_state = p_tables->mutations.derived_state;
-	tsk_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
+	tsk_mutation_table_t &mutation_table = p_tables->mutations;
+	
+	assert(mutation_table.derived_state != nullptr);
+	assert(mutation_table.derived_state_offset != nullptr);
+	assert(mutation_table.metadata != nullptr);
+	assert(mutation_table.metadata_offset != nullptr);
+	assert(mutation_table.metadata_length == 0);		// should be no existing metadata
+	
+	// Generate the ASCII derived state column, for use on disk, and put it into a malloced buffer.
+	// This could be made much faster, and with a lower memory high-water mark, by appending directly into
+	// a preallocated char buffer sufficiently large to hold all the values.  Have a look at this repo:
+	// https://github.com/ramanawithu/fast_int_to_string/tree/master.  But for now that is overkill.
+	const char *binary_derived_state = mutation_table.derived_state;
+	tsk_size_t *binary_derived_state_offset = mutation_table.derived_state_offset;
 	std::string text_derived_state;
-	tsk_size_t *text_derived_state_offset = p_tables->mutations.metadata_offset;
+	tsk_size_t *text_derived_state_offset = mutation_table.metadata_offset;		// note we put the ASCII offset data directly in here
 	
 	text_derived_state_offset[0] = 0;
 	
-	for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
+	for (size_t j = 0; j < mutation_table.num_rows; j++)
 	{
-		slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
-		size_t cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
+		slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(binary_derived_state + binary_derived_state_offset[j]);
+		size_t cur_derived_state_length = (binary_derived_state_offset[j+1] - binary_derived_state_offset[j])/sizeof(slim_mutationid_t);
 		
 		for (size_t i = 0; i < cur_derived_state_length; i++)
 		{
@@ -8847,8 +8879,6 @@ void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
 		text_derived_state_offset[j + 1] = (tsk_size_t)text_derived_state.size();
 	}
 	
-	// Copy the ASCII data into a new malloced block and replace any existing metadata with the ASCII.
-	// FIXME it'd be nice to do the work ourselves into a malloced buffer we own, to avoid the copy.
 	tsk_size_t metadata_size = text_derived_state.size() * sizeof(char);
 	char *new_metadata_buffer = (char *)malloc(metadata_size);
 	if (!new_metadata_buffer)
@@ -8856,18 +8886,45 @@ void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
 	
 	memcpy(new_metadata_buffer, text_derived_state.c_str(), metadata_size);
 	
-	free(p_tables->mutations.metadata);
-	p_tables->mutations.metadata = new_metadata_buffer;
-	p_tables->mutations.metadata_length = metadata_size;
-	p_tables->mutations.max_metadata_length = metadata_size;
+	// Now we want to toss any existing metadata column and put this new metadata column data in its place.  The
+	// best way to do this without using (much) private information is to (a) init a new mutation table, (b) use
+	// tsk_mutation_table_takeset_columns() to set up that table with all our existing columns but with the new
+	// metadata column, (c) swap its representation of the new metadata column back into our own table, and
+	// (d) let the temporary mutation table go WITHOUT tsk_mutation_table_free().  (It will have pointers to
+	// all the same buffers as our own mutation table, so we don't want to free it!)
+	tsk_mutation_table_t temp_mutation_table;
 	
-	// Swap the derived state column and the metadata column; after this, binary derived states will
-	// be in the metadata column, and ASCII derived states will be in the derived state column.
-	std::swap(p_tables->mutations.derived_state_length, p_tables->mutations.metadata_length);
-	std::swap(p_tables->mutations.max_derived_state_length, p_tables->mutations.max_metadata_length);
-	std::swap(p_tables->mutations.max_derived_state_length_increment, p_tables->mutations.max_metadata_length_increment);
-	std::swap(p_tables->mutations.derived_state, p_tables->mutations.metadata);
-	std::swap(p_tables->mutations.derived_state_offset, p_tables->mutations.metadata_offset);
+	tsk_mutation_table_init(&temp_mutation_table, 0);
+	tsk_mutation_table_takeset_columns(&temp_mutation_table,
+									   mutation_table.num_rows,
+									   mutation_table.site,
+									   mutation_table.node,
+									   mutation_table.parent,
+									   mutation_table.time,
+									   mutation_table.derived_state,
+									   mutation_table.derived_state_offset,
+									   /* metadata */ new_metadata_buffer,
+									   /* metadata_offset */ text_derived_state_offset);
+	
+	std::swap(temp_mutation_table.metadata_length, mutation_table.metadata_length);
+	std::swap(temp_mutation_table.max_metadata_length, mutation_table.max_metadata_length);
+	std::swap(temp_mutation_table.max_metadata_length_increment, mutation_table.max_metadata_length_increment);
+	std::swap(temp_mutation_table.metadata, mutation_table.metadata);
+	std::swap(temp_mutation_table.metadata_offset, mutation_table.metadata_offset); // identical already, actually
+	
+	// WE DO NOT DO:
+	// tsk_mutation_table_free(&temp_mutation_table);
+	// INSTEAD WE DO:
+	tsk_safe_free(temp_mutation_table.metadata_schema);		// free the schema from tsk_mutation_table_init()
+	// AND THEN WE JUST LET IT GO OUT OF SCOPE AND DISAPPEAR.
+	
+	// Finally, swap the derived state column and the metadata column; after this, binary derived states
+	// will be in the metadata column, and ASCII derived states will be in the derived state column.
+	std::swap(mutation_table.derived_state_length, mutation_table.metadata_length);
+	std::swap(mutation_table.max_derived_state_length, mutation_table.max_metadata_length);
+	std::swap(mutation_table.max_derived_state_length_increment, mutation_table.max_metadata_length_increment);
+	std::swap(mutation_table.derived_state, mutation_table.metadata);
+	std::swap(mutation_table.derived_state_offset, mutation_table.metadata_offset);
 }
 
 void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags)
