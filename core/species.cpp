@@ -12012,10 +12012,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		
 		// remember the SLIM_TSK_INDIVIDUAL_MIGRATED flag from the flags column of the individual table
 		// this used to be in metadata, but now that it is in the flags column we need to keep it separately
-		if (individual.flags & SLIM_TSK_INDIVIDUAL_MIGRATED)
-			subpop_info.migrant_flags_.push_back(true);
-		else
-			subpop_info.migrant_flags_.push_back(false);
+		subpop_info.migrant_flags_.push_back(!!(individual.flags & SLIM_TSK_INDIVIDUAL_MIGRATED));
 		
 		// remember our metadata pointer, we will fetch information from it later; below we check metadata for
 		// correctness, and even edit it, but we do not copy its values, we just keep the metadata pointer
