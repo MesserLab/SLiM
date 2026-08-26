@@ -2355,7 +2355,7 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
         "sex": {
             "index": 8,
             "type": "integer",
-            "binaryFormat": "i",
+            "binaryFormat": "h",
             "description": "The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite)."
         },
         "tagL0_set": {

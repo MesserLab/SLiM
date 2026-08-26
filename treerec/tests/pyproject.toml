@@ -1,0 +1,14 @@
+[project]
+name = "SLiM_python_tests"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "filelock>=3.32.4",
+    "msprime>=1.2.0",
+    "numpy>=2.5.2",
+    "pyslim>=1.0.4",
+    "pytest>=9.1.1",
+    "pytest-xdist>=3.8.0",
+    "setuptools>=84.0.0",
+    "tskit>=0.4.1",
+]
