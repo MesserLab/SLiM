@@ -212,6 +212,8 @@ multitrait branch:
 	    however, we do not rely on the derived state being anything when reading in a .trees file
 		in-memory, the binary derived state info remains in the derived state column and the mutation table metadata is kept empty, as before
 		the schema for the mutation table metadata now encodes an array (of length determined by the metadata itself) of int64_t SLiM mutation IDs
+	fix #666, remove `flags` from individual metadata (shifting the migrant flag, now named SLIM_TSK_INDIVIDUAL_MIGRATED, over to the flags column of the individual table)
+		note this entails changes to the individual table flags column, the individual table metadata and schema, and SLiM's provenance entries (to add a description of the flag)
 
 
 version 5.2 (Eidos version 4.2):

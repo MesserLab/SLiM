@@ -145,29 +145,29 @@ typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
 	slim_pedigreeid_t pedigree_p1_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 1
 	slim_pedigreeid_t pedigree_p2_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 2
-	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
-	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
-	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
-	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
 	int64_t tag_;							// 8 bytes (int64_t): the `tag` property value
 	double tagF_;							// 8 bytes (double): the `tagF` property value
+	
+	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
+	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
+	
+	int16_t sex_;							// 2 bytes (int16_t): the sex of the individual, as defined by the IndividualSex enum
 	uint8_t tagL0_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL0` is set
 	uint8_t tagL0_;							// 1 byte (uint8_t): the `tagL0` property value
 	uint8_t tagL1_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL1` is set
 	uint8_t tagL1_;							// 1 byte (uint8_t): the `tagL1` property value
 	uint8_t tagL2_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL2` is set
 	uint8_t tagL2_;							// 1 byte (uint8_t): the `tagL2` property value
+	
 	uint8_t tagL3_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL3` is set
 	uint8_t tagL3_;							// 1 byte (uint8_t): the `tagL3` property value
 	uint8_t tagL4_set_;						// 1 byte (uint8_t): a flag indicating whether `tagL4` is set
 	uint8_t tagL4_;							// 1 byte (uint8_t): the `tagL4` property value
 	
-	// NOTE: after this point the packed struct is only aligned to a two-byte boundary!
+	// NOTE: after this point the packed struct is only aligned to a four-byte boundary!
 	
 	_IndividualPerTraitMetadata per_trait_[];	// 16 bytes per entry: 0 or more per-trait entries (count determined by the schema!)
 } IndividualMetadataRec;
-
-#define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this cycle
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 // BCH 2/11/2026: Note that all of these metadata structs are now actually variable-length; this is just a base.
@@ -175,7 +175,7 @@ static_assert(sizeof(_MutationPerTraitMetadata) == 12, "_MutationPerTraitMetadat
 static_assert(sizeof(MutationTableMetadataRec) == 36, "MutationTableMetadataRec is not 36 bytes!");
 static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");
 static_assert(sizeof(_IndividualPerTraitMetadata) == 16, "_IndividualPerTraitMetadata is not 16 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 66, "IndividualMetadataRec is not 66 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 60, "IndividualMetadataRec is not 60 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
