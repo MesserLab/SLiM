@@ -9018,8 +9018,9 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		if (ind_pos == p_individuals_hash->end()) {
 			// This individual is not already in the tables.
 			tsk_id_t tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
-					p_flags, location.data(), (uint32_t)location.size(), 
-                    NULL, 0, // individual parents
+					p_flags | (ind->migrant_ ? SLIM_TSK_INDIVIDUAL_MIGRATED : 0),	// add migrant flag if needed
+					location.data(), (uint32_t)location.size(), 
+                    NULL, 0,	// individual parents; fixed later by AddParentsColumnForOutput()
 					(char *)&metadata_rec, (uint32_t)total_metadata_size);
 			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
 			
@@ -9054,24 +9055,37 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			// It could have been previously inserted but not with the SLIM_TSK_INDIVIDUAL_REMEMBERED
 			// flag: if so, it now needs adding to the list of remembered nodes
 			tsk_id_t tsk_node_id_base = ind->TskitNodeIdBase();
+			tsk_flags_t &individual_row_flags = p_tables->individuals.flags[tsk_individual];
 			
-			if (((p_tables->individuals.flags[tsk_individual] & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
+			if (((individual_row_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
 				&& (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED))
 			{
 				remembered_nodes_.emplace_back(tsk_node_id_base);
 				remembered_nodes_.emplace_back(tsk_node_id_base + 1);
 			}
-
+			
 			memcpy(p_tables->individuals.location
 				   + p_tables->individuals.location_offset[tsk_individual],
 				   location.data(), location.size() * sizeof(double));
 			memcpy(p_tables->individuals.metadata
 					+ p_tables->individuals.metadata_offset[tsk_individual],
 					&metadata_rec, total_metadata_size);
-			p_tables->individuals.flags[tsk_individual] |= p_flags;
+			
+			// BCH 8/26/2026: Note that we OR flags in here, and never clear flags, because of the way this
+			// method is called; individuals that get remembered/retained get set with only that flag, and
+			// then we call this method again later for alive individuals and want to just add the alive flag.
+			individual_row_flags |= p_flags;
+			
+			// BCH 8/26/2026: We have to fix the `migrant` flag, which might have changed value since this
+			// individual was last recorded.  This used to be done by the memcpy() of the metadata above,
+			// but now the `migrant` flag is kept in the flags column, not the metadata.
+			if (ind->migrant_)
+				individual_row_flags |= SLIM_TSK_INDIVIDUAL_MIGRATED;
+			else
+				individual_row_flags &= ~SLIM_TSK_INDIVIDUAL_MIGRATED;
 			
 			// Check node table
-			assert(ind->TskitNodeIdBase() + 1 < (tsk_id_t) p_tables->nodes.num_rows);	// base and base+1 must both be in range
+			assert(tsk_node_id_base + 1 < (tsk_id_t) p_tables->nodes.num_rows);	// base and base+1 must both be in range
 			
 			// BCH 4/29/2019: These asserts are, we think, not technically necessary – the code
 			// would work even if they were violated.  But they're a nice invariant to guarantee,
@@ -9885,6 +9899,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 		
 		// BCH 3/10/2024: Moving from schema version 1.0.0 to 1.1.0, which I believe shipped in tskit 0.5.9.
 		// This adds the optional `resources` key.  See https://github.com/MesserLab/SLiM/issues/478.
+		// See https://tskit.dev/tskit/docs/stable/provenance.html#full-schema for the current provenance schema.
 		j["schema_version"] = "1.1.0";
 		
 		struct utsname name;
@@ -10042,6 +10057,8 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 		j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be permanently remembered";
 		j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_RETAINED";
 		j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was requested by the user to be retained only if its nodes continue to exist in the tree sequence";
+		j["metadata"]["individuals"]["flags"]["19"]["name"] = "SLIM_TSK_INDIVIDUAL_MIGRATED";
+		j["metadata"]["individuals"]["flags"]["19"]["description"] = "the individual is a recent migrant between subpopulations";
 		
 		// We save this information out only for runs at the command line.  This data might not be available on
 		// all platforms; when it is unavailable, the key will be omitted.  We always have elapsed wall time.
@@ -11064,34 +11081,33 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	// We check the struct size here to detect changes that would need to be responded to here; but it is
 	// very important to note that the caller guarantees that the actual size of p_metadata is large enough
 	// to accommodate all of the per-trait metadata, which is variable-length!
-	static_assert(sizeof(IndividualMetadataRec) == 66, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(IndividualMetadataRec) == 60, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
 #if DEBUG
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (Species::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
 #endif
 	
+	// Note: tag values were added to the individual metadata in SLiM 6.0; we write false for
+	// unset values to avoid accessing unwritten memory, which would be flagged by UBSan
+	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
 	p_metadata->pedigree_p1_ = p_individual->Parent1PedigreeID();
 	p_metadata->pedigree_p2_ = p_individual->Parent2PedigreeID();
-	p_metadata->age_ = p_individual->age_;
-	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
-	p_metadata->sex_ = (int32_t)p_individual->sex_;		// IndividualSex, but int32_t in the record
-	
-	p_metadata->flags_ = 0;
-	if (p_individual->migrant_)
-		p_metadata->flags_ |= SLIM_INDIVIDUAL_METADATA_MIGRATED;
-	
-	// tag values added to the metadata in SLiM 6.0; we write false for unset values
-	// to avoid accessing unwritten memory, which would be flagged by UBSan
 	p_metadata->tag_ = p_individual->tag_value_;
 	p_metadata->tagF_ = p_individual->tagF_value_;
+	
+	p_metadata->age_ = p_individual->age_;
+	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
+	
+	p_metadata->sex_ = (int16_t)p_individual->sex_;		// IndividualSex, but int16_t in the record
 	p_metadata->tagL0_set_ = p_individual->tagL0_set_;
 	p_metadata->tagL0_ = p_individual->tagL0_set_ ? p_individual->tagL0_value_ : false;
 	p_metadata->tagL1_set_ = p_individual->tagL1_set_;
 	p_metadata->tagL1_ = p_individual->tagL1_set_ ? p_individual->tagL1_value_ : false;
 	p_metadata->tagL2_set_ = p_individual->tagL2_set_;
 	p_metadata->tagL2_ = p_individual->tagL2_set_ ? p_individual->tagL2_value_ : false;
+	
 	p_metadata->tagL3_set_ = p_individual->tagL3_set_;
 	p_metadata->tagL3_ = p_individual->tagL3_set_ ? p_individual->tagL3_value_ : false;
 	p_metadata->tagL4_set_ = p_individual->tagL4_set_;
@@ -11911,6 +11927,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqIn
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
 	std::vector<tsk_id_t> nodes_;
+	std::vector<bool> migrant_flags_;						// true for each individual if SLIM_TSK_INDIVIDUAL_MIGRATED is set
 	std::vector<const double*> spatial_positions_;			// points into the locations column of the individual table
 	std::vector<const IndividualMetadataRec*> metadata_;	// points into the metadata column of the individual table
 } ts_subpop_info;
@@ -11992,6 +12009,10 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individual has a subpopulation id (" << subpop_id << ") that is not described by the population table." << EidosTerminate();
 		
 		ts_subpop_info &subpop_info = subpop_info_iter->second;
+		
+		// remember the SLIM_TSK_INDIVIDUAL_MIGRATED flag from the flags column of the individual table
+		// this used to be in metadata, but now that it is in the flags column we need to keep it separately
+		subpop_info.migrant_flags_.push_back(!!(individual.flags & SLIM_TSK_INDIVIDUAL_MIGRATED));
 		
 		// remember our metadata pointer, we will fetch information from it later; below we check metadata for
 		// correctness, and even edit it, but we do not copy its values, we just keep the metadata pointer
@@ -12260,8 +12281,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 
 				individual->SetParentPedigreeID(ind_metadata->pedigree_p1_, ind_metadata->pedigree_p2_);
 				
-				uint32_t flags = ind_metadata->flags_;
-				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
+				if (subpop_info.migrant_flags_[tabulation_index])
 					individual->migrant_ = true;
 				
 				individual->age_ = ind_metadata->age_;
@@ -12480,8 +12500,7 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					(individual->Parent2PedigreeID() != ind_metadata->pedigree_p2_))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): parent pedigree id mismatch between chromosomes read." << EidosTerminate();
 				
-				uint32_t flags = ind_metadata->flags_;
-				if ((flags & SLIM_INDIVIDUAL_METADATA_MIGRATED) && !individual->migrant_)
+				if (subpop_info.migrant_flags_[tabulation_index] != individual->migrant_)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual migrant flag mismatch between chromosomes read." << EidosTerminate();
 				
 				if (individual->age_ != ind_metadata->age_)

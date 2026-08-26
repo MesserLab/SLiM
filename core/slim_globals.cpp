@@ -2284,7 +2284,6 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
     "examples": [
         {
             "age": -1,
-            "flags": 0,
             "pedigree_id": 123,
             "pedigree_p1": 12,
             "pedigree_p2": 23,
@@ -2310,12 +2309,6 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
             "tagL4": false
         }
     ],
-    "flags": {
-        "SLIM_INDIVIDUAL_METADATA_MIGRATED": {
-            "description": "Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).",
-            "value": 1
-        }
-    },
     "properties": {
         "pedigree_id": {
             "index": 1,
@@ -2335,104 +2328,98 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
             "binaryFormat": "q",
             "description": "The 'pedigree ID' of this individual's second parent in SLiM."
         },
-        "age": {
-            "index": 4,
-            "type": "integer",
-            "binaryFormat": "i",
-            "description": "The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not)."
-        },
-        "subpopulation": {
-            "index": 5,
-            "type": "integer",
-            "binaryFormat": "i",
-            "description": "The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not)."
-        },
-        "sex": {
-            "index": 6,
-            "type": "integer",
-            "binaryFormat": "i",
-            "description": "The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite)."
-        },
-        "flags": {
-            "index": 7,
-            "type": "integer",
-            "binaryFormat": "I",
-            "description": "Other information about the individual: see 'flags'."
-        },
         "tag": {
-			"index": 8,
+			"index": 4,
 			"type": "integer",
 			"binaryFormat": "q",
 			"description": "The `tag` property of this individual; INT64_MIN if unset."
         },
         "tagF": {
-			"index": 9,
+			"index": 5,
 			"type": "number",
 			"binaryFormat": "d",
 			"description": "The `tagF` property of this individual; -DBL_MAX if unset."
         },
+        "age": {
+            "index": 6,
+            "type": "integer",
+            "binaryFormat": "i",
+            "description": "The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not)."
+        },
+        "subpopulation": {
+            "index": 7,
+            "type": "integer",
+            "binaryFormat": "i",
+            "description": "The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not)."
+        },
+        "sex": {
+            "index": 8,
+            "type": "integer",
+            "binaryFormat": "h",
+            "description": "The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite)."
+        },
         "tagL0_set": {
-			"index": 10,
+			"index": 9,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL0` property is set; if false, accessing `tagL0` is invalid."
         },
         "tagL0": {
-			"index": 11,
+			"index": 10,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL0` property of this individual; only valid if `tagL0_set` is true."
         },
         "tagL1_set": {
-			"index": 12,
+			"index": 11,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL1` property is set; if false, accessing `tagL1` is invalid."
         },
         "tagL1": {
-			"index": 13,
+			"index": 12,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL1` property of this individual; only valid if `tagL1_set` is true."
         },
         "tagL2_set": {
-			"index": 14,
+			"index": 13,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL2` property is set; if false, accessing `tagL2` is invalid."
         },
         "tagL2": {
-			"index": 15,
+			"index": 14,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL2` property of this individual; only valid if `tagL2_set` is true."
         },
         "tagL3_set": {
-			"index": 16,
+			"index": 15,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL3` property is set; if false, accessing `tagL3` is invalid."
         },
         "tagL3": {
-			"index": 17,
+			"index": 16,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL3` property of this individual; only valid if `tagL3_set` is true."
         },
         "tagL4_set": {
-			"index": 18,
+			"index": 17,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "A flag indicating whether the `tagL4` property is set; if false, accessing `tagL4` is invalid."
         },
         "tagL4": {
-			"index": 19,
+			"index": 18,
 			"type": "boolean",
 			"binaryFormat": "?",
 			"description": "The `tagL4` property of this individual; only valid if `tagL4_set` is true."
         },
         "per_trait": {
-            "index": 20,
+            "index": 19,
             "type": "array",
             "length": "%d",
             "items": {
@@ -2464,11 +2451,11 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
         "pedigree_id",
         "pedigree_p1",
         "pedigree_p2",
+        "tag",
+        "tagF",
         "age",
         "subpopulation",
         "sex",
-        "tag",
-        "tagF",
         "tagL0_set",
         "tagL0",
         "tagL1_set",
@@ -2479,7 +2466,6 @@ const std::string gSLiM_tsk_individual_metadata_schema_FORMAT_SOURCE = R"V0G0N({
         "tagL3",
         "tagL4_set",
         "tagL4",
-        "flags",
         "per_trait"
     ]
 })V0G0N";

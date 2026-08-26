@@ -717,6 +717,7 @@ extern EidosPalette *gEidos_Palette_MutationLogisticEffect;
 #define SLIM_TSK_INDIVIDUAL_ALIVE       ((tsk_flags_t)(1 << 16))
 #define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((tsk_flags_t)(1 << 17))
 #define SLIM_TSK_INDIVIDUAL_RETAINED    ((tsk_flags_t)(1 << 18))
+#define SLIM_TSK_INDIVIDUAL_MIGRATED	((tsk_flags_t)(1 << 19))
 
 extern const std::string *gSLiM_tsk_metadata_JSON_schema;
 extern const std::string *gSLiM_tsk_metadata_binary_schema_FORMAT;

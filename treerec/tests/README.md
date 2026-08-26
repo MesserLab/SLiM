@@ -1,8 +1,8 @@
 # Test suite for tree sequence output from SLiM
 
 ## Running the tests
-Just do `python3 -m pytest` from within this directory to run the tests on the results of SLiM scripts listed in the `testRecipes/` directory. Alternatively, to run just one of the recipes do e.g.
-`python3 -m pytest -k test_000_sexual_nonwf`
+Just do `uv run pytest` from within this directory to run the tests on the results of SLiM scripts listed in the `testRecipes/` directory. Alternatively, to run just one of the recipes do e.g.
+`uv run pytest -k test_000_sexual_nonwf`
 
 ## Recaching in GitHub Actions to get a new tskit/msprime version
 GitHub Actions caches its install of `tskit`, `msprime`, and other software.  When a new version of such software is released, a recache needs to be forced or these tests will likely fail in CI.  This cannot presently be gone in GitHub's UI; see [this GitHub issue](https://github.com/actions/cache/issues/2).  So to trigger a recache, you need to increment the cache version number.  It is found in `.github/workflows/tests.yml` in the line:
