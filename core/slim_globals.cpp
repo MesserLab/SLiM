@@ -1918,6 +1918,10 @@ const std::string gSLiM_tsk_metadata_JSON_schema_SOURCE = R"V0G0N({
                     ],
                     "description": "The model type used for the last part of this simulation (WF or nonWF)."
                 },
+				"mutrun_count_hint": {
+					"type": "integer",
+					"description": "An optional hint regarding the number of mutation runs to use in SLiM; for SLiM internal use only."
+				},
                 "name": {
                     "type": "string",
                     "description": "The SLiM species name represented by this tree sequence."
