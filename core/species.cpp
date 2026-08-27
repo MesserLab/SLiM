@@ -13031,7 +13031,7 @@ void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 		tsk_size_t derived_state_length = mut_table.derived_state_offset[mut_index + 1] - mut_table.derived_state_offset[mut_index];
 		
 		if (derived_state_length % sizeof(slim_mutationid_t) != 0)
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): unexpected mutation derived state length; this file cannot be read." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): unexpected mutation derived state length; this file cannot be read.  (If these mutations were produced by the SLiMMutationModel in msprime, please instead use SLiMMutationModelv6, which is compatible with this version of SLiM.)" << EidosTerminate();
 		
 		int stack_count = (int)(derived_state_length / sizeof(slim_mutationid_t));
 		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
