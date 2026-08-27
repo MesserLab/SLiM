@@ -10186,30 +10186,6 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	
 	SLiM_json_struct_metadata_get_components((uint8_t *)p_tables.metadata, p_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length, "Species::ReadTreeSequenceMetadata");
 	
-	size_t trait_count = Traits().size();
-	size_t binary_row_length = sizeof(MutationTableMetadataRec) + sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
-	
-	// extract the encoded mutation metadata table row count
-	uint64_t mutation_table_row_count = *(uint64_t *)top_level_binary_buffer;
-	
-	top_level_binary_buffer += sizeof(uint64_t);
-	top_level_binary_length -= sizeof(uint64_t);
-	
-	if (top_level_binary_length % binary_row_length != 0)
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata does not comprise an integral number of rows (binary_row_length == " << binary_row_length << ", top_level_binary_length == " << top_level_binary_length << "); this file cannot be read." << EidosTerminate();
-	
-	// pass information on the binary mutation metadata table back to the caller
-	p_mut_metadata_table.table_buffer = (uint8_t *)top_level_binary_buffer;
-	p_mut_metadata_table.row_size = binary_row_length;
-	p_mut_metadata_table.row_count = top_level_binary_length / binary_row_length;
-	
-	if (mutation_table_row_count != p_mut_metadata_table.row_count)
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata's specified row count ( " << mutation_table_row_count << ") does not match the number of rows of data present (" << p_mut_metadata_table.row_count << "); this file cannot be read." << EidosTerminate();
-	
-#if DEBUG
-	//std::cout << "ReadTreeSequenceMetadata(): read binary mutation table with row size " << p_mut_metadata_table.row_size << " and " << p_mut_metadata_table.row_count << " rows." << std::endl;
-#endif
-	
 	// Note: we *could* parse the metadata schema, but instead we'll just try parsing the metadata.
 	// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
 	// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
@@ -10309,15 +10285,22 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	// The "chromosomes" key is optional, but if provided, it has to make sense
 	if (top_level_json["SLiM"].contains("chromosomes"))
 	{
-		chomosomes_key_present = true;
-		
 		// We validate the whole "chromosomes" key against the whole model, to make sure everything is as expected
 		auto &chromosomes_metadata = top_level_json["SLiM"]["chromosomes"];
 		
 		if (!chromosomes_metadata.is_array())
+		{
 			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'chromosomes' metadata key must be an array." << std::endl;
+			goto noChromosomesKey;
+		}
+		
 		if (chromosomes_metadata.size() != Chromosomes().size())
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'chromosomes' metadata key does not match the number of chromosomes in the model." << std::endl;
+		{
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'chromosomes' metadata key (" << chromosomes_metadata.size() << ") does not match the number of chromosomes in the model (" << Chromosomes().size() << ").  (The 'chromosomes' metadata key will be ignored.)" << std::endl;
+			goto noChromosomesKey;
+		}
+		
+		chomosomes_key_present = true;
 		
 		for (std::size_t chromosomes_index = 0; chromosomes_index < Chromosomes().size(); ++chromosomes_index)
 		{
@@ -10342,6 +10325,9 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 			if (one_chromosome_type != chromosome->TypeString())
 				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the type for the entry at index " << chromosomes_index << " in the 'chromosomes' metadata key does not match the corresponding chromosome in the model." << std::endl;
 		}
+		
+	noChromosomesKey:
+		;
 	}
 	
 	// The new "traits" key is required, and we need to check its contents
@@ -10350,7 +10336,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	if (!traits_metadata.is_array())
 		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the 'traits' metadata key must be an array." << std::endl;
 	if (traits_metadata.size() != Traits().size())
-		SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the number of entries in the 'traits' metadata key does not match the number of traits in the model." << std::endl;
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the number of entries in the 'traits' metadata key (" << traits_metadata.size() << ") does not match the number of traits in the model (" << Traits().size() << ")." << EidosTerminate();
 	
 	for (size_t traits_index = 0; traits_index < Traits().size(); ++traits_index)
 	{
@@ -10523,6 +10509,31 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		else
 			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome index provided in the 'this_chromosome' key (" << this_chromosome_index << ") does not match the index (" << (unsigned int)(chromosome->Index()) << ") of the corresponding chromosome in the model." << EidosTerminate();
 	}
+	
+	// Now that we know we're in sync with the file contents (same number of traits, etc.), check the mutation metadata table
+	size_t trait_count = Traits().size();
+	size_t binary_row_length = sizeof(MutationTableMetadataRec) + sizeof(_MutationPerTraitMetadata) * (trait_count - 1);
+	
+	// extract the encoded mutation metadata table row count
+	uint64_t mutation_table_row_count = *(uint64_t *)top_level_binary_buffer;
+	
+	top_level_binary_buffer += sizeof(uint64_t);
+	top_level_binary_length -= sizeof(uint64_t);
+	
+	if (top_level_binary_length % binary_row_length != 0)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata does not comprise an integral number of rows (binary_row_length == " << binary_row_length << ", top_level_binary_length == " << top_level_binary_length << "); this file cannot be read.  (Was all mutation metadata generated with the correct schema?)" << EidosTerminate();
+	
+	// pass information on the binary mutation metadata table back to the caller
+	p_mut_metadata_table.table_buffer = (uint8_t *)top_level_binary_buffer;
+	p_mut_metadata_table.row_size = binary_row_length;
+	p_mut_metadata_table.row_count = top_level_binary_length / binary_row_length;
+	
+	if (mutation_table_row_count != p_mut_metadata_table.row_count)
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the top-level binary metadata's specified row count ( " << mutation_table_row_count << ") does not match the number of rows of data present (" << p_mut_metadata_table.row_count << "); this file cannot be read.  (Do you need to run pyslim.add_mutation_metadata()?)" << EidosTerminate();
+	
+#if DEBUG
+	//std::cout << "ReadTreeSequenceMetadata(): read binary mutation table with row size " << p_mut_metadata_table.row_size << " and " << p_mut_metadata_table.row_count << " rows." << std::endl;
+#endif
 }
 
 void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_path, bool p_overwrite_directory)
