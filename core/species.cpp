@@ -13065,7 +13065,7 @@ void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 				auto metadata_iter = metadata_map.find(mut_id);
 				
 				if (metadata_iter == metadata_map.end())
-					EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): mutation id " << mut_id << " referenced by a derived state is not in the mutation metadata table." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::__TabulateMutationsFromTables): mutation id " << mut_id << " referenced by a derived state that is not in the mutation metadata table.  (Do you need to run pyslim.add_mutation_metdata()?)" << EidosTerminate();
 				
 				mut_info->metadata = metadata_iter->second;
 			}
