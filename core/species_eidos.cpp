@@ -282,7 +282,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	else
 		symbol = std::to_string(id);
 	
-	if ((symbol.length() == 0) || (symbol.length() > 5))
+	if ((symbol.length() == 0) || (symbol.length() > 3))
 	{
 		if (symbol_value->Type() == EidosValueType::kValueString)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters." << EidosTerminate();
@@ -306,6 +306,14 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	
 	if (name_value->Type() == EidosValueType::kValueString)
 		name = name_value->StringAtIndex_NOCAST(0, nullptr);
+	else
+		name = symbol;
+	
+	if (name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires name to be non-zero length." << EidosTerminate();
+	
+	if (ChromosomeFromName(name))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires name to be unique within the species; two chromosomes in the same species may not have the same name." << EidosTerminate();
 	
 	int64_t mutrun_count = mutationRuns_value->IntAtIndex_NOCAST(0, nullptr);
 	
@@ -316,10 +324,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	}
 	
 	// Set up the new chromosome object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ (uint8_t)num_chromosome_inits_, (int)mutrun_count);
+	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, name, /* p_index */ (uint8_t)num_chromosome_inits_, (int)mutrun_count);
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
-	
-	chromosome->SetName(name);
 	
 	if (length == -1)
 	{

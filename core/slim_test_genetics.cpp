@@ -3352,6 +3352,7 @@ mutation(m3) {
 	
 	SLiMAssertScriptSuccess(multitrait_COMPLEX_1);
 	
+	// FIXME MULTITRAIT: remove this log once it is no longer useful...
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
 

@@ -193,6 +193,10 @@ Species::~Species(void)
 		element.second = nullptr;
 	chromosome_from_symbol_.clear();
 	
+	for (auto &element : chromosome_from_name_)
+		element.second = nullptr;
+	chromosome_from_name_.clear();
+	
 	std::fill(chromosome_for_haplosome_index_.begin(), chromosome_for_haplosome_index_.end(), nullptr);
 	chromosome_for_haplosome_index_.clear();
 	
@@ -2405,6 +2409,16 @@ Chromosome *Species::ChromosomeFromSymbol(const std::string &p_symbol) const
 	return (*iter).second;
 }
 
+Chromosome *Species::ChromosomeFromName(const std::string &p_name) const
+{
+	auto iter = chromosome_from_name_.find(p_name);
+	
+	if (iter == chromosome_from_name_.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
 void Species::MakeImplicitChromosome(ChromosomeType p_type)
 {
 	if (has_implicit_chromosome_)
@@ -2427,7 +2441,7 @@ void Species::MakeImplicitChromosome(ChromosomeType p_type)
 		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitChromosome): (internal error) unsupported implicit chromosome type." << EidosTerminate();
 	
 	// Create an implicit Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Chromosome *chromosome = new Chromosome(*this, p_type, 1, chromosome_symbol, /* p_index */ 0, /* p_preferred_mutcount */ 0);
+	Chromosome *chromosome = new Chromosome(*this, p_type, 1, chromosome_symbol, /* p_name */ chromosome_symbol, /* p_index */ 0, /* p_preferred_mutcount */ 0);
 	
 	// Add it to our registry; AddChromosome() takes its retain count
 	AddChromosome(chromosome);
@@ -2449,6 +2463,7 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 {
 	int64_t id = p_chromosome->ID();
 	std::string symbol = p_chromosome->Symbol();
+	std::string name = p_chromosome->Name();
 	
 	// this is the main registry, and owns the retain count on every chromosome; it takes the caller's retain here
 	chromosomes_.push_back(p_chromosome);
@@ -2456,6 +2471,7 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 	// these are secondary indices that do not keep a retain on the chromosomes
 	chromosome_from_id_.emplace(id, p_chromosome);
 	chromosome_from_symbol_.emplace(symbol, p_chromosome);
+	chromosome_from_name_.emplace(name, p_chromosome);
 	
 	// keep track of our haplosome configuration
 	if (p_chromosome->IntrinsicPloidy() == 2)

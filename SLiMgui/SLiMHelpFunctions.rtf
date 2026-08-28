@@ -92,7 +92,8 @@ Furthermore, there are some other initialization functions must be called before
 The parameters to 
 \f1\fs18 initializeChromosome()
 \f2\fs20  configure the chromosome created.  They will be discussed out of order here, because that order of presentation will, I hope, be clearer.\
-There are three parameters that in some way identify the chromosome.  First, the required 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 There are three parameters that in some way identify the chromosome.  First, the required 
 \f1\fs18 id
 \f2\fs20  parameter provides an 
 \f1\fs18 integer
@@ -124,9 +125,9 @@ There are three parameters that in some way identify the chromosome.  First, the
 \f1\fs18 7
 \f2\fs20 , for example).  The chromosome\'92s 
 \f1\fs18 symbol
-\f2\fs20  value will be used to identify the chromosome in output \'96 in VCF output, for example, and in SLiMgui.  It must be non-empty (not 
+\f2\fs20  value may be used to identify the chromosome in some types of output, and in SLiMgui.  It must be non-empty (not 
 \f1\fs18 ""
-\f2\fs20 ), no more than five characters long, and unique within the species.  Third, the 
+\f2\fs20 ), no more than three characters long, and unique within the species.  Third, the 
 \f1\fs18 name
 \f2\fs20  parameter can be any 
 \f1\fs18 string
@@ -134,12 +135,19 @@ There are three parameters that in some way identify the chromosome.  First, the
 \f1\fs18 NULL
 \f2\fs20  (the default) is passed, the 
 \f1\fs18 name
-\f2\fs20  value will be 
-\f1\fs18 ""
-\f2\fs20 .  The 
+\f2\fs20  value will be set to the chromosome\'92s 
+\f1\fs18 symbol
+\f2\fs20 .  The chromosome name is used by SLiM as a full-length identifier for the chromosome in situations where that is needed; in particular, in VCF output and input it is used as the contig 
+\f1\fs18 ID
+\f2\fs20  and the value of the 
+\f1\fs18 CHROM
+\f2\fs20  column.  If it is used for such purposes, it is up to the user to ensure that it obeys any necessary naming restrictions imposed by those uses.  The chromosome\'92s 
 \f1\fs18 name
-\f2\fs20  is not used by SLiM, and can be used in any way you wish.\
-The 
+\f2\fs20  value must be non-empty (not 
+\f1\fs18 ""
+\f2\fs20 ), and unique within the species.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 length
 \f2\fs20  parameter sets the length, in base positions, of the chromosome, and must either be 
 \f1\fs18 NULL
@@ -1557,8 +1565,7 @@ The
 \f2\fs20 , and 
 \f1\fs18 "l"
 \f2\fs20  are also allowed.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 baselineOffset
 \f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) to the trait value of every individual.  If 
 \f1\fs18 NULL
@@ -1569,8 +1576,7 @@ The
 \f2\fs20  for additive and logistic traits, such that the baseline offset has no effect upon the trait value.  Note that for multiplicative traits the baseline offset is required to be 
 \f1\fs18 0.0
 \f2\fs20  or greater.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The 
+The 
 \f1\fs18 individualOffsetMean
 \f2\fs20  and 
 \f1\fs18 individualOffsetSD

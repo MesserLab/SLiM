@@ -239,19 +239,22 @@ private:
 	MutationBlock *mutation_block_ = nullptr;				// OWNED; contains all of our mutations
 	
 	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
-	// as well as hash tables for quick lookup by id and symbol
+	// as well as hash tables for quick lookup by id, symbol, and name
 #if EIDOS_ROBIN_HOOD_HASHING()
 	typedef robin_hood::unordered_flat_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
 	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_NAME_HASH;
 #elif STD_UNORDERED_MAP_HASHING()
 	typedef std::unordered_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
 	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_NAME_HASH;
 #endif
 	
 	// Chromosome state
 	std::vector<Chromosome *> chromosomes_;				// OWNED (retained); all our chromosomes, in the order in which they were defined
 	CHROMOSOME_ID_HASH chromosome_from_id_;				// NOT OWNED; get a chromosome from a chromosome id quickly
 	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// NOT OWNED; get a chromosome from a chromosome symbol quickly
+	CHROMOSOME_NAME_HASH chromosome_from_name_;			// NOT OWNED; get a chromosome from a chromosome name quickly
 	
 	std::vector<Chromosome *> chromosome_for_haplosome_index_;	// NOT OWNED; of length haplosome_count_per_individual_
 	std::vector<uint8_t> chromosome_subindex_for_haplosome_index_;	// 0 or 1, the first or second haplosome for the chromosome
@@ -572,6 +575,7 @@ public:
 	inline __attribute__((always_inline)) const std::vector<int> &LastHaplosomeIndices(void) const { return last_haplosome_index_; }
 	Chromosome *ChromosomeFromID(int64_t p_id) const;
 	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol) const;
+	Chromosome *ChromosomeFromName(const std::string &p_name) const;
 	void MakeImplicitChromosome(ChromosomeType p_type);
 	Chromosome *CurrentlyInitializingChromosome(void);								// the last chromosome defined (currently initializing)
 	void AddChromosome(Chromosome *p_chromosome);									// takes over a retain count from the caller

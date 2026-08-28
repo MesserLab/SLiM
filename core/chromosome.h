@@ -69,6 +69,9 @@ private:
 	slim_chromosome_index_t index_;
 	ChromosomeType type_;
 	
+	std::string contig_assembly_;
+	std::string contig_URL_;
+	
 	// cached properties of the chromosome that depend upon its type
 	int intrinsic_ploidy_;									// 1 or 2; the number of haplosomes kept for the chromosome
 	bool always_uses_null_haplosomes_;						// true for types that *always* involve null haplosomes
@@ -315,7 +318,7 @@ public:
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor
 	
-	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index, int p_preferred_mutcount);
+	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, std::string p_name, slim_chromosome_index_t p_index, int p_preferred_mutcount);
 	~Chromosome(void);
 	
 	// mutation registry
@@ -340,7 +343,8 @@ public:
 	inline __attribute__((always_inline)) slim_chromosome_index_t Index(void) const { return index_; }
 	inline __attribute__((always_inline)) ChromosomeType Type(void) const { return type_; }
 	inline __attribute__((always_inline)) const std::string &Name(void) const { return name_; }
-	inline __attribute__((always_inline)) void SetName(const std::string &p_name) { name_ = p_name; }
+	inline __attribute__((always_inline)) const std::string &ContigAssembly(void) const { return contig_assembly_; }
+	inline __attribute__((always_inline)) const std::string &ContigURL(void) const { return contig_URL_; }
 	
 	inline __attribute__((always_inline)) int IntrinsicPloidy(void) const { return intrinsic_ploidy_; }
 	inline __attribute__((always_inline)) bool AlwaysUsesNullHaplosomes(void) const { return always_uses_null_haplosomes_; }

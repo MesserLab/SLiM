@@ -32,6 +32,38 @@
 \f4\fs20 , causes all substitutions to be shown as dark blue when displayed in conjunction with mutations, to prevent the view from becoming too noisy.  Note that when substitutions are displayed without mutations also being displayed, this value is ignored by SLiMgui and the substitutions use the color scheme of each 
 \f3\fs18 MutationType
 \f5\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 contigAssembly <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The contig assembly name for this chromosome.  This is used in VCF output, to provide the value for the 
+\f3\fs18 assembly
+\f4\fs20  key of the 
+\f3\fs18 ##contig
+\f4\fs20  header line.  Otherwise, it is not used by SLiM.  The default value for this property is the empty string, 
+\f3\fs18 ""
+\f4\fs20 .  See also the 
+\f3\fs18 contigURL
+\f4\fs20  and 
+\f3\fs18 name
+\f4\fs20  properties.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 contigURL <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The contig URL for this chromosome.  This is used in VCF output, to provide the value for the 
+\f3\fs18 URL
+\f4\fs20  key of the 
+\f3\fs18 ##contig
+\f4\fs20  header line.  Otherwise, it is not used by SLiM.  The default value for this property is the empty string, 
+\f3\fs18 ""
+\f4\fs20 .  See also the 
+\f3\fs18 contigAssembly
+\f4\fs20  and 
+\f3\fs18 name
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -295,12 +327,20 @@ The mutation rate for each of the mutation rate regions specified by
 This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 name <\'96> (string$)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 name => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The name of the chromosome, as given to 
 \f3\fs18 initializeChromosome()
-\f4\fs20 .  The chromosome name is not used by SLiM, and may be whatever you wish.\
+\f4\fs20 ; see the documentation for that function.  The chromosome name is used by SLiM as a full-length identifier for the chromosome in situations where that is needed; in particular, in VCF output and input it is used as the contig 
+\f3\fs18 ID
+\f4\fs20  and the value of the 
+\f3\fs18 CHROM
+\f4\fs20  column.  If it is used for such purposes, it is up to the user to ensure that it obeys any necessary naming restrictions imposed by those uses.  See also the 
+\f3\fs18 contigAssembly
+\f4\fs20  and 
+\f3\fs18 contigURL
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 overallMutationRate => (float$)\
@@ -1826,7 +1866,6 @@ This method changes all trait values to
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1940,7 +1979,6 @@ This method changes all trait values to
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -2537,7 +2575,7 @@ SLiM\'92s VCF parsing is quite primitive.  The header is parsed only inasmuch as
 \f4\fs20  imposes some additional restrictions.  First, all haplosomes in the target vector must be associated with the same single focal chromosome.  Second, the 
 \f3\fs18 CHROM
 \f4\fs20  field for every call line in the VCF file must match the 
-\f3\fs18 symbol
+\f3\fs18 name
 \f4\fs20  property of that focal chromosome; the VCF file must indicate that it specifically matches the focal chromosome associated with the target haplosomes.  These restrictions boil down to the fact that 
 \f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  only reads data for a single chromosome.  If you wish to read multi-chromosome VCF data into a multi-chromosome SLiM model, the 
@@ -2594,8 +2632,9 @@ The
 \f4\fs20  subfield (or a generation of origin 
 \f3\fs18 GO
 \f4\fs20  field, which was the SLiM convention before SLiM 4), the current tick will be used.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs18 REF
+\f3\fs18 \cf2 REF
 \f4\fs20  and 
 \f3\fs18 ALT
 \f4\fs20  must always be comprised of simple nucleotides (
@@ -4131,7 +4170,9 @@ The
 \f3\fs18 chromosome
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20 , all chromosomes will be output (distinguished in the VCF output by the chromosome symbol output in the 
+\f4\fs20 , all chromosomes will be output (distinguished in the VCF output by the chromosome 
+\f3\fs18 name
+\f4\fs20  output in the 
 \f3\fs18 CHROM
 \f4\fs20  column); otherwise, 
 \f3\fs18 chromosome
@@ -4217,7 +4258,9 @@ Because this method works at the level of individuals, it can read VCF data asso
 \f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  cannot do).  For this to work, the values in the 
 \f3\fs18 CHROM
-\f4\fs20  column of the call lines must correspond exactly to chromosome symbols in the SLiM model, as provided to 
+\f4\fs20  column of the call lines must correspond exactly to chromosome 
+\f3\fs18 name
+\f4\fs20  values in the SLiM model, as provided to 
 \f3\fs18 initializeChromosome()
 \f4\fs20 .  The call lines in the input file may be in any order (they do not have to be sorted by 
 \f3\fs18 CHROM
@@ -5755,8 +5798,7 @@ See
 \f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the tick cycle).\
 In nonWF models, all interactions are automatically reset to an unevaluated state twice per tick: immediately after 
 \f3\fs18 reproduction()
@@ -10873,8 +10915,7 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -11013,8 +11054,7 @@ Beginning with SLiM 5.0, the
 \f4\fs20 , etc.) will be defined to refer to the new 
 \f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.  Note that fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 In SLiM 2.3 and later when using the WF model, calling 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  from any context other than a 
@@ -11033,8 +11073,7 @@ In SLiM 3.0 when using the nonWF model, calling
 \f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the tick cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
+\kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
 \f3\fs18 community.tick
 \f4\fs20  and 
 \f3\fs18 sim.cycle
@@ -11055,14 +11094,12 @@ Any changes made to the structure of the species (mutation types, genomic elemen
 \f3\fs18 tag
 \f4\fs20  values of individuals; if a given option is enabled and the corresponding information is saved, then that information will be restored, otherwise it will not be.\
 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the species has enabled continuous space.  If spatial positions are present in the output file but the species has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the species has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
+\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -14057,7 +14094,7 @@ The
 \f4\fs20 ) or by the 
 \f3\fs18 Chromosome
 \f4\fs20  object itself.  The 
-\f3\fs18 symbol
+\f3\fs18 name
 \f4\fs20  property of the chromosome will be output in the 
 \f3\fs18 CHROM
 \f4\fs20  field of call lines in the VCF output.\
@@ -15279,8 +15316,7 @@ This property is read-write, and so can be changed.  Doing so usually doesn\'92t
 \cf2 Setting this property changes trait values to 
 \f3\fs18 NAN
 \f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that for multiplicative traits, the baseline offset is required to be 
+Note that for multiplicative traits, the baseline offset is required to be 
 \f3\fs18 0.0
 \f4\fs20  or greater.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

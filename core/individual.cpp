@@ -1135,7 +1135,22 @@ void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_
 	if (p_output_nonnucs && nucleotide_based)
 		p_out << "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">" << std::endl;
 	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
-	p_out << "##contig=<ID=1,URL=https://github.com/MesserLab/SLiM>" << std::endl;
+	
+	// BCH 8/28/2026: emit correct ##contig lines for each chromosome included in the output
+	for (const Chromosome *chromosome : chromosomes)
+	{
+		if (p_focal_chromosome && (chromosome != p_focal_chromosome))
+			continue;
+		
+		p_out << "##contig=<ID=" << chromosome->Name();
+		p_out << ",length=" << (chromosome->last_position_ + 1);
+		if (chromosome->ContigAssembly().length() > 0)
+			p_out << ",assembly=" << chromosome->ContigAssembly();
+		if (chromosome->ContigURL().length() > 0)
+			p_out << ",URL=" << chromosome->ContigURL();
+		p_out << ">" << std::endl;
+	}
+	
 	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	
 	// When printing individual identifiers, we print the actual identifiers like p1:i17,
@@ -5336,7 +5351,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
 	bool model_is_multi_chromosome = (chromosomes.size() > 1);
-	std::string chromosome_symbol;		// used in single-chromosome models to check consistency
+	std::string chromosome_name;		// used in single-chromosome models to check consistency
 	
 	Community &community = species->community_;
 	bool recording_mutations = species->RecordingTreeSequenceMutations();
@@ -5431,21 +5446,21 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				
 				std::getline(iss, sub, '\t');	// CHROM
 				
-				Chromosome *chromosome_for_call = species->ChromosomeFromSymbol(sub);
+				Chromosome *chromosome_for_call = species->ChromosomeFromName(sub);
 				
 				if (model_is_multi_chromosome)
 				{
 					// in multi-chromosome models the CHROM value must match match a chromosome in the model
 					if (!chromosome_for_call)
-						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match any chromosome symbol for the focal species with which the target individuals are associated.  In multi-chromosome models, the CHROM field is required to match a chromosome symbol to prevent bugs." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match any chromosome name for the focal species with which the target individuals are associated.  In multi-chromosome models, the CHROM field is required to match a chromosome name to prevent bugs." << EidosTerminate();
 				}
 				else
 				{
 					// in single-chromosome models the CHROM value must be consistent across the whole file, but need not match
-					if (chromosome_symbol.length() == 0)
-						chromosome_symbol = sub;	// first call line's CHROM symbol gets remembered
-					else if (sub != chromosome_symbol)
-						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the initial CHROM field's value (\"" << chromosome_symbol << "\").  In single-chromosome models, the CHROM field is required to have a single consistent value across all call lines to prevent bugs." << EidosTerminate();
+					if (chromosome_name.length() == 0)
+						chromosome_name = sub;	// first call line's CHROM name gets remembered
+					else if (sub != chromosome_name)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the initial CHROM field's value (\"" << chromosome_name << "\").  In single-chromosome models, the CHROM field is required to have a single consistent value across all call lines to prevent bugs." << EidosTerminate();
 					
 					if (!chromosome_for_call)
 						chromosome_for_call = chromosomes[0];

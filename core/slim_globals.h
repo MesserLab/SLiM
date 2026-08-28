@@ -885,6 +885,8 @@ extern const std::string &gStr_recombinationRates;
 extern const std::string &gStr_recombinationRatesM;
 extern const std::string &gStr_recombinationRatesF;
 extern const std::string &gStr_symbol;
+extern const std::string &gStr_contigAssembly;
+extern const std::string &gStr_contigURL;
 extern const std::string &gStr_geneConversionEnabled;
 extern const std::string &gStr_geneConversionGCBias;
 extern const std::string &gStr_geneConversionNonCrossoverFraction;
@@ -1398,6 +1400,8 @@ enum _SLiMGlobalStringID : int {
 	gID_recombinationRatesM,
 	gID_recombinationRatesF,
 	gID_symbol,
+	gID_contigAssembly,
+	gID_contigURL,
 	gID_geneConversionEnabled,
 	gID_geneConversionGCBias,
 	gID_geneConversionNonCrossoverFraction,

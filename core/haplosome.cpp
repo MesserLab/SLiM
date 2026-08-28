@@ -1709,7 +1709,16 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	if (p_output_nonnucs && nucleotide_based)
 		p_out << "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">" << std::endl;
 	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
-	p_out << "##contig=<ID=1,URL=https://github.com/MesserLab/SLiM>" << std::endl;
+	
+	// BCH 8/28/2026: emit correct ##contig lines for each chromosome included in the output
+	p_out << "##contig=<ID=" << p_chromosome.Name();
+	p_out << ",length=" << (p_chromosome.last_position_ + 1);
+	if (p_chromosome.ContigAssembly().length() > 0)
+		p_out << ",assembly=" << p_chromosome.ContigAssembly();
+	if (p_chromosome.ContigURL().length() > 0)
+		p_out << ",URL=" << p_chromosome.ContigURL();
+	p_out << ">" << std::endl;
+	
 	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	
 	for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
@@ -1860,7 +1869,10 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 					// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
 					// backward compatibility break; it used to be "1" by default, now it is "A" by default, but
 					// this is easy to fix by calling initializeChromosome() explicitly and supplying symbol="1"
-					p_out << p_chromosome.Symbol() << "\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
+					// BCH 8/28/2026: we now emit the chromosome's name in the CHROM field instead, allowing an
+					// id that is longer than symbol allows; see https://github.com/MesserLab/SLiM/issues/637
+					// It is up to the user to ensure that the name is VCF-compliant; we don't enforce that.
+					p_out << p_chromosome.Name() << "\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
 					
 					// emit REF ("A" etc.)
 					p_out << gSLiM_Nucleotides[ancestral_nuc_index];
@@ -1960,7 +1972,10 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
 				// backward compatibility break; it used to be "1" by default, now it is "A" by default, but
 				// this is easy to fix by calling initializeChromosome() explicitly and supplying symbol="1"
-				p_out << p_chromosome.Symbol() << "\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
+				// BCH 8/28/2026: we now emit the chromosome's name in the CHROM field instead, allowing an
+				// id that is longer than symbol allows; see https://github.com/MesserLab/SLiM/issues/637
+				// It is up to the user to ensure that the name is VCF-compliant; we don't enforce that.
+				p_out << p_chromosome.Name() << "\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
 				
 				// emit REF ("A" etc.)
 				p_out << gSLiM_Nucleotides[ancestral_nuc_index];
@@ -2133,7 +2148,10 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 					// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
 					// backward compatibility break; it used to be "1" by default, now it is "A" by default, but
 					// this is easy to fix by calling initializeChromosome() explicitly and supplying symbol="1"
-					p_out << p_chromosome.Symbol() << "\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
+					// BCH 8/28/2026: we now emit the chromosome's name in the CHROM field instead, allowing an
+					// id that is longer than symbol allows; see https://github.com/MesserLab/SLiM/issues/637
+					// It is up to the user to ensure that the name is VCF-compliant; we don't enforce that.
+					p_out << p_chromosome.Name() << "\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
 					
 					// emit QUAL (1000), FILTER (PASS)
 					p_out << "\t1000\tPASS\t";
@@ -3632,7 +3650,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 	Haplosome *haplosome_0 = targets_data[0];
 	slim_chromosome_index_t chromosome_index = haplosome_0->chromosome_index_;
 	Chromosome *chromosome = chromosomes[chromosome_index];
-	std::string chromosome_symbol = chromosome->Symbol();
+	std::string chromosome_name = chromosome->Name();
 	
 	if (species->Chromosomes().size() > 1)
 	{
@@ -3730,16 +3748,16 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				if (model_is_multi_chromosome)
 				{
 					// in multi-chromosome models the CHROM value must match the associated chromosome of the haplosomes
-					if (sub != chromosome_symbol)
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the symbol (\"" << chromosome_symbol << "\") for the focal chromosome with which the target haplosomes are associated.  In multi-chromosome models, the CHROM field is required to match the chromosome symbol to prevent bugs." << EidosTerminate();
+					if (sub != chromosome_name)
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the name (\"" << chromosome_name << "\") for the focal chromosome with which the target haplosomes are associated.  In multi-chromosome models, the CHROM field is required to match the chromosome name to prevent bugs." << EidosTerminate();
 				}
 				else
 				{
 					// in single-chromosome models the CHROM value must be consistent across the whole file, but need not match
 					if (call_lines.size() == 0)
-						chromosome_symbol = sub;	// first call line's CHROM symbol gets remembered
-					else if (sub != chromosome_symbol)
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the initial CHROM field's value (\"" << chromosome_symbol << "\").  In single-chromosome models, the CHROM field is required to have a single consistent value across all call lines to prevent bugs." << EidosTerminate();
+						chromosome_name = sub;	// first call line's CHROM name gets remembered
+					else if (sub != chromosome_name)
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the initial CHROM field's value (\"" << chromosome_name << "\").  In single-chromosome models, the CHROM field is required to have a single consistent value across all call lines to prevent bugs." << EidosTerminate();
 				}
 				
 				std::getline(iss, sub, '\t');	// POS
