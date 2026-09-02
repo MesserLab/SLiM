@@ -8930,7 +8930,11 @@ void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
 	for (size_t j = 0; j < mutation_table.num_rows; j++)
 	{
 		slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(binary_derived_state + binary_derived_state_offset[j]);
-		size_t cur_derived_state_length = (binary_derived_state_offset[j+1] - binary_derived_state_offset[j])/sizeof(slim_mutationid_t);
+		size_t cur_derived_state_length = (binary_derived_state_offset[j+1] - binary_derived_state_offset[j]) / sizeof(slim_mutationid_t);
+		
+		// we now sort derived states by mutation ID, in ascending order, for convenience; see #670
+		if (cur_derived_state_length > 1)
+			std::sort(int_derived_state, int_derived_state + cur_derived_state_length);
 		
 		for (size_t i = 0; i < cur_derived_state_length; i++)
 		{

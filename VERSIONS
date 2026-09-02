@@ -226,6 +226,7 @@ multitrait branch:
 		for non-neutral mutations, both the new and existing mutations must (a) use independent dominance, and (b) both have hemizygous dominance that is consistently either 0.0 or 1.0
 		note that for nucleotide-based mutation types this stacking policy cannot be used, since it doesn't make biological sense; as before, only stacking policy `l` is allowed for them
 		add a new recipe 13.15 that illustrates the use of this stacking policy in the context of a "Continuum of Alleles" model
+	fix #670: sort derived state vectors by mutation ID (at save time), in ascending order -- each derived state vector goes from smallest mutation ID to largest
 
 
 version 5.2 (Eidos version 4.2):
