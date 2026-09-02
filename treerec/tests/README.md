@@ -72,5 +72,8 @@ To add a new test:
       add individuals to the saved list by calling `addIndividuals(individuals)` at any point
       in the simulation.
 
+    * Ensure that tree sequences are written to subdirectories! If there are no subdirectories
+      then nothing will happen.
+
 
 To temporarily turn off a test just comment out the appropriate line in `recipe_specs.py`

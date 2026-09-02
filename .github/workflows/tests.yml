@@ -85,9 +85,10 @@ jobs:
           # treerec/tests/environment.yml has not changed
           CACHE_NUMBER: 0
         id: cache
-      - name: Update environment
-        run: conda env update -n anaconda-client-env -f treerec/tests/environment.yml
+      - name: Install uv and dependencies
         if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          pip install uv
       - name: Workaround for gcc-11
         if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
         run: |
@@ -122,7 +123,7 @@ jobs:
           conda activate anaconda-client-env && \
           export PATH=$PATH:$PWD/Release && \
           echo $PATH && \
-          cd treerec/tests && python -m pytest -xv
+          cd treerec/tests && uv run pytest -xv
           
   tests-Windows-CLI:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
@@ -178,12 +179,12 @@ jobs:
       - uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
         with:
           activate-environment: anaconda-client-env
-          environment-file: treerec/tests/environment.yml
           pkgs-dirs: D:\conda_pkgs_dir
-      - name: Update environment
+      - name: Install uv and dependencies
         shell: bash -el {0}
-        run: conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          pip install uv
       - name: Build and test (Debug)
         run: |
           cd windows_compat/gnulib && \
@@ -210,9 +211,10 @@ jobs:
         shell: bash -el {0}
         run: |
           conda activate anaconda-client-env && \
+          pip install git+https://github.com/tskit-dev/pyslim@main && \
           export PATH=$PATH:$PWD/Release && \
           echo $PATH && \
-          cd treerec/tests && python -m pytest -xv
+          cd treerec/tests && uv run pytest -xv
 
   tests-Unix-GUI:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')

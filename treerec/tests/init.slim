@@ -30,6 +30,19 @@ function (void)initializeMarks(i$ num_marks)
    return;
 }
 
+function (void)saveTreeSeqTraits(void) {
+	 MD = Dictionary();
+	 for (mt in sim.mutationTypes) {
+	 	MD.setValue("m" + mt.id, Dictionary(
+	 		"convertToSubstitution", mt.convertToSubstitution
+	 	));
+	 }
+    sim.demandPhenotype(sim.subpopulations);
+   setwdForGen();
+   sim.treeSeqOutput("test_output.trees", metadata=Dictionary("mutation_types", MD));
+   sim.treeSeqOutput("test_output.unsimplified.trees", simplify=F);
+}
+
 function (void)saveTreeSeq(void) {
    // create tree seq representation in various formats: this could overwrite any
    // existing ones output in the same cycle, but they should be identical
