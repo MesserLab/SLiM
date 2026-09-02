@@ -75,9 +75,8 @@
         <file>recipes/Recipe 10.4.1 - Fitness as a function of population composition, Frequency-dependent selection III.txt</file>
         <file>recipes/Recipe 10.4.2 - Fitness as a function of population composition, Cultural effects on fitness.txt</file>
         <file>recipes/Recipe 10.4.3 - Fitness as a function of population composition, Kin selection and the green-beard effect.txt</file>
-        <file>recipes/Recipe 10.5 - Changing selection coefficients with setSelectionCoeff().txt</file>
-        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations I.txt</file>
-        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations II.txt</file>
+        <file>recipes/Recipe 10.5 - Changing selection coefficients with setEffectSizeForTrait().txt</file>
+        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations.txt</file>
         <file>recipes/Recipe 11.1 - Assortative mating.txt</file>
         <file>recipes/Recipe 11.2 - Sequential mate search I.txt</file>
         <file>recipes/Recipe 11.2 - Sequential mate search II.txt</file>
@@ -88,16 +87,24 @@
         <file>recipes/Recipe 12.3 - Simulating gene drive.txt</file>
         <file>recipes/Recipe 12.4 - Suppressing hermaphroditic selfing.txt</file>
         <file>recipes/Recipe 12.5 - Tracking separate sexes in script.txt</file>
-        <file>recipes/Recipe 13.1 - Polygenic selection.txt</file>
-        <file>recipes/Recipe 13.2 - A simple model of variable QTL effect sizes.txt</file>
-        <file>recipes/Recipe 13.3 - A model of discrete QTL effects across multiple chromosomes.txt</file>
-        <file>recipes/Recipe 13.4 - A quantitative genetics model with heritability.txt</file>
-        <file>recipes/Recipe 13.5 - A QTL-based model with two quantitative phenotypic traits and pleiotropy.txt</file>
-        <file>recipes/Recipe 13.6 - A variety of fitness functions I (stabilizing selection).txt</file>
-        <file>recipes/Recipe 13.6 - A variety of fitness functions II (directional selection).txt</file>
-        <file>recipes/Recipe 13.6 - A variety of fitness functions III (disruptive selection).txt</file>
-        <file>recipes/Recipe 13.6 - A variety of fitness functions IV (truncation selection).txt</file>
-        <file>recipes/Recipe 13.7 - Negative frequency-dependence on a quantitative trait.txt</file>
+        <file>recipes/Recipe 13.1 - An explicitly defined trait.txt</file>
+        <file>recipes/Recipe 13.2 - A trait without a direct effect on fitness.txt</file>
+        <file>recipes/Recipe 13.3 - A simple quantitative-trait model.txt</file>
+        <file>recipes/Recipe 13.4 - On independent dominance.txt</file>
+        <file>recipes/Recipe 13.5 - Baseline offsets, individual offsets, and environmental noise.txt</file>
+        <file>recipes/Recipe 13.6 - Heritability.txt</file>
+        <file>recipes/Recipe 13.7 - Phenotypic plasticity.txt</file>
+        <file>recipes/Recipe 13.8 - A model of discrete QTL effects across multiple chromosomes.txt</file>
+        <file>recipes/Recipe 13.9 - A model with two quantitative traits and pleiotropy.txt</file>
+        <file>recipes/Recipe 13.10 - A variety of fitness functions I (stabilizing selection).txt</file>
+        <file>recipes/Recipe 13.10 - A variety of fitness functions II (directional selection).txt</file>
+        <file>recipes/Recipe 13.10 - A variety of fitness functions III (disruptive selection).txt</file>
+        <file>recipes/Recipe 13.10 - A variety of fitness functions IV (truncation selection).txt</file>
+        <file>recipes/Recipe 13.11 - Negative frequency-dependence on a quantitative trait.txt</file>
+        <file>recipes/Recipe 13.12 - Mixing additive and multiplicative traits.txt</file>
+        <file>recipes/Recipe 13.13 - Modeling probability or risk with a logistic trait.txt</file>
+        <file>recipes/Recipe 13.14 - A sexually dimorphic quantitative trait.txt</file>
+        <file>recipes/Recipe 13.15 - Accumulation of mutational effects in a Continuum of Alleles model.txt</file>
         <file>recipes/Recipe 14.1 - Relatedness, inbreeding, and heterozygosity.txt</file>
         <file>recipes/Recipe 14.2 - Mortality-based fitness I.txt</file>
         <file>recipes/Recipe 14.2 - Mortality-based fitness II.txt</file>

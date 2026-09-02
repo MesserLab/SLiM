@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/22/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "mutation_type.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_2DPopulationSFS::QtSLiMGraphView_2DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -218,10 +219,6 @@ void QtSLiMGraphView_2DPopulationSFS::appendStringForData(QString &string)
 double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 {
     Species *graphSpecies = focalDisplaySpecies();
-    Population &population = graphSpecies->population_;
-    int registry_size;
-    const MutationIndex *registry = population.MutationRegistry(&registry_size);
-    const MutationIndex *registry_iter_end = registry + registry_size;
     
     // Find our subpops and mutation type
     Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
@@ -232,35 +229,49 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 		return nullptr;
     
     // Get frequencies in subpop1 and subpop2
-    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     std::vector<slim_refcount_t> refcounts1, refcounts2;
     size_t subpop1_total_haplosome_count, subpop2_total_haplosome_count;
     
     {
         subpop1_total_haplosome_count = tallyGUIMutationReferences(selectedSubpopulation1ID_, selectedMutationTypeIndex_);
         
-        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
-        {
-            const Mutation *mutation = mut_block_ptr + *registry_iter;
-            if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
-        }
-        
         if (subpop1_total_haplosome_count == 0)
             subpop1_total_haplosome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
+        
+        for (Chromosome *chromosome : graphSpecies->Chromosomes())
+        {
+            int registry_size;
+            const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+            const MutationIndex *registry_iter_end = registry + registry_size;
+            
+            for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+            {
+                const Mutation *mutation = mut_block_ptr + *registry_iter;
+                if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
+                    refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
+            }
+        }
     }
     {
         subpop2_total_haplosome_count = tallyGUIMutationReferences(selectedSubpopulation2ID_, selectedMutationTypeIndex_);
         
-        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
-        {
-            const Mutation *mutation = mut_block_ptr + *registry_iter;
-            if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
-        }
-        
         if (subpop2_total_haplosome_count == 0)
             subpop2_total_haplosome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
+        
+        for (Chromosome *chromosome : graphSpecies->Chromosomes())
+        {
+            int registry_size;
+            const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+            const MutationIndex *registry_iter_end = registry + registry_size;
+            
+            for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+            {
+                const Mutation *mutation = mut_block_ptr + *registry_iter;
+                if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
+                    refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
+            }
+        }
     }
     
     // Tally up the binned 2D SFS from the 1D data

@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/4/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -62,13 +62,13 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 // This is a bit convoluted so that we can forward-declare it in other headers even though it's a typedef of a
 // templated class; I couldn't figure out a better way to do it than wrapping it in a struct, ugh.
 #ifdef SLIMGUI
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 struct EidosInterpreterDebugPointsSet_struct {
 	robin_hood::unordered_set<int> set;
 };
 typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_set>
 struct EidosInterpreterDebugPointsSet_struct {
 	std::unordered_set<int> set;
@@ -182,23 +182,18 @@ public:
 	// calls; slow, but presumably an edge case for typical code.  If Eidos interpretation is ever made multithreaded,
 	// the argument_buffer_in_use_ flag will need to be governed by a lock.
 	void _CreateArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature);
+	std::vector<EidosValue_SP> *_ProcessArgumentList_CREATE(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature);
 	
-	std::vector<EidosValue_SP> *_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
+	inline std::vector<EidosValue_SP> *_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
 	{
 		EidosASTNode_ArgumentCache *argument_cache = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+		
+		if (!argument_cache)
+			return _ProcessArgumentList_CREATE(p_node, p_call_signature);
+		
 		std::vector<EidosValue_SP> *argument_buffer = nullptr;
 		
-		// Allocate and configure an argument cache struct if we don't already have one
-		if (!argument_cache)
-		{
-			// We don't already have an argument cache, so create one and use it
-			_CreateArgumentList(p_node, p_call_signature);
-			argument_cache = p_node->argument_cache_;
-			assert(argument_cache);		// static analyzer doesn't understand that _CreateArgumentList() created the cache
-			argument_buffer = &argument_cache->argument_buffer_;
-			argument_cache->argument_buffer_in_use_ = true;
-		}
-		else if (argument_cache->argument_buffer_in_use_)
+		if (argument_cache->argument_buffer_in_use_)
 		{
 			// We have an argument cache, but its argument buffer is already in use, so make a new temporary one
 			argument_buffer = new std::vector<EidosValue_SP>;
@@ -220,6 +215,8 @@ public:
 		// Now our argument cache is all ready to use; we just need to fill and type-check arguments
 		for (const EidosASTNode_ArgumentFill &fill : fill_info)
 		{
+			//std::cout << "for call to " << p_call_signature->call_name_ << "() filling argument at index " << fill.fill_index_ << ", signature position " << (int)(fill.signature_index_) << std::endl;
+			
 			// Get the argument value by evaluating the AST node responsible for providing it
 			EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
 			

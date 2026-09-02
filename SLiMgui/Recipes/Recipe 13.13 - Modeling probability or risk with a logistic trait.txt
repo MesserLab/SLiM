@@ -1,0 +1,65 @@
+// Keywords: logistic trait, disease risk, polygenic risk score, polygenic score, genetic risk, polygenic score, probability trait
+
+initialize() {
+	initializeTrait("severity", "logistic", baselineOffset=-1.5,
+		individualOffsetMean=0.0, individualOffsetSD=0.3);
+	initializeTrait("pleiotropy", "multiplicative", directFitnessEffect=T);
+	
+	initializeMutationType("m1", 0.0);
+	m1.setEffectSizeDistributionForTrait("severity", "n", 0.0, 0.05);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, 1e6);
+	initializeGenomicElement(g1);
+	initializeMutationRate(1e-10);
+	initializeRecombinationRate(1e-8);
+}
+
+mutation(m1) {
+	mut.setEffectSizeForTrait("pleiotropy", runif(1, -0.5, 0.5));
+	mut.setDominanceForTrait("pleiotropy", runif(1));
+	return T;
+}
+
+1 early() {
+	sim.addSubpop("p1", 500);
+	
+	log = community.createLogFile(writeTempFile("PRS", ".csv", ""), append=T);
+	log.addTick();
+	log.addMeanSDColumns("severity", "p1.individuals.severity;");
+	defineConstant("LOG", log);
+}
+
+1:100000 late() {
+	sim.demandPhenotype(NULL, "severity");
+	
+	inds = sim.subpopulations.individuals;
+	inds.fitnessScaling = 1.0 - inds.severity;
+	
+	if (exists("slimgui") & (community.tick % 50 == 0))
+	{
+		LOG.logRow();
+		
+		ticks = slimgui.logFileData(LOG, "tick");
+		sev_mean = slimgui.logFileData(LOG, "severity_mean");
+		sev_sd = slimgui.logFileData(LOG, "severity_sd");
+		plot = slimgui.createPlot("Severity",
+			xrange=c(1, self.end), yrange=c(0.0, 1.0),
+			xlab="tick", ylab="severity", width=800, height=300);
+		plot.lines(ticks, sev_mean, color="red", lwd=2.0);
+		plot.lines(ticks, sev_mean + sev_sd, color="hotpink", alpha=0.2);
+		plot.lines(ticks, sev_mean - sev_sd, color="hotpink", alpha=0.25);
+		
+		plot = slimgui.createPlot("Effect sizes",
+			xrange=c(-0.25, 0.25), yrange=c(-0.5, 0.5),
+			xlab="severity effect", ylab="pleiotropy effect", width=400, height=400);
+		plot.abline(h=0.0, color="black");
+		plot.abline(v=0.0, color="black");
+		subs = sim.substitutions;
+		if (size(subs) > 0) {
+			plot.points(subs.severityEffectSize, subs.pleiotropyEffectSize,
+				symbol=16, color="red", size=0.5, alpha=0.5);
+			plot.abline(v=mean(subs.severityEffectSize), color="cornflowerblue");
+		}
+	}
+}

@@ -1,0 +1,32 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, fitness function
+
+initialize() {
+	initializeTrait("quant", "additive");
+	initializeMutationType("m1", NAN, "f", 0.0);        // neutral
+	initializeMutationType("m2", NAN, "n", 0.0, 0.15);  // QTLs
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+	cat("Phenotypes: " + sim.quant.baselineOffset);
+}
+1: late() {
+	sim.demandPhenotype(NULL, "quant");
+	inds = sim.subpopulations.individuals;
+	phenotypes = inds.quant;
+	scale = dnorm(5.0, 5.0, 2.0);
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, 5.0, 2.0) / scale;
+	
+	if (sim.cycle % 10 == 0)
+		cat(", " + mean(phenotypes));
+}
+5000 late() {
+	m2muts = sim.mutationsOfType(m2);
+	freqs = sim.mutationFrequencies(NULL, m2muts);
+	effects = m2muts.quantEffectSize;
+	catn();
+	print(cbind(freqs, effects));
+}

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -134,11 +134,12 @@ public:
     Species *focalSpecies = nullptr;    // NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
     std::string focalSpeciesName;       // the name of the focal species (or "all"), for persistence across recycles
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
-
+    
     // display-related variables
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool reloadingSubpopTableview = false;
     bool reloadingSpeciesBar = false;
+    bool reloadingTraitBar = false;
     
     // chromosome view configuration, applied to all chromosome views in multispecies models
     QtSLiMChromosomeWidgetController *chromosomeConfig = nullptr;
@@ -165,6 +166,7 @@ public:
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
     void colorForSpecies(Species *species, float *p_red, float *p_green, float *p_blue, float *p_alpha);
     QColor qcolorForSpecies(Species *species);
+    QColor qcolorForIndexInSeries(int index, int count);
     
     std::vector<Subpopulation *> listedSubpopulations(void);
     std::vector<Subpopulation*> selectedSubpopulations(void);
@@ -192,11 +194,13 @@ public:
     void setScriptStringAndInitializeSimulation(std::string string);
     
     Species *focalDisplaySpecies(void);
+    Trait *focalTraitForSpecies(Species *species);
     Chromosome *focalChromosome(void);
     
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateSpeciesBar(void);
+    void updateTraitBar(bool forceUpdate = false);
     void updateChromosomeViewSetup(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
@@ -280,6 +284,7 @@ public slots:
     void displayGraphClicked(void);
 
     void selectedSpeciesChanged(void);
+    void traitChoiceChanged(QAction *traitChoiceAction);
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     
     //
@@ -376,6 +381,9 @@ protected:
     void removeExtraChromosomeViews(void);
     void addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget);
     void runChromosomeContextMenuAtPoint(QPoint p_globalPoint);
+    
+    // multitrait support for per-species display traits, from species name to trait name; this remembers across recycles
+    std::unordered_map<std::string, std::string> speciesToTrait;
     
 private:
     void glueUI(void);

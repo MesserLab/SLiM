@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/25/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -59,9 +59,10 @@ void QtSLiMIndividualsWidget::glDrawIndividualsFromSubpopulationInArea(Subpopula
     //
     
     //QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
     slim_popsize_t subpopSize = subpop->parent_subpop_size_;
     int viewColumns = 0, viewRows = 0;
+    Species *displaySpecies = &subpop->species_;
+    Trait *displayTrait = focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
     
     // our square size is given from above (a consensus based on squareSizeForSubpopulationInArea(); calculate metrics from it
     viewColumns = static_cast<int>(floor((bounds.width() - 3) / squareSize));
@@ -113,24 +114,10 @@ void QtSLiMIndividualsWidget::glDrawIndividualsFromSubpopulationInArea(Subpopula
             SLIM_GL_PUSHRECT();
             
             // dark gray default, for a fitness of NaN; should never happen
-            float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+            float colorRed, colorGreen, colorBlue, colorAlpha = 1.0;
             Individual &individual = *subpop->parent_individuals_[static_cast<size_t>(individualArrayIndex)];
             
-            if (Individual::s_any_individual_color_set_ && individual.color_set_)
-            {
-                colorRed = individual.colorR_ / 255.0F;
-                colorGreen = individual.colorG_ / 255.0F;
-                colorBlue = individual.colorB_ / 255.0F;
-            }
-            else
-            {
-                // use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
-                // we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
-                double fitness = individual.cached_unscaled_fitness_;
-                
-                if (!std::isnan(fitness))
-                    RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-            }
+            RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue);
             
             SLIM_GL_PUSHRECT_COLORS();
             SLIM_GL_CHECKBUFFERS();
@@ -343,7 +330,6 @@ void QtSLiMIndividualsWidget::_glDrawBackgroundSpatialMap(SpatialMap *background
                 int64_t xsize = background_map->grid_size_[0];
                 int64_t ysize = background_map->grid_size_[1];
                 double *values = background_map->values_;
-                int n_colors = background_map->n_colors_;
                 
                 for (int yc = 0; yc < ysize; yc++)
                 {
@@ -365,28 +351,12 @@ void QtSLiMIndividualsWidget::_glDrawBackgroundSpatialMap(SpatialMap *background
                         if (left < bounds_x1) left = bounds_x1;
                         if (right > bounds_x2) right = bounds_x2;
                         
-                        float value_fraction = (background_map->colors_min_ < background_map->colors_max_) ? static_cast<float>((value - background_map->colors_min_) / (background_map->colors_max_ - background_map->colors_min_)) : 0.0f;
-                        float color_index = value_fraction * (n_colors - 1);
-                        int color_index_1 = static_cast<int>(floorf(color_index));
-                        int color_index_2 = static_cast<int>(ceilf(color_index));
+                        float rgb[3];
+                        background_map->ColorForValue(value, rgb);
                         
-                        if (color_index_1 < 0) color_index_1 = 0;
-                        if (color_index_1 >= n_colors) color_index_1 = n_colors - 1;
-                        if (color_index_2 < 0) color_index_2 = 0;
-                        if (color_index_2 >= n_colors) color_index_2 = n_colors - 1;
-                        
-                        float color_2_weight = color_index - color_index_1;
-                        float color_1_weight = 1.0f - color_2_weight;
-                        
-                        float red1 = background_map->red_components_[color_index_1];
-                        float green1 = background_map->green_components_[color_index_1];
-                        float blue1 = background_map->blue_components_[color_index_1];
-                        float red2 = background_map->red_components_[color_index_2];
-                        float green2 = background_map->green_components_[color_index_2];
-                        float blue2 = background_map->blue_components_[color_index_2];
-                        float colorRed = red1 * color_1_weight + red2 * color_2_weight;
-                        float colorGreen = green1 * color_1_weight + green2 * color_2_weight;
-                        float colorBlue = blue1 * color_1_weight + blue2 * color_2_weight;
+                        float colorRed = rgb[0];
+                        float colorGreen = rgb[1];
+                        float colorBlue = rgb[2];
                         float colorAlpha = 1.0;
                         
                         //glColor3f(red, green, blue);
@@ -572,10 +542,11 @@ void QtSLiMIndividualsWidget::glDrawSpatialBackgroundInBoundsForSubpopulation(QR
 	}
 }
 
-void QtSLiMIndividualsWidget::glDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor)
+void QtSLiMIndividualsWidget::glDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
+    Species *displaySpecies = &subpop->species_;
+    Trait *displayTrait = focalTraitForSpecies(displaySpecies);        // nullptr represents "fitness"
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
@@ -678,30 +649,9 @@ void QtSLiMIndividualsWidget::glDrawSpatialIndividualsFromSubpopulationInArea(Su
         SLIM_GL_PUSHRECT();
 		
 		// dark gray default, for a fitness of NaN; should never happen
-		float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
-		
-		if (Individual::s_any_individual_color_set_ && individual.color_set_)
-		{
-			colorRed = individual.colorR_ / 255.0F;
-			colorGreen = individual.colorG_ / 255.0F;
-			colorBlue = individual.colorB_ / 255.0F;
-		}
-        else if (forceColor)
-        {
-            // forceColor is used to make each species draw with a distinctive color in multispecies models in unified display mode
-            colorRed = forceColor[0];
-			colorGreen = forceColor[1];
-			colorBlue = forceColor[2];
-        }
-		else
-		{
-			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
-			// we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
-			double fitness = individual.cached_unscaled_fitness_;
-			
-			if (!std::isnan(fitness))
-				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-		}
+        float colorRed, colorGreen, colorBlue, colorAlpha = 1.0;
+        
+        RGBForIndividual(displayTrait, individual, &colorRed, &colorGreen, &colorBlue);
         
         SLIM_GL_PUSHRECT_COLORS();
         SLIM_GL_CHECKBUFFERS();

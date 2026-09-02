@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -69,9 +69,20 @@ void _RunOperatorPlusTests1(void)
 	EidosAssertScriptRaise("c('bar', 'baz')+c('foo', 'biz', 'boz');", 15, "operator requires that either");
 	EidosAssertScriptSuccess_SV("c('bar', 'baz')+T;", {"barT", "bazT"});
 	EidosAssertScriptSuccess_SV("F+c('bar', 'baz');", {"Fbar", "Fbaz"});
-	EidosAssertScriptRaise("T+F;", 1, "combination of operand types");
-	EidosAssertScriptRaise("T+T;", 1, "combination of operand types");
-	EidosAssertScriptRaise("F+F;", 1, "combination of operand types");
+	EidosAssertScriptSuccess_I("T+F;", 1);
+	EidosAssertScriptSuccess_I("T+T;", 2);
+	EidosAssertScriptSuccess_I("F+F;", 0);
+	EidosAssertScriptSuccess_IV("c(T,F,T,T,F) + T;", {2, 1, 2, 2, 1});
+	EidosAssertScriptSuccess_IV("F + c(T,F,T,T,F);", {1, 0, 1, 1, 0});
+	EidosAssertScriptSuccess_IV("c(F,F,T,F,T) + c(T,F,T,T,F);", {1, 0, 2, 1, 1});
+	EidosAssertScriptSuccess_I("T+5;", 6);
+	EidosAssertScriptSuccess_I("6+T;", 7);
+	EidosAssertScriptSuccess_I("F+8;", 8);
+	EidosAssertScriptSuccess_IV("c(T,F,T,T,F) + 5;", {6, 5, 6, 6, 5});
+	EidosAssertScriptSuccess_IV("6 + c(T,F,T,T,F);", {7, 6, 7, 7, 6});
+	EidosAssertScriptSuccess_IV("c(F,F,T,F,T) + c(1,2,3,4,5);", {1, 2, 4, 4, 6});
+	EidosAssertScriptSuccess_IV("c(1,2,3,4,5) + c(F,F,T,F,T);", {1, 2, 4, 4, 6});
+	EidosAssertScriptSuccess_IV("c(T,F,T,F,T) + c(T,F,T,T,F) + c(T,F,F,F,T);", {3, 0, 2, 1, 2});
 	EidosAssertScriptSuccess_I("+5;", 5);
 	EidosAssertScriptSuccess_F("+5.0;", 5);
 	EidosAssertScriptRaise("+'foo';", 0, "is not supported by");
@@ -85,7 +96,7 @@ void _RunOperatorPlusTests1(void)
 	// operator +: raise on integer addition overflow for all code paths
 	EidosAssertScriptSuccess_I("5e18;", 5000000000000000000LL);
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("5e18 + 5e18;", 5, "overflow with the binary");
 	EidosAssertScriptRaise("5e18 + c(0, 0, 5e18, 0);", 5, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + 5e18;", 17, "overflow with the binary");
@@ -441,7 +452,7 @@ void _RunOperatorMinusTests(void)
 	EidosAssertScriptSuccess_I("9223372036854775807;", INT64_MAX);
 	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
 	EidosAssertScriptSuccess_I("-5e18;", -5000000000000000000LL);
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("-(-9223372036854775807 - 1);", 0, "overflow with the unary");
 	EidosAssertScriptRaise("-c(-9223372036854775807 - 1, 10);", 0, "overflow with the unary");
 	EidosAssertScriptRaise("-5e18 - 5e18;", 6, "overflow with the binary");
@@ -513,7 +524,7 @@ void _RunOperatorMultTests(void)
 	// operator *: raise on integer multiplication overflow for all code paths
 	EidosAssertScriptSuccess_I("5e18;", 5000000000000000000LL);
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("5e18 * 2;", 5, "multiplication overflow");
 	EidosAssertScriptRaise("5e18 * c(0, 0, 2, 0);", 5, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 2, 0) * 5e18;", 14, "multiplication overflow");

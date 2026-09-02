@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/1/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -110,12 +110,12 @@
 		double maxHistory = -INFINITY;
 		BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 		
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (showSubpops || (history_record_iter.first == -1))
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
@@ -199,22 +199,21 @@
 		[drawingCache drawInRect:interiorRect];
 	
 	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		
-		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow && (fixation_tick < drawingCacheTick))
-			continue;
-		
-		double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
-		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
-		
-		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
-		NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
-	}
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
+		for (Substitution *substitution : chromosome->substitutions_)
+		{
+			slim_tick_t fixation_tick = substitution->fixation_tick_;
+			
+			// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
+			if (!cachingNow && (fixation_tick < drawingCacheTick))
+				continue;
+			
+			double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
+			NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
+			
+			[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
+			NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
+		}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
@@ -223,12 +222,12 @@
 	// First draw subpops
 	if (showSubpops)
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				if (drawSubpopsGray)
@@ -255,12 +254,12 @@
 	}
 	
 	// Then draw the mean population fitness
-	for (auto history_record_iter : pop.fitness_histories_)
+	for (const auto &history_record_iter : pop.fitness_histories_)
 	{
 		if (history_record_iter.first == -1)
 		{
-			FitnessHistory &history_record = history_record_iter.second;
-			double *history = history_record.history_;
+			const FitnessHistory &history_record = history_record_iter.second;
+			const double *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			
 			[[NSColor blackColor] set];
@@ -290,17 +289,16 @@
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
-		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
-		
-		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
-		NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
-	}
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
+		for (Substitution *substitution : chromosome->substitutions_)
+		{
+			slim_tick_t fixation_tick = substitution->fixation_tick_;
+			double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
+			NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
+			
+			[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
+			NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
+		}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
@@ -309,12 +307,12 @@
 	// First draw subpops
 	if (showSubpops)
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				NSBezierPath *linePath = [NSBezierPath bezierPath];
 				BOOL startedLine = NO;
@@ -350,12 +348,12 @@
 	}
 	
 	// Then draw the mean population fitness
-	for (auto history_record_iter : pop.fitness_histories_)
+	for (const auto &history_record_iter : pop.fitness_histories_)
 	{
 		if (history_record_iter.first == -1)
 		{
-			FitnessHistory &history_record = history_record_iter.second;
-			double *history = history_record.history_;
+			const FitnessHistory &history_record = history_record_iter.second;
+			const double *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			NSBezierPath *linePath = [NSBezierPath bezierPath];
 			BOOL startedLine = NO;
@@ -406,24 +404,23 @@
 	// Fixation events
 	[string appendString:@"\n\n# Fixation ticks:\n"];
 	
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_tick_t fixation_tick = substitution->fixation_tick_;
-		
-		[string appendFormat:@"%lld, ", (long long int)fixation_tick];
-	}
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
+		for (Substitution *substitution : chromosome->substitutions_)
+		{
+			slim_tick_t fixation_tick = substitution->fixation_tick_;
+			
+			[string appendFormat:@"%lld, ", (long long int)fixation_tick];
+		}
 	
 	// Fitness history
 	[string appendString:@"\n\n# Fitness history:\n"];
 	
-	for (auto history_record_iter : pop.fitness_histories_)
+	for (const auto &history_record_iter : pop.fitness_histories_)
 	{
 		if (history_record_iter.first == -1)
 		{
-			FitnessHistory &history_record = history_record_iter.second;
-			double *history = history_record.history_;
+			const FitnessHistory &history_record = history_record_iter.second;
+			const double *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			
 			for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
@@ -438,12 +435,12 @@
 	
 	if (showSubpops)
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				const FitnessHistory &history_record = history_record_iter.second;
+				const double *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				[string appendFormat:@"\n\n# Fitness history (subpopulation p%d):\n", history_record_iter.first];
@@ -482,7 +479,7 @@
 	}
 	else
 	{
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (const auto &history_record_iter : pop.fitness_histories_)
 		{
 			if (history_record_iter.first != -1)
 			{

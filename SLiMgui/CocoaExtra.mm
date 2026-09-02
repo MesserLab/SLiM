@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/22/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -78,9 +78,13 @@ bool SLiM_AmIBeingDebugged(void)
 @end
 
 
+#if 0
+
+//  old color scale code; the "scalingFactor" parameter used to be 0.8 (and in ancient history it was adjustable)
+
 const float greenBrightness = 0.8f;
 
-void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForIndividualFitness(double value, float *colorRed, float *colorGreen, float *colorBlue)
 {
 	// apply the scaling factor
 	value = (value - 1.0) * scalingFactor + 1.0;
@@ -115,12 +119,12 @@ void RGBForFitness(double value, float *colorRed, float *colorGreen, float *colo
 	}
 }
 
-void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor)
+void RGBForFitnessEffect(double value, float *colorRed, float *colorGreen, float *colorBlue)
 {
 	// apply a scaling factor; this could be user-adjustible since different models have different relevant fitness ranges
 	value *= scalingFactor;
 	
-	// and add 1, just so we can re-use the same code as in RGBForFitness()
+	// and add 1, just so we can re-use the same code as in RGBForIndividualFitness()
 	value += 1.0;
 	
 	if (value <= 0.0)
@@ -174,6 +178,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	}
 }
 
+#endif
 
 @implementation SLiMMenuButton
 
@@ -549,14 +554,15 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	
 	if (mut_type)
 	{
-		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DFE samples.
+		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DES samples.
 		// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
 		// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
+		EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[0];	// FIXME MULTITRAIT
 		
-		sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		sample_size = (DES_info.DES_type_ == DESType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
 		
 		if (!rng_initialized)
@@ -569,7 +575,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		
 		Eidos_RNG_State *slim_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 		
-		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawSelectionCoefficient()
+		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawEffectSizeForTrait()
 		
 		//std::clock_t start = std::clock();
 		
@@ -577,7 +583,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		{
 			for (int sample_count = 0; sample_count < sample_size; ++sample_count)
 			{
-				double draw = mut_type->DrawSelectionCoefficient();
+				double draw = mut_type->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 				
 				draws.emplace_back(draw);
 				

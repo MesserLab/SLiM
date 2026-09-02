@@ -1,0 +1,59 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, baseline offset, individual offset, environmental variance
+
+initialize() {
+	defineConstant("BASELINE", 15.20);  // baseline body length without mutations
+	defineConstant("OPT", 17.16);       // optimum body length
+	defineConstant("END", 10000);       // final tick
+	initializeTrait("bodyLength", "additive", baselineOffset=BASELINE,
+		individualOffsetMean=0.0, individualOffsetSD=0.35);
+
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", NAN, "n", 0.0, 0.1);
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.002));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 1000);
+	
+	palette = Palette(c(15.0, OPT, 18.0), c("red", "green", "blue"));
+	sim.bodyLength.individualPhenotypePalette = palette;
+	
+	defineGlobal("HIST_GENS", NULL);       // history of the generations logged
+	defineGlobal("HIST_MEAN", NULL);       // history of mean phenotype
+	defineGlobal("HIST_25", NULL);         // history of phenotype 25% quantile
+	defineGlobal("HIST_75", NULL);         // history of phenotype 75% quantile
+	defineGlobal("HIST_BASE", NULL);       // history of the baseline offset
+}
+late() {
+	sim.demandPhenotype(NULL, "bodyLength");
+	
+	inds = p1.individuals;
+	phenotype = inds.bodyLength;
+	fitness = dnorm(phenotype, OPT, 0.5) / dnorm(OPT, OPT, 2.0);
+	inds.fitnessScaling = fitness;
+	
+	if (community.tick % 10 == 1)
+	{
+		// Track the model over time
+		defineGlobal("HIST_GENS", c(HIST_GENS, community.tick));
+		defineGlobal("HIST_MEAN", c(HIST_MEAN, mean(phenotype)));
+		defineGlobal("HIST_25", c(HIST_25, quantile(phenotype, 0.25)));
+		defineGlobal("HIST_75", c(HIST_75, quantile(phenotype, 0.75)));
+		defineGlobal("HIST_BASE", c(HIST_BASE, sim.bodyLength.baselineOffset));
+		
+		// Plot mean phenotype over time
+		plot = slimgui.createPlot("Phenotype ~ Generation", 
+			xrange=c(1, END), yrange=c(14, 18),
+			xlab="Generation", ylab="Body length",
+			width=600, height=200);
+		plot.abline(h=BASELINE, color="chartreuse3", lwd=1);
+		plot.abline(h=OPT, color="cornflowerblue", lwd=1);
+		plot.lines(HIST_GENS, HIST_MEAN, color="red", lwd=2.0);
+		plot.lines(HIST_GENS, HIST_25, color="pink", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_75, color="pink", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_BASE, color="black", lwd=1.0);
+	}
+}
+END late() { }

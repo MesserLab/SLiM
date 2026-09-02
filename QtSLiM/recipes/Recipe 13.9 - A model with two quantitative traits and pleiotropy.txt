@@ -1,0 +1,156 @@
+// Keywords: additive trait, quantitative trait, QTL, pleiotropy, M-matrix, G-matrix, mutation(), adaptive walk
+
+function (void)updatePlot(void)
+{
+	if (exists("slimgui"))
+	{
+		plot = slimgui.createPlot("Adaptive Walk",
+			xrange=c(-10,30), yrange=c(-30,10),
+			xlab="phenotype 1", ylab="phenotype 2");
+		plot.points(START1, START2, symbol=21, color="red", size=3.0);
+		plot.points(OPT1, OPT2, symbol=21, color="green", size=3.0);
+		plot.text(START1, START2, "start", size=15, adj=c(0.5, 2.5));
+		plot.text(OPT1, OPT2, "optimum", size=15, adj=c(0.5, 2.5));
+		plot.lines(HIST[,0], HIST[,1], "black");
+		plot.points(HIST[,0], HIST[,1], 16, "black", size=0.5);
+	}
+}
+
+initialize() {
+	defineConstant("START1", -5.0);
+	defineConstant("START2", 5.0);
+	defineConstant("OPT1", 20.0);
+	defineConstant("OPT2", -20.0);
+	initializeTrait("trait1", "additive", baselineOffset=START1);
+	initializeTrait("trait2", "additive", baselineOffset=START2);
+	
+	initializeMutationType("m1", NAN, "f", 0.0);   // neutral
+	initializeMutationType("m2", NAN, "f", 0.0);   // QTLs
+	m2.color = "red";
+	m2.logMutationData(enable=T, effectSize=T);
+	
+	// g1 is a neutral region, g2 is a QTL
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g2", c(m1,m2), c(1.0, 0.1));
+	
+	// chromosome of length 100 kb with two QTL regions
+	initializeGenomicElement(g1, 0, 39999);
+	initializeGenomicElement(g2, 40000, 49999);
+	initializeGenomicElement(g1, 50000, 79999);
+	initializeGenomicElement(g2, 80000, 89999);
+	initializeGenomicElement(g1, 90000, 99999);
+	initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-7);
+	
+	// QTL-related constants used below
+	defineConstant("QTL_mu", c(0.0, 0.0));
+	defineConstant("QTL_cov", 0.25);
+	defineConstant("QTL_sigma", matrix(c(1,QTL_cov,QTL_cov,1), nrow=2));
+	
+	catn("\nQTL DES means: ");
+	print(QTL_mu);
+	catn("\nQTL DES variance-covariance matrix: ");
+	print(QTL_sigma);
+}
+
+1 late() {
+	sim.addSubpop("p1", 500);
+	defineGlobal("HIST", matrix(c(sim.traits).baselineOffset, nrow=1));
+	updatePlot();
+}
+
+mutation(m2) {
+	// draw mutational effects for the new m2 mutation
+	effects = rmvnorm(1, QTL_mu, QTL_sigma);
+	mut.setEffectSizeForTrait(NULL, effects);
+	return T;
+}
+
+late() {
+	sim.demandPhenotype(NULL, NULL);
+	
+	inds = sim.subpopulations.individuals;
+	effects1 = 1.0 + dnorm(inds.trait1, OPT1, 15.0) * 10.0;
+	effects2 = 1.0 + dnorm(inds.trait2, OPT2, 15.0) * 10.0;
+	inds.fitnessScaling = effects1 * effects2;
+}
+
+1:1000000 late() {
+	// output, run every 1000 cycles
+	if (sim.cycle % 1000 != 0)
+		return;
+	
+	// print mean phenotypes versus their optima
+	inds = sim.subpopulations.individuals;
+	p1_mean = mean(inds.trait1);
+	p2_mean = mean(inds.trait2);
+	
+	catn();
+	catn("Cycle: " + sim.cycle);
+	catn("Mean phenotype 1: " + p1_mean + " (" + OPT1 + ")");
+	catn("Mean phenotype 2: " + p2_mean + " (" + OPT2 + ")");
+	
+	// update our plot
+	defineGlobal("HIST", rbind(HIST, c(p1_mean, p2_mean)));
+	updatePlot();
+	
+	// keep running until we get close to both optima
+	if ((abs(p1_mean - OPT1) > 1.0) | (abs(p2_mean - OPT2) > 1.0))
+		return;
+	
+	// we are done with the main adaptive walk; print final output
+	
+	// first output a list of the fixed QTL mutations and their effect sizes
+	m2_subs = sim.substitutionsOfType(m2);
+	
+	catn("\nfixed QTL mutations (f: e1, e2):");
+	for (sub in m2_subs)
+		catn("1.0: " + sub.trait1EffectSize + ", " + sub.trait2EffectSize);
+	
+	// get the QTL mutations and their frequencies
+	m2muts = sim.mutationsOfType(m2);
+	m2freqs = sim.mutationFrequencies(NULL, m2muts);
+	
+	// sort those vectors by frequency
+	o = order(m2freqs, ascending=F);
+	m2muts = m2muts[o];
+	m2freqs = m2freqs[o];
+	
+	// get their effect sizes
+	m2e1 = m2muts.trait1EffectSize;
+	m2e2 = m2muts.trait2EffectSize;
+	
+	// now output a list of the segregating QTL mutations and their effect sizes
+	catn("\nsegregating QTL mutations (f: e1, e2):");
+	for (freq in m2freqs, e1 in m2e1, e2 in m2e2)
+		catn(freq + ": " + e1 + ", " + e2);
+	
+	// output covariances
+	ft1 = m2_subs.trait1EffectSize;
+	ft2 = m2_subs.trait2EffectSize;
+	cov_fixed = cov(ft1, ft2);
+	
+	catn("\nCovariance of effects among fixed QTLs: " + cov_fixed);
+	catn("\nCovariance of effects specified by the QTL DES: " + QTL_cov);
+	
+	if (exists("slimgui"))
+	{
+		// make a plot showing effects sizes drawn vs. fixed
+		effectData = m2.loggedData(kind="values", effectSize=T);
+		dt1 = effectData.getValue("trait1EffectSize");
+		dt2 = effectData.getValue("trait2EffectSize");
+		
+		plot = slimgui.createPlot("Effect Sizes",
+			xrange=c(-4.0, 4.0), yrange=c(-4.0, 4.0),
+			xlab="trait 1 effect size", ylab="trait 2 effect size");
+		plot.segments(x1=rep(0.0, size(dt1)), y1=rep(0.0, size(dt2)),
+			x2=dt1, y2=dt2, color="black", lwd=0.0, alpha=0.2);
+		plot.segments(x1=rep(0.0, size(m2_subs)), y1=rep(0.0, size(m2_subs)),
+			x2=ft1, y2=ft2, color="red", lwd=1.0);
+		plot.addLegend("topLeft");
+		plot.legendLineEntry("drawn", "black", lwd=2.0);
+		plot.legendLineEntry("fixed", "red", lwd=2.0);
+	}
+	
+	sim.simulationFinished();
+}

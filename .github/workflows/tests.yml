@@ -221,10 +221,8 @@ jobs:
       matrix:
         include:
           # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
-          # Ubuntu 22.04 with the oldest supported Qt5 and GCC.
-          - { os: ubuntu-22.04, qt: 5.9.5, gcc: 9 }
-          # Ubuntu 22.04 with last official LTS Qt5 and GCC.
-          - { os: ubuntu-22.04, qt: 5.15.2, gcc: 12 }
+          # Ubuntu 22.04 with last official LTS Qt5 (which is our oldest supported Qt) and oldest supported GCC.
+          - { os: ubuntu-22.04, qt: 5.15.2, gcc: 9 }
           # Ubuntu 24.04 with the most recent Qt6 and GCC.
           - { os: ubuntu-22.04, qt: 6.8.2, gcc: 12 }
           # macos-12 and macos-13 were removed by GitHub,

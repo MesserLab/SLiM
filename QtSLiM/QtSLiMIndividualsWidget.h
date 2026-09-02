@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -85,7 +85,10 @@ protected:
 #else
     virtual void paintEvent(QPaintEvent *event) override;
 #endif
-
+    
+    Trait *focalTraitForSpecies(Species *species);
+    void RGBForIndividual(Trait *displayTrait, Individual &individual, float *colorRed, float *colorGreen, float *colorBlue);
+    
     bool canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations);
     PopulationViewDisplayMode displayModeForSubpopulation(Subpopulation *subpopulation);
     bool canDisplayIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
@@ -101,7 +104,7 @@ protected:
     void glDrawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize);
     void _glDrawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints);
     void glDrawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
-    void glDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor);
+    void glDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
 #endif
     
     // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
@@ -109,7 +112,7 @@ protected:
     void qtDrawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize, QPainter &painter);
     void _qtDrawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints, QPainter &painter);
     void qtDrawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality, QPainter &painter);
-    void qtDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor, QPainter &painter);
+    void qtDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, QPainter &painter);
     
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
     virtual void mousePressEvent(QMouseEvent *p_event) override;

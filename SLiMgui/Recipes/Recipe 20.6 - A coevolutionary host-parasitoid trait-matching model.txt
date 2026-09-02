@@ -16,10 +16,10 @@ species all initialize() {
 species host initialize() {
 	initializeSpecies(avatar="🐛", color="cornflowerblue");
 	// tag values in host indicate survival (0) or death (1)
-	// tagF values in host are QTL-based additive phenotypes
 	
 	// one short QTL controlling parasitism avoidance
-	initializeMutationType("m1", 0.5, "n", 0.0, 0.1);
+	initializeTrait("smell", "a");
+	initializeMutationType("m1", NAN, "n", 0.0, 0.1).convertToSubstitution=T;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 9999);
 	initializeMutationRate(1e-7);
@@ -28,17 +28,15 @@ species host initialize() {
 species parasitoid initialize() {
 	initializeSpecies(avatar="🦟", color="red");
 	// tag values in parasitoid count successful hunts
-	// tagF values in parasitoid are QTL-based additive phenotypes
 	
 	// one short QTL controlling host trait matching
-	initializeMutationType("m2", 0.5, "n", 0.0, 0.1);
+	initializeTrait("target", "a");
+	initializeMutationType("m2", NAN, "n", 0.0, 0.1).convertToSubstitution=T;
 	initializeGenomicElementType("g2", m2, 1.0);
 	initializeGenomicElement(g2, 0, 9999);
 	initializeMutationRate(1e-7);
 	initializeRecombinationRate(1e-8);
 }
-species host mutationEffect(m1) { return 1.0; }
-species parasitoid mutationEffect(m2) { return 1.0; }
 
 ticks all 2: first()
 {
@@ -50,11 +48,11 @@ ticks all 2: first()
 	x2 = parasitoids.size() / S;    // parasitoid density
 	
 	// assess matches between hosts and the mean parasitoid
-	host_values = hosts.tagF;
-	parasitoid_values = parasitoids.tagF;
-	mean_parasitoid = mean(parasitoid_values);
+	host_smells = hosts.smell;
+	parasitoid_targets = parasitoids.target;
+	mean_parasitoid_target = mean(parasitoid_targets);
 	scale = dnorm(0.0, 0.0, S_M);
-	host_match = dnorm(host_values, mean_parasitoid, S_M) / scale;
+	host_match = dnorm(host_smells, mean_parasitoid_target, S_M) / scale;
 	
 	// hunt: each parasitoid counts its successes, and
 	// each host tracks whether it was killed
@@ -63,7 +61,7 @@ ticks all 2: first()
 	killed = rbinom(hosts.size(), 1, P_parasitized_byhost);
 	hosts.tag = killed;	// 1 means killed
 	hunters = sapply(hosts[killed == 1], "sample(parasitoids, 1, " +
-		"weights=dnorm(applyValue.tagF - parasitoid_values, 0.0, S_M));");
+		"weights=dnorm(applyValue.smell - parasitoid_targets, 0.0, S_M));");
 	for (hunter in hunters)
 		hunter.tag = hunter.tag + 1;
 	survivors = hosts[killed == 0];
@@ -110,24 +108,24 @@ ticks all 1 early() {
 	log = community.createLogFile("host-parasite log.txt", logInterval=1);
 	log.addTick();
 	log.addPopulationSize(host);
-	log.addMeanSDColumns("host", "p1.individuals.tagF;");
+	log.addMeanSDColumns("host", "p1.individuals.smell;");
 	log.addPopulationSize(parasitoid);
-	log.addMeanSDColumns("parasitoid", "p2.individuals.tagF;");
+	log.addMeanSDColumns("parasitoid", "p2.individuals.target;");
 }
 
 ticks all early() {
 	// calculate phenotypes and implement stabilizing selection
 	scale = dnorm(0.0, 0.0, S_S);
 	
+	host.demandPhenotype(NULL, NULL);
 	hosts = host.subpopulations.individuals;
-	phenotypes = hosts.sumOfMutationsOfType(m1);
+	phenotypes = hosts.smell;
 	hosts.fitnessScaling = dnorm(phenotypes, 0.0, S_S) / scale;
-	hosts.tagF = phenotypes;
 	
-	parasitoids  = parasitoid.subpopulations.individuals;
-	phenotypes = parasitoids.sumOfMutationsOfType(m2);
+	parasitoid.demandPhenotype(NULL, NULL);
+	parasitoids = parasitoid.subpopulations.individuals;
+	phenotypes = parasitoids.target;
 	parasitoids.fitnessScaling = dnorm(phenotypes, 0.0, S_S) / scale;
-	parasitoids.tagF = phenotypes;
 	
 	// non-overlapping generations: parents die, offspring live
 	hosts[hosts.age > 0].fitnessScaling = 0.0;
