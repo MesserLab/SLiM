@@ -6951,8 +6951,7 @@ In nucleotide-based models, the stacking group for nucleotide-based mutation typ
 \f3\fs18 mutationStackPolicy
 \f4\fs20  value, which defines the stacking behavior of all mutations of the mutation types in the stacking group.  In other words, one stacking group might allow its mutations to stack, while another stacking group might not, but the policy within each stacking group must be unambiguous.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-This property is 
+\cf2 This property is 
 \f3\fs18 "s"
 \f4\fs20  by default, indicating that mutations in this stacking group should be allowed to stack without restriction.  If the policy is set to 
 \f3\fs18 "f"
@@ -6962,9 +6961,15 @@ This property is
 \f3\fs18 "l"
 \f4\fs20 , the 
 \f1\i last
-\f4\i0  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
+\f4\i0  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.  Finally, if the policy is set to 
+\f3\fs18 "a"
+\f4\fs20 , the new mutation is kept and previously existing mutations of this stacking group at the mutating site are discarded, as for policy 
+\f3\fs18 "l"
+\f4\fs20 , but first, the effects of the previously existing mutations are accumulated into the effect of the new mutation; this approximates the behavior of policy 
+\f3\fs18 "s"
+\f4\fs20 , but distills SLiM\'92s state down to a single mutation (within the stacking group) at each site in each haplosome by incorporating the effects of previous mutations into the effects of the new mutations that replace them.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 The mutation stacking policy applies only within the given mutation type\'92s stacking group; mutations of different stacking groups are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
+\cf0 The mutation stacking policy applies only within the given mutation type\'92s stacking group; mutations of different stacking groups are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
 \f3\fs18 addMutation()
 \f4\fs20 , 
 \f3\fs18 addNewMutation()

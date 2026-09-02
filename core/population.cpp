@@ -3355,9 +3355,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 					
 					// add the new mutation, which might overlap with the last added old mutation
 					Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-					MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 					
-					if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+					if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3505,9 +3504,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 								while (mutation_iter_pos < current_mutation_pos)
 								{
 									Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-									MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 									
-									if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+									if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 									{
 										// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3559,9 +3557,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 							while ((mutation_iter_pos < breakpoint) && (mutation_mutrun_index == this_mutrun_index))
 							{
 								Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-								MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 								
-								if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+								if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3714,9 +3711,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						
 						// add the new mutation, which might overlap with the last added old mutation
 						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-						MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 						
-						if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+						if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -3990,9 +3986,8 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 						// and new mutations are, by definition, new and thus cannot match the existing mutations
 						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-						MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 						
-						if (child_run->enforce_stack_policy_for_addition(mut_block_ptr, mutation_iter_pos, new_mut_type))
+						if (child_run->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 							child_run->emplace_back(mutation_iter_mutation_index);
@@ -4456,9 +4451,8 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 							while (mutation_iter_pos < current_mutation_pos)
 							{
 								Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-								MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 								
-								if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+								if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -4510,9 +4504,8 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 						while ((mutation_iter_pos < breakpoint) && (mutation_mutrun_index == this_mutrun_index))
 						{
 							Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-							MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 							
-							if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+							if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 							{
 								// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
@@ -4665,9 +4658,8 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					
 					// add the new mutation, which might overlap with the last added old mutation
 					Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
-					MutationType *new_mut_type = new_mut->mutation_type_ptr_;
 					
-					if (child_mutrun->enforce_stack_policy_for_addition(mut_block_ptr, new_mut->position_, new_mut_type))
+					if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);

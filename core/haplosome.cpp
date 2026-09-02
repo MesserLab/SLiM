@@ -2602,7 +2602,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 					if (add_pos / mutrun_length != mutrun_index)
 						break;
 					
-					if (target_run->enforce_stack_policy_for_addition(mut_block_ptr, mut_to_add->position_, mut_to_add->mutation_type_ptr_))
+					if (target_run->enforce_stack_policy_for_addition(mutation_block, mut_to_add))
 					{
 						target_run->insert_sorted_mutation_if_unique(mut_block_ptr, mutation_block->IndexInBlock(mut_to_add));
 						
@@ -3063,7 +3063,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 			if (modifiable_mutrun)
 			{
 				// We merge the original run (which has not yet been freed!) and mutations_to_add into modifiable_mutrun
-				modifiable_mutrun->clear_set_and_merge(mut_block_ptr, *original_run, mutations_to_add);
+				modifiable_mutrun->clear_set_and_merge(mutation_block, *original_run, mutations_to_add);
 			}
 			
 			// TREE SEQUENCE RECORDING

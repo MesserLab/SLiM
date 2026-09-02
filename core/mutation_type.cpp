@@ -601,6 +601,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_policy_string_s;
 			static EidosValue_SP static_policy_string_f;
 			static EidosValue_SP static_policy_string_l;
+			static EidosValue_SP static_policy_string_a;
 			
 #pragma omp critical (GetProperty_mutationStackPolicy_cache)
 			{
@@ -611,6 +612,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 					static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_s));
 					static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_f));
 					static_policy_string_l = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_l));
+					static_policy_string_a = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_a));
 				}
 			}
 			
@@ -619,6 +621,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				case MutationStackPolicy::kStack:		return static_policy_string_s;
 				case MutationStackPolicy::kKeepFirst:	return static_policy_string_f;
 				case MutationStackPolicy::kKeepLast:	return static_policy_string_l;
+				case MutationStackPolicy::kAccumulate:	return static_policy_string_a;
 				default:								return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
@@ -727,8 +730,10 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 				stack_policy_ = MutationStackPolicy::kKeepFirst;
 			else if (value.compare(gStr_l) == 0)
 				stack_policy_ = MutationStackPolicy::kKeepLast;
+			else if (value.compare(gStr_a) == 0)
+				stack_policy_ = MutationStackPolicy::kAccumulate;
 			else
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 's', 'f', or 'l'." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 's', 'f', 'l', or 'a'." << EidosTerminate();
 			
 			species_.MutationStackPolicyChanged();
 			return;

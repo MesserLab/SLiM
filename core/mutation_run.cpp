@@ -23,6 +23,7 @@
 #include "mutation_block.h"
 
 #include <vector>
+#include <algorithm>
 
 
 // For doing bulk operations across all MutationRun objects; see header
@@ -397,8 +398,94 @@ void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 	}
 }
 
-bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group)
+void MutationRun::__AccumulateStackedEffects(Mutation *accumulating_mut, MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits)
 {
+	slim_trait_index_t trait_count = (slim_trait_index_t)traits.size();
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		MutationTraitInfo &accumulating_mut_trait_info = accumulating_mut_trait_info_base[trait_index];
+		slim_effect_t accumulating_effect = accumulating_mut_trait_info.effect_size_;
+		
+		// if the effect of the existing mutation is 0.0, we can skip it; there is nothing to do,
+		// the effect of the new mutation is already correctly configured for the accumulation.
+		if (accumulating_effect == 0.0)
+			continue;
+		
+		MutationTraitInfo &new_mut_trait_info = new_mut_trait_info_base[trait_index];
+		slim_effect_t new_mut_effect = new_mut_trait_info.effect_size_;
+		
+		// both mutations must have be configured for independent dominance for this trait,
+		// otherwise accumulation is not possible; it is predicated on independent dominance.
+		if (!std::isnan(new_mut_trait_info.dominance_coeff_UNSAFE_) || !std::isnan(accumulating_mut_trait_info.dominance_coeff_UNSAFE_))
+			EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): stacking policy 'a' cannot be used with mutations that are not configured for independent dominance for all non-neutral effects." << EidosTerminate();
+		
+		// hemizygous dominance has to be either 0.0 or 1.0; intermediate values do not work
+		// the hemizygous dominance has to match between the two mutations, as well
+		if (((new_mut_trait_info.hemizygous_dominance_coeff_ == 1.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == 1.0))
+			|| ((new_mut_trait_info.hemizygous_dominance_coeff_ == 0.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == 0.0)))
+		{
+			Trait *trait = traits[trait_index];
+			
+			if (trait->Type() != TraitType::kMultiplicative)
+			{
+				// For additive (and logistic) traits, it is simple: the effect sizes just add, such
+				// that a' = a1 + a2.  The dominance coefficient for both mutations is independent,
+				// which is 0.5, so that doesn't cause problems.
+				slim_effect_t new_effect_size = new_mut_effect + accumulating_effect;
+				
+				new_mut_trait_info.effect_size_ = new_effect_size;
+				new_mut_trait_info.homozygous_effect_ = new_effect_size + new_effect_size;
+				new_mut_trait_info.heterozygous_effect_ = new_effect_size;
+				new_mut_trait_info.hemizygous_effect_ = new_mut_trait_info.hemizygous_dominance_coeff_ * (new_effect_size + new_effect_size);
+			}
+			else
+			{
+				// For multiplicative traits, s' depends on s1 and s2 such that the combined effects of
+				// the stacked mutation would be equal to the effect of the new combined mutation, so
+				// 1+s' = (1+s1)(1+s2), so s' = (1+s1)(1+s2) - 1.  We round to slim_effect_t here since
+				// that is how the mutation will ultimately represent its data; we don't want to be more
+				// precise than the same calculation redone later for the same mutation would be.
+				slim_effect_t new_effect_size = (slim_effect_t)((1.0 + new_mut_effect) * (1.0 + accumulating_effect) - 1.0);
+				
+				// Then we derive the new dominance coefficient from (1+h's') = (1+h1s1)*(1+h2s2);
+				// so h' = ((1+h1s1)*(1+h2s2) - 1) / s'.  From another angle, h' = (sqrt(1+s')-1)/s'
+				// from the formula for independent dominance with multiplicative traits.  It turns
+				// out that these two equations are actually the same, happily.  So we can just leave
+				// the mutation with s' and independent dominance and it should work correctly in both
+				// the homozygous and heterozygous cases; and the hemizygous case was guaranteed by
+				// the check above.  See Mutation::RealizedDominanceForTrait() for additional comments.
+				slim_effect_t realized_dominance;
+				
+				if (new_effect_size == 0.0)
+					realized_dominance = (slim_effect_t)0.5;
+				else if (new_effect_size <= -1.0)
+					realized_dominance = (slim_effect_t)1.0;
+				else
+					realized_dominance = (slim_effect_t)((std::sqrt(1.0 + (double)new_effect_size) - 1.0) / (double)new_effect_size);
+				
+				new_mut_trait_info.effect_size_ = new_effect_size;
+				new_mut_trait_info.homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + new_effect_size);
+				new_mut_trait_info.heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * new_effect_size);
+				new_mut_trait_info.hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + new_mut_trait_info.hemizygous_dominance_coeff_ * new_effect_size);
+				
+				// NOTE: The resulting trait values after accumulation will not necessarily be exactly the same
+				// as they would with stacking.  This is because each time that an accumulation occurs the result
+				// gets rounded into slim_effect_t.  With stacking, the whole sequence of stacked effects gets
+				// computed at double precision, so the final result is a bit more precise.  So it goes.
+			}
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): with stacking policy 'a', both mutations must have a hemizygous dominance of 1.0, or both must have a hemizygous dominance of 0.0 (observed hemizygous dominances are " << new_mut_trait_info.hemizygous_dominance_coeff_ << " and " << accumulating_mut_trait_info.hemizygous_dominance_coeff_ << ").  Intermediate hemizygous dominance values are not allowed because the math doesn't work." << EidosTerminate();
+		}
+	}
+}
+
+bool MutationRun::_EnforceStackPolicyForAddition(MutationBlock *p_mutation_block, Mutation *p_new_mut, MutationStackPolicy p_policy, int64_t p_stack_group)
+{
+	Mutation *mut_block_ptr = p_mutation_block->mutation_buffer_;
+	slim_position_t position = p_new_mut->position_;
 	MutationIndex *begin_ptr = begin_pointer();
 	MutationIndex *end_ptr = end_pointer();
 	
@@ -408,12 +495,12 @@ bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim
 		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
 		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
-			Mutation *mut = p_mut_block_ptr + *mut_ptr;
+			Mutation *mut = mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
-			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+			if ((mut_position == position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				return false;
-			else if (mut_position < p_position)
+			else if (mut_position < position)
 				return true;
 		}
 		
@@ -427,12 +514,12 @@ bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim
 		
 		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
-			Mutation *mut = p_mut_block_ptr + *mut_ptr;
+			Mutation *mut = mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
-			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+			if ((mut_position == position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				first_match_ptr = mut_ptr;	// set repeatedly as we scan backwards, until we exit
-			else if (mut_position < p_position)
+			else if (mut_position < position)
 				break;
 		}
 		
@@ -447,12 +534,83 @@ bool MutationRun::_EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim
 			for ( ; mut_ptr < end_ptr; ++mut_ptr)
 			{
 				MutationIndex mut_index = *mut_ptr;
-				Mutation *mut = p_mut_block_ptr + mut_index;
+				Mutation *mut = mut_block_ptr + mut_index;
 				slim_position_t mut_position = mut->position_;
 				
-				if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+				if ((mut_position == position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				{
 					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
+					continue;
+				}
+				else
+				{
+					// The current scan position is a valid mutation, so we copy it backwards
+					*(replace_ptr++) = mut_index;
+				}
+			}
+			
+			// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+			set_size(size() - (int)(mut_ptr - replace_ptr));
+		}
+		
+		return true;
+	}
+	else if (p_policy == MutationStackPolicy::kAccumulate)
+	{
+		// If we are accumulating effects, we need to check for existing mutations of this stacking group
+		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
+		MutationIndex *first_match_ptr = nullptr;
+		
+		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		{
+			Mutation *mut = mut_block_ptr + *mut_ptr;
+			slim_position_t mut_position = mut->position_;
+			
+			if ((mut_position == position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+				first_match_ptr = mut_ptr;	// set repeatedly as we scan backwards, until we exit
+			else if (mut_position < position)
+				break;
+		}
+		
+		// If we found any, we now scan forward and remove them, in anticipation of the new mutation being added
+		// As we remove the previous mutations, we accumulate their effects into the new mutation that we're adding
+		// BCH 7/19/2026: Note that if a removed mutation is removed entirely, it will become "retained
+		// by the tree sequence" in RemoveAllFixedMutations() when it is removed from the registry.
+		if (first_match_ptr)
+		{
+			const std::vector<Trait *> &traits = p_mutation_block->species_.Traits();
+			MutationIndex new_mut_index = p_mutation_block->IndexInBlock(p_new_mut);
+			MutationTraitInfo *new_mut_trait_info_base = p_mutation_block->TraitInfoForIndex(new_mut_index);
+			
+			// accumulate the effects of the mutation at first_match_ptr
+			{
+				MutationIndex accumulating_mut_index = *first_match_ptr;
+				Mutation *accumulating_mut = mut_block_ptr + accumulating_mut_index;
+				MutationTraitInfo *accumulating_mut_trait_info_base = p_mutation_block->TraitInfoForIndex(accumulating_mut_index);
+				
+				__AccumulateStackedEffects(accumulating_mut, accumulating_mut_trait_info_base, new_mut_trait_info_base, traits);
+			}
+			
+			MutationIndex *replace_ptr = first_match_ptr;	// replace at the first match position
+			MutationIndex *mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
+			
+			for ( ; mut_ptr < end_ptr; ++mut_ptr)
+			{
+				MutationIndex mut_index = *mut_ptr;
+				Mutation *mut = mut_block_ptr + mut_index;
+				slim_position_t mut_position = mut->position_;
+				
+				if ((mut_position == position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+				{
+					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
+					
+					// accumulate the effects of the mutation at mut_ptr
+					{
+						MutationTraitInfo *mut_trait_info_base = p_mutation_block->TraitInfoForIndex(mut_index);
+						
+						__AccumulateStackedEffects(mut, mut_trait_info_base, new_mut_trait_info_base, traits);
+					}
+					
 					continue;
 				}
 				else
@@ -1254,7 +1412,7 @@ template void MutationRun::validate_independent_dominance_cache_for_trait<true, 
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
 // this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 // bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position.
-void MutationRun::clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
+void MutationRun::clear_set_and_merge(MutationBlock *p_mutation_block, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
 {
 	// first, clear all mutations out of the receiver
 	clear();
@@ -1294,15 +1452,17 @@ void MutationRun::clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationR
 	}
 	
 	// then interleave mutations together, effectively setting p_mutations_to_set and then adding in p_mutations_to_add
+	Mutation *mut_block_ptr = p_mutation_block->mutation_buffer_;
+	
 	const MutationIndex *mutation_iter		= p_mutations_to_add.data();
 	const MutationIndex *mutation_iter_max	= mutation_iter + p_mutations_to_add.size();
 	MutationIndex mutation_iter_mutation_index = *mutation_iter;
-	slim_position_t mutation_iter_pos = (p_mut_block_ptr + mutation_iter_mutation_index)->position_;
+	slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 	
 	const MutationIndex *parent_iter		= p_mutations_to_set.begin_pointer_const();
 	const MutationIndex *parent_iter_max	= p_mutations_to_set.end_pointer_const();
 	MutationIndex parent_iter_mutation_index = *parent_iter;
-	slim_position_t parent_iter_pos = (p_mut_block_ptr + parent_iter_mutation_index)->position_;
+	slim_position_t parent_iter_pos = (mut_block_ptr + parent_iter_mutation_index)->position_;
 	
 	// this loop runs while we are still interleaving mutations from both sources
 	do
@@ -1317,12 +1477,12 @@ void MutationRun::clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationR
 				break;
 			
 			parent_iter_mutation_index = *parent_iter;
-			parent_iter_pos = (p_mut_block_ptr + parent_iter_mutation_index)->position_;
+			parent_iter_pos = (mut_block_ptr + parent_iter_mutation_index)->position_;
 		}
 		else
 		{
 			// we have a new mutation to add, which we know is not already present; check the stacking policy
-			if (enforce_stack_policy_for_addition(p_mut_block_ptr, mutation_iter_pos, (p_mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
+			if (enforce_stack_policy_for_addition(p_mutation_block, mut_block_ptr + mutation_iter_mutation_index))
 				emplace_back(mutation_iter_mutation_index);
 			
 			mutation_iter++;
@@ -1330,7 +1490,7 @@ void MutationRun::clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationR
 				break;
 			
 			mutation_iter_mutation_index = *mutation_iter;
-			mutation_iter_pos = (p_mut_block_ptr + mutation_iter_mutation_index)->position_;
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 		}
 	}
 	while (true);
@@ -1345,9 +1505,8 @@ void MutationRun::clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationR
 	while (mutation_iter != mutation_iter_max)
 	{
 		mutation_iter_mutation_index = *mutation_iter;
-		mutation_iter_pos = (p_mut_block_ptr + mutation_iter_mutation_index)->position_;
 		
-		if (enforce_stack_policy_for_addition(p_mut_block_ptr, mutation_iter_pos, (p_mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
+		if (enforce_stack_policy_for_addition(p_mutation_block, mut_block_ptr + mutation_iter_mutation_index))
 			emplace_back(mutation_iter_mutation_index);
 		
 		mutation_iter++;

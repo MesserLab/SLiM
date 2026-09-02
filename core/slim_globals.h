@@ -648,10 +648,12 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 
 // This enumeration represents the policy followed for multiple mutations at the same position.
 // Such "stacked" mutations can be allowed (the default), or the first or last mutation at the position can be kept.
+// BCH 8/29/2026: In SLiM 6.0, accumulation of effects was added as a new stacking policy, kAccumulate.
 enum class MutationStackPolicy : char {
 	kStack = 0,
 	kKeepFirst,
 	kKeepLast,
+	kAccumulate,
 };
 
 extern EidosValue_String_SP gStaticEidosValue_StringA;
@@ -1323,6 +1325,7 @@ extern const std::string &gStr_e;
 //extern const std::string &gStr_n;		now gEidosStr_n
 extern const std::string &gStr_w;
 extern const std::string &gStr_l;
+extern const std::string &gStr_a;
 extern const std::string &gStr_p;
 //extern const std::string &gStr_s;		now gEidosStr_s
 extern const std::string &gStr_species;
@@ -1820,6 +1823,7 @@ enum _SLiMGlobalStringID : int {
 	// gID_n,		now gEidosID_n
 	gID_w,
 	gID_l,
+	gID_a,
 	gID_p,
 	//gID_s,	now gEidosID_s
 	gID_species,

@@ -795,8 +795,9 @@ public:
 		*sort_position = p_mutation_index;
 	}
 	
-	bool _EnforceStackPolicyForAddition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
-	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationType *p_mut_type_ptr);	// below
+	static void __AccumulateStackedEffects(Mutation *accumulating_mut, MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits);
+	bool _EnforceStackPolicyForAddition(MutationBlock *p_mutation_block, Mutation *p_new_mut, MutationStackPolicy p_policy, int64_t p_stack_group);
+	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(MutationBlock *p_mutation_block, Mutation *p_new_mut);	// below
 	
 	inline __attribute__((always_inline)) void copy_from_run(const MutationRun &p_source_run)
 	{
@@ -841,7 +842,7 @@ public:
 	// this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 	// bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position, and it
 	// must be guaranteed that none of the mutations in the two given runs are the same.
-	void clear_set_and_merge(Mutation *p_mut_block_ptr, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add);
+	void clear_set_and_merge(MutationBlock *p_mutation_block, const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add);
 	
 	// This is used by the tree sequence recording code to get the full derived state at a given position.
 	// Note that the vector returned is cached internally and reused with each call, for speed.
@@ -1178,9 +1179,10 @@ public:
 // We need MutationType below, but we can't include it at top because it requires MutationRun to be defined...
 #include "mutation_type.h"
 
-inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(Mutation *p_mut_block_ptr, slim_position_t p_position, MutationType *p_mut_type_ptr)
+inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(MutationBlock *p_mutation_block, Mutation *p_new_mut)
 {
-	MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
+	MutationType *mut_type_ptr = p_new_mut->mutation_type_ptr_;
+	MutationStackPolicy policy = mut_type_ptr->stack_policy_;
 	
 	if (policy == MutationStackPolicy::kStack)
 	{
@@ -1190,7 +1192,7 @@ inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for
 	else
 	{
 		// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-		return _EnforceStackPolicyForAddition(p_mut_block_ptr, p_position, policy, p_mut_type_ptr->stack_group_);
+		return _EnforceStackPolicyForAddition(p_mutation_block, p_new_mut, policy, mut_type_ptr->stack_group_);
 	}
 }
 

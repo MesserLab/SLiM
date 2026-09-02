@@ -221,6 +221,11 @@ multitrait branch:
 		policy change: the chromosome `name` property is now read-only, and must be non-zero length and unique within the species (since it is now used for VCF chromosome lookup)
 		also, the `symbol` property is now enforced as having length <= 3 (which was documented before, but it was enforced with length <= 5 erroneously)
 		note that these changes to VCF output break backward compatibility for anyone relying on the old contig IDs; it only breaks people relying on CHROM if they set a `name` != `symbol`
+	fix #536: add a new stacking policy, `a` for "accumulate", that makes a new mutation (a) accumulate the effect sizes of existing mutations in the same stacking group, and (b) replace those mutations
+		for neutral mutations this is just equivalent to stacking type `l` since the new neutral mutation just replaces the existing neutral mutation(s); there is no effect to accumulate
+		for non-neutral mutations, both the new and existing mutations must (a) use independent dominance, and (b) both have hemizygous dominance that is consistently either 0.0 or 1.0
+		note that for nucleotide-based mutation types this stacking policy cannot be used, since it doesn't make biological sense; as before, only stacking policy `l` is allowed for them
+		add a new recipe 13.15 that illustrates the use of this stacking policy in the context of a "Continuum of Alleles" model
 
 
 version 5.2 (Eidos version 4.2):
