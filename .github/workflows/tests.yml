@@ -62,38 +62,24 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup Miniforge
-        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
-          miniforge-version: latest
-          activate-environment: anaconda-client-env
-          python-version: ${{ matrix.python }}
+          python-version: ${{ inputs.python-version }}
+          version: "0.10.0"
+
       - name: Get Date
         id: get-date
         run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
-      - name: Cache Conda env
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.CONDA }}/envs
-          key:
-            conda-${{ runner.os }}--python-${{ matrix.python }}--${{ runner.arch }}--${{
-            steps.get-date.outputs.today }}-${{
-            hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
-        env:
-          # Increase this value to reset cache if
-          # treerec/tests/environment.yml has not changed
-          CACHE_NUMBER: 0
-        id: cache
-      - name: Install uv and dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          pip install uv
+
       - name: Workaround for gcc-11
         if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
         run: |
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update -y
+
       - name: Set up default GCC (in Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: |
@@ -101,6 +87,7 @@ jobs:
           sudo update-alternatives \
             --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
+
       - name: Build and test (Debug)
         run: |
           mkdir Debug && \
@@ -109,6 +96,7 @@ jobs:
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
+
       - name: Build and test (Release)
         run: |
           mkdir Release && \
@@ -117,10 +105,10 @@ jobs:
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
+
       - name: Treesequence tests
         shell: bash -el {0}
         run: |
-          conda activate anaconda-client-env && \
           export PATH=$PATH:$PWD/Release && \
           echo $PATH && \
           cd treerec/tests && uv run pytest -xv
@@ -138,8 +126,10 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+
       - name: Check out repository code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Setup MSYS2 ${{matrix.sys}}
         uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
@@ -151,40 +141,19 @@ jobs:
             msys2-devel
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
-      - name: Setup Miniforge
-        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
-        with:
-          miniforge-version: latest
-          activate-environment: anaconda-client-env
-          auto-update-conda: true
-          python-version: ${{ matrix.python }}
+
       - name: Get Date
         id: get-date
         run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
-      - name: Cache Conda env
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        env:
-          # Increase this value to reset cache if treerec/tests/environment.yml has not changed
-          CACHE_NUMBER: 0
-        with:
-          # Use faster GNU tar
-          enableCrossOsArchive: true
-          path: D:\conda_pkgs_dir
-          key:
-            conda-${{ runner.os }}--python-${{ matrix.python }}--${{ runner.arch }}--${{
-            steps.get-date.outputs.today }}-${{
-            hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
-        id: cache
-      - uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
-        with:
-          activate-environment: anaconda-client-env
-          pkgs-dirs: D:\conda_pkgs_dir
-      - name: Install uv and dependencies
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         shell: bash -el {0}
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          pip install uv
+        with:
+          python-version: ${{ inputs.python-version }}
+          version: "0.10.0"
+
       - name: Build and test (Debug)
         run: |
           cd windows_compat/gnulib && \
@@ -196,6 +165,7 @@ jobs:
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
+
       - name: Build and test (Release)
         run: |
           cd windows_compat/gnulib && \
@@ -207,11 +177,10 @@ jobs:
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
+
       - name: Treesequence tests
         shell: bash -el {0}
         run: |
-          conda activate anaconda-client-env && \
-          pip install git+https://github.com/tskit-dev/pyslim@main && \
           export PATH=$PATH:$PWD/Release && \
           echo $PATH && \
           cd treerec/tests && uv run pytest -xv
