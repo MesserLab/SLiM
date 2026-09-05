@@ -63,7 +63,7 @@ typedef int32_t MutationIndex;
 // with a number of records per mutation that is determined when it is constructed.
 // BCH 12/27/2025: Note that dominance_coeff_UNSAFE_ is marked "UNSAFE" because it can be NAN, representing independent
 // dominance.  For this reason, it should not be used directly; instead, use RealizedDominanceForTrait().
-typedef struct _MutationTraitInfo
+typedef struct MutationTraitInfo
 {
 	slim_effect_t effect_size_;					// selection coefficient (s) or additive effect (a)
 	slim_effect_t dominance_coeff_UNSAFE_;		// dominance coefficient (h), inherited from MutationType by default; CAN BE NAN

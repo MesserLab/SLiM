@@ -63,7 +63,7 @@ PaletteBlend PaletteBlendFromString(const std::string string);
 // This struct represents one node in the color scheme sequence, telling Palette how to move
 // from one color to the next.  Note the transition info for the first node is not used;
 // only its position and color are used.
-typedef struct _PaletteNode
+typedef struct PaletteNode
 {
 	double value_;
 	double r_, g_, b_;

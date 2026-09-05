@@ -86,7 +86,7 @@ inline void SLiM_UsedPedigreeID(slim_pedigreeid_t p_used_id)
 // This struct contains all information for a single trait in a single individual.  In a multitrait
 // model, each individual has a pointer to a buffer of these records, providing per-trait information.
 // BCH 1/24/2026: This now contains two doubles, for better precision; the error with float was large.
-typedef struct _IndividualTraitInfo
+typedef struct IndividualTraitInfo
 {
 	slim_phenotype_t phenotype_;	// the phenotypic value for a trait
 	slim_trait_offset_t offset_;	// the individual offset combined in to produce a trait value

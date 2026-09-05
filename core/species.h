@@ -427,7 +427,7 @@ private:
 	
 	// ********** then we have tree-seq state that is kept separately for each chromosome; each has its own tree sequence
 	//
-	typedef struct _TreeSeqInfo {
+	typedef struct TreeSeqInfo {
 		slim_chromosome_index_t chromosome_index_;	// this should range from 0 to N-1, following the corresponding chromosome indices
 		tsk_table_collection_t tables_;				// the table collection; the node, individual, and popultation tables are shared
 		tsk_bookmark_t table_position_;				// a bookmarked position in tables_ for retraction of a proposed child

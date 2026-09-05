@@ -395,7 +395,7 @@ private:
 	// the number of slots is also kept in internal_cache_count_DEBUG_, which is used to verify that the correct
 	// number of slots is always passed in to the various MutationRun APIs.
 	//
-	typedef struct _NonNeutralCache {
+	typedef struct NonNeutralCache {
 		mutable int32_t nonneutral_capacity_;			// the capacity of the nonneutral mutation buffer
 		mutable int32_t nonneutral_count_;				// the number of entries currently used; -1 indicates an invalid cache
 		slim_effect_t internal_cache_[];				// internal cache slots for independent dominance and haploid caches

@@ -163,7 +163,7 @@ public:
 	// These per-subpopulation caches are used by IndividualClass::DemandPhenotype_INDIVIDUALS() and are valid
 	// only within that method.  There is a std::vector of PerTraitSubpopCache structs below with one entry per
 	// trait.  When not in use, that vector should still have one entry per trait, with empty/nullptr values.
-	typedef struct _PerTraitSubpopCaches {
+	typedef struct PerTraitSubpopCaches {
 		std::vector<SLiMEidosBlock*> mutationEffect_callbacks_per_trait;	// NOT OWNED: mutationEffect() callbacks per subpopulation per trait
 		void (Individual::*IncorporateEffects_Haploid_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
 		void (Individual::*IncorporateEffects_Hemizygous_TEMPLATED)(Species *species, Haplosome *haplosome, Trait *trait, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks) = nullptr;
