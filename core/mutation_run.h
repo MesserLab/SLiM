@@ -795,7 +795,7 @@ public:
 		*sort_position = p_mutation_index;
 	}
 	
-	static void __AccumulateStackedEffects(Mutation *accumulating_mut, MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits);
+	static void __AccumulateStackedEffects(/* Mutation *accumulating_mut, */ MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits);
 	bool _EnforceStackPolicyForAddition(MutationBlock *p_mutation_block, Mutation *p_new_mut, MutationStackPolicy p_policy, int64_t p_stack_group);
 	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(MutationBlock *p_mutation_block, Mutation *p_new_mut);	// below
 	

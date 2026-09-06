@@ -398,7 +398,7 @@ void MutationRun::_RemoveFixedMutations(Mutation *p_mut_block_ptr)
 	}
 }
 
-void MutationRun::__AccumulateStackedEffects(Mutation *accumulating_mut, MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits)
+void MutationRun::__AccumulateStackedEffects(/*Mutation *accumulating_mut, */ MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits)
 {
 	slim_trait_index_t trait_count = (slim_trait_index_t)traits.size();
 	
@@ -409,7 +409,7 @@ void MutationRun::__AccumulateStackedEffects(Mutation *accumulating_mut, Mutatio
 		
 		// if the effect of the existing mutation is 0.0, we can skip it; there is nothing to do,
 		// the effect of the new mutation is already correctly configured for the accumulation.
-		if (accumulating_effect == 0.0)
+		if (accumulating_effect == (slim_effect_t)0.0)
 			continue;
 		
 		MutationTraitInfo &new_mut_trait_info = new_mut_trait_info_base[trait_index];
@@ -422,8 +422,8 @@ void MutationRun::__AccumulateStackedEffects(Mutation *accumulating_mut, Mutatio
 		
 		// hemizygous dominance has to be either 0.0 or 1.0; intermediate values do not work
 		// the hemizygous dominance has to match between the two mutations, as well
-		if (((new_mut_trait_info.hemizygous_dominance_coeff_ == 1.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == 1.0))
-			|| ((new_mut_trait_info.hemizygous_dominance_coeff_ == 0.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == 0.0)))
+		if (((new_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)1.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)1.0))
+			|| ((new_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)0.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)0.0)))
 		{
 			Trait *trait = traits[trait_index];
 			
@@ -446,7 +446,7 @@ void MutationRun::__AccumulateStackedEffects(Mutation *accumulating_mut, Mutatio
 				// 1+s' = (1+s1)(1+s2), so s' = (1+s1)(1+s2) - 1.  We round to slim_effect_t here since
 				// that is how the mutation will ultimately represent its data; we don't want to be more
 				// precise than the same calculation redone later for the same mutation would be.
-				slim_effect_t new_effect_size = (slim_effect_t)((1.0 + new_mut_effect) * (1.0 + accumulating_effect) - 1.0);
+				slim_effect_t new_effect_size = (slim_effect_t)((1.0 + (double)new_mut_effect) * (1.0 + (double)accumulating_effect) - 1.0);
 				
 				// Then we derive the new dominance coefficient from (1+h's') = (1+h1s1)*(1+h2s2);
 				// so h' = ((1+h1s1)*(1+h2s2) - 1) / s'.  From another angle, h' = (sqrt(1+s')-1)/s'
@@ -457,9 +457,9 @@ void MutationRun::__AccumulateStackedEffects(Mutation *accumulating_mut, Mutatio
 				// the check above.  See Mutation::RealizedDominanceForTrait() for additional comments.
 				slim_effect_t realized_dominance;
 				
-				if (new_effect_size == 0.0)
+				if (new_effect_size == (slim_effect_t)0.0)
 					realized_dominance = (slim_effect_t)0.5;
-				else if (new_effect_size <= -1.0)
+				else if (new_effect_size <= (slim_effect_t)-1.0)
 					realized_dominance = (slim_effect_t)1.0;
 				else
 					realized_dominance = (slim_effect_t)((std::sqrt(1.0 + (double)new_effect_size) - 1.0) / (double)new_effect_size);
@@ -585,10 +585,10 @@ bool MutationRun::_EnforceStackPolicyForAddition(MutationBlock *p_mutation_block
 			// accumulate the effects of the mutation at first_match_ptr
 			{
 				MutationIndex accumulating_mut_index = *first_match_ptr;
-				Mutation *accumulating_mut = mut_block_ptr + accumulating_mut_index;
+				//Mutation *accumulating_mut = mut_block_ptr + accumulating_mut_index;
 				MutationTraitInfo *accumulating_mut_trait_info_base = p_mutation_block->TraitInfoForIndex(accumulating_mut_index);
 				
-				__AccumulateStackedEffects(accumulating_mut, accumulating_mut_trait_info_base, new_mut_trait_info_base, traits);
+				__AccumulateStackedEffects(/* accumulating_mut, */ accumulating_mut_trait_info_base, new_mut_trait_info_base, traits);
 			}
 			
 			MutationIndex *replace_ptr = first_match_ptr;	// replace at the first match position
@@ -608,7 +608,7 @@ bool MutationRun::_EnforceStackPolicyForAddition(MutationBlock *p_mutation_block
 					{
 						MutationTraitInfo *mut_trait_info_base = p_mutation_block->TraitInfoForIndex(mut_index);
 						
-						__AccumulateStackedEffects(mut, mut_trait_info_base, new_mut_trait_info_base, traits);
+						__AccumulateStackedEffects(/* mut, */ mut_trait_info_base, new_mut_trait_info_base, traits);
 					}
 					
 					continue;
