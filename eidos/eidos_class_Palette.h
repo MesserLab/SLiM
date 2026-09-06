@@ -71,7 +71,7 @@ typedef struct PaletteNode
 	PaletteTransition transition_;
 	PaletteBlend blend_;
 	
-	_PaletteNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend) :
+	PaletteNode(double value, double r, double g, double b, PaletteTransition transition, PaletteBlend blend) :
 		value_(value), r_(r), g_(g), b_(b), transition_(transition), blend_(blend)
 	{
 		// cache HSV values up front, to avoid calculating them multiple times later
