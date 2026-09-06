@@ -57,12 +57,14 @@ extern InteractionType_Class *gSLiM_InteractionType_Class;
 // subpopulation; if a subpopulation is not evaluated there is no overhead.
 #define SLIM_MAX_DIMENSIONALITY		3
 
-typedef struct SLiM_kdNode {
+struct _SLiM_kdNode
+{
 	double x[SLIM_MAX_DIMENSIONALITY];		// the coordinates of the individual
 	slim_popsize_t individual_index_;		// the index of the individual in its subpopulation, and into positions_
 	struct _SLiM_kdNode *left;				// the index of the KDNode for the left side
 	struct _SLiM_kdNode *right;				// the index of the KDNode for the right side
-} SLiM_kdNode;
+};
+typedef struct _SLiM_kdNode SLiM_kdNode;
 
 struct _InteractionsData
 {
@@ -125,12 +127,12 @@ struct _InteractionsData
 	_InteractionsData(slim_popsize_t p_individual_count, slim_popsize_t p_first_male_index);
 	~_InteractionsData(void);
 };
-typedef struct InteractionsData InteractionsData;
+typedef struct _InteractionsData InteractionsData;
 
 
 // This structure expresses constraints present for exerters or receivers; see the
 // setConstraints() method for details.
-typedef struct InteractionConstraints {
+typedef struct _InteractionConstraints {
 	bool has_constraints_ = false;							// true if any constraints at all are present
 	
 	IndividualSex sex_ = IndividualSex::kUnspecified;		// IndividualSex::kUnspecified if unspecified
