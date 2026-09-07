@@ -227,6 +227,14 @@ multitrait branch:
 		note that for nucleotide-based mutation types this stacking policy cannot be used, since it doesn't make biological sense; as before, only stacking policy `l` is allowed for them
 		add a new recipe 13.15 that illustrates the use of this stacking policy in the context of a "Continuum of Alleles" model
 	fix #670: sort derived state vectors by mutation ID (at save time), in ascending order -- each derived state vector goes from smallest mutation ID to largest
+	fix #671: separate baseline offsets for males and females, separate baseline offset from substitution offset (also now separate for males and females)
+		for initializeTrait(), [Nf$ baselineOffset] changes to [Nf baselineOffset], allowing a pair of values (male, female) in separate-sex models, also, baselineAccumulation changes name to substitutionAccumulation
+		trait calculation code bifurcates into code paths for the case with separate sexes with different composite offsets (baseline + substitution) versus the case where all individuals have the same composite offset
+		the Trait property baselineOffset is now baselineOffset[H|M|F] for the three supported sex types, and now represents a baseline trait value component that (typically) never changes
+		new Trait properties substitutionOffset[H|M|F] have been added for the three supported sex types, and now represents a trait value component that accumulates the effects of substitutions
+		new Trait properties compositeOffset[H|M|F] have been added to provide the composition of the baseline offset and substitution offset for a trait, giving the expected phenotype without segregating mutations
+		the top-level JSON metadata schema has been adapted to include the above changes (e.g., no more "baselineOffsetFromUser" or "baselineOffsetFromSubstitutions" keys)
+		update recipes 13.5, 13.6, and 13.7 to use the new compositeOffset properties
 
 
 version 5.2 (Eidos version 4.2):

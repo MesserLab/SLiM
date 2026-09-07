@@ -5977,6 +5977,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
 										haplosome1->MakeNull();
 										haplosome1->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
+										chromosome->NullHaplosomeObservedForAutosome();
 									}
 									if (haplosome2)
 									{
@@ -5984,6 +5985,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
 										haplosome2->MakeNull();
 										haplosome2->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
+										chromosome->NullHaplosomeObservedForAutosome();
 									}
 								}
 								else
@@ -6005,6 +6007,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 										EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
 									haplosome1->MakeNull();
 									haplosome1->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
+									chromosome->NullHaplosomeObservedForAutosome();
 								}
 								else
 									EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
@@ -6047,6 +6050,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call implies that an individual's second haplosome for a diploid chromosome is null, but that haplosome already contains mutations, and thus cannot be made into a null haplosome; use a diploid call, if neither haplosome is intended to be a null haplosome." << EidosTerminate();
 										implied_null_haplosome->MakeNull();
 										implied_null_haplosome->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
+										chromosome->NullHaplosomeObservedForAutosome();
 									}
 									else
 										EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has two non-null haplosomes for the focal chromosome (which is not of type 'A'); that is not legal." << EidosTerminate();
@@ -6811,11 +6815,11 @@ void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Indiv
 	// Given a vector of trait indices, this scans through them looking for "pure neutral" traits -- traits that
 	// are known to be neutral even considering the effect of mutationEffect() callbacks, and for which there are
 	// no non-neutral callbacks that have to be called for their side effects.  For any such traits, the effect
-	// is simply the baseline offset combined with the individual offset.  That effect is calculated here, if
+	// is simply the composite offset combined with the individual offset.  That effect is calculated here, if
 	// necessary, for each individual, and the pure neutral trait is then removed from the trait indices so it
 	// takes no further effort downstream.  This saves a calculation pass through the mutation list for the trait.
 	
-	// BCH 1/26/2026: Note that if the baseline offset is neutral and we know that all individual offsets are
+	// BCH 1/26/2026: Note that if the composite offset is neutral and we know that all individual offsets are
 	// zero, we don't really need to assign trait values here, as long as we skip using them elsewhere.  That
 	// seems architecturally complex, and the savings would probably be small since there are only two reads and
 	// one write per individual here; the amount of work that could be avoided doesn't really seem large.
@@ -6830,7 +6834,69 @@ void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Indiv
 		if (trait->is_pure_neutral_now_)
 		{
 			TraitType traitType = trait->Type();
-			slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
+			slim_trait_offset_t trait_composite_offset_H;
+			
+			if (trait->species_.SexEnabled())
+			{
+				slim_trait_offset_t trait_composite_offset_M = trait->CompositeOffset_M();
+				slim_trait_offset_t trait_composite_offset_F = trait->CompositeOffset_F();
+				
+				// if the two sexes have different offsets, we use a separate code path
+				if (trait_composite_offset_M != trait_composite_offset_F)
+				{
+					if (traitType == TraitType::kAdditive)
+					{
+						if (trait->HasLogisticPostTransform())
+						{
+							//  logistic trait, post-process calculated values
+							for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+							{
+								Individual *ind = individuals_buffer[individual_index];
+								IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+								
+								if (f_force_recalc || std::isnan(trait_info.phenotype_))
+								{
+									double additive_result = (double)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) + trait_info.offset_);
+									
+									trait_info.phenotype_ = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(-additive_result)));
+								}
+							}
+						}
+						else
+						{
+							// regular additive trait
+							for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+							{
+								Individual *ind = individuals_buffer[individual_index];
+								IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+								
+								if (f_force_recalc || std::isnan(trait_info.phenotype_))
+									trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) + trait_info.offset_);
+							}
+						}
+					}
+					else	// (traitType == TraitType::kMultiplicative)
+					{
+						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+						{
+							Individual *ind = individuals_buffer[individual_index];
+							IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+							
+							if (f_force_recalc || std::isnan(trait_info.phenotype_))
+								trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) * trait_info.offset_);
+						}
+					}
+					
+					// done with this case, don't fall through
+					continue;
+				}
+				
+				trait_composite_offset_H = trait_composite_offset_M;
+			}
+			else
+			{
+				trait_composite_offset_H = trait->CompositeOffset_H();
+			}
 			
 			if (traitType == TraitType::kAdditive)
 			{
@@ -6844,9 +6910,9 @@ void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Indiv
 						
 						if (f_force_recalc || std::isnan(trait_info.phenotype_))
 						{
-							double additive_result = (double)(trait_baseline_offset + trait_info.offset_);
+							double additive_result = (double)(trait_composite_offset_H + trait_info.offset_);
 							
-							trait_info.phenotype_ = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(- static_cast<double>(additive_result))));
+							trait_info.phenotype_ = static_cast<slim_phenotype_t>(1.0 / (1.0 + std::exp(-additive_result)));
 						}
 					}
 				}
@@ -6859,7 +6925,7 @@ void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Indiv
 						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
 						
 						if (f_force_recalc || std::isnan(trait_info.phenotype_))
-							trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+							trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H + trait_info.offset_);
 					}
 				}
 			}
@@ -6871,7 +6937,7 @@ void Individual_Class::_HandleDemandForPureNeutralTraits(Species *species, Indiv
 					IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
 					
 					if (f_force_recalc || std::isnan(trait_info.phenotype_))
-						trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+						trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H * trait_info.offset_);
 				}
 			}
 			
@@ -7382,7 +7448,77 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 		Trait *trait = species->Traits()[trait_index];
 		TraitType traitType = trait->Type();
-		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
+		slim_trait_offset_t trait_composite_offset_H;
+		
+		if (trait->species_.SexEnabled())
+		{
+			slim_trait_offset_t trait_composite_offset_M = trait->CompositeOffset_M();
+			slim_trait_offset_t trait_composite_offset_F = trait->CompositeOffset_F();
+			
+			// if the two sexes have different offsets, we use a separate code path
+			if (trait_composite_offset_M != trait_composite_offset_F)
+			{
+#if DEBUG_TRAIT_DEMAND()
+				std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+#endif
+				
+				if (traitType == TraitType::kAdditive)
+				{
+						for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+						{
+							Individual *ind = individuals_buffer[individual_index];
+							IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+							
+#if DEBUG_TRAIT_DEMAND()
+							//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+							
+							if (f_force_recalc)
+							{
+								trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) + trait_info.offset_);
+							}
+							else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+							{
+								recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+								trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) + trait_info.offset_);
+							}
+							// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+						}
+				}
+				else	// (traitType == TraitType::kMultiplicative)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+#if DEBUG_TRAIT_DEMAND()
+						//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+						
+						if (f_force_recalc)
+						{
+							trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) * trait_info.offset_);
+						}
+						else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+						{
+							recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+							trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) * trait_info.offset_);
+						}
+						// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+					}
+				}
+				
+				// done with this case, don't fall through
+				continue;
+			}
+			
+			trait_composite_offset_H = trait_composite_offset_M;
+		}
+		else
+		{
+			trait_composite_offset_H = trait->CompositeOffset_H();
+		}
 		
 #if DEBUG_TRAIT_DEMAND()
 		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
@@ -7401,12 +7537,12 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H + trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H + trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7424,12 +7560,12 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H * trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H * trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7814,7 +7950,77 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		slim_trait_index_t trait_index = trait_indices[trait_indices_index];
 		Trait *trait = species->Traits()[trait_index];
 		TraitType traitType = trait->Type();
-		slim_trait_offset_t trait_baseline_offset = trait->BaselineOffset();
+		slim_trait_offset_t trait_composite_offset_H;
+		
+		if (trait->species_.SexEnabled())
+		{
+			slim_trait_offset_t trait_composite_offset_M = trait->CompositeOffset_M();
+			slim_trait_offset_t trait_composite_offset_F = trait->CompositeOffset_F();
+			
+			// if the two sexes have different offsets, we use a separate code path
+			if (trait_composite_offset_M != trait_composite_offset_F)
+			{
+#if DEBUG_TRAIT_DEMAND()
+				std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+#endif
+				
+				if (traitType == TraitType::kAdditive)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+#if DEBUG_TRAIT_DEMAND()
+						//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+						
+						if (f_force_recalc)
+						{
+							trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) + trait_info.offset_);
+						}
+						else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+						{
+							recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+							trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) + trait_info.offset_);
+						}
+						// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+					}
+				}
+				else	// (traitType == TraitType::kMultiplicative)
+				{
+					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					{
+						Individual *ind = individuals_buffer[individual_index];
+						IndividualTraitInfo &trait_info = ind->trait_info_[trait_index];
+						
+#if DEBUG_TRAIT_DEMAND()
+						//std::cout << "      individual #" << individual_index << " offset " << trait_info.offset_ << std::endl;
+#endif
+						
+						if (f_force_recalc)
+						{
+							trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) * trait_info.offset_);
+						}
+						else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
+						{
+							recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
+							trait_info.phenotype_ = (slim_phenotype_t)(((ind->sex_ == IndividualSex::kMale) ? trait_composite_offset_M : trait_composite_offset_F) * trait_info.offset_);
+						}
+						// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
+					}
+				}
+				
+				// done with this case, don't fall through
+				continue;
+			}
+			
+			trait_composite_offset_H = trait_composite_offset_M;
+		}
+		else
+		{
+			trait_composite_offset_H = trait->CompositeOffset_H();
+		}
 		
 #if DEBUG_TRAIT_DEMAND()
 		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
@@ -7833,12 +8039,12 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H + trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset + trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H + trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -7856,12 +8062,12 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 				
 				if (f_force_recalc)
 				{
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H * trait_info.offset_);
 				}
 				else if (!f_force_recalc && std::isnan(trait_info.phenotype_))
 				{
 					recalc_decisions[individual_index * trait_indices_count + trait_indices_index] = true;
-					trait_info.phenotype_ = (slim_phenotype_t)(trait_baseline_offset * trait_info.offset_);
+					trait_info.phenotype_ = (slim_phenotype_t)(trait_composite_offset_H * trait_info.offset_);
 				}
 				// else (!f_force_recalc && !std::isnan(trait_info.phenotype_)), so we are not recalculating
 			}
@@ -9089,8 +9295,16 @@ slim_phenotype_t Individual::_CheckPhenotypeForTrait(slim_trait_index_t trait_in
 	Trait *trait = species.Traits()[trait_index];
 	TraitType traitType = trait->Type();
 	int haplosome_index = 0;
-	slim_trait_offset_t trait_offsets = trait->BaselineOffset();
 	IndividualTraitInfo &trait_info = trait_info_[trait_index];
+	slim_trait_offset_t trait_offsets;
+	
+	switch (sex_)
+	{
+		case IndividualSex::kHermaphrodite:		trait_offsets = trait->CompositeOffset_H(); break;
+		case IndividualSex::kMale:				trait_offsets = trait->CompositeOffset_M(); break;
+		case IndividualSex::kFemale:			trait_offsets = trait->CompositeOffset_F(); break;
+		default:								EIDOS_TERMINATION << "ERROR (Individual::_CheckPhenotypeForTrait): (internal error) unspecified sex." << EidosTerminate();
+	}
 	
 	if (traitType == TraitType::kAdditive)
 		trait_offsets += trait_info.offset_;

@@ -155,6 +155,7 @@ public:
 	bool warned_experiment_run_clocks_ = false;
 	bool warned_spatial_map_color_deprecated_ = false;
 	bool warned_spatial_map_image_deprecated_ = false;
+	bool warned_substitution_trait_jump_ = false;
 	
 	// checking for infinite loops, configurable with initializeSLiMOptions()
 #ifdef SLIMGUI

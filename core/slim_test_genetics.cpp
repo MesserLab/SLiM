@@ -1061,8 +1061,8 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise("initialize() { initializeTrait('avatar', 'multiplicative', 2.0); }", "existing property on Species", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', 2.0); initializeTrait('height', 'multiplicative', 2.0); }", "already a trait in this species", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multi', 2.0); }", "requires type to be either", __LINE__);
-		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=INF); }", "baselineOffset to be a finite value", __LINE__);
-		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=NAN); }", "baselineOffset to be a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=INF); }", "baselineOffset values to be finite", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', baselineOffset=NAN); }", "baselineOffset values to be finite", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=INF, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=NAN, individualOffsetSD=0.0); }", "individualOffsetMean to be a finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { initializeTrait('height', 'multiplicative', individualOffsetMean=1.0, individualOffsetSD=INF); }", "individualOffsetSD to be a nonnegative finite value", __LINE__);
@@ -1087,13 +1087,22 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithNames(c('weight', 'height')))) stop(); }");
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithNames('typo'); }", "trait with the given name (typo)", __LINE__);
 		
-		// basic trait properties: baselineOffset, directFitnessEffect, index, individualOffsetMean, individualOffsetSD, name, species, tag, type
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.baselineOffset, 2.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.baselineOffset, 186.0)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.baselineOffset = 12.5; if (!identical(T_height.baselineOffset, 12.5)) stop(); }");
-		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.baselineOffset = 17.25; if (!identical(T_weight.baselineOffset, 17.25)) stop(); }");
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.baselineOffset = NAN; }", "requires a finite value", __LINE__);
-		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.baselineOffset = INF; }", "requires a finite value", __LINE__);
+		// basic trait properties: baselineOffset[HMF], directFitnessEffect, index, individualOffsetMean, individualOffsetSD, name, species, tag, type
+		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetH = INF; }", "baselineOffsetH requires a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetH = NAN; }", "baselineOffsetH requires a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetM = 1.0; }", "baselineOffsetM can only be used", __LINE__);
+		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetF = 1.0; }", "baselineOffsetF can only be used", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeSex(); t = initializeTrait('height', 'multiplicative'); t.baselineOffsetH = 1.0; }", "baselineOffsetH can only be used", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeSex(); t = initializeTrait('height', 'multiplicative'); t.baselineOffsetM = INF; }", "baselineOffsetM requires a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeSex(); t = initializeTrait('height', 'multiplicative'); t.baselineOffsetM = NAN; }", "baselineOffsetM requires a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeSex(); t = initializeTrait('height', 'multiplicative'); t.baselineOffsetF = INF; }", "baselineOffsetF requires a finite value", __LINE__);
+		SLiMAssertScriptRaise("initialize() { initializeSex(); t = initializeTrait('height', 'multiplicative'); t.baselineOffsetF = NAN; }", "baselineOffsetF requires a finite value", __LINE__);
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.baselineOffsetH, 2.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.baselineOffsetH, 186.0)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_height.baselineOffsetH = 12.5; if (!identical(T_height.baselineOffsetH, 12.5)) stop(); }");
+		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { T_weight.baselineOffsetH = 17.25; if (!identical(T_weight.baselineOffsetH, 17.25)) stop(); }");
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.baselineOffsetH = NAN; }", "requires a finite value", __LINE__);
+		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { T_height.baselineOffsetH = INF; }", "requires a finite value", __LINE__);
 		
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_height.directFitnessEffect, F)) stop(); }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(T_weight.directFitnessEffect, F)) stop(); }");
@@ -1267,7 +1276,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptRaise(mt_base_p1 + "5 late() { mut = sim.mutations[0:4]; mut.setHemizygousDominanceForTrait(0, c(1,INF,3,INF,5)); }", "non-finite after setHemizygousDominanceForTrait()", __LINE__);
 		
 		// MutationType defaultHemizygousDominanceForTrait() and setDefaultHemizygousDominanceForTrait()
-		// note that `m1.convertToSubstitution = F` is needed in some cases, because baseline accumulation will raise an error if substitution occurs with a hemizygous dominance coefficient != 1.0
+		// note that `m1.convertToSubstitution = F` is needed in some cases, because substitution accumulation will raise an error if substitution occurs with a hemizygous dominance coefficient != 1.0
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(0), 1.0)) stop(); } 5 late() { }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(1), 1.0)) stop(); } 5 late() { }");
 		SLiMAssertScriptSuccess(mt_base_p1 + "initialize() { if (!identical(m1.defaultHemizygousDominanceForTrait(c(0,1)), c(1.0, 1.0))) stop(); } 5 late() { }");
@@ -1910,7 +1919,7 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 	inds = p1.individuals;
 	for (ind in inds) {
 		ind_fitness = ind.cachedFitness;
-		expected_fitness = t1.baselineOffset * t2.baselineOffset * lastFitnessScaling;
+		expected_fitness = t1.baselineOffsetH * t2.baselineOffsetH * lastFitnessScaling;
 		
 		if (!isNAN(ind.t1))
 			stop("t1 value mismatch (NAN expected): " + ind.t1);
@@ -1957,8 +1966,8 @@ late() { p1.fitnessScaling = runif(1); defineGlobal("lastFitnessScaling", p1.fit
 		ind_t1 = ind.t1;
 		ind_t2 = ind.t2;
 		ind_fitness = ind.cachedFitness;
-		expected_t1 = t1.baselineOffset + ind.t1Offset;
-		expected_t2 = t2.baselineOffset * ind.t2Offset;
+		expected_t1 = t1.baselineOffsetH + ind.t1Offset;
+		expected_t2 = t2.baselineOffsetH * ind.t2Offset;
 		expected_fitness = ind_t1 * ind_t2 * lastFitnessScaling;
 		
 		if (!isClose(ind_t1, expected_t1))
@@ -2803,11 +2812,11 @@ reproduction() { }
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(1.0, 1.0)))
 			stop("trait values unexpected after demand");
-	sim.mul1T.baselineOffset = 1.5;
+	sim.mul1T.baselineOffsetH = 1.5;
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(NAN, 1.0)))
 			stop("trait values unexpected after mul1T baselineOffset change");
-	sim.mul2T.baselineOffset = 1.25;
+	sim.mul2T.baselineOffsetH = 1.25;
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
 			stop("trait values unexpected after mul2T baselineOffset change");
@@ -3195,7 +3204,7 @@ initialize() {
 	// additive traits
 	quant1T = initializeTrait("quant1T", "a", I1, 0.0, 0.01, directFitnessEffect=F);          // will have a mix of dominance
 	quant2T = initializeTrait("quant2T", "a", I2, 0.0, 0.01, directFitnessEffect=F);          // will be independent dominance
-	n3T = initializeTrait("n3T", "a", directFitnessEffect=F, baselineAccumulation=F);         // non-neutral with no direct effect
+	n3T = initializeTrait("n3T", "a", directFitnessEffect=F, substitutionAccumulation=F);     // non-neutral with no direct effect
 	
 	// logistic trait
 	logistic1T = initializeTrait("logistic1T", "l", 0.0, 0.01, 0.01, directFitnessEffect=T);  // will have a mix of dominance
@@ -3326,31 +3335,341 @@ mutation(m3) {
 		if (!all((inds.logistic1T >= 0.0) & (inds.logistic1T <= 1.0))) stop("logistic1T is out of range");
 	}
 	
-	// check baseline accumulation, which in on for all traits except n3T
-	// each substitution shifts the baseline by 1+s (multiplicatively) or 2a (additively)
-	p1t_subs = product(1 + sim.substitutions.popgen1TEffectSize);
-	p2t_subs = product(1 + sim.substitutions.popgen2TEffectSize);
-	n1t_subs = product(1 + sim.substitutions.n1TEffectSize);
-	n2t_subs = product(1 + sim.substitutions.n2TEffectSize);
-	q1t_subs = sum(2 * sim.substitutions.quant1TEffectSize);
-	q2t_subs = sum(2 * sim.substitutions.quant2TEffectSize);
-	//n3t_subs = sum(2 * sim.substitutions.n3TEffectSize);
-	l1t_subs = sum(2 * sim.substitutions.logistic1TEffectSize);
+	// check substitution accumulation, which is on for all traits except n3T
+	// each substitution shifts the substitution offset by 1+s (multiplicatively) or 2a (additively)
+	// for females we exclude substitutions on the Y; apart from that we don't need to do anything
+	// sex-specific here since the hemizygous dominance coefficient remains at its default of 1.0
+	subs = sim.substitutions;
+	p1t_subs_M = product(1 + subs.popgen1TEffectSize);
+	p2t_subs_M = product(1 + subs.popgen2TEffectSize);
+	n1t_subs_M = product(1 + subs.n1TEffectSize);
+	n2t_subs_M = product(1 + subs.n2TEffectSize);
+	q1t_subs_M = sum(2 * subs.quant1TEffectSize);
+	q2t_subs_M = sum(2 * subs.quant2TEffectSize);
+	//n3t_subs_M = sum(2 * subs.n3TEffectSize);
+	l1t_subs_M = sum(2 * subs.logistic1TEffectSize);
 	
-	if (!isClose(p1t_subs * 1.0, sim.popgen1T.baselineOffset)) stop("popgen1T baseline is wrong");
-	if (!isClose(p2t_subs * 1.0, sim.popgen2T.baselineOffset)) stop("popgen2T baseline is wrong");
-	if (!isClose(n1t_subs * 1.0, sim.n1T.baselineOffset)) stop("n1T baseline is wrong");
-	if (!isClose(n2t_subs * 1.0, sim.n2T.baselineOffset)) stop("n2T baseline is wrong");
-	if (!isClose(q1t_subs + I1, sim.quant1T.baselineOffset)) stop("quant1T baseline is wrong");
-	if (!isClose(q2t_subs + I2, sim.quant2T.baselineOffset)) stop("quant2T baseline is wrong");
-	if (!(sim.n3T.baselineOffset == 0.0)) stop("n3T baseline is wrong");
-	if (!isClose(l1t_subs + 0.0, sim.logistic1T.baselineOffset)) stop("logistic1T baseline is wrong");
+	subs = subs[subs.chromosome != sim.chromosomesWithSymbols("Y")];
+	p1t_subs_F = product(1 + subs.popgen1TEffectSize);
+	p2t_subs_F = product(1 + subs.popgen2TEffectSize);
+	n1t_subs_F = product(1 + subs.n1TEffectSize);
+	n2t_subs_F = product(1 + subs.n2TEffectSize);
+	q1t_subs_F = sum(2 * subs.quant1TEffectSize);
+	q2t_subs_F = sum(2 * subs.quant2TEffectSize);
+	//n3t_subs_F = sum(2 * subs.n3TEffectSize);
+	l1t_subs_F = sum(2 * subs.logistic1TEffectSize);
+	
+	if (!isClose(p1t_subs_M * 1.0, sim.popgen1T.substitutionOffsetM * sim.popgen1T.baselineOffsetM)) stop("popgen1T baselineOffsetM is wrong");
+	if (!isClose(p2t_subs_M * 1.0, sim.popgen2T.substitutionOffsetM * sim.popgen2T.baselineOffsetM)) stop("popgen2T baselineOffsetM is wrong");
+	if (!isClose(n1t_subs_M * 1.0, sim.n1T.substitutionOffsetM * sim.n1T.baselineOffsetM)) stop("n1T baselineOffsetM is wrong");
+	if (!isClose(n2t_subs_M * 1.0, sim.n2T.substitutionOffsetM * sim.n2T.baselineOffsetM)) stop("n2T baselineOffsetM is wrong");
+	if (!isClose(q1t_subs_M + I1, sim.quant1T.substitutionOffsetM + sim.quant1T.baselineOffsetM)) stop("quant1T baselineOffsetM is wrong");
+	if (!isClose(q2t_subs_M + I2, sim.quant2T.substitutionOffsetM + sim.quant2T.baselineOffsetM)) stop("quant2T baselineOffsetM is wrong");
+	if (!(sim.n3T.substitutionOffsetM + sim.n3T.baselineOffsetM == 0.0)) stop("n3T baselineOffsetM is wrong");
+	if (!isClose(l1t_subs_M + 0.0, sim.logistic1T.substitutionOffsetM + sim.logistic1T.baselineOffsetM)) stop("logistic1T baselineOffsetM is wrong");
+	
+	if (!isClose(p1t_subs_F * 1.0, sim.popgen1T.substitutionOffsetF * sim.popgen1T.baselineOffsetF)) stop("popgen1T baselineOffsetF is wrong");
+	if (!isClose(p2t_subs_F * 1.0, sim.popgen2T.substitutionOffsetF * sim.popgen2T.baselineOffsetF)) stop("popgen2T baselineOffsetF is wrong");
+	if (!isClose(n1t_subs_F * 1.0, sim.n1T.substitutionOffsetF * sim.n1T.baselineOffsetF)) stop("n1T baselineOffsetF is wrong");
+	if (!isClose(n2t_subs_F * 1.0, sim.n2T.substitutionOffsetF * sim.n2T.baselineOffsetF)) stop("n2T baselineOffsetF is wrong");
+	if (!isClose(q1t_subs_F + I1, sim.quant1T.substitutionOffsetF + sim.quant1T.baselineOffsetF)) stop("quant1T baselineOffsetF is wrong");
+	if (!isClose(q2t_subs_F + I2, sim.quant2T.substitutionOffsetF + sim.quant2T.baselineOffsetF)) stop("quant2T baselineOffsetF is wrong");
+	if (!(sim.n3T.substitutionOffsetF + sim.n3T.baselineOffsetF == 0.0)) stop("n3T baselineOffsetF is wrong");
+	if (!isClose(l1t_subs_F + 0.0, sim.logistic1T.substitutionOffsetF + sim.logistic1T.baselineOffsetF)) stop("logistic1T baselineOffsetF is wrong");
 }
 
 100 late() { }
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_COMPLEX_1);
+	
+	
+	// This follows multitrait_COMPLEX_1, but adds a hemizygous dominance coefficient to test whether
+	// substitution accumulation works correctly for separate sexes with that additional wrinkle.
+	#pragma mark multitrait_COMPLEX_2
+	std::string multitrait_COMPLEX_2 =
+		R"V0G0N(
+// multitrait_COMPLEX_2
+initialize() {
+	defineConstant("I1", 5.0);
+	defineConstant("I2", -5.0);
+	defineConstant("OPT1", 10.0);
+	defineConstant("OPT2", 10.0);
+	defineConstant("SD1", 2.0);
+	defineConstant("SD2", 2.0);
+	
+	initializeSex();
+	
+	// multiplicative traits
+	popgen1T = initializeTrait("popgen1T", "m", 1.0, 0.0, 0.01, directFitnessEffect=T);       // will have a mix of dominance
+	popgen2T = initializeTrait("popgen2T", "m", 1.0, 0.0, 0.01, directFitnessEffect=T);       // will be independent dominance
+	n1T = initializeTrait("n1T", "m", directFitnessEffect=T);                                 // neutral with direct effect
+	n2T = initializeTrait("n2T", "m", directFitnessEffect=F);                                 // neutral with no direct effect
+	
+	// additive traits
+	quant1T = initializeTrait("quant1T", "a", I1, 0.0, 0.01, directFitnessEffect=F);          // will have a mix of dominance
+	quant2T = initializeTrait("quant2T", "a", I2, 0.0, 0.01, directFitnessEffect=F);          // will be independent dominance
+	n3T = initializeTrait("n3T", "a", directFitnessEffect=F, substitutionAccumulation=F);     // non-neutral with no direct effect
+	
+	// logistic trait
+	logistic1T = initializeTrait("logistic1T", "l", 0.0, 0.01, 0.01, directFitnessEffect=T);  // will have a mix of dominance
+	
+	// quant1T / quant2T will be demanded in script; popgen1T / popgen2T / n1T / logistic1T are direct-effect and generate demand
+	// calculation of popgen2T and quant2T should be extremely efficient since they are independent dominance
+	// calculation of n1T should be omitted entirely; SLiM should detect that it is neutral, and not even set phenotype values
+	// n2T and n3T should not be demanded, and should thus never be calculated by SLiM, which we can check in script
+	
+	// mutation types
+	initializeMutationType("m1", 0.4, "f", 0.0);                                  // neutral for all traits
+	
+	initializeMutationType("m2", 0.4, "e", 0.05);                                 // beneficial for the popgen traits
+	m2.setEffectSizeDistributionForTrait(c(n1T, n2T), "f", 0.0);                  // neutral DES for the neutral traits
+	m2.setEffectSizeDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);     // unbiased normal DES for the additive traits
+	m2.setEffectSizeDistributionForTrait(c(logistic1T), "n", -0.05, 0.1);         // biased, wide normal DES for the logistic trait
+	
+	initializeMutationType("m3", 0.4, "g", -0.05, 1.0);                           // deleterious for the popgen traits
+	m3.setEffectSizeDistributionForTrait(c(n1T, n2T), "f", 0.0);                  // neutral DES for the neutral traits
+	m3.setEffectSizeDistributionForTrait(c(quant1T, quant2T), "n", 0.0, 0.1);     // unbiased normal DES for the additive traits
+	m3.setEffectSizeDistributionForTrait(c(logistic1T), "n", -0.05, 0.1);         // biased, wide normal DES for the logistic trait
+	
+	c(m2,m3).setEffectSizeDistributionForTrait(n3T, "n", -5.0, 0.5);              // very biased and wide DES for n3T
+	
+	// set up independent dominance for popgen2T and quant2T; note that setting this for m1 is unnecessary (it is neutral)
+	c(m2,m3).setDefaultDominanceForTrait(c(popgen2T, quant2T), NAN);
+	
+	// set up a variety of hemizygous dominance values for m2 and m3, for the various traits
+	m2.setDefaultHemizygousDominanceForTrait(popgen1T, 0.6);
+	m2.setDefaultHemizygousDominanceForTrait(popgen2T, 0.7);
+	m2.setDefaultHemizygousDominanceForTrait(quant1T, 0.2);
+	m2.setDefaultHemizygousDominanceForTrait(quant2T, 0.3);
+	m3.setDefaultHemizygousDominanceForTrait(popgen1T, 0.8);
+	m3.setDefaultHemizygousDominanceForTrait(popgen2T, 0.9);
+	m3.setDefaultHemizygousDominanceForTrait(quant1T, 0.1);
+	m3.setDefaultHemizygousDominanceForTrait(quant2T, 0.4);
+	
+	// log information about m2 and m3 mutations, for comparison of initial versus final distributions of trait metrics
+	c(m2,m3).logMutationData(T, trait=NULL, effectSize=T, dominance=T);
+	
+	initializeGenomicElementType("g1", m1, 1.0);          // neutral
+	initializeGenomicElementType("g2", 1:3, c(3, 1, 2));  // mixture
+	
+	ids = 1:5;
+	symbols = c(1, 2, "X", "Y", "MT");
+	lengths = rdunif(5, 1e7, 2e7);
+	types = c("A", "A", "X", "Y", "HF");
+	names = c("A1", "A2", "X", "Y", "MT");
+	
+	for (id in ids, symbol in symbols, length in lengths, type in types, name in names)
+	{
+		initializeChromosome(id, length, type, symbol, name);
+		initializeMutationRate(1e-7);
+		initializeRecombinationRate(1e-8);
+		
+		if (id == 1)
+			initializeGenomicElement(g1);  // autosome 1 is pure-neutral, using only m1
+		else
+			initializeGenomicElement(g2);  // autosome 2 is a mix, using m1 / m2 / m3
+	}
+}
+
+mutation(m2) {
+	// set random dominance effects for the popgen1T and quant1T and logistic1TDominance traits
+	// other effects are generated as specified by the mutation type DES
+	mut.popgen1TDominance = runif(1);
+	mut.quant1TDominance = runif(1);
+	mut.logistic1TDominance = runif(1);
+	return T;
+}
+mutation(m3) {
+	// set random dominance effects for the popgen1T and quant1T and logistic1TDominance traits
+	// other effects are generated as specified by the mutation type DES
+	mut.popgen1TDominance = runif(1);
+	mut.quant1TDominance = runif(1);
+	mut.logistic1TDominance = runif(1);
+	return T;
+}
+
+1 late() {
+	sim.addSubpop("p1", 20);
+}
+
+// tick 7: m2 mutations are completely neutral, m3 are normal
+// tick 8: m2 is completely neutral, m3 is neutral for popgen1T and popgen2T, and QTL demand and selection are off
+// tick 9: m3 mutations are neutral for popgen1T only
+
+7:8 mutationEffect(m2)
+{
+	return NULL;	// make neutral
+}
+8:9 mutationEffect(m3, NULL, "popgen1T")
+{
+	return NULL;	// make neutral
+}
+8 mutationEffect(m3, NULL, "popgen2T")
+{
+	return NULL;	// make neutral
+}
+
+1: late() {
+	// make tick 8 neutral
+	if (sim.cycle == 8)
+		return;
+	
+	// stabilizing selection on quant1T and quant2T, before fitness calculation takes place
+	inds = sim.subpopulations.individuals;
+	
+	if (community.tick % 2 == 0)
+		sim.demandPhenotype(NULL, c(sim.quant1T, sim.quant2T));	// the fast way
+	else
+		sim.subpopulations.individuals.demandPhenotypeForIndividuals(c(sim.quant1T, sim.quant2T));	// the slow way
+	
+	phenotypes_q1 = inds.quant1T;
+	phenotypes_q2 = inds.quant2T;
+	
+	fitnessEffect_q1 = dnorm(phenotypes_q1, OPT1, SD1) / dnorm(0.0, 0.0, SD1);
+	fitnessEffect_q2 = dnorm(phenotypes_q2, OPT2, SD2) / dnorm(0.0, 0.0, SD2);
+	
+	inds.fitnessScaling = fitnessEffect_q1 * fitnessEffect_q2;
+}
+
+2: first() {
+	inds = sim.subpopulations.individuals;
+	
+	// check that traits were calculated correctly, or left uncalculated as appropriate
+	if (!all(isNAN(inds.n1T))) stop("n1T was calculated unnecessarily (super-pure-neutral trait)");
+	if (!all(isNAN(inds.n2T))) stop("n2T was calculated unnecessarily (no direct fitness effect)");
+	if (!all(isNAN(inds.n3T))) stop("n3T was calculated unnecessarily (no direct fitness effect)");
+	
+	if ((community.tick == 7) | (community.tick == 9))
+	{
+		if (!all(isNAN(inds.logistic1T))) stop("logistic1T is not NAN (should be invalidated by callback change)");
+	}
+	else
+	{
+		if (!all(!isNAN(inds.logistic1T))) stop("logistic1T is NAN");
+		if (!all((inds.logistic1T >= 0.0) & (inds.logistic1T <= 1.0))) stop("logistic1T is out of range");
+	}
+	
+	// check substitution accumulation, which is on for all traits except n3T
+	// each substitution shifts the substitution offset by 1+s (multiplicatively) or 2a (additively)
+	// for females we exclude substitutions on the Y; apart from that we don't need to do anything
+	// sex-specific here since the hemizygous dominance coefficient remains at its default of 1.0
+	subs = sim.substitutions;
+	subs_chromosome = subs.chromosome;
+	subs_X = subs[subs_chromosome == sim.chromosomesWithSymbols("X")];
+	subs_Y = subs[subs_chromosome == sim.chromosomesWithSymbols("Y")];
+	subs_O = subs[(subs_chromosome == sim.chromosomesWithSymbols("1")) |
+						(subs_chromosome == sim.chromosomesWithSymbols("2")) |
+						(subs_chromosome == sim.chromosomesWithSymbols("MT"))];
+	
+	// males are hemizygous for X mutations and contain Y mutations
+	p1t_subs_M = product(1 + c(subs_O,subs_Y).popgen1TEffectSize);
+	p2t_subs_M = product(1 + c(subs_O,subs_Y).popgen2TEffectSize);
+	n1t_subs_M = product(1 + c(subs_O,subs_Y).n1TEffectSize);
+	n2t_subs_M = product(1 + c(subs_O,subs_Y).n2TEffectSize);
+	q1t_subs_M = sum(2 * c(subs_O,subs_Y).quant1TEffectSize);
+	q2t_subs_M = sum(2 * c(subs_O,subs_Y).quant2TEffectSize);
+	//n3t_subs_M = sum(2 * c(subs_O,subs_Y).n3TEffectSize);
+	l1t_subs_M = sum(2 * c(subs_O,subs_Y).logistic1TEffectSize);
+	
+	if (length(subs_X) > 0)
+	{
+		p1t_subs_M = p1t_subs_M * product(1 + subs_X.popgen1THemizygousDominance * subs_X.popgen1TEffectSize);
+		p2t_subs_M = p2t_subs_M * product(1 + subs_X.popgen2THemizygousDominance * subs_X.popgen2TEffectSize);
+		n1t_subs_M = n1t_subs_M * product(1 + subs_X.n1THemizygousDominance * subs_X.n1TEffectSize);
+		n2t_subs_M = n2t_subs_M * product(1 + subs_X.n2THemizygousDominance * subs_X.n2TEffectSize);
+		q1t_subs_M = q1t_subs_M + sum(2 * subs_X.quant1THemizygousDominance * subs_X.quant1TEffectSize);
+		q2t_subs_M = q2t_subs_M + sum(2 * subs_X.quant2THemizygousDominance * subs_X.quant2TEffectSize);
+		//n3t_subs_M = n3t_subs_M + sum(2 * subs_X.n3THemizygousDominance * subs_X.n3TEffectSize);
+		l1t_subs_M = l1t_subs_M + sum(2 * subs_X.logistic1THemizygousDominance * subs_X.logistic1TEffectSize);
+	}
+	
+	// females are homozygous for X mutations and do not contain Y mutations
+	p1t_subs_F = product(1 + c(subs_O,subs_X).popgen1TEffectSize);
+	p2t_subs_F = product(1 + c(subs_O,subs_X).popgen2TEffectSize);
+	n1t_subs_F = product(1 + c(subs_O,subs_X).n1TEffectSize);
+	n2t_subs_F = product(1 + c(subs_O,subs_X).n2TEffectSize);
+	q1t_subs_F = sum(2 * c(subs_O,subs_X).quant1TEffectSize);
+	q2t_subs_F = sum(2 * c(subs_O,subs_X).quant2TEffectSize);
+	//n3t_subs_F = sum(2 * c(subs_O,subs_X).n3TEffectSize);
+	l1t_subs_F = sum(2 * c(subs_O,subs_X).logistic1TEffectSize);
+	
+	if (!isClose(p1t_subs_M * 1.0, sim.popgen1T.substitutionOffsetM * sim.popgen1T.baselineOffsetM)) stop("popgen1T baselineOffsetM is wrong");
+	if (!isClose(p2t_subs_M * 1.0, sim.popgen2T.substitutionOffsetM * sim.popgen2T.baselineOffsetM)) stop("popgen2T baselineOffsetM is wrong");
+	if (!isClose(n1t_subs_M * 1.0, sim.n1T.substitutionOffsetM * sim.n1T.baselineOffsetM)) stop("n1T baselineOffsetM is wrong");
+	if (!isClose(n2t_subs_M * 1.0, sim.n2T.substitutionOffsetM * sim.n2T.baselineOffsetM)) stop("n2T baselineOffsetM is wrong");
+	if (!isClose(q1t_subs_M + I1, sim.quant1T.substitutionOffsetM + sim.quant1T.baselineOffsetM)) stop("quant1T baselineOffsetM is wrong");
+	if (!isClose(q2t_subs_M + I2, sim.quant2T.substitutionOffsetM + sim.quant2T.baselineOffsetM)) stop("quant2T baselineOffsetM is wrong");
+	if (!(sim.n3T.substitutionOffsetM + sim.n3T.baselineOffsetM == 0.0)) stop("n3T baselineOffsetM is wrong");
+	if (!isClose(l1t_subs_M + 0.0, sim.logistic1T.substitutionOffsetM + sim.logistic1T.baselineOffsetM)) stop("logistic1T baselineOffsetM is wrong");
+	
+	if (!isClose(p1t_subs_F * 1.0, sim.popgen1T.substitutionOffsetF * sim.popgen1T.baselineOffsetF)) stop("popgen1T baselineOffsetF is wrong");
+	if (!isClose(p2t_subs_F * 1.0, sim.popgen2T.substitutionOffsetF * sim.popgen2T.baselineOffsetF)) stop("popgen2T baselineOffsetF is wrong");
+	if (!isClose(n1t_subs_F * 1.0, sim.n1T.substitutionOffsetF * sim.n1T.baselineOffsetF)) stop("n1T baselineOffsetF is wrong");
+	if (!isClose(n2t_subs_F * 1.0, sim.n2T.substitutionOffsetF * sim.n2T.baselineOffsetF)) stop("n2T baselineOffsetF is wrong");
+	if (!isClose(q1t_subs_F + I1, sim.quant1T.substitutionOffsetF + sim.quant1T.baselineOffsetF)) stop("quant1T baselineOffsetF is wrong");
+	if (!isClose(q2t_subs_F + I2, sim.quant2T.substitutionOffsetF + sim.quant2T.baselineOffsetF)) stop("quant2T baselineOffsetF is wrong");
+	if (!(sim.n3T.substitutionOffsetF + sim.n3T.baselineOffsetF == 0.0)) stop("n3T baselineOffsetF is wrong");
+	if (!isClose(l1t_subs_F + 0.0, sim.logistic1T.substitutionOffsetF + sim.logistic1T.baselineOffsetF)) stop("logistic1T baselineOffsetF is wrong");
+}
+
+100 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_COMPLEX_2);
+	
+	// This test triggers an error due to hemizygosity of an autosome with a hemizygous dominance
+	// that is != 0.5, because substitution accumulation can't represent the effect of a mutation
+	// that gets substituted.  See discussion in Trait::AccumulateSubstitutionOffset().
+	
+	#pragma mark multitrait_AUTOSOMAL_HEMIZYGOSITY
+	std::string multitrait_AUTOSOMAL_HEMIZYGOSITY =
+		R"V0G0N(
+// multitrait_AUTOSOMAL_HEMIZYGOSITY
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 20);
+	
+	initializeTrait("trait1", "multiplicative", substitutionAccumulation=T);
+	initializeMutationType("m1", 0.5, "n", 0.0, 0.001).convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// this is incompatible with substitution accumulation in this model
+	m1.setDefaultHemizygousDominanceForTrait(NULL, 0.8);
+	
+	initializeChromosome(1, 1e5, "A");
+	initializeGenomicElement(g1);
+	initializeMutationRate(1e-6);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", K);
+}
+reproduction() {
+	mate = subpop.sampleIndividuals(1);
+	
+	// haploids do not get to reproduce, for simplicity
+	if (individual.haploidGenome2.isNullHaplosome | mate.haploidGenome2.isNullHaplosome)
+		return;
+	
+	if (runif(1) < 0.95)
+	{
+		// crossing, providing individuals that have mutations in their second haplosomes
+		subpop.addCrossed(individual, mate);
+	}
+	else
+	{
+		// haploid recombination with a second haplosome that is null, triggering the error
+		subpop.addRecombinant(individual.haplosomes[0], mate.haplosomes[0], NULL, NULL, NULL, NULL, randomizeStrands=T);
+	}
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+1000 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptRaise(multitrait_AUTOSOMAL_HEMIZYGOSITY, "substitution accumulation cannot occur for", 0, /* p_expect_error_position */ false);
 	
 	// FIXME MULTITRAIT: remove this log once it is no longer useful...
 	std::cout << "_RunMultitraitTests() done" << std::endl;

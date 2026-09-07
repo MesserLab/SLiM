@@ -2051,6 +2051,15 @@ Haplosome *Chromosome::_NewHaplosome_NONNULL(Individual *p_individual)
 	return new (haplosome_pool_.AllocateChunk()) Haplosome(Haplosome::NonNullHaplosome{}, p_individual, this);
 }
 
+void Chromosome::NullHaplosomeObservedForAutosome(void)
+{
+	// this checks for a specific configuration error; see Trait::AccumulateSubstitutionOffset() for discussion.
+	null_haplosome_observed_ = true;
+	
+	if (hemi_sub_accumulation_occurred_ && ((type_ == ChromosomeType::kA_DiploidAutosome) || (type_ == ChromosomeType::kH_HaploidAutosome)))
+		EIDOS_TERMINATION << "ERROR (Chromosome::NullHaplosomeObservedForAutosome): " << "substitution accumulation cannot occur for mutations that (1) are non-neutral for a given trait, and (2) are associated with a given autosome, IF (3) the given trait has a hemizygous dominance coefficient != 1.0, and (4) the given autosome is represented by a null haplosome in any individual.  Under these conditions, the effect of the substitution cannot be reliably represented by the trait's substitution offset(s).  To fix this error, you must change your model so that one of the four preconditions for this error is no longer met, OR -- most commonly -- you must turn off substitution for the mutation type(s) that trigger this problem by setting their convertToSubstitution property to F.  (Note that turning off substitution accumulation is typically NOT a valid fix, since then substitution will cause trait values to omit the trait effects of the mutations that get substituted, unless you compensate for that yourself in script.)" << EidosTerminate();
+}
+
 
 //
 // Mutation registry

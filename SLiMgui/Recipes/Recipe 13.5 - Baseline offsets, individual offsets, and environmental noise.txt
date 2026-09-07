@@ -1,4 +1,4 @@
-// Keywords: additive trait, quantitative trait, quantitative genetics, baseline offset, individual offset, environmental variance
+// Keywords: additive trait, quantitative trait, quantitative genetics, baseline offset, substitution offset, individual offset, environmental variance
 
 initialize() {
 	defineConstant("BASELINE", 15.20);  // baseline body length without mutations
@@ -24,7 +24,7 @@ initialize() {
 	defineGlobal("HIST_MEAN", NULL);       // history of mean phenotype
 	defineGlobal("HIST_25", NULL);         // history of phenotype 25% quantile
 	defineGlobal("HIST_75", NULL);         // history of phenotype 75% quantile
-	defineGlobal("HIST_BASE", NULL);       // history of the baseline offset
+	defineGlobal("HIST_OFF", NULL);        // history of the composite offset
 }
 late() {
 	sim.demandPhenotype(NULL, "bodyLength");
@@ -41,7 +41,7 @@ late() {
 		defineGlobal("HIST_MEAN", c(HIST_MEAN, mean(phenotype)));
 		defineGlobal("HIST_25", c(HIST_25, quantile(phenotype, 0.25)));
 		defineGlobal("HIST_75", c(HIST_75, quantile(phenotype, 0.75)));
-		defineGlobal("HIST_BASE", c(HIST_BASE, sim.bodyLength.baselineOffset));
+		defineGlobal("HIST_OFF", c(HIST_OFF, sim.bodyLength.compositeOffsetH));
 		
 		// Plot mean phenotype over time
 		plot = slimgui.createPlot("Phenotype ~ Generation", 
@@ -53,7 +53,7 @@ late() {
 		plot.lines(HIST_GENS, HIST_MEAN, color="red", lwd=2.0);
 		plot.lines(HIST_GENS, HIST_25, color="pink", lwd=1.0);
 		plot.lines(HIST_GENS, HIST_75, color="pink", lwd=1.0);
-		plot.lines(HIST_GENS, HIST_BASE, color="black", lwd=1.0);
+		plot.lines(HIST_GENS, HIST_OFF, color="black", lwd=1.0);
 	}
 }
 END late() { }

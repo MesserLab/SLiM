@@ -1156,11 +1156,19 @@ const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initial
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);
 
 // mostly property names
-const std::string &gStr_baselineAccumulation = EidosRegisteredString("baselineAccumulation", gID_baselineAccumulation);
-const std::string &gStr_baselineOffset = EidosRegisteredString("baselineOffset", gID_baselineOffset);
+const std::string &gStr_baselineOffsetH = EidosRegisteredString("baselineOffsetH", gID_baselineOffsetH);
+const std::string &gStr_baselineOffsetM = EidosRegisteredString("baselineOffsetM", gID_baselineOffsetM);
+const std::string &gStr_baselineOffsetF = EidosRegisteredString("baselineOffsetF", gID_baselineOffsetF);
+const std::string &gStr_compositeOffsetH = EidosRegisteredString("compositeOffsetH", gID_compositeOffsetH);
+const std::string &gStr_compositeOffsetM = EidosRegisteredString("compositeOffsetM", gID_compositeOffsetM);
+const std::string &gStr_compositeOffsetF = EidosRegisteredString("compositeOffsetF", gID_compositeOffsetF);
 const std::string &gStr_individualOffsetMean = EidosRegisteredString("individualOffsetMean", gID_individualOffsetMean);
 const std::string &gStr_individualOffsetSD = EidosRegisteredString("individualOffsetSD", gID_individualOffsetSD);
 const std::string &gStr_directFitnessEffect = EidosRegisteredString("directFitnessEffect", gID_directFitnessEffect);
+const std::string &gStr_substitutionAccumulation = EidosRegisteredString("substitutionAccumulation", gID_substitutionAccumulation);
+const std::string &gStr_substitutionOffsetH = EidosRegisteredString("substitutionOffsetH", gID_substitutionOffsetH);
+const std::string &gStr_substitutionOffsetM = EidosRegisteredString("substitutionOffsetM", gID_substitutionOffsetM);
+const std::string &gStr_substitutionOffsetF = EidosRegisteredString("substitutionOffsetF", gID_substitutionOffsetF);
 const std::string &gStr_individualPhenotypePalette = EidosRegisteredString("individualPhenotypePalette", gID_individualPhenotypePalette);
 const std::string &gStr_mutationEffectPalette = EidosRegisteredString("mutationEffectPalette", gID_mutationEffectPalette);
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
@@ -2003,17 +2011,17 @@ const std::string gSLiM_tsk_metadata_JSON_schema_SOURCE = R"V0G0N({
                     "items": {
                         "type": "object",
                         "properties": {
-                            "baselineAccumulation": {
-                                "type": "boolean",
-                                "description": "Whether the baseline offset includes accumulated effects from fixed (substituted) mutations."
-                            },
-                            "baselineOffsetFromUser": {
+                            "baselineOffsetH": {
                                 "type": "number",
-                                "description": "The from-user component of the baseline offset of the trait."
+                                "description": "The baseline offset of the trait, for hermaphrodites."
                             },
-                            "baselineOffsetFromSubstitutions": {
+                            "baselineOffsetM": {
                                 "type": "number",
-                                "description": "The from-substitutions component of the baseline offset of the trait."
+                                "description": "The baseline offset of the trait, for males."
+                            },
+                            "baselineOffsetF": {
+                                "type": "number",
+                                "description": "The baseline offset of the trait, for females."
                             },
                             "directFitnessEffect": {
                                 "type": "boolean",
@@ -2034,6 +2042,22 @@ const std::string gSLiM_tsk_metadata_JSON_schema_SOURCE = R"V0G0N({
                             "name": {
                                 "type": "string",
                                 "description": "The string name for the trait."
+                            },
+                            "substitutionAccumulation": {
+                                "type": "boolean",
+                                "description": "Whether the substitution offset accumulates effects from fixed (substituted) mutations."
+                            },
+                            "substitutionOffsetH": {
+                                "type": "number",
+                                "description": "The substitution offset of the trait, for hermaphrodites."
+                            },
+                            "substitutionOffsetM": {
+                                "type": "number",
+                                "description": "The substitution offset of the trait, for males."
+                            },
+                            "substitutionOffsetF": {
+                                "type": "number",
+                                "description": "The substitution offset of the trait, for females."
                             },
                             "type": {
                                 "type": "string",

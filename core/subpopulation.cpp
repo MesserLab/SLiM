@@ -602,8 +602,18 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 						break;
 						
 						// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+						// however, we do check that our null-haplosome tracking flags are correctly set
 					case ChromosomeType::kA_DiploidAutosome:
 					case ChromosomeType::kH_HaploidAutosome:
+						if (haplosome1->IsNull())
+						{
+							if (!has_null_haplosomes_)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 is null but has_null_haplosomes_ is false." << EidosTerminate();
+							if (!chromosome->null_haplosome_observed_)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 is null but null_haplosome_observed_ is false." << EidosTerminate();
+						}
+						break;
+						
 					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 						break;
 				}
@@ -722,7 +732,15 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 						break;
 						
 						// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+						// however, we do check that our null-haplosome tracking flags are correctly set
 					case ChromosomeType::kA_DiploidAutosome:
+						if (haplosome2->IsNull())
+						{
+							if (!has_null_haplosomes_)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 is null but has_null_haplosomes_ is false." << EidosTerminate();
+							if (!chromosome->null_haplosome_observed_)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 is null but null_haplosome_observed_ is false." << EidosTerminate();
+						}
 						break;
 						
 						// haplosome2 should not exist at all for these types
@@ -1412,9 +1430,34 @@ void Subpopulation::UpdateFitness(const std::vector<SLiMEidosBlock*> &p_subpop_m
 			continue;				// other traits might be removable, even if we're not "super-pure-neutral"
 		}
 		
+		// Third, all individuals must have the same composite offset.  If the model is sexual, and if males
+		// and females have different composite offsets, the trait is not constant-fitness-effect.  It is
+		// doubtless possible for us to follow the constant effect on males versus females separately, but
+		// that seems pretty edge; it will only happen with, e.g., sexual chromosome types or sexual dimorphism.
+		slim_trait_offset_t trait_composite_offset_H;
+		
+		if (species_.SexEnabled())
+		{
+			slim_trait_offset_t trait_composite_offset_M = direct_effect_trait->CompositeOffset_M();
+			slim_trait_offset_t trait_composite_offset_F = direct_effect_trait->CompositeOffset_F();
+			
+			// if the two sexes have different offsets, the trait is not constant-fitness-effect
+			if (trait_composite_offset_M != trait_composite_offset_F)
+			{
+				has_constant_fitness = false;
+				continue;				// other traits might be removable, even if we're not "super-pure-neutral"
+			}
+			
+			trait_composite_offset_H = trait_composite_offset_M;
+		}
+		else
+		{
+			trait_composite_offset_H = direct_effect_trait->CompositeOffset_H();
+		}
+		
 		// This trait satisfies all of the "super-pure-neutral" constraints, so it has a constant fitness effect,
-		// calculated here, based on the baseline offset and constant individual offset of the trait.
-		slim_fitness_t trait_constant_effect = direct_effect_trait->BaselineOffset();
+		// calculated here, based on the constant composite offset and constant individual offset of the trait.
+		slim_fitness_t trait_constant_effect = trait_composite_offset_H;
 		slim_trait_offset_t constant_offset_value = direct_effect_trait->DrawIndividualOffset();	// this will return the fixed individual offset, including the exp() transform if it is a multiplicative trait
 		
 		if (direct_effect_trait->Type() == TraitType::kMultiplicative)
@@ -3236,6 +3279,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				{
 					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
 					has_null_haplosomes_ = true;
+					chromosome->NullHaplosomeObservedForAutosome();
 				}
 				else
 				{
@@ -3246,6 +3290,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				{
 					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
 					has_null_haplosomes_ = true;
+					chromosome->NullHaplosomeObservedForAutosome();
 				}
 				else
 				{
@@ -6544,7 +6589,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		// If we're generating any null haplosomes, we need to remember that in the Subpopulation state,
 		// to turn off optimizations.  If the chromosome is haploid, we chack only haplosome1_null.
 		if (haplosome1_null || (haplosome2_null && make_second_haplosome))
+		{
 			has_null_haplosomes_ = true;
+			inheritance_chromosome->NullHaplosomeObservedForAutosome();		// might not be an autosome, but no harm done
+		}
 		
 		// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or
 		// a half-NULL pair, but must be supplied for a non-NULL pair.  BCH 9/20/2021: Added logic here in
@@ -7303,7 +7351,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// If we're generating any null haplosomes, we need to remember that in the Subpopulation state,
 	// to turn off optimizations.  If the chromosome is haploid, we check only haplosome1_null.
 	if (haplosome1_null || (haplosome2_null && make_second_haplosome))
+	{
 		has_null_haplosomes_ = true;
+		chromosome->NullHaplosomeObservedForAutosome();		// might not be an autosome, but no harm done
+	}
 	
 	// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or
 	// a half-NULL pair, but must be supplied for a non-NULL pair.  BCH 9/20/2021: Added logic here in

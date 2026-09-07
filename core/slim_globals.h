@@ -850,13 +850,21 @@ extern const std::string &gStr_initializeSLiMModelType;
 extern const std::string &gStr_initializeInteractionType;
 
 //extern const std::string &gStr_type;		now gEidosStr_type
-extern const std::string &gStr_baselineAccumulation;
-extern const std::string &gStr_baselineOffset;
+extern const std::string &gStr_baselineOffsetH;
+extern const std::string &gStr_baselineOffsetM;
+extern const std::string &gStr_baselineOffsetF;
+extern const std::string &gStr_compositeOffsetH;
+extern const std::string &gStr_compositeOffsetM;
+extern const std::string &gStr_compositeOffsetF;
 extern const std::string &gStr_individualOffsetMean;
 extern const std::string &gStr_individualOffsetSD;
 extern const std::string &gStr_directFitnessEffect;
 extern const std::string &gStr_individualPhenotypePalette;
 extern const std::string &gStr_mutationEffectPalette;
+extern const std::string &gStr_substitutionAccumulation;
+extern const std::string &gStr_substitutionOffsetH;
+extern const std::string &gStr_substitutionOffsetM;
+extern const std::string &gStr_substitutionOffsetF;
 
 extern const std::string &gStr_genomicElements;
 extern const std::string &gStr_lastPosition;
@@ -1366,13 +1374,21 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
 	
-	gID_baselineAccumulation,
-	gID_baselineOffset,
+	gID_baselineOffsetH,
+	gID_baselineOffsetM,
+	gID_baselineOffsetF,
+	gID_compositeOffsetH,
+	gID_compositeOffsetM,
+	gID_compositeOffsetF,
 	gID_individualOffsetMean,
 	gID_individualOffsetSD,
 	gID_directFitnessEffect,
 	gID_individualPhenotypePalette,
 	gID_mutationEffectPalette,
+	gID_substitutionAccumulation,
+	gID_substitutionOffsetH,
+	gID_substitutionOffsetM,
+	gID_substitutionOffsetF,
 	
 	gID_genomicElements,
 	gID_lastPosition,

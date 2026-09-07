@@ -973,8 +973,7 @@ The
 \f2\fs20  is assumed and must not be supplied.  See the 
 \f1\fs18 MutationType
 \f2\fs20  class documentation for discussion of the various DESs and their uses.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1356,7 +1355,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1436,7 +1434,6 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1501,7 +1498,7 @@ The
 \f2\fs20 , SLiMgui will choose a default color.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [float$\'a0individualOffsetMean\'a0=\'a00.0], [float$\'a0individualOffsetSD\'a0=\'a00.0], [logical$\'a0directFitnessEffect\'a0=\'a0F], [logical$\'a0baselineAccumulation\'a0=\'a0T])\
+\f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf\'a0baselineOffset\'a0=\'a0NULL], [float$\'a0individualOffsetMean\'a0=\'a00.0], [float$\'a0individualOffsetSD\'a0=\'a00.0], [logical$\'a0directFitnessEffect\'a0=\'a0F], [logical$\'a0substitutionAccumulation\'a0=\'a0T])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calling this function, added in SLiM 6.0, configures a phenotypic trait in the species being initialized.  The new 
@@ -1563,9 +1560,10 @@ The
 \f2\fs20 , and 
 \f1\fs18 "l"
 \f2\fs20  are also allowed.\
-The 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 baselineOffset
-\f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) to the trait value of every individual.  If 
+\f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) into the trait value of every individual.  If 
 \f1\fs18 NULL
 \f2\fs20  is passed, the default baseline offset is 
 \f1\fs18 1.0
@@ -1573,8 +1571,23 @@ The
 \f1\fs18 0.0
 \f2\fs20  for additive and logistic traits, such that the baseline offset has no effect upon the trait value.  Note that for multiplicative traits the baseline offset is required to be 
 \f1\fs18 0.0
-\f2\fs20  or greater.\
-The 
+\f2\fs20  or greater.  In separate-sex models (i.e., when 
+\f1\fs18 initializeSex()
+\f2\fs20  has been called) 
+\f1\fs18 baselineOffset
+\f2\fs20  may be a singleton (providing the baseline offset for both sexes) or a vector of length two (providing the male baseline offset at index 
+\f1\fs18 0
+\f2\fs20  and the female offset at index 
+\f1\fs18 1
+\f2\fs20 ), or 
+\f1\fs18 NULL
+\f2\fs20 ; in hermaphroditic models, 
+\f1\fs18 baselineOffset
+\f2\fs20  must be a singleton, or 
+\f1\fs18 NULL
+\f2\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 individualOffsetMean
 \f2\fs20  and 
 \f1\fs18 individualOffsetSD
@@ -1608,18 +1621,18 @@ The
 \f1\fs18 F
 \f2\fs20  for any trait that affects an aspect of the individual other than fitness \'96 dispersal distance, for example, or aggression.\
 Finally, the 
-\f1\fs18 baselineAccumulation
+\f1\fs18 substitutionAccumulation
 \f2\fs20  parameter specifies the behavior of the trait when fixed mutations are turned into 
 \f1\fs18 Substitution
 \f2\fs20  objects.  If 
-\f1\fs18 baselineAccumulation
+\f1\fs18 substitutionAccumulation
 \f2\fs20  is 
 \f1\fs18 F
 \f2\fs20 , no special action is taken upon substitution, and so the effect of the substituted mutation will no longer be present; this was the behavior of SLiM prior to SLiM 6.0, and remains the behavior of the default trait for backward compatibility.  If 
-\f1\fs18 baselineAccumulation
+\f1\fs18 substitutionAccumulation
 \f2\fs20  is 
 \f1\fs18 T
-\f2\fs20 , the effect of the substituted mutation will be combined (multiplicatively or additively, according to the trait type) into the trait\'92s baseline offset.  As a result, the trait values of individuals should not change across a substitution, because the effect that used to come from the mutation will now come from the baseline offset.  (If a 
+\f2\fs20 , the effect of the substituted mutation will be combined (multiplicatively or additively, according to the trait type) into the trait\'92s substitution offset.  As a result, the trait values of individuals should not change across a substitution, because the effect that used to come from the mutation will now come from the substitution offset.  (If a 
 \f1\fs18 mutationEffect()
 \f2\fs20  callback used to modify that effect, however, that modification will no longer occur, since 
 \f1\fs18 mutationEffect()
@@ -1627,7 +1640,7 @@ Finally, the
 \f1\fs18 MutationType
 \f2\fs20 \'92s 
 \f1\fs18 convertToSubstitution
-\f2\fs20  property.)  Allowing baseline accumulation is usually desirable; it allows substitution to occur safely even in nonWF models (if 
+\f2\fs20  property.)  Allowing substitution accumulation is usually desirable; it allows substitution to occur safely even in nonWF models (if 
 \f1\fs18 convertToSubstitution
 \f2\fs20  is set to 
 \f1\fs18 T
@@ -1645,7 +1658,7 @@ The use of the
 \f2\fs20 , which is 
 \f1\fs18 T
 \f2\fs20  for the default trait, and 
-\f1\fs18 baselineAccumulation
+\f1\fs18 substitutionAccumulation
 \f2\fs20 , which is 
 \f1\fs18 F
 \f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 6.0.  The creation of the default trait occurs as a side effect of the first call to 
@@ -2423,8 +2436,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -2436,7 +2450,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 

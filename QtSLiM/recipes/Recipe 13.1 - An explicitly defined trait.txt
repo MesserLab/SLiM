@@ -1,4 +1,4 @@
-// Keywords: explicit trait, direct fitness effect, multiplicative trait, baseline offset, baseline accumulation
+// Keywords: explicit trait, direct fitness effect, multiplicative trait, substitution offset, substitution accumulation
 
 initialize() {
 	initializeTrait("trait1", "multiplicative", directFitnessEffect=T);

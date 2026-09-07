@@ -31,6 +31,7 @@
 
 class Community;
 class Species;
+class Substitution;
 
 #include "eidos_globals.h"
 #include "slim_globals.h"
@@ -49,13 +50,21 @@ private:
 	typedef EidosDictionaryRetained super;
 	
 private:
-	// baseline offset, added to the trait value of every individual; internally this is split into a
-	// from-substitution component and a from-user component, but that distinction is not user-visible
-	// except in .trees metadata where it has to be exposed to enable python-side trait calculations
-	slim_trait_offset_t baselineOffsetComposite_;			// from-user combined with from-substitution
+	// baseline offsets; these are user-provided and user-modifiable
+	slim_trait_offset_t baselineOffset_H_;
+	slim_trait_offset_t baselineOffset_M_;
+	slim_trait_offset_t baselineOffset_F_;
 	
-	slim_trait_offset_t baselineOffsetFromUser_;
-	slim_trait_offset_t baselineOffsetFromSubstitutions_;
+	// substitution offsets; these accumulate the effects of mutations that fix and are substituted
+	slim_trait_offset_t substitutionOffset_H_;
+	slim_trait_offset_t substitutionOffset_M_;
+	slim_trait_offset_t substitutionOffset_F_;
+	
+	// composite offsets; these are the sum of the baseline offset and the substitution offset
+	// these are internal, not user-visible; they are just for a little more efficiency
+	slim_trait_offset_t compositeOffset_H_;
+	slim_trait_offset_t compositeOffset_M_;
+	slim_trait_offset_t compositeOffset_F_;
 	
 #ifdef SLIMGUI
 public:
@@ -88,8 +97,8 @@ private:
 	// this mimics the previous behavior of SLiM, for multiplicative traits
 	bool directFitnessEffect_;
 	
-	// if true, mutation effects are combined into the baseline offset when the mutation is substituted
-	bool baselineAccumulation_;
+	// if true, mutation effects are combined into the substitution offset when the mutation is substituted
+	bool substitutionAccumulation_;
     
     // palettes for coloring things in SLiMgui
     EidosPalette *individual_phenotype_palette_ = nullptr;		// OWNED POINTER: the palette used for coloring individuals in SLiMgui; retained
@@ -146,7 +155,8 @@ public:
 	Trait& operator=(const Trait&) = delete;						// no copying
 	Trait(void) = delete;											// no null constructor
 	
-	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, slim_trait_offset_t p_baselineOffset, double p_individualOffsetDistributionMean, double p_individualOffsetDistributionSD, bool p_directFitnessEffect, bool p_baselineAccumulation);
+	explicit Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, double p_individualOffsetDistributionMean, double p_individualOffsetDistributionSD, bool p_directFitnessEffect, bool p_substitutionAccumulation);
+	void _FixDefaultTraitInit(void);
 	~Trait(void);
 	
 	void InvalidateTraitValuesForAllIndividuals(void);
@@ -158,62 +168,27 @@ public:
 	inline __attribute__((always_inline)) const std::string &Name(void) const		{ return name_; }
 	std::string UserVisibleType(void) const;
 	
-	inline __attribute__((always_inline)) slim_trait_offset_t BaselineOffset(void) const { return baselineOffsetComposite_; };
+	// accessing offsets; most clients just want the composite offsets that are baseline + substitution,
+	// but some need the components; those are considered semi-private here to de-emphasize them
+	inline __attribute__((always_inline)) slim_trait_offset_t CompositeOffset_H(void) const { return compositeOffset_H_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t CompositeOffset_M(void) const { return compositeOffset_M_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t CompositeOffset_F(void) const { return compositeOffset_F_; };
 	
-	// accessors that should be regarded as private; the subcomponents of the baseline offset are not public except to tree-seq
-	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffsetFromUser(void) const { return baselineOffsetFromUser_; };
-	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffsetFromSubstitutions(void) const { return baselineOffsetFromSubstitutions_; };
-	inline __attribute__((always_inline)) void _SetBaselineOffsetFromUser(slim_trait_offset_t p_offset_from_user)
-	{
-#if DEBUG
-		// The caller is expected to clamp these values, or raise their own error
-		if (p_offset_from_user < 0.0)
-			EIDOS_TERMINATION << "ERROR (Trait::_SetBaselineOffsetFromUser): (internal error) p_offset_from_user < 0.0." << EidosTerminate();
-#endif
-		
-		baselineOffsetFromUser_ = p_offset_from_user;
-		
-		// recalculate baselineOffsetComposite_ so it is always up-to-date
-		if (Type() == TraitType::kMultiplicative)
-			baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
-		else
-			baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
-	}
-	inline __attribute__((always_inline)) void _SetBaselineOffsetFromSubstitutions(slim_trait_offset_t p_offset_from_substitutions)
-	{
-#if DEBUG
-		// The caller is expected to clamp these values, or raise their own error
-		if (p_offset_from_substitutions < 0.0)
-			EIDOS_TERMINATION << "ERROR (Trait::_SetBaselineOffsetFromSubstitutions): (internal error) p_offset_from_substitutions < 0.0." << EidosTerminate();
-#endif
-		
-		baselineOffsetFromSubstitutions_ = p_offset_from_substitutions;
-		
-		// recalculate baselineOffsetComposite_ so it is always up-to-date
-		if (Type() == TraitType::kMultiplicative)
-			baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
-		else
-			baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
-	}
+	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffset_H(void) const { return baselineOffset_H_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffset_M(void) const { return baselineOffset_M_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t _BaselineOffset_F(void) const { return baselineOffset_F_; };
 	
-	inline void BaselineAccumulate(slim_effect_t effect_size)
-	{
-		// Accumulate one homozygous effect into the baseline offset
-		if (Type() == TraitType::kMultiplicative)
-		{
-			baselineOffsetFromSubstitutions_ *= (1.0 + (slim_trait_offset_t)effect_size);	// 1+s
-			
-			if (baselineOffsetFromSubstitutions_ < 0.0)
-				baselineOffsetFromSubstitutions_ = 0.0;
-			
-			baselineOffsetComposite_ = baselineOffsetFromUser_ * baselineOffsetFromSubstitutions_;
-		}
-		else
-		{
-			baselineOffsetFromSubstitutions_ += ((slim_trait_offset_t)effect_size + (slim_trait_offset_t)effect_size);	// 2a
-			baselineOffsetComposite_ = baselineOffsetFromUser_ + baselineOffsetFromSubstitutions_;
-		}
-	}
+	inline __attribute__((always_inline)) slim_trait_offset_t _SubstitutionOffset_H(void) const { return substitutionOffset_H_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t _SubstitutionOffset_M(void) const { return substitutionOffset_M_; };
+	inline __attribute__((always_inline)) slim_trait_offset_t _SubstitutionOffset_F(void) const { return substitutionOffset_F_; };
+	
+	// setting offsets; these methods correctly update the composite offsets when the component offsets change
+	void _SetBaselineOffset_H(slim_trait_offset_t p_offset);
+	void _SetBaselineOffset_M(slim_trait_offset_t p_offset);
+	void _SetBaselineOffset_F(slim_trait_offset_t p_offset);
+	
+	void _ClearSubstitutionOffsets(void);
+	void AccumulateSubstitutionOffset(const Substitution *p_substitution, const struct SubstitutionTraitInfo &p_trait_info);
 	
 	void _RecacheIndividualOffsetDistribution(void);		// caches individualOffsetDistributionFixed_ and individualOffsetDistributionFixedValue_
 	slim_trait_offset_t _DrawIndividualOffset(void) const;	// draws from the distribution defined by individualOffsetDistributionMean_ and individualOffsetDistributionSD_
@@ -240,8 +215,11 @@ public:
 	}
 	
 	inline __attribute__((always_inline)) bool HasDirectFitnessEffect(void) const { return directFitnessEffect_; }
-	inline __attribute__((always_inline)) bool HasBaselineAccumulation(void) const { return baselineAccumulation_; }
+	inline __attribute__((always_inline)) bool SubstitutionAccumulationEnabled(void) const { return substitutionAccumulation_; }
 	
+#if DEBUG
+	void CheckTraitIntegrity(void) const;
+#endif
 	
 	//
 	// Eidos support

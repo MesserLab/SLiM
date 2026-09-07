@@ -4549,7 +4549,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				Mutation *mut = mutations_data[value_index];
 				Substitution *sub = new Substitution(*mut, tick);
 				
-				species->DoBaselineAccumulationForSubstitution(sub);
+				species->DoSubstitutionAccumulation(sub);
 				
 				// TREE SEQUENCE RECORDING
 				// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
@@ -4738,7 +4738,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	
 	// TRAIT INVALIDATION: all trait values are invalidated, in each owning individual
 	// FIXME MULTITRAIT: This is overkill; we can avoid invalidating individuals that didn't possess the mutation,
-	// and we can avoid invalidating traits with baseline accumulation if substitution was done by the removal.
+	// and we can avoid invalidating traits with substitution accumulation if substitution was done by the removal.
 	slim_trait_index_t trait_count = species->TraitCount();
 	
 	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)

@@ -1274,6 +1274,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() may be called only once." << EidosTerminate();
 	if (num_chromosome_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() must be called before initializeChromosome(), so that initializeChromosome() knows it is in a sexual model." << EidosTerminate();
+	if (num_trait_inits_ > 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() must be called before initializeTrait(), so that initializeTrait() knows it is in a sexual model." << EidosTerminate();
+	
+	// BCH 9/7/2026: Note that the default trait might get set up before initializeSex() is called; that is
+	// legal, for backward compatibility.  The consequences of that get fixed in _FixDefaultTraitInit().
 	
 	if (chromosomeType_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -1301,7 +1306,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 		{
 			// In this "X" / "Y" code path we want to force an implicit chromosome to be defined.
 			if (has_implicit_chromosome_)
-				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() with type 'X' or 'Y' must be called before other methods that define an implicit chromosome - initializeAncestralNucleotides(), initializeGeneConversion(), initializeGenomicElement(), initializeHotspotMap(), initializeMutationRate(), and initializeRecombinationRate() - so that the implicit chromosome knows it is a sex chromosome when it is created." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() with type 'X' or 'Y' must be called before other functions that define an implicit chromosome - initializeAncestralNucleotides(), initializeGeneConversion(), initializeGenomicElement(), initializeHotspotMap(), initializeMutationRate(), and initializeRecombinationRate() - so that the implicit chromosome knows it is a sex chromosome when it is created." << EidosTerminate();
 			
 			ChromosomeType modeled_chromosome_type;
 			
@@ -1629,7 +1634,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [f$ individualOffsetMean = 0.0], [f$ individualOffsetSD = 0.0], [l$ directFitnessEffect = F], [logical$ baselineAccumulation = T])
+//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf baselineOffset = NULL], [f$ individualOffsetMean = 0.0], [f$ individualOffsetSD = 0.0], [l$ directFitnessEffect = F], [logical$ substitutionAccumulation = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1658,7 +1663,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	EidosValue *individualOffsetMean_value = p_arguments[3].get();
 	EidosValue *individualOffsetSD_value = p_arguments[4].get();
 	EidosValue *directFitnessEffect_value = p_arguments[5].get();
-	EidosValue *baselineAccumulation_value = p_arguments[6].get();
+	EidosValue *substitutionAccumulation_value = p_arguments[6].get();
 	
 	// name
 	std::string name = name_value->StringAtIndex_NOCAST(0, nullptr);
@@ -1709,28 +1714,78 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'm'), 'additive' (or 'a'), or 'logistic' (or 'l')." << EidosTerminate();
 	
 	// baselineOffset
-	slim_trait_offset_t baselineOffset;
+	slim_trait_offset_t baselineOffset_H = std::numeric_limits<slim_trait_offset_t>::quiet_NaN();
+	slim_trait_offset_t baselineOffset_M = std::numeric_limits<slim_trait_offset_t>::quiet_NaN();
+	slim_trait_offset_t baselineOffset_F = std::numeric_limits<slim_trait_offset_t>::quiet_NaN();
 	
 	if (baselineOffset_value->Type() == EidosValueType::kValueNULL)
 	{
-		baselineOffset = (slim_trait_offset_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+		if (SexEnabled())
+		{
+			baselineOffset_M = (slim_trait_offset_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+			baselineOffset_F = (slim_trait_offset_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+		}
+		else
+		{
+			baselineOffset_H = (slim_trait_offset_t)((type == TraitType::kMultiplicative) ? 1.0 : 0.0);
+		}
 	}
-	else
+	else if (baselineOffset_value->Count() == 1)
 	{
 		double baselineOffset_double = baselineOffset_value->FloatAtIndex_NOCAST(0, nullptr);
 		
 		if (!std::isfinite(baselineOffset_double))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be a finite value (not NAN or INF)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset values to be finite (not NAN or INF)." << EidosTerminate();
 		
-		baselineOffset = (slim_trait_offset_t)baselineOffset_double;	// this can round to infinity
+		slim_trait_offset_t baselineOffset_rounded = (slim_trait_offset_t)baselineOffset_double;	// this can round to infinity
 		
-		if (!std::isfinite(baselineOffset))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be representable as a finite single-precision floating-point number; the value given rounded to infinity." << EidosTerminate();
+		if (!std::isfinite(baselineOffset_rounded))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset values to be representable as finite single-precision floating-point numbers; a value given rounded to infinity." << EidosTerminate();
+		
+		// effects for multiplicative traits clip at 0.0
+		if ((type == TraitType::kMultiplicative) && (baselineOffset_rounded < (slim_trait_offset_t)0.0))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow baselineOffset values to be negative for multiplicative traits." << EidosTerminate();
+		
+		if (SexEnabled())
+		{
+			baselineOffset_M = baselineOffset_rounded;
+			baselineOffset_F = baselineOffset_rounded;
+		}
+		else
+		{
+			baselineOffset_H = baselineOffset_rounded;
+		}
+	}
+	else if (baselineOffset_value->Count() == 2)
+	{
+		if (!SexEnabled())
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow baselineOffset to provide two values in non-sexual models; it must be length 1, or NULL." << EidosTerminate();
+		
+		double baselineOffset_double_0 = baselineOffset_value->FloatAtIndex_NOCAST(0, nullptr);
+		double baselineOffset_double_1 = baselineOffset_value->FloatAtIndex_NOCAST(1, nullptr);
+		
+		if (!std::isfinite(baselineOffset_double_0) || !std::isfinite(baselineOffset_double_1))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset values to be finite (not NAN or INF)." << EidosTerminate();
+		
+		slim_trait_offset_t baselineOffset_rounded_0 = (slim_trait_offset_t)baselineOffset_double_0;	// this can round to infinity
+		slim_trait_offset_t baselineOffset_rounded_1 = (slim_trait_offset_t)baselineOffset_double_1;	// this can round to infinity
+		
+		if (!std::isfinite(baselineOffset_rounded_0) || !std::isfinite(baselineOffset_rounded_1))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset values to be representable as finite single-precision floating-point numbers; a value given rounded to infinity." << EidosTerminate();
+		
+		// effects for multiplicative traits clip at 0.0
+		if ((type == TraitType::kMultiplicative) &&
+			((baselineOffset_rounded_0 < (slim_trait_offset_t)0.0) || (baselineOffset_rounded_1 < (slim_trait_offset_t)0.0)))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow baselineOffset values to be negative for multiplicative traits." << EidosTerminate();
+		
+		baselineOffset_M = baselineOffset_rounded_0;
+		baselineOffset_F = baselineOffset_rounded_1;
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be NULL, a float vector of length 1, or (in separate-sex models only) a float vector of length 2." << EidosTerminate();
 	}
 	
-	// effects for multiplicative traits clip at 0.0
-	if ((type == TraitType::kMultiplicative) && (baselineOffset < (slim_trait_offset_t)0.0))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() does not allow baselineOffset to be negative for multiplicative traits." << EidosTerminate();
 	
 	// individualOffsetMean
 	double individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);
@@ -1747,12 +1802,22 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 	// directFitnessEffect
 	bool directFitnessEffect = directFitnessEffect_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
-	// baselineAccumulation
-	bool baselineAccumulation = baselineAccumulation_value->LogicalAtIndex_NOCAST(0, nullptr);
+	// substitutionAccumulation
+	bool substitutionAccumulation = substitutionAccumulation_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Set up the new trait object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Trait *trait = new Trait(*this, name, type, logistic_post, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect, baselineAccumulation);
+	Trait *trait = new Trait(*this, name, type, logistic_post, individualOffsetMean, individualOffsetSD, directFitnessEffect, substitutionAccumulation);
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
+	
+	if (SexEnabled())
+	{
+		trait->_SetBaselineOffset_M(baselineOffset_M);
+		trait->_SetBaselineOffset_F(baselineOffset_F);
+	}
+	else
+	{
+		trait->_SetBaselineOffset_H(baselineOffset_H);
+	}
 	
 	// Add it to our registry; AddTrait() takes its retain count
 	AddTrait(trait);
@@ -1973,8 +2038,13 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string 
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "initializeTrait(name='" << name << "', type='" << type_string << "'";
-		if (baselineOffset != (slim_trait_offset_t)0.0)
-			output_stream << ", baselineOffset=" << baselineOffset << "";
+		if (baselineOffset_value->Type() != EidosValueType::kValueNULL)
+		{
+			if (SexEnabled())
+				output_stream << ", baselineOffset=c(" << baselineOffset_M << ", " << baselineOffset_F << ")";
+			else
+				output_stream << ", baselineOffset=" << baselineOffset_H << "";
+		}
 		if (individualOffsetMean != 0.0)
 			output_stream << ", individualOffsetMean=" << individualOffsetMean << "";
 		if (individualOffsetSD != 0.0)

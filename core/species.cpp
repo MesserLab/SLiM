@@ -2641,13 +2641,12 @@ void Species::MakeImplicitTrait(void)
 	// no baselines (1.0, since it is multiplicative) and a direct effect from phenotype on fitness.
 	std::string trait_name = name_ + "T";
 	Trait *trait = new Trait(*this, trait_name,
-							 /* p_type */					TraitType::kMultiplicative,
-							 /* p_logistic_post */			false,
-							 /* p_baselineOffset */			1.0,
-							 /* p_individualOffsetMean */	0.0,
-							 /* p_individualOffsetSD */		0.0,
-							 /* directFitnessEffect */		true,
-							 /* baselineAccumulation */		false);
+							 /* p_type */						TraitType::kMultiplicative,
+							 /* p_logistic_post */				false,
+							 /* p_individualOffsetMean */		0.0,
+							 /* p_individualOffsetSD */			0.0,
+							 /* directFitnessEffect */			true,
+							 /* substitutionAccumulation */		false);
 	
 	// Add it to our registry; AddTrait() takes its retain count
 	AddTrait(trait);
@@ -2793,11 +2792,11 @@ void Species::GetTraitIndicesFromEidosValue(std::vector<slim_trait_index_t> &tra
 	}
 }
 
-void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution)
+void Species::DoSubstitutionAccumulation(Substitution *p_substitution)
 {
-	// When a new substitution object is created from a mutation, this method is called to do "baseline offset
+	// When a new substitution object is created from a mutation, this method is called to do "substitution
 	// accumulation", the moving of the effect of the mutation from the mutation itself (which is no longer
-	// segregating) into the baseline offsets of traits.  This is enabled by default for all traits created
+	// segregating) into the substitution offsets of traits.  This is enabled by default for all traits created
 	// with initializeTrait(), but disabled for the default trait for backward compatibility.  This is not
 	// terribly lightweight, since we have to loop through all the traits, but substitution is not very common
 	// so it is not worth trying to optimize with summary flags etc.
@@ -2809,17 +2808,14 @@ void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution
 		slim_trait_index_t trait_index = trait->Index();
 		const SubstitutionTraitInfo &trait_info = p_substitution->trait_info_[trait_index];
 		
-		if (trait->HasBaselineAccumulation())
+		if (trait->SubstitutionAccumulationEnabled())
 		{
-			if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
-				EIDOS_TERMINATION << "ERROR (Species::DoBaselineAccumulationForSubstitution): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
-			
-			trait->BaselineAccumulate(trait_info.effect_size_);
+			trait->AccumulateSubstitutionOffset(p_substitution, trait_info);
 		}
 		else
 		{
-			// When baseline accumulation is OFF, we need to invalidate all cached values for the trait, because
-			// the effect of the mutation has disappeared and will not be compensated for by the baseline offset.
+			// When substitution accumulation is OFF, we need to invalidate all cached values for the trait;
+			// the effect of the mutation has disappeared and will not be compensated by the substitution offset.
 			// We technically don't need to do this if the mutation was neutral, but if there was a callback that
 			// gave the mutation a non-neutral effect, then we *do* need to do it.  To be safe, we just invalidate
 			// if any mutationEffect() callbacks exist at all, in any tick, that affect this trait; it's hard to
@@ -2851,6 +2847,51 @@ void Species::DoBaselineAccumulationForSubstitution(Substitution *p_substitution
 			
 			// ok, we have invalidate individuals for this trait; see this method for comments
 			trait->InvalidateTraitValuesForAllIndividuals();
+			
+			// I decided that this should probably produce a warning if the mutation itself is non-neutral,
+			// since having trait values jump when substitution occurs is a very fishy thing.  We don't
+			// warn just if mutationEffect() callbacks exist that might make a neutral mutation non-neutral,
+			// though, since that case is much less clear and we invalidate just to be safe.  This warning
+			// is not emitted for WF models with a trait that has a direct effect on fitness, since in that
+			// case the jump in the trait value is not problematic (because fitness is relative); this keeps
+			// backward compatibility with WF models that allow substitution of all mutation types by default.
+			if (trait_info.effect_size_ != (slim_effect_t)0.0)
+			{
+				if ((model_type_ == SLiMModelType::kModelTypeNonWF) || !trait->HasDirectFitnessEffect())
+				{
+					if (!community_.warned_substitution_trait_jump_ && !gEidosSuppressWarnings)
+					{
+						SLIM_ERRSTREAM << "#WARNING (Species::DoSubstitutionAccumulation): a non-neutral mutation was converted to a substitution with substitution accumulation disabled, either (1) in a nonWF model, or (2) for a trait that does not have a direct effect on fitness.  This specific situation typically produces an undesirable, non-biological 'jump' in trait value, because the mutation's effect on the trait is lost when the mutation is turned into a substitution.  (This is not generally a problem for WF models with a trait that has a direct effect on fitness, because fitness is relative in the WF model.)  To fix this warning, you would typically want to either turn substitution off for this mutation type (with convertToSubstitution=F), or turn substitution accumulation on for the trait being affected (with substitutionAccumulation=T)." << std::endl;
+						community_.warned_substitution_trait_jump_ = true;
+						
+						// Here is an example model that produces this warning:
+						/*
+							initialize() {
+								initializeSLiMModelType("nonWF");
+								defineConstant("K", 50);
+								
+								initializeTrait("foo", "m", substitutionAccumulation=F);  // change this to T to not warn
+								initializeMutationRate(1e-7);
+								initializeMutationType("m1", 0.5, "f", 0.01);
+								m1.convertToSubstitution = T;  // change this to F to not warn
+								initializeGenomicElementType("g1", m1, 1.0);
+								initializeGenomicElement(g1, 0, 99999);
+								initializeRecombinationRate(1e-8);
+							}
+							1 early() {
+								sim.addSubpop("p1", 50);
+							}
+							reproduction() {
+								subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+							}
+							early() {
+								p1.fitnessScaling = K / p1.individualCount;
+							}
+							2000 late() { }
+						 */
+					}
+				}
+			}
 		}
 	}
 }
@@ -3694,6 +3735,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 						{
 							haplosome.MakeNull();
 							subpop->has_null_haplosomes_ = true;
+							chromosome->NullHaplosomeObservedForAutosome();
 						}
 						else
 							EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
@@ -4451,6 +4493,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 							{
 								haplosome.MakeNull();
 								subpop->has_null_haplosomes_ = true;
+								chromosome->NullHaplosomeObservedForAutosome();
 							}
 							else
 								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
@@ -4660,8 +4703,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new substitution
-			// BCH 1/26/2026: note that this does NOT do baseline accumulation, because it is assumed that the
-			// baseline offset recorded in the file already contains such effects as needed; FIXME MULTITRAIT
+			// BCH 1/26/2026: note that this does NOT do substitution accumulation, because it is assumed that the
+			// substitution offset recorded in the file already contains such effects as needed; FIXME MULTITRAIT
 			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
 			
 			// read its tag, if requested
@@ -4938,6 +4981,12 @@ void Species::RunInitializeCallbacks(void)
 				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
 	}
 	
+	// BCH 9/7/2026: If a default trait was created and the model turns out to be sexual, the default trait's
+	// offset initialization needs to be re-done.  This is ugly; it would be nicer to require initializeSex()
+	// to be called before the default trait is created.  However, that would break backward compatibility.
+	if (has_implicit_trait_ && SexEnabled())
+		traits_[0]->_FixDefaultTraitInit();
+	
 	CheckMutationStackPolicy();
 	
 	// Except in no-genetics species, make a MutationBlock object to keep our mutations in
@@ -5016,15 +5065,15 @@ void Species::RunInitializeCallbacks(void)
 		}
 	}
 	
-	// Defining all traits with baseline accumulation indicates a desire to have substitution occur, with mutational effects accumulated into
-	// baseline offset values, in at least some cases.  If convertToSubstitution is F for all mutation types, indicating a desire that no
-	// mutation be substitution, a mistake has probably been made that is worth calling to the user's attention.
+	// Defining all traits with substitution accumulation indicates a desire to have substitution occur, with mutational effects accumulated into
+	// substitution offset values, in at least some cases.  If convertToSubstitution is F for all mutation types, indicating a desire that no
+	// mutation be turned into a substitution, a mistake has probably been made that is worth calling to the user's attention.
 	if (!has_implicit_trait_ && (traits_.size() > 0))
 	{
 		bool all_traits_baseline_accumulate = true;
 		
 		for (const Trait *trait : traits_)
-			if (!trait->HasBaselineAccumulation())
+			if (!trait->SubstitutionAccumulationEnabled())
 				all_traits_baseline_accumulate = false;
 		
 		if (all_traits_baseline_accumulate)
@@ -5036,7 +5085,7 @@ void Species::RunInitializeCallbacks(void)
 					no_traits_substitute = false;
 			
 			if (no_traits_substitute && !gEidosSuppressWarnings)
-				SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): all traits are set with baselineAccumulate=T, but there is no mutation type with convertToSubstitution=T, so substitution will probably never occur; this typically indicates a mistake -- either baseline accumulation should be turned off for clarity, or convertToSubstitution should be turned on for at least one mutation type so that substitution occurs in at least some cases.  This typically happens when an older SLiM model is converted from using the default trait to explicitly calling initializeTrait()." << std::endl;
+				SLIM_ERRSTREAM << "#WARNING (Species::RunInitializeCallbacks): all traits are set with substitutionAccumulate=T, but there is no mutation type with convertToSubstitution=T, so substitution will probably never occur; this typically indicates a mistake -- either substitution accumulation should be turned off for clarity, or convertToSubstitution should be turned on for at least one mutation type so that substitution occurs in at least some cases.  This typically happens when an older SLiM model is converted from using the default trait to explicitly calling initializeTrait()." << std::endl;
 		}
 	}
 	
@@ -6428,6 +6477,19 @@ void Species::Species_CheckIntegrity(void) const
 	
 	if (null_haplosomes_used != chromosomes_use_null_haplosomes_)
 		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosomes_use_null_haplosomes_ mismatch." << EidosTerminate();
+#endif
+	
+#if DEBUG
+	// Then check each trait
+	for (size_t trait_index = 0; trait_index < traits_.size(); trait_index++)
+	{
+		const Trait *trait = traits_[trait_index];
+		
+		if (trait->Index() != (slim_trait_index_t)trait_index)
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) trait->Index() mismatch." << EidosTerminate();
+		
+		trait->CheckTraitIntegrity();
+	}
 #endif
 	
 #if DEBUG
@@ -9525,12 +9587,22 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			else
 				trait_info["type"] = "multiplicative";
 			
-			// NOTE: we do not write the baseline offset; in python it is calculated from its two components
-			//trait_info["baselineOffset"] = trait->BaselineOffset();
+			// we do not write out NAN values for unsupported properties, since JSON
+			// doesn't support NAN for floats; instead we only write out supported keys
+			if (SexEnabled())
+			{
+				trait_info["baselineOffsetM"] = trait->_BaselineOffset_M();
+				trait_info["baselineOffsetF"] = trait->_BaselineOffset_F();
+				trait_info["substitutionOffsetM"] = trait->_SubstitutionOffset_M();
+				trait_info["substitutionOffsetF"] = trait->_SubstitutionOffset_F();
+			}
+			else
+			{
+				trait_info["baselineOffsetH"] = trait->_BaselineOffset_H();
+				trait_info["substitutionOffsetH"] = trait->_SubstitutionOffset_H();
+			}
 			
-			trait_info["baselineOffsetFromUser"] = trait->_BaselineOffsetFromUser();
-			trait_info["baselineOffsetFromSubstitutions"] = trait->_BaselineOffsetFromSubstitutions();
-			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
+			trait_info["substitutionAccumulation"] = trait->SubstitutionAccumulationEnabled();
 			
 			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
 			trait_info["individualOffsetSD"] = trait->IndividualOffsetDistributionSD();
@@ -10051,12 +10123,22 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 			else
 				trait_info["type"] = "multiplicative";
 			
-			// NOTE: we do not write the baseline offset; in python it is calculated from its two components
-			//trait_info["baselineOffset"] = trait->BaselineOffset();
+			// we do not write out NAN values for unsupported properties, since JSON
+			// doesn't support NAN for floats; instead we only write out supported keys
+			if (SexEnabled())
+			{
+				trait_info["baselineOffsetM"] = trait->_BaselineOffset_M();
+				trait_info["baselineOffsetF"] = trait->_BaselineOffset_F();
+				trait_info["substitutionOffsetM"] = trait->_SubstitutionOffset_M();
+				trait_info["substitutionOffsetF"] = trait->_SubstitutionOffset_F();
+			}
+			else
+			{
+				trait_info["baselineOffsetH"] = trait->_BaselineOffset_H();
+				trait_info["substitutionOffsetH"] = trait->_SubstitutionOffset_H();
+			}
 			
-			trait_info["baselineOffsetFromUser"] = trait->_BaselineOffsetFromUser();
-			trait_info["baselineOffsetFromSubstitutions"] = trait->_BaselineOffsetFromSubstitutions();
-			trait_info["baselineAccumulation"] = trait->HasBaselineAccumulation();
+			trait_info["substitutionAccumulation"] = trait->SubstitutionAccumulationEnabled();
 			
 			trait_info["individualOffsetMean"] = trait->IndividualOffsetDistributionMean();
 			trait_info["individualOffsetSD"] = trait->IndividualOffsetDistributionSD();
@@ -10386,23 +10468,61 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		if (one_trait_metadata.contains("baselineOffset"))
 			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the baselineOffset property is obsolete and should not be used; use baselineOffsetFromUser and baselineOffsetFromSubstitutions to specify the two components of the baseline offset separately." << std::endl;
 		
-		if (one_trait_metadata.contains("baselineOffsetFromUser"))
+		if (one_trait_metadata.contains("baselineOffsetH"))
 		{
-			slim_trait_offset_t new_baseline_offset_from_user = one_trait_metadata["baselineOffsetFromUser"];
+			// baselineOffsetH must not be provided for sexual models, since NaN is not supported by JSON
+			if (SexEnabled())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait property baselineOffsetH may not be specified in sexual models." << EidosTerminate();
 			
-			if (!std::isfinite(new_baseline_offset_from_user))
-				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetFromUser provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset_from_user << " provided)." << EidosTerminate();
+			slim_trait_offset_t new_baseline_offset_H = one_trait_metadata["baselineOffsetH"];
 			
-			if ((trait->Type() == TraitType::kMultiplicative) && (new_baseline_offset_from_user < 0.0))
-				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetFromUser provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be >= 0.0 for multiplicative traits (" << new_baseline_offset_from_user << " provided)." << EidosTerminate();
+			if (!std::isfinite(new_baseline_offset_H))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetH provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset_H << " provided)." << EidosTerminate();
 			
-			trait->_SetBaselineOffsetFromUser(new_baseline_offset_from_user);
+			if ((trait->Type() == TraitType::kMultiplicative) && (new_baseline_offset_H < 0.0))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetH provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be >= 0.0 for multiplicative traits (" << new_baseline_offset_H << " provided)." << EidosTerminate();
+			
+			trait->_SetBaselineOffset_H(new_baseline_offset_H);
 		}
 		
-		// NOTE: We do NOT adopt the baselineOffsetFromSubstitutions value; it is ignored.  Instead, it is
+		if (one_trait_metadata.contains("baselineOffsetM"))
+		{
+			// baselineOffsetM must not be provided for hermaphroditic models, since NaN is not supported by JSON
+			if (!SexEnabled())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait property baselineOffsetM may not be specified in hermaphroditic models." << EidosTerminate();
+			
+			slim_trait_offset_t new_baseline_offset_M = one_trait_metadata["baselineOffsetM"];
+			
+			if (!std::isfinite(new_baseline_offset_M))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetM provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset_M << " provided)." << EidosTerminate();
+			
+			if ((trait->Type() == TraitType::kMultiplicative) && (new_baseline_offset_M < 0.0))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetM provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be >= 0.0 for multiplicative traits (" << new_baseline_offset_M << " provided)." << EidosTerminate();
+			
+			trait->_SetBaselineOffset_M(new_baseline_offset_M);
+		}
+		
+		if (one_trait_metadata.contains("baselineOffsetF"))
+		{
+			// baselineOffsetF must not be provided for hermaphroditic models, since NaN is not supported by JSON
+			if (!SexEnabled())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait property baselineOffsetF may not be specified in hermaphroditic models." << EidosTerminate();
+			
+			slim_trait_offset_t new_baseline_offset_F = one_trait_metadata["baselineOffsetF"];
+			
+			if (!std::isfinite(new_baseline_offset_F))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetF provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be finite (" << new_baseline_offset_F << " provided)." << EidosTerminate();
+			
+			if ((trait->Type() == TraitType::kMultiplicative) && (new_baseline_offset_F < 0.0))
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineOffsetF provided in the 'traits' metadata key for trait index " << traits_index << " (trait name " << one_trait_name << ") must be >= 0.0 for multiplicative traits (" << new_baseline_offset_F << " provided)." << EidosTerminate();
+			
+			trait->_SetBaselineOffset_F(new_baseline_offset_F);
+		}
+		
+		// NOTE: We do NOT adopt the substitution offset values; they are ignored.  Instead, they are
 		// recalculated from scratch from the tskit-mutations that SLiM decides are substitutions on load.
-		// Here we just reset it to its initial value, into which substitution effects will accumulate.
-		trait->_SetBaselineOffsetFromSubstitutions((trait->Type() == TraitType::kMultiplicative) ? 1.0 : 0.0);
+		// Here we just reset them to their initial values, into which substitution effects will accumulate.
+		trait->_ClearSubstitutionOffsets();
 		
 		if (one_trait_metadata.contains("individualOffsetMean"))
 		{
@@ -10424,10 +10544,10 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 			trait->SetIndividualOffsetDistributionSD(new_offset_SD);
 		}
 		
-		// check optional keys for read-only propoerties; if present, they must match the simulation
-		if (one_trait_metadata.contains("baselineAccumulation"))
-			if (one_trait_metadata["baselineAccumulation"] != trait->HasBaselineAccumulation())
-				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait baselineAccumulation provided in the 'traits' metadata key (" << one_trait_metadata["baselineAccumulation"] << ") for trait index " << traits_index << " (trait name " << one_trait_name << ") does not match the configuration (" << trait->HasBaselineAccumulation() << ") of the corresponding trait in the model." << EidosTerminate();
+		// check optional keys for read-only properties; if present, they must match the simulation
+		if (one_trait_metadata.contains("substitutionAccumulation"))
+			if (one_trait_metadata["substitutionAccumulation"] != trait->SubstitutionAccumulationEnabled())
+				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the trait substitutionAccumulation provided in the 'traits' metadata key (" << one_trait_metadata["substitutionAccumulation"] << ") for trait index " << traits_index << " (trait name " << one_trait_name << ") does not match the configuration (" << trait->SubstitutionAccumulationEnabled() << ") of the corresponding trait in the model." << EidosTerminate();
 		
 		if (one_trait_metadata.contains("directFitnessEffect"))
 			if (one_trait_metadata["directFitnessEffect"] != trait->HasDirectFitnessEffect())
@@ -12410,6 +12530,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					{
 						haplosome0->MakeNull();
 						new_subpop->has_null_haplosomes_ = true;
+						chromosome->NullHaplosomeObservedForAutosome();
 					}
 					else
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
@@ -12433,6 +12554,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 						{
 							haplosome1->MakeNull();
 							new_subpop->has_null_haplosomes_ = true;
+							chromosome->NullHaplosomeObservedForAutosome();
 						}
 						else
 							EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
@@ -12601,6 +12723,7 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					{
 						haplosome0->MakeNull();
 						new_subpop->has_null_haplosomes_ = true;
+						chromosome->NullHaplosomeObservedForAutosome();
 					}
 					else
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
@@ -12624,6 +12747,7 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 						{
 							haplosome1->MakeNull();
 							new_subpop->has_null_haplosomes_ = true;
+							chromosome->NullHaplosomeObservedForAutosome();
 						}
 						else
 							EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
@@ -13259,21 +13383,21 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
 			
-			// BCH 8/19/2026: Note that this code path does baseline accumulation for all of the substitutions
-			// it creates.  The component of the baseline offset representing the baseline accumulation from
-			// substitutions was reset in ReadTreeSequenceMetadata(), and here we accumulate into it.  This
-			// design allows SLiM to adjust automatically to the fact that which tskit-mutations are considered
-			// SLiM-mutations and which are considered SLiM-substitutions might shift, due to simplification on
-			// the Python side; in effect, we re-tally the effect of baseline accumulation when we reload using
-			// our new assessment of which tskit-mutations are substitutions.  This is not robust to every change
-			// that might occur on the Python side; if the user removes fixed mutations from the tree sequence,
-			// for example (perhaps not being interested in fixed mutation above the MRCA), they would need to
-			// combine the effects of the removed mutations into the from-user component of the baseline offset
-			// in metadata to compensate for that removel, since SLiM has no way to do that itself.  See issue
-			// https://github.com/MesserLab/SLiM/issues/661 for fairly extensive discussion.
+			// BCH 8/19/2026: Note that this code path does substitution accumulation for all the substitutions
+			// it creates.  The substitution offset, representing the accumulation of effects from substitutions,
+			// was reset in ReadTreeSequenceMetadata(), and here we accumulate into it.  This design allows SLiM
+			// to adjust automatically to the fact that which tskit-mutations are considered SLiM-mutations and
+			// which are considered SLiM-substitutions might shift, due to simplification on the Python side; in
+			// effect, we re-tally the effect of substitution accumulation when we reload, using our current
+			// assessment of which tskit-mutations are substitutions.  This is not robust to every change that
+			// might occur on the Python side; if the user removes fixed mutations from the tree sequence, for
+			// example (perhaps not being interested in fixed mutations above the MRCA), they would need to
+			// combine the effects of the removed mutations into the baseline offset in metadata to compensate
+			// for that removal, since SLiM has no way to do that itself.  For fairly extensive discussion, see
+			// issue https://github.com/MesserLab/SLiM/issues/661 .
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata_ptr, community_.Tick());
 			
-			// We don't call DoBaselineAccumulationForSubstitution() here because it does a lot of extra work
+			// We don't call DoSubstitutionAccumulation() here because it does a lot of extra work
 			// sometimes, invalidating trait values, that would be very expensive if done for every substitution
 			// we create here.  Instead, we invalidate trait values just once at the end of this process.
 			for (Trait *trait : traits_)
@@ -13281,12 +13405,12 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 				slim_trait_index_t trait_index = trait->Index();
 				const SubstitutionTraitInfo &trait_info = sub->trait_info_[trait_index];
 				
-				if (trait->HasBaselineAccumulation())
+				if (trait->SubstitutionAccumulationEnabled())
 				{
 					if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
-						EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): baseline accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed baseline offset would therefore not match the effect of the original mutation, making baseline accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) baseline accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): substitution accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed substitution offset would therefore not match the effect of the original mutation, making substitution accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) substitution accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
 					
-					trait->BaselineAccumulate(trait_info.effect_size_);
+					trait->AccumulateSubstitutionOffset(sub, trait_info);
 				}
 			}
 			
@@ -13349,8 +13473,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	}
 	
 	// After creating all the substitutions above, we invalidate trait values here just once, for all traits
-	// that do NOT have baseline accumulation; for those traits, any phenotypes that came from the .trees file
-	// are not reliable.  For traits that DO have baseline accumulation, we allow the trait values from the
+	// that do NOT have substitution accumulation; for those traits, any phenotypes coming from the .trees file
+	// are not reliable.  For traits that DO have substitution accumulation, we allow the trait values from the
 	// .trees file to stand, because the procedure followed above should ensure that those trait values have
 	// not changed even if the user did a simplify operation on the Python side.  If the user does something
 	// more extreme that makes the trait values in the .trees metadata invalid, it is their responsibility to
@@ -13358,7 +13482,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	// get calculated.  Note that we invalidate here whether substitutions were present or not, because which
 	// tskit-mutations are substitutions might have changed; the safe thing is just to invalidate always.
 	for (Trait *trait : traits_)
-		if (!trait->HasBaselineAccumulation())
+		if (!trait->SubstitutionAccumulationEnabled())
 			trait->InvalidateTraitValuesForAllIndividuals();
 }
 

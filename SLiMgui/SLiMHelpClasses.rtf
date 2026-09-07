@@ -15286,44 +15286,91 @@ Due to internal optimizations, these values may not be exactly equal to the orig
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 baselineAccumulation => (logical$)\
+\f3\i0\fs18 \cf2 baselineOffsetF <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 A 
-\f3\fs18 logical
-\f4\fs20  flag indicating whether the trait accumulates the effects of substitutions into its baseline offset or not.  This governs what happens when a mutation that has fixed is converted into a Substitution object, as controlled by 
-\f3\fs18 MutationType
-\f4\fs20 \'92s 
-\f3\fs18 convertToSubstitution
-\f4\fs20  property.  If 
-\f3\fs18 baselineAccumulation
-\f4\fs20  is 
-\f3\fs18 T
-\f4\fs20 , the effect of the substituted mutation on this trait is combined (additively or multiplicatively) into the baseline offset of this trait, such that the mutation\'92s effect continues to be present in the simulation even though it has been substituted.  If 
-\f3\fs18 F
-\f4\fs20 , this does not occur and so the effect of the substituted mutation on this trait will no longer be present (unless it is handled in script in some way).  This flag is controlled by the 
-\f3\fs18 baselineAccumulation
-\f4\fs20  parameter to 
-\f3\fs18 initializeTrait()
-\f4\fs20 ; for the default trait, it is always 
-\f3\fs18 F
-\f4\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 baselineOffset <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
+\f4\fs20 \cf2 The baseline offset for the trait, for females.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.  This property defaults to 
+\f3\fs18 1.0
+\f4\fs20  for multiplicative traits, 
+\f3\fs18 0.0
+\f4\fs20  for additive and logistic traits.\
 This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
 \f3\fs18 individualOffsetMean
 \f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Setting this property changes trait values to 
+Setting this property changes trait values to 
 \f3\fs18 NAN
-\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\
-Note that for multiplicative traits, the baseline offset is required to be 
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded; see section 1.5.4.\
+Note that for multiplicative traits, baseline offsets are required to be 
 \f3\fs18 0.0
 \f4\fs20  or greater.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 baselineOffsetH <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The baseline offset for the trait, for hermaphrodites.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.  This property defaults to 
+\f3\fs18 1.0
+\f4\fs20  for multiplicative traits, 
+\f3\fs18 0.0
+\f4\fs20  for additive and logistic traits.\
+This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
+\f3\fs18 individualOffsetMean
+\f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
+Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded; see section 1.5.4.\
+Note that for multiplicative traits, baseline offsets are required to be 
+\f3\fs18 0.0
+\f4\fs20  or greater.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 baselineOffsetM <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The baseline offset for the trait, for males.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.  This property defaults to 
+\f3\fs18 1.0
+\f4\fs20  for multiplicative traits, 
+\f3\fs18 0.0
+\f4\fs20  for additive and logistic traits.\
+This property is read-write, and so can be changed.  Doing so usually doesn\'92t make sense, however, because a change to the baseline offset changes the phenotype of all individuals \'96 not only future offspring, but also individuals that are already alive.  Most of the time, changing the mean of the individual offset distribution for the trait, with the 
+\f3\fs18 individualOffsetMean
+\f4\fs20  property, makes more biological sense since it only affects the trait values of future offspring, leaving the phenotypes of existing individuals unchanged.\
+Setting this property changes trait values to 
+\f3\fs18 NAN
+\f4\fs20  for this trait in all individuals in the species, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded; see section 1.5.4.\
+Note that for multiplicative traits, baseline offsets are required to be 
+\f3\fs18 0.0
+\f4\fs20  or greater.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 compositeOffsetF => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The composite offset for the trait, for females.  This is a convenience property that provides the combined effect of the baseline offset and substitution offset (multiplied together for multiplicative traits, added together for additive and logistic traits).  See also the 
+\f3\fs18 baselineOffsetF
+\f4\fs20  and 
+\f3\fs18 substitutionOffsetF
+\f4\fs20  properties.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 compositeOffsetH => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The composite offset for the trait, for hermaphrodites.  This is a convenience property that provides the combined effect of the baseline offset and substitution offset (multiplied together for multiplicative traits, added together for additive and logistic traits).  See also the 
+\f3\fs18 baselineOffsetH
+\f4\fs20  and 
+\f3\fs18 substitutionOffsetH
+\f4\fs20  properties.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 compositeOffsetM => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The composite offset for the trait, for males.  This is a convenience property that provides the combined effect of the baseline offset and substitution offset (multiplied together for multiplicative traits, added together for additive and logistic traits).  See also the 
+\f3\fs18 baselineOffsetM
+\f4\fs20  and 
+\f3\fs18 substitutionOffsetM
+\f4\fs20  properties.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 directFitnessEffect => (logical$)\
@@ -15419,7 +15466,7 @@ The individual offset distribution provided by
 \f3\fs18 Palette
 \f4\fs20  object used in 
 \f3\fs18 SLiMgui
-\f4\fs20  to color individuals when this trait is selected as the display trait.  The trait value of an individual, not including the trait\'92s baseline offset, is looked up in this palette to determine the color of the individual.\
+\f4\fs20  to color individuals when this trait is selected as the display trait.  The trait value of an individual is looked up in this palette to determine the color of the individual.\
 Note that the 
 \f3\fs18 color
 \f4\fs20  property of 
@@ -15490,6 +15537,68 @@ Note that the
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The species to which the target object belongs.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 substitutionAccumulation => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 logical
+\f4\fs20  flag indicating whether the trait accumulates the effects of substitutions into its substitution offset or not.  This governs what happens when a mutation that has fixed is converted into a 
+\f3\fs18 Substitution
+\f4\fs20  object, as controlled by 
+\f3\fs18 MutationType
+\f4\fs20 \'92s 
+\f3\fs18 convertToSubstitution
+\f4\fs20  property.  If 
+\f3\fs18 substitutionAccumulation
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the effect of the substituted mutation on this trait is combined (additively or multiplicatively) into the substitution offset of this trait, such that the mutation\'92s effect continues to be present in the simulation even though it has been substituted.  If 
+\f3\fs18 F
+\f4\fs20 , this does not occur and so the effect of the substituted mutation on this trait will no longer be present (unless it is handled in script in some way).  This flag is controlled by the 
+\f3\fs18 substitutionAccumulation
+\f4\fs20  parameter to 
+\f3\fs18 initializeTrait()
+\f4\fs20 ; for the default trait, it is always 
+\f3\fs18 F
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 substitutionOffsetF => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The substitution offset for the trait, for females.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the accumulated effects of all substituted mutations, and is updated whenever a mutation fixes and is substituted (if substitution accumulation is enabled).  This property defaults to 
+\f3\fs18 1.0
+\f4\fs20  for multiplicative traits, 
+\f3\fs18 0.0
+\f4\fs20  for additive and logistic traits.  See also the 
+\f3\fs18 baselineOffsetF
+\f4\fs20  property.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 substitutionOffsetH => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The substitution offset for the trait, for hermaphrodites.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the accumulated effects of all substituted mutations, and is updated whenever a mutation fixes and is substituted (if substitution accumulation is enabled).  This property defaults to 
+\f3\fs18 1.0
+\f4\fs20  for multiplicative traits, 
+\f3\fs18 0.0
+\f4\fs20  for additive and logistic traits.  See also the 
+\f3\fs18 baselineOffsetH
+\f4\fs20  property.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 substitutionOffsetM => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The substitution offset for the trait, for males.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the accumulated effects of all substituted mutations, and is updated whenever a mutation fixes and is substituted (if substitution accumulation is enabled).  This property defaults to 
+\f3\fs18 1.0
+\f4\fs20  for multiplicative traits, 
+\f3\fs18 0.0
+\f4\fs20  for additive and logistic traits.  See also the 
+\f3\fs18 baselineOffsetM
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 tag <\'96> (integer$)\
