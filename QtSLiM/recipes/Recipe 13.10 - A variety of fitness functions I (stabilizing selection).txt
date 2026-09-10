@@ -11,7 +11,7 @@ initialize() {
 }
 1 early() {
 	sim.addSubpop("p1", 500);
-	cat("Phenotypes: " + sim.quant.baselineOffset);
+	cat("Phenotypes: " + sim.quant.baselineOffsetH);
 }
 1: late() {
 	sim.demandPhenotype(NULL, "quant");

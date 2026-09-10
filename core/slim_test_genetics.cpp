@@ -1087,7 +1087,7 @@ late() { sim.killIndividuals(p1.subsetIndividuals(minAge=1)); }
 		SLiMAssertScriptSuccess(mt_base_p1 + "1 late() { if (!identical(c(T_weight, T_height), sim.traitsWithNames(c('weight', 'height')))) stop(); }");
 		SLiMAssertScriptRaise(mt_base_p1 + "1 late() { sim.traitsWithNames('typo'); }", "trait with the given name (typo)", __LINE__);
 		
-		// basic trait properties: baselineOffset[HMF], directFitnessEffect, index, individualOffsetMean, individualOffsetSD, name, species, tag, type
+		// basic trait properties: baselineOffset[H|M|F], directFitnessEffect, index, individualOffsetMean, individualOffsetSD, name, species, tag, type
 		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetH = INF; }", "baselineOffsetH requires a finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetH = NAN; }", "baselineOffsetH requires a finite value", __LINE__);
 		SLiMAssertScriptRaise("initialize() { t = initializeTrait('height', 'multiplicative'); t.baselineOffsetM = 1.0; }", "baselineOffsetM can only be used", __LINE__);
@@ -2815,11 +2815,11 @@ reproduction() { }
 	sim.mul1T.baselineOffsetH = 1.5;
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(NAN, 1.0)))
-			stop("trait values unexpected after mul1T baselineOffset change");
+			stop("trait values unexpected after mul1T baselineOffsetH change");
 	sim.mul2T.baselineOffsetH = 1.25;
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
-			stop("trait values unexpected after mul2T baselineOffset change");
+			stop("trait values unexpected after mul2T baselineOffsetH change");
 	sim.demandPhenotype(NULL);
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(1.5, 1.25)))

@@ -10466,7 +10466,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		
 		// check optional keys for read-write properties; if present, we will bounds-check them and adopt their values
 		if (one_trait_metadata.contains("baselineOffset"))
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the baselineOffset property is obsolete and should not be used; use baselineOffsetFromUser and baselineOffsetFromSubstitutions to specify the two components of the baseline offset separately." << std::endl;
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the baselineOffset property is obsolete and should not be used; use baselineOffset[H|M|F] and substitutionOffset[H|M|F] to specify those offset components separately (for hermaphrodites, 'H', males, 'M', and females, 'F', as appropriate)." << std::endl;
 		
 		if (one_trait_metadata.contains("baselineOffsetH"))
 		{

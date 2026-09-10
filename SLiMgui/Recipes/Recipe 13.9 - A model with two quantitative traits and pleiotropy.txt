@@ -55,7 +55,7 @@ initialize() {
 
 1 late() {
 	sim.addSubpop("p1", 500);
-	defineGlobal("HIST", matrix(c(sim.traits).baselineOffset, nrow=1));
+	defineGlobal("HIST", matrix(c(sim.traits).baselineOffsetH, nrow=1));
 	updatePlot();
 }
 
