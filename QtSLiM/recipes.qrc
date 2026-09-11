@@ -103,8 +103,9 @@
         <file>recipes/Recipe 13.11 - Negative frequency-dependence on a quantitative trait.txt</file>
         <file>recipes/Recipe 13.12 - Mixing additive and multiplicative traits.txt</file>
         <file>recipes/Recipe 13.13 - Modeling probability or risk with a logistic trait.txt</file>
-        <file>recipes/Recipe 13.14 - A sexually dimorphic quantitative trait.txt</file>
-        <file>recipes/Recipe 13.15 - Accumulation of mutational effects in a Continuum of Alleles model.txt</file>
+        <file>recipes/Recipe 13.14 - A sexually dimorphic quantitative trait (differential expression).txt</file>
+        <file>recipes/Recipe 13.15 - A sexually dimorphic quantitative trait (differential selection).txt</file>
+        <file>recipes/Recipe 13.16 - Accumulation of mutational effects in a Continuum-of-Alleles model.txt</file>
         <file>recipes/Recipe 14.1 - Relatedness, inbreeding, and heterozygosity.txt</file>
         <file>recipes/Recipe 14.2 - Mortality-based fitness I.txt</file>
         <file>recipes/Recipe 14.2 - Mortality-based fitness II.txt</file>

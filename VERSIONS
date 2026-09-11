@@ -236,6 +236,7 @@ multitrait branch:
 		the top-level JSON metadata schema has been adapted to include the above changes (e.g., no more "baselineOffsetFromUser" or "baselineOffsetFromSubstitutions" keys)
 		update recipes 13.5, 13.6, and 13.7 to use the new compositeOffset properties
 		update recipes 13.9, 13.10 (I/II/III), and 13.11 to fix references to baselineOffset
+		make a new recipe 13.15 (and shift the existing 13.15 to 13.16) to illustrate sexual dimorphism with differential selection rather than just differential expression
 
 
 version 5.2 (Eidos version 4.2):
