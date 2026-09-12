@@ -1289,7 +1289,14 @@ void QtSLiMWindow::revert()
     }
     else
     {
-        const QMessageBox::StandardButton ret = QMessageBox::warning(this, "SLiMgui", "Are you sure you want to revert?  All changes will be lost.", QMessageBox::Yes | QMessageBox::Cancel);
+        QString prompt;
+        
+        if (community && (community->Tick() > 0))
+            prompt = "Are you sure you want to revert?  All changes will be lost.  (Note you will need to click Recycle to run the new script, since a simulation is already running.)";
+        else
+            prompt = "Are you sure you want to revert?  All changes will be lost.";
+        
+        const QMessageBox::StandardButton ret = QMessageBox::warning(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::Cancel);
         
         switch (ret) {
         case QMessageBox::Yes:
@@ -1390,7 +1397,7 @@ void QtSLiMWindow::reloadFile(const QString &fileName)
     // If the existing script is recycled and unexecuted, it calls loadFile();
     // otherwise, it replaces the script but does not interfere with the current
     // execution, since the user should always be in charge of pressing Recycle.
-    if (community)
+    if (community && (community->Tick() > 0))
     {
         QFile file(fileName);
         
@@ -1581,7 +1588,12 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                     {
                         // If the script in SLiMgui has been changed (i.e., there are unsaved changes), reloading
                         // is quite dangerous so we require user confirmation with a default of No.
-                        QString prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\nThere are unsaved changes in SLiMgui; if you reload, those changes will be lost!").arg(filename);
+                        QString prompt;
+                        
+                        if (community && (community->Tick() > 0))
+                            prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\nThere are unsaved changes in SLiMgui; if you reload, those changes will be lost!\n\n(Note you will need to click Recycle to run the new script, since a simulation is already running.)").arg(filename);
+                        else
+                            prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\nThere are unsaved changes in SLiMgui; if you reload, those changes will be lost!").arg(filename);
                         
                         currentlyWarningAboutDiskFile = true;
                         ret = QMessageBox::critical(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -1599,7 +1611,12 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                         }
                         else
                         {
-                            QString prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\n(There are no unsaved changes in SLiMgui that would be lost.  In the Preferences panel you can choose to automatically reload, in this case.)").arg(filename);
+                            QString prompt;
+                            
+                            if (community && (community->Tick() > 0))
+                                prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?  (Note you will need to click Recycle to run the new script, since a simulation is already running.)\n\n(There are no unsaved changes in SLiMgui that would be lost.  In the Preferences panel you can choose to automatically reload, in this case.)").arg(filename);
+                            else
+                                prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\n(There are no unsaved changes in SLiMgui that would be lost.  In the Preferences panel you can choose to automatically reload, in this case.)").arg(filename);
                             
                             currentlyWarningAboutDiskFile = true;
                             ret = QMessageBox::question(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
