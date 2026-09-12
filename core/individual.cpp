@@ -1077,7 +1077,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		free(p_individuals);
 }
 
-void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, Chromosome *p_focal_chromosome)
+void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, Chromosome *p_focal_chromosome, const std::string *p_individual_names)
 {
 	const std::vector<Chromosome *> &chromosomes = p_species.Chromosomes();
 	bool nucleotide_based = p_species.IsNucleotideBased();
@@ -1158,13 +1158,24 @@ void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_
 	for (slim_popsize_t individual_index = 0; individual_index < p_individuals_count; individual_index++)
 	{
 		const Individual &ind = *p_individuals[individual_index];
-		slim_popsize_t index_in_subpop = ind.index_;
-		Subpopulation *subpop = ind.subpopulation_;
 		
-		if (!subpop || (index_in_subpop == -1))
-			EIDOS_TERMINATION << "ERROR (Individual::PrintIndividuals_VCF): target individuals must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
-		
-		p_out << "\tp" << subpop->subpopulation_id_ << ":i" << index_in_subpop;
+		if (p_individual_names == nullptr)
+		{
+			// by default we generate individual names based on indices in the subpopulation, like 'p1:i0'
+			slim_popsize_t index_in_subpop = ind.index_;
+			Subpopulation *subpop = ind.subpopulation_;
+			
+			if (!subpop || (index_in_subpop == -1))
+				EIDOS_TERMINATION << "ERROR (Individual::PrintIndividuals_VCF): target individuals must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+			
+			p_out << "\tp" << subpop->subpopulation_id_ << ":i" << index_in_subpop;
+		}
+		else
+		{
+			// the user can now select their own individual names instead, with `[Ns individualNames = NULL]`
+			// it is up to the user to ensure that the names provided are well-formed for VCF output
+			p_out << "\t" << p_individual_names[individual_index];
+		}
 	}
 	p_out << std::endl;
 	
@@ -4650,7 +4661,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsFromHaplosomes, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("category")->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividualsToVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividualsToVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddString_ON("individualNames", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readIndividualsFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		
@@ -5202,7 +5213,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (void)outputIndividualsToVCF([Ns$ filePath = NULL], [logical$ append = F], [Niso<Chromosome>$ chromosome = NULL], [logical$ outputMultiallelics = T], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
+//	*********************	+ (void)outputIndividualsToVCF([Ns$ filePath = NULL], [logical$ append = F], [Niso<Chromosome>$ chromosome = NULL], [logical$ outputMultiallelics = T], [logical$ simplifyNucleotides = F],
+//															[logical$ outputNonnucleotides = T], [Ns individualNames = NULL])
 //
 EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -5213,6 +5225,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 	EidosValue *outputMultiallelics_value = p_arguments[3].get();
 	EidosValue *simplifyNucleotides_value = p_arguments[4].get();
 	EidosValue *outputNonnucleotides_value = p_arguments[5].get();
+	EidosValue *individualNames_value = p_arguments[6].get();
 	
 	// here we need to require at least one target individual,
 	// do a species consistency check and get the species/community,
@@ -5253,6 +5266,16 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 	bool simplify_nucs = simplifyNucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool output_nonnucs = outputNonnucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
+	const std::string *individual_names = nullptr;
+	
+	if (individualNames_value->Type() == EidosValueType::kValueString)
+	{
+		if (individualNames_value->Count() != individuals_count)
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividualsToVCF): if the individualNames parameter to outputIndividualsToVCF() is not NULL, it must be equal in length to the target vector of individuals being output." << EidosTerminate();
+		
+		individual_names = individualNames_value->StringData();
+	}
+	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
 		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
@@ -5263,7 +5286,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 		// write the #OUT line, for file output only
 		output_stream << "#OUT: " << community.Tick() << " " << species->Cycle() << " IS" << std::endl;
 		
-		Individual::PrintIndividuals_VCF(output_stream, individuals_buffer, individuals_count, *species, output_multiallelics, simplify_nucs, output_nonnucs, chromosome);
+		Individual::PrintIndividuals_VCF(output_stream, individuals_buffer, individuals_count, *species, output_multiallelics, simplify_nucs, output_nonnucs, chromosome, individual_names);
 	}
 	else
 	{
@@ -5275,7 +5298,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 		
 		if (outfile.is_open())
 		{
-			Individual::PrintIndividuals_VCF(outfile, individuals_buffer, individuals_count, *species, output_multiallelics, simplify_nucs, output_nonnucs, chromosome);
+			Individual::PrintIndividuals_VCF(outfile, individuals_buffer, individuals_count, *species, output_multiallelics, simplify_nucs, output_nonnucs, chromosome, individual_names);
 			
 			outfile.close(); 
 		}

@@ -4134,7 +4134,7 @@ Output is generally done in a
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)outputIndividualsToVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T])\
+\f3\fs18 \cf2 +\'a0(void)outputIndividualsToVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T], [Ns\'a0individualNames\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Output the state of the target vector of individuals in VCF format.  If the optional parameter 
@@ -4190,7 +4190,22 @@ The parameters
 \f4\fs20 , and 
 \f3\fs18 outputNonnucleotides
 \f4\fs20  affect the format of the output produced.\
-Output is generally done in a 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Beginning in SLiM 6.0, 
+\f3\fs18 individualNames
+\f4\fs20  may provide the names used in the VCF output for the target individuals.  If 
+\f3\fs18 individualNames
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 , names will be based on the subpopulation and index (within the subpopulation) of each individual.  Otherwise, 
+\f3\fs18 individualNames
+\f4\fs20  must equal in length to the target vector of individuals, providing a name for each corresponding individual.  It is up to the caller to ensure that the names are well-formed for VCF output (not containing spaces, etc.).  A common pattern, when used with pedigree tracking or tree-sequence recording, is to provide the pedigree IDs as the names of the individuals using 
+\f3\fs18 individualNames=asString(inds.pedigreeID)
+\f4\fs20  (where 
+\f3\fs18 inds
+\f4\fs20  is the vector of target individuals).\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

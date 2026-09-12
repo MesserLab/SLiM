@@ -240,6 +240,7 @@ multitrait branch:
 	fix #673, segfault when reloading a model window from disk (due to Revert, or in response to external editing); this would occur if the model had been executed (rather than being freshly recycled)
 	fix #662: add `[i$ skip = 0]` argument to initializeRecombinationRateFromFile(), initializeMutationRateFromFile(), and readCSV() to skip header lines
 	fix #634: extend drawByStrength() with [float$ failureScaling = INF] to allow for a possibility of failure, even when there are potential exerters in range of the receiver
+	fix #631: provide an option to get pedigree IDs as individual identifiers in VCF -- specifically, add [Ns individualNames = NULL] to outputIndividualsToVCF() so the user can supply whatever names they want
 
 
 version 5.2 (Eidos version 4.2):
