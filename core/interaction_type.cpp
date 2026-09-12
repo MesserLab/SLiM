@@ -4202,7 +4202,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 	}
 }
 
-//	*********************	– (object)drawByStrength(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
+//	*********************	– (object)drawByStrength(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F], [float$ failureScaling = INF])
 //
 EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4211,6 +4211,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
 	EidosValue *returnDict_value = p_arguments[3].get();
+	EidosValue *failureScaling_value = p_arguments[4].get();
 	
 	eidos_logical_t returnDict = returnDict_value->LogicalAtIndex_NOCAST(0, nullptr);
 	Subpopulation *receiver_subpop = nullptr;
@@ -4265,6 +4266,10 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
 	
+	// Get failureScaling value; failureScaling of INF means failure is not an option (the original behavior)
+	double failureScaling = failureScaling_value->FloatAtIndex_NOCAST(0, nullptr);
+	bool failure_is_not_an_option = (std::isinf(failureScaling) && (failureScaling > 0.0));
+	
 	bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
 	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == SpatialKernelType::kFixed));
 	
@@ -4312,17 +4317,34 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			
 			if (total_interaction_strength > 0.0)
 			{
-				std::vector<int> strength_indices;
-				
-				result_vec->resize_no_initialize(count);
-				DrawByWeights((int)count, cached_strength.data(), exerter_subpop_size, total_interaction_strength, strength_indices);
-				
-				for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+				if (!failure_is_not_an_option)
 				{
-					int strength_index = strength_indices[result_index];
-					Individual *chosen_individual = exerters[strength_index];
+					// failure _is_ an option; determine the number of successes with a binomial draw
+					// the original value of `count` is the number of trials; the result will be in [0, count]
+					double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 					
-					result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					if (pSuccess < 1.0)
+					{
+						gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+						
+						count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)count);
+					}
+				}
+				
+				if (count > 0)
+				{
+					std::vector<int> strength_indices;
+					
+					result_vec->resize_no_initialize(count);
+					DrawByWeights((int)count, cached_strength.data(), exerter_subpop_size, total_interaction_strength, strength_indices);
+					
+					for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+					{
+						int strength_index = strength_indices[result_index];
+						Individual *chosen_individual = exerters[strength_index];
+						
+						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					}
 				}
 			}
 			
@@ -4355,18 +4377,37 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					
 					if (nnz > 0)
 					{
-						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-						EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
-						
-						result_vec->resize_no_initialize(count);
-						
-						for (int64_t result_index = 0; result_index < count; ++result_index)
+						if (!failure_is_not_an_option)
 						{
-							int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
-							uint32_t exerter_index = columns[presence_index];
-							Individual *chosen_individual = exerters[exerter_index];
+							// failure _is_ an option; determine the number of successes with a binomial draw
+							// the original value of `count` is the number of trials; the result will be in [0, count]
+							double fixed_interaction_strength = if_param1_;
+							double total_interaction_strength = nnz * fixed_interaction_strength;
+							double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 							
-							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							if (pSuccess < 1.0)
+							{
+								gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+								
+								count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)count);
+							}
+						}
+						
+						if (count > 0)
+						{
+							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+							EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+							
+							result_vec->resize_no_initialize(count);
+							
+							for (int64_t result_index = 0; result_index < count; ++result_index)
+							{
+								int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
+								uint32_t exerter_index = columns[presence_index];
+								Individual *chosen_individual = exerters[exerter_index];
+								
+								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							}
 						}
 					}
 				} catch (...) {
@@ -4407,18 +4448,35 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					// Draw individuals
 					if (total_interaction_strength > 0.0)
 					{
-						std::vector<int> strength_indices;
-						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-						
-						result_vec->resize_no_initialize(count);
-						DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
-						
-						for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+						if (!failure_is_not_an_option)
 						{
-							int strength_index = strength_indices[result_index];
-							Individual *chosen_individual = exerters[columns[strength_index]];
+							// failure _is_ an option; determine the number of successes with a binomial draw
+							// the original value of `count` is the number of trials; the result will be in [0, count]
+							double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 							
-							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							if (pSuccess < 1.0)
+							{
+								gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+								
+								count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)count);
+							}
+						}
+						
+						if (count > 0)
+						{
+							std::vector<int> strength_indices;
+							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+							
+							result_vec->resize_no_initialize(count);
+							DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+							
+							for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+							{
+								int strength_index = strength_indices[result_index];
+								Individual *chosen_individual = exerters[columns[strength_index]];
+								
+								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							}
 						}
 					}
 				} catch (...) {
@@ -4518,18 +4576,39 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 						
 						if (nnz > 0)
 						{
-							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-							EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+							int64_t this_receiver_count = count;
 							
-							result_vec->resize_no_initialize(count);
-							
-							for (int64_t result_index = 0; result_index < count; ++result_index)
+							if (!failure_is_not_an_option)
 							{
-								int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
-								uint32_t exerter_index = columns[presence_index];
-								Individual *chosen_individual = exerters[exerter_index];
+								// failure _is_ an option; determine the number of successes with a binomial draw
+								// the original value of `count` is the number of trials; the result will be in [0, count]
+								double fixed_interaction_strength = if_param1_;
+								double total_interaction_strength = nnz * fixed_interaction_strength;
+								double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 								
-								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+								if (pSuccess < 1.0)
+								{
+									gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+									
+									this_receiver_count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)this_receiver_count);
+								}
+							}
+							
+							if (this_receiver_count > 0)
+							{
+								std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+								EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+								
+								result_vec->resize_no_initialize(this_receiver_count);
+								
+								for (int64_t result_index = 0; result_index < this_receiver_count; ++result_index)
+								{
+									int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
+									uint32_t exerter_index = columns[presence_index];
+									Individual *chosen_individual = exerters[exerter_index];
+									
+									result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+								}
 							}
 						}
 					} catch (...) {
@@ -4575,18 +4654,37 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					// Draw individuals
 					if (total_interaction_strength > 0.0)
 					{
-						std::vector<int> strength_indices;
-						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+						int64_t this_receiver_count = count;
 						
-						result_vec->resize_no_initialize(count);
-						DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
-						
-						for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+						if (!failure_is_not_an_option)
 						{
-							int strength_index = strength_indices[result_index];
-							Individual *chosen_individual = exerters[columns[strength_index]];
+							// failure _is_ an option; determine the number of successes with a binomial draw
+							// the original value of `count` is the number of trials; the result will be in [0, count]
+							double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 							
-							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							if (pSuccess < 1.0)
+							{
+								gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+								
+								this_receiver_count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)this_receiver_count);
+							}
+						}
+						
+						if (this_receiver_count > 0)
+						{
+							std::vector<int> strength_indices;
+							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+							
+							result_vec->resize_no_initialize(this_receiver_count);
+							DrawByWeights((int)this_receiver_count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+							
+							for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+							{
+								int strength_index = strength_indices[result_index];
+								Individual *chosen_individual = exerters[columns[strength_index]];
+								
+								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							}
 						}
 					}
 					
@@ -4885,6 +4983,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		{
 			// Optimized case for fixed interaction strength and no callbacks
 			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+			double fixed_interaction_strength = if_param1_;
 			
 			try {
 				FillSparseVectorForReceiverPresences(sv, first_receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
@@ -4892,7 +4991,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				uint32_t nnz;
 				sv->Presences(&nnz);
 				
-				total_strength = nnz * if_param1_;
+				total_strength = nnz * fixed_interaction_strength;
 			} catch (...) {
 				InteractionType::FreeSparseVector(sv);
 				throw;
@@ -6545,7 +6644,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_clippedIntegral, kEidosValueMaskFloat))->AddObject_N("receivers", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceFromPoint, kEidosValueMaskFloat))->AddFloat("point")->AddObject("exerters", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF)->AddFloat_OS("failureScaling", gStaticEidosValue_FloatINF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddIntObject("subpops", gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactingNeighborCount, kEidosValueMaskInt))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_localPopulationDensity, kEidosValueMaskFloat))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));

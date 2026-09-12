@@ -239,6 +239,7 @@ multitrait branch:
 		make a new recipe 13.15 (and shift the existing 13.15 to 13.16) to illustrate sexual dimorphism with differential selection rather than just differential expression
 	fix #673, segfault when reloading a model window from disk (due to Revert, or in response to external editing); this would occur if the model had been executed (rather than being freshly recycled)
 	fix #662: add `[i$ skip = 0]` argument to initializeRecombinationRateFromFile(), initializeMutationRateFromFile(), and readCSV() to skip header lines
+	fix #634: extend drawByStrength() with [float$ failureScaling = INF] to allow for a possibility of failure, even when there are potential exerters in range of the receiver
 
 
 version 5.2 (Eidos version 4.2):

@@ -4976,7 +4976,7 @@ This method replaces the
 \f4\fs20  method that existed prior to SLiM 4.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object)drawByStrength(object<Individual>\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL], [logical$\'a0returnDict\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(object)drawByStrength(object<Individual>\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL], [logical$\'a0returnDict\'a0=\'a0F], [float$\'a0failureScaling\'a0=\'a0INF])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns an 
@@ -5005,6 +5005,23 @@ This method may be used with either spatial or non-spatial interactions, but wil
 \f4\fs20 , rather than drawing individuals one at a time.  Note that if no individuals exert a non-zero interaction strength upon 
 \f3\fs18 receiver
 \f4\fs20 , the vector returned will be zero-length; it is important to consider this possibility.\
+Beginning in SLiM 6.0, the 
+\f3\fs18 failureScaling
+\f4\fs20  parameter expresses a scaling factor that controls the probability of failure to find an interacting exerter.  More specifically: the probability of finding an interacting exerter is equal to 
+\f3\fs18 failureScaling
+\f4\fs20  times the total of all interaction strengths upon 
+\f3\fs18 receiver
+\f4\fs20  (
+\f1\i not
+\f4\i0  the population density, to be clear, but the total interaction strength).  If this product is greater than 
+\f3\fs18 1.0
+\f4\fs20 , the probability is 
+\f3\fs18 1.0
+\f4\fs20 ; if the product is zero or negative, the probability is 
+\f3\fs18 0.0
+\f4\fs20  and failure is guaranteed.  This can be used, for example, in a mate search algorithm to provide some probability that a plant will self rather than outcross, even when pollen from other flowers is available in its environment.  Using 
+\f3\fs18 failureScaling
+\f4\fs20  provides a simple and efficient way for that probability of selfing to depend upon the total availability of pollen in the plant\'92s vicinity.\
 Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
