@@ -157,8 +157,9 @@ public:
     
     void tile(const QMainWindow *previous);
     void displayStartupMessage(void);
-    void loadFile(const QString &fileName);                                     // loads a file into an existing window
-    void loadRecipe(const QString &recipeName, const QString &recipeScript);    // loads a recipe into an existing window
+    void loadFile(const QString &fileName);                                     // loads a file into an existing, unused window
+    void loadRecipe(const QString &recipeName, const QString &recipeScript);    // loads a recipe into an existing, unused window
+    void reloadFile(const QString &fileName);                                   // reloads a file into an existing, in-use window (revert, external edit)
     QWidget *imageWindowWithPath(const QString &path);                          // creates an image window subsidiary to the receiver
     
     static const QColor &blackContrastingColorForIndex(int index);

@@ -1293,7 +1293,7 @@ void QtSLiMWindow::revert()
         
         switch (ret) {
         case QMessageBox::Yes:
-            loadFile(currentFile);
+            reloadFile(currentFile);
             break;
         case QMessageBox::Cancel:
             break;
@@ -1382,6 +1382,42 @@ void QtSLiMWindow::loadRecipe(const QString &recipeName, const QString &recipeSc
     updateAfterTickFull(true);
     resetSLiMChangeCount();     // no recycle change count; the current model is correct
     setWindowModified(false);   // loaded windows start unmodified
+}
+
+void QtSLiMWindow::reloadFile(const QString &fileName)
+{
+    // This is used by the revert command, and in response to external editing.
+    // If the existing script is recycled and unexecuted, it calls loadFile();
+    // otherwise, it replaces the script but does not interfere with the current
+    // execution, since the user should always be in charge of pressing Recycle.
+    if (community)
+    {
+        QFile file(fileName);
+        
+        if (!file.open(QFile::ReadOnly | QFile::Text)) {
+            QMessageBox::warning(this, "SLiMgui", QString("Cannot read file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
+            return;
+        }
+        
+        QTextStream in(&file);
+        QString contents = in.readAll();
+        
+        lastSavedString = contents;
+        lastSavedDate = QDateTime::currentDateTime();
+        scriptChangeObserved = false;
+        
+        ui->scriptTextEdit->setPlainText(contents);
+        setCurrentFile(fileName);
+        
+        // Update all our UI to reflect the current state of the simulation
+        updateAfterTickFull(true);
+        updateChangeCount();        // ensure that the recycle button is highlighted
+        setWindowModified(false);   // however, the window is unmodified since it just reloaded
+    }
+    else
+    {
+        loadFile(fileName);
+    }
 }
 
 bool QtSLiMWindow::saveFile(const QString &fileName)
@@ -1573,7 +1609,7 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                     
                     if (ret == QMessageBox::Yes)
                     {
-                        loadFile(currentFile);
+                        reloadFile(currentFile);
                         
                         // since we reloaded our file, we want to warn again if it happens again
                         warnedAboutExternalEditing = false;
