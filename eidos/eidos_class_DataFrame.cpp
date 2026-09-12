@@ -716,7 +716,7 @@ static EidosValue_SP Eidos_Instantiate_EidosDataFrame(const std::vector<EidosVal
 	return result_SP;
 }
 
-//	(object<DataFrame>$)readCSV(string$ filePath, [ls colNames = T], [Ns$ colTypes = NULL], [string$ sep = ","], [string$ quote = "\""], [string$ dec = "."], [string$ comment = ""])
+//	(object<DataFrame>$)readCSV(string$ filePath, [ls colNames = T], [Ns$ colTypes = NULL], [string$ sep = ","], [string$ quote = "\""], [string$ dec = "."], [string$ comment = ""], [integer$ skip = 0])
 static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue *filePath_value = p_arguments[0].get();
@@ -726,8 +726,9 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	EidosValue *quote_value = p_arguments[4].get();
 	EidosValue *dec_value = p_arguments[5].get();
 	EidosValue *comment_value = p_arguments[6].get();
+	EidosValue *skip_value = p_arguments[7].get();
 	
-	// Start by opening the CSV data file; a little weird that we just warn and retunr NULL on a file I/O error, but this follows readFile()
+	// Start by opening the CSV data file; a little weird that we just warn and return NULL on a file I/O error, but this follows readFile()
 	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
@@ -740,11 +741,12 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		return gStaticEidosValueNULL;
 	}
 
-	// Figure out our various separators/delimiters
+	// Figure out our various separators/delimiters, and skip
 	std::string sep_string = sep_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string quote_string = quote_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string dec_string = dec_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string comment_string = comment_value->StringAtIndex_NOCAST(0, nullptr);
+	int64_t skip = skip_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (sep_string.length() > 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that sep be a string of exactly one character, or the empty string \"\"." << EidosTerminate(nullptr);
@@ -754,6 +756,8 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that dec be a string of exactly one character." << EidosTerminate(nullptr);
 	if (comment_string.length() > 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that comment be a string of exactly one character, or the empty string." << EidosTerminate(nullptr);
+	if (skip < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that skip be a non-negative integer." << EidosTerminate(nullptr);
 	
 	char sep = (sep_string.length() ? sep_string[0] : 0);				// 0 indicates "whitespace separator", a special case
 	char quote = quote_string[0];
@@ -771,6 +775,25 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	std::string line;
 	std::vector<std::vector<std::string>> rows;
 	int ncols = -1, line_number = 0;
+	
+	for (int64_t skip_count = 0; skip_count < skip; ++skip_count)
+	{
+		// first we eat `skip` lines; they count towards the line number count, but are otherwise unused
+		if (!getline(file_stream, line))
+		{
+			p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readCSV): readCSV() ran out of lines while still processing the skip count (skip = " << skip << ")." << std::endl;
+			return gStaticEidosValueNULL;
+		}
+		
+		line_number++;		// after this increment, this has the line number (1-based) we are current parsing
+	}
+	
+	if (file_stream.bad())
+	{
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readCSV): readCSV() encountered stream errors while reading file at path " << file_path << "." << std::endl;
+		return gStaticEidosValueNULL;
+	}
 	
 	while (getline(file_stream, line))
 	{
@@ -836,7 +859,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 					{
 						// we reached the end of the line, but we're still inside the quoted element; incorporate the implied newline and keep going
 						if (!getline(file_stream, line))
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): function readCSV() encountered an unexpected end-of-file inside a quoted element, at line " << line_number << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() encountered an unexpected end-of-file inside a quoted element, at line " << line_number << "." << EidosTerminate(nullptr);
 						
 						element_string.append(1, '\n');
 						line_number++;
@@ -878,7 +901,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 							}
 							else
 							{
-								EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): function readCSV() encountered an unexpected character '" << ch << "' after the end of a quoted element." << EidosTerminate(nullptr);
+								EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() encountered an unexpected character '" << ch << "' after the end of a quoted element." << EidosTerminate(nullptr);
 							}
 						}
 					}
@@ -954,7 +977,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		if (ncols == -1)
 			ncols = (int)row.size();
 		else if (ncols != (int)row.size())
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): function readCSV() encountered an inconsistent column count in CSV file (" << row.size() << " observed, " << ncols << " previously), at line " << line_number << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() encountered an inconsistent column count in CSV file (" << row.size() << " observed, " << ncols << " previously), at line " << line_number << "." << EidosTerminate(nullptr);
 		
 		rows.emplace_back(row);
 	}
@@ -962,7 +985,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	if (file_stream.bad())
 	{
 		if (!gEidosSuppressWarnings)
-			p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readCSV): function readCSV() encountered stream errors while reading file at path " << file_path << "." << std::endl;
+			p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_readCSV): readCSV() encountered stream errors while reading file at path " << file_path << "." << std::endl;
 		return gStaticEidosValueNULL;
 	}
 	
@@ -1349,7 +1372,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosDataFrame_Class::Functions(v
 		// and having the code for it in this source file rather than eidos_functions.cpp feels more cohesive and comprehensible.
 		// Indeed, I can imagine the syntax shifting to DataFrame.newFromCSV() or some such, if Eidos ever makes class objects public.
 		// It is documented in EidosHelpFunctions for now, though, since unless it is *actually* a constructor it would be confusing.
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readCSV", Eidos_ExecuteFunction_readCSV, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddString_S("filePath")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional, "colNames", nullptr, gStaticEidosValue_LogicalT)->AddString_OSN("colTypes", gStaticEidosValueNULL)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddString_OS("quote", gStaticEidosValue_StringDoubleQuote)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("comment", gStaticEidosValue_StringEmpty));
+		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readCSV", Eidos_ExecuteFunction_readCSV, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddString_S("filePath")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional, "colNames", nullptr, gStaticEidosValue_LogicalT)->AddString_OSN("colTypes", gStaticEidosValueNULL)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddString_OS("quote", gStaticEidosValue_StringDoubleQuote)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("comment", gStaticEidosValue_StringEmpty)->AddInt_OS("skip", gStaticEidosValue_Integer0));
 		
 		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
 	}

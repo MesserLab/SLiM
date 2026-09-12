@@ -98,8 +98,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
 
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk)->AddInt_OS("skip", gStaticEidosValue_Integer0));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk)->AddInt_OS("skip", gStaticEidosValue_Integer0));
 		
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("Plot", gSLiMSourceCode_Plot, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "SLiM"))->AddString_S("title")->AddArg(kEidosValueMaskInt | kEidosValueMaskFloat | kEidosValueMaskObject, "thing", nullptr)->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL));
 		
@@ -1193,7 +1193,7 @@ R"V0G0N({
 #pragma mark Other built-in functions
 #pragma mark -
 
-#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
+#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"], [integer$ skip = 0])
 const char *gSLiMSourceCode_initializeMutationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeMutationRateFromFile): ";
@@ -1204,7 +1204,7 @@ R"V0G0N({
 	if (!fileExists(path))
 		stop(errbase + "file not found at path '" + path + "'.");
 	
-	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec);
+	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec, skip=skip);
 	if (length(map) == 0)
 		stop(udf);
 	if (length(map.allKeys) != 2)
@@ -1233,7 +1233,7 @@ R"V0G0N({
 	initializeMutationRate(rates * scale, ends, sex);
 })V0G0N";
 
-#pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
+#pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"], [integer$ skip = 0])
 const char *gSLiMSourceCode_initializeRecombinationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeRecombinationRateFromFile): ";
@@ -1244,7 +1244,7 @@ R"V0G0N({
 	if (!fileExists(path))
 		stop(errbase + "file not found at path '" + path + "'.");
 	
-	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec);
+	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec, skip=skip);
 	if (length(map) == 0)
 		stop(udf);
 	if (length(map.allKeys) != 2)

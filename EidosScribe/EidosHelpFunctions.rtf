@@ -5546,7 +5546,7 @@ The initial working directory is \'96 as is generally the case on Un*x \'96 simp
 \f3\fs20  to set the working directory to a known path.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<DataFrame>$)readCSV(string$\'a0filePath, [ls\'a0colNames\'a0=\'a0T], [Ns$\'a0colTypes\'a0=\'a0NULL], [string$\'a0sep\'a0=\'a0","], [string$\'a0quote\'a0=\'a0'"'], [string$\'a0dec\'a0=\'a0"."], [string$\'a0comment\'a0=\'a0""])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<DataFrame>$)readCSV(string$\'a0filePath, [ls\'a0colNames\'a0=\'a0T], [Ns$\'a0colTypes\'a0=\'a0NULL], [string$\'a0sep\'a0=\'a0","], [string$\'a0quote\'a0=\'a0'"'], [string$\'a0dec\'a0=\'a0"."], [string$\'a0comment\'a0=\'a0""], [integer$\'a0skip\'a0=\'a00])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Reads data from a CSV or other delimited file
@@ -5558,10 +5558,23 @@ The initial working directory is \'96 as is generally the case on Un*x \'96 simp
 \f1\fs18 serialize()
 \f3\fs20  method of 
 \f1\fs18 Dictionary
-\f3\fs20 ) can export data in CSV format.  This function can actually also read files that use a delimiter other than commas; TSV (tab-separated value) files are a popular alternative.  Since there is substantial variation in the exact file format for CSV files, this documentation will try to specify the precise format expected by this function.  Note that CSV files represent values differently that Eidos usually does, and some of the format options allowed by 
+\f3\fs20 ) can export data in CSV format.  This function can actually also read files that use a delimiter other than commas; TSV (tab-separated value) files are a popular alternative.  Since there is substantial variation in the exact file format for CSV files, this documentation will try to specify the precise format expected by this function.  Note that CSV files represent values differently than Eidos usually does, and some of the format options allowed by 
 \f1\fs18 readCSV()
 \f3\fs20 , such as decimal commas, are not otherwise available in Eidos.\
-If 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If 
+\f1\fs18 skip
+\f3\fs20  is 
+\f1\fs18 0
+\f3\fs20  (the default), reading data begins immediately at the start of the file (but see the description of 
+\f1\fs18 colNames
+\f3\fs20 , below, regarding the possible presence of a header row at the start of the data).  Otherwise (if 
+\f1\fs18 skip
+\f3\fs20  is greater than zero), 
+\f1\fs18 skip
+\f3\fs20  specifies the number of lines to skip before beginning to read data from the file.  The lines skipped are not examined or processed in any way.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If 
 \f1\fs18 colNames
 \f3\fs20  is 
 \f1\fs18 T
