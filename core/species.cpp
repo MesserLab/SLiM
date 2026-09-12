@@ -8238,7 +8238,10 @@ void Species::CheckCoalescenceAfterSimplification(TreeSeqInfo &tsinfo)
 	
 	tsk_treeseq_t ts;
 	
-	ret = tsk_treeseq_init(&ts, &tables_copy, 0);
+	// BCH 8/12/2026: Added TSK_TS_INIT_COMPUTE_MUTATION_PARENTS here, because the parents column needs to be
+	// computed or an error is occasionally thrown.  In other places where we call tsk_treeseq_init() we either
+	// compute the parents column, or the parents column is already set up (loading from disk).  See issue #609.
+	ret = tsk_treeseq_init(&ts, &tables_copy, TSK_TS_INIT_COMPUTE_MUTATION_PARENTS);
 	if (ret < 0) handle_error("tsk_treeseq_init", ret);
 	
 	// Collect a vector of all extant haplosome node IDs belonging to the chromosome that tsinfo records
