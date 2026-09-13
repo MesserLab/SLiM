@@ -241,6 +241,7 @@ multitrait branch:
 	fix #662: add `[i$ skip = 0]` argument to initializeRecombinationRateFromFile(), initializeMutationRateFromFile(), and readCSV() to skip header lines
 	fix #634: extend drawByStrength() with [float$ failureScaling = INF] to allow for a possibility of failure, even when there are potential exerters in range of the receiver
 	fix #631: provide an option to get pedigree IDs as individual identifiers in VCF -- specifically, add [Ns individualNames = NULL] to outputIndividualsToVCF() so the user can supply whatever names they want
+	fix #585: add monozygotic twin recipe, new recipe 16.12
 
 
 version 5.2 (Eidos version 4.2):
