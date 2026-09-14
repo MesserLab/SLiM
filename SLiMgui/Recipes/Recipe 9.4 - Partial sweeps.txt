@@ -17,7 +17,7 @@ initialize() {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 0)
 		sim.simulationFinished();
-	else if (mut.selectionCoeff != 0.0)
+	else if (mut.effectSize != 0.0)
 		if (sim.mutationFrequencies(NULL, mut) >= 0.5)
-			mut.setSelectionCoeff(0.0);
+			mut.setEffectSizeForTrait(NULL, 0.0);
 }

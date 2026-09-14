@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -46,6 +46,13 @@
 // On other platforms we use std::chrono::steady_clock
 #include <chrono>
 #define CHRONO_PROFILING
+#endif
+
+//
+//	Turn on warnings that we want on in Eidos and SLiM code, but not in other code such as the GSL
+//
+#if (!defined(EIDOS_GUI) && !defined(SLIMGUI))
+#pragma GCC diagnostic warning "-Wdouble-promotion"
 #endif
 
 #include "eidos_openmp.h"
@@ -91,14 +98,16 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 // Change this define to 1 to enable Robin Hood Hashing, or change it to 0 to disable it
 // Note that you have a choice of robin_hood::unordered_node_map or robin_hood::unordered_flat_map
 // With robin_hood::unordered_flat_map, references to elements are not stable, but it is probably a bit faster
-// STD_UNORDERED_MAP_HASHING is the reverse flag; this just makes it easy to get an error message if this header
+// STD_UNORDERED_MAP_HASHING() is the reverse flag; this just makes it easy to get an error message if this header
 // is not included, following a standard usage pattern, since then neither of these defines will exist.
-#define EIDOS_ROBIN_HOOD_HASHING	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_ROBIN_HOOD_HASHING()	1
 
-#if EIDOS_ROBIN_HOOD_HASHING
-#define STD_UNORDERED_MAP_HASHING	0
+#if EIDOS_ROBIN_HOOD_HASHING()
+#define STD_UNORDERED_MAP_HASHING()	0
 #else
-#define STD_UNORDERED_MAP_HASHING	1
+#define STD_UNORDERED_MAP_HASHING()	1
 #endif
 
 
@@ -120,6 +129,77 @@ extern std::string gEidosContextCitation;
 extern std::vector<std::string> gEidosContextReservedSymbols;	// see Eidos_GoodSymbolForDefine()
 
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
+
+
+// *******************************************************************************************************************
+//
+//	Debugging support
+//
+#pragma mark -
+#pragma mark Debugging support
+#pragma mark -
+
+// Debugging #defines that can be turned on
+#define EIDOS_DEBUG_COMPLETION	0	// turn on to log information about symbol types whenever doing code completion
+#define EIDOS_DEBUG_ERROR_POSITIONS		0	// turn on to log information about error positions in scripts
+
+// Flags for various runtime checks that can be turned on or off; in SLiM, -x turns these off.
+extern bool eidos_do_memory_checks;
+
+// To leak-check slim, a few steps are recommended (BCH 5/1/2019):
+//
+//	- turn on Malloc Scribble so spurious pointers left over in deallocated blocks are not taken to be live references
+//	- turn on Malloc Logging so you get backtraces from every leaked allocation
+//	- use a DEBUG build of slim so the backtraces are accurate and not obfuscated by optimization
+//	- set this #define to 1 so slim cleans up a bit and then sleeps before exit, waiting for its leaks to be assessed
+//	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
+//
+// To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
+// keep Valgrind from getting confused.  Use a DEBUG build so it is symbolicated (-g) and minimally optimized (-Og),
+// or add those flags to CMAKE_C_FLAGS_RELEASE and CMAKE_CXX_FLAGS_RELEASE in CMakeLists.txt.
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define SLIM_LEAK_CHECKING()	0
+
+#if SLIM_LEAK_CHECKING()
+#warning SLIM_LEAK_CHECKING() enabled!
+#endif
+
+// Enabling "debug points" in SLiMgui.  These are only enabled under SLiMgui (i.e., QtSLiM), and should always be enabled
+// in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#ifdef SLIMGUI
+#define DEBUG_POINTS_ENABLED()	1
+extern int gEidosDebugIndent;
+#else
+#define DEBUG_POINTS_ENABLED()	0
+#endif
+
+#if DEBUG_POINTS_ENABLED()
+// A simple class for RAII-based debug point indentation; saves some hassle with exceptions, etc.
+class EidosDebugPointIndent
+{
+private:
+	int indent_;
+public:
+	EidosDebugPointIndent(void) : indent_(0) { }
+	~EidosDebugPointIndent(void) { gEidosDebugIndent -= indent_; }
+	inline void indent(int spaces = 4) { gEidosDebugIndent += spaces; indent_ += spaces; }
+	inline void outdent(int spaces = 4) { gEidosDebugIndent -= spaces; indent_ -= spaces; }
+	
+	static inline const std::string Indent(void) { return std::string(gEidosDebugIndent, ' '); }
+};
+#endif
+
+// Eidos defines the concept of "long-term boundaries", which are moments in time when Eidos objects
+// that are not under retain-release memory management could be freed.  Keeping a reference to such
+// an object between long-term boundaries is generally safe; keeping a reference to such an object
+// across a long-term boundary is generally NOT safe.  This function should be called, internally by
+// Eidos and externally by the Context, at such boundaries, and code should not free Eidos objects
+// (except local temporaries) without calling this function first.  This allows internal bookkeeping
+// to check for violations of the long-term boundary conventions.
+void CheckLongTermBoundary();
 
 
 // *******************************************************************************************************************
@@ -175,6 +255,12 @@ inline __attribute__((always_inline)) void RestoreErrorPosition(const EidosError
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("RestoreErrorPosition(): gEidosErrorContext change");
 	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   RestoreErrorPosition(): restoring a saved position of {" << p_saved_position.characterStartOfError <<
+		", " << p_saved_position.characterEndOfError << ", " << p_saved_position.characterEndOfError <<
+		", " << p_saved_position.characterEndOfError << "}." << std::endl;
+#endif
+	
 	gEidosErrorContext.errorPosition = p_saved_position;
 }
 
@@ -182,12 +268,20 @@ inline __attribute__((always_inline)) void ClearErrorPosition(void)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorPosition(): gEidosErrorContext change");
 	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   ClearErrorPosition(): clearing to an unknown position of {-1, -1, -1, -1}." << std::endl;
+#endif
+	
 	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
 }
 
 inline __attribute__((always_inline)) void ClearErrorContext(void)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorContext(): gEidosErrorContext change");
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   ClearErrorContext(): clearing to an illegal state." << std::endl;
+#endif
 	
 	// Note that this clears to an illegal state; an error cannot be thrown in this state.
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr};
@@ -198,73 +292,6 @@ void TranslateErrorContextToUserScript(const char *p_caller);
 
 // Warnings: consult this flag before emitting a warning
 extern bool gEidosSuppressWarnings;
-
-
-// *******************************************************************************************************************
-//
-//	Debugging support
-//
-#pragma mark -
-#pragma mark Debugging support
-#pragma mark -
-
-// Debugging #defines that can be turned on
-#define EIDOS_DEBUG_COMPLETION	0	// turn on to log information about symbol types whenever doing code completion
-#define EIDOS_DEBUG_ERROR_POSITIONS		0	// turn on to log information about error positions in scripts
-
-// Flags for various runtime checks that can be turned on or off; in SLiM, -x turns these off.
-extern bool eidos_do_memory_checks;
-
-// To leak-check slim, a few steps are recommended (BCH 5/1/2019):
-//
-//	- turn on Malloc Scribble so spurious pointers left over in deallocated blocks are not taken to be live references
-//	- turn on Malloc Logging so you get backtraces from every leaked allocation
-//	- use a DEBUG build of slim so the backtraces are accurate and not obfuscated by optimization
-//	- set this #define to 1 so slim cleans up a bit and then sleeps before exit, waiting for its leaks to be assessed
-//	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
-//
-// To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
-// keep Valgrind from getting confused.  Use a DEBUG build so it is symbolicated (-g) and minimally optimized (-Og),
-// or add those flags to CMAKE_C_FLAGS_RELEASE and CMAKE_CXX_FLAGS_RELEASE in CMakeLists.txt.
-#define SLIM_LEAK_CHECKING	0
-
-#if SLIM_LEAK_CHECKING
-#warning SLIM_LEAK_CHECKING enabled!
-#endif
-
-// Enabling "debug points" in SLiMgui.  These are only enabled under SLiMgui (i.e., QtSLiM), and should always be enabled
-// in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
-#ifdef SLIMGUI
-#define DEBUG_POINTS_ENABLED	1
-extern int gEidosDebugIndent;
-#else
-#define DEBUG_POINTS_ENABLED	0
-#endif
-
-#if DEBUG_POINTS_ENABLED
-// A simple class for RAII-based debug point indentation; saves some hassle with exceptions, etc.
-class EidosDebugPointIndent
-{
-private:
-	int indent_;
-public:
-	EidosDebugPointIndent(void) : indent_(0) { }
-	~EidosDebugPointIndent(void) { gEidosDebugIndent -= indent_; }
-	inline void indent(int spaces = 4) { gEidosDebugIndent += spaces; indent_ += spaces; }
-	inline void outdent(int spaces = 4) { gEidosDebugIndent -= spaces; indent_ -= spaces; }
-	
-	static inline const std::string Indent(void) { return std::string(gEidosDebugIndent, ' '); }
-};
-#endif
-
-// Eidos defines the concept of "long-term boundaries", which are moments in time when Eidos objects
-// that are not under retain-release memory management could be freed.  Keeping a reference to such
-// an object between long-term boundaries is generally safe; keeping a reference to such an object
-// across a long-term boundary is generally NOT safe.  This function should be called, internally by
-// Eidos and externally by the Context, at such boundaries, and code should not free Eidos objects
-// (except local temporaries) without calling this function first.  This allows internal bookkeeping
-// to check for violations of the long-term boundary conventions.
-void CheckLongTermBoundary();
 
 
 // *******************************************************************************************************************
@@ -621,9 +648,11 @@ int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len);
 
 // Writing files with support for gzip compression and buffered flushing
-#define EIDOS_BUFFER_ZIP_APPENDS	1
+//
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_BUFFER_ZIP_APPENDS()	1
 
-#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
+#if EIDOS_BUFFER_ZIP_APPENDS()	// implementation details for Eidos_FlushFiles(); for internal use only
 extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// canonical absolute file path -> buffered text
 bool _Eidos_FlushZipBuffer(const std::string &p_file_path, const std::string &p_outstring);
 #endif
@@ -652,6 +681,30 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 // this follows the standard bzero() declaration: void bzero(void *s, size_t n);
 // see https://stackoverflow.com/a/17097978/2752221 for some justification
 #define EIDOS_BZERO(s, n) memset((s), 0, (n))
+
+// Standard deviation of a vector of values.  The math is done in double, regardless of the type T.
+template <typename T>
+double Eidos_StandardDeviation(T *x, size_t count)
+{
+	if (count < 2)
+		return std::numeric_limits<double>::quiet_NaN();
+	
+	double mean = 0;
+	double sd = 0;
+	
+	for (size_t value_index = 0; value_index < count; ++value_index)
+		mean += (double)x[value_index];
+	
+	mean /= count;
+	
+	for (size_t value_index = 0; value_index < count; ++value_index)
+	{
+		double temp = (double)x[value_index] - mean;
+		sd += temp * temp;
+	}
+	
+	return sqrt(sd / (count - 1));		// note: sample sd, not population sd
+}
 
 // Correlation between two vectors x and y of equal length; int64_t or double are used, and can be mixed
 template <typename T1, typename T2>
@@ -768,14 +821,42 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 // Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
-// Approximate equality of two floating-point numbers, within a ratio tolerance of 1.0001
-bool Eidos_ApproximatelyEqual(double a, double b);
+// Approximate equality of two floating-point numbers, following the isClose() method's heuristics
+inline __attribute__((always_inline)) bool Eidos_IsClose(double xv, double yv, double rtol = 1.0e-05, double atol = 1.0e-08, bool equalNAN = false)
+{
+	if (std::isfinite(xv) && std::isfinite(yv))
+	{
+		// if xv and yv are finite, they are "close" if absolute(xv - yv) <= (atol + rtol * absolute(yv))
+		// note that this mirrors the behavior of the numpy function isclose(), which this is based upon;
+		// it is documented at https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
+		// Note that Python's built-in math.isclose() has a different criterion, and different defaults;
+		// see https://docs.python.org/3/library/math.html#math.isclose.
+		bool close = (std::abs(xv - yv) <= atol + rtol * std::abs(yv));
+		
+		return close;
+	}
+	else
+	{
+		// if xv and yv are infinite, they are "close" if and only if they have the same sign
+		if (std::isinf(xv) && std::isinf(yv))
+			return (std::signbit(xv) == std::signbit(yv));
+		
+		// if xv and yv are NAN, they are "close" if and only if the equalNAN flag is true
+		if (std::isnan(xv) && std::isnan(yv))
+			return equalNAN;
+		
+		// all other cases involving INF and/or NAN are not "close"
+		return false;
+	}
+}
 
 // Split a std::string into a vector of substrings separated by a given delimiter
 std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim);
 std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim);
 bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &prefix);
 bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix);
+std::string Eidos_string_getRemainder(std::string const &fullString, std::string const &substr);
+
 bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle);
 bool Eidos_string_equalsCaseInsensitive(const std::string &s1, const std::string &s2);
 
@@ -828,6 +909,32 @@ bool Eidos_RegexWorks(void);
 
 // Checks that symbol_name does not contain any illegal Unicode characters; used to check identifiers, in particular
 bool Eidos_ContainsIllegalUnicode(const std::string &symbol_name);
+
+// little-endian read and write of a uint64_t from/to an address; taken from https://tskit.dev/tskit/docs/stable/c-api.html#reading-and-writing-metadata
+inline uint64_t Eidos_load_u64_le(const uint8_t *src)
+{
+    uint64_t value = (uint64_t) src[0];
+    value |= (uint64_t) src[1] << 8;
+    value |= (uint64_t) src[2] << 16;
+    value |= (uint64_t) src[3] << 24;
+    value |= (uint64_t) src[4] << 32;
+    value |= (uint64_t) src[5] << 40;
+    value |= (uint64_t) src[6] << 48;
+    value |= (uint64_t) src[7] << 56;
+    return value;
+}
+
+inline void Eidos_set_u64_le(uint8_t *dest, uint64_t value)
+{
+    dest[0] = (uint8_t)(value & 0xFF);
+    dest[1] = (uint8_t)((value >> 8) & 0xFF);
+    dest[2] = (uint8_t)((value >> 16) & 0xFF);
+    dest[3] = (uint8_t)((value >> 24) & 0xFF);
+    dest[4] = (uint8_t)((value >> 32) & 0xFF);
+    dest[5] = (uint8_t)((value >> 40) & 0xFF);
+    dest[6] = (uint8_t)((value >> 48) & 0xFF);
+    dest[7] = (uint8_t)((value >> 56) & 0xFF);
+}
 
 
 // *******************************************************************************************************************
@@ -920,7 +1027,8 @@ public:
 
 #ifdef Eidos_add_overflow
 
-#define EIDOS_HAS_OVERFLOW_BUILTINS		1
+// Function-like macro used for robustness: see https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/
+#define EIDOS_HAS_OVERFLOW_BUILTINS()		1
 
 #else
 
@@ -929,7 +1037,7 @@ public:
 #define Eidos_add_overflow(a, b, c)	(*(c)=(a)+(b), false)
 #define Eidos_sub_overflow(a, b, c)	(*(c)=(a)-(b), false)
 #define Eidos_mul_overflow(a, b, c)	(*(c)=(a)*(b), false)
-#define EIDOS_HAS_OVERFLOW_BUILTINS		0
+#define EIDOS_HAS_OVERFLOW_BUILTINS()		0
 
 #endif
 
@@ -1042,7 +1150,7 @@ public:
 		return EidosStringRegistry::sharedRegistry()._StringForGlobalStringID(p_string_id);
 	}
     
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
     static inline void ThunkRegistration(_EidosRegisteredString *p_registration_object)
     {
         EidosStringRegistry::sharedRegistry().gIDToString_Thunk.emplace_back(p_registration_object);
@@ -1175,6 +1283,11 @@ extern const std::string &gEidosStr_floatB;
 extern const std::string &gEidosStr_floatK;
 extern const std::string &gEidosStr_write;
 
+extern const std::string &gEidosStr_Palette;
+extern const std::string &gEidosStr_addNode;
+extern const std::string &gEidosStr_colorForValue;
+extern const std::string &gEidosStr_setFixedPoint;
+
 extern const std::string &gEidosStr_start;
 extern const std::string &gEidosStr_end;
 extern const std::string &gEidosStr_weights;
@@ -1306,6 +1419,11 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_floatB,
 	gEidosID_floatK,
 	gEidosID_write,
+	
+	gEidosID_Palette,
+	gEidosID_addNode,
+	gEidosID_colorForValue,
+	gEidosID_setFixedPoint,
 
 	gEidosID_start,
 	gEidosID_end,
@@ -1330,7 +1448,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 550		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 600		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
@@ -1352,6 +1470,7 @@ typedef struct {
 extern EidosNamedColor gEidosNamedColors[];
 
 void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
+void Eidos_GetColorComponents(const std::string &p_color_name, double *p_red_component, double *p_green_component, double *p_blue_component);
 void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);		// p_string_buffer must have room for 8 chars, including the null
@@ -1360,6 +1479,8 @@ void Eidos_GetColorString(uint8_t p_red, uint8_t p_green, uint8_t p_blue, char *
 void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, double *p_b);
 void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v);
 
+// EidosColorPalette wraps basic color palette functionality provided by tinycolormap;
+// see eidos_tinycolormap.h.  This should not be confused with EidosPalette.
 enum class EidosColorPalette : int
 {
 	kPalette_INVALID = -1,
@@ -1378,9 +1499,8 @@ enum class EidosColorPalette : int
 	kPalette_cividis,
 };
 
-EidosColorPalette Eidos_PaletteForName(const std::string &name);
-
-void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b);
+EidosColorPalette EidosColorPaletteForName(const std::string &name);
+void EidosColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b);
 
 
 // *******************************************************************************************************************

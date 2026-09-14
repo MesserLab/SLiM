@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -99,7 +99,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
 	//
 	
-	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
+	Species &species = subpop->species_;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	int squareSize, viewColumns = 0, viewRows = 0;
 	
@@ -189,7 +189,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			*(vertices++) = top;
 			
 			// dark gray default, for a fitness of NaN; should never happen
-			float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+			float colorRed = 0.6f, colorGreen = 0.6f, colorBlue = 0.6f, colorAlpha = 1.0;
 			Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 			
 			if (Individual::s_any_individual_color_set_ && individual.color_set_)
@@ -205,7 +205,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 				double fitness = individual.cached_unscaled_fitness_;
 				
 				if (!std::isnan(fitness))
-					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					species.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 			}
 			
 			for (int j = 0; j < 4; ++j)
@@ -798,7 +798,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			int64_t xsize = background_map->grid_size_[0];
 			int64_t ysize = background_map->grid_size_[1];
 			double *values = background_map->values_;
-			int n_colors = background_map->n_colors_;
 			
 			for (int y = 0; y < ysize; y++)
 			{
@@ -820,28 +819,9 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
 					
-					float value_fraction = (background_map->colors_min_ < background_map->colors_max_) ? (float)((value - background_map->colors_min_) / (background_map->colors_max_ - background_map->colors_min_)) : 0.0f;
-					float color_index = value_fraction * (n_colors - 1);
-					int color_index_1 = (int)floorf(color_index);
-					int color_index_2 = (int)ceilf(color_index);
+					float rgb[3];
 					
-					if (color_index_1 < 0) color_index_1 = 0;
-					if (color_index_1 >= n_colors) color_index_1 = n_colors - 1;
-					if (color_index_2 < 0) color_index_2 = 0;
-					if (color_index_2 >= n_colors) color_index_2 = n_colors - 1;
-					
-					float color_2_weight = color_index - color_index_1;
-					float color_1_weight = 1.0f - color_2_weight;
-					
-					float red1 = background_map->red_components_[color_index_1];
-					float green1 = background_map->green_components_[color_index_1];
-					float blue1 = background_map->blue_components_[color_index_1];
-					float red2 = background_map->red_components_[color_index_2];
-					float green2 = background_map->green_components_[color_index_2];
-					float blue2 = background_map->blue_components_[color_index_2];
-					float red = red1 * color_1_weight + red2 * color_2_weight;
-					float green = green1 * color_1_weight + green2 * color_2_weight;
-					float blue = blue1 * color_1_weight + blue2 * color_2_weight;
+					background_map->ColorForValue(value, rgb);
 					
 					//glColor3f(red, green, blue);
 					//glRecti(x1, y1, x2, y2);
@@ -857,9 +837,9 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 					
 					for (int j = 0; j < 4; ++j)
 					{
-						*(colors++) = red;
-						*(colors++) = green;
-						*(colors++) = blue;
+						*(colors++) = rgb[0];
+						*(colors++) = rgb[1];
+						*(colors++) = rgb[2];
 						*(colors++) = 1.0;
 					}
 					
@@ -1021,8 +1001,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		SpatialMap *map = map_pair.second;
 		
-		// a map must be "x", "y", or "xy", and must have a defined color map, for us to choose it as a default at all
-		if (((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy")) && (map->n_colors_ > 0))
+		// a map must be "x", "y", or "xy", and must have a defined palette, for us to choose it as a default at all
+		if (((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy")) && map->palette_)
 		{
 			// the map is usable, so now we check whether it's better than the map we previously found, if any
 			if ((!background_map) || (map->spatiality_ > background_map->spatiality_))
@@ -1103,7 +1083,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
+	Species &species = subpop->species_;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
@@ -1253,7 +1233,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		*(vertices++) = top;
 		
 		// dark gray default, for a fitness of NaN; should never happen
-		float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+		float colorRed = 0.6f, colorGreen = 0.6f, colorBlue = 0.6f, colorAlpha = 1.0;
 		
 		if (Individual::s_any_individual_color_set_ && individual.color_set_)
 		{
@@ -1268,7 +1248,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			double fitness = individual.cached_unscaled_fitness_;
 			
 			if (!std::isnan(fitness))
-				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				species.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 		}
 		
 		for (int j = 0; j < 4; ++j)

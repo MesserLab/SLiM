@@ -2,7 +2,7 @@
 
 initialize()
 {
-	setSeed(2180149919968428688);
+	setSeed(1678754586412584426);
 	defineConstant("L", 1e7);
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
