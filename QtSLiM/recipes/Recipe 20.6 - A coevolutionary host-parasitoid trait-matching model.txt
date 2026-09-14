@@ -38,7 +38,7 @@ species parasitoid initialize() {
 	initializeRecombinationRate(1e-8);
 }
 
-ticks all 2: first()
+2: first()
 {
 	hosts = host.subpopulations.individuals;
 	parasitoids  = parasitoid.subpopulations.individuals;
@@ -101,7 +101,7 @@ species parasitoid reproduction() {
 	}
 }
 
-ticks all 1 early() {
+1 early() {
 	host.addSubpop("p1", N0_host);
 	parasitoid.addSubpop("p2", N0_parasitoid);
 	
@@ -113,7 +113,7 @@ ticks all 1 early() {
 	log.addMeanSDColumns("parasitoid", "p2.individuals.target;");
 }
 
-ticks all early() {
+early() {
 	// calculate phenotypes and implement stabilizing selection
 	scale = dnorm(0.0, 0.0, S_S);
 	
@@ -132,5 +132,5 @@ ticks all early() {
 	parasitoids[parasitoids.age > 0].fitnessScaling = 0.0;
 }
 
-ticks all 10000 late() {
+10000 late() {
 }

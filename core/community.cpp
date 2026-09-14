@@ -378,8 +378,12 @@ void Community::InitializeFromFile(std::istream &p_infile)
 				{
 					Species *block_ticks = last_ticks_spec;
 					
-					if (!block_ticks && !last_spec_is_ticks_all)
-						EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): when species names have been explicitly declared (such as in multispecies models), every event must be preceded by a ticks specifier of the form 'ticks <species-name>'; if you want an event to run in every tick, specify 'ticks all'." << EidosTerminate(new_script_block->root_node_->token_);
+					// BCH 9/14/2026: I am removing the requirement that `ticks all` be specified on multispecies events.
+					// It's annoying, and brings in the issue of species timescales unnecessarily; the 99% case is that
+					// species are on the same timescale and all events can just be assumed to be `ticks all`.  It is
+					// still legal to provide the `ticks all` specifier, just no longer required.
+					//if (!block_ticks && !last_spec_is_ticks_all)
+					//	EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): when species names have been explicitly declared (such as in multispecies models), every event must be preceded by a ticks specifier of the form 'ticks <species-name>'; if you want an event to run in every tick, specify 'ticks all'." << EidosTerminate(new_script_block->root_node_->token_);
 					
 					new_script_block->ticks_spec_ = block_ticks;	// nullptr for "ticks all"
 				}

@@ -203,10 +203,13 @@ In multispecies models, one can optionally provide a
 
 \f2\fs22 \cf2 The 
 \f3\fs18 species_name
-\f2\fs22  should be the name of a species that was explicitly declared in the multispecies model.  If the 
+\f2\fs22  should be the name of a species that was explicitly declared in the multispecies model, as discussed in section 26.1.  If the 
 \f3\fs18 ticks
-\f2\fs22  specifier is omitted, the event will run in every tick (within the specified tick range).\
-When Eidos events are executed, several global variables are defined by SLiM for use by the Eidos code.  Here is a summary of those SLiM globals:\
+\f2\fs22  specifier is 
+\f3\fs18 ticks all
+\f2\fs22  (the default), the event will run in every tick for which it is scheduled by its declaration to run.\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 When Eidos events are executed, several global variables are defined by SLiM for use by the Eidos code.  Here is a summary of those SLiM globals:\
 \pard\tx1980\tx2880\pardeftab720\li1890\fi-1343\sa60\partightenfactor0
 
 \f3\fs18 \cf2 community
@@ -303,8 +306,7 @@ When Eidos events are executed, several global variables are defined by SLiM for
 A 
 \f3\fs18 mutationEffect()
 \f2\fs22  callback is called by SLiM when it is determining the effect of a mutation carried by an individual.  Normally, the effect of a mutation on a given trait in an individual is determined by equations built into SLiM that depend upon the type of trait.  This discussion will begin by reviewing exactly how that works.\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 For a multiplicative trait (such as the default trait), the effect is calculated from the selection coefficient 
+For a multiplicative trait (such as the default trait), the effect is calculated from the selection coefficient 
 \f0\i s
 \f2\i0  of the mutation and the dominance coefficient 
 \f0\i h
@@ -326,8 +328,7 @@ For an additive trait, the effect is calculated from the effect size
 \f2\i0 .  In either case, since the trait is additive the mutation effect added together with other effects on the trait (such as the baseline offset, substitution offset, and individual offset, as well as effects returned by 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callbacks) to produce the final trait value for the individual.  (For a logistic trait, the trait value is computed as for an additive trait and then post-transformed with the standard logistic equation.)\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 Whatever the type of trait, if the trait is configured to have a direct effect on fitness (as for the default trait), that final trait value is then considered to be a \'93fitness effect\'94, and is combined multiplicatively with other fitness effects on the individual to produce the individual\'92s fitness.  In any case \'96 whether the trait has a direct effect on fitness or not \'96 the trait value can be obtained in script and used to influence the simulation in any way desired.\
+Whatever the type of trait, if the trait is configured to have a direct effect on fitness (as for the default trait), that final trait value is then considered to be a \'93fitness effect\'94, and is combined multiplicatively with other fitness effects on the individual to produce the individual\'92s fitness.  In any case \'96 whether the trait has a direct effect on fitness or not \'96 the trait value can be obtained in script and used to influence the simulation in any way desired.\
 The dominance coefficient usually comes from the 
 \f3\fs18 dominance
 \f2\fs22  property of the mutation (or more generally, in a model with multiple traits, from the mutation\'92s dominance for the trait in question, as obtained from the 

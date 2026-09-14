@@ -70,7 +70,7 @@
 <p class="p3">[ticks species_name] [id] [t1 [: t2]] first() { ... }<br>
 [ticks species_name] [id] [t1 [: t2]] early() { ... }<br>
 [ticks species_name] [id] [t1 [: t2]] late() { ... }</p>
-<p class="p2">The <span class="s1">species_name</span> should be the name of a species that was explicitly declared in the multispecies model.<span class="Apple-converted-space">  </span>If the <span class="s1">ticks</span> specifier is omitted, the event will run in every tick (within the specified tick range).</p>
+<p class="p2">The <span class="s1">species_name</span> should be the name of a species that was explicitly declared in the multispecies model, as discussed in section 26.1.<span class="Apple-converted-space">  </span>If the <span class="s1">ticks</span> specifier is <span class="s1">ticks all</span> (the default), the event will run in every tick for which it is scheduled by its declaration to run.</p>
 <p class="p2">When Eidos events are executed, several global variables are defined by SLiM for use by the Eidos code.<span class="Apple-converted-space">  </span>Here is a summary of those SLiM globals:</p>
 <p class="p4"><span class="s1">community</span><span class="Apple-tab-span">	</span>The <span class="s1">Community</span> object for the overall simulation</p>
 <p class="p4"><span class="s1">sim</span><span class="Apple-tab-span">	</span>A <span class="s1">Species</span> object for the simulated species (in single-species simulations)</p>
