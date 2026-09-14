@@ -5436,7 +5436,7 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         if (height < 10)
             EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window height to be at least 10 pixels." << EidosTerminate(nullptr);
         
-        graphWindow = graphWindowWithView(customPlot, width, height);
+        graphWindow = graphWindowWithView(customPlot, /* windowWidth */ width, /* windowHeight */ height, /* minWidth */ 100, /* minHeight */ 10);
         createdWindow = true;
     }
     
@@ -6869,7 +6869,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     return image_window;
 }
 
-QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth, double windowHeight)
+QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth, double windowHeight, double minWidth, double minHeight)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
@@ -6878,7 +6878,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     QString title = graphView->graphTitle();
     
     graph_window->setWindowTitle(title);
-    graph_window->setMinimumSize(100, 10);
+    graph_window->setMinimumSize(minWidth, minHeight);
     graph_window->resize(windowWidth, windowHeight);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect

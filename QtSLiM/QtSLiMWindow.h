@@ -354,7 +354,7 @@ protected:
     virtual void resizeEvent(QResizeEvent *p_event) override;
     virtual void showEvent(QShowEvent *p_event) override;
     void positionNewSubsidiaryWindow(QWidget *window);
-    QWidget *graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth=300, double windowHeight=300);
+    QWidget *graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth=300, double windowHeight=300, double minWidth=250, double minHeight=250);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
     QWidget *newChromosomeDisplay(std::string chromosome_symbol, QString windowTitle);  // pass "" for all chromosomes, or a symbol for one chromosome
     
