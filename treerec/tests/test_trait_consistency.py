@@ -212,7 +212,7 @@ class TraitCalculator:
                         # "independent dominance occurs when (1+hs)(1+hs) equals 1+s,
                         # which occurs when h=(sqrt(1+s)−1)/s"
                         h = (np.sqrt(1 + s) - 1) / s if s != 0 else 0
-                out *= 1 + h * s
+                out *= max(0, 1 + h * s)
         return out
 
 
