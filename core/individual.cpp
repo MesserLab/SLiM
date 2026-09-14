@@ -7482,7 +7482,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 			if (trait_composite_offset_M != trait_composite_offset_F)
 			{
 #if DEBUG_TRAIT_DEMAND()
-				std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+				std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has per-sex composite offsets M == " << trait_composite_offset_M << ", F == " << trait_composite_offset_F << std::endl;
 #endif
 				
 				if (traitType == TraitType::kAdditive)
@@ -7544,7 +7544,7 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 		}
 		
 #if DEBUG_TRAIT_DEMAND()
-		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+		std::cout << "   DemandPhenotype_INDIVIDUALS() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has single composite offset " << trait_composite_offset_H << std::endl;
 #endif
 		
 		if (traitType == TraitType::kAdditive)
@@ -7984,7 +7984,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 			if (trait_composite_offset_M != trait_composite_offset_F)
 			{
 #if DEBUG_TRAIT_DEMAND()
-				std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+				std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has per-sex composite offsets M == " << trait_composite_offset_M << ", F == " << trait_composite_offset_F << std::endl;
 #endif
 				
 				if (traitType == TraitType::kAdditive)
@@ -8046,7 +8046,7 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 		}
 		
 #if DEBUG_TRAIT_DEMAND()
-		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has baseline offset " << trait_baseline_offset << std::endl;
+		std::cout << "   DemandPhenotype_SUBPOP() trait " << trait->Name() << " (" << trait->UserVisibleType() << ") has single composite offset " << trait_composite_offset_H << std::endl;
 #endif
 		
 		if (traitType == TraitType::kAdditive)
