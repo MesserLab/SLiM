@@ -486,6 +486,12 @@ public:
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_zygosityOfMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	
+	EidosValue_SP ExecuteMethod_calculateFitness(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_calculatePhenotype(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+	bool _MarkChromosomesAndMutations(const std::string &method_name, Species *species, EidosValue *mutations_value, std::vector<Mutation *> &focalMutations) const;
+	double _CalculatePhenotype(Species *species, Individual *individual, Trait *trait, std::vector<Mutation *> &focalMutations, slim_trait_index_t trait_index, bool useBaselineOffset, bool useSubstitutionOffset, bool useIndividualOffset, const std::vector<SLiMEidosBlock*> &mutationEffect_callbacks) const;
+	
 	EidosValue_SP ExecuteMethod_demandPhenotypeForIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	
 	// As the name suggests, this detects "pure-neutral" traits where the combination of the genetics of the

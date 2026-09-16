@@ -243,6 +243,7 @@ multitrait branch:
 	fix #631: provide an option to get pedigree IDs as individual identifiers in VCF -- specifically, add [Ns individualNames = NULL] to outputIndividualsToVCF() so the user can supply whatever names they want
 	fix #585: add monozygotic twin recipe, new recipe 16.12
 	fix #679: relax the requirement that events be declared with `ticks all` in multispecies models; now if there is no ticks specifier, `ticks all` is assumed (policy change)
+	fix #387: add calculateFitness() and calculatePhenotype() methods to Individual to allow calculation of fitness and phenotype values to be done from scratch, very flexibly
 
 
 version 5.2 (Eidos version 4.2):

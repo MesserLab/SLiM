@@ -1036,6 +1036,8 @@ extern const std::string &gStr_haplosomesForChromosomes;
 extern const std::string &gStr_offsetForTrait;
 extern const std::string &gStr_phenotypeForTrait;
 extern const std::string &gStr_demandPhenotypeForIndividuals;
+extern const std::string &gStr_calculateFitness;
+extern const std::string &gStr_calculatePhenotype;
 extern const std::string &gStr_setOffsetForTrait;
 extern const std::string &gStr_setPhenotypeForTrait;
 extern const std::string &gStr_relatedness;
@@ -1560,6 +1562,8 @@ enum _SLiMGlobalStringID : int {
 	gID_offsetForTrait,
 	gID_phenotypeForTrait,
 	gID_demandPhenotypeForIndividuals,
+	gID_calculateFitness,
+	gID_calculatePhenotype,
 	gID_setOffsetForTrait,
 	gID_setPhenotypeForTrait,
 	gID_relatedness,

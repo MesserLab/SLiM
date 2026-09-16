@@ -3754,7 +3754,142 @@ See the description of the
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 \'96\'a0(logical)containsMutations(object<Mutation>\'a0mutations)
+\f3\i0\fs18 \cf2 +\'a0(float)calculateFitness([No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F], [logical$\'a0useBaselineOffset\'a0=\'a0T], [logical$\'a0useSubstitutionOffset\'a0=\'a0T], [logical$\'a0useIndividualOffset\'a0=\'a0T], [logical$\'a0useMutationEffectCalls\'a0=\'a0T], [logical$\'a0useFitnessEffectCalls\'a0=\'a0T], [logical$\'a0useIndFitnessScaling\'a0=\'a0T], [logical$\'a0useSubpopFitnessScaling\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a 
+\f3\fs18 float
+\f4\fs20  vector of calculated fitness values for the target individual(s), which must all belong to a single species.  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), phenotypes that have already been calculated will be used when possible (generally only when all parameters have their default values).  Otherwise, phenotypes will be calculated from scratch.  In either case, this method will never express demand for phenotypes, and the phenotypes kept by individuals will never be changed by this method.  This ensures that calling this method has no unexpected side effects on the simulation state.\
+The calculations may include or exclude fitness effects from various sources, providing the flexibility to calculate different \'93fitness components\'94 or to see how different aspects of the simulation influence fitness.  Each of those options is detailed below.  As always in SLiM, fitness effects are multiplied together to produce the final fitness value.\
+If 
+\f3\fs18 muts
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), the effects of all mutations in the target species will be included.  Otherwise, only effects from 
+\f3\fs18 muts
+\f4\fs20  will be used.  This allows just a subset of mutations to be selected \'96 mutations of particular mutation types, or on particular chromosomes, or within a particular range of positions.  If 
+\f3\fs18 muts
+\f4\fs20  is an empty vector, no mutational effects will be included.\
+If 
+\f3\fs18 trait
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), all traits in the target species will be included.  Otherwise, only fitness effects associated with traits in 
+\f3\fs18 trait
+\f4\fs20  will be included.  In any case, traits with no direct effect on fitness will be ignored (since, of course, they have no effect on fitness).\
+If 
+\f3\fs18 useBaselineOffset
+\f4\fs20 , 
+\f3\fs18 useSubstitutionOffset
+\f4\fs20 , or 
+\f3\fs18 useIndividualOffset
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the corresponding trait offset will be included; otherwise it will be excluded.\
+If 
+\f3\fs18 useMutationEffectCalls
+\f4\fs20  or 
+\f3\fs18 useFitnessEffectCalls
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the corresponding type of callback will be included; otherwise it will be excluded.  When 
+\f3\fs18 T
+\f4\fs20 , this means that calls back out to the script\'92s Eidos code might occur during the execution of this method.\
+If 
+\f3\fs18 useIndFitnessScaling
+\f4\fs20  or 
+\f3\fs18 useSubpopFitnessScaling
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the corresponding 
+\f3\fs18 fitnessScaling
+\f4\fs20  property value (from the target individual or its subpopulation) will be included; otherwise it will be excluded.  If 
+\f3\fs18 useIndFitnessScaling
+\f4\fs20  or 
+\f3\fs18 useSubpopFitnessScaling
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the corresponding 
+\f3\fs18 fitnessScaling
+\f4\fs20  property value (from the target individual or its subpopulation) will be included; otherwise it will be excluded.  Keep in mind that SLiM automatically resets individual and subpopulation 
+\f3\fs18 fitnessScaling
+\f4\fs20  values to 
+\f3\fs18 1.0
+\f4\fs20  every tick, at the end of the fitness recalculation tick cycle stage; if you want 
+\f3\fs18 fitnessScaling
+\f4\fs20  values to be included, you will need to call calculateFitness() at a time when the 
+\f3\fs18 fitnessScaling
+\f4\fs20  values are valid.\
+Because of differences in the underlying implementation, numerical error and roundoff might mean that values calculated by this method differ slightly from the values calculated by the SLiM core, as provided by the 
+\f3\fs18 cachedFitness
+\f4\fs20  property, even if the default parameters are used.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(float)calculatePhenotype([No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>\'a0trait\'a0=\'a0NULL], [logical$\'a0forceRecalc\'a0=\'a0F], [logical$\'a0useBaselineOffset\'a0=\'a0T], [logical$\'a0useSubstitutionOffset\'a0=\'a0T], [logical$\'a0useIndividualOffset\'a0=\'a0T], [logical$\'a0useMutationEffectCalls\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a 
+\f3\fs18 float
+\f4\fs20  vector or matrix of calculated phenotypes for the target individual(s), which must all belong to a single species.  If 
+\f3\fs18 forceRecalc
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), phenotypes that have already been calculated will be used when possible (generally only when all parameters have their default values).  Otherwise, phenotypes will be calculated from scratch.  In either case, this method will never express demand for phenotypes, and the phenotypes kept by individuals will never be changed by this method.  This ensures that calling this method has no unexpected side effects on the simulation state.\
+The calculations may include or exclude effects from various sources, providing the flexibility to calculate different \'93phenotypic components\'94 or to see how different aspects of the simulation influence fitness.  Each of those options is detailed below.\
+If 
+\f3\fs18 muts
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), the effects of all mutations in the target species will be included.  Otherwise, only effects from 
+\f3\fs18 muts
+\f4\fs20  will be used.  This allows just a subset of mutations to be selected \'96 mutations of particular mutation types, or on particular chromosomes, or within a particular range of positions.  If 
+\f3\fs18 muts
+\f4\fs20  is an empty vector, no mutational effects will be included.\
+If 
+\f3\fs18 trait
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), all traits defined in the target species will be used, in the order in which they were defined.  Otherwise, 
+\f3\fs18 trait
+\f4\fs20  specifies the trait(s) to be used as 
+\f3\fs18 integer
+\f4\fs20  indices or 
+\f3\fs18 string
+\f4\fs20  names of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects.  If one trait is used, the result will be a vector of phenotypes corresponding to the target individuals; if more than one trait is used, the result will be a vector with one column per trait and one row per individual, providing the phenotype for each trait in each individual.\
+If 
+\f3\fs18 useBaselineOffset
+\f4\fs20 , 
+\f3\fs18 useSubstitutionOffset
+\f4\fs20 , or 
+\f3\fs18 useIndividualOffset
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the corresponding trait offset will be included; otherwise it will be excluded.\
+If 
+\f3\fs18 useMutationEffectCalls
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), 
+\f3\fs18 mutationEffect()
+\f4\fs20  callbacks will be included; otherwise they will be excluded.  When 
+\f3\fs18 T
+\f4\fs20 , this means that calls back out to the script\'92s Eidos code might occur during the execution of this method.\
+Because of differences in the underlying implementation, numerical error and roundoff might mean that values calculated by this method differ slightly from the values calculated by the SLiM core, as provided by the 
+\f3\fs18 <trait-name>
+\f4\fs20  dynamic property or 
+\f3\fs18 phenotypeForTrait()
+\f4\fs20  method of 
+\f3\fs18 Individual
+\f4\fs20 , even if the default parameters are used.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96\'a0(logical)containsMutations(object<Mutation>\'a0mutations)
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4190,8 +4325,7 @@ The parameters
 \f4\fs20 , and 
 \f3\fs18 outputNonnucleotides
 \f4\fs20  affect the format of the output produced.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Beginning in SLiM 6.0, 
+Beginning in SLiM 6.0, 
 \f3\fs18 individualNames
 \f4\fs20  may provide the names used in the VCF output for the target individuals.  If 
 \f3\fs18 individualNames
@@ -4204,8 +4338,7 @@ The parameters
 \f4\fs20  (where 
 \f3\fs18 inds
 \f4\fs20  is the vector of target individuals).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Output is generally done in a 
+Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

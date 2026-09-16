@@ -393,7 +393,7 @@ public:
 	void UpdateWFFitnessBuffers(void);
 	
 	// applying mutationEffect() and fitnessEffect() callbacks during trait/fitness calculation
-	slim_effect_t ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, Trait *p_trait, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
+	slim_effect_t ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, Trait *p_trait, slim_effect_t p_effect, const std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	slim_fitness_t ApplyFitnessEffectCallbacks(const std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, Individual *p_individual);
 	
 	// generate newly allocated offspring individuals from parent individuals; these methods loop over

@@ -1928,7 +1928,7 @@ void Subpopulation::UpdateWFFitnessBuffers(void)
 	}
 }
 
-slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, Trait *p_trait, slim_effect_t p_effect, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
+slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, Trait *p_trait, slim_effect_t p_effect, const std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
 	
