@@ -8953,6 +8953,41 @@ void Species::DerivedStatesFromMetadata(tsk_table_collection_t *p_tables)
 	// AND THEN WE JUST LET IT GO OUT OF SCOPE AND DISAPPEAR.
 	
 	// Of course the above code will need to be updated if tskit's mutation table implementation changes!
+
+	// We will also expect (and rely on) ancestral states being empty strings, and so just as we ignore whatever
+	// is in derived state for the mutation table, replacing it with what's in metadata (next), first
+	// we empty out what's in the ancestral table's ancestral state.
+
+	tsk_site_table_t &site_table = p_tables->sites;
+
+	// see tskit's alloc_empty_ragged_column for this:
+	char *zero_ancestral_state = (char *)malloc(1);
+	tsk_size_t *zero_ancestral_state_offset = (tsk_size_t *)calloc(site_table.num_rows + 1, sizeof(tsk_size_t));
+
+	tsk_site_table_t temp_site_table;
+	tsk_site_table_init(&temp_site_table, 0);
+	tsk_site_table_takeset_columns(&temp_site_table,
+			site_table.num_rows,
+			site_table.position,
+			zero_ancestral_state,
+			zero_ancestral_state_offset,
+			site_table.metadata,
+			site_table.metadata_offset
+	);
+
+	std::swap(temp_site_table.ancestral_state_length, site_table.ancestral_state_length);
+	std::swap(temp_site_table.max_ancestral_state_length, site_table.max_ancestral_state_length);
+	std::swap(temp_site_table.max_ancestral_state_length_increment, site_table.max_ancestral_state_length_increment);
+	std::swap(temp_site_table.ancestral_state, site_table.ancestral_state);
+	std::swap(temp_site_table.ancestral_state_offset, site_table.ancestral_state_offset);
+
+	// again, WE DO NOT DO:
+	// tsk_site_table_free(&temp_site_table);
+	// INSTEAD WE DO:
+	tsk_safe_free(temp_site_table.ancestral_state);			// free the old ancestral state data
+	tsk_safe_free(temp_site_table.ancestral_state_offset);		// free the offsets for that old data
+	tsk_safe_free(temp_site_table.metadata_schema);		// free the schema from tsk_site_table_init()
+	// AND THEN WE JUST LET IT GO OUT OF SCOPE AND DISAPPEAR.
 }
 
 void Species::DerivedStatesToMetadata(tsk_table_collection_t *p_tables)
