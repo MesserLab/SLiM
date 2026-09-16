@@ -139,6 +139,15 @@ We record as the `derived_state` for each mutation the
 This is necessary because stacking rules can change dynamically,
 and makes sense, because this is what the individual actually passes on to offspring.
 
+When SLiM (v6+) reads in a tree sequence, it obtains information about these potentially stacked mutations as follows:
+
+- each unique SLiM mutation is described in top-level metadata, under "SLiM_mutation_list",
+- and each tskit mutation has a list of SLiM mutation IDs in the mutation's metadata.
+
+On reading in the tree sequence, SLiM discards information in the ancestral state column of the site table,
+and in the derived state column of the mutation table. See below for more detail here.
+
+
 ### Sites and mutation parents
 
 Whenever a new mutation is encountered, we do the following:
