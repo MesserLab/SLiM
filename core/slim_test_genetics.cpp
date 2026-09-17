@@ -3671,6 +3671,48 @@ early() {
 	
 	SLiMAssertScriptRaise(multitrait_AUTOSOMAL_HEMIZYGOSITY, "substitution accumulation cannot occur for", 0, /* p_expect_error_position */ false);
 	
+	// This tests "mutation accumulation, stacking policy "a".  It uses both an additive and a multiplicative
+	// trait, with a hemizygous dominance coefficient of 0.4 (not 0.0, 0.5, or 1.0) to test that things are
+	// robust to that.  Unlike other models above, this mostly tests only in DEBUG mode, relying on the built-in
+	// self-testing code in MutationRun::__AccumulateStackedEffects().
+	#pragma mark multitrait_MUTATION_ACCUMULATION
+	std::string multitrait_MUTATION_ACCUMULATION =
+		R"V0G0N(
+// multitrait_MUTATION_ACCUMULATION
+initialize() {
+	initializeSex();
+	initializeTrait("trait1", "a");
+	initializeTrait("trait2", "m", directFitnessEffect=T);
+	
+	initializeMutationType("m1", NAN, "n", 0.0, 0.1);
+	m1.setDefaultHemizygousDominanceForTrait(NULL, 0.6);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	m1.mutationStackPolicy = "a";   // accumulate!
+	
+	for (index in 1:3, type in c("A", "X", "Y"))
+	{
+		initializeChromosome(index, 1e2, type);
+		initializeMutationRate(1e-2);
+		initializeGenomicElement(g1);
+		initializeRecombinationRate(0.5);
+	}
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+}
+late() {
+	sim.demandPhenotype(NULL, NULL);
+	
+	inds = p1.individuals;
+	trait1 = inds.trait1;
+	inds.fitnessScaling = dnorm(trait1, 10.0, 1.5);
+}
+20 late() { }
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_MUTATION_ACCUMULATION);
+	
 	// FIXME MULTITRAIT: remove this log once it is no longer useful...
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
