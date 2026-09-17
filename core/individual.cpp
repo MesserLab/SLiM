@@ -5166,9 +5166,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 									effect = subpop->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, mutationEffect_callbacks, individual);
 								
 								if (trait_type == TraitType::kMultiplicative)
-									phenotype *= effect;
+									phenotype *= (double)effect;
 								else
-									phenotype += effect;
+									phenotype += (double)effect;
 							}
 						}
 					}
@@ -5208,9 +5208,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 											effect = subpop->ApplyMutationEffectCallbacks(haplosome1_mutindex, 0, trait, effect, mutationEffect_callbacks, individual);
 										
 										if (trait_type == TraitType::kMultiplicative)
-											phenotype *= effect;
+											phenotype *= (double)effect;
 										else
-											phenotype += effect;
+											phenotype += (double)effect;
 									}
 									
 									if (++haplosome1_iter == haplosome1_max)
@@ -5232,9 +5232,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 											effect = subpop->ApplyMutationEffectCallbacks(haplosome2_mutindex, 0, trait, effect, mutationEffect_callbacks, individual);
 										
 										if (trait_type == TraitType::kMultiplicative)
-											phenotype *= effect;
+											phenotype *= (double)effect;
 										else
-											phenotype += effect;
+											phenotype += (double)effect;
 									}
 									
 									if (++haplosome2_iter == haplosome2_max)
@@ -5270,9 +5270,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 														effect = subpop->ApplyMutationEffectCallbacks(haplosome1_mutindex, 1, trait, effect, mutationEffect_callbacks, individual);
 													
 													if (trait_type == TraitType::kMultiplicative)
-														phenotype *= effect;
+														phenotype *= (double)effect;
 													else
-														phenotype += effect;
+														phenotype += (double)effect;
 												}
 												goto homozygousExit1;
 											}
@@ -5290,9 +5290,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 												effect = subpop->ApplyMutationEffectCallbacks(haplosome1_mutindex, 0, trait, effect, mutationEffect_callbacks, individual);
 											
 											if (trait_type == TraitType::kMultiplicative)
-												phenotype *= effect;
+												phenotype *= (double)effect;
 											else
-												phenotype += effect;
+												phenotype += (double)effect;
 										}
 										
 									homozygousExit1:
@@ -5332,9 +5332,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 												effect = subpop->ApplyMutationEffectCallbacks(haplosome2_mutindex, 0, trait, effect, mutationEffect_callbacks, individual);
 											
 											if (trait_type == TraitType::kMultiplicative)
-												phenotype *= effect;
+												phenotype *= (double)effect;
 											else
-												phenotype += effect;
+												phenotype += (double)effect;
 										}
 										
 									homozygousExit2:
@@ -5373,9 +5373,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 									effect = subpop->ApplyMutationEffectCallbacks(haplosome1_mutindex, 0, trait, effect, mutationEffect_callbacks, individual);
 								
 								if (trait_type == TraitType::kMultiplicative)
-									phenotype *= effect;
+									phenotype *= (double)effect;
 								else
-									phenotype += effect;
+									phenotype += (double)effect;
 							}
 						}
 						
@@ -5393,9 +5393,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 									effect = subpop->ApplyMutationEffectCallbacks(haplosome2_mutindex, 0, trait, effect, mutationEffect_callbacks, individual);
 								
 								if (trait_type == TraitType::kMultiplicative)
-									phenotype *= effect;
+									phenotype *= (double)effect;
 								else
-									phenotype += effect;
+									phenotype += (double)effect;
 							}
 						}
 					}
@@ -5432,9 +5432,9 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 								effect = subpop->ApplyMutationEffectCallbacks(haplosome_mutation, -1, trait, effect, mutationEffect_callbacks, individual);
 							
 							if (trait_type == TraitType::kMultiplicative)
-								phenotype *= effect;
+								phenotype *= (double)effect;
 							else
-								phenotype += effect;
+								phenotype += (double)effect;
 						}
 					}
 				}
