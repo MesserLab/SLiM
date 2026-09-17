@@ -2127,6 +2127,9 @@ slim_effect_t Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutati
 		}
 	}
 	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)]);
@@ -4878,6 +4881,9 @@ void Subpopulation::ApplyReproductionCallbacks(const std::vector<SLiMEidosBlock*
 		}
 	}
 	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)]);
@@ -5143,6 +5149,9 @@ bool Subpopulation::ApplySurvivalCallbacks(const std::vector<SLiMEidosBlock*> &p
 		// so that if there is more than one survival() callback active, we register only the final verdict after all callbacks
 		move_destination->nonWF_survival_moved_individuals_.emplace_back(p_individual);
 	}
+	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING

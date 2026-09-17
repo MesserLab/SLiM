@@ -172,7 +172,11 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 				else
 				{
 					if (!p_expect_error_position)
+					{
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << " : raise expected, and error info is set; but error info was not expected!" << std::endl;
+						std::cerr << "   raise message: " << raise_message << std::endl;
+						std::cerr << "--------------------" << std::endl << std::endl;
+					}
 					
 					gSLiMTestSuccessCount++;
 					

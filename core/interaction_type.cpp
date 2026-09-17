@@ -1396,6 +1396,9 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)]);

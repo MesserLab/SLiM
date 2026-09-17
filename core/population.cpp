@@ -1006,6 +1006,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			{
 				community_.executing_block_type_ = old_executing_block_type;
 				
+				// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+				ClearErrorContext();
+				
 #if (SLIMPROFILING == 1)
 				// PROFILING
 				SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
@@ -1028,6 +1031,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;
+		
+		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+		ClearErrorContext();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -1073,6 +1079,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// not an important distinction.  Returning float(0) is faster in principle, but if one is already constructing a vector
 			// of weights that can simply end up being all zero, then this path is much easier.  BCH 5 March 2017
 			community_.executing_block_type_ = old_executing_block_type;
+			
+			// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+			ClearErrorContext();
 			
 #if (SLIMPROFILING == 1)
 			// PROFILING
@@ -1145,6 +1154,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		community_.executing_block_type_ = old_executing_block_type;
 		
+		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+		ClearErrorContext();
+		
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
@@ -1154,6 +1166,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	}
 	
 	community_.executing_block_type_ = old_executing_block_type;
+	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1273,6 +1288,9 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 					community_.executing_block_type_ = old_executing_block_type;
 					community_.focal_modification_child_ = nullptr;
 					
+					// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+					ClearErrorContext();
+					
 #if (SLIMPROFILING == 1)
 					// PROFILING
 					SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
@@ -1290,6 +1308,9 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	community_.focal_modification_child_ = nullptr;
+	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -2912,6 +2933,9 @@ bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_
 	}
 	
 	community_.executing_block_type_ = old_executing_block_type;
+	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
