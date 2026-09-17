@@ -2220,15 +2220,15 @@ const std::string gSLiM_tsk_mutation_metadata_schema_SOURCE = R"V0G0N({
     "description": "SLiM schema for representing binary derived state data in mutation metadata (the metadata for each unique SLiM mutation is stored in top-level metadata).",
     "examples": [
         {
-            "derived_states": [0, 1, 17]
+            "slim_ids": [0, 1, 17]
         }
     ],
     "properties": {
-        "derived_states": {
+        "slim_ids": {
             "index": 1,
             "type": "array",
 			"noLengthEncodingExhaustBuffer": true,
-            "description": "An array of SLiM mutation IDs (int64t), representing the (stacked) mutations contained by the derived state for the mutation.",
+            "description": "An array of SLiM mutation IDs (int64t), representing the (stacked) mutations represented by this tskit mutation.",
             "items": {
                 "binaryFormat": "q",
                 "type": "number"
@@ -2236,7 +2236,7 @@ const std::string gSLiM_tsk_mutation_metadata_schema_SOURCE = R"V0G0N({
         }
     },
     "required": [
-        "derived_states"
+        "slim_ids"
     ]
 })V0G0N";
 
