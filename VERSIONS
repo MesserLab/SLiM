@@ -244,6 +244,7 @@ multitrait branch:
 	fix #585: add monozygotic twin recipe, new recipe 16.12
 	fix #679: relax the requirement that events be declared with `ticks all` in multispecies models; now if there is no ticks specifier, `ticks all` is assumed (policy change)
 	fix #387: add calculateFitness() and calculatePhenotype() methods to Individual to allow calculation of fitness and phenotype values to be done from scratch, very flexibly
+	relaxed the requirements for the hemizygous dominance coefficient for type "a" stacking; it can be anything now, the math works after all
 
 
 version 5.2 (Eidos version 4.2):

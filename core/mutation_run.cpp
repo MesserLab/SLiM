@@ -405,79 +405,148 @@ void MutationRun::__AccumulateStackedEffects(/*Mutation *accumulating_mut, */ Mu
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
 		MutationTraitInfo &accumulating_mut_trait_info = accumulating_mut_trait_info_base[trait_index];
-		slim_effect_t accumulating_effect = accumulating_mut_trait_info.effect_size_;
+		slim_effect_t accumulating_effect_size = accumulating_mut_trait_info.effect_size_;
 		
-		// if the effect of the existing mutation is 0.0, we can skip it; there is nothing to do,
-		// the effect of the new mutation is already correctly configured for the accumulation.
-		if (accumulating_effect == (slim_effect_t)0.0)
+		// if the effect size of the existing mutation is 0.0, we can skip it; there is nothing to do,
+		// the effect size of the new mutation is already correctly configured for the accumulation.
+		if (accumulating_effect_size == (slim_effect_t)0.0)
 			continue;
 		
 		MutationTraitInfo &new_mut_trait_info = new_mut_trait_info_base[trait_index];
-		slim_effect_t new_mut_effect = new_mut_trait_info.effect_size_;
+		slim_effect_t new_mut_effect_size = new_mut_trait_info.effect_size_;
 		
-		// both mutations must have be configured for independent dominance for this trait,
+		// both mutations must have been configured for independent dominance for this trait,
 		// otherwise accumulation is not possible; it is predicated on independent dominance.
 		if (!std::isnan(new_mut_trait_info.dominance_coeff_UNSAFE_) || !std::isnan(accumulating_mut_trait_info.dominance_coeff_UNSAFE_))
 			EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): stacking policy 'a' cannot be used with mutations that are not configured for independent dominance for all non-neutral effects." << EidosTerminate();
 		
-		// hemizygous dominance has to be either 0.0 or 1.0; intermediate values do not work
-		// the hemizygous dominance has to match between the two mutations, as well
-		if (((new_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)1.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)1.0))
-			|| ((new_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)0.0) && (accumulating_mut_trait_info.hemizygous_dominance_coeff_ == (slim_effect_t)0.0)))
+		Trait *trait = traits[trait_index];
+		
+		// Calculate the accumulated effects size and hemizygous dominance coefficient, at full precision for
+		// the best possible approximation to the stacked case.  Then round down to slim_effect_t for the values
+		// that will actually go into the new mutation, and calculate the new mutation's effects using those
+		// slim_effect_t values rather than the original full precision values to match what would happen
+		// in the SLiM core; we don't want to be more precise than the same calculation done again later on,
+		// since that would just cause confusion downstream (e.g., in debugging checks).
+		
+		if (trait->Type() != TraitType::kMultiplicative)
 		{
-			Trait *trait = traits[trait_index];
+			// For additive (and logistic) traits, it is simple: the effect sizes just add, such
+			// that a' = a1 + a2.  The dominance coefficient for both mutations is independent,
+			// which is 0.5, so that doesn't cause problems.
+			double new_effect_size_double = new_mut_effect_size + (double)accumulating_effect_size;
+			slim_effect_t new_effect_size = (slim_effect_t)(new_effect_size_double);
 			
-			if (trait->Type() != TraitType::kMultiplicative)
+			slim_effect_t new_homozygous_effect = new_effect_size + new_effect_size;
+			slim_effect_t new_heterozygous_effect = new_effect_size;
+			
+			// The hemizygous dominance coefficient is a free parameter (it is not used in the independent
+			// dominance machinery, that stuff is not used when hemizygous), so we fit it to the desired effect.
+			// 2*h_hemi'*a' = 2*h_hemi1*a1 + 2*h_hemi2*a2 so h_hemi' = (h_hemi1*a1 + h_hemi2*a2) / a'
+			double h_hemi1_a1 = accumulating_mut_trait_info.hemizygous_dominance_coeff_ * (double)accumulating_effect_size;
+			double h_hemi2_a2 = new_mut_trait_info.hemizygous_dominance_coeff_ * (double)new_mut_effect_size;
+			
+			slim_effect_t new_hemizygous_dominance = (slim_effect_t)((h_hemi1_a1 + h_hemi2_a2) / new_effect_size);
+			slim_effect_t new_hemizygous_effect = new_hemizygous_dominance * (new_effect_size + new_effect_size);
+			
+			// check that the accumulated effects match what the stacked effects would have been
+			// we need to tolerate roundoff/numerical error, but if there is a problem it will be a large problem
+#if DEBUG
 			{
-				// For additive (and logistic) traits, it is simple: the effect sizes just add, such
-				// that a' = a1 + a2.  The dominance coefficient for both mutations is independent,
-				// which is 0.5, so that doesn't cause problems.
-				slim_effect_t new_effect_size = new_mut_effect + accumulating_effect;
+				double stacked_homozygous = accumulating_mut_trait_info.homozygous_effect_ + new_mut_trait_info.homozygous_effect_;
+				double stacked_heterozyogus = accumulating_mut_trait_info.heterozygous_effect_ + new_mut_trait_info.heterozygous_effect_;
+				double stacked_hemizygous = accumulating_mut_trait_info.hemizygous_effect_ + new_mut_trait_info.hemizygous_effect_;
 				
-				new_mut_trait_info.effect_size_ = new_effect_size;
-				new_mut_trait_info.homozygous_effect_ = new_effect_size + new_effect_size;
-				new_mut_trait_info.heterozygous_effect_ = new_effect_size;
-				new_mut_trait_info.hemizygous_effect_ = new_mut_trait_info.hemizygous_dominance_coeff_ * (new_effect_size + new_effect_size);
+				if (std::abs(new_homozygous_effect - stacked_homozygous) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) additive accumulated homozygous effect != stacked homozygous effect (" << new_homozygous_effect << " != " << stacked_homozygous << ")." << EidosTerminate();
+				if (std::abs(new_heterozygous_effect - stacked_heterozyogus) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) additive accumulated heterozygous effect != stacked heterozygous effect (" << new_heterozygous_effect << " != " << stacked_heterozyogus << ")." << EidosTerminate();
+				if (std::abs(new_hemizygous_effect - stacked_hemizygous) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) additive accumulated hemizygous effect != stacked hemizygous effect (" << new_hemizygous_effect << " != " << stacked_hemizygous << ")." << EidosTerminate();
 			}
-			else
-			{
-				// For multiplicative traits, s' depends on s1 and s2 such that the combined effects of
-				// the stacked mutation would be equal to the effect of the new combined mutation, so
-				// 1+s' = (1+s1)(1+s2), so s' = (1+s1)(1+s2) - 1.  We round to slim_effect_t here since
-				// that is how the mutation will ultimately represent its data; we don't want to be more
-				// precise than the same calculation redone later for the same mutation would be.
-				slim_effect_t new_effect_size = (slim_effect_t)((1.0 + (double)new_mut_effect) * (1.0 + (double)accumulating_effect) - 1.0);
-				
-				// Then we derive the new dominance coefficient from (1+h's') = (1+h1s1)*(1+h2s2);
-				// so h' = ((1+h1s1)*(1+h2s2) - 1) / s'.  From another angle, h' = (sqrt(1+s')-1)/s'
-				// from the formula for independent dominance with multiplicative traits.  It turns
-				// out that these two equations are actually the same, happily.  So we can just leave
-				// the mutation with s' and independent dominance and it should work correctly in both
-				// the homozygous and heterozygous cases; and the hemizygous case was guaranteed by
-				// the check above.  See Mutation::RealizedDominanceForTrait() for additional comments.
-				slim_effect_t realized_dominance;
-				
-				if (new_effect_size == (slim_effect_t)0.0)
-					realized_dominance = (slim_effect_t)0.5;
-				else if (new_effect_size <= (slim_effect_t)-1.0)
-					realized_dominance = (slim_effect_t)1.0;
-				else
-					realized_dominance = (slim_effect_t)((std::sqrt(1.0 + (double)new_effect_size) - 1.0) / (double)new_effect_size);
-				
-				new_mut_trait_info.effect_size_ = new_effect_size;
-				new_mut_trait_info.homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + new_effect_size);
-				new_mut_trait_info.heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * new_effect_size);
-				new_mut_trait_info.hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + new_mut_trait_info.hemizygous_dominance_coeff_ * new_effect_size);
-				
-				// NOTE: The resulting trait values after accumulation will not necessarily be exactly the same
-				// as they would with stacking.  This is because each time that an accumulation occurs the result
-				// gets rounded into slim_effect_t.  With stacking, the whole sequence of stacked effects gets
-				// computed at double precision, so the final result is a bit more precise.  So it goes.
-			}
+#endif
+			
+			// set the new values into the new mutation to actually do the accumulation
+			new_mut_trait_info.effect_size_ = new_effect_size;
+			//new_mut_trait_info.dominance_coeff_UNSAFE_ = NAN;		// already set
+			new_mut_trait_info.hemizygous_dominance_coeff_ = new_hemizygous_dominance;
+			new_mut_trait_info.homozygous_effect_ = new_homozygous_effect;
+			new_mut_trait_info.heterozygous_effect_ = new_heterozygous_effect;
+			new_mut_trait_info.hemizygous_effect_ = new_hemizygous_effect;
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): with stacking policy 'a', both mutations must have a hemizygous dominance of 1.0, or both must have a hemizygous dominance of 0.0 (observed hemizygous dominances are " << new_mut_trait_info.hemizygous_dominance_coeff_ << " and " << accumulating_mut_trait_info.hemizygous_dominance_coeff_ << ").  Intermediate hemizygous dominance values are not allowed because the math doesn't work." << EidosTerminate();
+			// For the multiplicative trait case, a tricky thing is that effects less than 0.0 get
+			// clamped to 0.0, and we need to preserve that in the way we accumulate effects here.
+			
+			// For multiplicative traits, s' depends on s1 and s2 such that the combined effects of
+			// the stacked mutation would be equal to the effect of the new combined mutation, so
+			// 1+s' = (1+s1)(1+s2), so s' = (1+s1)(1+s2) - 1.
+			slim_effect_t new_effect_size = (slim_effect_t)(std::max(0.0, (1.0 + (double)new_mut_effect_size)) * std::max(0.0, (1.0 + (double)accumulating_effect_size)) - 1.0);
+			
+			// Then we derive the new dominance coefficient from (1+h's') = (1+h1s1)*(1+h2s2);
+			// so h' = ((1+h1s1)*(1+h2s2) - 1) / s'.  From another angle, h' = (sqrt(1+s')-1)/s'
+			// from the formula for independent dominance with multiplicative traits.  It turns
+			// out that these two equations are actually the same, happily.  So we can just leave
+			// the mutation with s' and independent dominance and it should work correctly in both
+			// the homozygous and heterozygous cases; and the hemizygous case was guaranteed by
+			// the check above.  See Mutation::RealizedDominanceForTrait() for additional comments.
+			slim_effect_t realized_dominance;
+			
+			if (new_effect_size == (slim_effect_t)0.0)
+				realized_dominance = (slim_effect_t)0.5;
+			else if (new_effect_size <= (slim_effect_t)-1.0)
+				realized_dominance = (slim_effect_t)1.0;
+			else
+				realized_dominance = (slim_effect_t)((std::sqrt(1.0 + (double)new_effect_size) - 1.0) / (double)new_effect_size);
+			
+			slim_effect_t new_homozygous_effect = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + new_effect_size);
+			slim_effect_t new_heterozygous_effect = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * new_effect_size);
+			
+			// The hemizygous dominance coefficient is a free parameter (it is not used in the independent
+			// dominance machinery, that stuff is not used when hemizygous), so we fit it to the desired effect.
+			// 1+h_hemi'*s' = (1+h_hemi1*s1)*(1+h_hemi2*s2) so h_hemi' = ((1+h_hemi1*s1)*(1+h_hemi2*s2) - 1) / s'
+			double p1_h_hemi1_s1 = std::max(0.0, 1.0 + accumulating_mut_trait_info.hemizygous_dominance_coeff_ * (double)accumulating_effect_size);
+			double p1_h_hemi2_s2 = std::max(0.0, 1.0 + new_mut_trait_info.hemizygous_dominance_coeff_ * (double)new_mut_effect_size);
+			
+			slim_effect_t new_hemizygous_dominance;
+			
+			if (new_effect_size == 0.0)
+				new_hemizygous_dominance = 0.5;
+			else
+				new_hemizygous_dominance = (slim_effect_t)(((p1_h_hemi1_s1 * p1_h_hemi2_s2) - 1.0) / new_effect_size);
+			
+			slim_effect_t new_hemizygous_effect = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + new_hemizygous_dominance * new_effect_size);
+			
+			// check that the accumulated effects match what the stacked effects would have been
+			// we need to tolerate roundoff/numerical error, but if there is a problem it will be a large problem
+#if DEBUG
+			{
+				double stacked_homozygous = accumulating_mut_trait_info.homozygous_effect_ * new_mut_trait_info.homozygous_effect_;
+				double stacked_heterozyogus = accumulating_mut_trait_info.heterozygous_effect_ * new_mut_trait_info.heterozygous_effect_;
+				double stacked_hemizygous = accumulating_mut_trait_info.hemizygous_effect_ * new_mut_trait_info.hemizygous_effect_;
+				
+				if (std::abs(new_homozygous_effect - stacked_homozygous) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) multiplicative accumulated homozygous effect != stacked homozygous effect (" << new_homozygous_effect << " != " << stacked_homozygous << ")." << EidosTerminate();
+				if (std::abs(new_heterozygous_effect - stacked_heterozyogus) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) multiplicative accumulated heterozygous effect != stacked heterozygous effect (" << new_heterozygous_effect << " != " << stacked_heterozyogus << ")." << EidosTerminate();
+				if (std::abs(new_hemizygous_effect - stacked_hemizygous) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) multiplicative accumulated hemizygous effect != stacked hemizygous effect (" << new_hemizygous_effect << " != " << stacked_hemizygous << ")." << EidosTerminate();
+			}
+#endif
+			
+			// set the new values into the new mutation to actually do the accumulation
+			new_mut_trait_info.effect_size_ = new_effect_size;
+			//new_mut_trait_info.dominance_coeff_UNSAFE_ = NAN;		// already set
+			new_mut_trait_info.hemizygous_dominance_coeff_ = new_hemizygous_dominance;
+			new_mut_trait_info.homozygous_effect_ = new_homozygous_effect;
+			new_mut_trait_info.heterozygous_effect_ = new_heterozygous_effect;
+			new_mut_trait_info.hemizygous_effect_ = new_hemizygous_effect;
+			
+			// NOTE: The resulting trait values after accumulation will not necessarily be exactly the same
+			// as they would with stacking.  This is because each time that an accumulation occurs the result
+			// gets rounded into slim_effect_t.  With stacking, the whole sequence of stacked effects gets
+			// computed at double precision, so the final result is a bit more precise.  So it goes.
 		}
 	}
 }
