@@ -3771,7 +3771,11 @@ If
 \f3\fs18 NULL
 \f4\fs20  (the default), the effects of all mutations in the target species will be included.  Otherwise, only effects from 
 \f3\fs18 muts
-\f4\fs20  will be used.  This allows just a subset of mutations to be selected \'96 mutations of particular mutation types, or on particular chromosomes, or within a particular range of positions.  If 
+\f4\fs20  will be used.  For a given target individual, only the mutations present in that individual that are also present in 
+\f3\fs18 muts
+\f4\fs20  will affect the calculations done by 
+\f3\fs18 calculateFitness()
+\f4\fs20 .  This allows just a subset of mutations to be selected \'96 mutations of particular mutation types, or on particular chromosomes, or within a particular range of positions.  If 
 \f3\fs18 muts
 \f4\fs20  is an empty vector, no mutational effects will be included.\
 If 
@@ -3807,21 +3811,15 @@ If
 \f3\fs18 T
 \f4\fs20  (the default), the corresponding 
 \f3\fs18 fitnessScaling
-\f4\fs20  property value (from the target individual or its subpopulation) will be included; otherwise it will be excluded.  If 
-\f3\fs18 useIndFitnessScaling
-\f4\fs20  or 
-\f3\fs18 useSubpopFitnessScaling
-\f4\fs20  is 
-\f3\fs18 T
-\f4\fs20  (the default), the corresponding 
-\f3\fs18 fitnessScaling
 \f4\fs20  property value (from the target individual or its subpopulation) will be included; otherwise it will be excluded.  Keep in mind that SLiM automatically resets individual and subpopulation 
 \f3\fs18 fitnessScaling
 \f4\fs20  values to 
 \f3\fs18 1.0
 \f4\fs20  every tick, at the end of the fitness recalculation tick cycle stage; if you want 
 \f3\fs18 fitnessScaling
-\f4\fs20  values to be included, you will need to call calculateFitness() at a time when the 
+\f4\fs20  values to be included, you will need to call 
+\f3\fs18 calculateFitness()
+\f4\fs20  at a time when the 
 \f3\fs18 fitnessScaling
 \f4\fs20  values are valid.\
 Because of differences in the underlying implementation, numerical error and roundoff might mean that values calculated by this method differ slightly from the values calculated by the SLiM core, as provided by the 
@@ -3846,7 +3844,11 @@ If
 \f3\fs18 NULL
 \f4\fs20  (the default), the effects of all mutations in the target species will be included.  Otherwise, only effects from 
 \f3\fs18 muts
-\f4\fs20  will be used.  This allows just a subset of mutations to be selected \'96 mutations of particular mutation types, or on particular chromosomes, or within a particular range of positions.  If 
+\f4\fs20  will be used.  For a given target individual, only the mutations present in that individual that are also present in 
+\f3\fs18 muts
+\f4\fs20  will affect the calculations done by 
+\f3\fs18 calculatePhenotype()
+\f4\fs20 .  This allows just a subset of mutations to be selected \'96 mutations of particular mutation types, or on particular chromosomes, or within a particular range of positions.  If 
 \f3\fs18 muts
 \f4\fs20  is an empty vector, no mutational effects will be included.\
 If 
@@ -3881,8 +3883,8 @@ If
 \f3\fs18 T
 \f4\fs20 , this means that calls back out to the script\'92s Eidos code might occur during the execution of this method.\
 Because of differences in the underlying implementation, numerical error and roundoff might mean that values calculated by this method differ slightly from the values calculated by the SLiM core, as provided by the 
-\f3\fs18 <trait-name>
-\f4\fs20  dynamic property or 
+\f2\i\fs18 <trait-name>
+\f4\i0\fs20  dynamic property or 
 \f3\fs18 phenotypeForTrait()
 \f4\fs20  method of 
 \f3\fs18 Individual
