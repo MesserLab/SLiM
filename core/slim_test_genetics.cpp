@@ -3713,6 +3713,168 @@ late() {
 	
 	SLiMAssertScriptSuccess(multitrait_MUTATION_ACCUMULATION);
 	
+	// This tests the methods calculateFitness() and calculatePhenotype() by comparing their results
+	// to the known results from a simulation, and by testing that their components combine correctly.
+	#pragma mark multitrait_CALC_PHENO_FITNESS
+	std::string multitrait_CALC_PHENO_FITNESS =
+		R"V0G0N(
+// multitrait_CALC_PHENO_FITNESS
+initialize() {
+	initializeTrait("trait1", "additive", baselineOffset=-5.0, individualOffsetSD=0.01);
+	initializeTrait("trait2", "multiplicative", baselineOffset=1.05, individualOffsetSD=0.001, directFitnessEffect=T);
+	
+	initializeMutationType("m1", NAN, "f", 0.0);   // neutral
+	initializeMutationType("m2", 0.3, "n", 0.0, 0.01);  // non-neutral
+	
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0, 0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-6);
+	
+	// QTL-related constants used below
+	defineConstant("QTL_mu", c(0.0, 0.0));
+	defineConstant("QTL_cov", 0.25);
+	defineConstant("QTL_sigma", matrix(c(1,QTL_cov,QTL_cov,1), nrow=2));
+	
+	defineConstant("RTOL", 1e-5);
+	defineConstant("ATOL", 1e-8);
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+}
+mutation(m2) {
+	// draw mutational effects for the new m2 mutation
+	effects = rmvnorm(1, QTL_mu, QTL_sigma);
+	mut.setEffectSizeForTrait(NULL, effects);
+	return T;
+}
+mutationEffect(m1) {
+	return effect - 0.0001;
+}
+fitnessEffect() {
+	return 1.01;
+}
+late() {
+	sim.demandPhenotype(NULL, NULL);
+	
+	inds = sim.subpopulations.individuals;
+	effects1 = dnorm(inds.trait1, 10.0, 5.0);
+	inds.fitnessScaling = effects1;
+	p1.fitnessScaling = 1.02;
+	
+	// precalculate fitness values while fitnessScaling is still valid
+	defineGlobal("fitness_calc1", inds.calculateFitness(forceRecalc=F));
+	defineGlobal("fitness_calc2", inds.calculateFitness(forceRecalc=T));
+	
+	// check that components total the final fitness, for one individual
+	// we can only do this for trait 2, which has a direct effect on fitness;
+	// trait1's fitness effects come from dnorm() so it is tricky to decompose
+	ind = inds[0];
+	fitness_trait2 = ind.calculateFitness(trait=sim.trait2, forceRecalc=T);
+	c0 = ind.calculateFitness(muts=NULL, trait=sim.trait2, useBaselineOffset=F, useSubstitutionOffset=F, useIndividualOffset=F,
+		useMutationEffectCalls=T, useFitnessEffectCalls=F, useIndFitnessScaling=F, useSubpopFitnessScaling=F);
+	c1 = ind.calculateFitness(muts=object(), trait=sim.trait2, useBaselineOffset=T, useSubstitutionOffset=F, useIndividualOffset=F,
+		useMutationEffectCalls=F, useFitnessEffectCalls=F, useIndFitnessScaling=F, useSubpopFitnessScaling=F);
+	c2 = ind.calculateFitness(muts=object(), trait=sim.trait2, useBaselineOffset=F, useSubstitutionOffset=T, useIndividualOffset=F,
+		useMutationEffectCalls=F, useFitnessEffectCalls=F, useIndFitnessScaling=F, useSubpopFitnessScaling=F);
+	c3 = ind.calculateFitness(muts=object(), trait=sim.trait2, useBaselineOffset=F, useSubstitutionOffset=F, useIndividualOffset=T,
+		useMutationEffectCalls=F, useFitnessEffectCalls=F, useIndFitnessScaling=F, useSubpopFitnessScaling=F);
+	c4 = ind.calculateFitness(muts=object(), trait=sim.trait2, useBaselineOffset=F, useSubstitutionOffset=F, useIndividualOffset=F,
+		useMutationEffectCalls=F, useFitnessEffectCalls=T, useIndFitnessScaling=F, useSubpopFitnessScaling=F);
+	c5 = ind.calculateFitness(muts=object(), trait=sim.trait2, useBaselineOffset=F, useSubstitutionOffset=F, useIndividualOffset=F,
+		useMutationEffectCalls=F, useFitnessEffectCalls=F, useIndFitnessScaling=T, useSubpopFitnessScaling=F);
+	c6 = ind.calculateFitness(muts=object(), trait=sim.trait2, useBaselineOffset=F, useSubstitutionOffset=F, useIndividualOffset=F,
+		useMutationEffectCalls=F, useFitnessEffectCalls=F, useIndFitnessScaling=F, useSubpopFitnessScaling=T);
+	
+	if (!allClose(fitness_trait2, c0*c1*c2*c3*c4*c5*c6, rtol=RTOL, atol=ATOL))
+	{
+		catn("c0 (muts + mutEffect() calls) == " + c0);
+		catn("c1 (baseline offset == " + sim.trait2.baselineOffsetH + ") == " + c1);
+		catn("c2 (sub offset == " + sim.trait2.substitutionOffsetH + ") == " + c2);
+		catn("c3 (ind offset == " + ind.trait2Offset + ") == " + c3);
+		catn("c4 (fitEffect() call == 1.01) == " + c5);
+		catn("c5 (ind.fitScaling == " + ind.fitnessScaling + ") == " + c6);
+		catn("c6 (p1.fitScaling == " + p1.fitnessScaling + ") == " + c7);
+		stop("fitness_calc2 != prod(c0:6): " + fitness_trait2 + " != " + (c0*c1*c2*c3*c4*c5*c6));
+	}
+}
+2: first() {
+	inds = p1.individuals;
+	
+	// compare SLiM's values to calculateFitness() / calculatePhenotype()
+	fitness_slim = inds.cachedFitness;
+	//fitness_calc1 = inds.calculateFitness(forceRecalc=F);    // precalculated above
+	//fitness_calc2 = inds.calculateFitness(forceRecalc=T);    // precalculated above
+	
+	trait1_slim = inds.trait1;
+	trait1_calc1 = inds.calculatePhenotype(trait=sim.trait1, forceRecalc=F);
+	trait1_calc2 = inds.calculatePhenotype(trait=sim.trait1, forceRecalc=T);
+	
+	trait2_slim = inds.trait2;
+	trait2_calc1 = inds.calculatePhenotype(trait=sim.trait2, forceRecalc=F);
+	trait2_calc2 = inds.calculatePhenotype(trait=sim.trait2, forceRecalc=T);
+	
+	if (!allClose(fitness_slim, fitness_calc1, rtol=RTOL, atol=ATOL))
+		stop("fitness_slim != fitness_calc1");
+	if (!allClose(fitness_slim, fitness_calc2, rtol=RTOL, atol=ATOL))
+		stop("fitness_slim != fitness_calc2");
+	if (!allClose(trait1_slim, trait1_calc1, rtol=RTOL, atol=ATOL))
+		stop("trait1_slim != trait1_calc1");
+	if (!allClose(trait1_slim, trait1_calc2, rtol=RTOL, atol=ATOL))
+		stop("trait1_slim != trait1_calc2");
+	if (!allClose(trait2_slim, trait2_calc1, rtol=RTOL, atol=ATOL))
+		stop("trait2_slim != trait2_calc1");
+	if (!allClose(trait2_slim, trait2_calc2, rtol=RTOL, atol=ATOL))
+		stop("trait2_slim != trait2_calc2");
+	
+	// check that components total the final phenotype, for one individual
+	ind = inds[0];
+	
+	pheno_trait1 = ind.calculatePhenotype(trait=sim.trait1, forceRecalc=T);
+	c0 = ind.calculatePhenotype(muts=NULL, trait=sim.trait1, useBaselineOffset=F,
+		useSubstitutionOffset=F, useIndividualOffset=F, useMutationEffectCalls=T);
+	c1 = ind.calculatePhenotype(muts=object(), trait=sim.trait1, useBaselineOffset=T,
+		useSubstitutionOffset=F, useIndividualOffset=F, useMutationEffectCalls=F);
+	c2 = ind.calculatePhenotype(muts=object(), trait=sim.trait1, useBaselineOffset=F,
+		useSubstitutionOffset=T, useIndividualOffset=F, useMutationEffectCalls=F);
+	c3 = ind.calculatePhenotype(muts=object(), trait=sim.trait1, useBaselineOffset=F,
+		useSubstitutionOffset=F, useIndividualOffset=T, useMutationEffectCalls=F);
+	
+	if (!allClose(pheno_trait1, c0+c1+c2+c3, rtol=RTOL, atol=ATOL))
+	{
+		catn("c0 (muts + mutEffect() calls) == " + c0);
+		catn("c1 (baseline offset == " + sim.trait1.baselineOffsetH + ") == " + c1);
+		catn("c2 (sub offset == " + sim.trait1.substitutionOffsetH + ") == " + c2);
+		catn("c3 (ind offset == " + ind.trait1Offset + ") == " + c3);
+		stop("pheno_trait1 != sum(c0:3): " + pheno_trait1 + " != " + (c0+c1+c2+c3));
+	}
+	
+	pheno_trait2 = ind.calculatePhenotype(trait=sim.trait2, forceRecalc=T);
+	c0 = ind.calculatePhenotype(muts=NULL, trait=sim.trait2, useBaselineOffset=F,
+		useSubstitutionOffset=F, useIndividualOffset=F, useMutationEffectCalls=T);
+	c1 = ind.calculatePhenotype(muts=object(), trait=sim.trait2, useBaselineOffset=T,
+		useSubstitutionOffset=F, useIndividualOffset=F, useMutationEffectCalls=F);
+	c2 = ind.calculatePhenotype(muts=object(), trait=sim.trait2, useBaselineOffset=F,
+		useSubstitutionOffset=T, useIndividualOffset=F, useMutationEffectCalls=F);
+	c3 = ind.calculatePhenotype(muts=object(), trait=sim.trait2, useBaselineOffset=F,
+		useSubstitutionOffset=F, useIndividualOffset=T, useMutationEffectCalls=F);
+	
+	if (!allClose(pheno_trait2, c0*c1*c2*c3, rtol=RTOL, atol=ATOL))
+	{
+		catn("c0 (muts + mutEffect() calls) == " + c0);
+		catn("c1 (baseline offset == " + sim.trait2.baselineOffsetH + ") == " + c1);
+		catn("c2 (sub offset == " + sim.trait2.substitutionOffsetH + ") == " + c2);
+		catn("c3 (ind offset == " + ind.trait2Offset + ") == " + c3);
+		stop("pheno_trait2 != prod(c0:3): " + pheno_trait2 + " != " + (c0*c1*c2*c3));
+	}
+}
+100 late() {
+	sim.simulationFinished();
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_CALC_PHENO_FITNESS);
+	
 	// FIXME MULTITRAIT: remove this log once it is no longer useful...
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
