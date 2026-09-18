@@ -181,10 +181,6 @@ multitrait branch:
 	minor fixes for more recipes for multitrait: 13.5, 18.7, 19.2
 	add recipe 13.14: a sexually dimorphic quantitative trait
 	fix calcInbreedingLoad() for multitrait: add a parameter [Niso<Trait>$ trait = NULL] to choose one (multiplicative) trait, or NULL to use all (multiplicative) traits
-	fix calcVA() for multitrait, and add calcVD() and calcVG(): (this breaks backward compatibility; calcVA() in SLiM < 6.0 seems to have been calcVP() really, if even that...)
-		(float$)calcVA(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): additive genetic variance
-		(float$)calcVD(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): dominance genetic variance
-		(float$)calcVG(object<Individual> individuals, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL]): total genetic variance
 	fix #641, a crash related to expanding the mutation block buffers when reading in from a file (whether .trees, VCF, MS, or SLiM format), or inside addNew[Drawn]Mutation() (new in multitrait)
 	fix #642, mutations retained by the tree not re-retained by the tree when a saved tree sequence file is reloaded (new in multitrait)
 	fix #643, phenotypes not initialized from TreeSeq file
@@ -245,6 +241,11 @@ multitrait branch:
 	fix #679: relax the requirement that events be declared with `ticks all` in multispecies models; now if there is no ticks specifier, `ticks all` is assumed (policy change)
 	fix #387: add calculateFitness() and calculatePhenotype() methods to Individual to allow calculation of fitness and phenotype values to be done from scratch, very flexibly
 	relaxed the requirements for the hemizygous dominance coefficient for type "a" stacking; it can be anything now, the math works after all
+	extend calcVA() / calcVD() / calcVG() / calcVP() for multitrait, thanks to Vitor Sudbrack (this breaks backward compatibility):
+		(float)calcVA([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait>$ trait = NULL]): additive genetic variance
+		(float)calcVD([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait>$ trait = NULL]): dominance genetic variance
+		(float)calcVG([No<Individual> individuals = NULL], [Niso<Trait> trait = NULL]): total genetic variance
+		(float)calcVP([No<Individual> individuals = NULL], [Niso<Trait> trait = NULL]): phenotypic variance
 
 
 version 5.2 (Eidos version 4.2):
