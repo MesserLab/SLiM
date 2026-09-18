@@ -3105,7 +3105,7 @@ The implementation of
 \f2\fs20  for further discussion.  This function was written by Nick Bailey (then affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)calcVA([No<Individual>\'a0individuals\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>$\'a0trait\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float)calcVA([No<Individual>\'a0individuals\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -3124,7 +3124,7 @@ The implementation of
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all of the mutations for the focal species will be used.  Additionally, the calculation can be limited to a focal additive trait or traits passed in 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  (which may be either 
 \f1\fs18 integer
 \f2\fs20  trait indices, 
@@ -3132,7 +3132,7 @@ The implementation of
 \f2\fs20  trait names, or 
 \f1\fs18 Trait
 \f2\fs20  objects specified directly); if 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all additive traits for the focal species will be used.  (Only additive traits may be used, because the calculation of additive genetic variance assumes quantitative-genetics effect sizes and dominances.)\
@@ -3154,7 +3154,7 @@ The implementation of
 \f2\fs20 .  This function was written by V\'edtor Sudbrack (then affiliated with the University of Vienna).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)calcVD([No<Individual>\'a0individuals\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>$\'a0trait\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float)calcVD([No<Individual>\'a0individuals\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -3173,7 +3173,7 @@ The implementation of
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all of the mutations for the focal species will be used.  Additionally, the calculation can be limited to a focal additive trait or traits passed in 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  (which may be either 
 \f1\fs18 integer
 \f2\fs20  trait indices, 
@@ -3181,7 +3181,7 @@ The implementation of
 \f2\fs20  trait names, or 
 \f1\fs18 Trait
 \f2\fs20  objects specified directly); if 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all additive traits for the focal species will be used.  (Only additive traits may be used, because the calculation of dominance genetic variance assumes quantitative-genetics effect sizes and dominances.)\
@@ -3203,7 +3203,7 @@ The implementation of
 \f2\fs20 .  This function was written by V\'edtor Sudbrack (then affiliated with the University of Vienna).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)calcVG([No<Individual>\'a0individuals\'a0=\'a0NULL], [Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float)calcVG([No<Individual>\'a0individuals\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -3216,7 +3216,7 @@ The implementation of
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all individuals in the simulated species are used; this option is only allowed in single-species models.  The calculation can be limited to a focal trait or traits passed in 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  (which may be either 
 \f1\fs18 integer
 \f2\fs20  trait indices, 
@@ -3224,7 +3224,7 @@ The implementation of
 \f2\fs20  trait names, or 
 \f1\fs18 Trait
 \f2\fs20  objects specified directly); if 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all traits for the focal species will be used.  (Traits of all types may be used, because the calculation of total genetic variance does not assume quantitative-genetics effect sizes and dominances.)\
@@ -3246,7 +3246,7 @@ The implementation of
 \f2\fs20 .  This function was written by V\'edtor Sudbrack (then affiliated with the University of Vienna).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)calcVP([No<Individual>\'a0individuals\'a0=\'a0NULL], [Niso<Trait>\'a0trait\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float)calcVP([No<Individual>\'a0individuals\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -3259,7 +3259,7 @@ The implementation of
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all individuals in the simulated species are used; this option is only allowed in single-species models.  The calculation can be limited to a focal trait or traits passed in 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  (which may be either 
 \f1\fs18 integer
 \f2\fs20  trait indices, 
@@ -3267,7 +3267,7 @@ The implementation of
 \f2\fs20  trait names, or 
 \f1\fs18 Trait
 \f2\fs20  objects specified directly); if 
-\f1\fs18 trait
+\f1\fs18 traits
 \f2\fs20  is 
 \f1\fs18 NULL
 \f2\fs20  (the default), all traits for the focal species will be used.  (Traits of all types may be used, because the calculation of phenotypic variance does not assume quantitative-genetics effect sizes and dominances.)\
