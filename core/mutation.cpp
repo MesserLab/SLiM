@@ -608,7 +608,7 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end) const
 		// for no apparent reason.  Always with multiplicative traits, for heterozygous effect, with the test model
 		// multitrait_CALC_PHENO_FITNESS, after setEffectSizeForTrait().  Reproducible in CI, but not reproducible
 		// for me since it doesn't happen on macOS.  Which is weird – maybe --fast-math is doing something that is
-		// platform, specific, or something.  The code looks absolutely solid; if there's a bug it is very subtle.
+		// platform-specific, or something.  The code looks absolutely solid; if there's a bug it is very subtle.
 		// So I'm going to give up and make these comparisons use a tolerance.  There _is_ a bug here, somewhere,
 		// it seems to me; but it could be very deep in the bowels of the details of platform-dependent floating-
 		// point implementations, and it's feeling like it isn't worth it, since nothing really rides on these
@@ -616,8 +616,10 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end) const
 		//if (correct_homozygous_effect != traitInfoRec.homozygous_effect_)
 		if (std::abs(correct_homozygous_effect - traitInfoRec.homozygous_effect_) > 1e-6)
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " homozygous_effect_ does not match expectations" << p_message_end << " (" << correct_homozygous_effect << " != " << traitInfoRec.homozygous_effect_ << ", difference == " << (correct_homozygous_effect - traitInfoRec.homozygous_effect_) << ")." << EidosTerminate();
+		//if (correct_heterozygous_effect != traitInfoRec.heterozygous_effect_)
 		if (std::abs(correct_heterozygous_effect - traitInfoRec.heterozygous_effect_) > 1e-6)
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " heterozygous_effect_ does not match expectations" << p_message_end << " (" << correct_heterozygous_effect << " != " << traitInfoRec.heterozygous_effect_ << ", difference == " << (correct_heterozygous_effect - traitInfoRec.heterozygous_effect_) << ")." << EidosTerminate();
+		//if (correct_hemizygous_effect != traitInfoRec.hemizygous_effect_)
 		if (std::abs(correct_hemizygous_effect - traitInfoRec.hemizygous_effect_) > 1e-6)
 			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " hemizygous_effect_ does not match expectations" << p_message_end << " (" << correct_hemizygous_effect << " != " << traitInfoRec.hemizygous_effect_ << ", difference == " << (correct_hemizygous_effect - traitInfoRec.hemizygous_effect_) << ")." << EidosTerminate();
 		
