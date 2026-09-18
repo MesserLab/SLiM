@@ -685,6 +685,9 @@ void Mutation::SetEffectSize(Trait *p_trait, MutationTraitInfo *traitInfoRec, sl
 {
 	slim_effect_t old_effect = traitInfoRec->effect_size_;
 	
+	if (old_effect == p_new_effect)
+		return;
+	
 	traitInfoRec->effect_size_ = p_new_effect;
 	
 	// TRAIT INVALIDATION: the trait value for this trait is invalidated in all individuals
