@@ -605,11 +605,11 @@ void Mutation::SelfConsistencyCheck(const std::string &p_message_end) const
 		}
 		
 		if (correct_homozygous_effect != traitInfoRec.homozygous_effect_)
-			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " homozygous_effect_ does not match expectations" << p_message_end << " (" << correct_homozygous_effect << " != " << traitInfoRec.homozygous_effect_ << ")." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " homozygous_effect_ does not match expectations" << p_message_end << " (" << correct_homozygous_effect << " != " << traitInfoRec.homozygous_effect_ << ", difference == " << (correct_homozygous_effect - traitInfoRec.homozygous_effect_) << ")." << EidosTerminate();
 		if (correct_heterozygous_effect != traitInfoRec.heterozygous_effect_)
-			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " heterozygous_effect_ does not match expectations" << p_message_end << " (" << correct_heterozygous_effect << " != " << traitInfoRec.heterozygous_effect_ << ")." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " heterozygous_effect_ does not match expectations" << p_message_end << " (" << correct_heterozygous_effect << " != " << traitInfoRec.heterozygous_effect_ << ", difference == " << (correct_heterozygous_effect - traitInfoRec.heterozygous_effect_) << ")." << EidosTerminate();
 		if (correct_hemizygous_effect != traitInfoRec.hemizygous_effect_)
-			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " hemizygous_effect_ does not match expectations" << p_message_end << " (" << correct_hemizygous_effect << " != " << traitInfoRec.hemizygous_effect_ << ")." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::SelfConsistencyCheck): (internal error) " << (trait->Type() == TraitType::kAdditive ? "additive or logistic" : "multiplicative") << " hemizygous_effect_ does not match expectations" << p_message_end << " (" << correct_hemizygous_effect << " != " << traitInfoRec.hemizygous_effect_ << ", difference == " << (correct_hemizygous_effect - traitInfoRec.hemizygous_effect_) << ")." << EidosTerminate();
 		
 		if (effect_size != (slim_effect_t)0.0)
 		{
