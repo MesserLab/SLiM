@@ -120,7 +120,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, python: 3.11 }
+          # the MINGW64 environment has been removed for slim-simulator; see https://github.com/MesserLab/SLiM/issues/683
+          # that environment has been deprecated; see https://www.msys2.org/news/#2026-03-15-deprecating-the-mingw64-environment
+          # so SLiM 5.2 was the last release that had both MINGW64 and UCRT64 builds supported in pacman; going forward it is UCRT64 only
+          #- { sys: mingw64, env: x86_64, python: 3.11 }
           - { sys: ucrt64, env: ucrt-x86_64, python: 3.11 }
     defaults:
       run:
@@ -246,7 +249,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
+          # the MINGW64 environment has been removed for slim-simulator; see https://github.com/MesserLab/SLiM/issues/683
+          # that environment has been deprecated; see https://www.msys2.org/news/#2026-03-15-deprecating-the-mingw64-environment
+          # so SLiM 5.2 was the last release that had both MINGW64 and UCRT64 builds supported in pacman; going forward it is UCRT64 only
+          #- { sys: mingw64, env: x86_64 }
           - { sys: ucrt64, env: ucrt-x86_64 }
     runs-on: windows-latest
     defaults:
