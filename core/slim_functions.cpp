@@ -83,8 +83,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVD", gSLiMSourceCode_calcVD, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVG", gSLiMSourceCode_calcVG, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVP", gSLiMSourceCode_calcVP, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVG", gSLiMSourceCode_calcVG, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVP", gSLiMSourceCode_calcVP, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_D", gSLiMSourceCode_calcLD_D, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_Rsquared", gSLiMSourceCode_calcLD_Rsquared, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddLogical_OS("squared", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcMeanFroh", gSLiMSourceCode_calcMeanFroh, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt_OS("minimumLength", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1000000)))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
@@ -439,7 +439,7 @@ R"V0G0N({
 		return cov(df_hetDeviation);         // return a variance-covariance matrix for multiple traits
 })V0G0N";
 
-#pragma mark (float)calcVG([No<Individual> individuals = NULL], [Niso<Trait> traits = NULL])
+#pragma mark (float)calcVG([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait> traits = NULL])
 const char *gSLiMSourceCode_calcVG = 
 R"V0G0N({
 	// Calculates the total genetic variance-covariance matrix, the G_T-matrix
@@ -463,6 +463,10 @@ R"V0G0N({
 			stop("ERROR (calcVG): all individuals must belong to the same species.");
 	}
 	
+	if (!isNULL(muts))
+		if (any(muts.chromosome.species != species))
+			stop("ERROR (calcVD): all mutations must belong to the same species as the individuals.");
+	
 	if (isNULL(traits))
 		traits = species.traits; // VG can be calculated across all trait types
 	else if (isInteger(traits))
@@ -478,7 +482,7 @@ R"V0G0N({
 	df_genValue = c(); // rows are individuals, columns are traits
 	for (trait in traits)
 	{
-		genValue = individuals.phenotypeForTrait(trait) - individuals.offsetForTrait(trait);
+		genValue = individuals.calculatePhenotype(muts=muts, trait=trait) - individuals.offsetForTrait(trait);
 		df_genValue = cbind(df_genValue, genValue);
 	}
 	
@@ -488,7 +492,7 @@ R"V0G0N({
 		return cov(df_genValue);         // return a variance-covariance matrix for multiple traits
 })V0G0N";
 
-#pragma mark (float)calcVP([No<Individual> individuals = NULL], [Niso<Trait> traits = NULL])
+#pragma mark (float)calcVP([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait> traits = NULL])
 const char *gSLiMSourceCode_calcVP = 
 R"V0G0N({
 	// Calculates the variance-covariance matrix of phenotypic values, the P-matrix
@@ -511,6 +515,10 @@ R"V0G0N({
 			stop("ERROR (calcVP): all individuals must belong to the same species.");
 	}
 	
+	if (!isNULL(muts))
+		if (any(muts.chromosome.species != species))
+			stop("ERROR (calcVD): all mutations must belong to the same species as the individuals.");
+	
 	if (isNULL(traits))
 		traits = species.traits;   // VP can be calculated across all trait types
 	else if (isInteger(traits))
@@ -526,7 +534,7 @@ R"V0G0N({
 	df_traitValue = c();   // rows are individuals, columns are traits
 	for (trait in traits)
 	{
-		traitValues = individuals.phenotypeForTrait(trait);
+		traitValues = individuals.calculatePhenotype(muts=muts, trait=trait);
 		df_traitValue = cbind(df_traitValue, traitValues);
 	}
 	

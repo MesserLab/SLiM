@@ -3203,7 +3203,7 @@ The implementation of
 \f2\fs20 .  This function was written by V\'edtor Sudbrack (then affiliated with the University of Vienna).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)calcVG([No<Individual>\'a0individuals\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float)calcVG([No<Individual>\'a0individuals\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -3215,7 +3215,13 @@ The implementation of
 \f1\fs18 individuals
 \f2\fs20  is 
 \f1\fs18 NULL
-\f2\fs20  (the default), all individuals in the simulated species are used; this option is only allowed in single-species models.  The calculation can be limited to a focal trait or traits passed in 
+\f2\fs20  (the default), all individuals in the simulated species are used; this option is only allowed in single-species models.  The calculation can be limited to a set of focal mutations passed in 
+\f1\fs18 muts
+\f2\fs20 ; if 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all of the mutations for the focal species will be used.  Additionally, the calculation can be limited to a focal trait or traits passed in 
 \f1\fs18 traits
 \f2\fs20  (which may be either 
 \f1\fs18 integer
@@ -3233,6 +3239,19 @@ If a single trait is used, the result is a singleton
 \f2\fs20  providing the total genetic variance for that trait.  If more than one trait is used, the result is a 
 \f1\fs18 float
 \f2\fs20  variance-covariance matrix across the specified traits.\
+Note that the implementation of 
+\f1\fs18 calcVG()
+\f2\fs20  uses 
+\f1\fs18 calculatePhenotype()
+\f2\fs20  to provide the phenotype data it needs.  This function never expresses demand for phenotypes, so if phenotypes for the focal trait(s) have not already been calculated, and if all mutations are being used (i.e., if 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 ), it might improve performance to call 
+\f1\fs18 demandPhenotype()
+\f2\fs20  or 
+\f1\fs18 demandPhenotypeForIndividuals()
+\f2\fs20  before calling this function.\
 The implementation of 
 \f1\fs18 calcVG()
 \f2\fs20  is viewable with 
@@ -3246,7 +3265,7 @@ The implementation of
 \f2\fs20 .  This function was written by V\'edtor Sudbrack (then affiliated with the University of Vienna).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)calcVP([No<Individual>\'a0individuals\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float)calcVP([No<Individual>\'a0individuals\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [Niso<Trait>\'a0traits\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -3258,7 +3277,13 @@ The implementation of
 \f1\fs18 individuals
 \f2\fs20  is 
 \f1\fs18 NULL
-\f2\fs20  (the default), all individuals in the simulated species are used; this option is only allowed in single-species models.  The calculation can be limited to a focal trait or traits passed in 
+\f2\fs20  (the default), all individuals in the simulated species are used; this option is only allowed in single-species models.  The calculation can be limited to a set of focal mutations passed in 
+\f1\fs18 muts
+\f2\fs20 ; if 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all of the mutations for the focal species will be used.  Additionally, the calculation can be limited to a focal trait or traits passed in 
 \f1\fs18 traits
 \f2\fs20  (which may be either 
 \f1\fs18 integer
@@ -3278,11 +3303,17 @@ If a single trait is used, the result is a singleton
 \f2\fs20  variance-covariance matrix across the specified traits.\
 Note that the implementation of 
 \f1\fs18 calcVP()
-\f2\fs20  relies upon the phenotypes of individuals as calculated by SLiM.  This function does not express demand for the phenotypes, so if phenotypes have not already been calculated 
+\f2\fs20  uses 
+\f1\fs18 calculatePhenotype()
+\f2\fs20  to provide the phenotype data it needs.  This function never expresses demand for phenotypes, so if phenotypes for the focal trait(s) have not already been calculated, and if all mutations are being used (i.e., if 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 ), it might improve performance to call 
 \f1\fs18 demandPhenotype()
 \f2\fs20  or 
 \f1\fs18 demandPhenotypeForIndividuals()
-\f2\fs20  should be called first.\
+\f2\fs20  before calling this function.\
 The implementation of 
 \f1\fs18 calcVP()
 \f2\fs20  is viewable with 

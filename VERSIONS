@@ -246,6 +246,7 @@ multitrait branch:
 		(float)calcVD([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait>$ trait = NULL]): dominance genetic variance
 		(float)calcVG([No<Individual> individuals = NULL], [Niso<Trait> trait = NULL]): total genetic variance
 		(float)calcVP([No<Individual> individuals = NULL], [Niso<Trait> trait = NULL]): phenotypic variance
+	add [No<Mutation> muts = NULL] parameter to calcVG() and calcVP(), leveraging the new calculatePhenotype() function!
 
 
 version 5.2 (Eidos version 4.2):
