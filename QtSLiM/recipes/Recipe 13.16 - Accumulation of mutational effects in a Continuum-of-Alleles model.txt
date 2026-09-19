@@ -1,15 +1,82 @@
 // Keywords: mutation stacking, continuum of alleles model, effect accumulation, independent dominance
 
 initialize() {
-	initializeTrait("trait1", "additive");
-	initializeMutationRate(1e-3);
-	initializeMutationType("m1", NAN, "n", 0.0, 0.01);
-	initializeGenomicElementType("g1", m1, 1.0);
+	defineConstant("M_RATE", 1e-2);        // Mutation rate
+	defineConstant("M_VAR", 1e-2);         // Variance of mutational steps
+	defineConstant("M_SD", sqrt(M_VAR));
+	defineConstant("S_VAR", 100.0);        // Width of the fitness function 
+	defineConstant("S_SD", sqrt(S_VAR));
+	defineConstant("E_VAR", 1.0);          // Environmental variance in phenotype 
+	defineConstant("E_SD", sqrt(E_VAR));
+	defineConstant("N", 2000);      // Population size
+	defineConstant("N_LOCI", 16);          // Number of unlinked loci
+	
+	// Calculate the theoretical expectation for VA in an autosome
+	defineConstant("VA_EXP", expectedVA(N_LOCI, S_VAR, E_VAR, M_RATE, M_VAR, N));
+	
+	initializeSex();
+	initializeTrait("trait1", "additive", individualOffsetSD=E_SD);
+	initializeChromosome(1, type="A");
+	initializeMutationType("m1", NAN, "n", 0.0, M_SD);
 	m1.mutationStackPolicy = "a";
-	initializeGenomicElement(g1, 0, 49);
+	m1.setDefaultHemizygousDominanceForTrait(NULL, 0.5);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, N_LOCI - 1);
+	initializeMutationRate(M_RATE);
 	initializeRecombinationRate(0.5);
 }
-1 early() { sim.addSubpop("p1", 500); }
-1:50000 late() {
+1 late() {
+	sim.addSubpop("p1", N);
+	
+	// Log out variance values every tick
+	defineConstant("LOG", community.createLogFile("./log.csv"));
+	LOG.addTick();
+	LOG.addCustomColumn("VA", "calcVA();");
+	LOG.addCustomColumn("VD", "calcVD();");
+	LOG.addCustomColumn("VG", "calcVG();");
+	LOG.addCustomColumn("VP", "calcVP();");
+}
+1:5000 late() {
 	sim.demandPhenotype(NULL, NULL);
+	
+	// implement stabilizing selection on the trait
+	phenotypes = p1.individuals.trait1;
+	p1.individuals.fitnessScaling = dnorm(phenotypes, 0.0, S_SD);
+}
+seq(from=10, to=5000, by=10) late() {
+	LOG.logRow();
+	plot = slimgui.createPlot("Evolution of variance under CoA",
+		xrange=c(0, 5000), yrange=c(0.0, 2.0 * VA_EXP),
+		xlab="tick", ylab="variance", width=800, height=300);
+	plot.abline(h=VA_EXP, color="darkgray", lwd=2.0);
+	
+	ticks = slimgui.logFileData(LOG, "tick");
+	logVA = slimgui.logFileData(LOG, "VA");
+	logVD = slimgui.logFileData(LOG, "VD");
+	logVG = slimgui.logFileData(LOG, "VG");
+	logVP = slimgui.logFileData(LOG, "VP");
+	logVE = logVP - logVG;
+	
+	plot.points(x=ticks, y=logVA, symbol=16, color="red", size=0.6);
+	plot.points(x=ticks, y=logVD, symbol=16, color="gold1", size=0.3);
+	plot.points(x=ticks, y=logVG, symbol=16, color="black", size=0.3);
+	plot.points(x=ticks, y=logVP, symbol=16, color="cornflowerblue", size=0.3);
+	plot.points(x=ticks, y=logVE, symbol=16, color="chartreuse3", size=0.3);
+	
+	plot.addLegend("topLeft");
+	plot.legendLineEntry("VA (expected)", color="darkgray", lwd=2.0);
+	plot.legendPointEntry("VA", symbol=16, color="red", size=0.6);
+	plot.legendPointEntry("VD", symbol=16, color="gold1", size=0.3);
+	plot.legendPointEntry("VG", symbol=16, color="black", size=0.3);
+	plot.legendPointEntry("VP", symbol=16, color="cornflowerblue", size=0.3);
+	plot.legendPointEntry("VE", symbol=16, color="chartreuse3", size=0.3);
+}
+
+function (float)expectedVA(i$ loci, f$ s_var, f$ e_var, f$ m_rate, f$ m_var, i$ n)
+{
+	// This is the expected VA for a CoA model under stabilizing selection.
+	// Reference: Walsh & Lynch (2018), Evolution and Selection of
+	// Quantitative Traits, Table 28.2, p. 1041.
+	se_var = s_var + e_var; // effective selection variance (eq. 4 in Lande 1975)
+	return loci * (sqrt(se_var^2/(4*n^2) + 4*m_rate*m_var*se_var) - se_var/(2*n));
 }
