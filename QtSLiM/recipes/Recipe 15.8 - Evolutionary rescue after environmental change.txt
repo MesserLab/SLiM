@@ -7,7 +7,8 @@ initialize() {
 	defineConstant("opt2", 10.0);
 	defineConstant("Tdelta", 10000);
 	
-	initializeMutationType("m1", 0.5, "n", 0.0, 1.0);  // QTL
+	initializeTrait("rescue", "additive");
+	initializeMutationType("m1", NAN, "n", 0.0, 1.0).convertToSubstitution=T;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
 	initializeMutationRate(1e-7);
@@ -21,19 +22,18 @@ reproduction() {
 }
 early() {
 	// QTL-based fitness
+	sim.demandPhenotype(NULL, NULL);
 	inds = sim.subpopulations.individuals;
-	phenotypes = inds.sumOfMutationsOfType(m1);
+	phenotypes = inds.rescue;
 	optimum = (sim.cycle < Tdelta) ? opt1 else opt2;
 	deviations = optimum - phenotypes;
 	fitnessFunctionMax = dnorm(0.0, 0.0, 5.0);
 	adaptation = dnorm(deviations, 0.0, 5.0) / fitnessFunctionMax;
 	inds.fitnessScaling = 0.1 + adaptation * 0.9;
-	inds.tagF = phenotypes;   // just for output below
 	
 	// density-dependence with a maximum benefit at low density
 	p1.fitnessScaling = min(K / p1.individualCount, 1.5);
 }
-mutationEffect(m1) { return 1.0; }
 late() {
 	if (p1.individualCount == 0)
 	{
@@ -44,7 +44,7 @@ late() {
 	else
 	{
 		// output the phenotypic mean and pop size
-		phenotypes = p1.individuals.tagF;
+		phenotypes = p1.individuals.rescue;
 		
 		cat(sim.cycle + ": " + p1.individualCount + " individuals");
 		cat(", phenotype mean " + mean(phenotypes));

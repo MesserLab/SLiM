@@ -35,7 +35,7 @@ initialize() {
 		defineConstant(symbol, muts);
 		
 		mut = haplosomes.addNewDrawnMutation(m4, integerDiv(Z, 2));
-		catn("Beneficial mutation: s == " + mut.selectionCoeff);
+		catn("Beneficial mutation: s == " + mut.effectSize);
 	}
 	
 	// set up circular migration between the subpops

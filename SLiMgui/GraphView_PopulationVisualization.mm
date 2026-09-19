@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/3/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -102,9 +102,9 @@
 	{
 		// calculate the color from the mean fitness of the population
 		// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-		const double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
 		double fitness = ((subpopSize == 0) ? -10000.0 : subpop->parental_mean_unscaled_fitness_);
-		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, fitnessScalingFactor);
+		
+		subpop->species_.fitness_palette_->ColorForValue(fitness, &colorRed, &colorGreen, &colorBlue);
 	}
 	
 	NSColor *color = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL
@@ -689,20 +689,20 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		
 		// in the multipop case, we need to draw migration arrows, too
 		{
-			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
+			for (const auto &destSubpopIter : pop.subpops_)
 			{
-				Subpopulation *destSubpop = (*destSubpopIter).second;
+				Subpopulation *destSubpop = destSubpopIter.second;
 				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
-				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
+				for (const auto &sourceSubpopIter : destMigrants)
 				{
-					slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
+					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
 					auto sourceSubpopPair = pop.subpops_.find(sourceSubpopID);
 					
 					if (sourceSubpopPair != pop.subpops_.end())
 					{
 						Subpopulation *sourceSubpop = sourceSubpopPair->second;
-						double migrantFraction = (*sourceSubpopIter).second;
+						double migrantFraction = sourceSubpopIter.second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
 						if (community.ModelType() == SLiMModelType::kModelTypeNonWF)

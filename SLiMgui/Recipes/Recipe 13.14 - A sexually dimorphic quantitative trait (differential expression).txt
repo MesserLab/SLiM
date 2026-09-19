@@ -1,0 +1,32 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, trait expression, sexual dimorphism
+
+initialize() {
+	initializeSex();
+	initializeTrait("plumage", "additive");
+	initializeMutationType("m1", NAN, "f", 0.0);
+	initializeMutationType("m2", NAN, "n", 0.0, 0.1).color = "red";
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0, 0.1));
+	
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	
+	defineConstant("LOG", community.createLogFile("log.txt"));
+	LOG.addTick();
+	LOG.addSuppliedColumn("plumage");
+}
+1:20000 late() {
+	males = p1.subsetIndividuals(sex="M");
+	males.demandPhenotypeForIndividuals("plumage");
+	
+	plumage = pmax(0.0, males.plumage);
+	plumageBenefit = 5.0 * sqrt(plumage);
+	plumageCost = -1.5 * plumage;
+	males.fitnessScaling = pmax(0.00001, plumageBenefit + plumageCost);
+	
+	LOG.setSuppliedValue("plumage", mean(plumage));
+	LOG.logRow();
+}
