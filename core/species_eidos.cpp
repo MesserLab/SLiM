@@ -3424,7 +3424,10 @@ EidosValue_SP Species::ExecuteMethod_demandPhenotype(EidosGlobalStringID p_metho
 	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	if (trait_count == 0)
+	{
+		SetInsideTraitOrFitnessCalculation(false);
 		return gStaticEidosValueVOID;
+	}
 	
 	// forceRecalc
 	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
@@ -4475,7 +4478,7 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessEffectCallback(EidosGlobalSt
 	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (InsideTraitOrFitnessCalculation())
-		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), recalculateFitness(), calculateFitness(), or calculatePhenotype()." << EidosTerminate();
 	if (Active() && ((community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFitnessEffectCallback): fitnessEffect() callback script blocks may not be registered during the fitness recalculation tick cycle stage." << EidosTerminate();
 	
@@ -4633,7 +4636,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	// the goal here is to prevent actions that screw with the tick cycle stage plan that SLiM has already made
 	// in particular, we want to be able to plan trait/fitness optimizations based upon the current milieu
 	if (InsideTraitOrFitnessCalculation())
-		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), or recalculateFitness()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered within the context of a call to demandPhenotype(), demandPhenotypeForIndividuals(), recalculateFitness(), calculateFitness(), or calculatePhenotype()." << EidosTerminate();
 	if (Active() && ((community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness) || (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)))
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerMutationEffectCallback): mutationEffect() callback script blocks may not be registered during the fitness recalculation tick cycle stage." << EidosTerminate();
 	

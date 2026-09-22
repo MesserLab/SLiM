@@ -4733,6 +4733,18 @@ EidosValue_SP Individual_Class::ExecuteMethod_calculateFitness(EidosGlobalString
 	
 	species->population_.CheckForDeferralInIndividualsVector(target_individuals, target_size, "Individual_Class::ExecuteMethod_calculateFitness");
 	
+	// TIMING RESTRICTION
+	// calculateFitness() is strictly limited to first()/early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running mutationEffect() callbacks, and those cannot nest inside
+	// the execution of a different species.
+	species->community_.EnforceTimingRestriction_EventBlockOnly("Individual_Class::ExecuteMethod_calculateFitness", "calculateFitness()", "");
+	if (species->InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_calculateFitness): calculateFitness() cannot be called when trait/fitness calculation is already underway." << EidosTerminate();
+	
+	// mark that we are doing trait calculations, to block changes to callbacks in use
+	species->SetInsideTraitOrFitnessCalculation(true);
+	
 	// muts; we process this with _MarkChromosomesAndMutations(), which marks active mutations and chromosomes for us
 	std::vector<Mutation *> focalMutations;
 	bool usingAllMutations = _MarkChromosomesAndMutations("calculateFitness", species, mutations_value, focalMutations);
@@ -4842,6 +4854,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_calculateFitness(EidosGlobalString
 		float_result_data[target_index] = fitness;
 	}
 	
+	// done with trait calculations, unblock
+	species->SetInsideTraitOrFitnessCalculation(false);
+	
 	return EidosValue_SP(float_result);
 }
 
@@ -4875,6 +4890,18 @@ EidosValue_SP Individual_Class::ExecuteMethod_calculatePhenotype(EidosGlobalStri
 	
 	species->population_.CheckForDeferralInIndividualsVector(target_individuals, target_size, "Individual_Class::ExecuteMethod_calculatePhenotype");
 	
+	// TIMING RESTRICTION
+	// calculatePhenotype() is strictly limited to first()/early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running mutationEffect() callbacks, and those cannot nest inside
+	// the execution of a different species.
+	species->community_.EnforceTimingRestriction_EventBlockOnly("Individual_Class::ExecuteMethod_calculatePhenotype", "calculatePhenotype()", "");
+	if (species->InsideTraitOrFitnessCalculation())
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_calculatePhenotype): calculatePhenotype() cannot be called when trait/fitness calculation is already underway." << EidosTerminate();
+	
+	// mark that we are doing trait calculations, to block changes to callbacks in use
+	species->SetInsideTraitOrFitnessCalculation(true);
+	
 	// muts; we process this with _MarkChromosomesAndMutations(), which marks active mutations and chromosomes for us
 	std::vector<Mutation *> focalMutations;
 	bool usingAllMutations = _MarkChromosomesAndMutations("calculateFitness", species, mutations_value, focalMutations);
@@ -4900,7 +4927,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_calculatePhenotype(EidosGlobalStri
 	
 	if (useMutationEffectCalls)
 	{
-		mutationEffect_callbacks = species->CallbackBlocksMatching(species->community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);;
+		mutationEffect_callbacks = species->CallbackBlocksMatching(species->community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1, -1, /* p_active_only */ true);
 		
 		if (mutationEffect_callbacks.size() == 0)
 			useMutationEffectCalls = false;
@@ -4944,6 +4971,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_calculatePhenotype(EidosGlobalStri
 		
 		float_result->SetDimensions(2, dim_buf);
 	}
+	
+	// done with trait calculations, unblock
+	species->SetInsideTraitOrFitnessCalculation(false);
 	
 	return EidosValue_SP(float_result);
 }
@@ -5071,6 +5101,8 @@ double Individual_Class::_CalculatePhenotype(Species *species, Individual *indiv
 {
 	// This method is private to ExecuteMethod_calculateFitness() and ExecuteMethod_calculatePhenotype().
 	// It assumes that various things have been set up correctly by the caller; it cannot just be called haphazardly.
+	// FIXME MULTITRAIT: it would be nice to optimize this with template variants for speed
+	// (for the all-mutations case too; we could skip checking scratch_ if we know all mutations are in use)
 	IndividualSex individual_sex = individual->sex_;
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
 	MutationBlock *mutation_block = species->SpeciesMutationBlock();
@@ -7541,7 +7573,10 @@ EidosValue_SP Individual_Class::ExecuteMethod_demandPhenotypeForIndividuals(Eido
 	slim_trait_index_t trait_count = (slim_trait_index_t)trait_indices.size();
 	
 	if (trait_count == 0)
+	{
+		species->SetInsideTraitOrFitnessCalculation(false);
 		return gStaticEidosValueVOID;
+	}
 	
 	// forceRecalc
 	eidos_logical_t forceRecalc = forceRecalc_value->LogicalAtIndex_NOCAST(0, nullptr);
