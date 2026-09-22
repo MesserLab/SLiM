@@ -2539,6 +2539,13 @@ initialize() {
 20 early() {
 	g1.setMutationFractions(m1, 1);
 }
+200:210 late() {
+	// this test can get bogged down by competing m2 mutations; check and fix that
+	if (sim.countOfMutationsOfType(m2) > 1) {
+		to_remove = sample(sim.mutationsOfType(m2), 1);
+		p1.haplosomes.removeMutations(to_remove);
+	}
+}
 21:500 first() {
 	// if m2 mutations do not exist, we should switch to kPureNeutral soon; check that and stop
 	// note that RecalculateOptimizationFlags() does not get called every tick, so we schedule
