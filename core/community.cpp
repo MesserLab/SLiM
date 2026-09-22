@@ -1150,6 +1150,16 @@ void Community::DeregisterScheduledScriptBlocks(void)
 			std::cout << std::endl;
 #endif
 			
+			// TRAIT INVALIDATION: If the block being deregistered is a mutationEffect() callback, we need to
+			// invalidate all trait values that that callback would potentially affect, to force recalculation.
+			// This is done in ExecuteMethod_deregisterScriptBlock(), but it also needs to be done here because
+			// the user might have demanded phenotypes while the callback was still in effect -- while the
+			// callback was in scheduled_deregistrations_ waiting to actually be removed.  That would have
+			// re-validated the phenotypes using the callback, so we need to re-invalidate them here.  This
+			// is a bit of a mess because of the delayed deregistration policy.  BCH 9/22/2026
+			if ((block_to_dereg->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && block_to_dereg->ActiveInTick(Tick()))
+				block_to_dereg->species_spec_->NoteChangedMutationEffectCallback(block_to_dereg);
+			
 			// Remove the symbol for it first
 			if (block_to_dereg->block_id_ != -1)
 				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->ScriptBlockSymbolTableEntry().first);

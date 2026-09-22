@@ -803,13 +803,9 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 			scheduled_deregistrations_.emplace_back(block);
 			
 			// TRAIT INVALIDATION: If the block being deregistered is a mutationEffect() callback, we need to
-			// invalidate all trait values that that callback would potentially affect, to force recalculation
-			// FIXME MULTITRAIT: I think there is a small bug here.  If a mutationEffect() callback is deregistered
-			// during, say, an early() event and then demand is expressed immediately after, that deregistered
-			// block will still be in effect and will be used in the demand (this is technically not a bug, I think,
-			// as this behavior of deregistration is documented), and then when the block is actually deregistered
-			// at the end of the tick cycle stage the trait values will not be invalidated to reflect that the
-			// callback is now no longer in effect (this is the bug).  I'm not sure what I want to do with this.
+			// invalidate all trait values that that callback would potentially affect, to force recalculation.
+			// This invalidation also happens in DeregisterScheduledScriptBlocks() when the callback is actually
+			// removed from the simulation, since it might get used again before that happens.  BCH 9/22/2026
 			if ((block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback) && block->ActiveInTick(Tick()))
 				block->species_spec_->NoteChangedMutationEffectCallback(block);
 			
