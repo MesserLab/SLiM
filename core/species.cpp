@@ -749,8 +749,10 @@ void Species::NoteChangedMutationEffectCallback(SLiMEidosBlock *p_callback)
 void Species::InvalidateAllTraitValues(void)
 {
 	// TRAIT INVALIDATION: This is called to invalidate all trait values in all species.  It should be
-	// called when the world world is turned upside down -- when the tick value changes arbitrarily,
-	// for example.  FIXME MULTITRAIT probably call this after loading data from a file, too.
+	// called when the whole world is turned upside down -- when the tick value changes arbitrarily,
+	// for example, or when mutations are loaded from a VCF or MS file.  It does not need to be called
+	// after readFromPopulationFile(), because that creates a new set of Individual objects, and those
+	// have invalidated phenotypes automatically.
 	slim_trait_index_t trait_count = TraitCount();
 	
 	for (const auto &subpop_iter : population_.subpops_)

@@ -6936,6 +6936,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 		}
 	}
 	
+	// Invalidate all calculated trait values, since we just read in a bunch of mutations
+	species->InvalidateAllTraitValues();
+	
 	// Return the instantiated mutations
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 	int mutation_count = (int)mutation_indices.size();
