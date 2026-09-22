@@ -190,22 +190,45 @@ void Trait::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ClassNameForDisplay() << "<" << name_ << ">";
 }
 
-void Trait::InvalidateTraitValuesForAllIndividuals(void)
+void Trait::InvalidateTraitValuesForAllIndividuals(IndividualSex p_sex)
 {
 	// TRAIT INVALIDATION: invalidate the trait values for the focal trait, for all individuals.
 	// At first glance, it would be nice for this to be done via a flag on Trait instead.  The tricky thing about
 	// that is that the flag might get set (invalidating everyone) and then the trait values of just a subset of
 	// individuals might get validated.  The trait values of all remaining individuals would then need to be set
 	// to NAN to preserve their invalidation; but managing that in general seems tricky.  Let's keep it simple.
-	for (const auto &subpop_iter : species_.population_.subpops_)
+	
+	if ((p_sex == IndividualSex::kUnspecified) || (p_sex == IndividualSex::kHermaphrodite))
 	{
-		const Subpopulation *subpop = subpop_iter.second;
-		
-		for (Individual *individual : subpop->parent_individuals_)
+		for (const auto &subpop_iter : species_.population_.subpops_)
 		{
-			IndividualTraitInfo *trait_info = individual->trait_info_;
+			const Subpopulation *subpop = subpop_iter.second;
 			
-			trait_info[Index()].phenotype_ = SLIM_PHENOTYPE_NAN;
+			for (Individual *individual : subpop->parent_individuals_)
+			{
+				IndividualTraitInfo *trait_info = individual->trait_info_;
+				
+				trait_info[Index()].phenotype_ = SLIM_PHENOTYPE_NAN;
+			}
+		}
+	}
+	else
+	{
+		// sex-specific invalidation; this happens when we know that something sex-specific has changed,
+		// such as the baseline offset for just one sex, so we only invalidate the individuals affected.
+		for (const auto &subpop_iter : species_.population_.subpops_)
+		{
+			const Subpopulation *subpop = subpop_iter.second;
+			
+			for (Individual *individual : subpop->parent_individuals_)
+			{
+				if (individual->sex_ == p_sex)
+				{
+					IndividualTraitInfo *trait_info = individual->trait_info_;
+					
+					trait_info[Index()].phenotype_ = SLIM_PHENOTYPE_NAN;
+				}
+			}
 		}
 	}
 }
@@ -743,8 +766,7 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): the new baselineOffsetM value could not be represented due to numerical issues (roundoff, overflow)." << EidosTerminate();
 			
 			// TRAIT INVALIDATION: the trait value for this trait is invalidated in all individuals
-			// FIXME MULTITRAIT: could invalidate just the males
-			InvalidateTraitValuesForAllIndividuals();
+			InvalidateTraitValuesForAllIndividuals(IndividualSex::kMale);
 			
 			return;
 		}
@@ -779,8 +801,7 @@ void Trait::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_v
 				EIDOS_TERMINATION << "ERROR (Trait::SetProperty): the new baselineOffsetF value could not be represented due to numerical issues (roundoff, overflow)." << EidosTerminate();
 			
 			// TRAIT INVALIDATION: the trait value for this trait is invalidated in all individuals
-			// FIXME MULTITRAIT: could invalidate just the females
-			InvalidateTraitValuesForAllIndividuals();
+			InvalidateTraitValuesForAllIndividuals(IndividualSex::kFemale);
 			
 			return;
 		}

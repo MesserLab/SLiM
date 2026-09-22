@@ -159,7 +159,7 @@ public:
 	void _FixDefaultTraitInit(void);
 	~Trait(void);
 	
-	void InvalidateTraitValuesForAllIndividuals(void);
+	void InvalidateTraitValuesForAllIndividuals(IndividualSex p_sex = IndividualSex::kUnspecified);
 	
 	inline __attribute__((always_inline)) slim_trait_index_t Index(void) const		{ return index_; }
 	inline __attribute__((always_inline)) void SetIndex(slim_trait_index_t p_index)	{ index_ = p_index; }	// only from AddTrait()
