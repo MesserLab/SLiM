@@ -249,6 +249,7 @@ multitrait branch:
 	add [No<Mutation> muts = NULL] parameter to calcVG() and calcVP(), leveraging the new calculatePhenotype() function!
 	fix #433: recipe 18.5 should use tspop to assess ancestry
 	add use of shuffle buffer to phenotype demand calculations, to randomize the order of calculations
+	fix recipes 18.8, 18.9, and 19.13 to use current pyslim APIs and current SLiM metadata
 
 
 version 5.2 (Eidos version 4.2):
