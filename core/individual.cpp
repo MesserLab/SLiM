@@ -8430,12 +8430,19 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 					
+					// set up a shuffle buffer if there are callbacks involved
+					slim_popsize_t *shuffle_buf = nullptr;
+					
+					if (has_active_callbacks && species->RandomizingCallbackOrder())
+						shuffle_buf = species->BorrowShuffleBuffer(individuals_count) ;
+					
 #if DEBUG_TRAIT_DEMAND()
 					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
 #endif
 					
-					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					for (int shuffle_index = 0; shuffle_index < individuals_count; ++shuffle_index)
 					{
+						slim_popsize_t individual_index = (shuffle_buf ? shuffle_buf[shuffle_index] : shuffle_index);
 						Individual *ind = individuals_buffer[individual_index];
 						
 						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
@@ -8498,6 +8505,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #if DEBUG_TRAIT_DEMAND()
 					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for diploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated (" << independent_dominance_individuals << " independent dominance)" << std::endl;
 #endif
+					
+					if (shuffle_buf)
+						species->ReturnShuffleBuffer();
 				}
 				break;
 			}
@@ -8523,8 +8533,15 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 					int total_individuals_recalculated = 0;
 #endif
 					
-					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					// set up a shuffle buffer if there are callbacks involved
+					slim_popsize_t *shuffle_buf = nullptr;
+					
+					if (has_active_callbacks && species->RandomizingCallbackOrder())
+						shuffle_buf = species->BorrowShuffleBuffer(individuals_count) ;
+					
+					for (int shuffle_index = 0; shuffle_index < individuals_count; ++shuffle_index)
 					{
+						slim_popsize_t individual_index = (shuffle_buf ? shuffle_buf[shuffle_index] : shuffle_index);
 						Individual *ind = individuals_buffer[individual_index];
 						Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
 						
@@ -8548,6 +8565,9 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 #if DEBUG_TRAIT_DEMAND()
 					std::cout << "   DemandPhenotype_INDIVIDUALS() calculating trait " << species->Traits()[trait_index]->Name() << " for haploid chromosome '" << chromosome->Symbol() << "' : " << total_individuals_recalculated << " individuals recalculated" << std::endl;
 #endif
+					
+					if (shuffle_buf)
+						species->ReturnShuffleBuffer();
 				}
 				break;
 			}
@@ -8651,8 +8671,6 @@ template void Individual_Class::DemandPhenotype_INDIVIDUALS<true>(Species *, Ind
 template <const bool f_force_recalc>
 void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *subpop, const std::vector<slim_trait_index_t> &p_trait_indices, const std::vector<SLiMEidosBlock*> &p_subpop_mutationEffect_callbacks)
 {
-	// FIXME MULTITRAIT: think about shuffling the order in which individuals are handled, in this code path
-	
 	// Given a subpopulation `subpop` that is guaranteed to belong to the provided species, and a vector of
 	// trait indices guaranteed to be of length 1 or longer, this method loops over the chromosomes of the
 	// species (the top-level loop to make mutation run experiment timing simple), then over the traits provided
@@ -9166,6 +9184,12 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 			
+			// set up a shuffle buffer if there are callbacks involved
+			slim_popsize_t *shuffle_buf = nullptr;
+			
+			if (subpop_per_trait_mutationEffect_callbacks.size() && species->RandomizingCallbackOrder())
+				shuffle_buf = species->BorrowShuffleBuffer(individuals_count) ;
+			
 			// Then process the chromosome for the focal trait
 			switch (chromosome->Type())
 			{
@@ -9178,8 +9202,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 					int total_individuals_recalculated = 0, independent_dominance_individuals = 0;
 #endif
 					
-					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					for (int shuffle_index = 0; shuffle_index < individuals_count; ++shuffle_index)
 					{
+						slim_popsize_t individual_index = (shuffle_buf ? shuffle_buf[shuffle_index] : shuffle_index);
 						Individual *ind = individuals_buffer[individual_index];
 						
 						if (!f_force_recalc && !recalc_decisions[individual_index * trait_indices_count + trait_indices_index])
@@ -9256,8 +9281,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 					int total_individuals_recalculated = 0;
 #endif
 					
-					for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+					for (int shuffle_index = 0; shuffle_index < individuals_count; ++shuffle_index)
 					{
+						slim_popsize_t individual_index = (shuffle_buf ? shuffle_buf[shuffle_index] : shuffle_index);
 						Individual *ind = individuals_buffer[individual_index];
 						Haplosome *haplosome = ind->haplosomes_[haplosome_index + ((chromosome->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull) ? 1 : 0)];
 						
@@ -9279,6 +9305,9 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 					break;
 				}
 			}
+			
+			if (shuffle_buf)
+				species->ReturnShuffleBuffer();
 		}
 		
 		if (local_doing_mutrun_experiments)
