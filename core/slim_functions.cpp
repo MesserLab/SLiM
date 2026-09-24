@@ -482,7 +482,19 @@ R"V0G0N({
 	df_genValue = c(); // rows are individuals, columns are traits
 	for (trait in traits)
 	{
-		genValue = individuals.calculatePhenotype(muts=muts, trait=trait) - individuals.offsetForTrait(trait);
+		// VG = VP - VE, so we want to remove individual offsets (the source of VE) from the phenotypes
+		// (the source of VP); we could just pass useIndividualOffset=F to calculatePhenotype() here,
+		// and that would work, but then it would never use cached trait values, which would make this
+		// much slower; so we back out the individual offsets in cases where it is easy to do so: for
+		// additive and multiplicative traits, only when we are using all mutations (otherwise the cached
+		// trait values won't be used anyway, so we might as well use useIndividualOffset=F).
+		if ((trait.type == "additive") & isNULL(muts))
+			genValue = individuals.calculatePhenotype(muts=muts, trait=trait) - individuals.offsetForTrait(trait);
+		else if ((trait.type == "multiplicative") & isNULL(muts))
+			genValue = individuals.calculatePhenotype(muts=muts, trait=trait) / individuals.offsetForTrait(trait);
+		else
+			genValue = individuals.calculatePhenotype(muts=muts, trait=trait, useIndividualOffset=F);
+		
 		df_genValue = cbind(df_genValue, genValue);
 	}
 	
