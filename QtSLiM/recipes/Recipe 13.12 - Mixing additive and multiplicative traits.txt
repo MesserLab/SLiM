@@ -1,0 +1,79 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, multiplicative trait, pleiotropy
+
+initialize() {
+	initializeTrait("popgen", "multiplicative", directFitnessEffect=T);
+	initializeTrait("quantgen", "additive", directFitnessEffect=F);
+	
+	initializeMutationType("m1", NAN, "f", 0.0);         // neutral
+	initializeMutationType("m2", NAN, "n", 0.0, 0.02);   // QTL mutations
+	initializeMutationType("m3", 0.4, "e", 0.1);         // beneficial mutations
+	initializeMutationType("m4", 0.1, "g", -0.01, 0.2);  // deleterious mutations
+	
+	// mutation types should be non-pleiotropic
+	m2.setEffectSizeDistributionForTrait("popgen", "f", 0.0);
+	c(m3,m4).setEffectSizeDistributionForTrait("quantgen", "f", 0.0);
+	
+	// one genomic element type generates all four mutation types
+	initializeGenomicElementType("g1", 1:4, c(1.0, 1e-3, 1e-4, 1e-1));
+	
+	initializeChromosome(1, 1e6);
+	initializeGenomicElement(g1);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+
+1 early() {
+	sim.addSubpop("p1", 500);
+	
+	// color mutations by type, including substitutions
+	c(m1,m2,m3,m4).color = c("yellow", "cornflowerblue", "chartreuse3", "red");
+	c(m1,m2,m3,m4).colorSubstitution = c(m1,m2,m3,m4).color;
+	sim.chromosome.colorSubstitution = "";
+	
+	// log quantgen phenotypes over time
+	log = community.createLogFile(writeTempFile("pheno", ".csv", ""), append=T);
+	log.addTick();
+	log.addCustomColumn("quantgen", "mean(p1.individuals.quantgen);");
+	defineConstant("LOG", log);
+}
+
+1:10000 late() {
+	sim.demandPhenotype(NULL, "quantgen");
+	
+	inds = sim.subpopulations.individuals;
+	effects = 0.1 + dnorm(inds.quantgen, 1.0, 0.5);
+	inds.fitnessScaling = effects;
+	
+	LOG.logRow();
+	
+	if (exists("slimgui"))
+	{
+		ticks = slimgui.logFileData(LOG, "tick");
+		pheno = slimgui.logFileData(LOG, "quantgen");
+		plot = slimgui.createPlot("Pheno",
+			xrange=c(1, self.end), yrange=c(0.0, 1.0),
+			xlab="tick", ylab="phenotype", width=800, height=300);
+		plot.lines(ticks, pheno, color="black", lwd=2.0);
+		
+		del = sim.substitutionsOfType(m4);
+		y1 = runif(length(del), max=0.9);
+		y2 = y1 + 0.1;
+		plot.rects(del.originTick, y1, del.fixationTick, y2,
+			color="red", border="none", alpha=0.1);
+		
+		ben = sim.substitutionsOfType(m3);
+		y1 = runif(length(ben), max=0.9);
+		y2 = y1 + 0.1;
+		plot.rects(ben.originTick, y1, ben.fixationTick, y2,
+			color="chartreuse3", border="none", alpha=0.2);
+		
+		quant = sim.substitutionsOfType(m2);
+		plot.abline(v=quant.fixationTick, color="cornflowerblue");
+		
+		plot.addLegend("topLeft");
+		plot.legendLineEntry("phenotype", "black", lwd=2.0);
+		plot.legendSwatchEntry("beneficial", rgb2color(c(0.86, 0.96, 0.78)));
+		plot.legendSwatchEntry("deleterious", rgb2color(c(1.00, 0.89, 0.89)));
+		plot.legendLineEntry("QTL fixation", "cornflowerblue");
+	}
+}

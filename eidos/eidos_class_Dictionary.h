@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -25,28 +25,33 @@
 #include "eidos_class_Object.h"
 #include "json_fwd.hpp"
 
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
 #endif
 
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
 #endif
 
 
+class EidosDictionaryUnretained_Class;
+extern EidosDictionaryUnretained_Class *gEidosDictionaryUnretained_Class;
+
+class EidosDictionaryRetained_Class;
+extern EidosDictionaryRetained_Class *gEidosDictionaryRetained_Class;
+
+
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
-
-extern EidosClass *gEidosDictionaryUnretained_Class;
 
 // These are helpers for EidosDictionaryUnretained.  The purpose is to put all of its ivars into an allocated block,
 // so that the overhead of inheriting from the class itself is only one pointer, unless the Dictionary functionality is
@@ -240,7 +245,7 @@ public:
 	inline EidosDictionaryUnretained_Class(const std::string &p_class_name, const std::string &p_display_name, EidosClass *p_superclass) :
 		super(p_class_name, p_display_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
@@ -251,8 +256,6 @@ public:
 #pragma mark -
 #pragma mark EidosDictionaryRetained
 #pragma mark -
-
-extern EidosClass *gEidosDictionaryRetained_Class;
 
 // A base class for EidosObject subclasses that are under retain/release.
 

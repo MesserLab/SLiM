@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -34,7 +34,8 @@
 #include "eidos_value.h"
 
 
-extern EidosClass *gSLiM_GenomicElement_Class;
+class GenomicElement_Class;
+extern GenomicElement_Class *gSLiM_GenomicElement_Class;
 
 
 class GenomicElement : public EidosObject
@@ -76,10 +77,10 @@ public:
 	EidosValue_SP ExecuteMethod_setGenomicElementType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_startPosition(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_endPosition(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genomicElementType(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_startPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_endPosition(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_genomicElementType(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size);
 };
 
 // support stream output of GenomicElement, for debugging
@@ -95,7 +96,7 @@ public:
 	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
 	inline GenomicElement_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
