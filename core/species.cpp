@@ -3646,6 +3646,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			
+			// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
@@ -4408,6 +4409,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			MutationIndex new_mut_index = mutation_block_->NewMutationFromBlock();
 			Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 			
+			// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 			Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// read the tag value, if present

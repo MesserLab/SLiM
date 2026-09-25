@@ -2636,7 +2636,7 @@ reproduction() { }
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
 			stop("trait values unexpected prior to adding mutation");
-	target.addNewMutation(m1, 0.01, 5000);
+	target.addNewMutation(m1, c(0.01, 0.0), 5000);
 	for (ind in others)
 		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
 			stop("trait values changed in unaffected individuals");
@@ -2719,7 +2719,7 @@ reproduction() { }
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(1.0, NAN)))
 			stop("trait values unexpected prior to adding mutation");
-	mut = target_haplosomes.addNewMutation(m1, 0.01, 5000);
+	mut = target_haplosomes.addNewMutation(m1, c(0.01, 0.0), 5000);
 	for (ind in target_inds)
 		if (!identical(ind.phenotypeForTrait(), c(NAN, NAN)))
 			stop("adding mutation did not invalidate trait values");
@@ -2861,7 +2861,7 @@ reproduction() { }
 2 early() {
 	target = sample(p1.haplosomes, 1);
 	target_ind = target.individual;
-	mut = target.addNewMutation(m1, 0.0, 5000);
+	mut = target.addNewMutation(m1, c(0.0, 0.0), 5000);
 	sim.demandPhenotype(NULL);
 	for (ind in p1.individuals)
 		if (!identical(ind.phenotypeForTrait(), c(1.0, 1.0)))
@@ -2930,7 +2930,7 @@ mutationEffect(m1) { return runif(1, 0.01, 0.99); }
 	target = sample(p1.haplosomes, 1);
 	target_ind = target.individual;
 	others = p1.subsetIndividuals(exclude=target_ind);
-	mut = target.addNewMutation(m1, 0.0, 5000);
+	mut = target.addNewMutation(m1, c(0.0, 0.0), 5000);
 	sim.demandPhenotype(NULL);
 	phenotype1 = target_ind.mul1T;
 	phenotype2 = target_ind.mul2T;
@@ -3049,7 +3049,7 @@ reproduction() { }
 	sim.addSubpop("p1", 50);
 	target = sample(p1.haplosomes, 20);
 	target_ind = target.individual;
-	mut = target.addNewMutation(m1, 0.0, 5000);
+	mut = target.addNewMutation(m1, c(0.0, 0.0), 5000);
 	sim.demandPhenotype(NULL);      // initial demand to set up caches
 }
 mutationEffect(m1) { return 1.0 + 0.1; }   // non-constant callback
@@ -3625,6 +3625,7 @@ mutation(m3) {
 	
 	SLiMAssertScriptSuccess(multitrait_COMPLEX_2);
 	
+	
 	// This test triggers an error due to hemizygosity of an autosome with a hemizygous dominance
 	// that is != 0.5, because substitution accumulation can't represent the effect of a mutation
 	// that gets substituted.  See discussion in Trait::AccumulateSubstitutionOffset().
@@ -3678,6 +3679,7 @@ early() {
 	
 	SLiMAssertScriptRaise(multitrait_AUTOSOMAL_HEMIZYGOSITY, "substitution accumulation cannot occur for", 0, /* p_expect_error_position */ false);
 	
+	
 	// This tests "mutation accumulation, stacking policy "a".  It uses both an additive and a multiplicative
 	// trait, with a hemizygous dominance coefficient of 0.4 (not 0.0, 0.5, or 1.0) to test that things are
 	// robust to that.  Unlike other models above, this mostly tests only in DEBUG mode, relying on the built-in
@@ -3719,6 +3721,7 @@ late() {
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_MUTATION_ACCUMULATION);
+	
 	
 	// This tests the methods calculateFitness() and calculatePhenotype() by comparing their results
 	// to the known results from a simulation, and by testing that their components combine correctly.
@@ -3881,6 +3884,95 @@ late() {
 		)V0G0N";
 	
 	SLiMAssertScriptSuccess(multitrait_CALC_PHENO_FITNESS);
+	
+	
+	// a quick test model for new multitrait functionality in addNewMutation()
+	#pragma mark multitrait_CHECK_ADD_NEW_MUTATION_1
+	std::string multitrait_CHECK_ADD_NEW_MUTATION_1 =
+		R"V0G0N(
+// multitrait_CHECK_ADD_NEW_MUTATION_1
+initialize() {
+	t1 = initializeTrait("trait1", "a");
+	t2 = initializeTrait("trait2", "a");
+	initializeMutationType("m1", NAN, "f", 0.0);
+	initializeMutationType("m2", 0.75, "f", 0.1);
+	m2.setDefaultDominanceForTrait(t2, 0.25);
+	m2.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5));
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 1.0));
+	initializeGenomicElement(g1, 0, 999);
+	initializeRecombinationRate(1e-8);
+	initializeMutationRate(0.0);
+}
+1 late() {
+	sim.addSubpop("p1", 5);
+	target = p1.haplosomes[0:3];
+	
+	mut1 = target.addNewMutation(m1, c(0.125, 0.375), 100);
+	
+	if (mut1.mutationType != m1)
+		stop("mut1 mutationType unexpected!");
+	if (mut1.position != 100)
+		stop("mut1 mutationType unexpected!");
+	if (mut1.trait1EffectSize != 0.125)
+		stop("mut1 trait1EffectSize unexpected!");
+	if (mut1.trait2EffectSize != 0.375)
+		stop("mut1 trait2EffectSize unexpected!");
+	if (mut1.trait1Dominance != 0.5)
+		stop("mut1 trait1Dominance unexpected!");
+	if (mut1.trait2Dominance != 0.5)
+		stop("mut1 trait2Dominance unexpected!");
+	if (any(mut1.isIndependentDominanceForTrait() == F))
+		stop("mut1 isIndependentDominanceForTrait() unexpected!");
+	if (mut1.trait1HemizygousDominance != 1.0)
+		stop("mut1 trait1HemizygousDominance unexpected!");
+	if (mut1.trait2HemizygousDominance != 1.0)
+		stop("mut1 trait2HemizygousDominance unexpected!");
+	
+	muts = target.addNewMutation(c(m1,m2), cbind(c(0.125, 0.375), c(0.625, 0.875)), c(200, 300));
+	
+	mut2 = muts[0];
+	if (mut2.mutationType != m1)
+		stop("mut2 mutationType unexpected!");
+	if (mut2.position != 200)
+		stop("mut2 mutationType unexpected!");
+	if (mut2.trait1EffectSize != 0.125)
+		stop("mut2 trait1EffectSize unexpected!");
+	if (mut2.trait2EffectSize != 0.375)
+		stop("mut2 trait2EffectSize unexpected!");
+	if (mut2.trait1Dominance != 0.5)
+		stop("mut2 trait1Dominance unexpected!");
+	if (mut2.trait2Dominance != 0.5)
+		stop("mut2 trait2Dominance unexpected!");
+	if (any(mut2.isIndependentDominanceForTrait() == F))
+		stop("mut2 isIndependentDominanceForTrait() unexpected!");
+	if (mut2.trait1HemizygousDominance != 1.0)
+		stop("mut2 trait1HemizygousDominance unexpected!");
+	if (mut2.trait2HemizygousDominance != 1.0)
+		stop("mut2 trait2HemizygousDominance unexpected!");
+		
+	mut3 = muts[1];
+	if (mut3.mutationType != m2)
+		stop("mut3 mutationType unexpected!");
+	if (mut3.position != 300)
+		stop("mut3 mutationType unexpected!");
+	if (mut3.trait1EffectSize != 0.625)
+		stop("mut3 trait1EffectSize unexpected!");
+	if (mut3.trait2EffectSize != 0.875)
+		stop("mut3 trait2EffectSize unexpected!");
+	if (mut3.trait1Dominance != 0.75)
+		stop("mut3 trait1Dominance unexpected!");
+	if (mut3.trait2Dominance != 0.25)
+		stop("mut3 trait2Dominance unexpected!");
+	if (any(mut3.isIndependentDominanceForTrait() == T))
+		stop("mut3 isIndependentDominanceForTrait() unexpected!");
+	if (mut3.trait1HemizygousDominance != 0.25)
+		stop("mut3 trait1HemizygousDominance unexpected!");
+	if (mut3.trait2HemizygousDominance != 0.5)
+		stop("mut3 trait2HemizygousDominance unexpected!");
+}
+		)V0G0N";
+	
+	SLiMAssertScriptSuccess(multitrait_CHECK_ADD_NEW_MUTATION_1);
 	
 	// FIXME MULTITRAIT: remove this log once it is no longer useful...
 	std::cout << "_RunMultitraitTests() done" << std::endl;

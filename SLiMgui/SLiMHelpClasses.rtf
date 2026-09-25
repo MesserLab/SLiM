@@ -1970,6 +1970,11 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \cf2 Before SLiM 4, this method also took a 
 \f3\fs18 originGeneration
 \f4\fs20  parameter.  This was deprecated (the origin generation was then required to be equal to the current generation, for internal consistency), and was removed in SLiM 4.\
+Beginning in SLiM 6, multiple traits could be defined in the target species.  If so, 
+\f3\fs18 effectSize
+\f4\fs20  must provide an effect size for each trait (in the order in which they are defined in the species).  If more than one mutation is being created and there are also multiple traits in the target species, 
+\f3\fs18 effectSize
+\f4\fs20  may specify a vector with one effect size per trait (to be used for all of the mutations created), or it may specify a matrix containing one column per mutation being created and one row per trait in the target species, providing the effect size for each trait in each new mutation.\
 This method changes all trait values to 
 \f3\fs18 NAN
 \f4\fs20  for the individuals associated with the target haplosomes, indicating that those trait values are invalid so that they will be recalculated the next time they are demanded.\

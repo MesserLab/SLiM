@@ -2301,7 +2301,7 @@ const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) cons
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("effectSize")->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));	// FIXME MULTITRAIT: needs to be extended to allow multitrait effect sizes to be passed in
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("effectSize")->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_containsMutations));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType));
@@ -2795,6 +2795,60 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	if (arg_nucleotide->Type() == EidosValueType::kValueNULL)
 		nucleotide_count = 1;
 	
+	// BCH 9/24/2026: addNewMutation() now allows `numeric effectSize` to be a matrix with one column per mut
+	// being added, one row per trait; and in fact if there is more than one trait and more than one mutation
+	// is being added, a matrix is now required.  `effectSize_count` will be treated as the number of mutations
+	// being added, i.e., the number of columns present in the matrix.
+	bool effectSize_is_matrix = false;
+	int trait_count = species->TraitCount();
+	
+	if (p_method_id == gID_addNewMutation)
+	{
+		if (arg_effectSize->IsMatrixOrArray())
+		{
+			int dim_count = arg_effectSize->DimensionCount();
+			
+			if (dim_count != 2)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): addNewMutation() requires effectSize to be a vector or matrix (not an array)." << EidosTerminate();
+			
+			const int64_t *dim_values = arg_effectSize->Dimensions();
+			int64_t nrow = dim_values[0];
+			int64_t ncol = dim_values[1];
+			
+			if (nrow != trait_count)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): since effectSize is a matrix, it must contain one row per trait in the target species; but there are " << trait_count << " traits, and effectSize has " << nrow << " row(s)." << EidosTerminate();
+			
+			// OK, we have a matrix with one row per trait; for now effectSize_count will be set to the number
+			// of columns (the number of mutations specified), and we'll handle the matrix case below
+			effectSize_count = (int)ncol;
+			effectSize_is_matrix = true;
+		}
+		else
+		{
+			if (species->TraitCount() > 1)
+			{
+				if (effectSize_count == trait_count)
+				{
+					// If we have one effectSize value per trait, we will treat effectSize as a matrix with
+					// one column, representing per-trait effect sizes describing a single mutation.  It
+					// doesn't matter that it isn't actually a matrix; the data is in the same memory layout.
+					effectSize_count = 1;
+					effectSize_is_matrix = true;
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): in species with more than one trait, addNewMutation() requires effectSize to be a matrix with one row per trait, providing per-trait effect sizes for each mutation being created.  (If only one mutation is being created, effectSize may actually be a vector with one entry per trait instead; but that is not the case here since there are " << trait_count << " traits, and effectSize has " << effectSize_count << " element(s).)" << EidosTerminate();
+				}
+			}
+			else
+			{
+				// With one trait, we are in the pre-multitrait case where each value in effectSize is an
+				// effect size for a mutation to be added; there is one effectSize value per mutation,
+				// or effectSize is a singleton giving the effect size to be used for all new mutations.
+			}
+		}
+	}
+	
 	int count_to_add = std::max({muttype_count, effectSize_count, position_count, origin_subpop_count, nucleotide_count});
 	
 	if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
@@ -2802,7 +2856,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		((position_count != 1) && (position_count != count_to_add)) ||
 		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
 		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "effectSize, " : "") << "position, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originSubpop and nucleotide." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "effectSize, " : "") << "position, originSubpop, and nucleotide specify data describing (1) one mutation (to be used for all mutations created), or (2) the same number of mutations as the other argument(s) that describe more than one mutation, or (3) NULL, for originSubpop and nucleotide.  In other words, all arguments must be consistent in supplying data for the same number of mutations to be created, except that it is also legal to specify data for just one mutation (to be used for all mutations created), or to supply NULL to get a default value for all mutations created (for originSubpop and nucleotide)." << EidosTerminate();
 	
 	EidosValue_Object_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	
@@ -2913,7 +2967,22 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	// for the singleton case for each of the parameters, get all the info
 	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 	
-	slim_effect_t singleton_selection_coeff = (arg_effectSize ? (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(0, nullptr) : (slim_effect_t)0.0);
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_addNewMutation(): usage of statics");
+	static slim_effect_t *effectSize_buf = nullptr, *dominance_buf = nullptr;
+	if (!effectSize_buf) {
+		effectSize_buf = (slim_effect_t *)malloc(SLIM_MAX_TRAITS * sizeof(slim_effect_t));
+		dominance_buf = (slim_effect_t *)malloc(SLIM_MAX_TRAITS * sizeof(slim_effect_t));
+	}
+	if (arg_effectSize)
+	{
+		// fetch "singleton" effectSize values, meaning per-trait values for a single specified mutation
+		// the "singleton" dominance values come from the "singleton" mutation type's default dominance
+		for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			effectSize_buf[trait_index] = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(trait_index, nullptr);
+			dominance_buf[trait_index] = singleton_mutation_type_ptr->DefaultDominanceForTrait(trait_index);
+		}
+	}
 	
 	slim_position_t singleton_position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex_NOCAST(0, nullptr));
 	
@@ -3017,19 +3086,31 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				}
 				else	// (p_method_id == gID_addNewMutation)
 				{
-					slim_effect_t selection_coeff = singleton_selection_coeff;
-					
-					if (effectSize_count != 1)
+					if (effectSize_count != 1)	// note that effectSize_count is the number of mutations there is data for, not the number of elements
 					{
-						if (arg_effectSize)
-							selection_coeff = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
+						// our data buffers were set up with effect size data for a single mutation (perhaps to be used more than once);
+						// we have effect size data for more than one mutation, so we need to fix them for the mutation we're making
+						// note that mutations are not necessarily created in the order specified, due to mutation runs
+						if (effectSize_is_matrix)
+						{
+							// with a matrix of effect sizes, we need to look up the per-trait effect sizes for this mutation
+							for (int trait_index = 0; trait_index < trait_count; ++trait_index)
+							{
+								effectSize_buf[trait_index] = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(mut_parameter_index * trait_count + trait_index, nullptr);
+								dominance_buf[trait_index] = mutation_type_ptr->DefaultDominanceForTrait(trait_index);
+							}
+						}
+						else if (trait_count == 1)
+						{
+							// with a vector of effect sizes, we just use the value for the mutation at mut_parameter_index
+							effectSize_buf[0] = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
+							dominance_buf[0] = mutation_type_ptr->DefaultDominanceForTrait(0);
+						}
 						else
-							selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): (internal error) effectSize is not considered a matrix, but the trait count is != 1." << EidosTerminate();
 					}
 					
-					// FIXME MULTITRAIT: This needs to pass in a whole vector of effect sizes and dominance coefficients now... and hemizygous dominance...
-					// FIXME MULTITRAIT: this code will also now need to handle independent dominance for added mutations
-					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), origin_subpop_id, origin_tick, (int8_t)nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, effectSize_buf, dominance_buf, origin_subpop_id, origin_tick, (int8_t)nucleotide);
 				}
 				
 				// add to the registry, return value, haplosome, etc.
@@ -3097,8 +3178,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	}
 	
 	// TRAIT INVALIDATION: all trait values are invalidated, in each owning individual
-	slim_trait_index_t trait_count = species->TraitCount();
-	
 	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 	{
 		Haplosome *target_haplosome = targets[haplosome_index];
@@ -4184,6 +4263,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 				slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 				
+				// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			else
