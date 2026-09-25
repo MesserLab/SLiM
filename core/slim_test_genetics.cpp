@@ -3974,6 +3974,59 @@ initialize() {
 	
 	SLiMAssertScriptSuccess(multitrait_CHECK_ADD_NEW_MUTATION_1);
 	
+	
+// multitrait_CHECK_ADD_NEW_MUTATION_2
+	#pragma mark multitrait_CHECK_ADD_NEW_MUTATION_2
+	std::string multitrait_CHECK_ADD_NEW_MUTATION_2 =
+		R"V0G0N(
+initialize() {
+	t1 = initializeTrait("trait1", "a");
+	t2 = initializeTrait("trait2", "a");
+	initializeMutationType("m1", NAN, "f", 0.0);
+	initializeMutationType("m2", 0.75, "f", 0.1);
+	m2.setDefaultDominanceForTrait(t2, 0.25);
+	m2.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5));
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 1.0));
+	initializeGenomicElement(g1, 0, 999);
+	initializeRecombinationRate(1e-8);
+	initializeMutationRate(0.0);
+}
+1 late() {
+	sim.addSubpop("p1", 5);
+	target = p1.haplosomes[0:3];
+	mut1 = target.addNewMutation(m1, c(0.125, 0.375, 0.5), 100);
+}
+		)V0G0N";
+	
+	SLiMAssertScriptRaise(multitrait_CHECK_ADD_NEW_MUTATION_2, "requires effectSize to be a matrix with one row per trait", __LINE__);
+	
+	
+// multitrait_CHECK_ADD_NEW_MUTATION_3
+	#pragma mark multitrait_CHECK_ADD_NEW_MUTATION_3
+	std::string multitrait_CHECK_ADD_NEW_MUTATION_3 =
+		R"V0G0N(
+initialize() {
+	t1 = initializeTrait("trait1", "a");
+	t2 = initializeTrait("trait2", "a");
+	initializeMutationType("m1", NAN, "f", 0.0);
+	initializeMutationType("m2", 0.75, "f", 0.1);
+	m2.setDefaultDominanceForTrait(t2, 0.25);
+	m2.setDefaultHemizygousDominanceForTrait(NULL, c(0.25, 0.5));
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 1.0));
+	initializeGenomicElement(g1, 0, 999);
+	initializeRecombinationRate(1e-8);
+	initializeMutationRate(0.0);
+}
+1 late() {
+	sim.addSubpop("p1", 5);
+	target = p1.haplosomes[0:3];
+	mut1 = target.addNewMutation(m1, matrix(1:6, nrow=3), 100);
+}
+		)V0G0N";
+	
+	SLiMAssertScriptRaise(multitrait_CHECK_ADD_NEW_MUTATION_3, "since effectSize is a matrix, it must contain one row per trait", __LINE__);
+	
+	
 	// FIXME MULTITRAIT: remove this log once it is no longer useful...
 	std::cout << "_RunMultitraitTests() done" << std::endl;
 }
