@@ -4028,7 +4028,7 @@ initialize() {
 	
 	
 	// FIXME MULTITRAIT: remove this log once it is no longer useful...
-	std::cout << "_RunMultitraitTests() done" << std::endl;
+	//std::cout << "_RunMultitraitTests() done" << std::endl;
 }
 
 
