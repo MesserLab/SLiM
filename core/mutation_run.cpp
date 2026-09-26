@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <string>
 
 
 // For doing bulk operations across all MutationRun objects; see header

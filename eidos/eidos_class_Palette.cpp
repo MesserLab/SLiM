@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <utility>
 
 
 PaletteTransition PaletteTransitionFromString(const std::string string)

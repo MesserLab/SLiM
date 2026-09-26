@@ -14,6 +14,11 @@
 #include "individual.h"
 #include "substitution.h"
 
+#include <limits>
+#include <string>
+#include <algorithm>
+#include <vector>
+
 
 Trait::Trait(Species &p_species, const std::string &p_name, TraitType p_type, bool p_logistic_post, double p_individualOffsetDistributionMean, double p_individualOffsetDistributionSD, bool p_directFitnessEffect, bool p_substitutionAccumulation) :
 	index_(-1), name_(p_name), type_(p_type), logistic_post_(p_logistic_post),

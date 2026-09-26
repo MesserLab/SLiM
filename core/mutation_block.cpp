@@ -21,6 +21,8 @@
 #include "mutation_block.h"
 #include "mutation_run.h"
 
+#include <vector>
+
 
 #define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable		// NOLINT(*-macro-to-enum) : this is fine
 

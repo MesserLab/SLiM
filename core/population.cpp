@@ -27,6 +27,7 @@
 #include <utility>
 #include <unordered_map>
 #include <ctime>
+#include <limits>
 
 #include "community.h"
 #include "species.h"
