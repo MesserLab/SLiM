@@ -1,0 +1,89 @@
+// Keywords: additive trait, quantitative trait, QTL, derived trait, underlying trait, sexual dimorphism
+
+initialize() {
+	defineConstant("OPT1_M", 11.0);  // initial male body size optimum
+	defineConstant("OPT1_F", 4.5);   // initial female body size optimum
+	defineConstant("OPT2_M", 12.0);  // later male body size optimum
+	defineConstant("OPT2_F", 2.0);   // later female body size optimum
+	defineConstant("SIGMA_S", 0.5);  // width of the fitness functions
+	defineConstant("SSSCALE", 0.5);  // sex-specific effect scaling
+	defineConstant("T_SHIFT", 5000); // time of the optimum shift
+	defineConstant("T_END", 30000);  // time of the simulation end
+	
+	initializeSex();
+	initializeTrait("unbiased", "a", c(8.0, 3.0), individualOffsetSD=2.0);
+	initializeTrait("sexBiased", "a", 3.0, individualOffsetSD=2.0);
+	
+	initializeMutationType("m1", NAN);   // QTLs
+	initializeMutationType("m2", NAN);   // QTLs
+	m1.setEffectSizeDistributionForTrait("unbiased", "n", 0.0, 0.05);
+	m2.setEffectSizeDistributionForTrait("sexBiased", "n", 0.0, 0.05);
+	
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,1.0));
+	initializeGenomicElement(g1, 0, 1e5 - 1);
+	initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-7);
+}
+1 late() {
+	sim.addSubpop("p1", 1000);
+	
+	defineConstant("LOG", community.createLogFile("log.csv"));
+	LOG.addTick();
+	LOG.addSuppliedColumn("unbiased");
+	LOG.addSuppliedColumn("sexBiased");
+	LOG.addSuppliedColumn("sizeM");
+	LOG.addSuppliedColumn("sizeF");
+}
+late() {
+	// stabilizing selection on body size with sex-specific, time-varying optima
+	OPT_M = (community.tick < T_SHIFT) ? OPT1_M else OPT2_M;
+	OPT_F = (community.tick < T_SHIFT) ? OPT1_F else OPT2_F;
+	
+	sim.demandPhenotype(NULL, NULL);
+	
+	males = sim.subpopulations.subsetIndividuals(sex="M");
+	sizeM = males.unbiased + males.sexBiased;
+	males.fitnessScaling = dnorm(sizeM, OPT_M, SIGMA_S);
+	
+	females = sim.subpopulations.subsetIndividuals(sex="F");
+	sizeF = females.unbiased + SSSCALE * females.sexBiased;
+	females.fitnessScaling = dnorm(sizeF, OPT_F, SIGMA_S);
+	
+	// log and plot
+	if (exists("slimgui") & (community.tick % 10 == 0))
+	{
+		inds = sim.subpopulations.individuals;
+		LOG.setSuppliedValue("unbiased", mean(inds.unbiased));
+		LOG.setSuppliedValue("sexBiased", mean(inds.sexBiased));
+		LOG.setSuppliedValue("sizeM", mean(sizeM));
+		LOG.setSuppliedValue("sizeF", mean(sizeF));
+		LOG.logRow();
+		
+		plot = slimgui.createPlot("trait evolution",
+			xrange=c(1, T_END), yrange=c(0,15), xlab="tick", ylab="mean value",
+			width=800, height=300);
+		
+		plot.abline(v=T_SHIFT, color="black");
+		plot.lines(c(1, T_SHIFT), c(OPT1_M, OPT1_M), "lightskyblue");
+		plot.lines(c(T_SHIFT, T_END), c(OPT2_M, OPT2_M), "lightskyblue");
+		plot.lines(c(1, T_SHIFT), c(OPT1_F, OPT1_F), "lightpink");
+		plot.lines(c(T_SHIFT, T_END), c(OPT2_F, OPT2_F), "lightpink");
+		
+		t = slimgui.logFileData(LOG, "tick");
+		plot.lines(t, slimgui.logFileData(LOG, "unbiased"), "chartreuse3", lwd=2.0);
+		plot.lines(t, slimgui.logFileData(LOG, "sexBiased"), "goldenrod1", lwd=2.0);
+		plot.lines(t, slimgui.logFileData(LOG, "sizeM"), "cornflowerblue", lwd=2.0);
+		plot.lines(t, slimgui.logFileData(LOG, "sizeF"), "indianred1", lwd=2.0);
+		
+		plot.addLegend("topLeft");
+		plot.legendLineEntry("optimum (M)", "lightskyblue");
+		plot.legendLineEntry("optimum (F)", "lightpink");
+		plot.legendLineEntry("unbiased", "chartreuse3", lwd=2.0);
+		plot.legendLineEntry("sexBiased", "goldenrod1", lwd=2.0);
+		plot.legendLineEntry("sizeM", "cornflowerblue", lwd=2.0);
+		plot.legendLineEntry("sizeF", "indianred1", lwd=2.0);
+	}
+}
+T_END late() {
+	sim.simulationFinished();
+}

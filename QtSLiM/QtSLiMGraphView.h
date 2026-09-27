@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -184,6 +184,7 @@ protected:
     void drawHeatmap(QPainter &painter, QRect interiorRect, double *buffer, int xBinCount, int yBinCount);
     bool addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID = -1);
     bool addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex);
+    bool addTraitsToMenu(QComboBox *traitButton, std::string selectedTraitName);
     size_t tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index);
     size_t tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index);
     
@@ -267,7 +268,7 @@ protected:
     bool allowBinCountRescale_ = false;
     int heatmapMargins_ = 0;
     bool allowHeatmapMarginsChange_ = false;
-    bool rebuildingMenu_ = false;           // set to true during addSubpopulationsToMenu() / addMutationTypesToMenu()
+    bool rebuildingMenu_ = false;           // set to true during addSubpopulationsToMenu() / addMutationTypesToMenu() / addTraitsToMenu()
     
     // set to YES during a copy: operation, to allow customization
 	bool generatingPDF_ = false;

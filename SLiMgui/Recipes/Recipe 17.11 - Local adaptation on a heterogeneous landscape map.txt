@@ -7,13 +7,13 @@ initialize() {
 	defineConstant("N", 500);
 	
 	initializeSLiMOptions(dimensionality="xyz");
-	initializeMutationRate(1e-6);
-	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral
-	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL
-	m2.convertToSubstitution = F;
-	
+	initializeTrait("quant", "a");
+	initializeMutationType("m1", NAN, "f", 0.0);        // neutral
+	initializeMutationType("m2", NAN, "n", 0.0, 1.0);   // QTL
 	initializeGenomicElementType("g1", c(m1, m2), c(1, 0.1));
+	
 	initializeGenomicElement(g1, 0, 1e5 - 1);
+	initializeMutationRate(1e-6);
 	initializeRecombinationRate(1e-8);
 	
 	// competition
@@ -24,7 +24,6 @@ initialize() {
 	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=SIGMA_M * 3);
 	i2.setInteractionFunction("n", 1.0, SIGMA_M);
 }
-mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", N);
 	p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
@@ -38,23 +37,24 @@ mutationEffect(m2) { return 1.0; }
 }
 modifyChild() {
 	// set offspring position based on parental position
-	do pos = c(parent1.spatialPosition[0:1] + rnorm(2, 0, 0.005), 0.0);
+	do pos = c(parent1.xy + rnorm(2, 0, 0.005), 0.0);
 	while (!p1.pointInBounds(pos));
 	child.setSpatialPosition(pos);
 	
 	return T;
 }
 1: late() {
-	// construct phenotypes and fitness effects from QTLs
 	inds = sim.subpopulations.individuals;
-	phenotype = inds.sumOfMutationsOfType(m2);
-	location = inds.spatialPosition[rep(c(T,T,F), inds.size())];
-	optimum = OPTIMUM.mapValue(location);
-	inds.fitnessScaling = 1.0 + dnorm(phenotype, optimum, SIGMA_K);
-	inds.z = phenotype;
+	
+	// construct phenotypes and fitness effects from QTLs
+	sim.demandPhenotype(NULL, "quant");
+	phenotypes = inds.quant;
+	optimum = OPTIMUM.mapValue(inds.xy);
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optimum, SIGMA_K);
+	inds.z = phenotypes;
 	
 	// color individuals according to phenotype
-	inds.color = OPTIMUM.mapColor(phenotype);
+	inds.color = OPTIMUM.mapColor(phenotypes);
 	
 	// evaluate phenotypic competition
 	i1.evaluate(p1);

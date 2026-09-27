@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -70,18 +70,26 @@ QColor QtSLiMColorWithWhite(double p_white, double p_alpha);
 QColor QtSLiMColorWithRGB(double p_red, double p_green, double p_blue, double p_alpha);
 QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, double p_alpha);
 
-void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
-
 // A color scale widget that shows the color scales for fitness and selection coefficients
 class QtSLiMColorScaleWidget : public QWidget
 {
 public:
     QtSLiMColorScaleWidget(QWidget *p_parent);
+    
+    void MeasureOrPaint(QPainter *painter, int *p_panel_width, int *p_panel_height);
+    
 protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
-private:
-    std::vector<QString> fitnessTicks, effectTicks;
+    
+    std::vector<QString> fitnessTicks, fitnessEffectTicks;
+    std::vector<QString> multiplicativePhenotypeTicks, multiplicativeEffectTicks;
+    std::vector<QString> additivePhenotypeTicks, additiveEffectTicks;
+    std::vector<QString> logisticPhenotypeTicks, logisticEffectTicks;
+    
+    std::vector<double> fitnessRange, fitnessEffectRange;
+    std::vector<double> multiplicativePhenotypeRange, multiplicativeEffectRange;
+    std::vector<double> additivePhenotypeRange, additiveEffectRange;
+    std::vector<double> logisticPhenotypeRange, logisticEffectRange;
 };
 
 // Whether we're in "dark mode" for user interface rendering

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/24/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -150,6 +150,7 @@ protected:
     QStringList uniquedArgumentNameCompletions(std::vector<std::string> *argumentCompletions);
     void _completionHandlerWithRangeForCompletion(NSRange *baseRange, QStringList *completions);
     int64_t scoreForCandidateAsCompletionOfString(QString candidate, QString base);
+    int64_t scoreForCandidateAsCompletionOfString(QString candidate, QString base, int firstUnusedIndex, int firstUnmatchedIndex, int64_t scoreSoFar, int recursionLevel);
     void slimSpecificCompletion(QString completionScriptString, NSRange selection, EidosTypeTable **typeTable, EidosFunctionMap **functionMap, EidosCallTypeTable **callTypeTable, QStringList *keywords, std::vector<std::string> *argNameCompletions);
 
     EidosFunctionMap *functionMapForScriptString(QString scriptString, bool includingOptionalFunctions);

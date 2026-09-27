@@ -6,11 +6,11 @@ species fox initialize() {
 species mouse initialize() {
 	initializeSpecies(tickModulo=1, tickPhase=1, avatar="🐭");
 }
-ticks all 1 early() {
+1 early() {
 	fox.addSubpop("p1", 50);
 	mouse.addSubpop("p2", 500);
 }
-ticks all 2000 late() {
+2000 late() {
 	fox.outputFixedMutations();
 	mouse.outputFixedMutations();
 }

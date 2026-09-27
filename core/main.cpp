@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/12/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -161,7 +161,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	exit(EXIT_SUCCESS);
 }
 
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 static void clean_up_leak_false_positives(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
@@ -175,7 +175,7 @@ static void clean_up_leak_false_positives(void)
 
 static void test_exit(int test_result)
 {
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 	clean_up_leak_false_positives();
 	
 	// sleep() to give time to assess leaks at the command line
@@ -689,7 +689,7 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
         if (tree_seq_force && !tree_seq_checks)
 			community->AllSpecies_TSF_Enable();
 		
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 		// We check memory usage at the end of every 10 ticks, to be able to provide the user with a decent error message
 		// if the maximum memory limit is exceeded.  Every 10 ticks is a compromise; these checks do take a little time.
 		// Even with a model that runs through ticks very quickly, though, checking every 10 makes little difference.
@@ -814,7 +814,7 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 				mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 			}
 			
-#if DO_MEMORY_CHECKS
+#if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
 			{
 				mem_check_counter++;
@@ -844,7 +844,7 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		// clean up; but most of this is an unnecessary waste of time in the command-line context
 		Eidos_FlushFiles();
 		
-#if SLIM_LEAK_CHECKING
+#if SLIM_LEAK_CHECKING()
 		delete community;
 		community = nullptr;
 		clean_up_leak_false_positives();

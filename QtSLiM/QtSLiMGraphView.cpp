@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -48,6 +48,7 @@
 #include "subpopulation.h"
 #include "haplosome.h"
 #include "mutation_run.h"
+#include "mutation_block.h"
 
 
 QFont QtSLiMGraphView::labelFontOfPointSize(double size)
@@ -201,7 +202,8 @@ bool QtSLiMGraphView::missingFocalDisplaySpecies(void)
 
 void QtSLiMGraphView::updateSpeciesBadge(void)
 {
-    // graphs that do not have a focal species, such as QtSLiMGraphView_MultispeciesPopSizeOverTime, have no species badge
+    // graphs that do not have a focal species, such as QtSLiMGraphView_MultispeciesPopSizeOverTime
+    // and QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime, have no species badge
     if (focalSpeciesName_.length() == 0)
         return;
     
@@ -662,7 +664,7 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
                     double minorTickIndex = fractPart * 9.0;
                     double minorTickOffset = std::log10(minorTickIndex + 1.0);
                     transformedTickValue = intPart + minorTickOffset;
-                    //std::cout << intPart << " , " << fractPart << "\n";
+                    //std::cout << intPart << " , " << fractPart << std::endl;
                 }
                 
                 double yValueForTick;
@@ -1938,7 +1940,7 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
     }
     else
     {
-        for (auto subpop_id : subpopsToDisplay)
+        for (const auto &subpop_id : subpopsToDisplay)
         {
             if (subpop_id != -1)
             {
@@ -1974,7 +1976,7 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
         legend_key.emplace_back("placeholder", QColor());
     
     // then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-    for (auto mutationTypeIter : mutTypes)
+    for (const auto &mutationTypeIter : mutTypes)
     {
         MutationType *mutationType = mutationTypeIter.second;
         int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
@@ -2406,7 +2408,7 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
                 r = 0.25; g = 0.25; b = 1.0;  // a special "no value" color for the 2D SFS plot
             }
             else
-                Eidos_ColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
+				EidosColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
             
             painter.fillRect(patchRect, QtSLiMColorWithRGB(r, g, b, 1.0));
         }
@@ -2415,6 +2417,9 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
 
 bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID)
 {
+    if (!subpopButton)
+        return false;
+    
     Species *graphSpecies = focalDisplaySpecies();
 	slim_objectid_t firstTag = -1;
     
@@ -2429,7 +2434,7 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 	{
 		Population &population = graphSpecies->population_;
 		
-		for (auto popIter : population.subpops_)
+		for (const auto &popIter : population.subpops_)
 		{
 			slim_objectid_t subpopID = popIter.first;
 			QString subpopString = QString("p%1").arg(subpopID);
@@ -2478,6 +2483,9 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 
 bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex)
 {
+    if (!mutTypeButton)
+        return false;
+    
     Species *graphSpecies = focalDisplaySpecies();
 	int firstTag = -1;
 	
@@ -2492,7 +2500,7 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	{
 		std::map<slim_objectid_t,MutationType*> &mutationTypes = graphSpecies->mutation_types_;
 		
-		for (auto mutTypeIter : mutationTypes)
+		for (const auto &mutTypeIter : mutationTypes)
 		{
 			MutationType *mutationType = mutTypeIter.second;
 			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
@@ -2536,26 +2544,87 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	return hasItems;	// true if we found at least one muttype to add to the menu, false otherwise
 }
 
+bool QtSLiMGraphView::addTraitsToMenu(QComboBox *traitButton, std::string selectedTraitName)
+{
+    if (!traitButton)
+        return false;
+    
+    Species *graphSpecies = focalDisplaySpecies();
+    std::string firstName;
+    
+    // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
+    // allows client code to avoid (over-)reacting to those signals.
+    rebuildingMenu_ = true;
+    
+    // Depopulate and populate the menu
+    traitButton->clear();
+    
+    if (graphSpecies && !graphSpecies->has_implicit_trait_)
+    {
+        const std::vector<Trait *> &traits = graphSpecies->Traits();
+        
+        for (const Trait *trait : traits)
+        {
+            const std::string &traitName = trait->Name();
+            QString qTraitName = QString::fromStdString(traitName);
+            
+            traitButton->addItem(qTraitName, qTraitName);
+            
+            // Remember the first item we add; we will use this item's tag to make a selection if needed
+            if (firstName.length() == 0)
+                firstName = traitName;
+        }
+    }
+    
+    // If it is empty, disable it
+    bool hasItems = (traitButton->count() >= 1);
+    
+    traitButton->setEnabled(hasItems);
+    
+    // Done rebuilding the menu, resume change messages
+    rebuildingMenu_ = false;
+    
+    // Fix the selection and then select the chosen trait
+    if (hasItems)
+    {
+        QString qSelectedTraitName = QString::fromStdString(selectedTraitName);
+        int indexOfName = traitButton->findData(qSelectedTraitName);
+        
+        if (indexOfName == -1)
+            selectedTraitName = "";
+        if (selectedTraitName.length() == 0)
+            selectedTraitName = firstName;
+        
+        qSelectedTraitName = QString::fromStdString(selectedTraitName);
+        
+        traitButton->setCurrentIndex(traitButton->findData(qSelectedTraitName));
+        
+        // this signal, emitted after rebuildingMenu_ is set to false, is the one that sticks
+        emit traitButton->QComboBox::currentIndexChanged(traitButton->currentIndex());
+    }
+    
+    return hasItems;	// true if we found at least one trait to add to the menu, false otherwise
+}
+
 size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index)
 {
     //
-	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
-	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
-	// BCH 4/21/2023: This could use mutrun use counts to run faster...
-	//
+    // this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
+    // subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+    // BCH 4/21/2023: This could use mutrun use counts to run faster...
+    //
     Species *graphSpecies = focalDisplaySpecies();
     
     if (!graphSpecies)
         return 0;
     
-    Population &population = graphSpecies->population_;
     size_t subpop_total_haplosome_count = 0;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
-    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-    
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
     {
         int registry_size;
-        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
         const MutationIndex *registry_iter_end = registry + registry_size;
         
         for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
@@ -2607,30 +2676,29 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index)
 {
     //
-	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
-	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
-	// BCH 4/21/2023: This could use mutrun use counts to run faster...
-	//
+    // this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
+    // subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+    // BCH 4/21/2023: This could use mutrun use counts to run faster...
+    //
     Species *graphSpecies = focalDisplaySpecies();
     
     if (!graphSpecies)
         return 0;
     
-    Population &population = graphSpecies->population_;
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
     
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
     {
         int registry_size;
-        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
         const MutationIndex *registry_iter_end = registry + registry_size;
         
         for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-	for (const Haplosome *haplosome : haplosomes)
-	{
+    for (const Haplosome *haplosome : haplosomes)
+    {
         if (!haplosome->IsNull())
         {
             int mutrun_count = haplosome->mutrun_count_;

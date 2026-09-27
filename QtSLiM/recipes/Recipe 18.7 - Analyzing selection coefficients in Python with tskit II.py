@@ -3,14 +3,14 @@
 import tskit
 
 ts = tskit.load("selcoeff.trees")
+mutlist = ts.metadata["SLiM_mutation_list"]
 
 # selection coefficients of all selected mutations
 coeffs = []
-for mut in ts.mutations():
-    md = mut.metadata
-    sel = [x["selection_coeff"] for x in md["mutation_list"]]
-    if any([s != 0 for s in sel]):
-        coeffs += sel
+for mut in mutlist:
+    sel = mut["per_trait"][0]["effect_size"]
+    if sel != 0:
+        coeffs.append(sel)
 
 b = [x for x in coeffs if x > 0]
 d = [x for x in coeffs if x < 0]

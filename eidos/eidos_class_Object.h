@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -174,6 +174,9 @@ public:
 	void CacheDispatchTables(void);
 	void RaiseForDispatchUninitialized(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	
+	void AddSignatureForProperty(EidosPropertySignature_CSP p_property_signature);
+	//void AddSignatureForMethod(EidosMethodSignature_CSP p_method_signature);		// haven't needed this so far, but it could be done...
+	
 	inline __attribute__((always_inline)) const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const
 	{
 #if DEBUG
@@ -198,7 +201,12 @@ public:
 		return nullptr;
 	}
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	// Getting class information about supported properties, methods, and functions.  Right now getting a mutable
+	// version of this information is only supported for properties, since we need to add dynamic properties to
+	// classes; the same could be done for methods and functions, but there is no need for it at present.
+	const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const;
+	
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const;
 	
@@ -206,6 +214,25 @@ public:
 	EidosValue_SP ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+#ifdef EIDOS_GUI
+	// We provide some support here for EidosTypeInterpreter to make code completion work with dynamic properties
+	
+	// This is scratch space for dynamic property signatures generated as a side effect of type-interpretation
+	std::vector<EidosPropertySignature_CSP> dynamic_property_signatures_;
+	
+	// This clears out dynamic_property_signatures_ for all registered classes, to reset type-interpreter state.
+	static void ClearDynamicSignatures(void);
+	
+	// This adds a signature to the EidosTypeInterpreter scratch space above
+	void AddSignatureForProperty_TYPE_INTERPRETER(EidosPropertySignature_CSP p_property_signature);
+	
+	// This calls Properties() to get the built-in properties, and then adds the dynamic ones
+	std::vector<EidosPropertySignature_CSP> Properties_TYPE_INTERPRETER(void) const;
+	
+	// This calls SignatureForProperty(), and then checks the dynamic ones if that failed
+	const EidosPropertySignature *SignatureForProperty_TYPE_INTERPRETER(EidosGlobalStringID p_property_id) const;
+#endif	// EIDOS_GUI
 };
 
 

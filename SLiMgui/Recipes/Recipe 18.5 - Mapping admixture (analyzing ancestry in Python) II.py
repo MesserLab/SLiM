@@ -5,25 +5,25 @@
 import subprocess, tskit
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import tspop
 
 # Run the SLiM model and load the resulting .trees file
 subprocess.check_output(["slim", "-m", "-s", "0", "./admix.slim"])
 ts = tskit.load("./admix.trees")
 
-# Load the .trees file and assess true local ancestry
-breaks = np.zeros(ts.num_trees + 1)
-ancestry = np.zeros(ts.num_trees + 1)
-for tree in ts.trees():
-    subpop_sum, subpop_weights = 0, 0
-    for root in tree.roots:
-        leaves_count = tree.num_samples(root) - 1  # subtract one for the root, which is a sample
-        subpop_sum += tree.population(root) * leaves_count
-        subpop_weights += leaves_count
-    breaks[tree.index] = tree.interval[0]
-    ancestry[tree.index] = subpop_sum / subpop_weights
-breaks[-1] = ts.sequence_length
-ancestry[-1] = ancestry[-2]
+# Assign ancestry
+root_time = max(ts.node(n).time for n in ts.samples())
+pa = tspop.get_pop_ancestry(ts, census_time=root_time)
+st = pa.squashed_table
+
+stepfun = pd.melt(st[st.population==2], value_vars=['left', 'right'], var_name='side', value_name='pos')
+stepfun['dy'] = [1 if s == 'left' else -1 for s in stepfun['side']]
+stepfun.sort_values("pos", inplace=True)
+stepfun['y'] = np.cumsum(stepfun['dy']) / pa.coverage
+stepfun = stepfun[stepfun.pos > 0]
+stepfun = stepfun[stepfun.pos < ts.sequence_length]
 
 # Make a simple plot
-plt.plot(breaks, ancestry)
+plt.plot(stepfun['pos'], stepfun['y'])
 plt.show()

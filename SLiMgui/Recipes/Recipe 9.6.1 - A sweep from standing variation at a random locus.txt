@@ -17,7 +17,7 @@ initialize() {
 	if (size(muts))
 	{
 		mut = sample(muts, 1);
-		mut.setSelectionCoeff(0.5);
+		mut.setEffectSizeForTrait(NULL, 0.5);
 	}
 	else
 	{
@@ -25,9 +25,9 @@ initialize() {
 	}
 }
 1000:10000 late() {
-	if (sum(sim.mutations.selectionCoeff) == 0.0)
+	if (sum(sim.mutations.effectSize) == 0.0)
 	{
-		if (sum(sim.substitutions.selectionCoeff) == 0.0)
+		if (sum(sim.substitutions.effectSize) == 0.0)
 			cat("Sweep mutation lost in cycle " + sim.cycle + "\n");
 		else
 			cat("Sweep mutation reached fixation.\n");

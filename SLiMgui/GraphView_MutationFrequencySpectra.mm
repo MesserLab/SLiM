@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/27/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,8 @@
 
 #import "GraphView_MutationFrequencySpectra.h"
 #import "SLiMWindowController.h"
+
+#import "mutation_block.h"
 
 
 @implementation GraphView_MutationFrequencySpectra
@@ -79,25 +81,28 @@
 	
 	pop.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	int registry_size;
-	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
+	MutationBlock *mutation_block = displaySpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+	slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
 	
-	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+	for (Chromosome *chromosome : displaySpecies->Chromosomes())
 	{
-		const Mutation *mutation = mut_block_ptr + registry[registry_index];
+		int registry_size;
+		const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
 		
-		Chromosome *mut_chromosome = displaySpecies->Chromosomes()[mutation->chromosome_index_];
-		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
-		double mutationFrequency = mutationRefCount / mut_chromosome->total_haplosome_count_;
-		int mutationBin = (int)floor(mutationFrequency * binCount);
-		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
-		
-		if (mutationBin == binCount)
-			mutationBin = binCount - 1;
-		
-		(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		{
+			const Mutation *mutation = mut_block_ptr + registry[registry_index];
+			slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation_block->IndexInBlock(mutation));
+			double mutationFrequency = mutationRefCount / chromosome->total_haplosome_count_;
+			int mutationBin = (int)floor(mutationFrequency * binCount);
+			int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
+			
+			if (mutationBin == binCount)
+				mutationBin = binCount - 1;
+			
+			(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
+		}
 	}
 	
 	// normalize within each mutation type
@@ -157,9 +162,9 @@
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	double *plotData = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
-	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
+	for (const auto &mutationTypeIter : displaySpecies->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
 		[string appendFormat:@"\"m%lld\", ", (long long int)mutationType->mutation_type_id_];

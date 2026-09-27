@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/15/19.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -39,6 +39,9 @@
 extern const char *gSLiMSourceCode_calcDxy;
 extern const char *gSLiMSourceCode_calcFST;
 extern const char *gSLiMSourceCode_calcVA;
+extern const char *gSLiMSourceCode_calcVD;
+extern const char *gSLiMSourceCode_calcVG;
+extern const char *gSLiMSourceCode_calcVP;
 extern const char *gSLiMSourceCode_calcLD_D;
 extern const char *gSLiMSourceCode_calcLD_Rsquared;
 extern const char *gSLiMSourceCode_calcMeanFroh;
@@ -52,6 +55,7 @@ extern const char *gSLiMSourceCode_calcTajimasD;
 
 extern const char *gSLiMSourceCode_initializeMutationRateFromFile;
 extern const char *gSLiMSourceCode_initializeRecombinationRateFromFile;
+extern const char *gSLiMSourceCode_Plot;
 
 
 const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures(void)
@@ -77,14 +81,17 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		// Population genetics utilities (implemented with Eidos code)
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcDxy", gSLiMSourceCode_calcDxy, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("normalize", gStaticEidosValue_LogicalF));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVD", gSLiMSourceCode_calcVD, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVG", gSLiMSourceCode_calcVG, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVP", gSLiMSourceCode_calcVP, kEidosValueMaskFloat, "SLiM"))->AddObject_ON("individuals", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntStringObject_ON("traits", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_D", gSLiMSourceCode_calcLD_D, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcLD_Rsquared", gSLiMSourceCode_calcLD_Rsquared, kEidosValueMaskFloat, "SLiM"))->AddObject_S("mut1", gSLiM_Mutation_Class)->AddObject_ON("mut2", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddLogical_OS("squared", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcMeanFroh", gSLiMSourceCode_calcMeanFroh, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt_OS("minimumLength", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1000000)))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("haplosome1", gSLiM_Haplosome_Class)->AddObject_S("haplosome2", gSLiM_Haplosome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntStringObject_OSN("trait", gSLiM_Trait_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPi", gSLiMSourceCode_calcPi, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcSFS", gSLiMSourceCode_calcSFS, kEidosValueMaskNumeric, "SLiM"))->AddInt_OSN("binCount", gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddString_OS("metric", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("density")))->AddLogical_OS("fold", gStaticEidosValue_LogicalF));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcTajimasD", gSLiMSourceCode_calcTajimasD, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -93,8 +100,10 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
 
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk)->AddInt_OS("skip", gStaticEidosValue_Integer0));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod)->AddString_OS("sex", gStaticEidosValue_StringAsterisk)->AddInt_OS("skip", gStaticEidosValue_Integer0));
+		
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("Plot", gSLiMSourceCode_Plot, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "SLiM"))->AddString_S("title")->AddArg(kEidosValueMaskInt | kEidosValueMaskFloat | kEidosValueMaskObject, "thing", nullptr)->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL));
 		
 		// Internal SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_startBenchmark", SLiM_ExecuteFunction__startBenchmark, kEidosValueMaskVOID, "SLiM"))->AddString_S(gEidosStr_type));
@@ -278,29 +287,273 @@ R"V0G0N({
 	return fst;
 })V0G0N";
 
-#pragma mark (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
+#pragma mark (float)calcVA([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait> traits = NULL])
 const char *gSLiMSourceCode_calcVA = 
 R"V0G0N({
-	if (individuals.length() < 2)
-		stop("ERROR (calcVA): individuals must contain at least two elements.");
+	// Calculates the additive variance-covariance matrix, the G-matrix
+	species = community.allSpecies;
 	
-	// look up an integer mutation type id from the community
-	if (type(mutType) == "integer") {
-		mutTypes = community.allMutationTypes;
-		mutTypeForID = mutTypes[mutTypes.id == mutType];
-		assert(length(mutTypeForID) == 1, "calcVA() did not find a mutation type with id " + mutType);
-		mutType = mutTypeForID;
+	if (isNULL(individuals))
+	{
+		if (length(species) > 1)
+			stop("ERROR (calcVA): individuals cannot be NULL in a multispecies model.");
+		else
+			individuals = species.subpopulations.individuals;
+	}
+	else
+	{
+		if ((length(individuals) == 0) & (length(species) > 1))
+			stop("ERROR (calcVA): individuals cannot be zero-length in a multispecies model.");
+		
+		species = individuals[0].subpopulation.species;
+		
+		if (any(individuals.subpopulation.species != species))
+			stop("ERROR (calcVA): all individuals must belong to the same species.");
 	}
 	
-	// the mutation type dictates the focal species
-	species = mutType.species;
+	if (isNULL(muts))
+		muts = species.mutations;
+	else if (any(muts.chromosome.species != species))
+		stop("ERROR (calcVA): all mutations must belong to the same species as the individuals.");
 	
-	// all individuals must belong to the focal species
-	if (community.allSpecies.length() > 1)
-		if (!all(individuals.subpopulation.species == species))
-			stop("ERROR (calcVA): all individuals must belong to the same species as mutType.");
+	if (isNULL(traits))
+		traits = species.traits[species.traits.type == "additive"];
+	else if (isInteger(traits))
+		traits = species.traitsWithIndices(traits);
+	else if (isString(traits))
+		traits = species.traitsWithNames(traits);
+	else if (any(traits.species != species))
+		stop("ERROR (calcVA): all traits must belong to the same species as the individuals.");
 	
-	return var(individuals.sumOfMutationsOfType(mutType));
+	if (any(traits.type != "additive"))
+		stop("ERROR (calcVA): all traits must be additive.");
+	if (length(traits) == 0)
+		stop("ERROR (calcVA): at least one additive trait is required.");
+	
+	// Eidos doesn't support matrices with a dimension of zero, so the code below errors with no mutations
+	if (length(muts) == 0)
+		if (length(traits) == 1)
+			return NAN;
+		else
+			return matrix(rep(NAN, length(traits)*length(traits)), nrow=length(traits));
+	
+	muts_a = c();
+	for (trait in traits)
+		muts_a = cbind(muts_a, muts.effectSizeForTrait(trait)); // rows are mutations, columns are traits
+	
+	// For each mutation in each individual gets the dosage or number of copies (0, 1 or 2 copies)
+	// Mutations on haploid chromosomes contribute to the trait as if they were homozygous on an autosome (SLiM manual, Section 24.6). 
+	// In short, their effect on trait is either 0 or 2*a depending on whether the mutation is absent or present. 
+	// This doubling of the allelic effect is accounted for explicitly by setting `haploidValue = 2`.
+	dosMuts = asFloat(individuals.zygosityOfMutations(muts, haploidValue=2)); // rows are mutations, columns are individuals
+	
+	df_polygenicScores = matrixMult(t(dosMuts), muts_a); // rows are individuals, columns are traits
+	
+	if (length(traits) == 1)
+		return var(drop(df_polygenicScores));  // return a scalar for a single trait
+	else
+		return cov(df_polygenicScores);        // return a variance-covariance matrix for multiple traits
+})V0G0N";
+
+#pragma mark (float)calcVD([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait> traits = NULL])
+const char *gSLiMSourceCode_calcVD = 
+R"V0G0N({
+	// Calculates the dominance variance-covariance matrix, the D-matrix
+	species = community.allSpecies;
+	
+	if (isNULL(individuals))
+	{
+		if (length(species) > 1)
+			stop("ERROR (calcVD): individuals cannot be NULL in a multispecies model.");
+		else
+			individuals = species.subpopulations.individuals;
+	}
+	else
+	{
+		if ((length(individuals) == 0) & (length(species) > 1))
+			stop("ERROR (calcVD): individuals cannot be zero-length in a multispecies model.");
+		
+		species = individuals[0].subpopulation.species;
+		
+		if (any(individuals.subpopulation.species != species))
+			stop("ERROR (calcVD): all individuals must belong to the same species.");
+	}
+	
+	if (isNULL(muts))
+		muts = species.mutations;
+	else if (any(muts.chromosome.species != species))
+		stop("ERROR (calcVD): all mutations must belong to the same species as the individuals.");
+	
+	if (isNULL(traits))
+		traits = species.traits[species.traits.type == "additive"];
+	else if (isInteger(traits))
+		traits = species.traitsWithIndices(traits);
+	else if (isString(traits))
+		traits = species.traitsWithNames(traits);
+	else if (any(traits.species != species))
+		stop("ERROR (calcVD): all traits must belong to the same species as the individuals.");
+	
+	if (any(traits.type != "additive"))
+		stop("ERROR (calcVD): all traits must be additive.");
+	if (length(traits) == 0)
+		stop("ERROR (calcVD): at least one additive trait is required.");
+	
+	// Eidos doesn't support matrices with a dimension of zero, so the code below errors with no mutations
+	if (length(muts) == 0)
+		if (length(traits) == 1)
+			return NAN;
+		else
+			return matrix(rep(NAN, length(traits)*length(traits)), nrow=length(traits));
+	
+	muts_d_het = c();
+	muts_d_hemi = c();
+	
+	for (trait in traits)
+	{
+		muts_a = muts.effectSizeForTrait(trait);
+		
+		// calculate the deviation from additivity of a mutation in heterozygous form
+		muts_het = muts.dominanceForTrait(trait);
+		muts_d_het = cbind(muts_d_het, 2 * (muts_het - 0.5) * muts_a);
+		
+		// calculate the deviation from additivity of a mutation in hemizygous form
+		muts_hemi = muts.hemizygousDominanceForTrait(trait); 
+		muts_d_hemi = cbind(muts_d_hemi, 2 * (muts_hemi - 0.5) * muts_a);
+	}
+	
+	// For each mutation in each individual, assign '1' if heterozygous, '-1' if hemizygous, and 0 otherwise 
+	// (e.g. mutations in homozygous, haploid or absent do not contribute to dominance variance) 
+	// Mutations in the haploid chromosomes do not contribute to dominance variance because they
+	// contribute to the trait as if they were homozygous on an autosome (SLiM manual, Section 24.6).
+	stateMuts = individuals.zygosityOfMutations(muts, hemizygousValue=-1, haploidValue=0) % 2; // row are mutations, columns are individuals
+	
+	hetMuts = asFloat(stateMuts==1);     // 1 if heterozygous, 0 otherwise
+	hemiMuts = asFloat(stateMuts==-1);   // 1 if hemizygous, 0 otherwise
+	
+	// Sum the deviations from additivity across all mutations for each individual and each trait
+	df_hetDeviation = matrixMult(t(hetMuts), muts_d_het) + matrixMult(t(hemiMuts), muts_d_hemi); // rows are individuals, columns are traits
+	
+	if (length(traits) == 1)
+		return var(drop(df_hetDeviation));   // return a scalar for a single trait
+	else
+		return cov(df_hetDeviation);         // return a variance-covariance matrix for multiple traits
+})V0G0N";
+
+#pragma mark (float)calcVG([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait> traits = NULL])
+const char *gSLiMSourceCode_calcVG = 
+R"V0G0N({
+	// Calculates the total genetic variance-covariance matrix, the G_T-matrix
+	species = community.allSpecies;
+	
+	if (isNULL(individuals))
+	{
+		if (length(species) > 1)
+			stop("ERROR (calcVG): individuals cannot be NULL in a multispecies model.");
+		else
+			individuals = species.subpopulations.individuals;
+	}
+	else
+	{
+		if ((length(individuals) == 0) & (length(species) > 1))
+			stop("ERROR (calcVG): individuals cannot be zero-length in a multispecies model.");
+		
+		species = individuals[0].subpopulation.species;
+		
+		if (any(individuals.subpopulation.species != species))
+			stop("ERROR (calcVG): all individuals must belong to the same species.");
+	}
+	
+	if (!isNULL(muts))
+		if (any(muts.chromosome.species != species))
+			stop("ERROR (calcVD): all mutations must belong to the same species as the individuals.");
+	
+	if (isNULL(traits))
+		traits = species.traits; // VG can be calculated across all trait types
+	else if (isInteger(traits))
+		traits = species.traitsWithIndices(traits);
+	else if (isString(traits))
+		traits = species.traitsWithNames(traits);
+	else if (any(traits.species != species))
+		stop("ERROR (calcVG): all traits must belong to the same species as the individuals.");
+	
+	if (length(traits) == 0)
+		stop("ERROR (calcVG): at least one trait is required.");
+	
+	df_genValue = c(); // rows are individuals, columns are traits
+	for (trait in traits)
+	{
+		// VG = VP - VE, so we want to remove individual offsets (the source of VE) from the phenotypes
+		// (the source of VP); we could just pass useIndividualOffset=F to calculatePhenotype() here,
+		// and that would work, but then it would never use cached trait values, which would make this
+		// much slower; so we back out the individual offsets in cases where it is easy to do so: for
+		// additive and multiplicative traits, only when we are using all mutations (otherwise the cached
+		// trait values won't be used anyway, so we might as well use useIndividualOffset=F).
+		if ((trait.type == "additive") & isNULL(muts))
+			genValue = individuals.calculatePhenotype(muts=muts, trait=trait) - individuals.offsetForTrait(trait);
+		else if ((trait.type == "multiplicative") & isNULL(muts))
+			genValue = individuals.calculatePhenotype(muts=muts, trait=trait) / individuals.offsetForTrait(trait);
+		else
+			genValue = individuals.calculatePhenotype(muts=muts, trait=trait, useIndividualOffset=F);
+		
+		df_genValue = cbind(df_genValue, genValue);
+	}
+	
+	if (length(traits) == 1)
+		return var(drop(df_genValue));   // return a scalar for a single trait
+	else
+		return cov(df_genValue);         // return a variance-covariance matrix for multiple traits
+})V0G0N";
+
+#pragma mark (float)calcVP([No<Individual> individuals = NULL], [No<Mutation> muts = NULL], [Niso<Trait> traits = NULL])
+const char *gSLiMSourceCode_calcVP = 
+R"V0G0N({
+	// Calculates the variance-covariance matrix of phenotypic values, the P-matrix
+	species = community.allSpecies;
+	
+	if (isNULL(individuals))
+	{
+		if (length(species) > 1)
+			stop("ERROR (calcVP): individuals cannot be NULL in a multispecies model.");
+		else
+			individuals = species.subpopulations.individuals;
+	}
+	else
+	{
+		if ((length(individuals) == 0) & (length(species) > 1))
+			stop("ERROR (calcVP): individuals cannot be zero-length in a multispecies model.");
+		
+		species = individuals[0].subpopulation.species;
+		if (any(individuals.subpopulation.species != species))
+			stop("ERROR (calcVP): all individuals must belong to the same species.");
+	}
+	
+	if (!isNULL(muts))
+		if (any(muts.chromosome.species != species))
+			stop("ERROR (calcVD): all mutations must belong to the same species as the individuals.");
+	
+	if (isNULL(traits))
+		traits = species.traits;   // VP can be calculated across all trait types
+	else if (isInteger(traits))
+		traits = species.traitsWithIndices(traits);
+	else if (isString(traits))
+		traits = species.traitsWithNames(traits);
+	else if (any(traits.species != species))
+		stop("ERROR (calcVP): all traits must belong to the same species as the individuals.");
+	
+	if (length(traits) == 0)
+		stop("ERROR (calcVP): at least one trait is required.");
+	
+	df_traitValue = c();   // rows are individuals, columns are traits
+	for (trait in traits)
+	{
+		traitValues = individuals.calculatePhenotype(muts=muts, trait=trait);
+		df_traitValue = cbind(df_traitValue, traitValues);
+	}
+	
+	if (length(traits) == 1)
+		return var(drop(df_traitValue));  // return a scalar for a single trait
+	else
+		return cov(df_traitValue);        // return a variance-covariance matrix for multiple traits
 })V0G0N";
 
 #pragma mark (float)calcLD_D(object<Mutation>$ mut1, [No<Mutation> mut2 = NULL], [No<Haplosome> haplosomes = NULL])
@@ -665,14 +918,14 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
-#pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
+#pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL], [Niso<Trait>$ trait = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
 	// look up an integer mutation type id from the community
 	if (type(mutType) == "integer") {
 		mutTypes = community.allMutationTypes;
 		mutTypeForID = mutTypes[mutTypes.id == mutType];
-		assert(length(mutTypeForID) == 1, "calcInbreedingLoad() did not find a mutation type with id " + mutType);
+		assert(length(mutTypeForID) == 1, "ERROR (calcInbreedingLoad): did not find a mutation type with id " + mutType);
 		mutType = mutTypeForID;
 	}
 	
@@ -696,32 +949,67 @@ R"V0G0N({
 			stop("ERROR (calcInbreedingLoad): all haplosomes must be associated with the same chromosome.");
 	}
 	
-	// get the focal mutations and narrow down to those that are deleterious
+	// figure out the traits we are referencing
+	traits = species.traits;
+	
+	if (type(trait) == "integer") {
+		traits = traits[traits.index == trait];
+		assert(length(traits) == 1, "ERROR (calcInbreedingLoad): did not find a trait with index " + trait + " in species " + species.name);
+	} else if (type(trait) == "string") {
+		traits = traits[traits.name == trait];
+		assert(length(traits) == 1, "ERROR (calcInbreedingLoad): did not find a trait with name " + trait + " in species " + species.name);
+	} else if (isNULL(trait)) {
+		traits = traits[traits.type == "multiplicative"];
+	} else {
+		traits = trait;
+		if (any(traits.species != species))
+			stop("ERROR (calcInbreedingLoad): traits must belong to the same species as the haplosomes.");
+	}
+	
+	if (size(traits) == 0)
+		stop("ERROR (calcInbreedingLoad): at least one multiplicative trait must be chosen.");
+	if (any(traits.type != "multiplicative"))
+		stop("ERROR (calcInbreedingLoad): all chosen traits must be multiplicative (since inbreeding load involves selection coefficients).");
+	
+	// get the focal mutations
 	if (isNULL(mutType))
 		muts = species.subsetMutations(chromosome=chromosome);
 	else
 		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
-	muts = muts[muts.selectionCoeff < 0.0];
+	// we will accumulate information about mutations into q, s, and h
+	q = float(0);
+	s = float(0);
+	h = float(0);
 	
-	// get frequencies and focus on those that are in the haplosomes
-	q = haplosomes.mutationFrequenciesInHaplosomes(muts);
-	inHaplosomes = (q > 0);
-	
-	muts = muts[inHaplosomes];
-	q = q[inHaplosomes];
-	
-	// fetch selection coefficients; note that we use the negation of
-	// SLiM's selection coefficient, following Morton et al. 1956's usage
-	s = -muts.selectionCoeff;
-	
-	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
-	// than lethal (this can happen when drawing from a gamma distribution)
-	s[s > 1.0] = 1.0;
-	
-	// get h for each mutation; note that this will not work if changing
-	// h using mutationEffect() callbacks or other scripted approaches
-	h = muts.mutationType.dominanceCoeff;
+	// loop over the traits we are evaluating, and accumulate information for each trait
+	for (trait in traits)
+	{
+		// narrow down to the mutations that are deleterious
+		trait_muts = muts[muts.effectSizeForTrait(trait) < 0.0];
+		
+		// get frequencies and focus on those that are in the haplosomes
+		trait_q = haplosomes.mutationFrequenciesInHaplosomes(trait_muts);
+		inHaplosomes = (trait_q > 0);
+		
+		trait_muts = trait_muts[inHaplosomes];
+		trait_q = trait_q[inHaplosomes];
+		
+		// fetch selection coefficients; note that we use the negation of
+		// SLiM's selection coefficient, following Morton et al. 1956's usage
+		trait_s = -trait_muts.effectSizeForTrait(trait);
+		
+		// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
+		// than lethal (this can happen when drawing from a gamma distribution)
+		trait_s[trait_s > 1.0] = 1.0;
+		
+		// get h for each mutation
+		trait_h = trait_muts.dominanceForTrait(trait);
+		
+		q = c(q, trait_q);
+		s = c(s, trait_s);
+		h = c(h, trait_h);
+	}
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
@@ -1015,7 +1303,7 @@ R"V0G0N({
 #pragma mark Other built-in functions
 #pragma mark -
 
-#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
+#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"], [integer$ skip = 0])
 const char *gSLiMSourceCode_initializeMutationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeMutationRateFromFile): ";
@@ -1026,7 +1314,7 @@ R"V0G0N({
 	if (!fileExists(path))
 		stop(errbase + "file not found at path '" + path + "'.");
 	
-	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec);
+	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec, skip=skip);
 	if (length(map) == 0)
 		stop(udf);
 	if (length(map.allKeys) != 2)
@@ -1055,7 +1343,7 @@ R"V0G0N({
 	initializeMutationRate(rates * scale, ends, sex);
 })V0G0N";
 
-#pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"])
+#pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."], [string$ sex = "*"], [integer$ skip = 0])
 const char *gSLiMSourceCode_initializeRecombinationRateFromFile = 
 R"V0G0N({
 	errbase = "ERROR (initializeRecombinationRateFromFile): ";
@@ -1066,7 +1354,7 @@ R"V0G0N({
 	if (!fileExists(path))
 		stop(errbase + "file not found at path '" + path + "'.");
 	
-	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec);
+	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec, skip=skip);
 	if (length(map) == 0)
 		stop(udf);
 	if (length(map.allKeys) != 2)
@@ -1094,6 +1382,99 @@ R"V0G0N({
 		ends = c(ends[1:(size(ends)-1)] - base, lastPosition);
 	
 	initializeRecombinationRate(rates * scale, ends, sex);
+})V0G0N";
+
+#pragma mark (No<Plot>$)Plot(string$ title, ifo thing, [Nif$ width = NULL], [Nif$ height = NULL])
+const char *gSLiMSourceCode_Plot = 
+R"V0G0N({
+	// silently return NULL if we are not running under SLiMgui
+	if (!exists("slimgui"))
+		return NULL;
+	
+	// type-check, size-check, and determine the correct plot dimensions
+	if ((type(thing) == "object") & (size(thing) != 1))
+		stop("ERROR (Plot): the Plot() function requires a supplied " + elementType(thing) + " object to be a singleton.");
+	
+	adjustSizeToFit = F;
+	
+	if (elementType(thing) == "Palette")
+	{
+		if (isNULL(width) & isNULL(height)) {
+			width = 500;
+			height = 50;
+		}
+	}
+	else if (elementType(thing) == "SpatialMap")
+	{
+		if (nchar(thing.spatiality) != 2)
+			stop("ERROR (Plot): the Plot() function requires a supplied SpatialMap object to have a two-dimensional spatiality.");
+		
+		if (isNULL(width) & isNULL(height)) {
+			width = thing.gridDimensions[0];
+			height = thing.gridDimensions[1];
+			adjustSizeToFit = T;
+		}
+	}
+	else if (elementType(thing) == "Image")
+	{
+		if (isNULL(width) & isNULL(height)) {
+			width = thing.width;
+			height = thing.height;
+			adjustSizeToFit = T;
+		}
+	}
+	else if (type(thing) == "object")
+	{
+		stop("ERROR (Plot): the Plot() function does not currently support objects of class " + elementType(thing) + ".");
+	}
+	else
+	{
+		if (size(dim(thing)) != 2)
+		stop("ERROR (Plot): the Plot() function requires a supplied integer or float value to be a two-dimensional matrix.");
+		
+		if (isNULL(width) & isNULL(height)) {
+			width = dim(thing)[1];
+			height = dim(thing)[0];
+			adjustSizeToFit = T;
+		}
+		
+		// for a matrix, we normalize the values to span [0, 1]
+		thing = (thing - min(thing)) / (max(thing) - min(thing));
+	}
+	
+	if (adjustSizeToFit)
+	{
+		// here we try to preserve the aspect ratio of thing, while plotting
+		// it at a reasonable size; obviously this is subjective!
+		dmax = max(width, height);
+		width = width * (500.0 / dmax);
+		height = height * (500.0 / dmax);
+		
+		// make sure the dimensions are large enough that SLiMgui won't error
+		if (width < 100) {
+			height = height * (100 / width);
+			width = 100;
+		}
+		if (height < 10) {
+			width = width * (10 / height);
+			height = 10;
+		}
+		
+		width = asInteger(round(width));
+		height = asInteger(round(height));
+	}
+	
+	// create the plot at the given/calculated size, and plot the thing
+	plot = slimgui.createPlot(title, xrange=c(0,1), yrange=c(0,1),
+		xlab="", ylab="", width=width, height=height, fullBox=F);
+	plot.setBorderless();
+	
+	if (type(thing) == "object")
+		plot.image(thing, 0, 0, 1, 1);
+	else
+		plot.matrix(thing, 0, 0, 1, 1);
+	
+	return plot;
 })V0G0N";
 
 
@@ -2575,6 +2956,64 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	return EidosValue_SP(result_vec);
 }
 
+// reading JSON+struct codec metadata; adapted from https://tskit.dev/tskit/docs/stable/c-api.html#reading-and-writing-metadata
+
+// these are properties of the ``json+struct`` codec, documented in tskit
+#define JSON_STRUCT_HEADER_SIZE 21
+
+const uint8_t json_struct_codec_magic[4] = { 'J', 'B', 'L', 'B' };
+const uint8_t json_struct_codec_version = 1;
+
+void SLiM_json_struct_metadata_get_components(uint8_t *metadata, tsk_size_t metadata_length,
+    uint8_t **json, tsk_size_t *json_length, uint8_t **binary, tsk_size_t *binary_length,
+    const char *caller)
+{
+    // check the structure of the codec header and the sizes it specifies
+    if (metadata == NULL || json == NULL || json_length == NULL || binary == NULL || binary_length == NULL)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): (internal error) metadata could not be read; bad parameter value." << EidosTerminate();
+    
+    if (metadata_length < JSON_STRUCT_HEADER_SIZE)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the metadata is truncated." << EidosTerminate();
+	
+    if (memcmp(metadata, json_struct_codec_magic, sizeof(json_struct_codec_magic)) != 0)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; it does not appear to be encoded as `json+struct` codec metadata." << EidosTerminate();
+    
+    uint8_t version = metadata[4];
+    if (version != json_struct_codec_version)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; bad version number (" << json_struct_codec_version << " expected for the `json+struct` codec, but version " << (uint16_t)version << " is present)." << EidosTerminate();
+	
+    uint64_t json_length_u64 = Eidos_load_u64_le(metadata + 5);
+    uint64_t binary_length_u64 = Eidos_load_u64_le(metadata + 13);
+    if (json_length_u64 > UINT64_MAX - (uint64_t)JSON_STRUCT_HEADER_SIZE)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the JSON metadata length is invalid." << EidosTerminate();
+	
+    // determine the number of padding bytes and do more safety checks
+    uint64_t length = (uint64_t)JSON_STRUCT_HEADER_SIZE + json_length_u64;
+    uint64_t padding_length = (8 - (length & 0x07)) % 8;
+    if (padding_length > UINT64_MAX - length)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the metadata length after padding is invalid." << EidosTerminate();
+	
+    length += padding_length;
+    if (binary_length_u64 > UINT64_MAX - length)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the binary length is invalid." << EidosTerminate();
+	
+    length += binary_length_u64;
+    if ((uint64_t) metadata_length != length)
+		EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; the total metadata length is unexpected." << EidosTerminate();
+	
+    uint8_t *padding_start = metadata + JSON_STRUCT_HEADER_SIZE + json_length_u64;
+    for (uint64_t j = 0; j < padding_length; ++j)
+        if (*(padding_start + j) != 0)
+			EIDOS_TERMINATION << "ERROR (" << caller << "): metadata could not be read; padding bytes are nonzero." << EidosTerminate();
+	
+    // the structure of the codec data seems valid; return components
+    *json = metadata + JSON_STRUCT_HEADER_SIZE;
+    *json_length = (tsk_size_t)json_length_u64;
+	
+    *binary = metadata + JSON_STRUCT_HEADER_SIZE + json_length_u64 + padding_length;
+    *binary_length = (tsk_size_t)binary_length_u64;
+}
+
 // (object<Dictionary>$)treeSeqMetadata(string$ filePath, [logical$ userData=T])
 EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -2592,21 +3031,11 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 		tsk_table_collection_free(&temp_tables);
 		
 		// With no schema, error out
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a JSON schema is required." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a `json+struct` schema is required." << EidosTerminate();
 	}
 	
-	if (temp_tables.metadata_length == 0)
-	{
-		tsk_table_collection_free(&temp_tables);
-		
-		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
-		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
-		
-		objectElement->Release();	// retained by result_SP
-		return result_SP;
-	}
-	
+	// BCH 5/31/2026: As of SLiM 6.0, we read top-level metadata using the `json+struct` codec.  Note that the
+	// binary component of the `json+struct` metadata is not used here; we are only concerned with the JSON.
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
 	nlohmann::json metadata_schema;
 	
@@ -2618,10 +3047,29 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	
 	std::string codec = metadata_schema["codec"];
 	
-	if (codec != "json")
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json'." << EidosTerminate();
+	if (codec != "json+struct")
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json+struct'; the version of this file appears to be too old to be read, or the file is corrupted; you can try using pyslim to bring an old file version forward to the current version, or generate a new file with the current version of SLiM." << EidosTerminate();
 	
-	std::string metadata_string(temp_tables.metadata, temp_tables.metadata_length);
+	uint8_t *top_level_json_buffer;
+	tsk_size_t top_level_json_length;
+	uint8_t *top_level_binary_buffer;
+	tsk_size_t top_level_binary_length;
+	
+	SLiM_json_struct_metadata_get_components((uint8_t *)temp_tables.metadata, temp_tables.metadata_length, &top_level_json_buffer, &top_level_json_length, &top_level_binary_buffer, &top_level_binary_length, "SLiM_ExecuteFunction_treeSeqMetadata");
+	
+	if (top_level_json_length == 0)
+	{
+		tsk_table_collection_free(&temp_tables);
+		
+		// With no JSON metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
+		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
+		
+		objectElement->Release();	// retained by result_SP
+		return result_SP;
+	}
+	
+	std::string metadata_string((const char *)top_level_json_buffer, top_level_json_length);
 	nlohmann::json metadata;
 	
 	tsk_table_collection_free(&temp_tables);

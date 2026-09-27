@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/4/23.
-//  Copyright (c) 2023-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2023-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,6 +30,7 @@
 #ifndef __SLiM__spatial_map__
 #define __SLiM__spatial_map__
 
+
 #include "slim_globals.h"
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
@@ -39,11 +40,13 @@ class Subpopulation;
 class SpatialKernel;
 
 
+class SpatialMap_Class;
+extern SpatialMap_Class *gSLiM_SpatialMap_Class;
+
+
 #pragma mark -
 #pragma mark SpatialMap
 #pragma mark -
-
-extern EidosClass *gSLiM_SpatialMap_Class;
 
 class SpatialMap : public EidosDictionaryRetained
 {
@@ -77,11 +80,8 @@ public:
 	bool interpolate_;					// if true, the map will interpolate values; otherwise, nearest-neighbor
 	double values_min_, values_max_;	// min/max of values_; re-evaluated every time our data changes
 	
-	int n_colors_ = 0;						// the number of color values given to map across the min/max value range
-	double colors_min_, colors_max_;	// min/max for our color gradient
-	float *red_components_ = nullptr;	// OWNED POINTER: red components, n_colors_ in size, from min to max value
-	float *green_components_ = nullptr;	// OWNED POINTER: green components, n_colors_ in size, from min to max value
-	float *blue_components_ = nullptr;	// OWNED POINTER: blue components, n_colors_ in size, from min to max value
+	EidosPalette *palette_ = nullptr;	// OWNED POINTER: the palette used to color the map; if nullptr, grayscale is used
+	double colors_min_, colors_max_;	// min/max for our color gradient; used only when palette_ == nullptr
 	
 #if defined(SLIMGUI)
 	// This cache is for SLiMgui's individuals display
@@ -98,11 +98,10 @@ public:
 	SpatialMap(const SpatialMap&) = delete;													// no copying
 	SpatialMap& operator=(const SpatialMap&) = delete;										// no copying
 	SpatialMap(void) = delete;																// no null construction
-	SpatialMap(std::string p_name, std::string p_spatiality_string, Subpopulation *p_subpop, EidosValue *p_values, bool p_interpolate, EidosValue *p_value_range, EidosValue *p_colors);
+	SpatialMap(std::string p_name, std::string p_spatiality_string, Subpopulation *p_subpop, EidosValue *p_values, bool p_interpolate, EidosPalette *p_palette);
 	SpatialMap(std::string p_name, SpatialMap &p_original);
 	~SpatialMap(void);
 	
-	void TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name);
 	void TakeValuesFromEidosValue(EidosValue *p_values, const std::string &p_code_name, const std::string &p_eidos_name);
 	void TakeOverMallocedValues(double *p_values, int64_t p_dimcount, int64_t *p_dimensions);
 	bool IsCompatibleWithSubpopulation(Subpopulation *p_subpop);
@@ -197,7 +196,7 @@ public:
 	SpatialMap_Class& operator=(const SpatialMap_Class&) = delete;	// no copying
 	inline SpatialMap_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };

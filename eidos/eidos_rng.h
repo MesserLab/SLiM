@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -99,7 +99,25 @@ extern Eidos_RNG_State gEidos_RNG_SINGLE;
 extern std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #endif
 
-// Calls to the GSL should use these macros to get the RNG state they need, whether single- or multi-threaded.
+#if DEBUG
+// This global flag is a bit of a hack.  It's a way for Eidos client code to detect when the random number
+// generator has been used by the Eidos interpreter, which might be of interest.  SLiM uses this to disable
+// some checks that are invalid if the Eidos code executed is stochastic.  This is NOT thread-safe, in the
+// sense that if different threads are try to use this facility simultaneously it will not work.  It is
+// also just hacky enough that it probably shouldn't be used in production code, so it is DEBUG only.
+// The flag is set whenever one of the RNG accessors below is called.
+extern bool gEidos_RNG_usageFlag;
+
+inline __attribute__((always_inline)) void EIDOS_RNG_PING_RESET(void) { gEidos_RNG_usageFlag = false; }
+inline __attribute__((always_inline)) void EIDOS_RNG_PING(void) { gEidos_RNG_usageFlag = true; }
+inline __attribute__((always_inline)) bool EIDOS_RNG_PING_IS_SET(void) { return gEidos_RNG_usageFlag; }
+#else
+inline __attribute__((always_inline)) void EIDOS_RNG_PING_RESET(void) { }
+inline __attribute__((always_inline)) void EIDOS_RNG_PING(void) { }
+inline __attribute__((always_inline)) bool EIDOS_RNG_PING_IS_SET(void) { return false; }
+#endif
+
+// Calls to the GSL should use these functions to get the RNG state they need, whether single- or multi-threaded.
 // BCH 11/5/2022: The thread number must now be supplied.  It will be zero when single-threaded, and so is
 // ignored.  Since this is now a bit more heavyweight, the RNG for a thread should be obtained outside of any
 // core loops.  The most important thing is that when there is a parallel region, the RNG is obtained INSIDE
@@ -111,15 +129,15 @@ extern std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 //	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 //
 #ifndef _OPENMP
-#define EIDOS_GSL_RNG(threadnum)	(&gEidos_RNG_SINGLE.gsl_rng_)
-#define EIDOS_32BIT_RNG(threadnum)	(gEidos_RNG_SINGLE.pcg32_rng_)
-#define EIDOS_64BIT_RNG(threadnum)	(gEidos_RNG_SINGLE.pcg64_rng_)
-#define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_SINGLE)
+inline __attribute__((always_inline)) gsl_rng *EIDOS_GSL_RNG(__attribute__((__unused__)) int threadnum)				{ EIDOS_RNG_PING(); return &gEidos_RNG_SINGLE.gsl_rng_; }
+inline __attribute__((always_inline)) EidosRNG_32_bit &EIDOS_32BIT_RNG(__attribute__((__unused__)) int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_SINGLE.pcg32_rng_; }
+inline __attribute__((always_inline)) EidosRNG_64_bit &EIDOS_64BIT_RNG(__attribute__((__unused__)) int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_SINGLE.pcg64_rng_; }
+inline __attribute__((always_inline)) Eidos_RNG_State *EIDOS_STATE_RNG(__attribute__((__unused__)) int threadnum)	{ EIDOS_RNG_PING(); return &gEidos_RNG_SINGLE; }
 #else
-#define EIDOS_GSL_RNG(threadnum)	(&gEidos_RNG_PERTHREAD[threadnum]->gsl_rng_)
-#define EIDOS_32BIT_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum]->pcg32_rng_)
-#define EIDOS_64BIT_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum]->pcg64_rng_)
-#define EIDOS_STATE_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum])
+inline __attribute__((always_inline)) gsl_rng *EIDOS_GSL_RNG(int threadnum)				{ EIDOS_RNG_PING(); return &gEidos_RNG_PERTHREAD[threadnum]->gsl_rng_; }
+inline __attribute__((always_inline)) EidosRNG_32_bit &EIDOS_32BIT_RNG(int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_PERTHREAD[threadnum]->pcg32_rng_; }
+inline __attribute__((always_inline)) EidosRNG_64_bit &EIDOS_64BIT_RNG(int threadnum)	{ EIDOS_RNG_PING(); return gEidos_RNG_PERTHREAD[threadnum]->pcg64_rng_; }
+inline __attribute__((always_inline)) Eidos_RNG_State *EIDOS_STATE_RNG(int threadnum)	{ EIDOS_RNG_PING(); return &gEidos_RNG_PERTHREAD[threadnum]; }
 #endif
 
 #if DEBUG

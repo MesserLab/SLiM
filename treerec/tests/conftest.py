@@ -40,12 +40,11 @@ class OutputResult:
         # binary
         print("******** Binary input.")
         bin_ts = load_file_or_dir(os.path.join(self.dir, "test_output.trees"))
-        yield bin_ts
         # and nonsimplified binary
         print("******** Unsimplified binary.")
         bin_nonsimp_ts = load_file_or_dir(
             os.path.join(self.dir, "test_output.unsimplified.trees"))
-        yield bin_nonsimp_ts
+        return (bin_ts, bin_nonsimp_ts)
 
     @staticmethod
     def get_slim_ids(ts):
@@ -154,11 +153,13 @@ def make_result(run_dir):
     SLiM recipes are expected to output their results into a set of directories
     within the run_dir: return a list of results, one for each subdirectory
     """
-    return [
+    out = [
         OutputResult(os.path.join(run_dir, f.name))
         for f in os.scandir(run_dir)
         if f.is_dir()
     ]
+    assert len(out) > 0
+    return out
 
 def run_slim(recipe, run_dir, recipe_dir="test_recipes"):
     """

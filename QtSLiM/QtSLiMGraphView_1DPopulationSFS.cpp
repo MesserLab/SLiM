@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -22,6 +22,8 @@
 #include "QtSLiMWindow.h"
 
 #include <string>
+
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_1DPopulationSFS::QtSLiMGraphView_1DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -89,29 +91,32 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	Population &pop = graphSpecies->population_;
 	
 	pop.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-    int registry_size;
-    const MutationIndex *registry = pop.MutationRegistry(&registry_size);
-	
-	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
-	{
-		const Mutation *mutation = mut_block_ptr + registry[registry_index];
-        Chromosome *mut_chromosome = graphSpecies->Chromosomes()[mutation->chromosome_index_];
-        double totalHaplosomeCount = ((mut_chromosome->total_haplosome_count_ == 0) ? 1 : mut_chromosome->total_haplosome_count_);   // prevent a zero count from producing NAN frequencies below
-		
-		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
-		double mutationFrequency = mutationRefCount / totalHaplosomeCount;
-		int mutationBin = static_cast<int>(floor(mutationFrequency * binCount));
-		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
-		
-		if (mutationBin == binCount)
-			mutationBin = binCount - 1;
-		
-		(spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
-	}
-	
+    
+    MutationBlock *mutation_block = graphSpecies->SpeciesMutationBlock();
+	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
+    slim_refcount_t *refcount_block_ptr = mutation_block->refcount_buffer_;
+    
+    for (Chromosome *chromosome : graphSpecies->Chromosomes())
+    {
+        double totalHaplosomeCount = ((chromosome->total_haplosome_count_ == 0) ? 1 : chromosome->total_haplosome_count_);   // prevent a zero count from producing NAN frequencies below
+        int registry_size;
+        const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+        
+        for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+        {
+            const Mutation *mutation = mut_block_ptr + registry[registry_index];
+            slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation_block->IndexInBlock(mutation));
+            double mutationFrequency = mutationRefCount / totalHaplosomeCount;
+            int mutationBin = static_cast<int>(floor(mutationFrequency * binCount));
+            int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
+            
+            if (mutationBin == binCount)
+                mutationBin = binCount - 1;
+            
+            (spectrum[mutationTypeIndex + mutationBin * mutationTypeCount])++;	// bins in sequence for each mutation type within one frequency bin, then again for the next frequency bin, etc.
+        }
+    }
+    
 	// normalize within each mutation type
 	for (int mutationTypeIndex = 0; mutationTypeIndex < mutationTypeCount; ++mutationTypeIndex)
 	{
@@ -165,7 +170,7 @@ void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);
 	
-	for (auto mutationTypeIter : graphSpecies->mutation_types_)
+	for (const auto &mutationTypeIter : graphSpecies->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
