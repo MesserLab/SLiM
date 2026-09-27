@@ -10,7 +10,7 @@ development head (in the master branch):
 	update to tskit 1.0.3, kastore 0.3.5, to get final changes for the json_struct codec stuff (no longer directly supported in C)
 
 
-multitrait branch:
+multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	constant SLIM_MAX_TRAITS defines a max of 256 traits per species, but so far there is no actual need for this maximum
 	internal C++ TraitType enum defines two types of traits, kMultiplicative and kAdditive
 	add new Eidos SLiM class, Trait
