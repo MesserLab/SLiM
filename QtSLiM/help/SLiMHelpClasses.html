@@ -767,6 +767,9 @@
 <p class="p4">The tick in which this mutation arose.</p>
 <p class="p3">position =&gt; (integer$)</p>
 <p class="p4">The position in the chromosome of this mutation.</p>
+<p class="p5">selectionCoeff =&gt; (float$)</p>
+<p class="p6"><b>This property has been deprecated, and may be removed in a future release of SLiM.</b><span class="Apple-converted-space">  </span>In SLiM 6 and later, use the <span class="s1">effectSize</span> property, the <span class="s1"><i>&lt;trait-name&gt;</i>EffectSize</span> dynamic property, or the <span class="s1">effectSizeForTrait()</span> method.</p>
+<p class="p6">For models with one (perhaps implicit) multiplicative trait, this property is identical to the <span class="s1">effectSize</span> property, but is provided for backward compatibility.<span class="Apple-converted-space">  </span>In other models, this property is unavailable.</p>
 <p class="p3">subpopID &lt;–&gt; (integer$)</p>
 <p class="p4">The identifier of the subpopulation in which this mutation arose.<span class="Apple-converted-space">  </span>This property can be used to track the ancestry of mutations through their subpopulation of origin.</p>
 <p class="p4">If you don’t care which subpopulation a mutation originated in, the <span class="s1">subpopID</span> may be used as an arbitrary <span class="s1">integer</span> “tag” value for any purpose you wish; SLiM does not do anything with the value of <span class="s1">subpopID</span> except propagate it to <span class="s1">Substitution</span> objects and report it in output.<span class="Apple-converted-space">  </span>(It must still be <span class="s1">&gt;= 0</span>, however, since SLiM object identifiers are limited to nonnegative integers).</p>
@@ -1497,6 +1500,9 @@
 <p class="p6">The tick in which the original mutation for this substitution arose.</p>
 <p class="p5">position =&gt; (integer$)</p>
 <p class="p6">The position in the chromosome of this substitution.</p>
+<p class="p5">selectionCoeff =&gt; (float$)</p>
+<p class="p6"><b>This property has been deprecated, and may be removed in a future release of SLiM.</b><span class="Apple-converted-space">  </span>In SLiM 6 and later, use the <span class="s1">effectSize</span> property, the <span class="s1"><i>&lt;trait-name&gt;</i>EffectSize</span> dynamic property, or the <span class="s1">effectSizeForTrait()</span> method.</p>
+<p class="p6">For models with one (perhaps implicit) multiplicative trait, this property is identical to the <span class="s1">effectSize</span> property, but is provided for backward compatibility.<span class="Apple-converted-space">  </span>In other models, this property is unavailable.</p>
 <p class="p5">subpopID &lt;–&gt; (integer$)</p>
 <p class="p6">The identifier of the subpopulation in which the original mutation for this substitution arose.<span class="Apple-converted-space">  </span>This value is carried over from the <span class="s1">Mutation</span> object directly; if a “tag” value was used in the <span class="s1">Mutation</span> object, that value will carry over to the corresponding <span class="s1">Substitution</span> object.<span class="Apple-converted-space">  </span>The <span class="s1">subpopID</span> in <span class="s1">Substitution</span> is a read-write property to allow it to be used as a “tag” in the same way, if the origin subpopulation identifier is not needed.</p>
 <p class="p3">tag &lt;–&gt; (integer$)</p>

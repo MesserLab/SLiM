@@ -252,6 +252,7 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	fix recipes 18.8, 18.9, and 19.13 to use current pyslim APIs and current SLiM metadata
 	extend addNewMutation() for the multitrait case: `numeric effectSize` can now be a matrix with one column per mutation being added, one row per trait, providing effect sizes
 	fix layout and button size issues on Linux and Windows; users who have set QT_SCALE_FACTOR, QT_FONT_DPI, or QT_AUTO_SCREEN_SCALE_FACTOR may want to unset them
+	add a selectionCoeff property for Mutation and Substitution, for backward compatibility, since this property is much more commonly used than other obsoleted APIs
 
 
 version 5.2 (Eidos version 4.2):

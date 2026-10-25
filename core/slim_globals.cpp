@@ -1540,6 +1540,7 @@ const std::string &gStr_mut = EidosRegisteredString("mut", gID_mut);
 const std::string &gStr_trait = EidosRegisteredString("trait", gID_trait);
 const std::string &gStr_effect = EidosRegisteredString("effect", gID_effect);
 const std::string &gStr_effectSize = EidosRegisteredString("effectSize", gID_effectSize);
+const std::string &gStr_selectionCoeff = EidosRegisteredString("selectionCoeff", gID_selectionCoeff);
 const std::string &gStr_homozygous = EidosRegisteredString("homozygous", gID_homozygous);
 const std::string &gStr_breakpoints = EidosRegisteredString("breakpoints", gID_breakpoints);
 const std::string &gStr_receiver = EidosRegisteredString("receiver", gID_receiver);

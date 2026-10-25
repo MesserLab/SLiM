@@ -1233,6 +1233,7 @@ extern const std::string &gStr_mut;
 extern const std::string &gStr_trait;
 extern const std::string &gStr_effect;
 extern const std::string &gStr_effectSize;
+extern const std::string &gStr_selectionCoeff;
 extern const std::string &gStr_homozygous;
 extern const std::string &gStr_breakpoints;
 extern const std::string &gStr_receiver;
@@ -1759,6 +1760,7 @@ enum _SLiMGlobalStringID : int {
 	gID_trait,
 	gID_effect,
 	gID_effectSize,
+	gID_selectionCoeff,
 	gID_homozygous,
 	gID_breakpoints,
 	gID_receiver,

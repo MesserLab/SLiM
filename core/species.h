@@ -588,6 +588,7 @@ public:
 	// Trait configuration and access
 	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void) const	{ return traits_; }
 	inline __attribute__((always_inline)) slim_trait_index_t TraitCount(void) const	{ return (slim_trait_index_t)traits_.size(); }
+	inline __attribute__((always_inline)) bool HasImplicitTrait(void) const	{ return has_implicit_trait_; }
 	Trait *TraitFromName(const std::string &p_name) const;
 	inline __attribute__((always_inline)) Trait *TraitFromStringID(EidosGlobalStringID p_string_id) const
 	{

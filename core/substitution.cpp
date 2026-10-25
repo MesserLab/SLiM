@@ -384,6 +384,17 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
+		case gID_selectionCoeff:
+		{
+			// This property is now deprecated, and errors in all models that do not use the default trait
+			Species &species = mutation_type_ptr_->species_;
+			slim_trait_index_t trait_count = species.TraitCount();
+			
+			if ((trait_count != 1) || (species.Traits()[0]->Type() != TraitType::kMultiplicative) || !species.HasImplicitTrait())
+				EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property selectionCoeff is not defined for object element type Substitution, apart from models using the default multiplicative trait (for backward compatibility)." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float((double)trait_info_[0].effect_size_));
+		}
 		case gID_effectSize:
 		{
 			// This is not accelerated, because it's a bit tricky; each substitution could belong to a different species,
@@ -932,6 +943,7 @@ std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties_MUTABLE(
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_effectSize,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkDeprecated());
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominance,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominance,	true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
