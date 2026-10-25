@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/26/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -27,6 +27,12 @@
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
 
+#include "../treerec/tskit/core.h"	// for tsk_size_t
+
+
+extern void SLiM_json_struct_metadata_get_components(uint8_t *metadata, tsk_size_t metadata_length,
+    uint8_t **json, tsk_size_t *json_length, uint8_t **binary, tsk_size_t *binary_length,
+    const char *caller);
 
 // SLiM built-in functions; the signatures for these are declared in Community::SLiMFunctionSignatures()
 

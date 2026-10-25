@@ -1,0 +1,64 @@
+// Keywords: monozygotic twins, identical twins, fraternal twins, meiosis, nonWF, non-Wright-Fisher
+
+initialize()
+{
+	defineConstant("MU", 1e-7);        // mutation rate
+	defineConstant("P_MZTWIN", 0.02);  // probability of an MZ twin
+	defineConstant("K", 500);          // carrying capacity
+	initializeSLiMModelType("nonWF");
+	initializeSex();
+	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e7 - 1);
+	initializeMutationRate(MU);
+	initializeRecombinationRate(1e-8);
+}
+reproduction(NULL, "F")
+{
+	mate = subpop.sampleIndividuals(1, sex="M");
+	
+	if (runif(1) < (1 - P_MZTWIN))
+	{
+		// make two fraternal twins most of the time
+		child1 = subpop.addCrossed(individual, mate);
+		child2 = subpop.addCrossed(individual, mate);
+	}
+	else
+	{
+		// make monozygotic twins with probability P_MZTWIN
+		ind_haplos = sample(individual.haplosomes, 2, replace=F);
+		mate_haplos = sample(mate.haplosomes, 2, replace=F);
+		breaks1 = sim.chromosome.drawBreakpoints(individual);
+		breaks2 = sim.chromosome.drawBreakpoints(mate);
+		sex = sample(c("M", "F"), 1);
+		
+		// twin1 gets new mutations as usual
+		twin1 = subpop.addRecombinant(ind_haplos[0], ind_haplos[1], breaks1,
+			mate_haplos[0], mate_haplos[1], breaks2,
+			sex, individual, mate, randomizeStrands=F);
+		
+		// twin2 gets no new mutations
+		sim.chromosome.setMutationRate(0.0);
+		twin2 = subpop.addRecombinant(ind_haplos[0], ind_haplos[1], breaks1,
+			mate_haplos[0], mate_haplos[1], breaks2,
+			sex, individual, mate, randomizeStrands=F);
+		sim.chromosome.setMutationRate(MU);
+		
+		// twin2 copies new mutations from twin1
+		tick = community.tick;
+		twin1_muts_hap0 = twin1.haplosomes[0].mutations;
+		twin1_newmuts_hap0 = twin1_muts_hap0[twin1_muts_hap0.originTick == tick];
+		twin2.haplosomes[0].addMutations(twin1_newmuts_hap0);
+		twin1_muts_hap1 = twin1.haplosomes[1].mutations;
+		twin1_newmuts_hap1 = twin1_muts_hap1[twin1_muts_hap1.originTick == tick];
+		twin2.haplosomes[1].addMutations(twin1_newmuts_hap1);
+	}
+}
+1 early()
+{
+	sim.addSubpop("p1", K);
+}
+1:2000 early()
+{
+	p1.fitnessScaling = K / p1.individualCount;
+}

@@ -35,7 +35,7 @@ species parasitoid initialize() {
 	// tag values in parasitoid count successful hunts
 }
 
-ticks all 2: first()
+2: first()
 {
 	host_pop = host.subpopulations;
 	hosts = host_pop.individuals;
@@ -118,7 +118,7 @@ species parasitoid reproduction() {
 	}
 }
 
-ticks all 1 early() {
+1 early() {
 	host.addSubpop("p1", N0_host);
 	p1.setSpatialBounds(c(0, 0, SIDE, SIDE));
 	p1.individuals.setSpatialPosition(p1.pointUniform(N0_host));
@@ -136,5 +136,5 @@ species parasitoid survival() {
 	return (individual.age == 0);
 }
 
-ticks all 250 late() {
+250 late() {
 }

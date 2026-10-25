@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/27/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -149,6 +149,15 @@ inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromTo
 	gEidosErrorContext.errorPosition.characterEndOfError = p_naughty_token_->token_end_;
 	gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 = p_naughty_token_->token_UTF16_start_;
 	gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 = p_naughty_token_->token_UTF16_end_;
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	std::cout << "   PushErrorPositionFromToken(): setting error position from token `" << p_naughty_token_->token_string_ << "` at {" <<
+		gEidosErrorContext.errorPosition.characterStartOfError << ", " <<
+		gEidosErrorContext.errorPosition.characterEndOfError << ", " <<
+		gEidosErrorContext.errorPosition.characterEndOfError << ", " <<
+		gEidosErrorContext.errorPosition.characterEndOfError <<
+		"} (currentScript == " << gEidosErrorContext.currentScript << ")." << std::endl;
+#endif
 	
 	return old_position;
 }

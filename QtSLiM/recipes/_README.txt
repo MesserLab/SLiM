@@ -8,7 +8,7 @@ SLiM's manual contains full explanations of each recipe, in the corresponding se
 
 These recipes were all created by Ben Haller, except recipe 5.4, created by Aaron Sams and Chase W. Nelson.
 
-All recipes are copyright (c) 2016-2025 Benjamin C. Haller.  All rights reserved.
+All recipes are copyright (c) 2016-2026 Benjamin C. Haller.  All rights reserved.
 They are products of the Messer Lab, http://messerlab.org/slim/
 
 All of these recipes are a part of SLiM.
@@ -25,7 +25,7 @@ The file Comeron_100kb_chr2L.txt provided here is part of the supplemental data 
 
 Comeron, J.M., Ratnappan, R., and Bailin, S. (2012). The many landscapes of recombination in Drosophila melanogaster. PLoS Genetics 8(10), e1002905.
 
-This data file is used by recipe 6.1.2.
+This data file is used by recipe 8.2.2.
 
 --------------------------------------------------------------
 

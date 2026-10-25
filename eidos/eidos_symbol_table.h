@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/12/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -218,8 +218,11 @@ public:
 	void PrintSymbolTable(std::ostream &p_outstream);
 	void PrintSymbolTableChain(std::ostream &p_outstream);
 	
+#ifdef EIDOS_GUI
+	// EidosTypeTable and EidosTypeInterpreter are only used in EidosScribe, SLiMguiLegacy, and QtSLiM
 	// A utility method to add entries for defined symbols into an EidosTypeTable
 	void AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const;
+#endif	// EIDOS_GUI
 	
 	// Direct access to the symbol table chain.  This should only be necessary for clients that are manipulating
 	// the symbol table chain themselves in some way, since normally the chain is encapsulated by this class.

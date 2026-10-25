@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/3/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -165,11 +165,7 @@ QFont QtSLiMPreferencesNotifier::displayFontPref(double *tabWidth) const
     {
         QFontMetricsF fm(font);
         
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        *tabWidth = fm.width("   ");                // deprecated in 5.11
-#else
-        *tabWidth = fm.horizontalAdvance("   ");    // added in Qt 5.11
-#endif
+        *tabWidth = fm.horizontalAdvance("   ");
     }
     
     return font;

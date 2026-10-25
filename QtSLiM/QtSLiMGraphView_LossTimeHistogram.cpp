@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/30/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -146,7 +146,7 @@ void QtSLiMGraphView_LossTimeHistogram::appendStringForData(QString &string)
     Species *graphSpecies = focalDisplaySpecies();
     int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
-	for (auto mutationTypeIter : graphSpecies->mutation_types_)
+	for (const auto &mutationTypeIter : graphSpecies->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

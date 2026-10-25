@@ -8,13 +8,13 @@ initialize() {
 	defineConstant("N", 500);
 	
 	initializeSLiMOptions(dimensionality="xyz");
-	initializeMutationRate(1e-6);
-	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral
-	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL
-	m2.convertToSubstitution = F;
-	
+	initializeTrait("quant", "a");
+	initializeMutationType("m1", NAN, "f", 0.0);        // neutral
+	initializeMutationType("m2", NAN, "n", 0.0, 1.0);   // QTL
 	initializeGenomicElementType("g1", c(m1, m2), c(1, 0.1));
+	
 	initializeGenomicElement(g1, 0, 1e5 - 1);
+	initializeMutationRate(1e-6);
 	initializeRecombinationRate(1e-8);
 	
 	// competition
@@ -25,7 +25,6 @@ initialize() {
 	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=SIGMA_M * 3);
 	i2.setInteractionFunction("n", 1.0, SIGMA_M);
 }
-mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", N);
 	p1.setSpatialBounds(c(0.0, 0.0, -SLOPE, 1.0, 1.0, SLOPE));
@@ -34,7 +33,7 @@ mutationEffect(m2) { return 1.0; }
 }
 modifyChild() {
 	// set offspring position based on parental position
-	do pos = c(parent1.spatialPosition[0:1] + rnorm(2, 0, 0.005), 0.0);
+	do pos = c(parent1.xy + rnorm(2, 0, 0.005), 0.0);
 	while (!p1.pointInBounds(pos));
 	child.setSpatialPosition(pos);
 	
@@ -44,7 +43,8 @@ modifyChild() {
 	inds = sim.subpopulations.individuals;
 	
 	// construct phenotypes and fitness effects from QTLs
-	phenotypes = inds.sumOfMutationsOfType(m2);
+	sim.demandPhenotype(NULL, "quant");
+	phenotypes = inds.quant;
 	optima = (inds.x - 0.5) * SLOPE;
 	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optima, SIGMA_K);
 	inds.z = phenotypes;
@@ -67,7 +67,7 @@ modifyChild() {
 	i2.evaluate(p1);
 }
 mateChoice() {
-	// spatial mate choice
+	// spatial and phenotypic mate choice
 	return i2.strength(individual);
 }
 1:5001 late() {

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/20/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -33,6 +33,7 @@
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 #include "mutation_type.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_1DSampleSFS::QtSLiMGraphView_1DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -270,7 +271,6 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
     if (!sfs1dbuf_)
     {
         Species *graphSpecies = focalDisplaySpecies();
-        Population &population = graphSpecies->population_;
         
         // Find our subpops and mutation type
         Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
@@ -300,18 +300,22 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         
         // Tally into our bins
         sfs1dbuf_ = static_cast<uint64_t *>(calloc(histogramBinCount_, sizeof(uint64_t)));
-        Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-        int registry_size;
-        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
         
-        for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+        for (Chromosome *chromosome : graphSpecies->Chromosomes())
         {
-            const Mutation *mutation = mut_block_ptr + registry[registry_index];
-            slim_refcount_t mutationRefCount = mutation->gui_scratch_reference_count_;
-            int mutationBin = mutationRefCount - 1;
+            int registry_size;
+            const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
             
-            if (mutationBin >= 0)           // mutationBin is -1 if the mutation is not present in the sample at all
-                (sfs1dbuf_[mutationBin])++;
+            for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+            {
+                const Mutation *mutation = mut_block_ptr + registry[registry_index];
+                slim_refcount_t mutationRefCount = mutation->gui_scratch_reference_count_;
+                int mutationBin = mutationRefCount - 1;
+                
+                if (mutationBin >= 0)           // mutationBin is -1 if the mutation is not present in the sample at all
+                    (sfs1dbuf_[mutationBin])++;
+            }
         }
     }
     

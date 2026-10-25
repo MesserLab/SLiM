@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/27/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -31,7 +31,7 @@ EidosObjectPool *gEidosASTNodePool = nullptr;
 
 EidosASTNode::~EidosASTNode(void)
 {
-	for (auto child : children_)
+	for (EidosASTNode *child : children_)
 	{
 		// destroy children and return them to the pool; all children must be allocated out of gEidosASTNodePool!
 		child->~EidosASTNode();
@@ -166,7 +166,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 void EidosASTNode::_OptimizeIdentifiers(void) const
 {
 	// recurse down the tree; determine our children, then ourselves
-	for (auto child : children_)
+	for (const EidosASTNode *child : children_)
 		child->_OptimizeIdentifiers();
 	
 	if (token_->token_type_ == EidosTokenType::kTokenIdentifier)
@@ -192,7 +192,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 void EidosASTNode::_OptimizeEvaluators(void) const
 {
 	// recurse down the tree; determine our children, then ourselves
-	for (auto child : children_)
+	for (const EidosASTNode *child : children_)
 		child->_OptimizeEvaluators();
 	
 	EidosTokenType token_type = token_->token_type_;
@@ -244,7 +244,7 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 void EidosASTNode::_OptimizeAssignments(void) const
 {
 	// recurse down the tree; determine our children, then ourselves
-	for (auto child : children_)
+	for (const EidosASTNode *child : children_)
 		child->_OptimizeAssignments();
 	
 	EidosTokenType token_type = token_->token_type_;
@@ -375,7 +375,7 @@ void EidosASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) 
 		// Determine whether we have only leaves as children
 		bool childWithChildren = false;
 		
-		for (auto child : children_)
+		for (const EidosASTNode *child : children_)
 		{
 			if (child->children_.size() > 0)
 			{
@@ -390,7 +390,7 @@ void EidosASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) 
 			p_outstream << "(";
 			PrintToken(p_outstream);
 			
-			for (auto child : children_)
+			for (const EidosASTNode *child : children_)
 				child->PrintTreeWithIndent(p_outstream, p_indent + 1);
 			
 			// and then outdent and show our end paren
@@ -412,7 +412,7 @@ void EidosASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) 
 			p_outstream << "(";
 			PrintToken(p_outstream);
 			
-			for (auto child : children_)
+			for (const EidosASTNode *child : children_)
 			{
 				p_outstream << " ";
 				child->PrintToken(p_outstream);
@@ -434,7 +434,7 @@ EidosErrorPosition EidosASTNode::ErrorPositionForNodeAndChildren(void) const
 	pos.characterStartOfErrorUTF16 = token_->token_UTF16_start_;
 	pos.characterEndOfErrorUTF16 = token_->token_UTF16_end_;
 	
-	for (auto child : children_)
+	for (const EidosASTNode *child : children_)
 	{
 		EidosErrorPosition child_pos = child->ErrorPositionForNodeAndChildren();
 		

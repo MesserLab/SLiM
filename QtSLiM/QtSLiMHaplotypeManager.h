@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/3/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -67,9 +67,9 @@ public:
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                           QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
-                           QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
-                           int progressChromTotal);
+                           QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Trait *displayTrait,
+                           Chromosome *chromosome, QtSLiMRange displayedRange, size_t sampleSize, bool showProgress,
+                           int progressChromIndex, int progressChromTotal);
     ~QtSLiMHaplotypeManager(void);
     
 #ifndef SLIM_NO_OPENGL
@@ -109,6 +109,9 @@ private:
 	// by this class only while building the display list below; after that stage, we clear this vector.  The work to build the
 	// display list gets done on a background thread, but the SLiMgui window is blocked by the progress panel during that time.
 	std::vector<Haplosome *> haplosomes;
+    
+    // similarly, this points back into SLiM's data structures and is used only while building the display list
+    Trait *trait;
 	
 	// Display list
 	HaploMutation *mutationInfo = nullptr;                  // a buffer of SLiMHaploMutation providing display information per mutation

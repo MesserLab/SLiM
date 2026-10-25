@@ -3,3 +3,6 @@ filelock
 numpy
 pytest
 pytest-xdist
+tskit>=0.4.1
+msprime>=1.2.0
+pyslim>=1.0.4

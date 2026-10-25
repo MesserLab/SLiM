@@ -8,11 +8,13 @@ species sim initialize()
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-ticks all 1 early()
+
+1 early()
 {
 	sim.addSubpop("p1", 500);
 }
-ticks all 2000 late()
+
+2000 late()
 {
 	sim.outputFixedMutations();
 }
