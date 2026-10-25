@@ -431,7 +431,7 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 	if (!has_genetics && (chromosomes_count != 0))
 		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
 	
-	for (const Chromosome *chromosome : chromosomes)
+	for (Chromosome *chromosome : chromosomes)
 	{
 		int32_t mutrun_count = chromosome->mutrun_count_;
 		slim_position_t mutrun_length = chromosome->mutrun_length_;
@@ -440,6 +440,18 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
 		else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+		
+		// zero out use counts for mutation runs so we can tell which ones are in use later
+		// this is necessary for ticks in which mutrun experiments do a split/join; mutation runs
+		// that are in the pool but not in use can end up with an invalid index (which is ok)
+		for (int thread_num = 0; thread_num < chromosome->ChromosomeMutationRunContextCount(); ++thread_num)
+		{
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(thread_num);
+			MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
+			
+			for (const MutationRun *mutrun : in_use_pool)
+				mutrun->use_count_CHECK_ = 0;
+		}
 	}
 	
 #if DEBUG_LESS_INTENSIVE
@@ -447,9 +459,6 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 	if ((community_.Tick() % 20) != 5)
 		return;
 #endif
-	
-	// below we will use this map to check that every mutation run in use is used at only one mutrun index
-	robin_hood::unordered_flat_map<const MutationRun *, slim_mutrun_index_t> mutrun_position_map;
 	
 	//
 	//	Check the parental generation; this is essentially the same in WF and nonWF models
@@ -542,18 +551,25 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
 					
 					// check that every mutation in the haplosome belongs to the right chromosome
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					// BCH 10/25/2026: This test takes a *lot* of runtime, so I'm going to disable it most ticks;
+					// it seems unlikely to ever get hit, but might be useful for finding memory smashers...
+					if (community_.Tick() % 50 == 0)
 					{
-						const MutationRun *mutrun = haplosome1->mutruns_[run_index];
-						const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-						const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
+						slim_chromosome_index_t correct_chromosome_index = haplosome1->chromosome_index_;
 						
-						for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							Mutation *mut = (mut_block_ptr + *mutrun_iter);
+							const MutationRun *mutrun = haplosome1->mutruns_[run_index];
+							const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
+							const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
 							
-							if (mut->chromosome_index_ != haplosome1->chromosome_index_)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome with chromosome_index_ " << (unsigned int)haplosome1->chromosome_index_ << "." << EidosTerminate();
+							for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
+							{
+								Mutation *mut = (mut_block_ptr + *mutrun_iter);
+								
+								if (mut->chromosome_index_ != correct_chromosome_index)
+									EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome1 with chromosome_index_ " << (unsigned int)haplosome1->chromosome_index_ << "." << EidosTerminate();
+							}
 						}
 					}
 				}
@@ -639,18 +655,17 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
 #endif
 					
-					// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+					// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
 					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
 					{
 						const MutationRun *mutrun = haplosome1->mutruns_[mutrun_index];
-						auto found_iter = mutrun_position_map.find(mutrun);
 						
-						if (found_iter == mutrun_position_map.end())
-							mutrun_position_map[mutrun] = mutrun_index;
-						else if (found_iter->second != mutrun_index)
+						mutrun->use_count_CHECK_ = 1;
+						
+						if (mutrun->mutrun_index_CHECK_ != mutrun_index)
 						{
 							// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at the wrong position." << EidosTerminate();
 						}
 					}
 				}
@@ -677,18 +692,25 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
 					
 					// check that every mutation in the haplosome belongs to the right chromosome
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					// BCH 10/25/2026: This test takes a *lot* of runtime, so I'm going to disable it most ticks;
+					// it seems unlikely to ever get hit, but might be useful for finding memory smashers...
+					if (community_.Tick() % 50 == 0)
 					{
-						const MutationRun *mutrun = haplosome2->mutruns_[run_index];
-						const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-						const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
+						slim_chromosome_index_t correct_chromosome_index = haplosome2->chromosome_index_;
 						
-						for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							Mutation *mut = (mut_block_ptr + *mutrun_iter);
+							const MutationRun *mutrun = haplosome2->mutruns_[run_index];
+							const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
+							const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
 							
-							if (mut->chromosome_index_ != haplosome2->chromosome_index_)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome with chromosome_index_ " << (unsigned int)haplosome2->chromosome_index_ << "." << EidosTerminate();
+							for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
+							{
+								Mutation *mut = (mut_block_ptr + *mutrun_iter);
+								
+								if (mut->chromosome_index_ != correct_chromosome_index)
+									EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome2 with chromosome_index_ " << (unsigned int)haplosome2->chromosome_index_ << "." << EidosTerminate();
+							}
 						}
 					}
 				}
@@ -776,18 +798,17 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
 #endif
 					
-					// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+					// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
 					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
 					{
 						const MutationRun *mutrun = haplosome2->mutruns_[mutrun_index];
-						auto found_iter = mutrun_position_map.find(mutrun);
 						
-						if (found_iter == mutrun_position_map.end())
-							mutrun_position_map[mutrun] = mutrun_index;
-						else if (found_iter->second != mutrun_index)
+						mutrun->use_count_CHECK_ = 1;
+						
+						if (mutrun->mutrun_index_CHECK_ != mutrun_index)
 						{
 							// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at the wrong position." << EidosTerminate();
 						}
 					}
 				}
@@ -943,15 +964,14 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child haplosome has a null mutrun pointer." << EidosTerminate();
 #endif
 						
-						// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+						// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
 						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
 						{
 							const MutationRun *mutrun = haplosome1->mutruns_[mutrun_index];
-							auto found_iter = mutrun_position_map.find(mutrun);
 							
-							if (found_iter == mutrun_position_map.end())
-								mutrun_position_map[mutrun] = mutrun_index;
-							else if (found_iter->second != mutrun_index)
+							mutrun->use_count_CHECK_ = 1;
+							
+							if (mutrun->mutrun_index_CHECK_ != mutrun_index)
 							{
 								// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
 								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
@@ -1055,15 +1075,14 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
 #endif
 						
-						// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+						// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
 						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
 						{
 							const MutationRun *mutrun = haplosome2->mutruns_[mutrun_index];
-							auto found_iter = mutrun_position_map.find(mutrun);
 							
-							if (found_iter == mutrun_position_map.end())
-								mutrun_position_map[mutrun] = mutrun_index;
-							else if (found_iter->second != mutrun_index)
+							mutrun->use_count_CHECK_ = 1;
+							
+							if (mutrun->mutrun_index_CHECK_ != mutrun_index)
 							{
 								// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
 								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
@@ -1091,15 +1110,13 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 			
 			for (const MutationRun *mutrun : in_use_pool)
 			{
-				auto found_iter = mutrun_position_map.find(mutrun);
-				
-				if (found_iter != mutrun_position_map.end())
+				if (mutrun->use_count_CHECK_ > 0)
 				{
-					slim_mutrun_index_t used_at_index = found_iter->second;
-					int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+					slim_mutrun_index_t mutrun_index = mutrun->mutrun_index_CHECK_;
+					int correct_thread_num = (int)(mutrun_index / mutrun_count_multiplier);
 					
 					if (correct_thread_num != thread_num)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at an index that does not correspond to its allocation pool." << EidosTerminate();
 				}
 			}
 		}
@@ -3394,6 +3411,9 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				{
 					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
 					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+#if DEBUG
+					mutrun->mutrun_index_CHECK_ = (int32_t)run_index;
+#endif
 					
 					haplosome1->mutruns_[run_index] = mutrun;
 				}
@@ -3425,6 +3445,9 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				{
 					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
 					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+#if DEBUG
+					mutrun->mutrun_index_CHECK_ = (int32_t)run_index;
+#endif
 					
 					haplosome2->mutruns_[run_index] = mutrun;
 				}

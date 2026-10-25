@@ -244,6 +244,9 @@ public:
 #endif
 		
 		MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
+#if DEBUG
+		new_run->mutrun_index_CHECK_ = (int32_t)p_run_index;
+#endif
 		
 		mutruns_[p_run_index] = new_run;
 		return new_run;
@@ -259,6 +262,9 @@ public:
 #endif
 		
 		MutationRun *new_run = MutationRun::NewMutationRun_LOCKED(p_mutrun_context);	// take from shared pool of used objects
+#if DEBUG
+		new_run->mutrun_index_CHECK_ = (int32_t)p_run_index;
+#endif
 		
 		mutruns_[p_run_index] = new_run;
 		return new_run;

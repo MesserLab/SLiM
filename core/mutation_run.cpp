@@ -707,7 +707,15 @@ bool MutationRun::_EnforceStackPolicyForAddition(MutationBlock *p_mutation_block
 void MutationRun::split_run(Mutation *p_mut_block_ptr, MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const
 {
 	MutationRun *first_half = NewMutationRun(p_mutrun_context);
+#if DEBUG
+	first_half->mutrun_index_CHECK_ = (mutrun_index_CHECK_ << 1);
+#endif
+	
 	MutationRun *second_half = NewMutationRun(p_mutrun_context);
+#if DEBUG
+	second_half->mutrun_index_CHECK_ = (mutrun_index_CHECK_ << 1) + 1;
+#endif
+	
 	int32_t second_half_start;
 	
 	for (second_half_start = 0; second_half_start < mutation_count_; ++second_half_start)

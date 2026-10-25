@@ -81,6 +81,9 @@ MutationRun *Haplosome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationR
 	// See the header comment for more information.
 	const MutationRun *original_run = mutruns_[p_run_index];
 	MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
+#if DEBUG
+	new_run->mutrun_index_CHECK_ = (int32_t)p_run_index;
+#endif
 	
 	new_run->copy_from_run(*original_run);
 	mutruns_[p_run_index] = new_run;
@@ -104,6 +107,9 @@ MutationRun *Haplosome::WillModifyRun_UNSHARED(slim_mutrun_index_t p_run_index, 
 	if (original_run->size() == 0)
 	{
 		MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
+#if DEBUG
+		new_run->mutrun_index_CHECK_ = (int32_t)p_run_index;
+#endif
 		
 		new_run->copy_from_run(*original_run);
 		mutruns_[p_run_index] = new_run;
@@ -176,6 +182,9 @@ MutationRun *Haplosome::WillModifyRunForBulkOperation(slim_operation_id_t p_oper
 	{
 		// This MutationRun is not in the map, so we need to set up a new entry
 		MutationRun *product_run = MutationRun::NewMutationRun(p_mutrun_context);
+#if DEBUG
+		product_run->mutrun_index_CHECK_ = (int32_t)p_mutrun_index;
+#endif
 		
 		product_run->copy_from_run(*original_run);
 		mutruns_[p_mutrun_index] = product_run;
@@ -4494,6 +4503,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					{
 						MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
 						shared_empty_run = MutationRun::NewMutationRun(mutrun_context);
+#if DEBUG
+						shared_empty_run->mutrun_index_CHECK_ = (int32_t)run_index;
+#endif
 					}
 					
 					target_haplosome->mutruns_[run_index] = shared_empty_run;

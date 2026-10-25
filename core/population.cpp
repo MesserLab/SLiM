@@ -5052,6 +5052,10 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 			// Now we will process *all* additions and removals for run_index
 			MutationRunContext &mutrun_context_LOCKED = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
 			MutationRun *new_run = MutationRun::NewMutationRun_LOCKED(mutrun_context_LOCKED);
+#if DEBUG
+			new_run->mutrun_index_CHECK_ = (int32_t)run_index;
+#endif
+			
 			const MutationRun *old_run = p_child_haplosome->mutruns_[run_index];
 			const MutationIndex *old_run_iter		= old_run->begin_pointer_const();
 			const MutationIndex *old_run_iter_max	= old_run->end_pointer_const();
@@ -6082,6 +6086,9 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 								// one of these mutruns is only referenced once, so we can just replace them without using the map
 								// checking use_count() this way is only safe because we run directly after tallying!
 								MutationRun *joined_run = MutationRun::NewMutationRun(mutrun_context);	// take from shared pool of used objects
+#if DEBUG
+								joined_run->mutrun_index_CHECK_ = (int32_t)(run_index >> 1);
+#endif
 								
 								joined_run->copy_from_run(*mutrun1);
 								joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
@@ -6104,6 +6111,9 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 								{
 									// it was not in the map, so make the new runs, and insert them into the map
 									MutationRun *joined_run = MutationRun::NewMutationRun(mutrun_context);	// take from shared pool of used objects
+#if DEBUG
+									joined_run->mutrun_index_CHECK_ = (int32_t)(run_index >> 1);
+#endif
 									
 									joined_run->copy_from_run(*mutrun1);
 									joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());

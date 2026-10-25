@@ -454,7 +454,8 @@ private:
 public:
 	
 #if DEBUG
-	mutable uint32_t use_count_CHECK_ = 0;	// a checkback for use_count_
+	mutable uint32_t use_count_CHECK_ = 0;			// a checkback for use_count_
+	mutable int32_t mutrun_index_CHECK_ = -1;		// a checkback for mutation run indices (note: not slim_mutrun_index_t)
 #endif
 	
 	// Allocation and disposal of MutationRun objects should go through these funnels.  The point of this architecture
