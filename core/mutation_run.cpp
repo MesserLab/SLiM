@@ -418,6 +418,10 @@ void MutationRun::__AccumulateStackedEffects(/*Mutation *accumulating_mut, */ Mu
 		
 		// both mutations must have been configured for independent dominance for this trait,
 		// otherwise accumulation is not possible; it is predicated on independent dominance.
+		// (note that even if the math works with other dominance coefficients for the new
+		// accumulated mutation by itself, it also needs to work when a diploid individual
+		// has one copy of the accumulated mutation and one copy of the original mutation;
+		// that case strictly limits us to the independent dominance case; BCH 10/25/2026)
 		if (!std::isnan(new_mut_trait_info.dominance_coeff_UNSAFE_) || !std::isnan(accumulating_mut_trait_info.dominance_coeff_UNSAFE_))
 			EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): stacking policy 'a' cannot be used with mutations that are not configured for independent dominance for all non-neutral effects." << EidosTerminate();
 		
