@@ -2774,9 +2774,6 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		for (Species *species : all_species_)
-			species->CheckMutationStackPolicy();
-		
 		cycle_stage_ = SLiMCycleStage::kWFStage2GenerateOffspring;
 		
 		// increment the tree-sequence tick immediately, since we are now going to make a new generation of individuals
@@ -3147,9 +3144,6 @@ bool Community::_RunOneTickNonWF(void)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
-		
-		for (Species *species : all_species_)
-			species->CheckMutationStackPolicy();
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage1GenerateOffspring;
 		

@@ -55,18 +55,13 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { c(m1,m1).tag; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.tag = 17; } 2 early() { if (m1.tag == 17) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.convertToSubstitution = F; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.mutationStackGroup = -17; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.mutationStackPolicy = 's'; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.mutationStackPolicy = 'f'; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.mutationStackPolicy = 'l'; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.mutationStackPolicy = 'z'; }", "property mutationStackPolicy must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.mutationStackGroup = -17; }", "only be set in initialize()", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.mutationStackPolicy = 's'; }", "only be set in initialize()", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.id = 2; }", "read-only property", __LINE__);
 
 	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; c(m1,m2).mutationStackPolicy = 'f'; } 1 early() { stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 early() { stop(); }", "inconsistent mutationStackPolicy", __LINE__, false);
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; c(m1,m2).mutationStackPolicy = 'f'; } 1 early() { m2.mutationStackPolicy = 'l'; }", "inconsistent mutationStackPolicy", __LINE__, false);
 	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 early() { stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 early() { c(m1,m2).mutationStackGroup = 3; }", "inconsistent mutationStackPolicy", __LINE__, false);
 	
 	// Test MutationType - (void)setDistribution(string$ distributionType, ...)
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDefaultDominanceForTrait(NULL, 0.3); }", __LINE__);

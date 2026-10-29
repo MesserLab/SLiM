@@ -2532,8 +2532,8 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setMutationRate(1e-7); }", "may not be called in nucleotide-based models", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop('p1', 10); gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(m1, 50); }", "requires nucleotide to be non-NULL", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop('p1', 10); gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.0, 50); }", "requires nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { m1.mutationStackGroup = 2; }", "for nucleotide-based mutation types", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { m1.mutationStackPolicy = 'f'; }", "for nucleotide-based mutation types", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "initialize() { m1.mutationStackGroup = 2; } 1 early() { }", "for nucleotide-based mutation types", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "initialize() { m1.mutationStackPolicy = 'f'; } 1 early() { }", "for nucleotide-based mutation types", __LINE__);
 	
 	// initializeAncestralNucleotides()
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(integer(0)); } ", "requires a sequence of length >= 1", __LINE__);

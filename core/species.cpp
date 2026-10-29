@@ -4991,6 +4991,7 @@ void Species::RunInitializeCallbacks(void)
 	if (has_implicit_trait_ && SexEnabled())
 		traits_[0]->_FixDefaultTraitInit();
 	
+	// Check for stacking policy consistency at the end of initialize() callbacks, in a consolidated fashion
 	CheckMutationStackPolicy();
 	
 	// Except in no-genetics species, make a MutationBlock object to keep our mutations in
@@ -6503,8 +6504,46 @@ void Species::Species_CheckIntegrity(void) const
 #endif
 }
 
-void Species::_CheckMutationStackPolicy(void)
+void Species::CheckMutationStackPolicy(void)
 {
+	// This method used to be called in a lazy fashion, once every tick cycle, just to catch errors in the
+	// stack policy configuration.  Now it gets called immediately after stack policy changes, and at the
+	// end of initialize() callbacks, so that its work is done immediately after a change in policy.  This
+	// is because it now also maintains the stacked_mutations_possible_ optimization flag, which must be
+	// correct at all times since it is used to make optimization decisions.  That flag is sticky at false;
+	// we check here whether stacking could conceivably happen, and if so, the flag is set true forever.
+	if (mutation_types_.size() > 0)
+	{
+		MutationType *first_muttype = mutation_types_.begin()->second;
+		int64_t stack_group = first_muttype->stack_group_;
+		MutationStackPolicy stack_policy = first_muttype->stack_policy_;
+		
+		for (const auto &muttype_iter : mutation_types_)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			if (muttype->stack_group_ != stack_group)
+			{
+				stacked_mutations_possible_ = true;
+				break;
+			}
+			
+			if (muttype->stack_policy_ == MutationStackPolicy::kStack)
+			{
+				stacked_mutations_possible_ = true;
+				break;
+			}
+			
+			// as long as we see only one stack group, we'll check that it has a consistent policy too
+			if (muttype->stack_policy_ != stack_policy)
+				EIDOS_TERMINATION << "ERROR (Species::CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
+		}
+	}
+	
+	// If stacked mutations are not possible, we have a single group with a single policy; we just checked.
+	if (!stacked_mutations_possible_)
+		return;
+	
 	// Check mutation stacking policy for consistency.  This is called periodically during the simulation.
 	
 	// First do a fast check for the standard case, that each mutation type is in its own stacking group
@@ -6548,16 +6587,13 @@ void Species::_CheckMutationStackPolicy(void)
 					MutationType *muttype2 = muttype_iter2.second;
 					
 					if ((muttype2->stack_group_ == stack_group) && (muttype2->stack_policy_ != stack_policy))
-						EIDOS_TERMINATION << "ERROR (Species::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Species::CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
 				}
 				
 				checked_groups.emplace_back(stack_group);
 			}
 		}
 	}
-	
-	// we're good until the next change
-	mutation_stack_policy_changed_ = false;
 }
 
 void Species::MaxNucleotideMutationRateChanged(void)

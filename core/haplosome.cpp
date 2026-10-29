@@ -2420,8 +2420,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	// check for other semantic issues
 	Population &pop = species->population_;
 	
-	species->CheckMutationStackPolicy();
-	
 	// TIMING RESTRICTION
 	if (!community.warned_early_mutation_add_)
 	{
@@ -2746,8 +2744,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	if (!nucleotide_based && (arg_nucleotide->Type() != EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
-	
-	species->CheckMutationStackPolicy();
 	
 	// TIMING RESTRICTION
 	if (!community.warned_early_mutation_add_)

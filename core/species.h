@@ -297,7 +297,7 @@ private:
 #endif	// SLIM_USE_INDEPENDENT_DOMINANCE_CACHES()
 #endif	// SLIM_USE_NONNEUTRAL_CACHES()
 	
-	bool mutation_stack_policy_changed_ = true;										// when set, the stacking policy settings need to be checked for consistency
+	bool stacked_mutations_possible_ = false;										// set to true if the stacking policy ever allows stacking
 	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
@@ -656,9 +656,8 @@ public:
 #endif
 	
 	// Mutation stack policy checking
-	inline __attribute__((always_inline)) void MutationStackPolicyChanged(void)												{ mutation_stack_policy_changed_ = true; }
-	inline __attribute__((always_inline)) void CheckMutationStackPolicy(void)												{ if (mutation_stack_policy_changed_) _CheckMutationStackPolicy(); }
-	void _CheckMutationStackPolicy(void);
+	void CheckMutationStackPolicy(void);
+	inline __attribute__((always_inline)) bool StackedMutationsPossible(void) { return stacked_mutations_possible_; };
 	
 	// Nucleotide-based models
 	inline __attribute__((always_inline)) double MaxNucleotideMutationRate(void)											{ return max_nucleotide_mut_rate_; }

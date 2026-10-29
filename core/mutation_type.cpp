@@ -104,8 +104,7 @@ MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_i
 		stack_group_ = -1;
 	}
 	
-	// The fact that we have been created means that stacking policy has changed and needs to be checked
-	species_.MutationStackPolicyChanged();
+	// CheckMutationStackPolicy() will check the stacking policy configuration after initialize()
 }
 
 MutationType::~MutationType(void)
@@ -706,24 +705,29 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_mutationStackGroup:
 		{
+			if (species_.community_.Tick() != 0)
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property mutationStackGroup can only be set in initialize() callbacks." << EidosTerminate();
+			
 			int64_t new_group = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_based_ && (new_group != -1))
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be -1 for nucleotide-based mutation types." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property mutationStackGroup must be -1 for nucleotide-based mutation types." << EidosTerminate();
 			
 			stack_group_ = new_group;
 			
-			species_.MutationStackPolicyChanged();
+			// CheckMutationStackPolicy() will check the stacking policy configuration after initialize()
 			return;
 		}
 			
 		case gID_mutationStackPolicy:
 		{
+			if (species_.community_.Tick() != 0)
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property mutationStackPolicy can only be set in initialize() callbacks." << EidosTerminate();
 			
 			std::string value = p_value.StringAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_based_ && (value != gStr_l))
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 'l' for nucleotide-based mutation types." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property mutationStackPolicy must be 'l' for nucleotide-based mutation types." << EidosTerminate();
 			
 			if (value.compare(gEidosStr_s) == 0)
 				stack_policy_ = MutationStackPolicy::kStack;
@@ -734,9 +738,9 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			else if (value.compare(gStr_a) == 0)
 				stack_policy_ = MutationStackPolicy::kAccumulate;
 			else
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 's', 'f', 'l', or 'a'." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property mutationStackPolicy must be 's', 'f', 'l', or 'a'." << EidosTerminate();
 			
-			species_.MutationStackPolicyChanged();
+			// CheckMutationStackPolicy() will check the stacking policy configuration after initialize()
 			return;
 		}
 			
