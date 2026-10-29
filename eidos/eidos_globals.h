@@ -939,6 +939,45 @@ inline void Eidos_set_u64_le(uint8_t *dest, uint64_t value)
 
 // *******************************************************************************************************************
 //
+//	Bitwise utility functions
+//
+#pragma mark -
+#pragma mark Bitwise utility functions
+#pragma mark -
+
+// this is from https://towardsdev.com/bitwise-optimizations-cpp-low-latency-guide-f09ef1a269bf
+// which is a very useful article about using bitwise operations for optimization; FIXME: do more with this!
+
+#include <cstdint>
+
+#if defined(_MSC_VER)
+	#include <intrin.h>
+	inline int aussie_clz32(uint32_t x) {
+		unsigned long i;
+		// _BitScanReverse is available everywhere; LZCNT needs ABM.
+		return _BitScanReverse(&i, x) ? 31 - (int)i : 32;
+	}
+	inline int aussie_ctz32(uint32_t x) {
+		unsigned long i;
+		return _BitScanForward(&i, x) ? (int)i : 32;
+	}
+	inline int aussie_popcount32(uint32_t x) { return (int)__popcnt(x); }
+#else
+	inline int aussie_clz32(uint32_t x) { return x ? __builtin_clz(x) : 32; }
+	inline int aussie_ctz32(uint32_t x) { return x ? __builtin_ctz(x) : 32; }
+	inline int aussie_popcount32(uint32_t x) { return __builtin_popcount(x); }
+#endif
+
+// x & (x - 1)                     // clear lowest set bit
+// x & -x                          // isolate lowest set bit
+// (x & (x - 1)) == 0              // power-of-two check (true for 0 too)
+// x & (N - 1)                     // fast modulo when N is pow2
+// -(int)cond                      // bool -> all-ones / all-zeros mask
+// (a & m) | (b & ~m)              // branchless select via mask m
+
+
+// *******************************************************************************************************************
+//
 //	SHA-256
 //
 #pragma mark -
