@@ -8355,8 +8355,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				a0 = std::max(bx0, std::min(bx1, a0));
 				a1 = std::max(by0, std::min(by1, a1));
@@ -8371,8 +8371,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				while (true)
 				{
@@ -8401,8 +8401,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 				double a1_original = ind->spatial_y_;
 				
 			reprise_specialcase:
-				double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = a0_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = a1_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
@@ -8418,8 +8418,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
@@ -8435,8 +8435,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
 				Individual *ind = individuals[individual_index];
-				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				// (note periodic_x and periodic_y are required to be true above)
 				while (a0 < 0.0)	a0 += bx1;
@@ -8824,8 +8824,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 					if (++num_tries == 1000000)
 						EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 					
-					double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
-					double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
+					double a0 = a0_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+					double a1 = a1_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -8873,8 +8873,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 					if (++num_tries == 1000000)
 						EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 					
-					double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
-					double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
+					double a0 = a0_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+					double a1 = a1_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -8914,8 +8914,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				{
 					Individual *ind = individuals[individual_index];
-					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
-					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
+					double a0 = ind->spatial_x_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+					double a1 = ind->spatial_y_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -8959,8 +8959,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 				{
 					Individual *ind = individuals[individual_index];
-					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng_gsl, stddev);
-					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng_gsl, stddev);
+					double a0 = ind->spatial_x_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+					double a1 = ind->spatial_y_ + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 					
 					if ((a0 < bx0) || (a0 > bx1) ||
 						(a1 < by0) || (a1 > by1))
@@ -9464,8 +9464,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
-				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				a0 = std::max(bx0, std::min(bx1, a0));
 				a1 = std::max(by0, std::min(by1, a1));
@@ -9478,8 +9478,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
-				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				while (true)
 				{
@@ -9506,8 +9506,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				double a1_original = *(point_buf_ptr++);
 				
 			reprise_specialcase:
-				double a0 = a0_original + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = a1_original + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = a0_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = a1_original + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
@@ -9521,8 +9521,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
-				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
-				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng_gsl, stddev);
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian_ziggurat(rng_gsl, stddev);
 				
 				// (note periodic_x and periodic_y are required to be true above)
 				while (a0 < 0.0)	a0 += bx1;

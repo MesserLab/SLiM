@@ -2077,7 +2077,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	{
 		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(gsl_ran_gaussian(rng_gsl, sigma0) + mu0));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(gsl_ran_gaussian_ziggurat(rng_gsl, sigma0) + mu0));
 	}
 	
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
@@ -2092,7 +2092,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 			
 #pragma omp for schedule(static) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->set_float_no_check(gsl_ran_gaussian(rng_gsl, sigma0) + mu0, draw_index);
+				float_result->set_float_no_check(gsl_ran_gaussian_ziggurat(rng_gsl, sigma0) + mu0, draw_index);
 		}
 	}
 	else if (sigma_singleton)	// && !mu_singleton
@@ -2107,7 +2107,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 			{
 				double mu = arg_mu->NumericAtIndex_NOCAST((int)draw_index, nullptr);
 				
-				float_result->set_float_no_check(gsl_ran_gaussian(rng_gsl, sigma0) + mu, draw_index);
+				float_result->set_float_no_check(gsl_ran_gaussian_ziggurat(rng_gsl, sigma0) + mu, draw_index);
 			}
 		}
 	}
@@ -2132,7 +2132,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 					continue;
 				}
 				
-				float_result->set_float_no_check(gsl_ran_gaussian(rng_gsl, sigma) + mu, draw_index);
+				float_result->set_float_no_check(gsl_ran_gaussian_ziggurat(rng_gsl, sigma) + mu, draw_index);
 			}
 		}
 		

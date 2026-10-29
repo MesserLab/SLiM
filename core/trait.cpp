@@ -248,14 +248,14 @@ slim_trait_offset_t Trait::_DrawIndividualOffset(void) const
 	{
 		// multiplicative traits use an exp() transformation to get a lognormal distribution
 		// (effects for multiplicative traits also clip at 0.0, but exp() guarantees that anyway)
-		double normal_draw = gsl_ran_gaussian(rng, individualOffsetDistributionSD_) + individualOffsetDistributionMean_;
+		double normal_draw = gsl_ran_gaussian_ziggurat(rng, individualOffsetDistributionSD_) + individualOffsetDistributionMean_;
 		
 		return static_cast<slim_trait_offset_t>(std::exp(normal_draw));
 	}
 	else
 	{
 		// additive and logistic traits use a normal distribution, so the mean is the mean
-		double normal_draw = gsl_ran_gaussian(rng, individualOffsetDistributionSD_) + individualOffsetDistributionMean_;
+		double normal_draw = gsl_ran_gaussian_ziggurat(rng, individualOffsetDistributionSD_) + individualOffsetDistributionMean_;
 		
 		return static_cast<slim_trait_offset_t>(normal_draw);
 	}

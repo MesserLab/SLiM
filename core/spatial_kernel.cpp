@@ -442,7 +442,7 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 			double d;
 			
 			do {
-				d = gsl_ran_gaussian(rng_gsl, kernel_param2_);
+				d = gsl_ran_gaussian_ziggurat(rng_gsl, kernel_param2_);
 			} while (d > max_distance_);
 			
 			displacement[0] = d;
@@ -518,8 +518,8 @@ void SpatialKernel::DrawDisplacement_S2(double *displacement)
 			double d1, d2;
 			
 			do {
-				d1 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
-				d2 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
+				d1 = gsl_ran_gaussian_ziggurat(rng_gsl, kernel_param2_);
+				d2 = gsl_ran_gaussian_ziggurat(rng_gsl, kernel_param2_);
 			} while (sqrt(d1*d1 + d2*d2) > max_distance_);
 			
 			displacement[0] = d1;
@@ -563,9 +563,9 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 		case SpatialKernelType::kFixed:
 		{
 			EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
-			double dx = gsl_ran_gaussian(rng_gsl, 1.0);
-			double dy = gsl_ran_gaussian(rng_gsl, 1.0);
-			double dz = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dx = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
+			double dy = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
+			double dz = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
 			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
 			double d = pow(Eidos_rng_uniform_doubleCO(rng_64), 1/3.0) * max_distance_;
 			
@@ -576,9 +576,9 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 		}
 		case SpatialKernelType::kLinear:
 		{
-			double dx = gsl_ran_gaussian(rng_gsl, 1.0);
-			double dy = gsl_ran_gaussian(rng_gsl, 1.0);
-			double dz = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dx = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
+			double dy = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
+			double dz = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
 			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
 			double d = gsl_ran_beta(rng_gsl, 3.0, 2.0) * max_distance_;
 			
@@ -589,9 +589,9 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 		}
 		case SpatialKernelType::kExponential:
 		{
-			double dx = gsl_ran_gaussian(rng_gsl, 1.0);
-			double dy = gsl_ran_gaussian(rng_gsl, 1.0);
-			double dz = gsl_ran_gaussian(rng_gsl, 1.0);
+			double dx = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
+			double dy = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
+			double dz = gsl_ran_gaussian_ziggurat(rng_gsl, 1.0);
 			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
 			double d;
 			
@@ -609,9 +609,9 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 			double d1, d2, d3;
 			
 			do {
-				d1 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
-				d2 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
-				d3 = gsl_ran_gaussian(rng_gsl, kernel_param2_);
+				d1 = gsl_ran_gaussian_ziggurat(rng_gsl, kernel_param2_);
+				d2 = gsl_ran_gaussian_ziggurat(rng_gsl, kernel_param2_);
+				d3 = gsl_ran_gaussian_ziggurat(rng_gsl, kernel_param2_);
 			} while (sqrt(d1*d1 + d2*d2 + d3*d3) > max_distance_);
 			
 			displacement[0] = d1;

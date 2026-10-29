@@ -418,7 +418,7 @@ slim_effect_t MutationType::DrawEffectSizeForTrait(slim_trait_index_t p_trait_in
 		case DESType::kNormal:
 		{
 			gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
-			return static_cast<slim_effect_t>(gsl_ran_gaussian(rng_gsl, DES_info.DES_parameters_[1]) + DES_info.DES_parameters_[0]);
+			return static_cast<slim_effect_t>(gsl_ran_gaussian_ziggurat(rng_gsl, DES_info.DES_parameters_[1]) + DES_info.DES_parameters_[0]);
 		}
 			
 		case DESType::kWeibull:
@@ -719,6 +719,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_mutationStackPolicy:
 		{
+			
 			std::string value = p_value.StringAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_based_ && (value != gStr_l))

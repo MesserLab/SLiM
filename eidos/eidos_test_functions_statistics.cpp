@@ -1018,11 +1018,11 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_FV("rnorm(3, 0, 0);", {0.0, 0.0, 0.0});
 	EidosAssertScriptSuccess_FV("rnorm(1, 1, 0);", {1.0});
 	EidosAssertScriptSuccess_FV("rnorm(3, 1, 0);", {1.0, 1.0, 1.0});
-	EidosAssertScriptSuccess_LV("setSeed(0); abs(rnorm(2) - c(-0.895053, -0.315753)) < 0.000001;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(1); abs(rnorm(2, 10.0) - c(7.6679, 9.5468)) < 0.01;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(2); abs(rnorm(2, 10.0, 100.0) - c(-74.4017, -107.421)) < 0.01;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(3); abs(rnorm(2, c(-10, 10), 100.0) - c(142.441, 121.46)) < 0.01;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(4); abs(rnorm(2, 10.0, c(0.1, 10)) - c(10.0681, 12.2818)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(0); abs(rnorm(2) - c(0.193911, -0.136882)) < 0.000001;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(1); abs(rnorm(2, 10.0) - c(10.0739, 11.587)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(2); abs(rnorm(2, 10.0, 100.0) - c(-87.2142, -10.0053)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(3); abs(rnorm(2, c(-10, 10), 100.0) - c(-83.4169, -211.392)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(4); abs(rnorm(2, 10.0, c(0.1, 10)) - c(9.9913, 15.8026)) < 0.01;", {true, true});
 	EidosAssertScriptRaise("rnorm(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rnorm(1, 0, -1);", 0, "requires sd >= 0.0");
 	EidosAssertScriptRaise("rnorm(2, c(0,0), -1);", 0, "requires sd >= 0.0");

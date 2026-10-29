@@ -1272,11 +1272,11 @@ int RunEidosTests(void)
 				double sd = sqrt(n * p * (1 - p));
 				
 				for (int64_t i = 0; i < 20000000; i++)
-					total += (int)round(gsl_ran_gaussian(EIDOS_GSL_RNG, sd) + p * n);
+					total += (int)round(gsl_ran_gaussian_ziggurat(EIDOS_GSL_RNG, sd) + p * n);
 				
 				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
 				std::cout << ((pref == 3) ? "***" : "   ");
-				std::cout << "time for 20000000 calls to gsl_ran_gaussian(): " << time_spent << " (total == " << total << ")" << std::endl;
+				std::cout << "time for 20000000 calls to gsl_ran_gaussian_ziggurat(): " << time_spent << " (total == " << total << ")" << std::endl;
 			}
 			std::cout << std::endl;
 		}
