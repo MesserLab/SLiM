@@ -3014,6 +3014,17 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
 															// this is not static since we don't want to call resize(0) every time for a rare edge case
 	
+	// We now special-case a uniform recombination rate of 0.5 here; we can handle it much faster than below.
+	// FIXME: we don't use this when recombination() callbacks are enabled; there's no good reason for that
+	if (p_chromosome.all_recombination_rates_05_ && !p_chromosome.using_DSB_model_ &&
+		(!f_callbacks || !p_recombination_callbacks))
+	{
+		num_mutations = p_chromosome.DrawMutationCount(parent_sex);
+		
+		p_chromosome._DrawCrossoverBreakpoints_R05(all_breakpoints);
+		num_breakpoints = (int)all_breakpoints.size();
+	}
+	else
 	{
 #ifdef USE_GSL_POISSON
 		// When using the GSL's poisson draw, we have to draw the mutation count and breakpoint count separately;

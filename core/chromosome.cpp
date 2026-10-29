@@ -400,6 +400,7 @@ void Chromosome::InitializeDraws(void)
 		
 		lookup_recombination_H_ = nullptr;
 		any_recombination_rates_05_ = false;
+		all_recombination_rates_05_ = false;
 		overall_recombination_rate_M_userlevel_ = overall_recombination_rate_F_userlevel_ = overall_recombination_rate_H_userlevel_ = 0.0;
 		overall_recombination_rate_M_ = overall_recombination_rate_F_ = overall_recombination_rate_H_ = 0.0;
 		exp_neg_overall_recombination_rate_M_ = exp_neg_overall_recombination_rate_F_ = exp_neg_overall_recombination_rate_H_ = 1.0;
@@ -522,6 +523,7 @@ void Chromosome::InitializeDraws(void)
 	
 	// Now remake our recombination map info, which we delegate to _InitializeOneRecombinationMap()
 	any_recombination_rates_05_ = false;
+	all_recombination_rates_05_ = true;
 	
 	if (single_recombination_map_)
 	{
@@ -777,6 +779,8 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, s
 		// keep track of whether any recombination rates in the model are 0.5; if so, gene conversion needs to exclude those positions
 		if (user_rate == 0.5)
 			any_recombination_rates_05_ = true;
+		else
+			all_recombination_rates_05_ = false;
 		
 		reparameterized_rates.emplace_back(-log(1.0 - user_rate));
 		
@@ -1261,20 +1265,36 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	
 	// Determine which parental haplosome the mutation will be atop (so we can get the genetic context for it)
-	bool on_first_haplosome = true;
+	// For HaplosomeCrossed_R05() this method now supports a mode in which the parental haplosome is determined
+	// externally; that is indicated with p_breakpoints_count == -1, in which case parent_haplosome_1 is it.
+	Haplosome *background_haplosome;
 	
-	if (p_breakpoints)
+	if (p_breakpoints_count == -1)
 	{
-		for (int break_index = 0; break_index < p_breakpoints_count; ++break_index)
-		{
-			if (p_breakpoints[break_index] > position)
-				break;
-			
-			on_first_haplosome = !on_first_haplosome;
-		}
+		// no breakpoints vector; the strand at the mutation position has been determined for us, externally
+		if ((parent_haplosome_1 == nullptr) || (parent_haplosome_2 != nullptr) || (p_breakpoints != nullptr))
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawNewMutationExtended): (internal error) unsupported usage pattern." << EidosTerminate();
+		
+		background_haplosome = parent_haplosome_1;
 	}
-	
-	Haplosome *background_haplosome = (on_first_haplosome ? parent_haplosome_1 : parent_haplosome_2);
+	else
+	{
+		// work our way through the breakpoints vector and figure out which strand the mutation is atop
+		bool on_first_haplosome = true;
+		
+		if (p_breakpoints)
+		{
+			for (int break_index = 0; break_index < p_breakpoints_count; ++break_index)
+			{
+				if (p_breakpoints[break_index] > position)
+					break;
+				
+				on_first_haplosome = !on_first_haplosome;
+			}
+		}
+		
+		background_haplosome = (on_first_haplosome ? parent_haplosome_1 : parent_haplosome_2);
+	}
 	
 	// Determine whether the mutation will be created at all, and if it is, what nucleotide to use
 	int8_t original_nucleotide = -1, nucleotide = -1;
@@ -1455,7 +1475,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	return new_mut_index;
 }
 
-// draw a set of uniqued breakpoints according to the "crossover breakpoint" model and run them through recombination() callbacks, returning the final usable set
+// draw a set of uniqued breakpoints according to the "crossover breakpoint" model
 void Chromosome::_DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
 {
 	// BEWARE! Chromosome::DrawDSBBreakpoints() below must be altered in parallel with this method!
@@ -1560,6 +1580,125 @@ void Chromosome::_DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int
 		else if (bp1 == bp2)
 			p_crossovers.resize(1);
 	}
+}
+
+// draw a set of uniqued breakpoints according to the "crossover breakpoint" model
+// this version of _DrawCrossoverBreakpoints() assumes that the recombination rate is exactly
+// 0.5 (unlinked loci), and the number of breakpoints cannot be pre-specified for this version
+// this should be identical in behavior to _DrawCrossoverBreakpoints(), but much more efficient
+void Chromosome::_DrawCrossoverBreakpoints_R05(std::vector<slim_position_t> &p_crossovers) const
+{
+#if DEBUG
+	if (using_DSB_model_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::_DrawCrossoverBreakpoints_R05): (internal error) this method should not be called when the DSB recombination model is being used." << EidosTerminate();
+	if (!all_recombination_rates_05_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::_DrawCrossoverBreakpoints_R05): (internal error) this method should not be called when the recombination rate is != 0.5." << EidosTerminate();
+#endif
+	
+#define DEBUG_BREAKS05	0
+	
+#if DEBUG_BREAKS05
+	// if the debug output code below is enabled, this restores things
+	std::ios old_state(nullptr);
+	old_state.copyfmt(std::cout);
+#endif
+	
+	// reserve space for a breakpoint at every position in [1, last_position_]; position 0 never has a breakpoint
+	// we use resize() here and then resize() again at the end, so that the values placed into the data are kept
+	p_crossovers.resize(last_position_);
+	
+	slim_position_t *crossovers_ptr = p_crossovers.data();
+	
+	EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+	uint64_t bits = 0;
+	int shift = 64;
+	
+	// loop over positions and generate a breakpoint at them with 50% probability
+	slim_position_t pos = 1;
+	
+	if (pos + 3 <= last_position_)
+	{
+		// first we loop over four positions at a time
+		do
+		{
+			if (shift == 64)
+			{
+				bits = (uint64_t)Eidos_rng_uniform_int64(rng_64);
+				shift = 0; //(uint64_t);
+			}
+			
+			uint64_t masked_bits = (bits >> shift) & 0x0Full;
+			
+#if DEBUG_BREAKS05
+			std::cout << "using mask 0x" << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << (0x0Full << shift);
+			std::cout << " (bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << bits;
+			std::cout << ", masked and shifted bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << masked_bits;
+			std::cout << ")" << std::endl;
+#endif
+			
+			switch (masked_bits)
+			{
+				case 0b0000ull: break;
+				case 0b0001ull: *(crossovers_ptr++) = pos + 0; break;
+				case 0b0010ull: *(crossovers_ptr++) = pos + 1; break;
+				case 0b0011ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; break;
+				case 0b0100ull: *(crossovers_ptr++) = pos + 2; break;
+				case 0b0101ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 2; break;
+				case 0b0110ull: *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; break;
+				case 0b0111ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; break;
+				case 0b1000ull: *(crossovers_ptr++) = pos + 3; break;
+				case 0b1001ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1010ull: *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1011ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1100ull: *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1101ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1110ull: *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1111ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+			}
+			
+			shift += 4;
+			pos += 4;
+		}
+		while (pos + 3 <= last_position_);
+	}
+	
+	while (pos <= last_position_)
+	{
+		// then we loop over one position at a time to finish
+		if (shift == 64)
+		{
+			bits = (uint64_t)Eidos_rng_uniform_int64(rng_64);
+			shift = 0; //(uint64_t);
+		}
+		
+		uint64_t masked_bits = (bits >> shift) & 0x01ull;
+		
+#if DEBUG_BREAKS05
+		std::cout << "using mask 0x" << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << (0x01ull << shift);
+		std::cout << " (bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << bits;
+		std::cout << ", masked and shifted bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << masked_bits;
+		std::cout << ")" << std::endl;
+#endif
+		
+		if (masked_bits)
+			*(crossovers_ptr++) = pos;
+		
+		shift++;
+		pos++;
+	}
+	
+	// resize to keep only the breakpoints we collected
+	p_crossovers.resize(crossovers_ptr - p_crossovers.data());
+	
+#if DEBUG_BREAKS05
+	// print the generated breakpoints for debugging
+	std::cout.copyfmt(old_state);
+	
+	std::cout << "   breakpoints:";
+	for (slim_position_t debug_pos : p_crossovers)
+		std::cout << " " << debug_pos;
+	std::cout << std::endl;
+#endif
 }
 
 // draw a set of uniqued breakpoints according to the "double-stranded break" model and run them through recombination() callbacks, returning the final usable set
@@ -1832,6 +1971,14 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 		// initial copy strand.  If a distinction needs to be made, pass the haplosomes in to this method.
 		p_haplosome1 = p_parent->haplosomes_[first_haplosome_index];
 		p_haplosome2 = p_parent->haplosomes_[last_haplosome_index];
+	}
+	
+	// We now special-case a uniform recombination rate of 0.5 here; we can handle it much faster than below.
+	// FIXME: we don't use this when recombination() callbacks are enabled; there's no good reason for that
+	if (all_recombination_rates_05_ && (p_num_breakpoints == -1) && !using_DSB_model_ && (recombination_callbacks.size() == 0))
+	{
+		_DrawCrossoverBreakpoints_R05(p_crossovers);
+		return;
 	}
 	
 	// Draw the number of breakpoints, if it was not supplied

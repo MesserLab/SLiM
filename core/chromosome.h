@@ -240,6 +240,7 @@ public:
 	std::vector<double> recombination_rates_F_;
 	
 	bool any_recombination_rates_05_ = false;				// set to T if any recombination rate is 0.5; those are excluded from gene conversion
+	bool all_recombination_rates_05_ = false;				// set to T if all recombination rates are 0.5; this allows special optimization
 	
 	slim_position_t last_position_;							// last valid position
 	bool extent_immutable_;									// can the chromosome endpoint still be changed?
@@ -395,6 +396,7 @@ public:
 	// conversion parameters; DrawBreakpoints() is the high-level funnel that most callers should use, whereas
 	// the low-level functions do not handle recombination() callbacks and other niceties
 	void _DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
+	void _DrawCrossoverBreakpoints_R05(std::vector<slim_position_t> &p_crossovers) const;
 	void _DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const;
 	void DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, Haplosome *p_haplosome2, int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> *p_heteroduplex, const char *p_caller_name);
 	
