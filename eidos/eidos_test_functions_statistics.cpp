@@ -756,7 +756,7 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_IV("rbinom(3, 10, 1.0);", {10, 10, 10});
 	EidosAssertScriptSuccess_IV("rbinom(3, 0, 0.0);", {0, 0, 0});
 	EidosAssertScriptSuccess_IV("rbinom(3, 0, 1.0);", {0, 0, 0});
-	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(10, 1, 0.5);", {0, 0, 0, 0, 1, 1, 0, 1, 0, 1});
+	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(10, 1, 0.5);", {0, 0, 0, 0, 0, 1, 0, 1, 0, 0});
 	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(10, 1, 0.5000001);", {1, 1, 1, 1, 1, 1, 0, 1, 0, 1});
 	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(5, 10, 0.5);", {2, 3, 4, 4, 3});
 	EidosAssertScriptSuccess_IV("setSeed(1); rbinom(5, 10, 0.5);", {5, 5, 7, 4, 8});
@@ -808,7 +808,7 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_IV("rdunif(1, 1, 1);", {1});
 	EidosAssertScriptSuccess_IV("rdunif(3, 1, 1);", {1, 1, 1});
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(1), 0);", true);
-	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10), c(0, 0, 0, 0, 1, 1, 0, 1, 0, 1));", true);
+	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10), c(0, 0, 0, 0, 0, 1, 0, 1, 0, 0));", true);
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10, 10, 11), c(10, 10, 10, 10, 11, 11, 10, 11, 10, 11));", true);
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10, 10, 15), c(10, 11, 11, 11, 10, 11, 14, 11, 14, 11));", true);
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10, -10, 15), c(-9, -6, -4, -2, -8, -3, 9, -2, 10, -2));", true);

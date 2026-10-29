@@ -255,6 +255,7 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	add a selectionCoeff property for Mutation and Substitution, for backward compatibility, since this property is much more commonly used than other obsoleted APIs
 	optimizations for quantitative-genetics models:
 		add Chromosome::_DrawCrossoverBreakpoints_R05(), a custom optimization of _DrawCrossoverBreakpoints() for a recombination rate of 0.5
+	optimize the performance of generating coin-flips (p=0.5) with rbinom() and rdunif()
 
 
 version 5.2 (Eidos version 4.2):

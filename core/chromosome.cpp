@@ -1623,7 +1623,7 @@ void Chromosome::_DrawCrossoverBreakpoints_R05(std::vector<slim_position_t> &p_c
 		{
 			if (shift == 64)
 			{
-				bits = (uint64_t)Eidos_rng_uniform_int64(rng_64);
+				bits = Eidos_rng_uniform_uint64(rng_64);
 				shift = 0; //(uint64_t);
 			}
 			
@@ -1667,7 +1667,7 @@ void Chromosome::_DrawCrossoverBreakpoints_R05(std::vector<slim_position_t> &p_c
 		// then we loop over one position at a time to finish
 		if (shift == 64)
 		{
-			bits = (uint64_t)Eidos_rng_uniform_int64(rng_64);
+			bits = Eidos_rng_uniform_uint64(rng_64);
 			shift = 0; //(uint64_t);
 		}
 		
