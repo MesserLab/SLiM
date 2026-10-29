@@ -3469,13 +3469,13 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
                     for (Chromosome *chromosome : species->Chromosomes())
                         totalSubstitutions += chromosome->substitutions_.size();
                 
-                ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
+                ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 4)
                                            .arg(current_memory_MB, 0, 'f', 1)
                                            .arg(totalRegistrySize)
                                            .arg(totalSubstitutions));
             }
             else
-                ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6));
+                ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 4));
         }
 	}
     
