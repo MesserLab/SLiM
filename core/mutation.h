@@ -268,6 +268,15 @@ public:
 	
 	virtual void SelfDelete(void) override;
 	
+	inline __attribute__((always_inline)) void Release_PARALLEL_MUT(void)
+	{
+		// This version of Release() protects the release with a critical region named MutationAlloc
+#pragma omp critical (MutationAlloc)
+		{
+			Release_PARALLEL();
+		}
+	}
+	
 	// Re-evaluate our internal flags (neutrality, independent dominance) based upon current state
 	void EvaluateFlags(void);
 	

@@ -2983,6 +2983,45 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	p_child_haplosome.check_cleared_to_nullptr();
 #endif
 	
+	// hand off the work to the r==0.5 optimized version if we can; this is much simpler than adding another
+	// template flag all the way up the chain, and ruling it out should almost always be a single boolean test
+	// since f_treeseq is constexpr and all_recombination_rates_05_ is almost always dispositive
+	// see also below for the other r==0.5 optimization, with _DrawCrossoverBreakpoints_R05()
+	if (!f_treeseq && p_chromosome.all_recombination_rates_05_ && !p_chromosome.using_DSB_model_ && !p_recombination_callbacks)
+	{
+		if (species_.StackedMutationsPossible())
+		{
+			// with stacked mutations, HaplosomeCrossed_R05() only pays off up to a certain point, in terms of
+			// mutational density; with a high density (significant stacking), the old algorithm is faster
+			// FIXME it'd be nice to have a way to make this decision less frequently and revisit it only
+			// occasionally, especially since mutation_count() is potentially slow with multiple mutruns;
+			// but this case is only hit for r=0.5 with stacking, which should become a thing of the past
+			// due to mutation accumulation, which provides much better performance and eliminates stacking
+			int mean_mut_count = (parent_haplosome_1->mutation_count() + parent_haplosome_2->mutation_count()) >> 1;
+			slim_position_t chromosome_length = p_chromosome.last_position_ + 1;
+			double density = mean_mut_count / (double)chromosome_length;
+			
+			// 0.74 is an estimate from estimate_r05_crossover.slim and estimate_r05_crossover.R, with a model
+			// that uses different mutation rates to generate different mutational densities and then benchmark.
+			// It was estimated on my 2023 MacBook Pro, Apple M2 Max.  It might differ on other hardware, but
+			// maybe not by a huge amount since the performance difference is fundamentally algorithmic; and
+			// I also don't expect many models to linger close to this threshold value since it is quite a fine
+			// knife edge in terms of mutational input versus loss/fixation.
+			if (density < 0.74)
+			{
+				HaplosomeCrossed_R05<f_callbacks, /* f_stackingPresent */ true>(p_chromosome, p_child_haplosome, parent_haplosome_1, parent_haplosome_2, p_recombination_callbacks, p_mutation_callbacks);
+				return;
+			}
+		}
+		else
+		{
+			// without stacked mutations, HaplosomeCrossed_R05() appears to perform better across the full range
+			// of mutational density values; perhaps avoiding the work of looking for stacking always pays off
+			HaplosomeCrossed_R05<f_callbacks, /* f_stackingPresent */ false>(p_chromosome, p_child_haplosome, parent_haplosome_1, parent_haplosome_2, p_recombination_callbacks, p_mutation_callbacks);
+			return;
+		}
+	}
+	
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning 50% of the time
 	
@@ -3015,6 +3054,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 															// this is not static since we don't want to call resize(0) every time for a rare edge case
 	
 	// We now special-case a uniform recombination rate of 0.5 here; we can handle it much faster than below.
+	// see also above for the other r==0.5 optimization, with HaplosomeCrossed_R05(); this code path is
+	// used when r==0.5 but tree-sequence recording is on or recombination() callbacks are present
 	// FIXME: we don't use this when recombination() callbacks are enabled; there's no good reason for that
 	if (p_chromosome.all_recombination_rates_05_ && !p_chromosome.using_DSB_model_ &&
 		(!f_callbacks || !p_recombination_callbacks))
@@ -3029,8 +3070,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 #ifdef USE_GSL_POISSON
 		// When using the GSL's poisson draw, we have to draw the mutation count and breakpoint count separately;
 		// the DrawMutationAndBreakpointCounts() method does not support USE_GSL_POISSON
-		num_mutations = chromosome.DrawMutationCount(p_parent_sex);
-		num_breakpoints = chromosome.DrawBreakpointCount(p_parent_sex);
+		num_mutations = p_chromosome.DrawMutationCount(p_parent_sex);
+		num_breakpoints = p_chromosome.DrawBreakpointCount(p_parent_sex);
 #else
 		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
 		p_chromosome.DrawMutationAndBreakpointCounts(parent_sex, &num_mutations, &num_breakpoints);
@@ -3330,13 +3371,16 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 		MutationIndex mutation_iter_mutation_index;
 		slim_position_t mutation_iter_pos;
 		
-		if (mutation_iter != mutation_iter_max) {
-			mutation_iter_mutation_index = *mutation_iter;
-			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-		} else {
-			mutation_iter_mutation_index = -1;
-			mutation_iter_pos = SLIM_INF_BASE_POSITION;
+#define UPDATE_NEXT_MUTATION_INFO()																\
+		if (mutation_iter != mutation_iter_max) {												\
+			mutation_iter_mutation_index = *mutation_iter;										\
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;		\
+		} else {																				\
+			mutation_iter_mutation_index = -1;													\
+			mutation_iter_pos = SLIM_INF_BASE_POSITION;											\
 		}
+		
+		UPDATE_NEXT_MUTATION_INFO();
 		
 		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
 		int mutrun_count = p_child_haplosome.mutrun_count_;
@@ -3394,16 +3438,11 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 					
 					if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 					{
-						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+						// The mutation was passed by the stacking policy, so we can add it
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
-						if (new_mut->state_ != MutationState::kInRegistry)
-						{
-							#pragma omp critical (MutationRegistryAdd)
-							{
-								p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-							}
-						}
+						if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+							p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
@@ -3417,20 +3456,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-						{
-							new_mut->Release_PARALLEL();
-						}
+						new_mut->Release_PARALLEL_MUT();
 					}
 					
-					if (++mutation_iter != mutation_iter_max) {
-						mutation_iter_mutation_index = *mutation_iter;
-						mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-					} else {
-						mutation_iter_mutation_index = -1;
-						mutation_iter_pos = SLIM_INF_BASE_POSITION;
-					}
-					
+					mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 					mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 				}
 				while (mutation_mutrun_index == this_mutrun_index);
@@ -3543,16 +3572,11 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 									
 									if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 									{
-										// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+										// The mutation was passed by the stacking policy, so we can add it
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
 										
-										if (new_mut->state_ != MutationState::kInRegistry)
-										{
-											#pragma omp critical (MutationRegistryAdd)
-											{
-												p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-											}
-										}
+										if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+											p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
@@ -3566,20 +3590,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 									{
 										// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-										{
-											new_mut->Release_PARALLEL();
-										}
+										new_mut->Release_PARALLEL_MUT();
 									}
 									
-									if (++mutation_iter != mutation_iter_max) {
-										mutation_iter_mutation_index = *mutation_iter;
-										mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-									} else {
-										mutation_iter_mutation_index = -1;
-										mutation_iter_pos = SLIM_INF_BASE_POSITION;
-									}
-									
+									mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 									mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 								}
 								
@@ -3596,16 +3610,11 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 								
 								if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 								{
-									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+									// The mutation was passed by the stacking policy, so we can add it
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
-									if (new_mut->state_ != MutationState::kInRegistry)
-									{
-										#pragma omp critical (MutationRegistryAdd)
-										{
-											p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-										}
-									}
+									if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+										p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
@@ -3619,20 +3628,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-									{
-										new_mut->Release_PARALLEL();
-									}
+									new_mut->Release_PARALLEL_MUT();
 								}
 								
-								if (++mutation_iter != mutation_iter_max) {
-									mutation_iter_mutation_index = *mutation_iter;
-									mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-								} else {
-									mutation_iter_mutation_index = -1;
-									mutation_iter_pos = SLIM_INF_BASE_POSITION;
-								}
-								
+								mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 								mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 							}
 							
@@ -3750,16 +3749,11 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						
 						if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 						{
-							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+							// The mutation was passed by the stacking policy, so we can add it
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
 							
-							if (new_mut->state_ != MutationState::kInRegistry)
-							{
-								#pragma omp critical (MutationRegistryAdd)
-								{
-									p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-								}
-							}
+							if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+								p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
@@ -3773,20 +3767,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-							{
-								new_mut->Release_PARALLEL();
-							}
+							new_mut->Release_PARALLEL_MUT();
 						}
 						
-						if (++mutation_iter != mutation_iter_max) {
-							mutation_iter_mutation_index = *mutation_iter;
-							mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-						} else {
-							mutation_iter_mutation_index = -1;
-							mutation_iter_pos = SLIM_INF_BASE_POSITION;
-						}
-						
+						mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 						mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 					}
 					while (mutation_mutrun_index == this_mutrun_index);
@@ -3821,6 +3805,1105 @@ template void Population::HaplosomeCrossed<false, false>(Chromosome &, Haplosome
 template void Population::HaplosomeCrossed<false, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
 template void Population::HaplosomeCrossed<true, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
 template void Population::HaplosomeCrossed<true, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+
+// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
+// this special version of HaplosomeCrossed() is for use with a recombination rate of 0.5; it avoids choosing
+// recombination breakpoints altogether, just flipping a coin for the copy strand at every position with work
+template <const bool f_callbacks, const bool f_stackingPresent>
+void Population::HaplosomeCrossed_R05(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, __attribute__((__unused__)) std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
+{
+#if DEBUG
+	// Check template flags
+	// f_callbacks is sometimes over-broad, for complicated reasons, so we don't check it here
+	if (f_stackingPresent != p_chromosome.species_.StackedMutationsPossible())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) f_stackingPresent flag is incorrect." << EidosTerminate();
+	
+	// Check that the assumptions of this special version aren't violated
+	if (p_chromosome.using_DSB_model_)
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) this version may not be called with the DSB recombination model." << EidosTerminate();
+	if (species_.RecordingTreeSequence())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) this version may not be called with tree-sequence recording enabled." << EidosTerminate();
+	if (p_recombination_callbacks)
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeCrossed_R05(): (internal error) this version may not be called with recombination callbacks.");
+	
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+	if (p_mutation_callbacks)
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeCrossed_R05(): recombination and mutation callbacks are not allowed when executing in parallel");
+	
+	if (!p_child_haplosome.individual_)
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) individual_ pointer for child haplosome not set." << EidosTerminate();
+	
+	// BCH 9/20/2024: With the multichomosome redesign, the child and parent haplosome indices must always match; we are generating a
+	// new offspring haplosome from parental haplosomes of the exact same chromosome (not just the same chomosome type).
+	slim_chromosome_index_t chromosome_index = p_child_haplosome.chromosome_index_;
+	slim_chromosome_index_t parent1_chromosome_index = parent_haplosome_1->chromosome_index_;
+	slim_chromosome_index_t parent2_chromosome_index = parent_haplosome_2->chromosome_index_;
+	
+	if ((parent1_chromosome_index != chromosome_index) || (parent2_chromosome_index != chromosome_index))
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) mismatch between parent and child chromosomes (child chromosome index == " << chromosome_index << ", parent 1 == " << parent1_chromosome_index << ", parent 2 == " << parent2_chromosome_index << ")." << EidosTerminate();
+	
+	if (p_child_haplosome.IsNull() || parent_haplosome_1->IsNull() || parent_haplosome_2->IsNull())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) null haplosomes cannot be passed to HaplosomeCrossed_R05()." << EidosTerminate();
+	
+	Haplosome::DebugCheckStructureMatch(parent_haplosome_1, parent_haplosome_2, &p_child_haplosome, &p_chromosome);
+#endif
+#if SLIM_CLEAR_HAPLOSOMES()
+	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
+	p_child_haplosome.check_cleared_to_nullptr();
+#endif
+	
+	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+	
+	// some behaviors -- which callbacks to use, which recombination/mutation rate to use, subpop of origin for mutations, etc. --
+	// depend upon characteristics of the first parent, so we fetch the necessary properties here
+	Individual *parent_individual = parent_haplosome_1->individual_;
+	Subpopulation *source_subpop = parent_individual->subpopulation_;
+	IndividualSex parent_sex = parent_individual->sex_;
+	
+	// determine how many mutations we have
+	int num_mutations = p_chromosome.DrawMutationCount(parent_sex);
+	slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
+	int mutrun_count = p_child_haplosome.mutrun_count_;
+	
+	if (num_mutations == 0)
+	{
+		//
+		// no mutations, so we just need to interleave the two parental haplosomes
+		//
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		
+		for (int this_mutrun_index = 0; this_mutrun_index < mutrun_count; ++this_mutrun_index)
+		{
+			const MutationIndex *parent1_iter		= parent_haplosome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+			const MutationIndex *parent2_iter		= parent_haplosome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+			const MutationIndex *parent1_iter_max	= parent_haplosome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+			const MutationIndex *parent2_iter_max	= parent_haplosome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+			MutationRunContext &mutrun_context_LOCKED = p_chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
+			MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
+			
+			//std::cout << "HaplosomeCrossed_R05() case 1 (no muts): parent1 had " << (parent1_iter_max - parent1_iter) << " mutations, parent2 had " << (parent2_iter_max - parent2_iter) << " mutations; ";
+			
+			MutationIndex mut1index, mut2index;
+			slim_position_t mut1pos, mut2pos;
+			
+			// kick things off by going to the correct block to start processing
+			if (parent1_iter == parent1_iter_max)
+			{
+				if (parent2_iter == parent2_iter_max)
+				{
+					goto doneWithMutrun_1;	// FIXME could try to copy an empty run in this case
+				}
+				else
+				{
+					mut2index = *parent2_iter;
+					mut2pos = (mut_block_ptr + mut2index)->position_;
+					goto parent2only_1;
+				}
+			}
+			else
+			{
+				if (parent2_iter == parent2_iter_max)
+				{
+					mut1index = *parent1_iter;
+					mut1pos = (mut_block_ptr + mut1index)->position_;
+					goto parent1only_1;
+				}
+				else
+				{
+					mut1index = *parent1_iter;
+					mut2index = *parent2_iter;
+					mut1pos = (mut_block_ptr + mut1index)->position_;
+					mut2pos = (mut_block_ptr + mut2index)->position_;
+					goto bothParents_1;
+				}
+			}
+			
+			// we have both parents; for each position in either, 50% chance of copying 1 or 2
+		bothParents_1:
+			do
+			{
+				if (mut1pos == mut2pos)
+				{
+					slim_position_t current_pos = mut1pos;
+					
+					if (Eidos_RandomBool(rng_state))
+					{
+						// copy mutations at this position from 1, skip mutations at this position from 2
+						do {
+							child_mutrun->emplace_back(mut1index);
+							if (++parent1_iter == parent1_iter_max)
+							{
+								// reached the end of parent1; we need to skip in parent2 with this knowledge
+								do {
+									if (++parent2_iter == parent2_iter_max)
+										goto doneWithMutrun_1;	// done with parent2 also
+									
+									mut2index = *parent2_iter;
+									mut2pos = (mut_block_ptr + mut2index)->position_;
+								} while (f_stackingPresent && (mut2pos == current_pos));
+								
+								goto parent2only_1;	// only done with parent1
+							}
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+						
+						do {
+							if (++parent2_iter == parent2_iter_max)
+								goto parent1only_1;
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+					}
+					else
+					{
+						// copy mutations at this position from 2, skip mutations at this position from 1
+						do {
+							child_mutrun->emplace_back(mut2index);
+							if (++parent2_iter == parent2_iter_max)
+							{
+								// reached the end of parent2; we need to skip in parent1 with this knowledge
+								do {
+									if (++parent1_iter == parent1_iter_max)
+										goto doneWithMutrun_1;	// done with parent1 also
+									
+									mut1index = *parent1_iter;
+									mut1pos = (mut_block_ptr + mut1index)->position_;
+								} while (f_stackingPresent && (mut1pos == current_pos));
+								
+								goto parent1only_1;	// only done with parent2
+							}
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+						
+						do {
+							if (++parent1_iter == parent1_iter_max)
+								goto parent2only_1;
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+					}
+				}
+				else if (mut1pos < mut2pos)
+				{
+					slim_position_t current_pos = mut1pos;
+					
+					if (Eidos_RandomBool(rng_state))
+					{
+						// copy mutations at this position from 1
+						do {
+							child_mutrun->emplace_back(mut1index);
+							if (++parent1_iter == parent1_iter_max)
+								goto parent2only_1;	// only done with parent1
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+					}
+					else
+					{
+						// skip mutations at this position from 1
+						do {
+							if (++parent1_iter == parent1_iter_max)
+								goto parent2only_1;	// only done with parent1
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+					}
+				}
+				else // (mut2pos < mut1pos)
+				{
+					slim_position_t current_pos = mut2pos;
+					
+					if (Eidos_RandomBool(rng_state))
+					{
+						// copy mutations at this position from 2
+						do {
+							child_mutrun->emplace_back(mut2index);
+							if (++parent2_iter == parent2_iter_max)
+								goto parent1only_1;	// only done with parent2
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+					}
+					else
+					{
+						// skip mutations at this position from 2
+						do {
+							if (++parent2_iter == parent2_iter_max)
+								goto parent1only_1;	// only done with parent2
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+					}
+				}
+			}
+			while (true);
+			
+			// now only parent1 is left; for each position, 50% chance of copying from it
+		parent1only_1:
+			do
+			{
+				slim_position_t current_pos = mut1pos;
+				
+				if (Eidos_RandomBool(rng_state))
+				{
+					// copy mutations at this position from 1
+					do {
+						child_mutrun->emplace_back(mut1index);
+						if (++parent1_iter == parent1_iter_max)
+							goto doneWithMutrun_1;	// done with parent2 also
+						
+						mut1index = *parent1_iter;
+						mut1pos = (mut_block_ptr + mut1index)->position_;
+					} while (f_stackingPresent && (mut1pos == current_pos));
+				}
+				else
+				{
+					// skip mutations at this position from 1
+					do {
+						if (++parent1_iter == parent1_iter_max)
+							goto doneWithMutrun_1;	// done with parent2 also
+						
+						mut1index = *parent1_iter;
+						mut1pos = (mut_block_ptr + mut1index)->position_;
+					} while (f_stackingPresent && (mut1pos == current_pos));
+				}
+			}
+			while (true);
+			
+			// now only parent2 is left; for each position, 50% chance of copying from it
+		parent2only_1:
+			do
+			{
+				slim_position_t current_pos = mut2pos;
+				
+				if (Eidos_RandomBool(rng_state))
+				{
+					// copy mutations at this position from 2
+					do {
+						child_mutrun->emplace_back(mut2index);
+						if (++parent2_iter == parent2_iter_max)
+							goto doneWithMutrun_1;	// done with parent1 also
+						
+						mut2index = *parent2_iter;
+						mut2pos = (mut_block_ptr + mut2index)->position_;
+					} while (f_stackingPresent && (mut2pos == current_pos));
+				}
+				else
+				{
+					// skip mutations at this position from 2
+					do {
+						if (++parent2_iter == parent2_iter_max)
+							goto doneWithMutrun_1;	// done with parent1 also
+						
+						mut2index = *parent2_iter;
+						mut2pos = (mut_block_ptr + mut2index)->position_;
+					} while (f_stackingPresent && (mut2pos == current_pos));
+				}
+			}
+			while (true);
+			
+			// now both parents have been exhausted, for this mutation run; move on to the next
+		doneWithMutrun_1:
+			;
+			
+			//std::cout << "result has " << (child_mutrun->size()) << " mutations." << std::endl;
+		}
+	}
+	else
+	{
+		//
+		// mutations; we need to interleave the two parental haplosomes while potentially adding new mutations
+		//
+		
+		// We want to generate the mutations up front, as for other code paths for offspring generation; doing
+		// that in bulk is much simpler and more efficient.  To do that we need to know the strand each mutation
+		// is occurring on top of.  At first blush it looks like we could determine that ahead of time just for
+		// for the positions where a mutation occurs; the problem is that even at such a position, a mutation
+		// might not actually occur (due to sequence-dependent mutation rates, and mutation() callbacks).  We
+		// would still need the choice of strand for that position to be preserved (because the fact that a
+		// mutation is not occurring at that position might be strand-dependent), and so we would need a way to
+		// track the chosen strand even for positions where no mutation ended up happening.  Given that, the
+		// best strategy seems to be to choose the strand for EVERY position up front.  We will end up actually
+		// using this information only for positions where something is happening; but the cost of generating
+		// random bits is fairly low since we can make 64 at a time, and this might actually be faster than using
+		// Eidos_RandomBool() since it will be branchless -- we'll make all the coin flips we need up front, and
+		// then never need to check whether the buffer needs refilling.  The memory usage for this will be large
+		// for a very long chromosome, but nobody should be doing that anyway with unlinked loci; for 1e7 sites
+		// it will take about 1 MB, which is not the end of the world, and nobody should do bigger than that.
+		// We allocate this buffer of coin flips statically, with a separate version of it per thread.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local uint64_t *strand_choices = nullptr;
+		static thread_local size_t strand_choices_capacity = 0;
+#else
+		static uint64_t *strand_choices = nullptr;
+#pragma omp threadprivate (strand_choices)
+		static size_t strand_choices_capacity = 0;
+#pragma omp threadprivate (strand_choices_capacity)
+#endif
+		
+		size_t chromosome_length = (size_t)(p_chromosome.last_position_ + 1);
+		size_t strand_choices_count = (chromosome_length + 63) / 64;
+		
+		if (strand_choices_count > strand_choices_capacity)
+		{
+			strand_choices_capacity = strand_choices_count;
+			strand_choices = (uint64_t *)realloc(strand_choices, strand_choices_capacity * sizeof(uint64_t));
+		}
+		
+		for (size_t generate_index = 0; generate_index < strand_choices_count; ++generate_index)
+			strand_choices[generate_index] = Eidos_rng_uniform_int64(rng_state->pcg64_rng_);
+		
+		// define a macro for accessing strand_choices for a given position; looks complex but should be fast
+		// this macro provides a bool; if true, the strand choice is strand 1, if false, the choice is strand 2
+		// (note that in the actual bits it is the opposite; the ! here flips the sense and converts to bool)
+#define STRAND_CHOICE_AT_POSITION_IS_1(pos) (!((strand_choices[pos / 64] >> (pos % 64)) & 0x01))
+		
+		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#else
+		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#pragma omp threadprivate (mut_positions)
+#endif
+		
+		mut_positions.resize(0);
+		
+		num_mutations = p_chromosome.DrawSortedUniquedMutationPositions(num_mutations, parent_sex, mut_positions);
+		
+		// Create vector with the mutations to be added
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<MutationIndex> mutations_to_add;
+#else
+		static std::vector<MutationIndex> mutations_to_add;
+#pragma omp threadprivate (mutations_to_add)
+#endif
+		
+		mutations_to_add.resize(0);
+		
+#ifdef _OPENMP
+		bool saw_error_in_critical = false;
+#endif
+		
+		// BCH 7/29/2023: I tried making a simple code path here that generated the new MutationIndex values in a critical region and then
+		// did all the rest of the work outside the critical region.  It wasn't a noticeable win; mutation generation just isn't that
+		// central of a bottleneck.  If you're making so many mutations that contention for this critical region matters, you're probably
+		// completely bogged down in recombination and mutation registry maintenance.  Not worth the added code complexity.
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || (f_callbacks && p_mutation_callbacks))
+				{
+					// In nucleotide-based models, p_chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental haplosome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						bool mut_strand_is_1 = STRAND_CHOICE_AT_POSITION_IS_1(mut_positions[k].first);
+						MutationIndex new_mutation;
+						
+						new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(),
+																			mut_strand_is_1 ? parent_haplosome_1 : parent_haplosome_2, nullptr, nullptr, -1, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, p_chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = p_chromosome.DrawNewMutation(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick());
+						
+						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
+				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				// It occurs primarily with type 's' DESs; an error in the user's script can cause a raise through here.
+#ifdef _OPENMP
+				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
+#else
+				throw;
+#endif
+			}
+		}	// end #pragma omp critical (MutationAlloc)
+		
+#ifdef _OPENMP
+		if (saw_error_in_critical)
+		{
+			// Note that the previous error message is still in gEidosTermination, so we just tack an addendum onto it and re-raise, in effect
+			EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): An exception was caught inside a critical region." << EidosTerminate();
+		}
+#endif
+		
+		// Now we do the work, per mutation run; for each run we determine whether there are any new mutations or not
+		Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+		const MutationIndex *mutation_iter		= mutations_to_add.data();
+		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
+		
+		MutationIndex mutation_iter_mutation_index;
+		slim_position_t mutation_iter_pos;
+		
+#define UPDATE_NEXT_MUTATION_INFO()																\
+		if (mutation_iter != mutation_iter_max) {												\
+			mutation_iter_mutation_index = *mutation_iter;										\
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;		\
+		} else {																				\
+			mutation_iter_mutation_index = -1;													\
+			mutation_iter_pos = SLIM_INF_BASE_POSITION;											\
+		}
+		
+		UPDATE_NEXT_MUTATION_INFO();
+		
+		for (int this_mutrun_index = 0; this_mutrun_index < mutrun_count; ++this_mutrun_index)
+		{
+			const MutationIndex *parent1_iter		= parent_haplosome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+			const MutationIndex *parent2_iter		= parent_haplosome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+			const MutationIndex *parent1_iter_max	= parent_haplosome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+			const MutationIndex *parent2_iter_max	= parent_haplosome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+			MutationRunContext &mutrun_context_LOCKED = p_chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
+			MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
+			slim_position_t next_mutrun_start = (this_mutrun_index + 1) * mutrun_length;
+			
+			if (mutation_iter_pos >= next_mutrun_start)
+			{
+				//
+				// no new mutations in this mutation run (but there ALMOST were)
+				//
+				// This code is identical to the no-mutations case above, EXCEPT that the strand for each position
+				// has been predetermined; this is necessary because we did have a non-zero number of mutations in
+				// this code path, and then determined that they would not actually occur; we have to preserve all
+				// the strand choices we made, since the mutation determinations we made were contingent upon them.
+				// (We don't want to convert the earlier code path to use predetermined strands also, because for
+				// sparse mutations the approach it takes should be more efficient, and if the mutation rate is low
+				// enough that no mutations were generated, odds are decent that mutations are, in fact, sparse.)
+				//
+				
+//				{
+//					std::cout << "HaplosomeCrossed_R05() case 2 (potential muts):" << std::endl;
+//					std::cout << "   parent1 had " << (parent1_iter_max - parent1_iter) << " mutations:" << std::endl << "      ";
+//					for (const MutationIndex *print_iter = parent1_iter; print_iter < parent1_iter_max; ++print_iter)
+//						std::cout << *print_iter << " (at " << (mut_block_ptr + *print_iter)->position_ << ") ; ";
+//					std::cout << std::endl;
+//					std::cout << "   parent2 had " << (parent2_iter_max - parent2_iter) << " mutations:" << std::endl << "      ";
+//					for (const MutationIndex *print_iter = parent2_iter; print_iter < parent2_iter_max; ++print_iter)
+//						std::cout << *print_iter << " (at " << (mut_block_ptr + *print_iter)->position_ << ") ; ";
+//					std::cout << std::endl;
+//				}
+				
+				MutationIndex mut1index, mut2index;
+				slim_position_t mut1pos, mut2pos;
+				
+				// kick things off by going to the correct block to start processing
+				if (parent1_iter == parent1_iter_max)
+				{
+					if (parent2_iter == parent2_iter_max)
+					{
+						goto doneWithMutrun_2;	// FIXME could try to copy an empty run in this case
+					}
+					else
+					{
+						mut2index = *parent2_iter;
+						mut2pos = (mut_block_ptr + mut2index)->position_;
+						goto parent2only_2;
+					}
+				}
+				else
+				{
+					if (parent2_iter == parent2_iter_max)
+					{
+						mut1index = *parent1_iter;
+						mut1pos = (mut_block_ptr + mut1index)->position_;
+						goto parent1only_2;
+					}
+					else
+					{
+						mut1index = *parent1_iter;
+						mut2index = *parent2_iter;
+						mut1pos = (mut_block_ptr + mut1index)->position_;
+						mut2pos = (mut_block_ptr + mut2index)->position_;
+						goto bothParents_2;
+					}
+				}
+				
+				// we have both parents; for each position in either, 50% chance of copying 1 or 2
+			bothParents_2:
+				do
+				{
+					if (mut1pos == mut2pos)
+					{
+						slim_position_t current_pos = mut1pos;
+						
+						if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+						{
+							// copy mutations at this position from 1, skip mutations at this position from 2
+							do {
+								child_mutrun->emplace_back(mut1index);
+								if (++parent1_iter == parent1_iter_max)
+								{
+									// reached the end of parent1; we need to skip in parent2 with this knowledge
+									do {
+										if (++parent2_iter == parent2_iter_max)
+											goto doneWithMutrun_2;	// done with parent2 also
+										
+										mut2index = *parent2_iter;
+										mut2pos = (mut_block_ptr + mut2index)->position_;
+									} while (f_stackingPresent && (mut2pos == current_pos));
+									
+									goto parent2only_2;	// only done with parent1
+								}
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+							
+							do {
+								if (++parent2_iter == parent2_iter_max)
+									goto parent1only_2;
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+						}
+						else
+						{
+							// copy mutations at this position from 2, skip mutations at this position from 1
+							do {
+								child_mutrun->emplace_back(mut2index);
+								if (++parent2_iter == parent2_iter_max)
+								{
+									// reached the end of parent2; we need to skip in parent1 with this knowledge
+									do {
+										if (++parent1_iter == parent1_iter_max)
+											goto doneWithMutrun_2;	// done with parent1 also
+										
+										mut1index = *parent1_iter;
+										mut1pos = (mut_block_ptr + mut1index)->position_;
+									} while (f_stackingPresent && (mut1pos == current_pos));
+									
+									goto parent1only_2;	// only done with parent2
+								}
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+							
+							do {
+								if (++parent1_iter == parent1_iter_max)
+									goto parent2only_2;
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+						}
+					}
+					else if (mut1pos < mut2pos)
+					{
+						slim_position_t current_pos = mut1pos;
+						
+						if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+						{
+							// copy mutations at this position from 1
+							do {
+								child_mutrun->emplace_back(mut1index);
+								if (++parent1_iter == parent1_iter_max)
+									goto parent2only_2;	// only done with parent1
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+						}
+						else
+						{
+							// skip mutations at this position from 1
+							do {
+								if (++parent1_iter == parent1_iter_max)
+									goto parent2only_2;	// only done with parent1
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+						}
+					}
+					else // (mut2pos < mut1pos)
+					{
+						slim_position_t current_pos = mut2pos;
+						
+						if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+						{
+							// copy mutations at this position from 2
+							do {
+								child_mutrun->emplace_back(mut2index);
+								if (++parent2_iter == parent2_iter_max)
+									goto parent1only_2;	// only done with parent2
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+						}
+						else
+						{
+							// skip mutations at this position from 2
+							do {
+								if (++parent2_iter == parent2_iter_max)
+									goto parent1only_2;	// only done with parent2
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+						}
+					}
+				}
+				while (true);
+				
+				// now only parent1 is left; for each position, 50% chance of copying from it
+			parent1only_2:
+				do
+				{
+					slim_position_t current_pos = mut1pos;
+					
+					if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+					{
+						// copy mutations at this position from 1
+						do {
+							child_mutrun->emplace_back(mut1index);
+							if (++parent1_iter == parent1_iter_max)
+								goto doneWithMutrun_2;	// done with parent2 also
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+					}
+					else
+					{
+						// skip mutations at this position from 1
+						do {
+							if (++parent1_iter == parent1_iter_max)
+								goto doneWithMutrun_2;	// done with parent2 also
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+					}
+				}
+				while (true);
+				
+				// now only parent2 is left; for each position, 50% chance of copying from it
+			parent2only_2:
+				do
+				{
+					slim_position_t current_pos = mut2pos;
+					
+					if (!STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+					{
+						// copy mutations at this position from 2
+						do {
+							child_mutrun->emplace_back(mut2index);
+							if (++parent2_iter == parent2_iter_max)
+								goto doneWithMutrun_2;	// done with parent1 also
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+					}
+					else
+					{
+						// skip mutations at this position from 2
+						do {
+							if (++parent2_iter == parent2_iter_max)
+								goto doneWithMutrun_2;	// done with parent1 also
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+					}
+				}
+				while (true);
+				
+				// now both parents have been exhausted, for this mutation run; move on to the next
+			doneWithMutrun_2:
+				;
+				
+//				std::cout << "   result has " << (child_mutrun->size()) << " mutations:" << std::endl << "      ";
+//				for (const MutationIndex *print_iter = child_mutrun->begin_pointer_const(); print_iter < child_mutrun->end_pointer_const(); ++print_iter)
+//					std::cout << *print_iter << " ";
+//				std::cout << std::endl;
+			}
+			else
+			{
+				//
+				// new mutations, so we need to interleave the parental haplosomes and overlay the new mutations
+				//
+				
+				//std::cout << "HaplosomeCrossed_R05() case 3 (actual muts): parent1 had " << (parent1_iter_max - parent1_iter) << " mutations, parent2 had " << (parent2_iter_max - parent2_iter) << " mutations; ";
+				
+				auto AddMutationsAtPosition_STACKCHECK = [&](slim_position_t current_position) {
+					// handle a new mutation that overlays an inherited mutation (or mutations)
+					if (mutation_iter_pos == current_position)
+					{
+						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+						
+						if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
+						{
+							// The mutation was passed by the stacking policy, so we can add it
+							child_mutrun->emplace_back(mutation_iter_mutation_index);
+							
+							if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+								p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
+						}
+						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
+						{
+							// The mutation was rejected by the stacking policy, so we have to release it
+							new_mut->Release_PARALLEL_MUT();
+						}
+						
+						mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
+					}
+				};
+				
+				auto AddMutationsBeforePosition_NOSTACKCHECK = [&](slim_position_t end_position) {
+					// copy mutations occurring up to, but not including, the start of the next mutation run
+					while (mutation_iter_pos < end_position)
+					{
+						// here we know there is no pre-existing mutation, so stacking policy is irrelevant
+						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+						
+						child_mutrun->emplace_back(mutation_iter_mutation_index);
+						
+						if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+							p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
+						
+						mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
+					}
+				};
+				
+				// So, this is the same as the no-mutations case except that now we have new mutations!  Perhaps
+				// a reasonable approach is to break into the same cases as before, but before processing the
+				// next location with an existing mutation, first loop over all new mutations prior to that location.
+				// They can all be added with no further processing.  Then, at the next existing-mutation location,
+				// check whether there is ALSO a new mutation.  If not, process the existing-mutation location as
+				// before.  But if there is a new mutation also, that is the main new case, where we need to deal
+				// with stacking, possibly reject the new mutation, add the new mutation to the registry, etc.
+				
+				MutationIndex mut1index, mut2index;
+				slim_position_t mut1pos, mut2pos;
+				
+				// kick things off by going to the correct block to start processing
+				if (parent1_iter == parent1_iter_max)
+				{
+					if (parent2_iter == parent2_iter_max)
+					{
+						goto doneWithMutrun_3;	// FIXME could try to copy an empty run in this case
+					}
+					else
+					{
+						mut2index = *parent2_iter;
+						mut2pos = (mut_block_ptr + mut2index)->position_;
+						goto parent2only_3;
+					}
+				}
+				else
+				{
+					if (parent2_iter == parent2_iter_max)
+					{
+						mut1index = *parent1_iter;
+						mut1pos = (mut_block_ptr + mut1index)->position_;
+						goto parent1only_3;
+					}
+					else
+					{
+						mut1index = *parent1_iter;
+						mut2index = *parent2_iter;
+						mut1pos = (mut_block_ptr + mut1index)->position_;
+						mut2pos = (mut_block_ptr + mut2index)->position_;
+						
+						goto bothParents_3;
+					}
+				}
+				
+				// we have both parents; for each position in either, 50% chance of copying 1 or 2
+			bothParents_3:
+				do
+				{
+					if (mut1pos == mut2pos)
+					{
+						slim_position_t current_pos = mut1pos;
+						
+						AddMutationsBeforePosition_NOSTACKCHECK(current_pos);	// ********** ADDED TO FIX BUG!!!
+						
+						if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+						{
+							// copy mutations at this position from 1
+							do {
+								child_mutrun->emplace_back(mut1index);
+								if (++parent1_iter == parent1_iter_max)
+								{
+									// reached the end of parent1; we need to skip in parent2 with this knowledge
+									do {
+										if (++parent2_iter == parent2_iter_max)
+											break;
+										
+										mut2index = *parent2_iter;
+										mut2pos = (mut_block_ptr + mut2index)->position_;
+									} while (f_stackingPresent && (mut2pos == current_pos));
+									
+									AddMutationsAtPosition_STACKCHECK(current_pos);
+									
+									if (parent2_iter == parent2_iter_max)
+										goto doneWithMutrun_3;	// done with parent2 also
+									
+									goto parent2only_3;	// only done with parent1
+								}
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+							
+							AddMutationsAtPosition_STACKCHECK(current_pos);
+							
+							// skip mutations at this position from 2
+							do {
+								if (++parent2_iter == parent2_iter_max)
+									goto parent1only_3;
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+						}
+						else
+						{
+							// copy mutations at this position from 2
+							do {
+								child_mutrun->emplace_back(mut2index);
+								if (++parent2_iter == parent2_iter_max)
+								{
+									// reached the end of parent2; we need to skip in parent1 with this knowledge
+									do {
+										if (++parent1_iter == parent1_iter_max)
+											break;
+										
+										mut1index = *parent1_iter;
+										mut1pos = (mut_block_ptr + mut1index)->position_;
+									} while (f_stackingPresent && (mut1pos == current_pos));
+									
+									AddMutationsAtPosition_STACKCHECK(current_pos);
+									
+									if (parent1_iter == parent1_iter_max)
+										goto doneWithMutrun_3;	// done with parent1 also
+									
+									goto parent1only_3;	// only done with parent2
+								}
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+							
+							AddMutationsAtPosition_STACKCHECK(current_pos);
+							
+							// skip mutations at this position from 1
+							do {
+								if (++parent1_iter == parent1_iter_max)
+									goto parent2only_3;
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+						}
+					}
+					else if (mut1pos < mut2pos)
+					{
+						slim_position_t current_pos = mut1pos;
+						
+						AddMutationsBeforePosition_NOSTACKCHECK(current_pos);
+						
+						if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+						{
+							// copy mutations at this position from 1
+							do {
+								child_mutrun->emplace_back(mut1index);
+								if (++parent1_iter == parent1_iter_max)
+									break;
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+							
+							AddMutationsAtPosition_STACKCHECK(current_pos);
+							
+							if (parent1_iter == parent1_iter_max)
+								goto parent2only_3;	// only done with parent1
+						}
+						else
+						{
+							// skip mutations at this position from 1
+							do {
+								if (++parent1_iter == parent1_iter_max)
+									goto parent2only_3;	// only done with parent1
+								
+								mut1index = *parent1_iter;
+								mut1pos = (mut_block_ptr + mut1index)->position_;
+							} while (f_stackingPresent && (mut1pos == current_pos));
+						}
+					}
+					else // (mut2pos < mut1pos)
+					{
+						slim_position_t current_pos = mut2pos;
+						
+						AddMutationsBeforePosition_NOSTACKCHECK(current_pos);
+						
+						if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+						{
+							// copy mutations at this position from 2
+							do {
+								child_mutrun->emplace_back(mut2index);
+								if (++parent2_iter == parent2_iter_max)
+									break;
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+							
+							AddMutationsAtPosition_STACKCHECK(current_pos);
+							
+							if (parent2_iter == parent2_iter_max)
+								goto parent1only_3;	// only done with parent2
+						}
+						else
+						{
+							// skip mutations at this position from 2
+							do {
+								if (++parent2_iter == parent2_iter_max)
+									goto parent1only_3;	// only done with parent2
+								
+								mut2index = *parent2_iter;
+								mut2pos = (mut_block_ptr + mut2index)->position_;
+							} while (f_stackingPresent && (mut2pos == current_pos));
+						}
+					}
+				}
+				while (true);
+				
+				// now only parent1 is left; for each position, 50% chance of copying from it
+			parent1only_3:
+				do
+				{
+					slim_position_t current_pos = mut1pos;
+					
+					AddMutationsBeforePosition_NOSTACKCHECK(current_pos);
+					
+					if (STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+					{
+						// copy mutations at this position from 1
+						do {
+							child_mutrun->emplace_back(mut1index);
+							if (++parent1_iter == parent1_iter_max)
+								break;
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+						
+						AddMutationsAtPosition_STACKCHECK(current_pos);
+						
+						if (parent1_iter == parent1_iter_max)
+							goto doneWithMutrun_3;	// done with parent2 also
+					}
+					else
+					{
+						// skip mutations at this position from 1
+						do {
+							if (++parent1_iter == parent1_iter_max)
+								goto doneWithMutrun_3;	// done with parent2 also
+							
+							mut1index = *parent1_iter;
+							mut1pos = (mut_block_ptr + mut1index)->position_;
+						} while (f_stackingPresent && (mut1pos == current_pos));
+					}
+				}
+				while (true);
+				
+				// now only parent2 is left; for each position, 50% chance of copying from it
+			parent2only_3:
+				do
+				{
+					slim_position_t current_pos = mut2pos;
+					
+					AddMutationsBeforePosition_NOSTACKCHECK(current_pos);
+					
+					if (!STRAND_CHOICE_AT_POSITION_IS_1(current_pos))
+					{
+						// copy mutations at this position from 2
+						do {
+							child_mutrun->emplace_back(mut2index);
+							if (++parent2_iter == parent2_iter_max)
+								break;
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+						
+						AddMutationsAtPosition_STACKCHECK(current_pos);
+						
+						if (parent2_iter == parent2_iter_max)
+							goto doneWithMutrun_3;	// done with parent1 also
+					}
+					else
+					{
+						// skip mutations at this position from 2
+						do {
+							if (++parent2_iter == parent2_iter_max)
+								goto doneWithMutrun_3;	// done with parent1 also
+							
+							mut2index = *parent2_iter;
+							mut2pos = (mut_block_ptr + mut2index)->position_;
+						} while (f_stackingPresent && (mut2pos == current_pos));
+						
+						// if there is a new mutation at current_pos it will get handled by whoever is next
+					}
+				}
+				while (true);
+				
+				// now both parents have been exhausted, for this mutation run; move on to the next
+			doneWithMutrun_3:
+				AddMutationsBeforePosition_NOSTACKCHECK(next_mutrun_start);
+				
+				//std::cout << "result has " << (child_mutrun->size()) << " mutations." << std::endl;
+			}
+		}
+	}
+	
+	// debugging check
+#if 0
+	for (int i = 0; i < child_haplosome.mutrun_count_; ++i)
+		if (child_haplosome.mutruns_[i].get() == nullptr)
+			EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed_R05): (internal error) null mutation run left at end of crossover-mutation." << EidosTerminate();
+#endif
+}
+
+template void Population::HaplosomeCrossed_R05<false, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCrossed_R05<false, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCrossed_R05<true, false>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
+template void Population::HaplosomeCrossed_R05<true, true>(Chromosome &, Haplosome &, Haplosome *, Haplosome *, std::vector<SLiMEidosBlock*> *, std::vector<SLiMEidosBlock*> *);
 
 // generate a child haplosome from parental haplosomes, clonally with mutation
 template <const bool f_treeseq, const bool f_callbacks>
@@ -4025,16 +5108,11 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						
 						if (child_run->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 						{
-							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+							// The mutation was passed by the stacking policy, so we can add it
 							child_run->emplace_back(mutation_iter_mutation_index);
 							
-							if (new_mut->state_ != MutationState::kInRegistry)
-							{
-								#pragma omp critical (MutationRegistryAdd)
-								{
-									p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-								}
-							}
+							if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+								p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
@@ -4048,10 +5126,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-							{
-								new_mut->Release_PARALLEL();
-							}
+							new_mut->Release_PARALLEL_MUT();
 						}
 						
 						// move to the next mutation
@@ -4381,13 +5456,16 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 		MutationIndex mutation_iter_mutation_index;
 		slim_position_t mutation_iter_pos;
 		
-		if (mutation_iter != mutation_iter_max) {
-			mutation_iter_mutation_index = *mutation_iter;
-			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-		} else {
-			mutation_iter_mutation_index = -1;
-			mutation_iter_pos = SLIM_INF_BASE_POSITION;
+#define UPDATE_NEXT_MUTATION_INFO()																\
+		if (mutation_iter != mutation_iter_max) {												\
+			mutation_iter_mutation_index = *mutation_iter;										\
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;		\
+		} else {																				\
+			mutation_iter_mutation_index = -1;													\
+			mutation_iter_pos = SLIM_INF_BASE_POSITION;											\
 		}
+		
+		UPDATE_NEXT_MUTATION_INFO();
 		
 		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
 		int mutrun_count = p_child_haplosome.mutrun_count_;
@@ -4490,16 +5568,11 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 								
 								if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 								{
-									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+									// The mutation was passed by the stacking policy, so we can add it
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
-									if (new_mut->state_ != MutationState::kInRegistry)
-									{
-										#pragma omp critical (MutationRegistryAdd)
-										{
-											p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-										}
-									}
+									if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+										p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
@@ -4513,20 +5586,10 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-									{
-										new_mut->Release_PARALLEL();
-									}
+									new_mut->Release_PARALLEL_MUT();
 								}
 								
-								if (++mutation_iter != mutation_iter_max) {
-									mutation_iter_mutation_index = *mutation_iter;
-									mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-								} else {
-									mutation_iter_mutation_index = -1;
-									mutation_iter_pos = SLIM_INF_BASE_POSITION;
-								}
-								
+								mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 								mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 							}
 							
@@ -4543,16 +5606,11 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 							
 							if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 							{
-								// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+								// The mutation was passed by the stacking policy, so we can add it
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
 								
-								if (new_mut->state_ != MutationState::kInRegistry)
-								{
-									#pragma omp critical (MutationRegistryAdd)
-									{
-										p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-									}
-								}
+								if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+									p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
@@ -4566,20 +5624,10 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 							else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 							{
 								// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-								{
-									new_mut->Release_PARALLEL();
-								}
+								new_mut->Release_PARALLEL_MUT();
 							}
 							
-							if (++mutation_iter != mutation_iter_max) {
-								mutation_iter_mutation_index = *mutation_iter;
-								mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-							} else {
-								mutation_iter_mutation_index = -1;
-								mutation_iter_pos = SLIM_INF_BASE_POSITION;
-							}
-							
+							mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 							mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 						}
 						
@@ -4697,16 +5745,11 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					
 					if (child_mutrun->enforce_stack_policy_for_addition(mutation_block_, new_mut))
 					{
-						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+						// The mutation was passed by the stacking policy, so we can add it
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
-						if (new_mut->state_ != MutationState::kInRegistry)
-						{
-							#pragma omp critical (MutationRegistryAdd)
-							{
-								p_chromosome.MutationRegistryAdd(new_mut, /* p_autogenerated */ true);
-							}
-						}
+						if (!f_callbacks || (new_mut->state_ != MutationState::kInRegistry))
+							p_chromosome.MutationRegistryAdd_PARALLEL(new_mut, /* p_autogenerated */ true);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
@@ -4720,20 +5763,10 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to release it
-#pragma omp critical (MutationAlloc)
-						{
-							new_mut->Release_PARALLEL();
-						}
+						new_mut->Release_PARALLEL_MUT();
 					}
 					
-					if (++mutation_iter != mutation_iter_max) {
-						mutation_iter_mutation_index = *mutation_iter;
-						mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-					} else {
-						mutation_iter_mutation_index = -1;
-						mutation_iter_pos = SLIM_INF_BASE_POSITION;
-					}
-					
+					mutation_iter++; UPDATE_NEXT_MUTATION_INFO();
 					mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 				}
 				while (mutation_mutrun_index == this_mutrun_index);

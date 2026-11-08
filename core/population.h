@@ -194,6 +194,9 @@ public:
 	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
+	template <const bool f_callbacks, const bool f_stackingPresent>
+	void HaplosomeCrossed_R05(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	
 	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
