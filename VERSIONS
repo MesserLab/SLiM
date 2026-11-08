@@ -259,6 +259,8 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	optimize the performance of generating coin-flips (p=0.5) with rbinom() and rdunif()
 	optimize the performance of drawing from a normal distribution by switching from gsl_ran_gaussian() to gsl_ran_gaussian_ziggurat(), which is ~3x faster (!)
 	policy change: the MutationType properties mutationStackGroup and mutationStackPolicy can now be changed only in initialize() callbacks; dynamic stack policy changes are not allowed
+	speed up calcVA() and calcVD() when all mutations affecting a given trait are independent-dominance
+		this involved adding a new property to Trait, allIndependentDominance => (logical$), so this is user-visible
 
 
 version 5.2 (Eidos version 4.2):

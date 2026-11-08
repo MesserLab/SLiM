@@ -311,7 +311,8 @@ R"V0G0N({
 			stop("ERROR (calcVA): all individuals must belong to the same species.");
 	}
 	
-	if (isNULL(muts))
+	mutsIsNULL = isNULL(muts);  // we need to know this later on
+	if (mutsIsNULL)
 		muts = species.mutations;
 	else if (any(muts.chromosome.species != species))
 		stop("ERROR (calcVA): all mutations must belong to the same species as the individuals.");
@@ -329,6 +330,8 @@ R"V0G0N({
 		stop("ERROR (calcVA): all traits must be additive.");
 	if (length(traits) == 0)
 		stop("ERROR (calcVA): at least one additive trait is required.");
+	if (length(traits) != length(unique(traits, preserveOrder=F)))
+		stop("ERROR (calcVA): traits may not contain duplicate entries.");  // so match() below works
 	
 	// Eidos doesn't support matrices with a dimension of zero, so the code below errors with no mutations
 	if (length(muts) == 0)
@@ -337,17 +340,56 @@ R"V0G0N({
 		else
 			return matrix(rep(NAN, length(traits)*length(traits)), nrow=length(traits));
 	
-	muts_a = c();
-	for (trait in traits)
-		muts_a = cbind(muts_a, muts.effectSizeForTrait(trait)); // rows are mutations, columns are traits
+	// Separate traits whose genetic basis is fully "independent dominance", in which case VA=VG
+	// (much faster to calculate), from those that need to have phenotypes explicitly computed.
+	traits_IndDom = traits[traits.allIndependentDominance];
+	traits_NotIndDom = traits[!traits.allIndependentDominance];
 	
-	// For each mutation in each individual gets the dosage or number of copies (0, 1 or 2 copies)
-	// Mutations on haploid chromosomes contribute to the trait as if they were homozygous on an autosome (SLiM manual, Section 24.6). 
-	// In short, their effect on trait is either 0 or 2*a depending on whether the mutation is absent or present. 
-	// This doubling of the allelic effect is accounted for explicitly by setting `haploidValue = 2`.
-	dosMuts = asFloat(individuals.zygosityOfMutations(muts, haploidValue=2)); // rows are mutations, columns are individuals
+	// For non-independent-dominance traits, we calculate polygenic scores as a sum across mutations
+	if (length(traits_NotIndDom) > 0)
+	{
+		muts_a = c();
+		for (trait in traits_NotIndDom)
+			muts_a = cbind(muts_a, muts.effectSizeForTrait(trait)); // rows are mutations, columns are traits
+		
+		// For each mutation in each individual gets the dosage or number of copies (0, 1 or 2 copies)
+		// Mutations on haploid chromosomes contribute to the trait as if they were homozygous on an autosome (SLiM manual, Section 24.6). 
+		// In short, their effect on trait is either 0 or 2*a depending on whether the mutation is absent or present. 
+		// This doubling of the allelic effect is accounted for explicitly by setting `haploidValue = 2`.
+		dosMuts = asFloat(individuals.zygosityOfMutations(muts, haploidValue=2)); // rows are mutations, columns are individuals
+		
+		df_polygenicScores_NotIndDom = matrixMult(t(dosMuts), muts_a); // rows are individuals, columns are traits
+	}
+	else
+	{
+		df_polygenicScores_NotIndDom = c();
+	}
 	
-	df_polygenicScores = matrixMult(t(dosMuts), muts_a); // rows are individuals, columns are traits
+	// For independent-dominance traits, we calculate polygenic scores as phenotypic effects minus environmental effects
+	if (length(traits_IndDom) > 0)
+	{
+		if (mutsIsNULL)
+		{
+			// if we are using all mutations, simply get phenotypes and remove environmental effects
+			df_polygenicScores_IndDom = individuals.calculatePhenotype(muts=NULL, trait=traits_IndDom) - individuals.offsetForTrait(traits_IndDom);
+		}
+		else
+		{
+			// if a subset of mutations, then recalculate phenotype based on them
+			df_polygenicScores_IndDom = individuals.calculatePhenotype(muts, trait=traits_IndDom, useBaselineOffset=F, useSubstitutionOffset=F, useIndividualOffset=F);
+		}
+	}
+	else
+	{
+		df_polygenicScores_IndDom = c();
+	}
+	
+	// Combine IndDom and NotIndDom traits into a single df
+	df_polygenicScores = cbind(df_polygenicScores_IndDom, df_polygenicScores_NotIndDom);
+	
+	// Reorder the columns of df_polygenicScores based on the original order of the traits provided
+	if ((length(traits_IndDom) > 0) & (length(traits_NotIndDom) > 0))
+		df_polygenicScores = df_polygenicScores[, match(traits.name, c(traits_IndDom, traits_NotIndDom).name)];
 	
 	if (length(traits) == 1)
 		return var(drop(df_polygenicScores));  // return a scalar for a single trait
@@ -404,6 +446,17 @@ R"V0G0N({
 			return NAN;
 		else
 			return matrix(rep(NAN, length(traits)*length(traits)), nrow=length(traits));
+	
+	// Check for independent dominance; if all traits are, the whole dominance matrix is zeros.  If only some
+	// are, we could handle it the same way we handle that in calcVA(), but really the user shouldn't even be
+	// asking about the dominance of traits that are ind-dom, so we just let the slow case handle it.
+	if (all(traits.allIndependentDominance))
+	{
+		if (length(traits) == 1)
+			return 0.0;
+		else
+			return matrix(rep(0.0, length(traits)*length(traits)), nrow=length(traits));
+	}
 	
 	muts_d_het = c();
 	muts_d_hemi = c();

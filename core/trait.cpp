@@ -558,6 +558,10 @@ EidosValue_SP Trait::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_allIndependentDominance:
+		{
+			return (trait_all_mutations_independent_dominance_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
 		case gID_compositeOffsetH:
 		{
 			if (species_.SexEnabled())
@@ -904,6 +908,7 @@ std::vector<EidosPropertySignature_CSP> *Trait_Class::Properties_MUTABLE(void) c
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allIndependentDominance,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineOffsetH,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineOffsetM,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_baselineOffsetF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));

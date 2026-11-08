@@ -15492,7 +15492,19 @@ Due to internal optimizations, these values may not be exactly equal to the orig
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 baselineOffsetF <\'96> (float$)\
+\f3\i0\fs18 \cf2 allIndependentDominance => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This property is 
+\f3\fs18 T
+\f4\fs20  if all non-neutral mutations in the species are configured for independent dominance in their effects on the trait, or if any genomic element type utilizes a mutation type with a non-independent default dominance on the trait; it is 
+\f3\fs18 F
+\f4\fs20  otherwise.  The dominance of neutral mutations has no effect on this property.  This flag is \'93sticky\'94 at 
+\f3\fs18 F
+\f4\fs20 ; once SLiM has determined that non-neutral mutations could have a non-independent-dominance effect on a given trait, it does not revisit that assessment since it would be expensive, in terms of performance, to do so.  This flag can be useful for optimizing algorithms that can be simplified in the independent-dominance case.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 baselineOffsetF <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The baseline offset for the trait, for females.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive and logistic traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.  This property defaults to 

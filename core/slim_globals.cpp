@@ -1156,6 +1156,7 @@ const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initial
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);
 
 // mostly property names
+const std::string &gStr_allIndependentDominance = EidosRegisteredString("allIndependentDominance", gID_allIndependentDominance);
 const std::string &gStr_baselineOffsetH = EidosRegisteredString("baselineOffsetH", gID_baselineOffsetH);
 const std::string &gStr_baselineOffsetM = EidosRegisteredString("baselineOffsetM", gID_baselineOffsetM);
 const std::string &gStr_baselineOffsetF = EidosRegisteredString("baselineOffsetF", gID_baselineOffsetF);
