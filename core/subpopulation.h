@@ -380,6 +380,7 @@ public:
 	
 #if DEBUG
 	void CheckIndividualIntegrity(void) const;
+	void CheckHaplosomeIntegrity(const Haplosome *haplosome, int index, bool in_child, const Chromosome *chromosome, const Individual *individual, bool is_female, const char *haplosome_name) const;
 #endif
 	
 	// this is called by Population::RecalculateFitness(); first it expresses demand for traits that have direct fitness effects, then it recalculates fitness values

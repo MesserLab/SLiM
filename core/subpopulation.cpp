@@ -426,7 +426,6 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	size_t chromosomes_count = chromosomes.size();
 	bool has_genetics = species_.HasGenetics();
-	Mutation *mut_block_ptr = has_genetics ? species_.SpeciesMutationBlock()->mutation_buffer_ : nullptr;
 	
 	if (!has_genetics && (chromosomes_count != 0))
 		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
@@ -526,7 +525,6 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 		for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
 		{
 			Chromosome *chromosome = chromosomes[chromosome_index];
-			ChromosomeType chromosome_type = chromosome->Type();
 			
 			// check haplosome indices
 			int haplosome_count = chromosome->IntrinsicPloidy();
@@ -535,140 +533,7 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 			{
 				Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
 				
-				if (!haplosome1)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome1." << EidosTerminate();
-				if (haplosome1->individual_ != individual)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome1->individual_ and individual." << EidosTerminate();
-				if (haplosome1->AssociatedChromosome() != chromosome)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1->AssociatedChromosome() mismatch." << EidosTerminate();
-				
-				if (!haplosome1->IsNull())
-				{
-					slim_position_t mutrun_count = chromosome->mutrun_count_;
-					slim_position_t mutrun_length = chromosome->mutrun_length_;
-					
-					if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
-					
-					// check that every mutation in the haplosome belongs to the right chromosome
-					// BCH 10/25/2026: This test takes a *lot* of runtime, so I'm going to disable it most ticks;
-					// it seems unlikely to ever get hit, but might be useful for finding memory smashers...
-					if (community_.Tick() % 50 == 0)
-					{
-						slim_chromosome_index_t correct_chromosome_index = haplosome1->chromosome_index_;
-						
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						{
-							const MutationRun *mutrun = haplosome1->mutruns_[run_index];
-							const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-							const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
-							
-							for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
-							{
-								Mutation *mut = (mut_block_ptr + *mutrun_iter);
-								
-								if (mut->chromosome_index_ != correct_chromosome_index)
-									EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome1 with chromosome_index_ " << (unsigned int)haplosome1->chromosome_index_ << "." << EidosTerminate();
-							}
-						}
-					}
-				}
-				
-				if (((haplosome1->mutrun_count_ == 0) && ((haplosome1->mutrun_length_ != 0) || (haplosome1->mutruns_ != nullptr))) ||
-					((haplosome1->mutrun_length_ == 0) && ((haplosome1->mutrun_count_ != 0) || (haplosome1->mutruns_ != nullptr))))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mutrun count/length/pointer inconsistency." << EidosTerminate();
-				
-				if (species_.PedigreesEnabled())
-				{
-					if (haplosome1->haplosome_id_ != individual->pedigree_id_ * 2)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 has an invalid haplosome pedigree ID." << EidosTerminate();
-				}
-				
-				bool null_problem = false;
-				
-				switch (chromosome_type)
-				{
-						// haplosome1 should be null for these types
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
-						if (!haplosome1->IsNull())
-							null_problem = true;
-						break;
-						
-						// haplosome1 should be non-null for these types
-					case ChromosomeType::kX_XSexChromosome:
-					case ChromosomeType::kHF_HaploidFemaleInherited:
-					case ChromosomeType::kHM_HaploidMaleInherited:
-						if (haplosome1->IsNull())
-							null_problem = true;
-						break;
-						
-						// haplosome1 should be null in females, non-null in males
-					case ChromosomeType::kY_YSexChromosome:
-					case ChromosomeType::kZ_ZSexChromosome:
-					case ChromosomeType::kML_HaploidMaleLine:
-						if (is_female != haplosome1->IsNull())
-							null_problem = true;
-						break;
-						
-						// haplosome1 should be null in males, non-null in females
-					case ChromosomeType::kW_WSexChromosome:
-					case ChromosomeType::kFL_HaploidFemaleLine:
-						if (is_female == haplosome1->IsNull())
-							null_problem = true;
-						break;
-						
-						// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
-						// however, we do check that our null-haplosome tracking flags are correctly set
-					case ChromosomeType::kA_DiploidAutosome:
-					case ChromosomeType::kH_HaploidAutosome:
-						if (haplosome1->IsNull())
-						{
-							if (!has_null_haplosomes_)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 is null but has_null_haplosomes_ is false." << EidosTerminate();
-							if (!chromosome->null_haplosome_observed_)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 is null but null_haplosome_observed_ is false." << EidosTerminate();
-						}
-						break;
-						
-					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-						break;
-				}
-				
-				if (null_problem)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mismatch between expected and actual null haplosome status." << EidosTerminate();
-				
-				if (population_.child_generation_valid_)
-				{
-#if SLIM_CLEAR_HAPLOSOMES()
-					// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
-					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
-						if (haplosome1->mutruns_[mutrun_index] != nullptr)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a nonnull mutrun pointer." << EidosTerminate();
-#endif
-				}
-				else
-				{
-#if SLIM_CLEAR_HAPLOSOMES()
-					// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
-					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
-						if (haplosome1->mutruns_[mutrun_index] == nullptr)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
-#endif
-					
-					// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
-					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
-					{
-						const MutationRun *mutrun = haplosome1->mutruns_[mutrun_index];
-						
-						mutrun->use_count_CHECK_ = 1;
-						
-						if (mutrun->mutrun_index_CHECK_ != mutrun_index)
-						{
-							// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at the wrong position." << EidosTerminate();
-						}
-					}
-				}
+				CheckHaplosomeIntegrity(haplosome1, /* index */ 0, /* in_child */ false, chromosome, individual, is_female, "parental haplosome1");
 			}
 			
 			// check haplosome 2 for this chromosome
@@ -676,142 +541,7 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 			{
 				Haplosome *haplosome2 = individual->haplosomes_[haplosome_index + 1];
 				
-				if (!haplosome2)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome2." << EidosTerminate();
-				if (haplosome2->individual_ != individual)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome2->individual_ and individual." << EidosTerminate();
-				if (haplosome2->AssociatedChromosome() != chromosome)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2->AssociatedChromosome() mismatch." << EidosTerminate();
-				
-				if (!haplosome2->IsNull())
-				{
-					slim_position_t mutrun_count = chromosome->mutrun_count_;
-					slim_position_t mutrun_length = chromosome->mutrun_length_;
-					
-					if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
-					
-					// check that every mutation in the haplosome belongs to the right chromosome
-					// BCH 10/25/2026: This test takes a *lot* of runtime, so I'm going to disable it most ticks;
-					// it seems unlikely to ever get hit, but might be useful for finding memory smashers...
-					if (community_.Tick() % 50 == 0)
-					{
-						slim_chromosome_index_t correct_chromosome_index = haplosome2->chromosome_index_;
-						
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						{
-							const MutationRun *mutrun = haplosome2->mutruns_[run_index];
-							const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-							const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
-							
-							for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
-							{
-								Mutation *mut = (mut_block_ptr + *mutrun_iter);
-								
-								if (mut->chromosome_index_ != correct_chromosome_index)
-									EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome2 with chromosome_index_ " << (unsigned int)haplosome2->chromosome_index_ << "." << EidosTerminate();
-							}
-						}
-					}
-				}
-				
-				if (((haplosome2->mutrun_count_ == 0) && ((haplosome2->mutrun_length_ != 0) || (haplosome2->mutruns_ != nullptr))) ||
-					((haplosome2->mutrun_length_ == 0) && ((haplosome2->mutrun_count_ != 0) || (haplosome2->mutruns_ != nullptr))))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mutrun count/length/pointer inconsistency." << EidosTerminate();
-				
-				if (species_.PedigreesEnabled())
-				{
-					if (haplosome2->haplosome_id_ != individual->pedigree_id_ * 2 + 1)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 has an invalid haplosome pedigree ID." << EidosTerminate();
-				}
-				
-				bool null_problem = false;
-				
-				switch (chromosome_type)
-				{
-						// haplosome2 should be null for these types
-					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-						if (!haplosome2->IsNull())
-							null_problem = true;
-						break;
-						
-						// haplosome2 should be non-null for these types
-					case ChromosomeType::kZ_ZSexChromosome:
-						if (haplosome2->IsNull())
-							null_problem = true;
-						break;
-						
-						// haplosome2 should be null in females, non-null in males
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
-						if (is_female != haplosome2->IsNull())
-							null_problem = true;
-						break;
-						
-						// haplosome2 should be null in males, non-null in females
-					case ChromosomeType::kX_XSexChromosome:
-						if (is_female == haplosome2->IsNull())
-							null_problem = true;
-						break;
-						
-						// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
-						// however, we do check that our null-haplosome tracking flags are correctly set
-					case ChromosomeType::kA_DiploidAutosome:
-						if (haplosome2->IsNull())
-						{
-							if (!has_null_haplosomes_)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 is null but has_null_haplosomes_ is false." << EidosTerminate();
-							if (!chromosome->null_haplosome_observed_)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 is null but null_haplosome_observed_ is false." << EidosTerminate();
-						}
-						break;
-						
-						// haplosome2 should not exist at all for these types
-					case ChromosomeType::kH_HaploidAutosome:
-					case ChromosomeType::kY_YSexChromosome:
-					case ChromosomeType::kW_WSexChromosome:
-					case ChromosomeType::kHF_HaploidFemaleInherited:
-					case ChromosomeType::kFL_HaploidFemaleLine:
-					case ChromosomeType::kHM_HaploidMaleInherited:
-					case ChromosomeType::kML_HaploidMaleLine:
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) chromosome type should never be used for haplosome2." << EidosTerminate();
-						break;
-				}
-				
-				if (null_problem)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mismatch between expected and actual null haplosome status." << EidosTerminate();
-				
-				if (population_.child_generation_valid_)
-				{
-#if SLIM_CLEAR_HAPLOSOMES()
-					// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
-					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
-						if (haplosome2->mutruns_[mutrun_index] != nullptr)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a nonnull mutrun pointer." << EidosTerminate();
-#endif
-				}
-				else
-				{
-#if SLIM_CLEAR_HAPLOSOMES()
-					// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
-					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
-						if (haplosome2->mutruns_[mutrun_index] == nullptr)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
-#endif
-					
-					// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
-					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
-					{
-						const MutationRun *mutrun = haplosome2->mutruns_[mutrun_index];
-						
-						mutrun->use_count_CHECK_ = 1;
-						
-						if (mutrun->mutrun_index_CHECK_ != mutrun_index)
-						{
-							// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at the wrong position." << EidosTerminate();
-						}
-					}
-				}
+				CheckHaplosomeIntegrity(haplosome2, /* index */ 1, /* in_child */ false, chromosome, individual, is_female, "parental haplosome2");
 			}
 			
 			haplosome_index += haplosome_count;
@@ -869,7 +599,6 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 			for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
 			{
 				Chromosome *chromosome = chromosomes[chromosome_index];
-				ChromosomeType chromosome_type = chromosome->Type();
 				
 				// check haplosome indices
 				int haplosome_count = chromosome->IntrinsicPloidy();
@@ -878,106 +607,7 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 				{
 					Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
 					
-					if (!haplosome1)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome1." << EidosTerminate();
-					if (haplosome1->individual_ != individual)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome1->individual_ and individual." << EidosTerminate();
-					if (haplosome1->AssociatedChromosome() != chromosome)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1->AssociatedChromosome() mismatch." << EidosTerminate();
-					
-					if (!haplosome1->IsNull())
-					{
-						slim_position_t mutrun_count = chromosome->mutrun_count_;
-						slim_position_t mutrun_length = chromosome->mutrun_length_;
-						
-						if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
-						
-						// do not check haplosomes in the child generation; they are conceptually cleared to
-						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES() is set
-					}
-					
-					if (((haplosome1->mutrun_count_ == 0) && ((haplosome1->mutrun_length_ != 0) || (haplosome1->mutruns_ != nullptr))) ||
-						((haplosome1->mutrun_length_ == 0) && ((haplosome1->mutrun_count_ != 0) || (haplosome1->mutruns_ != nullptr))))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mutrun count/length/pointer inconsistency." << EidosTerminate();
-					
-					// we don't check pedigree IDs for the child generation; they are not expected to be set up
-					
-					bool null_problem = false;
-					
-					switch (chromosome_type)
-					{
-							// haplosome1 should be null for these types
-						case ChromosomeType::kNullY_YSexChromosomeWithNull:
-							if (!haplosome1->IsNull())
-								null_problem = true;
-							break;
-							
-							// haplosome1 should be non-null for these types
-						case ChromosomeType::kX_XSexChromosome:
-						case ChromosomeType::kHF_HaploidFemaleInherited:
-						case ChromosomeType::kHM_HaploidMaleInherited:
-							if (haplosome1->IsNull())
-								null_problem = true;
-							break;
-							
-							// haplosome1 should be null in females, non-null in males
-						case ChromosomeType::kY_YSexChromosome:
-						case ChromosomeType::kZ_ZSexChromosome:
-						case ChromosomeType::kML_HaploidMaleLine:
-							if (is_female != haplosome1->IsNull())
-								null_problem = true;
-							break;
-							
-							// haplosome1 should be null in males, non-null in females
-						case ChromosomeType::kW_WSexChromosome:
-						case ChromosomeType::kFL_HaploidFemaleLine:
-							if (is_female == haplosome1->IsNull())
-								null_problem = true;
-							break;
-							
-							// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
-						case ChromosomeType::kA_DiploidAutosome:
-						case ChromosomeType::kH_HaploidAutosome:
-						case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-							break;
-					}
-					
-					if (null_problem)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mismatch between expected and actual null haplosome status." << EidosTerminate();
-					
-					if (!population_.child_generation_valid_)
-					{
-#if SLIM_CLEAR_HAPLOSOMES()
-						// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
-						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
-							if (haplosome1->mutruns_[mutrun_index] != nullptr)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child haplosome has a nonnull mutrun pointer." << EidosTerminate();
-#endif
-					}
-					else
-					{
-#if SLIM_CLEAR_HAPLOSOMES()
-						// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
-						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
-							if (haplosome1->mutruns_[mutrun_index] == nullptr)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child haplosome has a null mutrun pointer." << EidosTerminate();
-#endif
-						
-						// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
-						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
-						{
-							const MutationRun *mutrun = haplosome1->mutruns_[mutrun_index];
-							
-							mutrun->use_count_CHECK_ = 1;
-							
-							if (mutrun->mutrun_index_CHECK_ != mutrun_index)
-							{
-								// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
-							}
-						}
-					}
+					CheckHaplosomeIntegrity(haplosome1, /* index */ 0, /* in_child */ true, chromosome, individual, is_female, "child haplosome1");
 				}
 				
 				// check haplosome 2 for this chromosome
@@ -985,110 +615,7 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 				{
 					Haplosome *haplosome2 = individual->haplosomes_[haplosome_index + 1];
 					
-					if (!haplosome2)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome2." << EidosTerminate();
-					if (haplosome2->individual_ != individual)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome2->individual_ and individual." << EidosTerminate();
-					if (haplosome2->AssociatedChromosome() != chromosome)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2->AssociatedChromosome() mismatch." << EidosTerminate();
-					
-					if (!haplosome2->IsNull())
-					{
-						slim_position_t mutrun_count = chromosome->mutrun_count_;
-						slim_position_t mutrun_length = chromosome->mutrun_length_;
-						
-						if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
-						
-						// do not check haplosomes in the child generation; they are conceptually cleared to
-						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES() is set
-					}
-					
-					if (((haplosome2->mutrun_count_ == 0) && ((haplosome2->mutrun_length_ != 0) || (haplosome2->mutruns_ != nullptr))) ||
-						((haplosome2->mutrun_length_ == 0) && ((haplosome2->mutrun_count_ != 0) || (haplosome2->mutruns_ != nullptr))))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mutrun count/length/pointer inconsistency." << EidosTerminate();
-					
-					// we don't check pedigree IDs for the child generation; they are not expected to be set up
-					
-					bool null_problem = false;
-					
-					switch (chromosome_type)
-					{
-							// haplosome2 should be null for these types
-						case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-							if (!haplosome2->IsNull())
-								null_problem = true;
-							break;
-							
-							// haplosome2 should be non-null for these types
-						case ChromosomeType::kZ_ZSexChromosome:
-							if (haplosome2->IsNull())
-								null_problem = true;
-							break;
-							
-							// haplosome2 should be null in females, non-null in males
-						case ChromosomeType::kNullY_YSexChromosomeWithNull:
-							if (is_female != haplosome2->IsNull())
-								null_problem = true;
-							break;
-							
-							// haplosome2 should be null in males, non-null in females
-						case ChromosomeType::kX_XSexChromosome:
-							if (is_female == haplosome2->IsNull())
-								null_problem = true;
-							break;
-							
-							// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
-						case ChromosomeType::kA_DiploidAutosome:
-							break;
-							
-							// haplosome2 should not exist at all for these types
-						case ChromosomeType::kH_HaploidAutosome:
-						case ChromosomeType::kY_YSexChromosome:
-						case ChromosomeType::kW_WSexChromosome:
-						case ChromosomeType::kHF_HaploidFemaleInherited:
-						case ChromosomeType::kFL_HaploidFemaleLine:
-						case ChromosomeType::kHM_HaploidMaleInherited:
-						case ChromosomeType::kML_HaploidMaleLine:
-							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) chromosome type should never be used for haplosome2." << EidosTerminate();
-							break;
-					}
-					
-					if (null_problem)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mismatch between expected and actual null haplosome status." << EidosTerminate();
-					
-					if (!population_.child_generation_valid_)
-					{
-#if SLIM_CLEAR_HAPLOSOMES()
-						// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
-						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
-							if (haplosome2->mutruns_[mutrun_index] != nullptr)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a nonnull mutrun pointer." << EidosTerminate();
-#endif
-					}
-					else
-					{
-#if SLIM_CLEAR_HAPLOSOMES()
-						// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
-						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
-							if (haplosome2->mutruns_[mutrun_index] == nullptr)
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
-#endif
-						
-						// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
-						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
-						{
-							const MutationRun *mutrun = haplosome2->mutruns_[mutrun_index];
-							
-							mutrun->use_count_CHECK_ = 1;
-							
-							if (mutrun->mutrun_index_CHECK_ != mutrun_index)
-							{
-								// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
-								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
-							}
-						}
-					}
+					CheckHaplosomeIntegrity(haplosome2, /* index */ 1, /* in_child */ true, chromosome, individual, is_female, "child haplosome2");
 				}
 				
 				haplosome_index += haplosome_count;
@@ -1153,6 +680,263 @@ void Subpopulation::CheckIndividualIntegrity(void) const
 #if SLIM_CLEAR_HAPLOSOMES()
 			haplosome->check_cleared_to_nullptr();
 #endif
+		}
+	}
+}
+
+void Subpopulation::CheckHaplosomeIntegrity(const Haplosome *haplosome, int index, bool in_child, const Chromosome *chromosome, const Individual *individual, bool is_female, const char *haplosome_name) const
+{
+	Mutation *mut_block_ptr = species_.SpeciesMutationBlock()->mutation_buffer_;
+	
+	if (!haplosome)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) null pointer for " << haplosome_name << "." << EidosTerminate();
+	if (haplosome->individual_ != individual)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) mismatch between " << haplosome_name << "->individual_ and individual." << EidosTerminate();
+	if (haplosome->AssociatedChromosome() != chromosome)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << "->AssociatedChromosome() mismatch." << EidosTerminate();
+	
+	if (!haplosome->IsNull())
+	{
+		slim_position_t mutrun_count = chromosome->mutrun_count_;
+		slim_position_t mutrun_length = chromosome->mutrun_length_;
+		
+		if ((haplosome->mutrun_count_ != mutrun_count) || (haplosome->mutrun_length_ != mutrun_length))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " of individual has the wrong mutrun count/length." << EidosTerminate();
+	}
+	
+	if (((haplosome->mutrun_count_ == 0) && ((haplosome->mutrun_length_ != 0) || (haplosome->mutruns_ != nullptr))) ||
+		((haplosome->mutrun_length_ == 0) && ((haplosome->mutrun_count_ != 0) || (haplosome->mutruns_ != nullptr))))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " mutrun count/length/pointer inconsistency." << EidosTerminate();
+	
+	// check that the null vs. non-null identity of the haplosome matches expectations
+	ChromosomeType chromosome_type = chromosome->Type();
+	bool null_problem = false;
+	
+	if (index == 0)
+	{
+		switch (chromosome_type)
+		{
+				// haplosome1 should be null for these types
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				if (!haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// haplosome1 should be non-null for these types
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+				if (haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// haplosome1 should be null in females, non-null in males
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			case ChromosomeType::kML_HaploidMaleLine:
+				if (is_female != haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// haplosome1 should be null in males, non-null in females
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+				if (is_female == haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+				// however, we do check that our null-haplosome tracking flags are correctly set
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kH_HaploidAutosome:
+				if (haplosome->IsNull())
+				{
+					if (!has_null_haplosomes_)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " is null but has_null_haplosomes_ is false." << EidosTerminate();
+					if (!chromosome->null_haplosome_observed_)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " is null but null_haplosome_observed_ is false." << EidosTerminate();
+				}
+				break;
+				
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+				break;
+		}
+	}
+	else // index == 1
+	{
+		switch (chromosome_type)
+		{
+				// haplosome2 should be null for these types
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+				if (!haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// haplosome2 should be non-null for these types
+			case ChromosomeType::kZ_ZSexChromosome:
+				if (haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// haplosome2 should be null in females, non-null in males
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				if (is_female != haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// haplosome2 should be null in males, non-null in females
+			case ChromosomeType::kX_XSexChromosome:
+				if (is_female == haplosome->IsNull())
+					null_problem = true;
+				break;
+				
+				// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+				// however, we do check that our null-haplosome tracking flags are correctly set
+			case ChromosomeType::kA_DiploidAutosome:
+				if (haplosome->IsNull())
+				{
+					if (!has_null_haplosomes_)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " is null but has_null_haplosomes_ is false." << EidosTerminate();
+					if (!chromosome->null_haplosome_observed_)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " is null but null_haplosome_observed_ is false." << EidosTerminate();
+				}
+				break;
+				
+				// haplosome2 should not exist at all for these types
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) chromosome type should never be used for haplosome2." << EidosTerminate();
+				break;
+		}
+	}
+	
+	if (null_problem)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " mismatch between expected and actual null haplosome status." << EidosTerminate();
+	
+	// check the contents of the haplosome, only if we are in the parent/child generation that matches
+	// the haplosome; otherwise the contents are not guaranteed to be valid, and should not be checked.
+	if (in_child != population_.child_generation_valid_)
+	{
+#if SLIM_CLEAR_HAPLOSOMES()
+		// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
+		// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
+		for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+			if (haplosome1->mutruns_[mutrun_index] != nullptr)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " has a nonnull mutrun pointer." << EidosTerminate();
+#endif
+	}
+	else
+	{
+		if (species_.PedigreesEnabled())
+		{
+			if (haplosome->haplosome_id_ != individual->pedigree_id_ * 2 + index)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " has an invalid haplosome pedigree ID." << EidosTerminate();
+		}
+		
+		int32_t mutrun_count = haplosome->mutrun_count_;
+		
+#if SLIM_CLEAR_HAPLOSOMES()
+		// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
+		// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
+		for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			if (haplosome1->mutruns_[mutrun_index] == nullptr)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) " << haplosome_name << " has a null mutrun pointer." << EidosTerminate();
+#endif
+		
+		// check that every mutrun is at the correct mutrun index (particularly salient for empty mutruns)
+		for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+		{
+			const MutationRun *mutrun = haplosome->mutruns_[mutrun_index];
+			
+			mutrun->use_count_CHECK_ = 1;
+			
+			if (mutrun->mutrun_index_CHECK_ != mutrun_index)
+			{
+				// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) a mutation run was used at the wrong position." << EidosTerminate();
+			}
+		}
+		
+		// check that every mutation in the haplosome belongs to the right chromosome
+		// BCH 10/25/2026: This test takes a *lot* of runtime, so I'm going to disable it most ticks;
+		// it seems unlikely to ever get hit, but might be useful for finding memory smashers...
+		if (community_.Tick() % 50 == 0)
+		{
+			slim_chromosome_index_t correct_chromosome_index = haplosome->chromosome_index_;
+			
+			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			{
+				const MutationRun *mutrun = haplosome->mutruns_[run_index];
+				const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
+				const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
+				
+				for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
+				{
+					Mutation *mut = (mut_block_ptr + *mutrun_iter);
+					
+					if (mut->chromosome_index_ != correct_chromosome_index)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in " << haplosome_name << " with chromosome_index_ " << (unsigned int)haplosome->chromosome_index_ << "." << EidosTerminate();
+				}
+			}
+		}
+		
+		// check that mutations are in sequential position order
+		// BCH 11/8/2026: As for the previous test, this takes a lot of runtime and is unlikely to be hit
+		if (community_.Tick() % 50 == 0)
+		{
+			if (species_.StackedMutationsPossible())
+			{
+				slim_position_t last_pos = -1;
+				
+				for (int mutrun_index = 0; mutrun_index < haplosome->mutrun_count_; ++mutrun_index)
+				{
+					const MutationRun *mutrun = haplosome->mutruns_[mutrun_index];
+					const MutationIndex *mutrun_ptr = mutrun->begin_pointer_const();
+					const MutationIndex *mutrun_end_ptr = mutrun->end_pointer_const();
+					
+					while (mutrun_ptr < mutrun_end_ptr)
+					{
+						Mutation *mut = mut_block_ptr + *(mutrun_ptr++);
+						slim_position_t pos = mut->position_;
+						
+						if (pos < 0)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) a mutation position is negative (" << pos << ")." << EidosTerminate();
+						if (pos < last_pos)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) a mutation position is not sorted by position (" << pos << " < " << last_pos << ")." << EidosTerminate();
+						
+						last_pos = pos;
+					}
+				}
+			}
+			else
+			{
+				slim_position_t last_pos = -1;
+				
+				for (int mutrun_index = 0; mutrun_index < haplosome->mutrun_count_; ++mutrun_index)
+				{
+					const MutationRun *mutrun = haplosome->mutruns_[mutrun_index];
+					const MutationIndex *mutrun_ptr = mutrun->begin_pointer_const();
+					const MutationIndex *mutrun_end_ptr = mutrun->end_pointer_const();
+					
+					while (mutrun_ptr < mutrun_end_ptr)
+					{
+						Mutation *mut = mut_block_ptr + *(mutrun_ptr++);
+						slim_position_t pos = mut->position_;
+						
+						if (pos < 0)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) a mutation position in " << haplosome_name << " is negative (" << pos << ")." << EidosTerminate();
+						if (pos <= last_pos)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckHaplosomeIntegrity): (internal error) a mutation position in " << haplosome_name << " is not sorted by position (" << pos << " <= " << last_pos << ", with stacking disabled)." << EidosTerminate();
+						
+						last_pos = pos;
+					}
+				}
+			}
 		}
 	}
 }
