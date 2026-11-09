@@ -1451,6 +1451,19 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		{
 			//std::cout << "proposed mutation not used, disposing..." << std::endl;
 			mutation->Release();
+			
+			// BCH 11/9/2026: If a different mutation was returned instead, and it is not presently in the
+			// registry, we need to consider it "added"; it might require changes to our optimization flags.
+			// This happens, for example, if an all-neutral simulation used to have a non-neutral mutation
+			// that got remembered, got lost/fixed, and then got reintroduced again later by a mutation()
+			// callback; see test 157 mutation reintroduction D.slim (and 158, too).  Note that at this
+			// stage we don't know for sure that the returned mutation will actually be added, due to stack
+			// policy, but we assume here that it will be added (at the risk of de-optimizing unnecessarily).
+			// The alternative would be to put the onus of calling NoteMutationAdded() onto every point in
+			// the code that could add a mutation that was returned by a mutation() callback; we don't want
+			// to add that complexity to all of those points for such a rare edge case.
+			if (post_callback_mut && (post_callback_mut->state_ != MutationState::kInRegistry))
+				species_.NoteMutationAdded(post_callback_mut);
 		}
 		
 		// If it returned nullptr, the mutation event was rejected
