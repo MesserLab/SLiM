@@ -167,7 +167,7 @@ MutationRun *Haplosome::WillModifyRunForBulkOperation(slim_operation_id_t p_oper
 #warning Haplosome::WillModifyRunForBulkOperation disabled...
 	// The trivial version of this function just calls WillModifyRun(),
 	// requesting that the caller perform the operation
-	return WillModifyRun(p_run_index);
+	return WillModifyRun(p_run_index, p_mutrun_context);
 #else
 	// The interesting version remembers the operation in progress, using the ID, and
 	// tracks original/final MutationRun pointers, returning nullptr if an original is matched.
@@ -2478,27 +2478,101 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	{
 		Haplosome *target_haplosome = targets[target_index];
 		
-		if (target_haplosome->scratch_ != 1)
+		if (target_haplosome->scratch_ == 0)
 			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the same haplosome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
 		
 		target_haplosome->scratch_ = 0;
 	}
 	
-	// Construct a vector of mutations to add that is sorted by position
-	std::vector<Mutation *> mutations_to_add;
+	// check whether the mutations passed are already sorted by position, which will often be the case
+	// (and nearly-sorted should be rare, so if they are not sorted this check will probably end quickly)
+	bool already_sorted = true;
 	
-	for (int value_index = 0; value_index < mutations_count; ++value_index)
 	{
-		Mutation *mut_to_add = mutations[value_index];
+		slim_position_t last_position_seen = -1;
 		
-		if ((mut_to_add->state_ == MutationState::kFixedAndSubstituted) ||
-			(mut_to_add->state_ == MutationState::kRemovedWithSubstitution))
-			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot add a mutation that has already been fixed/substituted." << EidosTerminate();
-		
-		mutations_to_add.emplace_back(mut_to_add);
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
+		{
+			Mutation *mut_to_add = mutations[value_index];
+			
+			if ((mut_to_add->state_ == MutationState::kFixedAndSubstituted) ||
+				(mut_to_add->state_ == MutationState::kRemovedWithSubstitution))
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot add a mutation that has already been fixed/substituted." << EidosTerminate();
+			
+			slim_position_t mut_position = mut_to_add->position_;
+			
+			if (mut_to_add->position_ >= last_position_seen)
+			{
+				last_position_seen = mut_position;
+				continue;
+			}
+			
+			already_sorted = false;
+			break;
+		}
 	}
 	
-	std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
+	// figure out the start/end pointers for our buffer of mutations
+	Mutation * const *mutations_to_add_BEGIN;
+	Mutation * const *mutations_to_add_END;
+	std::vector<Mutation *> mutations_to_add_VEC;	// should not be used directly in the code below!
+	
+	if (already_sorted)
+	{
+		mutations_to_add_BEGIN = mutations;
+		mutations_to_add_END = mutations_to_add_BEGIN + mutations_count;
+	}
+	else
+	{
+		// we need to sort the mutations by position, which we can't do in place because it would modify
+		// the EidosValue; so we make a new vector of Mutation * and sort it, and then pointers into it
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
+			mutations_to_add_VEC.emplace_back(mutations[value_index]);
+		
+		std::sort(mutations_to_add_VEC.begin(), mutations_to_add_VEC.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
+		
+		mutations_to_add_BEGIN = mutations_to_add_VEC.data();
+		mutations_to_add_END = mutations_to_add_BEGIN + mutations_count;
+	}
+	
+	// check whether the mutations being added are unique by position; this will allow optimizations
+	bool positions_unique = true;
+	
+	{
+		slim_position_t last_position_seen = -1;
+		
+		for (Mutation * const *mut_to_add_ITER = mutations_to_add_BEGIN; mut_to_add_ITER < mutations_to_add_END; ++mut_to_add_ITER)
+		{
+			slim_position_t mut_position = (*mut_to_add_ITER)->position_;
+			
+			if (mut_position > last_position_seen)
+			{
+				last_position_seen = mut_position;
+				continue;
+			}
+			
+			positions_unique = false;
+			break;
+		}
+	}
+	
+	// BCH 11/10/2026: If positions are not unique, check that the same mutation is not passed more than once,
+	// which is now illegal (policy change for SLiM 6).  (If positions are unique, this problem cannot exist.)
+	// It would be possible to remove duplicates instead of erroring; but this really seems like it shouldn't
+	// be allowed, and thus should be raised as an error to help the user find the problem in their logic.
+	if (!positions_unique)
+	{
+		for (Mutation * const *mut_to_add_ITER = mutations_to_add_BEGIN; mut_to_add_ITER < mutations_to_add_END; ++mut_to_add_ITER)
+			(*mut_to_add_ITER)->scratch_ = 1;
+		
+		for (Mutation * const *mut_to_add_ITER = mutations_to_add_BEGIN; mut_to_add_ITER < mutations_to_add_END; ++mut_to_add_ITER)
+		{
+			if ((*mut_to_add_ITER)->scratch_ == 0)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be passed the same mutation more than once (you must eliminate duplicates in the mutations vector)." << EidosTerminate();
+			
+			(*mut_to_add_ITER)->scratch_ = 0;
+		}
+	}
 	
 	// SPECIES CONSISTENCY CHECK
 	if (mutations_count > 0)
@@ -2511,7 +2585,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	
 	// TREE SEQUENCE RECORDING
 	// First, pre-plan the positions of new tree-seq derived states in anticipation of doing the addition.  We have to check
-	// whether the mutation being added is already present, to avoid recording a new derived state identical to the old one state.
+	// whether the mutation being added is already present, to avoid recording a new derived state identical to the old state.
 	// The algorithm used here, with HaplosomeWalker, depends upon the fact that we just sorted the mutations to add by position.
 	// However, we do still have to think about multiple muts being added at the same position, and existing stacked mutations.
 	bool recording_tree_sequence_mutations = species->RecordingTreeSequenceMutations();
@@ -2525,8 +2599,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 			HaplosomeWalker walker(target_haplosome);
 			slim_position_t last_added_pos = -1;
 			
-			for (const Mutation *mut : mutations_to_add)
+			for (Mutation * const *mut_to_add_ITER = mutations_to_add_BEGIN; mut_to_add_ITER < mutations_to_add_END; ++mut_to_add_ITER)
 			{
+				const Mutation *mut = *mut_to_add_ITER;
 				slim_position_t mut_pos = mut->position_;
 				
 				// We don't care about other mutations at an already recorded position; move on
@@ -2573,42 +2648,102 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	}
 	
 	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
-	slim_mutrun_index_t last_handled_mutrun_index = -1;
-	
-	for (int value_index = 0; value_index < mutations_count; ++value_index)
+	// We do some special-casing here for efficiency, since this method can be a bottleneck for initialization.
+	if (target_size == 1)
 	{
-		Mutation *next_mutation = mutations_to_add[value_index];
-		const slim_position_t pos = next_mutation->position_;
-		slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(pos / mutrun_length);
-		
-		if (mutrun_index <= last_handled_mutrun_index)
-			continue;
-		
-		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-		slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
-		
-		Haplosome::BulkOperationStart(operation_id, mutrun_index);
-		
-		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
-		
-		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+		// Modifying a single haplosome, so we don't need to do any bulk operation stuff
+		for (int mut_index = 0; mut_index < mutations_count; )
 		{
-			Haplosome *target_haplosome = targets[haplosome_index];
+			Mutation *mut_to_add = mutations_to_add_BEGIN[mut_index];
+			slim_position_t add_pos = mut_to_add->position_;
+			slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(add_pos / mutrun_length);
 			
-			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			MutationRun *target_run = target_haplosome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+			// We have not yet processed this mutation run
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
+			MutationRun *target_run = haplosome_0->WillModifyRun(mutrun_index, mutrun_context);
+			slim_position_t last_mutrun_position = (mutrun_index + 1) * mutrun_length - 1;
 			
-			if (target_run)
+			if (target_run->size() == 0)
 			{
-				for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
+				// the target mutrun is empty, so we don't need to worry about stacking with existing mutations,
+				// and we can add each new mutation to the end of the run since we're sorted by position
+				if (positions_unique)
 				{
-					Mutation *mut_to_add = mutations_to_add[mut_index];
-					const slim_position_t add_pos = mut_to_add->position_;
+					// we can further optimize because positions are unique; no new mutation will stack
+					do
+					{
+						target_run->emplace_back(mutation_block->IndexInBlock(mut_to_add));
+						
+						// BCH 7/19/2026: If the mutation was not already segregating, then it needs to be added
+						// to the registry.  This is now possible, since the user can retain lost mutations.
+						// Note that kFixedAndSubstituted and kRemovedWithSubstitution were checked for above.
+						if (mut_to_add->state_ == MutationState::kLostAndRemoved)
+						{
+							chromosome->MutationRegistryAdd(mut_to_add, /* p_autogenerated */ false);
+							pop.species_.NoteMutationAdded(mut_to_add);
+						}
+						
+						// Note that the nonneutral cache will already be invalidated (or will be new and invalid).
+						
+						// go to the next mutation
+						++mut_index;
+						if (mut_index == mutations_count)
+							break;
+						
+						mut_to_add = mutations_to_add_BEGIN[mut_index];
+						add_pos = mut_to_add->position_;
+						
+						// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+						if (add_pos > last_mutrun_position)
+							break;
+					}
+					while (true);
+				}
+				else
+				{
+					// positions are not unique, so new mutations could stack on top of other new mutations
+					// on the assumption that such stacking will be rare, we try to minimize the work for it
+					slim_position_t last_added_position = -1;
 					
-					// since we're in sorted order by position, as soon as we leave the current mutation run we're done
-					if (add_pos / mutrun_length != mutrun_index)
-						break;
-					
+					do
+					{
+						if ((add_pos > last_added_position) || target_run->enforce_stack_policy_for_addition(mutation_block, mut_to_add))
+						{
+							target_run->emplace_back(mutation_block->IndexInBlock(mut_to_add));
+							last_added_position = add_pos;
+							
+							// BCH 7/19/2026: If the mutation was not already segregating, then it needs to be added
+							// to the registry.  This is now possible, since the user can retain lost mutations.
+							// Note that kFixedAndSubstituted and kRemovedWithSubstitution were checked for above.
+							if (mut_to_add->state_ == MutationState::kLostAndRemoved)
+							{
+								chromosome->MutationRegistryAdd(mut_to_add, /* p_autogenerated */ false);
+								pop.species_.NoteMutationAdded(mut_to_add);
+							}
+							
+							// Note that the nonneutral cache will already be invalidated (or will be new and invalid).
+						}
+						
+						// go to the next mutation
+						++mut_index;
+						if (mut_index == mutations_count)
+							break;
+						
+						mut_to_add = mutations_to_add_BEGIN[mut_index];
+						add_pos = mut_to_add->position_;
+						
+						// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+						if (add_pos > last_mutrun_position)
+							break;
+					}
+					while (true);
+				}
+			}
+			else
+			{
+				// the target mutrun is not empty, so we have to worry about stacking, etc.
+				do
+				{
 					if (target_run->enforce_stack_policy_for_addition(mutation_block, mut_to_add))
 					{
 						target_run->insert_sorted_mutation_if_unique(mut_block_ptr, mutation_block->IndexInBlock(mut_to_add));
@@ -2624,17 +2759,161 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 						
 						// Note that the nonneutral cache will already be invalidated (or will be new and invalid).
 					}
+					
+					// go to the next mutation
+					++mut_index;
+					if (mut_index == mutations_count)
+						break;
+					
+					mut_to_add = mutations_to_add_BEGIN[mut_index];
+					add_pos = mut_to_add->position_;
+					
+					// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+					if (add_pos > last_mutrun_position)
+						break;
+				}
+				while (true);
+			}
+			
+			// invalidate cached mutation refcounts; refcounts have changed
+			pop.InvalidateMutationReferencesCache();
+		}
+	}
+	else
+	{
+		// Modifying multiple haplosomes, we use bulk operations to eliminate duplicate work
+		slim_mutrun_index_t last_handled_mutrun_index = -1;
+		
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
+		{
+			Mutation *next_mutation = mutations_to_add_BEGIN[value_index];
+			const slim_position_t pos = next_mutation->position_;
+			slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(pos / mutrun_length);
+			
+			if (mutrun_index <= last_handled_mutrun_index)
+				continue;
+			
+			// We have not yet processed this mutation run; do this mutation run index as a bulk operation
+			slim_operation_id_t operation_id = MutationRun::GetNextOperationID();
+			
+			Haplosome::BulkOperationStart(operation_id, mutrun_index);
+			
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
+			slim_position_t last_mutrun_position = (mutrun_index + 1) * mutrun_length - 1;
+			
+			for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+			{
+				Haplosome *target_haplosome = targets[haplosome_index];
+				
+				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
+				MutationRun *target_run = target_haplosome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+				
+				if (target_run)
+				{
+					if (target_run->size() == 0)
+					{
+						// the target mutrun is empty, so we don't need to worry about stacking with existing mutations,
+						// and we can add each new mutation to the end of the run since we're sorted by position
+						if (positions_unique)
+						{
+							// we can further optimize because positions are unique; no new mutation will stack
+							for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
+							{
+								Mutation *mut_to_add = mutations_to_add_BEGIN[mut_index];
+								const slim_position_t add_pos = mut_to_add->position_;
+								
+								// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+								if (add_pos > last_mutrun_position)
+									break;
+								
+								target_run->emplace_back(mutation_block->IndexInBlock(mut_to_add));
+								
+								// BCH 7/19/2026: If the mutation was not already segregating, then it needs to be added
+								// to the registry.  This is now possible, since the user can retain lost mutations.
+								// Note that kFixedAndSubstituted and kRemovedWithSubstitution were checked for above.
+								if (mut_to_add->state_ == MutationState::kLostAndRemoved)
+								{
+									chromosome->MutationRegistryAdd(mut_to_add, /* p_autogenerated */ false);
+									pop.species_.NoteMutationAdded(mut_to_add);
+								}
+								
+								// Note that the nonneutral cache will already be invalidated (or will be new and invalid).
+							}
+						}
+						else
+						{
+							// positions are not unique, so new mutations could stack on top of other new mutations
+							// on the assumption that such stacking will be rare, we try to minimize the work for it
+							slim_position_t last_added_position = -1;
+							
+							for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
+							{
+								Mutation *mut_to_add = mutations_to_add_BEGIN[mut_index];
+								const slim_position_t add_pos = mut_to_add->position_;
+								
+								// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+								if (add_pos > last_mutrun_position)
+									break;
+								
+								if ((add_pos > last_added_position) || target_run->enforce_stack_policy_for_addition(mutation_block, mut_to_add))
+								{
+									target_run->emplace_back(mutation_block->IndexInBlock(mut_to_add));
+									last_added_position = add_pos;
+									
+									// BCH 7/19/2026: If the mutation was not already segregating, then it needs to be added
+									// to the registry.  This is now possible, since the user can retain lost mutations.
+									// Note that kFixedAndSubstituted and kRemovedWithSubstitution were checked for above.
+									if (mut_to_add->state_ == MutationState::kLostAndRemoved)
+									{
+										chromosome->MutationRegistryAdd(mut_to_add, /* p_autogenerated */ false);
+										pop.species_.NoteMutationAdded(mut_to_add);
+									}
+									
+									// Note that the nonneutral cache will already be invalidated (or will be new and invalid).
+								}
+							}
+						}
+					}
+					else
+					{
+						// the target mutrun is not empty, so we have to worry about stacking, etc.
+						for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
+						{
+							Mutation *mut_to_add = mutations_to_add_BEGIN[mut_index];
+							const slim_position_t add_pos = mut_to_add->position_;
+							
+							// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+							if (add_pos > last_mutrun_position)
+								break;
+							
+							if (target_run->enforce_stack_policy_for_addition(mutation_block, mut_to_add))
+							{
+								target_run->insert_sorted_mutation_if_unique(mut_block_ptr, mutation_block->IndexInBlock(mut_to_add));
+								
+								// BCH 7/19/2026: If the mutation was not already segregating, then it needs to be added
+								// to the registry.  This is now possible, since the user can retain lost mutations.
+								// Note that kFixedAndSubstituted and kRemovedWithSubstitution were checked for above.
+								if (mut_to_add->state_ == MutationState::kLostAndRemoved)
+								{
+									chromosome->MutationRegistryAdd(mut_to_add, /* p_autogenerated */ false);
+									pop.species_.NoteMutationAdded(mut_to_add);
+								}
+								
+								// Note that the nonneutral cache will already be invalidated (or will be new and invalid).
+							}
+						}
+					}
 				}
 			}
+			
+			Haplosome::BulkOperationEnd(operation_id, mutrun_index);
+			
+			// now we have handled all mutations at this index (and all previous indices)
+			last_handled_mutrun_index = mutrun_index;
+			
+			// invalidate cached mutation refcounts; refcounts have changed
+			pop.InvalidateMutationReferencesCache();
 		}
-		
-		Haplosome::BulkOperationEnd(operation_id, mutrun_index);
-		
-		// now we have handled all mutations at this index (and all previous indices)
-		last_handled_mutrun_index = mutrun_index;
-		
-		// invalidate cached mutation refcounts; refcounts have changed
-		pop.InvalidateMutationReferencesCache();
 	}
 	
 	// TREE SEQUENCE RECORDING

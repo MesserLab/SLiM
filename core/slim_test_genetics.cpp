@@ -789,7 +789,7 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; gen.addMutations(object()); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { gen = p1.haplosomes[0]; gen.addMutations(gen.mutations[0]); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { gen = p1.haplosomes[0]; gen.addMutations(p1.haplosomes[1].mutations[0]); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { gen = p1.haplosomes[0]; mut = p1.haplosomes[1].mutations[0]; gen.addMutations(rep(mut, 10)); if (sum(gen.mutations == mut) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { gen = p1.haplosomes[0]; mut = p1.haplosomes[1].mutations[0]; gen.addMutations(rep(mut, 10)); }", "same mutation", __LINE__);
 	
 	// Test Haplosome + (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Nio<Subpopulation> originSubpop])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(m1, 5000, p1); p1.haplosomes.addMutations(mut); stop(); }", __LINE__);
