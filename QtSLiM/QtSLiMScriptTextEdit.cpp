@@ -2346,9 +2346,10 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                             (*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_parent,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
                             (*typeTable)->SetTypeForSymbol(gID_element,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_GenomicElement_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_haplosome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_haplosome,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_originalMuts,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             break;
                         case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});

@@ -200,6 +200,7 @@ public:
 	bool contains_receiver_ = false;			// "receiver" (interaction callback parameter)
 	bool contains_exerter_ = false;				// "exerter" (interaction callback parameter)
 	bool contains_originalNuc_ = false;			// "originalNuc" (mutation callback parameter)
+	bool contains_originalMuts_ = false;		// "originalMuts" (mutation callback parameter)
 	bool contains_surviving_ = false;			// "surviving" (survival callback parameter)
 	bool contains_fitness_ = false;				// "fitness" (survival callback parameter)
 	bool contains_draw_ = false;				// "draw" (survival callback parameter)

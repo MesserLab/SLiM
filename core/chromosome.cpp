@@ -1120,6 +1120,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				EidosValue_Object local_mut(p_mut, gSLiM_Mutation_Class);
 				EidosValue_Int local_originalNuc(p_original_nucleotide);
+				EidosValue_Object local_originalMuts(gSLiM_Mutation_Class);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -1157,6 +1158,48 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 					{
 						local_originalNuc.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
 						callback_symbols.InitializeConstantSymbolEntry(gID_originalNuc, EidosValue_SP(&local_originalNuc));
+					}
+					if (mutation_callback->contains_originalMuts_)
+					{
+						// BCH 11/11/2026: The originalMuts pseudo-parameter is a complicated one, but models
+						// that implement their own complex "stacking" behavior, like biallelic models, often
+						// need this information and we can get it faster than they can in Eidos.  We use a
+						// HaplosomeWalker to find mutations at the focal position, and provide them to the
+						// user if they are within the same stacking group.  Note that the same search might
+						// have been done by DrawNewMutationExtended() before calling us; and if multiple
+						// mutation() callbacks are defined for the same mutation type, we might end up doing
+						// it more than once within this call, too.  Those scenarios seem unlikely, though,
+						// and it would be complex to try to cache this information outside and pass it in.
+						
+						slim_position_t position = p_mut->position_;
+						int64_t stack_group = p_mut->mutation_type_ptr_->stack_group_;
+						HaplosomeWalker walker(p_haplosome);
+						
+						walker.MoveToPosition(position);
+						
+						while (!walker.Finished())
+						{
+							Mutation *walker_mut = walker.CurrentMutation();
+							slim_position_t walker_pos = walker_mut->position_;
+							
+							// pos >= position is guaranteed by MoveToPosition()
+							if (walker_pos == position)
+							{
+								if (walker_mut->mutation_type_ptr_->stack_group_ == stack_group)
+								{
+									local_originalMuts.push_object_element_RR(walker_mut);
+								}
+								
+								walker.NextMutation();
+							}
+							else
+							{
+								break;
+							}
+						}
+						
+						local_originalMuts.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_originalMuts, EidosValue_SP(&local_originalMuts));
 					}
 					
 					try

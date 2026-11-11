@@ -1452,6 +1452,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_receiver) == 0)			contains_receiver_ = true;
 		if (token_string.compare(gStr_exerter) == 0)			contains_exerter_ = true;
 		if (token_string.compare(gStr_originalNuc) == 0)		contains_originalNuc_ = true;
+		if (token_string.compare(gStr_originalMuts) == 0)		contains_originalMuts_ = true;
 		if (token_string.compare(gStr_surviving) == 0)			contains_surviving_ = true;
 		if (token_string.compare(gStr_fitness) == 0)			contains_fitness_ = true;
 		if (token_string.compare(gStr_draw) == 0)				contains_draw_ = true;
@@ -1491,6 +1492,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 		contains_receiver_ = true;
 		contains_exerter_ = true;
 		contains_originalNuc_ = true;
+		contains_originalMuts_ = true;
 		contains_surviving_ = true;
 		contains_fitness_ = true;
 		contains_draw_ = true;

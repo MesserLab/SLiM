@@ -1548,6 +1548,7 @@ const std::string &gStr_breakpoints = EidosRegisteredString("breakpoints", gID_b
 const std::string &gStr_receiver = EidosRegisteredString("receiver", gID_receiver);
 const std::string &gStr_exerter = EidosRegisteredString("exerter", gID_exerter);
 const std::string &gStr_originalNuc = EidosRegisteredString("originalNuc", gID_originalNuc);
+const std::string &gStr_originalMuts = EidosRegisteredString("originalMuts", gID_originalMuts);
 const std::string &gStr_fitness = EidosRegisteredString("fitness", gID_fitness);
 const std::string &gStr_surviving = EidosRegisteredString("surviving", gID_surviving);
 const std::string &gStr_draw = EidosRegisteredString("draw", gID_draw);

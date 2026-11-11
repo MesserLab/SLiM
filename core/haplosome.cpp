@@ -5159,7 +5159,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 HaplosomeWalker::HaplosomeWalker(Haplosome *p_haplosome) : haplosome_(p_haplosome), mutrun_index_(-1), mutrun_ptr_(nullptr), mutrun_end_(nullptr), mutation_(nullptr), mut_block_ptr_(haplosome_->individual_->subpopulation_->species_.SpeciesMutationBlock()->mutation_buffer_)
 {
 	NextMutation();
-};
+}
 
 void HaplosomeWalker::NextMutation(void)
 {
@@ -5205,7 +5205,7 @@ void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 		if (mutrun_index_ >= haplosome->mutrun_count_)
 		{
 			mutation_ = nullptr;
-			return;
+			goto debug_check;
 		}
 		
 		// get the information on the mutrun
@@ -5224,14 +5224,87 @@ void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 	mutation_ = mut_block_ptr_ + *mutrun_ptr_;
 	
 	if (mutation_->position_ >= p_position)
-		return;
+		goto debug_check;
 	
 	// otherwise, we are in the correct mutrun for the position, but the requested position
-	// still lies ahead of us, so we have to advance until we reach or pass the position
-	// FIXME should do a binary search inside the mutation run instead
-	do
-		NextMutation();
-	while (!Finished() && (Position() < p_position));
+	// still lies ahead of us; we do a binary search to find the first position >= p_position.
+	{
+		const MutationRun *mutrun = haplosome->mutruns_[mutrun_index_];
+		const MutationIndex *lower_bound = std::lower_bound(mutrun->begin_pointer_const() + 1, mutrun->end_pointer_const(), p_position,
+															[this](const MutationIndex mut_index_1, const MutationIndex mut_index_2) {
+			Mutation *mut1 = mut_block_ptr_ + mut_index_1;
+			Mutation *mut2 = mut_block_ptr_ + mut_index_2;
+			return mut1->position_ < mut2->position_;
+		});
+		
+		// if we failed to find a satisfactory position in this mutation run, then all of the mutations in
+		// this mutrun are before the requested position; go to the end, and then do NextMutation().  Either
+		// that moves us to the end of the haplosome and we're finished, or it moves us to the first mutation
+		// after this mutrun, which by definition is after the requested position.
+		if (lower_bound == mutrun->end_pointer_const())
+		{
+			mutrun_ptr_ = mutrun_end_;
+			NextMutation();
+		}
+		else
+		{
+			// otherwise, we found the requested position, which is valid, and we just need to move to it
+			mutrun_ptr_ = lower_bound;
+			mutation_ = mut_block_ptr_ + *mutrun_ptr_;
+		}
+	}
+	
+debug_check:
+	;
+	
+#if DEBUG
+	// If we ran off the end of the haplosome before finding a mutation at/after the requested position,
+	// check that the last mutation in the haplosome is, in fact, before the requested position.
+	if (!mutation_)
+	{
+		for (int run_index = haplosome->mutrun_count_ - 1; run_index >= 0; --run_index)
+		{
+			const MutationRun *mutrun = haplosome->mutruns_[run_index];
+			const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
+			const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
+			
+			if (mut_start_ptr < mut_end_ptr)
+			{
+				MutationIndex last_mut_index = *(mut_end_ptr - 1);
+				Mutation *last_mutation = mut_block_ptr_ + last_mut_index;
+				slim_position_t last_mut_position = last_mutation->position_;
+				
+				if (last_mut_position >= p_position)
+					EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MoveToPosition): (internal error) ran off the end incorrectly." << EidosTerminate();
+				
+				break;
+			}
+		}
+	}
+	
+	// We want to test that (1) mutation_ points to the same mutation that mut_block_ptr_ references,
+	// (2) that mutation is at the requested position or after, and (3) the previous mutation is either
+	// on a previous mutation run or doesn't exist, OR it is at a position before the requested position.
+	
+	Mutation *final_mut = mut_block_ptr_ + *mutrun_ptr_;
+	
+	if (final_mut != mutation_)
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MoveToPosition): (internal error) mutation_ points to the wrong mutation." << EidosTerminate();
+	
+	if (mutation_->position_ < p_position)
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MoveToPosition): (internal error) mutation_ position is before the requested position." << EidosTerminate();
+	
+	const MutationRun *current_mutrun_start = haplosome->mutruns_[mutrun_index_];
+	
+	if (mutrun_ptr_ > current_mutrun_start->begin_pointer_const())
+	{
+		MutationIndex previous_mut_index = *(mutrun_ptr_ - 1);
+		Mutation *previous_mut = mut_block_ptr_ + previous_mut_index;
+		
+		if (previous_mut->position_ >= p_position)
+			EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MoveToPosition): (internal error) previous mutation is at or after the requested position." << EidosTerminate();
+	}
+#endif
 }
 
 bool HaplosomeWalker::MutationIsStackedAtCurrentPosition(const Mutation *p_search_mut)

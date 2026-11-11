@@ -1241,6 +1241,7 @@ extern const std::string &gStr_breakpoints;
 extern const std::string &gStr_receiver;
 extern const std::string &gStr_exerter;
 extern const std::string &gStr_originalNuc;
+extern const std::string &gStr_originalMuts;
 extern const std::string &gStr_fitness;
 extern const std::string &gStr_surviving;
 extern const std::string &gStr_draw;
@@ -1770,6 +1771,7 @@ enum _SLiMGlobalStringID : int {
 	gID_receiver,
 	gID_exerter,
 	gID_originalNuc,
+	gID_originalMuts,
 	gID_fitness,
 	gID_surviving,
 	gID_draw,

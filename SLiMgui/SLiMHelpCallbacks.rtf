@@ -1408,7 +1408,7 @@ When a
 \f3\fs18 mutation()
 \f2\fs22  callback; the 
 \f3\fs18 mutation()
-\f2\fs22  callback can affect only the mutation itself, not the haplosome to which the mutation will be added.\
+\f2\fs22  callback can affect only the mutation process, not the haplosome to which the mutation will be added.\
 In addition to the standard SLiM globals, then, a 
 \f3\fs18 mutation()
 \f2\fs22  callback is supplied with additional information passed through global variables:\
@@ -1441,8 +1441,15 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 /
 \f3\fs18 T
 \f2\fs22 ) originally at the mutating position\
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 parent
+\f3\fs18 \cf2 originalMuts
+\f2\fs22 	The existing mutation(s) in 
+\f3\fs18 haplosome
+\f2\fs22 , in the same stacking group\
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
+
+\f3\fs18 \cf2 parent
 \f2\fs22 	The parent which is generating the offspring haplosome
 \f3\fs18 \
 \pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
@@ -1472,7 +1479,8 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 ) with the mutation returned; the offspring haplosomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
-The callback may perform a variety of actions related to the generated mutation.  The effect size (e.g., selection coefficient) of the mutation can be changed with 
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 The callback may perform a variety of actions related to the generated mutation.  The effect size (e.g., selection coefficient) of the mutation can be changed with 
 \f3\fs18 setEffectSizeForTrait()
 \f2\fs22 , and the mutation type of the mutation can be changed with 
 \f3\fs18 setMutationType()
@@ -1492,8 +1500,11 @@ The callback may perform a variety of actions related to the generated mutation.
 \f3\fs18 originalNuc
 \f2\fs22  (it could be retrieved with 
 \f3\fs18 haplosome.nucleotides()
-\f2\fs22 , but SLiM already has it at hand anyway).  All of these modifications to the new mutation may be based upon the state of the parent, including its genetic state, or upon any other model state.\
-It is possible, of course, to do actions unrelated to mutation inside 
+\f2\fs22 , but SLiM already has it at hand anyway).  Such modifications of the mutational process might depend upon the existing mutations at the mutating position in the parental haplosome (for example, to make the effect size of the new mutation depend upon the effect size of any existing mutation); beginning in SLiM 6, those existing mutations \'96 within the stacking group of the focal mutation, which is typically the relevant context \'96 are provided through 
+\f3\fs18 originalMuts
+\f2\fs22 .  All of these modifications to the new mutation may be based upon the state of the parent, including its genetic state, or upon any other model state.\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 It is possible, of course, to do actions unrelated to mutation inside 
 \f3\fs18 mutation()
 \f2\fs22  callbacks, but it is not recommended; 
 \f3\fs18 first()
