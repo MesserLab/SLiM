@@ -3441,6 +3441,7 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_setHotspotMap:					return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationRate:				return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setRecombinationRate:			return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_interpreter);
+		case gID_createMutation:				return ExecuteMethod_createMutation(p_method_id, p_arguments, p_interpreter);
 		case gID_drawBreakpoints:				return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
@@ -3487,6 +3488,201 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 		return sequence->NucleotidesAsStringVector(start, end);
 	
 	EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
+}
+
+//	*********************	– (object<Mutation>)createMutation(io<MutationType> mutationType, integer position, [io<Subpopulation> originSubpop = 0], [Nis nucleotide = NULL])
+//
+EidosValue_SP Chromosome::ExecuteMethod_createMutation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// Unlike most Chromosome methods, createMutation() can be called at initialize() time.  The work this
+	// method does doesn't depend upon the chromosome being fully initialized; we just need the chromosome
+	// object to be exist, with an assigned index, so that we can associate the new mutations with it.  The
+	// mutation type referenced has to exist; that is up to the user to ensure.  If the user wants to pass
+	// in a subpopulation object it has to exist; but they can pass an integer instead, which is allowed.
+	// HOWEVER, this method cannot be called when the last position of the chromosome is undetermined.
+	if (!extent_immutable_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() cannot be called on a chromosome whose last position has not yet been determined; an explicit length must be given to initializeChromosome(), or this call must be postponed until after initialize() callbacks have finished and the chromosome length has been set." << EidosTerminate();
+	
+	EidosValue *mutationType_value = p_arguments[0].get();
+	EidosValue *position_value = p_arguments[1].get();
+	EidosValue *originSubpop_value = p_arguments[2].get();
+	EidosValue *nucleotide_value = p_arguments[3].get();
+	
+	int muttype_count = mutationType_value->Count();
+	int position_count = position_value->Count();
+	int origin_subpop_count = originSubpop_value->Count();
+	int nucleotide_count = nucleotide_value->Count();
+	
+	bool nucleotide_based = species_.IsNucleotideBased();
+	bool nucleotides_supplied = (nucleotide_value->Type() != EidosValueType::kValueNULL);
+	
+	if (nucleotides_supplied && !nucleotide_based)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): nucleotide is non-NULL, but the species is not nucleotide-based." << EidosTerminate();
+	
+	// check mutation types for validity and get a singleton mutation type
+	MutationType *singleton_mutType = nullptr;
+	
+	for (int muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
+	{
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, muttype_index, &community_, &species_, "createMutation()");		// SPECIES CONSISTENCY CHECK
+		
+		if (nucleotides_supplied && !mutation_type_ptr->nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): nucleotide is non-NULL, but a supplied mutation type is not nucleotide-based." << EidosTerminate();
+		else if (!nucleotides_supplied && mutation_type_ptr->nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): nucleotide is NULL, but a supplied mutation type is nucleotide-based." << EidosTerminate();
+		
+		if (muttype_count == 1)
+			singleton_mutType = mutation_type_ptr;
+	}
+	
+	// check positions for validity and get a singleton position
+	slim_position_t singleton_position = -1;
+	
+	for (int position_index = 0; position_index < position_count; ++position_index)
+	{
+		slim_position_t position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(position_index, nullptr));
+		
+		if (position > last_position_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): position " << position << " is past the end of the chromosome." << EidosTerminate();
+		
+		if (position_count == 1)
+			singleton_position = position;
+	}
+	
+	// check origin subpops for validity and get a singleton origin subpop
+	slim_objectid_t singleton_originSubpop = 0;
+	
+	for (int origin_subpop_index = 0; origin_subpop_index < origin_subpop_count; ++origin_subpop_index)
+	{
+		if (originSubpop_value->Type() == EidosValueType::kValueInt)
+		{
+			if (origin_subpop_count == 0)
+				singleton_originSubpop = SLiMCastToObjectidTypeOrRaise(originSubpop_value->IntAtIndex_NOCAST(origin_subpop_index, nullptr));
+		}
+		else
+		{
+			Subpopulation *origin_subpop = ((Subpopulation *)(originSubpop_value->ObjectElementAtIndex_NOCAST(origin_subpop_index, nullptr)));
+			
+			// SPECIES CONSISTENCY CHECK
+			if (&origin_subpop->species_ != &species_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires that Subpopulation objects supplied for originSubpop must belong to the same species as the target chromosome." << EidosTerminate();
+			
+			if (origin_subpop_count == 0)
+				singleton_originSubpop = origin_subpop->subpopulation_id_;
+		}
+	}
+	
+	// check nucleotides for validity and get a singleton nucleotide
+	int64_t singleton_nucleotide = -1;
+	uint8_t *nucleotide_lookup = NucleotideArray::NucleotideCharToIntLookup();
+	
+	if (nucleotide_value->Type() == EidosValueType::kValueNULL)
+	{
+		// use -1 as the value for all nucleotides
+		nucleotide_count = 1;
+	}
+	else if (nucleotide_value->Type() == EidosValueType::kValueInt)
+	{
+		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		{
+			int64_t nuc_int = nucleotide_value->IntAtIndex_NOCAST(nucleotide_index, nullptr);
+			
+			if ((nuc_int < 0) || (nuc_int > 3))
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+			
+			if (nucleotide_count == 1)
+				singleton_nucleotide = nuc_int;
+		}
+	}
+	else if (nucleotide_value->Type() == EidosValueType::kValueString)
+	{
+		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		{
+			uint8_t nuc = nucleotide_lookup[(unsigned char)(nucleotide_value->StringAtIndex_NOCAST(nucleotide_index, nullptr)[0])];
+			
+			if (nuc > 3)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			
+			if (nucleotide_count == 1)
+				singleton_nucleotide = nuc;
+		}
+	}
+	
+	// now that we've validated all parameters, figure out how many mutations we're making
+	int count_to_add = std::max({muttype_count, position_count, origin_subpop_count, nucleotide_count});
+	
+	if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
+		((position_count != 1) && (position_count != count_to_add)) ||
+		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
+		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires that mutationType, position, originSubpop, and nucleotide specify data describing (1) one mutation (to be used for all mutations created), or (2) the same number of mutations as the other argument(s) that describe more than one mutation, or (3) NULL, for nucleotide.  In other words, all arguments must be consistent in supplying data for the same number of mutations to be created, except that it is also legal to specify data for just one mutation (to be used for all mutations created), or to supply NULL to get a default value for all mutations created (for nucleotide)." << EidosTerminate();
+	
+	EidosValue_Object_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+	
+	if (count_to_add == 0)
+		return retval;
+	
+	retval->reserve(count_to_add);
+	
+	// construct all of the mutations
+	MutationBlock *mutation_block = species_.SpeciesMutationBlock();
+	MutationType *mutation_type_ptr = singleton_mutType;
+	slim_position_t position = singleton_position;
+	slim_objectid_t origin_subpop_id = singleton_originSubpop;
+	int64_t nucleotide = singleton_nucleotide;
+	slim_tick_t origin_tick = ((community_.Tick() > 0) ? community_.Tick() : -1);
+	
+	for (int mut_parameter_index = 0; mut_parameter_index < count_to_add; ++mut_parameter_index)
+	{
+		// get non-singleton parameter values; validity was already checked above
+		if (position_count != 1)
+			position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(mut_parameter_index, nullptr));
+		
+		if (muttype_count != 1)
+			mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, mut_parameter_index, &community_, &species_, "createMutation()");		// SPECIES CONSISTENCY CHECK
+		
+		if (origin_subpop_count != 1)
+		{
+			if (originSubpop_value->Type() == EidosValueType::kValueInt)
+				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(originSubpop_value->IntAtIndex_NOCAST(mut_parameter_index, nullptr));
+			else
+				origin_subpop_id = ((Subpopulation *)(originSubpop_value->ObjectElementAtIndex_NOCAST(mut_parameter_index, nullptr)))->subpopulation_id_;
+		}
+		
+		if (nucleotide_count != 1)
+		{
+			if (nucleotide_value->Type() == EidosValueType::kValueInt)
+				nucleotide = nucleotide_value->IntAtIndex_NOCAST(mut_parameter_index, nullptr);
+			else
+				nucleotide = nucleotide_lookup[(unsigned char)(nucleotide_value->StringAtIndex_NOCAST(mut_parameter_index, nullptr)[0])];
+		}
+		
+		// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
+		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
+		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, index_, position, origin_subpop_id, origin_tick, (int8_t)nucleotide);
+		
+		// The constructor used above is normally used for autogenerated mutations, and calls NoteAutogeneratedMutation().
+		// However, this mutation is not autogenerated, and -- the key point -- might belong to a mutation type that is
+		// not in use by autogenerated mutations, and has thus not been taken into account in the optimization flags for
+		// the simulation.  We nevertheless do NOT call NoteMutationAdded() to notify the simulation about this here;
+		// that method will be called if the mutation is ever actually added, in addMutations() or a mutation() callback.
+		// There would actually be no point in called NoteMutationAdded() at this stage, because the optimization flags
+		// might get re-evaluated before this mutation ever gets added.
+		//species_.NoteMutationAdded(new_mut);
+		
+		retval->push_object_element_no_check_already_retained(new_mut);   // the EidosValue takes over the retain here
+		
+		// The new mutation gets constructed in state kNewMutation, with a retain on it from its creation; normally
+		// that retain gets taken over by the registry.  But here we are not adding the new mutation to the registry,
+		// so we mark it as kLostAndRemoved and give its new-mutation retain to the EidosValue, above.  That gives
+		// it a state that MutationRegistryAdd() will understand when it is eventually added downstream, while also
+		// allowing it to be freed if it does not stay retained by an EidosValue.
+		new_mut->state_ = MutationState::kLostAndRemoved;
+	}
+	
+	return retval;
 }
 
 //	*********************	– (integer)drawBreakpoints([No<Individual>$ parent = NULL], [Ni$ n = NULL])
@@ -4177,6 +4373,7 @@ const std::vector<EidosMethodSignature_CSP> *Chromosome_Class::Methods(void) con
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddIntObject_O("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValue_Integer0)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_genomicElementForPosition, kEidosValueMaskObject, gSLiM_GenomicElement_Class))->AddInt("positions"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hasGenomicElementForPosition, kEidosValueMaskLogical))->AddInt("positions"));

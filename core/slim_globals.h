@@ -1025,6 +1025,7 @@ extern const std::string &gStr_setGeneConversion;
 extern const std::string &gStr_setHotspotMap;
 extern const std::string &gStr_setMutationRate;
 extern const std::string &gStr_setRecombinationRate;
+extern const std::string &gStr_createMutation;
 extern const std::string &gStr_drawBreakpoints;
 extern const std::string &gStr_addMutations;
 extern const std::string &gStr_addNewDrawnMutation;
@@ -1553,6 +1554,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setHotspotMap,
 	gID_setMutationRate,
 	gID_setRecombinationRate,
+	gID_createMutation,
 	gID_drawBreakpoints,
 	gID_addMutations,
 	gID_addNewDrawnMutation,

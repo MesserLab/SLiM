@@ -263,6 +263,8 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 		this involved adding a new property to Trait, allIndependentDominance => (logical$), so this is user-visible
 	optimize bulk addition of mutations to empty haplosomes with addMutations(), to make initial simulation setup faster
 		policy change linked to this: it is now illegal to pass the same mutation more than once in a call to addMutations(); seems indicative of a bug in the user's logic
+	add better support for biallelic/triallelic models, mutation uniquing, back-mutations, etc.:
+		add a new Chromosome method (o<Mutation>)createMutation(io<MutationType> mutationType, integer position, [io<Subpopulation> originSubpop = 0], [Nis nucleotide = NULL]) to make it easy to create canonical mutations
 
 
 version 5.2 (Eidos version 4.2):

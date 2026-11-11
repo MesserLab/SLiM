@@ -1331,6 +1331,7 @@ const std::string &gStr_setGeneConversion = EidosRegisteredString("setGeneConver
 const std::string &gStr_setHotspotMap = EidosRegisteredString("setHotspotMap", gID_setHotspotMap);
 const std::string &gStr_setMutationRate = EidosRegisteredString("setMutationRate", gID_setMutationRate);
 const std::string &gStr_setRecombinationRate = EidosRegisteredString("setRecombinationRate", gID_setRecombinationRate);
+const std::string &gStr_createMutation = EidosRegisteredString("createMutation", gID_createMutation);
 const std::string &gStr_drawBreakpoints = EidosRegisteredString("drawBreakpoints", gID_drawBreakpoints);
 const std::string &gStr_addMutations = EidosRegisteredString("addMutations", gID_addMutations);
 const std::string &gStr_addNewDrawnMutation = EidosRegisteredString("addNewDrawnMutation", gID_addNewDrawnMutation);

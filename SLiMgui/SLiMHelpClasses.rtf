@@ -617,7 +617,118 @@ For purposes related to interpreting the nucleotide sequence as a coding sequenc
 \f4\fs20  to translate them into the corresponding amino acid sequence if desired.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<Mutation>)createMutation(io<MutationType>\'a0mutationType, integer\'a0position, [io<Subpopulation>\'a0originSubpop\'a0=\'a00], [Nis\'a0nucleotide\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates and returns a mutation (or multiple mutations; see discussion below) associated with the target chromosome.  The new mutation is not yet referenced by the simulation; it may be remembered with 
+\f3\fs18 defineConstant()
+\f4\fs20  or 
+\f3\fs18 defineGlobal()
+\f4\fs20  and kept for later use.  When desired, it can then be added to haplosomes with 
+\f3\fs18 addMutations()
+\f4\fs20 , or can be returned from a 
+\f3\fs18 mutation()
+\f4\fs20  callback.  This method is particularly useful for creating \'93canonical mutations\'94 that represent the unique mutations allowed at specific positions in a chromosome.\
+The 
+\f3\fs18 mutationType
+\f4\fs20  parameter specifies the mutation type to be used for the new mutation.  It may be a 
+\f3\fs18 MutationType
+\f4\fs20  object or an 
+\f3\fs18 integer
+\f4\fs20  mutation type identifier.  For the new mutation, effect sizes for all traits will be drawn from its mutation type\'92s corresponding distribution of effect size, and dominance values for all traits will be taken from its mutation type\'92s corresponding default dominance and default hemizygous dominance; the mutation\'92s configuration can, of course, be changed after it has been created.\
+The 
+\f3\fs18 position
+\f4\fs20  parameter specifies the position along the target chromosome where the new mutation will reside, from 
+\f3\fs18 0
+\f4\fs20  to the chromosome\'92s last position.  The mutation must be used at the specified position; it is not legal to add a mutation to a position other than the position at which it was created.\
+The 
+\f3\fs18 originSubpop
+\f4\fs20  parameter specifies the value for the 
+\f3\fs18 subpopID
+\f4\fs20  property of the new mutation.  It may be a 
+\f3\fs18 Subpopulation
+\f4\fs20  object or an 
+\f3\fs18 integer
+\f4\fs20  subpopulation identifier.  If 
+\f3\fs18 originSubpop
+\f4\fs20  is supplied as an integer, it is intentionally not checked for validity (but must be 
+\f3\fs18 >= 0
+\f4\fs20 ); you may use arbitrary values of 
+\f3\fs18 originSubpop
+\f4\fs20  to \'93tag\'94 the mutations that you create.\
+Finally, the 
+\f3\fs18 nucleotide
+\f4\fs20  parameter specifies the nucleotide for the new mutation.  In non-nucleotide-based species, 
+\f3\fs18 mutationType
+\f4\fs20  will always be a non-nucleotide-based mutation type, and so 
+\f3\fs18 nucleotide
+\f4\fs20  must be 
+\f3\fs18 NULL
+\f4\fs20  (the default).  In a nucleotide-based species, 
+\f3\fs18 mutationType
+\f4\fs20  might still be non-nucleotide-based (in which case 
+\f3\fs18 nucleotide
+\f4\fs20  must still be 
+\f3\fs18 NULL
+\f4\fs20 ), or 
+\f3\fs18 mutationType
+\f4\fs20  might be nucleotide-based, in which case a non-
+\f3\fs18 NULL
+\f4\fs20  value must be supplied for 
+\f3\fs18 nucleotide
+\f4\fs20 , specifying the nucleotide to be associated with the new mutation.  The nucleotide may be specified with a 
+\f3\fs18 string
+\f4\fs20  value (
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "C"
+\f4\fs20 , 
+\f3\fs18 "G"
+\f4\fs20 , or 
+\f3\fs18 "T"
+\f4\fs20 ), or with an 
+\f3\fs18 integer
+\f4\fs20  value (
+\f3\fs18 A=0
+\f4\fs20 , 
+\f3\fs18 C=1
+\f4\fs20 , 
+\f3\fs18 G=2
+\f4\fs20 , 
+\f3\fs18 T=3
+\f4\fs20 ).\
+This method is vectorized, so all of its parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.  The order of the mutations in the returned vector is guaranteed to be the same as the order in which values were specified in the parameter vectors; they will not be sorted by position unless the values of the 
+\f3\fs18 position
+\f4\fs20  parameter were sorted.\
+Note that the 
+\f3\fs18 originTick
+\f4\fs20  property of the new mutation will be set to the tick when 
+\f3\fs18 createMutation()
+\f4\fs20  was called; if it was called in an 
+\f3\fs18 initialize()
+\f4\fs20  callback, 
+\f3\fs18 originTick
+\f4\fs20  will be set to 
+\f3\fs18 -1
+\f4\fs20 .  The 
+\f3\fs18 originTick
+\f4\fs20  property will thus not reflect the tick in which the mutation is first used in a haplosome.  If that is a problem, you might consider using a 
+\f3\fs18 mutation()
+\f4\fs20  callback to create the mutation with 
+\f3\fs18 createMutation()
+\f4\fs20  when it is actually needed; or you might use a 
+\f3\fs18 mutation()
+\f4\fs20  callback to remember and adopt the new mutation that was created by SLiM, for subsequent reuse.\
+The new mutation will be treated by SLiM as if it were lost; its 
+\f3\fs18 isFixed
+\f4\fs20  and 
+\f3\fs18 isSegregating
+\f4\fs20  properties will therefore both be 
+\f3\fs18 F
+\f4\fs20  initially.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
 (integer)drawBreakpoints([No<Individual>$\'a0parent\'a0=\'a0NULL], [Ni$\'a0n\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
