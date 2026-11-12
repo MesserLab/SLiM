@@ -556,8 +556,69 @@ void MutationRun::__AccumulateStackedEffects(/*Mutation *accumulating_mut, */ Mu
 	}
 }
 
+void MutationRun::_EnforceStackPolicyEmptyBomb(MutationBlock *p_mutation_block, slim_position_t p_position, int64_t p_stack_group)
+{
+	// This is where we end up when a mutation() callback returns NULL, indicating that the focal position should
+	// be cleared of all mutations within the focal stacking group.  The behavior here is therefore like stacking
+	// policy "l", except that the proposed mutation does not get added; the site ends up in the empty state.
+	
+	// If the last mutation occurring at a site is kept, then we need to check for existing mutations of this
+	// type.  We scan in reverse order, because usually we're adding mutations on the end with emplace_back().
+	// NOTE: _EnforceStackPolicyForAddition(), policy kKeepLast, has code that should be maintained in parallel.
+	Mutation *mut_block_ptr = p_mutation_block->mutation_buffer_;
+	MutationIndex *begin_ptr = begin_pointer();
+	MutationIndex *end_ptr = end_pointer();
+	MutationIndex *first_match_ptr = nullptr;
+	
+	for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+	{
+		Mutation *mut = mut_block_ptr + *mut_ptr;
+		slim_position_t mut_position = mut->position_;
+		
+		if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+			first_match_ptr = mut_ptr;	// set repeatedly as we scan backwards, until we exit
+		else if (mut_position < p_position)
+			break;
+	}
+	
+	// If we found any, we now scan forward and remove them, in anticipation of the new mutation being added
+	// BCH 7/19/2026: Note that if a removed mutation is removed entirely, it will become "retained
+	// by the tree sequence" in RemoveAllFixedMutations() when it is removed from the registry.
+	if (first_match_ptr)
+	{
+		MutationIndex *replace_ptr = first_match_ptr;	// replace at the first match position
+		MutationIndex *mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
+		
+		for ( ; mut_ptr < end_ptr; ++mut_ptr)
+		{
+			MutationIndex mut_index = *mut_ptr;
+			Mutation *mut = mut_block_ptr + mut_index;
+			slim_position_t mut_position = mut->position_;
+			
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
+			{
+				// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
+				continue;
+			}
+			else
+			{
+				// The current scan position is a valid mutation, so we copy it backwards
+				*(replace_ptr++) = mut_index;
+			}
+		}
+		
+		// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+		set_size(size() - (int)(mut_ptr - replace_ptr));
+	}
+}
+
 bool MutationRun::_EnforceStackPolicyForAddition(MutationBlock *p_mutation_block, Mutation *p_new_mut, MutationStackPolicy p_policy, int64_t p_stack_group)
 {
+#if DEBUG
+	if (p_new_mut->state_ == MutationState::kEmptyBomb)
+		EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) mutation state kEmptyBomb should never be seen here; it should be handled by enforce_stack_policy_for_addition()." << EidosTerminate();
+#endif
+	
 	Mutation *mut_block_ptr = p_mutation_block->mutation_buffer_;
 	slim_position_t position = p_new_mut->position_;
 	MutationIndex *begin_ptr = begin_pointer();
@@ -582,8 +643,9 @@ bool MutationRun::_EnforceStackPolicyForAddition(MutationBlock *p_mutation_block
 	}
 	else if (p_policy == MutationStackPolicy::kKeepLast)
 	{
-		// If the last mutation occurring at a site is kept, then we need to check for existing mutations of this type
-		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
+		// If the last mutation occurring at a site is kept, then we need to check for existing mutations of this
+		// type.  We scan in reverse order, because usually we're adding mutations on the end with emplace_back().
+		// NOTE: _EnforceStackPolicyEmptyBomb(), for kEmptyBomb, has code that should be maintained in parallel.
 		MutationIndex *first_match_ptr = nullptr;
 		
 		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)

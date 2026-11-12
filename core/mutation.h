@@ -95,11 +95,12 @@ typedef struct MutationTraitInfo
 } MutationTraitInfo;
 
 typedef enum {
-	kNewMutation = 0,			// the state after new Mutation()
-	kInRegistry,				// segregating in the simulation
+	kNewMutation = 0,			// the state of new mutations destined to be added to the mutation registry
+	kInRegistry,				// segregating in the simulation, and thus contained in the mutation registry
 	kRemovedWithSubstitution,	// removed by removeMutations(substitute=T); transitional from kInRegistry to kFixedAndSubstituted
-	kFixedAndSubstituted,		// fixed and turned into a Substitution object
-	kLostAndRemoved				// lost and removed from the simulation
+	kFixedAndSubstituted,		// fixed and turned into a Substitution object; no longer in the registry
+	kLostAndRemoved,			// lost and removed from the simulation, OR created with createMutation() and not yet used
+	kEmptyBomb					// this special value is used by ApplyMutationCallbacks() and should not be seen otherwise
 } MutationState;
 
 class Mutation : public EidosDictionaryRetained

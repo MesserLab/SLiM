@@ -797,6 +797,7 @@ public:
 	}
 	
 	static void __AccumulateStackedEffects(/* Mutation *accumulating_mut, */ MutationTraitInfo *accumulating_mut_trait_info_base, MutationTraitInfo *new_mut_trait_info_base, const std::vector<Trait *> &traits);
+	void _EnforceStackPolicyEmptyBomb(MutationBlock *p_mutation_block, slim_position_t p_position, int64_t p_stack_group);
 	bool _EnforceStackPolicyForAddition(MutationBlock *p_mutation_block, Mutation *p_new_mut, MutationStackPolicy p_policy, int64_t p_stack_group);
 	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(MutationBlock *p_mutation_block, Mutation *p_new_mut);	// below
 	
@@ -1185,7 +1186,15 @@ inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for
 	MutationType *mut_type_ptr = p_new_mut->mutation_type_ptr_;
 	MutationStackPolicy policy = mut_type_ptr->stack_policy_;
 	
-	if (policy == MutationStackPolicy::kStack)
+	if (p_new_mut->state_ == MutationState::kEmptyBomb)
+	{
+		// This is a special message sent by ApplyMutationCallbacks(), indicating that a mutation() callback
+		// returned NULL to request that this position be emptied of all mutations in the stacking group.
+		// This facility can be used in conjunction with any stacking policy, so it must be checked first.
+		_EnforceStackPolicyEmptyBomb(p_mutation_block, p_new_mut->position_, mut_type_ptr->stack_group_);
+		return false;
+	}
+	else if (policy == MutationStackPolicy::kStack)
 	{
 		// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
 		return true;

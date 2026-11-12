@@ -1721,6 +1721,7 @@ void SLiM_ConfigureContext(void)
 		gEidosContextReservedSymbols.push_back("haplosome");	// defined in ApplyMutationCallbacks()
 		gEidosContextReservedSymbols.push_back("element");		// defined in ApplyMutationCallbacks()
 		gEidosContextReservedSymbols.push_back("originalNuc");	// defined in ApplyMutationCallbacks()
+		gEidosContextReservedSymbols.push_back("originalMuts");	// defined in ApplyMutationCallbacks()
 	}
 }
 
