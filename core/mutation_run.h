@@ -1184,7 +1184,6 @@ public:
 inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(MutationBlock *p_mutation_block, Mutation *p_new_mut)
 {
 	MutationType *mut_type_ptr = p_new_mut->mutation_type_ptr_;
-	MutationStackPolicy policy = mut_type_ptr->stack_policy_;
 	
 	if (p_new_mut->state_ == MutationState::kEmptyBomb)
 	{
@@ -1192,17 +1191,25 @@ inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for
 		// returned NULL to request that this position be emptied of all mutations in the stacking group.
 		// This facility can be used in conjunction with any stacking policy, so it must be checked first.
 		_EnforceStackPolicyEmptyBomb(p_mutation_block, p_new_mut->position_, mut_type_ptr->stack_group_);
+		
+		// restore the bomb's "new mutation" status now that it has detonated; this prevents it from leaking
+		p_new_mut->state_ = MutationState::kNewMutation;
 		return false;
-	}
-	else if (policy == MutationStackPolicy::kStack)
-	{
-		// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
-		return true;
 	}
 	else
 	{
-		// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-		return _EnforceStackPolicyForAddition(p_mutation_block, p_new_mut, policy, mut_type_ptr->stack_group_);
+		MutationStackPolicy policy = mut_type_ptr->stack_policy_;
+		
+		if (policy == MutationStackPolicy::kStack)
+		{
+			// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
+			return true;
+		}
+		else
+		{
+			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
+			return _EnforceStackPolicyForAddition(p_mutation_block, p_new_mut, policy, mut_type_ptr->stack_group_);
+		}
 	}
 }
 
