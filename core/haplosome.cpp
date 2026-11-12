@@ -5188,7 +5188,7 @@ void HaplosomeWalker::NextMutation(void)
 
 void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 {
-	// Move the the first mutation that is at or after the given position.  Using this to move to a
+	// Move to the first mutation that is at or after the given position.  Using this to move to a
 	// given position is more efficient than iteratively advancing mutation by mutation, because
 	// we can (1) go to the correct mutation run directly, and (2) do a binary search inside the
 	// mutation run for the correct position.
@@ -5230,11 +5230,10 @@ void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 	// still lies ahead of us; we do a binary search to find the first position >= p_position.
 	{
 		const MutationRun *mutrun = haplosome->mutruns_[mutrun_index_];
-		const MutationIndex *lower_bound = std::lower_bound(mutrun->begin_pointer_const() + 1, mutrun->end_pointer_const(), p_position,
-															[this](const MutationIndex mut_index_1, const MutationIndex mut_index_2) {
+		const MutationIndex *lower_bound = std::lower_bound(mutrun_ptr_ + 1, mutrun_end_, p_position,
+															[this](const MutationIndex mut_index_1, slim_position_t position) {
 			Mutation *mut1 = mut_block_ptr_ + mut_index_1;
-			Mutation *mut2 = mut_block_ptr_ + mut_index_2;
-			return mut1->position_ < mut2->position_;
+			return mut1->position_ < position;
 		});
 		
 		// if we failed to find a satisfactory position in this mutation run, then all of the mutations in
@@ -5280,6 +5279,8 @@ debug_check:
 				break;
 			}
 		}
+		
+		return;		// we did not run off the end incorrectly, so we are done with our debug checks
 	}
 	
 	// We want to test that (1) mutation_ points to the same mutation that mut_block_ptr_ references,
