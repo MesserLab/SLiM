@@ -1441,15 +1441,13 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 /
 \f3\fs18 T
 \f2\fs22 ) originally at the mutating position\
-\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2 originalMuts
+\f3\fs18 originalMuts
 \f2\fs22 	The existing mutation(s) in 
 \f3\fs18 haplosome
 \f2\fs22 , in the same stacking group\
-\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2 parent
+\f3\fs18 parent
 \f2\fs22 	The parent which is generating the offspring haplosome
 \f3\fs18 \
 \pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
@@ -1460,25 +1458,44 @@ In addition to the standard SLiM globals, then, a
 
 \f2\fs22 \cf2 The 
 \f3\fs18 mutation()
-\f2\fs22  callback has three possible returns: 
+\f2\fs22  callback has four possible returns: 
 \f3\fs18 T
 \f2\fs22 , 
 \f3\fs18 F
-\f2\fs22 , or (beginning in SLiM 3.5) a singleton object of type 
+\f2\fs22 , a singleton object of type 
 \f3\fs18 Mutation
-\f2\fs22 .  A return of 
+\f2\fs22  (beginning in SLiM 3.5), or 
+\f3\fs18 NULL
+\f2\fs22  (beginning in SLiM 6).  A return of 
 \f3\fs18 T
-\f2\fs22  indicates that the proposed mutation should be used in generating the offspring haplosome (perhaps with modifications made by the callback).  Conversely, a return of 
+\f2\fs22  indicates that the proposed mutation should be used in generating the offspring haplosome (perhaps with modifications made by the callback).\
+Conversely, a return of 
 \f3\fs18 F
 \f2\fs22  indicates that the proposed mutation should be suppressed.  If a proposed mutation is suppressed, SLiM will not try again; one fewer mutations will be generated during reproduction than would otherwise have been true.  Returning 
 \f3\fs18 F
-\f2\fs22  will therefore mean that the realized mutation rate in the model will be lower than the expected mutation rate.  Finally, a return of an object of type 
+\f2\fs22  will therefore mean that the realized mutation rate in the model will be lower than the expected mutation rate.\
+A return of an object of type 
 \f3\fs18 Mutation
 \f2\fs22  replaces the proposed mutation (
 \f3\fs18 mut
-\f2\fs22 ) with the mutation returned; the offspring haplosomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
+\f2\fs22 ) with the mutation returned; the offspring haplosome being generated will contain the returned mutation (assuming it is not rejected by the stacking policy in effect).  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
+Finally, a return of 
+\f3\fs18 NULL
+\f2\fs22  requests that, rather than adding a new mutation, the offspring haplosome should be cleared at the position of the proposed mutation; all mutations that might have been inherited from the parental haplosome will be removed, and the proposed mutation will not be added, leaving the site empty.  Note, however, that 
+\f0\i this applies only to mutations in the same stacking group as the proposed mutation
+\f2\i0  (see the 
+\f3\fs18 mutationStackGroup
+\f2\fs22  property of 
+\f3\fs18 MutationType
+\f2\fs22 , in section 26.11.1); mutations belonging to other stacking groups will not be affected by this operation.  (The 
+\f3\fs18 originalMuts
+\f2\fs22  pseudo-parameter can be used to see the mutations in the parental haplosome that are in the same stacking group, providing a preview of what would be removed from the offspring haplosome.)  This facility can provide a convenient way to model back-mutations to the original empty state, making it easier to work with the empty state as one of the allelic states at a site.  As with a return of 
+\f3\fs18 F
+\f2\fs22 , a return of 
+\f3\fs18 NULL
+\f2\fs22  may mean that the realized mutation rate differs from the expected mutation rate.\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 The callback may perform a variety of actions related to the generated mutation.  The effect size (e.g., selection coefficient) of the mutation can be changed with 
 \f3\fs18 setEffectSizeForTrait()
@@ -1503,8 +1520,7 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 , but SLiM already has it at hand anyway).  Such modifications of the mutational process might depend upon the existing mutations at the mutating position in the parental haplosome (for example, to make the effect size of the new mutation depend upon the effect size of any existing mutation); beginning in SLiM 6, those existing mutations \'96 within the stacking group of the focal mutation, which is typically the relevant context \'96 are provided through 
 \f3\fs18 originalMuts
 \f2\fs22 .  All of these modifications to the new mutation may be based upon the state of the parent, including its genetic state, or upon any other model state.\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 It is possible, of course, to do actions unrelated to mutation inside 
+It is possible, of course, to do actions unrelated to mutation inside 
 \f3\fs18 mutation()
 \f2\fs22  callbacks, but it is not recommended; 
 \f3\fs18 first()
