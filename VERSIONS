@@ -267,6 +267,7 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 		add a new Chromosome method (o<Mutation>)createMutation(io<MutationType> mutationType, integer position, [io<Subpopulation> originSubpop = 0], [Nis nucleotide = NULL]) to create canonical mutations
 		add new mutation() callback pseudo-parameter `originalMuts`, providing the existing mutations in the parental haplosome (within the stack group of the proposed mutation)
 		add a new mutation() callback return value of NULL, meaning "remove existing mutations (within the stack group of the proposed mutation)"
+		add recipe 13.17, demonstrating how to construct a biallelic model using these tools
 
 
 version 5.2 (Eidos version 4.2):
