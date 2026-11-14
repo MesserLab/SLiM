@@ -5,9 +5,10 @@ initialize() {
 	initializeSex();
 	defineConstant("K", 500);
 	
-	initializeMutationType("m1", 0.5, "f", 0.0);
-	m1.convertToSubstitution = T;
-	initializeMutationType("m2", 0.5, "n", 0.0, 0.3);  // QTL
+	initializeTrait("fecundity", "additive");
+	initializeMutationType("m1", NAN, "f", 0.0);
+	initializeMutationType("m2", NAN, "n", 0.0, 0.3);  // QTL
+	c(m1, m2).convertToSubstitution = T;
 	
 	initializeGenomicElementType("g1", c(m1,m2), c(1.0,0.1));
 	initializeGenomicElement(g1, 0, 99999);
@@ -19,8 +20,8 @@ reproduction(NULL, "F") {
 	
 	if (mate.size())
 	{
-		qtlValue = individual.tagF;
-		expectedLitterSize = max(0.0, qtlValue + 3);
+		fecundity = individual.fecundity;
+		expectedLitterSize = max(0.0, fecundity + 3);
 		litterSize = rpois(1, expectedLitterSize);
 		penalty = 3.0 / litterSize;
 		
@@ -41,8 +42,8 @@ early() {
 	inds[inds.age > 0].fitnessScaling = 0.0;
 	inds = inds[inds.age == 0];  // focus on juveniles
 	
-	// QTL calculations
-	inds.tagF = inds.sumOfMutationsOfType(m2);
+	// quantitative-trait calculations
+	sim.demandPhenotype(NULL, "fecundity");
 	
 	// parental investment fitness penalties
 	inds.fitnessScaling = inds.getValue("penalty");
@@ -50,11 +51,10 @@ early() {
 	// density-dependence for juveniles
 	p1.fitnessScaling = K / size(inds);
 }
-mutationEffect(m2) { return 1.0; }
 late() {
 	// output the phenotypic mean and pop size
-	qtlValues = p1.individuals.tagF;
-	expectedSizes = pmax(0.0, qtlValues + 3);
+	fecundity = p1.individuals.fecundity;
+	expectedSizes = pmax(0.0, fecundity + 3);
 	
 	cat(sim.cycle + ": " + p1.individualCount + " individuals");
 	cat(", mean litter size " + mean(expectedSizes));

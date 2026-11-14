@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/30/2024.
-//  Copyright (c) 2024-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2024-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -25,6 +25,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_class_Image.h"
+#include "eidos_class_Palette.h"
 
 #include "spatial_map.h"
 
@@ -476,10 +477,7 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
     
     if (image_object->Class() == gSLiM_SpatialMap_Class)
     {
-        // if image is a SpatialImage, plot the map's values; it must be a singleton and have 2D spatiality
-        if (image_value->Count() != 1)
-            EIDOS_TERMINATION << "ERROR (Plot::image): a SpatialMap value passed to image() must be a singleton." << EidosTerminate(nullptr);
-        
+        // if image is a SpatialImage, plot the map's values; it must have 2D spatiality
         SpatialMap *spatial_map = (SpatialMap *)image_object;
         
         if (spatial_map->image_ && (spatial_map->image_flipped_ == flipped))
@@ -525,7 +523,7 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
             
             QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
             
-            // We give the cached image to the SpatialMap object.  Since it doesn't build against Qt, we give it a deletor function.
+            // We give the cached image to the SpatialMap object.  Since it doesn't build against Qt, we give it a deleter function.
             spatial_map->image_ = cached_image;
             spatial_map->image_flipped_ = flipped;
             spatial_map->image_deleter_ = Eidos_Deleter<QImage>;
@@ -535,10 +533,7 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
     }
     else if (image_object->Class() == gEidosImage_Class)
     {
-        // if image is an Image, plot the image's values; it must be a singleton
-        if (image_value->Count() != 1)
-            EIDOS_TERMINATION << "ERROR (Plot::image): an Image value passed to image() must be a singleton." << EidosTerminate(nullptr);
-        
+        // if image is an Image, plot the image's values
         EidosImage *eidos_image = (EidosImage *)image_object;
         
         if (eidos_image->image_ && (eidos_image->image_flipped_ == flipped))
@@ -588,6 +583,87 @@ EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const s
             eidos_image->image_ = cached_image;
             eidos_image->image_flipped_ = flipped;
             eidos_image->image_deleter_ = Eidos_Deleter<QImage>;
+            
+            image = *cached_image;  // make a copy with implicit sharing
+        }
+    }
+    else if (image_object->Class() == gEidosPalette_Class)
+    {
+        // if image is a Palette, plot the palette's values
+        EidosPalette *palette = (EidosPalette *)image_object;
+        
+        if (palette->image_)
+        {
+            // we have a cached QImage for this Palette
+            image = *(QImage *)palette->image_;  // make a copy with implicit sharing
+        }
+        else
+        {
+            // cache the spatial map's image if it doesn't already have a matching cache; first delete any existing (unmatching) cache
+            if (palette->image_)
+            {
+                if (palette->image_deleter_)
+                    palette->image_deleter_(palette->image_);
+                else
+                    std::cout << "Missing Palette image_deleter_; leaking memory" << std::endl;
+                
+                palette->image_ = nullptr;
+                palette->image_deleter_ = nullptr;
+            }
+            
+            float *spectrum_ptr = nullptr;
+            int spectrum_count = 0;
+            
+            palette->GetSpectrum(&spectrum_ptr, &spectrum_count);
+            
+            int image_width = spectrum_count;
+            int image_height = 1;
+            
+            // make the image buffer to be used by QtSLiMGraphView_CustomPlot; note that it takes ownership of image_data and frees it for us
+            const int bytes_per_pixel = 3;  // RGB888 format
+            uint8_t *image_data = (uint8_t *)malloc(image_width * image_height * bytes_per_pixel * sizeof(uint8_t));
+            
+            {
+                float *in_ptr = spectrum_ptr;
+                uint8_t *out_ptr = image_data;
+                
+                for (int x = 0; x < image_width; ++x) {
+                    *(out_ptr++) = (int)round(*(in_ptr++) * 255.0);
+                    *(out_ptr++) = (int)round(*(in_ptr++) * 255.0);
+                    *(out_ptr++) = (int)round(*(in_ptr++) * 255.0);
+                }
+            }
+            
+            // handle the "fixed point" of the palette by putting its color in at the closest slot
+            // note that it still might not end up being visible onscreen, due to limited resolution
+            double fixed_value;
+            float fixed_red, fixed_green, fixed_blue;
+            bool hasFixedValue = palette->GetFixedValue(&fixed_value, &fixed_red, &fixed_green, &fixed_blue);
+            
+            if (hasFixedValue)
+            {
+                double range_start, range_end;
+                
+                palette->Range(&range_start, &range_end);
+                
+                double fixed_value_fraction = (fixed_value - range_start) / (range_end - range_start);
+                int fixed_value_index = (int)std::round(fixed_value_fraction * (spectrum_count - 1));
+                
+                if ((fixed_value_index >= 0) && (fixed_value_index < spectrum_count))
+                {
+                    uint8_t *fixed_value_ptr = image_data + (fixed_value_index * 3);
+                    
+                    *(fixed_value_ptr++) = (int)round(fixed_red * 255.0);
+                    *(fixed_value_ptr++) = (int)round(fixed_green * 255.0);
+                    *(fixed_value_ptr++) = (int)round(fixed_blue * 255.0);
+                }
+            }
+            
+            // make a QImage from image_data and give the cached image to the Palette object; since it doesn't build against Qt, we give it a deleter function.
+            QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
+            
+            palette->image_ = cached_image;
+            palette->image_deleter_ = Eidos_Deleter<QImage>;
             
             image = *cached_image;  // make a copy with implicit sharing
         }
@@ -858,7 +934,7 @@ EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const s
 }
 
 //	*********************	– (void)matrix(object$ image, numeric$ x1, numeric$ y1, numeric$ x2, numeric$ y2, [logical$ flipped = F],
-//                                          [Nif valueRange = NULL], [Ns$ colors = NULL], [float$ alpha = 1.0])
+//                                          [No<Palette>$ palette = NULL], [float$ alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -869,62 +945,17 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
     EidosValue *x2_value = p_arguments[3].get();
     EidosValue *y2_value = p_arguments[4].get();
     EidosValue *flipped_value = p_arguments[5].get();
-    EidosValue *valueRange_value = p_arguments[6].get();
-    EidosValue *colors_value = p_arguments[7].get();
-    EidosValue *alpha_value = p_arguments[8].get();
+    EidosValue *palette_value = p_arguments[6].get();
+    EidosValue *alpha_value = p_arguments[7].get();
     
     // flipped
     bool flipped = flipped_value->LogicalAtIndex_NOCAST(0, nullptr);
     
-    // valueRange
-    double range_min = 0.0, range_max = 0.0;
+    // palette
+    EidosPalette *palette = nullptr;
     
-    if (valueRange_value->Type() == EidosValueType::kValueNULL)
-    {
-        range_min = 0.0;
-        range_max = 1.0;
-    }
-    else
-    {
-        if (valueRange_value->Count() != 2)
-            EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires valueRange to be a vector of length 2 providing a data range, or NULL to use the default data range of [0, 1]." << EidosTerminate(nullptr);
-        
-        range_min = valueRange_value->NumericAtIndex_NOCAST(0, nullptr);
-        range_max = valueRange_value->NumericAtIndex_NOCAST(1, nullptr);
-        
-        if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min == range_max))
-            EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires valueRange to contain finite, unequal values that define a data range." << EidosTerminate(nullptr);
-    }
-    
-    // colors
-    std::string colors_name;
-    
-    if (colors_value->Type() == EidosValueType::kValueNULL)
-    {
-        colors_name = "gray";
-        std::swap(range_min, range_max);
-    }
-    else
-    {
-        colors_name = colors_value->StringAtIndex_NOCAST(0, nullptr);
-    }
-    
-    EidosColorPalette palette = Eidos_PaletteForName(colors_name);
-    
-    if (palette == EidosColorPalette::kPalette_INVALID)
-        EIDOS_TERMINATION << "ERROR (Plot::matrix): unrecognized color palette name in matrix()." << EidosTerminate(nullptr);
-    
-    // figure out the rescaling factors in effect; note that colors=NULL might have reversed the rescaling range
-    bool rescaling = false;
-    double rescale_offset = 0.0;
-    double rescale_scaling = 1.0;
-    
-    if ((range_min != 0.0) || (range_max != 1.0))
-    {
-        rescaling = true;
-        rescale_offset = -range_min;
-        rescale_scaling = 1.0 / (range_max - range_min);
-    }
+    if (palette_value->Type() != EidosValueType::kValueNULL)
+        palette = dynamic_cast<EidosPalette *>(palette_value->ObjectElementAtIndex_NOCAST(0, nullptr));
     
     // matrix
     if ((matrix_value->DimensionCount() != 2))
@@ -958,18 +989,23 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
             {
                 double original_value = matrix_data[matrix_row_to_read + matrix_column * matrix_rows];
                 double value = original_value;
+                float red, green, blue;
                 
-                if (rescaling)
-                    value = (value + rescale_offset) * rescale_scaling;
-                
-                if (value < 0.0)
-                    value = 0.0;
-                if (value > 1.0)
-                    value = 1.0;
-                
-                double red, green, blue;
-                
-                Eidos_ColorPaletteLookup(value, palette, red, green, blue);
+                if (palette)
+                {
+                    palette->ColorForValue(value, &red, &green, &blue);
+                }
+                else
+                {
+                    if (value < 0.0)
+                        value = 0.0;
+                    if (value > 1.0)
+                        value = 1.0;
+                    
+                    red = (float)value;
+                    green = (float)value;
+                    blue = (float)value;
+                }
                 
                 uint8_t r_i = round(red * 255.0);
                 uint8_t g_i = round(green * 255.0);
@@ -995,18 +1031,23 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
             {
                 double original_value = matrix_data[matrix_row_to_read + matrix_column * matrix_rows];
                 double value = original_value;
+                float red, green, blue;
                 
-                if (rescaling)
-                    value = (value + rescale_offset) * rescale_scaling;
-                
-                if (value < 0.0)
-                    value = 0.0;
-                if (value > 1.0)
-                    value = 1.0;
-                
-                double red, green, blue;
-                
-                Eidos_ColorPaletteLookup(value, palette, red, green, blue);
+                if (palette)
+                {
+                    palette->ColorForValue(value, &red, &green, &blue);
+                }
+                else
+                {
+                    if (value < 0.0)
+                        value = 0.0;
+                    if (value > 1.0)
+                        value = 1.0;
+                    
+                    red = (float)value;
+                    green = (float)value;
+                    blue = (float)value;
+                }
                 
                 uint8_t r_i = round(red * 255.0);
                 uint8_t g_i = round(green * 255.0);
@@ -1857,16 +1898,16 @@ EidosValue_SP Plot::ExecuteMethod_write(EidosGlobalStringID p_method_id, const s
 #pragma mark Plot_Class
 #pragma mark -
 
-EidosClass *gSLiM_Plot_Class = nullptr;
+Plot_Class *gSLiM_Plot_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
         
         properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_title, true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
         
@@ -1917,8 +1958,8 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_matrix, kEidosValueMaskVOID))
                                   ->AddNumeric("matrix")->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
-                                  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)
-                                  ->AddString_OSN("colors", gStaticEidosValueNULL)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
+                                  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddObject_OSN("palette", gEidosPalette_Class, gStaticEidosValueNULL)
+                                  ->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_mtext, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))

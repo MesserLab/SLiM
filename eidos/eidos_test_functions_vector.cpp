@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1136,7 +1136,7 @@ void _RunFunctionValueInspectionManipulationTests_s_through_z(void)
 	EidosAssertScriptSuccess_IV("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_yolk')._yolk;", {-8, 2, 3, 7, 75});
 	EidosAssertScriptSuccess_IV("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_yolk', T)._yolk;", {-8, 2, 3, 7, 75});
 	EidosAssertScriptSuccess_IV("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_yolk', F)._yolk;", {75, 7, 3, 2, -8});
-	EidosAssertScriptRaise("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_foo')._yolk;", 0, "attempt to get a value");
+	EidosAssertScriptRaise("sortBy(c(_Test(7), _Test(2), _Test(-8), _Test(3), _Test(75)), '_foo')._yolk;", 0, "property _foo is not defined");
 	
 	// str() – can't test the actual output, but we can make sure it executes...
 	EidosAssertScriptSuccess_VOID("str(NULL);");

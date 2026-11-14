@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/19/2019.
-//  Copyright (c) 2019-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2019-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -38,6 +38,7 @@
 #include "eidos_property_signature.h"
 #include "community.h"
 
+#include "QtSLiMPreferences.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMAppDelegate.h"
 
@@ -337,6 +338,12 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    // Wire up to change the font when the display font pref changes, and fetch that pref
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMHelpWindow::displayFontPrefChanged);
+    displayFontPrefChanged();
 }
 
 void QtSLiMHelpWindow::applicationPaletteChanged(void)
@@ -467,7 +474,7 @@ void QtSLiMHelpWindow::expandToShowItems(const std::vector<QTreeWidgetItem *> &e
         ui->topicOutlineView->expandItem(*iter);
     
     // Select all of the items that matched
-    for (auto item : matchKeys)
+    for (QTreeWidgetItem *item : matchKeys)
         ui->topicOutlineView->setCurrentItem(item, 0, QItemSelectionModel::Select);
     
     // Finish coalescing selection changes
@@ -538,6 +545,21 @@ void QtSLiMHelpWindow::closeEvent(QCloseEvent *p_event)
     
     // use super's default behavior
     QWidget::closeEvent(p_event);
+}
+
+void QtSLiMHelpWindow::displayFontPrefChanged(void)
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    QFont displayFont = prefs.displayFontPref(nullptr);
+    
+    // For reasons that I don't fully understand, this scales the text in the window
+    // to have the same base size, without setting it to the same absolute size (i.e.,
+    // font size changes within the text are still respected), and without actually
+    // changing it to the given font.  I think it has to do with which things are
+    // specified explicitly in the HTML content of the textedit; things specified
+    // explicitly override the global font setting of the textedit.  All that is
+    // left is the base font size.  I'm not sure how the relative size changes work!
+    ui->descriptionTextEdit->setFont(displayFont);
 }
 
 // This is a helper method for addTopicsFromRTFFile:... that finds the right parent item to insert a given section index under.
@@ -674,7 +696,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
     static const QRegularExpression topicGenericItemRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] ITEM: ((?:[0-9]+\\.? )?)(.+)$", QRegularExpression::CaseInsensitiveOption);
     static const QRegularExpression topicFunctionRegex("^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
     static const QRegularExpression topicMethodRegex("^([-–+])[\u00A0 ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
-    static const QRegularExpression topicPropertyRegex("^([a-zA-Z_0-9]+)[\u00A0 ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression topicPropertyRegex("^([a-zA-Z_0-9<>-]+)[\u00A0 ]((?:<[-–]>)|(?:=>)) (\\([a-zA-Z<>\\*+$]+\\))$", QRegularExpression::CaseInsensitiveOption);
 	
     if (!topicHeaderRegex.isValid() || !topicGenericItemRegex.isValid() || !topicFunctionRegex.isValid() || !topicMethodRegex.isValid() || !topicPropertyRegex.isValid())
         qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): invalid regex";
@@ -804,7 +826,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (function_signature)
-                    ColorizeCallSignature(function_signature, 11.0, lineCursor);
+                    ColorizeCallSignature(function_signature, 0.0, lineCursor);   // 0.0 == do not set a font size
 				else
 					qDebug() << "*** no function signature found for function name " << callName;
 			}
@@ -838,7 +860,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (method_signature)
-                    ColorizeCallSignature(method_signature, 11.0, lineCursor);
+                    ColorizeCallSignature(method_signature, 0.0, lineCursor);   // 0.0 == do not set a font size
 				else
 					qDebug() << "*** no method signature found for method name " << callName;
 			}
@@ -851,51 +873,104 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
             // This topic item is a method declaration
             QString callName = match_topicPropertyRegex.captured(1);
             QString readOnlyName = match_topicPropertyRegex.captured(2);
+            QString resultName = match_topicPropertyRegex.captured(3);
 			
             //qDebug() << "topic property name: " << callName << ", line: " << line;
             
-            // Check for a built-in property signature that matches and substitute it in.  Note that we accept a match from any property in any class
-			// API as long as the signature matches; we do not rigorously check that the API within a given class matches between signature and doc.
-			// This is mostly not a problem because it is quite rare for the same property name to be used with more than one signature.
-            if (propertyList)
+            if (callName.startsWith('<'))
             {
+                // BCH 1/7/2026: This case is hit for dynamic properties, which are present in the doc with names like <trait-name>EffectSize.  We don't want to
+                // check for a match, we just want to accept the property as it is.  We do want to reformat it, though; we make a temporary signature for that.
                 std::string property_name(callName.toStdString());
-                bool found_match = false, found_mismatch = false;
-                QString oldSignatureString, newSignatureString;
+                bool property_read_only = true;
                 
-                for (const auto &signature_iter : *propertyList)
-                    if (signature_iter->property_name_.compare(property_name) == 0)
-                    {
-                        const EidosPropertySignature *property_signature = signature_iter.get();
-                        
-                        oldSignatureString = lineCursor.selectedText();
-                        std::ostringstream ss;
-                        ss << *property_signature;
-                        newSignatureString = QString::fromStdString(ss.str());
-                        
-                        if (newSignatureString == oldSignatureString)
+                if (readOnlyName == "=>")
+                    property_read_only = true;
+                else if ((readOnlyName == "<->") || (readOnlyName == "<–>"))
+                    property_read_only = false;
+                else
+                    qDebug() << "*** unrecognized readOnlyName " << readOnlyName << " parsing " << callName;
+                
+                EidosValueMask property_mask = kEidosValueMaskInt | kEidosValueMaskSingleton;
+                EidosClass *property_class_name = nullptr;
+                
+                if (resultName == "(float$)")
+                    property_mask = kEidosValueMaskFloat | kEidosValueMaskSingleton;
+                else if (resultName == "(object<Trait>$)")
+                {
+                    property_mask = kEidosValueMaskObject | kEidosValueMaskSingleton;
+                    property_class_name = gSLiM_Trait_Class;
+                }
+                else
+                    qDebug() << "*** unrecognized resultName " << resultName << " parsing " << callName;
+                
+                EidosPropertySignature_CSP dynamic_signature;
+                
+                if (property_class_name)
+                    dynamic_signature = EidosPropertySignature_CSP(new EidosPropertySignature(property_name, property_read_only, property_mask, property_class_name));
+                else
+                    dynamic_signature = EidosPropertySignature_CSP(new EidosPropertySignature(property_name, property_read_only, property_mask));
+                
+                QString oldSignatureString = lineCursor.selectedText();
+                std::ostringstream ss;
+                ss << *dynamic_signature;
+                QString dynamicSignatureString = QString::fromStdString(ss.str());
+                
+                if (dynamicSignatureString == oldSignatureString)
+                {
+                    // Replace the signature line with the syntax-colored version
+                    ColorizePropertySignature(dynamic_signature.get(), 0.0, lineCursor);   // 0.0 == do not set a font size
+                }
+                else
+                {
+                    qDebug() << "*** signature mismatch for dynamic property " << callName;
+                }
+            }
+            else
+            {
+                // Check for a built-in property signature that matches and substitute it in.  Note that we accept a match from any property in any class
+                // API as long as the signature matches; we do not rigorously check that the API within a given class matches between signature and doc.
+                // This is mostly not a problem because it is quite rare for the same property name to be used with more than one signature.
+                if (propertyList)
+                {
+                    std::string property_name(callName.toStdString());
+                    bool found_match = false, found_mismatch = false;
+                    QString oldSignatureString, newSignatureString;
+                    
+                    for (const auto &signature_iter : *propertyList)
+                        if (signature_iter->property_name_.compare(property_name) == 0)
                         {
-                            //qDebug() << "signature match for method" << callName;
+                            const EidosPropertySignature *property_signature = signature_iter.get();
                             
-                            // Replace the signature line with the syntax-colored version
-                            ColorizePropertySignature(property_signature, 11.0, lineCursor);
-                            found_match = true;
-                            break;
+                            oldSignatureString = lineCursor.selectedText();
+                            std::ostringstream ss;
+                            ss << *property_signature;
+                            newSignatureString = QString::fromStdString(ss.str());
+                            
+                            if (newSignatureString == oldSignatureString)
+                            {
+                                //qDebug() << "signature match for method" << callName;
+                                
+                                // Replace the signature line with the syntax-colored version
+                                ColorizePropertySignature(property_signature, 0.0, lineCursor);   // 0.0 == do not set a font size
+                                found_match = true;
+                                break;
+                            }
+                            else
+                            {
+                                // If we find a mismatched signature but no matching signature, that's probably an error in either the doc or
+                                // the signature, unless we find a match later on with a different signature for the same property name.
+                                found_mismatch = true;
+                            }
                         }
-                        else
-                        {
-                            // If we find a mismatched signature but no matching signature, that's probably an error in either the doc or
-                            // the signature, unless we find a match later on with a different signature for the same property name.
-                            found_mismatch = true;
-                        }
-                    }
-                
-                if (found_mismatch && !found_match)
-                    qDebug() << "*** property signature mismatch:\nold: " << oldSignatureString << "\nnew: " << newSignatureString;
-				else if (!found_match)
-					qDebug() << "*** no property signature found for property name" << callName;
-			}
-			
+                    
+                    if (found_mismatch && !found_match)
+                        qDebug() << "*** property signature mismatch:\nold: " << oldSignatureString << "\nnew: " << newSignatureString;
+                    else if (!found_match)
+                        qDebug() << "*** no property signature found for property name" << callName;
+                }
+            }
+            
 			topicItemKey = callName + "\u00A0" + readOnlyName;
             topicItemCursor = new QTextCursor(lineCursor);
         }
@@ -950,26 +1025,34 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
                 
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-                    const std::string &&connector_string = propertySignature->PropertySymbol();
-                    const std::string &property_name_string = propertySignature->property_name_;
-                    QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
-                    int docIndex = docProperties.indexOf(property_string);
-                    
-                    if (docIndex != -1)
-                    {
-                        // If the property is defined in this class doc, consider it documented
-                        docProperties.removeAt(docIndex);
-                    }
-                    else
-                    {
-                        // If the property is not defined in this class doc, then that is an error unless it is a superclass property
-                        bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+					const std::string &property_name_string = propertySignature->property_name_;
 					
-                        if (!isSuperclassProperty)
-                            qDebug() << "*** no documentation found for class " << className << " property " << property_string;
-                    }
+					if ((property_name_string.length() == 0) || (property_name_string[0] != '_'))
+					{
+						const std::string &&connector_string = propertySignature->PropertySymbol();
+						QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
+						int docIndex = docProperties.indexOf(property_string);
+						
+						if (docIndex != -1)
+						{
+							// If the property is defined in this class doc, consider it documented
+							docProperties.removeAt(docIndex);
+						}
+						else
+						{
+							// If the property is not defined in this class doc, then that is an error unless it is a superclass property
+							bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+							
+							if (!isSuperclassProperty)
+								qDebug() << "*** no documentation found for class " << className << " property " << property_string;
+						}
+					}
 				}
-				
+                
+                // BCH 1/7/2026: Remove dynamic properties like "<trait-name>EffectSize" from the excess documentation list; they are not expected to have a match
+                static const QRegularExpression nonDynamicProperties("^[^<]");
+                docProperties = docProperties.filter(nonDynamicProperties);
+                
 				if (docProperties.size())
 					qDebug() << "*** excess documentation found for class " << className << " properties " << docProperties;
 			}

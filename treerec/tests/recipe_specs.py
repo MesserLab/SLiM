@@ -50,6 +50,21 @@ recipe_specs = {
     "test_836_output from multiple-chromosome models.slim": {"mutations": True, "individuals": True},
     "test_169_complex multi-chromosome inheritance.slim": {"mutations": True, "individuals": True},
     "test_1610_modeling pseudo-autosomal regions.slim": {"mutations": True, "individuals": True},
+    "recipe_WF.slim":                               {"traits": True},
+    "recipe_WF_adds.slim":                          {"traits": True},
+    "recipe_WF_no_substitutions.slim":              {"traits": True},
+    "recipe_WF_H.slim":                             {"traits": True},
+    "recipe_WF_HF.slim":                            {"traits": True},
+    "recipe_WF_HM.slim":                            {"traits": True},
+    "recipe_WF_W.slim":                             {"traits": True},
+    "recipe_WF_X.slim":                             {"traits": True},
+    "recipe_WF_Y.slim":                             {"traits": True},
+    "recipe_WF_Z.slim":                             {"traits": True},
+    "recipe_nonWF.slim":                            {"traits": True},
+    "recipe_nonWF_substitutions.slim":              {"traits": True},
+    "recipe_nonWF_H.slim":                          {"traits": True},
+    "recipe_nonWF_X.slim":                          {"traits": True},
+    "recipe_nonWF_Y.slim":                          {"traits": True},
 }
 
 

@@ -1,0 +1,23 @@
+// Keywords: additive trait, quantitative trait, quantitative genetics, fitness function, adaptive walk
+
+initialize() {
+	initializeTrait("trait1", "additive");
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "n", 0.0, 0.05);
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+late() {
+	sim.demandPhenotype(NULL, "trait1");
+	
+	inds = p1.individuals;
+	phenotype = inds.trait1;
+	fitness = dnorm(phenotype, 10.0, 0.5) / dnorm(10.0, 10.0, 0.5);
+	inds.fitnessScaling = fitness;
+}
+20000 late() { sim.outputFixedMutations(); }

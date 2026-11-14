@@ -22,7 +22,7 @@ initialize() {
 5 late() {
 	mut = sample(sim.mutations, 1);
 	mut.setMutationType(m2);
-	mut.setSelectionCoeff(0.5);
+	mut.setEffectSizeForTrait(NULL, 0.5);
 }
 1:2000 late() {
 	mut = sim.mutationsOfType(m2);

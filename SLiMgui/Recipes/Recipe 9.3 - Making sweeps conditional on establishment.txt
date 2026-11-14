@@ -41,7 +41,7 @@ initialize() {
 		sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 		
 		// start a newly seeded run
-		setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+		setSeed(rdunif64(1));
 		
 		// re-introduce the sweep mutation
 		target = sample(p1.haplosomes, 1);

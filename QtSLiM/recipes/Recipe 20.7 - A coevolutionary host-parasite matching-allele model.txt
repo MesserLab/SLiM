@@ -31,7 +31,7 @@ function (float$)nucleotideFreq(o<Species>$ species, s$ nuc) {
 	return mean(nucs == nuc);
 }
 
-ticks all 1 early() {
+1 early() {
 	host.addSubpop("p0", 1000);
 	parasite.addSubpop("p1", 1000);
 	
@@ -47,7 +47,7 @@ ticks all 1 early() {
 	log.addCustomColumn("pT", "nucleotideFreq(parasite, 'T');");
 }
 
-ticks all late() {
+late() {
 	// each parasite will pick a random host and try to infect it
 	parasites = p1.individuals;
 	chosen_hosts = sample(p0.individuals, size(parasites), replace=T);
@@ -67,5 +67,5 @@ ticks all late() {
 	}
 }
 
-ticks all 2000 late() {
+2000 late() {
 }

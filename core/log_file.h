@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/2/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,7 @@
 #ifndef log_file_h
 #define log_file_h
 
+
 #include "eidos_value.h"
 #include "slim_globals.h"
 
@@ -29,7 +30,8 @@
 class Community;
 
 
-extern EidosClass *gSLiM_LogFile_Class;
+class LogFile_Class;
+extern LogFile_Class *gSLiM_LogFile_Class;
 
 
 // Built-in and custom generator types that are presently supported
@@ -185,7 +187,7 @@ public:
 	LogFile_Class& operator=(const LogFile_Class &) = delete;	// no copying
 	inline LogFile_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	// Overrides of Dictionary methods, since we have a special Dictionary behavior

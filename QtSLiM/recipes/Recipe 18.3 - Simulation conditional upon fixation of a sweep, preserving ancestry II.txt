@@ -1,7 +1,6 @@
 // Keywords: tree-sequence recording, tree sequence recording, conditional sweep
 
 initialize() {
-	initializeSLiMOptions(keepPedigrees=T);
 	initializeTreeSeq();
 	initializeMutationRate(1e-8);
 	initializeMutationType("m2", 0.5, "g", -0.01, 1.0);  // deleterious
@@ -15,13 +14,17 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 1000 late() {
-	// assign tag values to be preserved
-	inds = sortBy(sim.subpopulations.individuals, "pedigreeID");
-	tags = rdunif(size(inds), 0, 100000);
-	inds.tag = tags;
+	// generate the side values to be preserved
+	inds = sim.subpopulations.individuals;
+	inds.setValuesVectorized("X", rdunif(size(inds), 0, 100000));
 	
-	// record tag values and pedigree IDs in metadata
-	metadataDict = Dictionary("tags", tags, "ids", inds.pedigreeID);
+	// record the side values and pedigree IDs in metadata
+	inds = sortBy(sim.subpopulations.individuals, "pedigreeID");
+	metadataDict = Dictionary("X", inds.getValue("X"), "ids", inds.pedigreeID);
+	
+	// print the side values, so we can check them visually
+	catn("\nSAVED VALUES:");
+	print(inds.getValue("X"));
 	
 	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m3, 10000);
@@ -37,10 +40,14 @@ initialize() {
 		} else {
 			cat(simID + ": LOST - RESTARTING\n");
 			sim.readFromPopulationFile(PATH);
-			metadataDict = treeSeqMetadata(PATH);
-			tags = metadataDict.getValue("tags");
+			
+			// restore side values from metadata back into the individuals
 			inds = sortBy(sim.subpopulations.individuals, "pedigreeID");
-			inds.tag = tags;
+			inds.setValuesVectorized("X", treeSeqMetadata(PATH).getValue("X"));
+			
+			// print the restored side values, so we can check them visually
+			catn("\nRESTORED VALUES:");
+			print(inds.getValue("X"));
 		}
 	}
 }

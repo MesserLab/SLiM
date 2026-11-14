@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -195,7 +195,7 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_F("mean(float(0));", std::numeric_limits<double>::quiet_NaN());	// BCH 1/11/2026: changed from NULL to NAN after SLiM 5.1
 	EidosAssertScriptRaise("mean(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("mean(rep(1e18, 9));", 1e18);	// stays in integer internally
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptSuccess_F("mean(rep(1e18, 10));", 1e18);	// overflows to float internally
 #endif
 	EidosAssertScriptSuccess("mean(c(1.0, 5.0, NAN, 2.0));", gStaticEidosValue_FloatNAN);
@@ -756,7 +756,7 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_IV("rbinom(3, 10, 1.0);", {10, 10, 10});
 	EidosAssertScriptSuccess_IV("rbinom(3, 0, 0.0);", {0, 0, 0});
 	EidosAssertScriptSuccess_IV("rbinom(3, 0, 1.0);", {0, 0, 0});
-	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(10, 1, 0.5);", {0, 0, 0, 0, 1, 1, 0, 1, 0, 1});
+	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(10, 1, 0.5);", {0, 0, 0, 0, 0, 1, 0, 1, 0, 0});
 	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(10, 1, 0.5000001);", {1, 1, 1, 1, 1, 1, 0, 1, 0, 1});
 	EidosAssertScriptSuccess_IV("setSeed(0); rbinom(5, 10, 0.5);", {2, 3, 4, 4, 3});
 	EidosAssertScriptSuccess_IV("setSeed(1); rbinom(5, 10, 0.5);", {5, 5, 7, 4, 8});
@@ -808,7 +808,7 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_IV("rdunif(1, 1, 1);", {1});
 	EidosAssertScriptSuccess_IV("rdunif(3, 1, 1);", {1, 1, 1});
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(1), 0);", true);
-	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10), c(0, 0, 0, 0, 1, 1, 0, 1, 0, 1));", true);
+	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10), c(0, 0, 0, 0, 0, 1, 0, 1, 0, 0));", true);
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10, 10, 11), c(10, 10, 10, 10, 11, 11, 10, 11, 10, 11));", true);
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10, 10, 15), c(10, 11, 11, 11, 10, 11, 14, 11, 14, 11));", true);
 	EidosAssertScriptSuccess_L("setSeed(0); identical(rdunif(10, -10, 15), c(-9, -6, -4, -2, -8, -3, 9, -2, 10, -2));", true);
@@ -1018,11 +1018,11 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_FV("rnorm(3, 0, 0);", {0.0, 0.0, 0.0});
 	EidosAssertScriptSuccess_FV("rnorm(1, 1, 0);", {1.0});
 	EidosAssertScriptSuccess_FV("rnorm(3, 1, 0);", {1.0, 1.0, 1.0});
-	EidosAssertScriptSuccess_LV("setSeed(0); abs(rnorm(2) - c(-0.895053, -0.315753)) < 0.000001;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(1); abs(rnorm(2, 10.0) - c(7.6679, 9.5468)) < 0.01;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(2); abs(rnorm(2, 10.0, 100.0) - c(-74.4017, -107.421)) < 0.01;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(3); abs(rnorm(2, c(-10, 10), 100.0) - c(142.441, 121.46)) < 0.01;", {true, true});
-	EidosAssertScriptSuccess_LV("setSeed(4); abs(rnorm(2, 10.0, c(0.1, 10)) - c(10.0681, 12.2818)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(0); abs(rnorm(2) - c(0.193911, -0.136882)) < 0.000001;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(1); abs(rnorm(2, 10.0) - c(10.0739, 11.587)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(2); abs(rnorm(2, 10.0, 100.0) - c(-87.2142, -10.0053)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(3); abs(rnorm(2, c(-10, 10), 100.0) - c(-83.4169, -211.392)) < 0.01;", {true, true});
+	EidosAssertScriptSuccess_LV("setSeed(4); abs(rnorm(2, 10.0, c(0.1, 10)) - c(9.9913, 15.8026)) < 0.01;", {true, true});
 	EidosAssertScriptRaise("rnorm(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rnorm(1, 0, -1);", 0, "requires sd >= 0.0");
 	EidosAssertScriptRaise("rnorm(2, c(0,0), -1);", 0, "requires sd >= 0.0");

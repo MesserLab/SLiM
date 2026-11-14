@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -851,15 +851,61 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 		
 		if ((probability0 == 0.5) && (size0 == 1))
 		{
-			// Special-case a probability of 0.5 since we can use Eidos_RandomBool() for it
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RBINOM_1);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result) if(num_draws >= EIDOS_OMPMIN_RBINOM_1) num_threads(thread_count)
+			// Special-case a probability of 0.5 since we can do it more efficiently
+			if (num_draws == 1)
 			{
+				// for a single draw, we use Eidos_RandomBool(); it is faster than drawing a whole uint64_t
 				Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 				
-#pragma omp for schedule(dynamic, 1024) nowait
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					int_result->set_int_no_check((int64_t)Eidos_RandomBool(rng_state), draw_index);
+				int_result->set_int_no_check((int64_t)Eidos_RandomBool(rng_state), 0);
+			}
+			else
+			{
+				// for multiple draws, we now draw a whole uint64_t at a time and use all of its bits; this
+				// is similar to Eidos_RandomBool() but avoids the test for availability of each next bit
+				// FIXME PARALLELIZE THIS; see also Eidos_ExecuteFunction_rdunif()
+				EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+				int64_t draw_index = 0;
+				uint64_t bits;
+				
+				// process 64 bits at a time
+				while (draw_index + 63 < num_draws)
+				{
+					bits = Eidos_rng_uniform_uint64(rng_64);
+					
+					for (int iter = 0; iter < 4; ++iter)
+					{
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 0); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 1); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 2); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 3); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 4); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 5); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 6); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 7); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 8); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 9); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 10); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 11); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 12); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 13); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 14); bits >>= 1;
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 15); bits >>= 1;
+						draw_index += 16;
+					}
+				}
+				
+				// finish off with one bit at a time; there will be 64 at most
+				if (draw_index < num_draws)
+				{
+					bits = Eidos_rng_uniform_uint64(rng_64);
+					
+					while (draw_index < num_draws)
+					{
+						int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index++);
+						bits >>= 1;
+					}
+				}
 			}
 		}
 		else
@@ -1083,14 +1129,79 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 		
 		if (count0 == 2)
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RDUNIF_1);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_1) num_threads(thread_count)
+			// Special-case a draw from {0, 1} since that is so common
+			if (min_value0 == 0)
 			{
-				Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
-				
+				// Special-case a probability of 0.5 since we can do it more efficiently
+				if (num_draws == 1)
+				{
+					// for a single draw, we use Eidos_RandomBool(); it is faster than drawing a whole uint64_t
+					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+					
+					int_result->set_int_no_check((int64_t)Eidos_RandomBool(rng_state), 0);
+				}
+				else
+				{
+					// for multiple draws, we now draw a whole uint64_t at a time and use all of its bits; this
+					// is similar to Eidos_RandomBool() but avoids the test for availability of each next bit
+					// FIXME PARALLELIZE THIS; see also Eidos_ExecuteFunction_rbinom()
+					EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+					int64_t draw_index = 0;
+					uint64_t bits;
+					
+					// process 64 bits at a time
+					while (draw_index + 63 < num_draws)
+					{
+						bits = Eidos_rng_uniform_uint64(rng_64);
+						
+						for (int iter = 0; iter < 4; ++iter)
+						{
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 0); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 1); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 2); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 3); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 4); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 5); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 6); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 7); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 8); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 9); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 10); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 11); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 12); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 13); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 14); bits >>= 1;
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index + 15); bits >>= 1;
+							draw_index += 16;
+						}
+					}
+					
+					// finish off with one bit at a time; there will be 64 at most
+					if (draw_index < num_draws)
+					{
+						bits = Eidos_rng_uniform_uint64(rng_64);
+						
+						while (draw_index < num_draws)
+						{
+							int_result->set_int_no_check((int64_t)(bits & 0x01ull), draw_index++);
+							bits >>= 1;
+						}
+					}
+				}
+			}
+			else
+			{
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_RDUNIF_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_1) num_threads(thread_count)
+				{
+					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+					
+					// FIXME: For num_draws >> 1, this could be much faster by pre-drawing the uint64_t values needed rather than
+					// FIXME: using Eidos_RandomBool(), avoiding the if() that does for each bit!  see also rbinom()
 #pragma omp for schedule(dynamic, 1024) nowait
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					int_result->set_int_no_check(Eidos_RandomBool(rng_state) + min_value0, draw_index);
+					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+						int_result->set_int_no_check(Eidos_RandomBool(rng_state) + min_value0, draw_index);
+				}
 			}
 		}
 		else
@@ -1966,7 +2077,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	{
 		gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(gsl_ran_gaussian(rng_gsl, sigma0) + mu0));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(gsl_ran_gaussian_ziggurat(rng_gsl, sigma0) + mu0));
 	}
 	
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
@@ -1981,7 +2092,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 			
 #pragma omp for schedule(static) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->set_float_no_check(gsl_ran_gaussian(rng_gsl, sigma0) + mu0, draw_index);
+				float_result->set_float_no_check(gsl_ran_gaussian_ziggurat(rng_gsl, sigma0) + mu0, draw_index);
 		}
 	}
 	else if (sigma_singleton)	// && !mu_singleton
@@ -1996,7 +2107,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 			{
 				double mu = arg_mu->NumericAtIndex_NOCAST((int)draw_index, nullptr);
 				
-				float_result->set_float_no_check(gsl_ran_gaussian(rng_gsl, sigma0) + mu, draw_index);
+				float_result->set_float_no_check(gsl_ran_gaussian_ziggurat(rng_gsl, sigma0) + mu, draw_index);
 			}
 		}
 	}
@@ -2021,7 +2132,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 					continue;
 				}
 				
-				float_result->set_float_no_check(gsl_ran_gaussian(rng_gsl, sigma) + mu, draw_index);
+				float_result->set_float_no_check(gsl_ran_gaussian_ziggurat(rng_gsl, sigma) + mu, draw_index);
 			}
 		}
 		

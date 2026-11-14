@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -210,7 +210,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("cumProduct(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("cumProduct(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
 	EidosAssertScriptRaise("cumProduct(c(-922337203685477581, 10));", 0, "multiplication overflow");
 	EidosAssertScriptRaise("cumProduct(c(922337203685477581, 10));", 0, "multiplication overflow");
@@ -236,7 +236,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("cumSum(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("cumSum(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
 	EidosAssertScriptRaise("cumSum(c(-9223372036854775807, -1, -1));", 0, "addition overflow");
 	EidosAssertScriptRaise("cumSum(c(9223372036854775807, 1, 1));", 0, "addition overflow");
@@ -493,7 +493,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_I("product(5);", 5);
 	EidosAssertScriptSuccess_I("product(-5);", -5);
 	EidosAssertScriptSuccess_I("product(c(-2, 7, -18, 12));", 3024);
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptSuccess_F("product(c(200000000, 3000000000000, 1000));", 6e23);
 #endif
 	EidosAssertScriptSuccess_F("product(5.5);", 5.5);
@@ -1090,10 +1090,10 @@ void _RunFunctionMathTests_s_through_z(void)
 	// sqrt()
 	EidosAssertScriptSuccess_F("sqrt(64);", 8);
 	EidosAssertScriptSuccess_L("isNAN(sqrt(-64));", true);
-	EidosAssertScriptSuccess_FV("sqrt(c(4, -16, 9, 1024));", {2, NAN, 3, 32});
+	EidosAssertScriptSuccess_FV("sqrt(c(4, -16, 9, 1024));", {2, std::numeric_limits<double>::quiet_NaN(), 3, 32});
 	EidosAssertScriptSuccess_F("sqrt(64.0);", 8);
 	EidosAssertScriptSuccess_L("isNAN(sqrt(-64.0));", true);
-	EidosAssertScriptSuccess_FV("sqrt(c(4.0, -16.0, 9.0, 1024.0));", {2, NAN, 3, 32});
+	EidosAssertScriptSuccess_FV("sqrt(c(4.0, -16.0, 9.0, 1024.0));", {2, std::numeric_limits<double>::quiet_NaN(), 3, 32});
 	EidosAssertScriptRaise("sqrt(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("sqrt('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sqrt(_Test(7));", 0, "cannot be type");
@@ -1113,7 +1113,7 @@ void _RunFunctionMathTests_s_through_z(void)
 	EidosAssertScriptSuccess_I("sum(-5);", -5);
 	EidosAssertScriptSuccess_I("sum(c(-2, 7, -18, 12));", -1);
 	EidosAssertScriptSuccess_I("sum(c(200000000, 3000000000000));", 3000200000000);
-#if EIDOS_HAS_OVERFLOW_BUILTINS
+#if EIDOS_HAS_OVERFLOW_BUILTINS()
 	EidosAssertScriptSuccess_F("sum(rep(3000000000000000000, 100));", 3e20);
 #endif
 	EidosAssertScriptSuccess_F("sum(5.5);", 5.5);

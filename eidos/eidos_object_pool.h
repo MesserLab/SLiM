@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 9/28/15.
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -147,13 +147,13 @@ public:
 		}
 	}
 	
-	size_t MemoryUsageForAllNodes(void)
+	size_t MemoryUsageForAllNodes(void) const
 	{
 		size_t usage = 0;
-		_Node *node = &_firstNode;
+		const _Node *node = &_firstNode;
 		while(node)
 		{
-			_Node *nextNode = node->_nextNode;
+			const _Node *nextNode = node->_nextNode;
 			usage += node->_capacity * _itemSize;
 			node = nextNode;
 		}

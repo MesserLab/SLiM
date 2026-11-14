@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -27,6 +27,7 @@
 #include "species.h"
 #include "individual.h"
 #include "subpopulation.h"
+#include "mutation_block.h"
 
 #include <iostream>
 #include <fstream>
@@ -59,12 +60,14 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark Chromosome
 #pragma mark -
 
-Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index, int p_preferred_mutcount) :
+Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, std::string p_name, slim_chromosome_index_t p_index, int p_preferred_mutcount) :
 	id_(p_id),
 	symbol_(p_symbol),
-	name_(),
+	name_(p_name),
 	index_(p_index),
 	type_(p_type),
+	contig_assembly_(),
+	contig_URL_(),			// BCH 8/28/2026: policy change: the contig URL used to point to SLiM's home page, but that doesn't seem correct/useful
 	
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
@@ -192,6 +195,12 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 Chromosome::~Chromosome(void)
 {
 	//EIDOS_ERRSTREAM << "Chromosome::~Chromosome" << std::endl;
+	
+	// Species::~Species() calls RemoveAllSubpopulationInfo() which frees all substitutions
+	// in the population; they should therefore already be gone by the time we get called.
+	// This division of responsibilities is somewhat historical, but also convenient, so.
+	if (substitutions_.size() || treeseq_substitutions_map_.size())
+		std::cerr << "Chromosome::~Chromosome() called with substitutions still present; leaking." << std::endl;
 	
 	if (lookup_mutation_H_)
 		gsl_ran_discrete_free(lookup_mutation_H_);
@@ -391,6 +400,7 @@ void Chromosome::InitializeDraws(void)
 		
 		lookup_recombination_H_ = nullptr;
 		any_recombination_rates_05_ = false;
+		all_recombination_rates_05_ = false;
 		overall_recombination_rate_M_userlevel_ = overall_recombination_rate_F_userlevel_ = overall_recombination_rate_H_userlevel_ = 0.0;
 		overall_recombination_rate_M_ = overall_recombination_rate_F_ = overall_recombination_rate_H_ = 0.0;
 		exp_neg_overall_recombination_rate_M_ = exp_neg_overall_recombination_rate_F_ = exp_neg_overall_recombination_rate_H_ = 1.0;
@@ -447,7 +457,7 @@ void Chromosome::InitializeDraws(void)
 	{
 		last_position_ = 0;
 		
-		for (GenomicElement *genomic_element : genomic_elements_)
+		for (const GenomicElement *genomic_element : genomic_elements_)
 		{ 
 			if (genomic_element->end_position_ > last_position_)
 				last_position_ = genomic_element->end_position_;
@@ -513,6 +523,7 @@ void Chromosome::InitializeDraws(void)
 	
 	// Now remake our recombination map info, which we delegate to _InitializeOneRecombinationMap()
 	any_recombination_rates_05_ = false;
+	all_recombination_rates_05_ = true;
 	
 	if (single_recombination_map_)
 	{
@@ -768,6 +779,8 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, s
 		// keep track of whether any recombination rates in the model are 0.5; if so, gene conversion needs to exclude those positions
 		if (user_rate == 0.5)
 			any_recombination_rates_05_ = true;
+		else
+			all_recombination_rates_05_ = false;
 		
 		reparameterized_rates.emplace_back(-log(1.0 - user_rate));
 		
@@ -1033,15 +1046,15 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
-	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+	// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
+	MutationBlock *mutation_block = mutation_block_;
+	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 	
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
-	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, p_subpop_index, p_tick, -1);
+	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, p_subpop_index, p_tick, -1);
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -1074,10 +1087,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 				// SLiMgui debugging point
 				EidosDebugPointIndent indenter;
 				
@@ -1110,6 +1120,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				EidosValue_Object local_mut(p_mut, gSLiM_Mutation_Class);
 				EidosValue_Int local_originalNuc(p_original_nucleotide);
+				EidosValue_Object local_originalMuts(gSLiM_Mutation_Class);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -1148,10 +1159,53 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 						local_originalNuc.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
 						callback_symbols.InitializeConstantSymbolEntry(gID_originalNuc, EidosValue_SP(&local_originalNuc));
 					}
+					if (mutation_callback->contains_originalMuts_)
+					{
+						// BCH 11/11/2026: The originalMuts pseudo-parameter is a complicated one, but models
+						// that implement their own complex "stacking" behavior, like biallelic models, often
+						// need this information and we can get it faster than they can in Eidos.  We use a
+						// HaplosomeWalker to find mutations at the focal position, and provide them to the
+						// user if they are within the same stacking group.  Note that the same search might
+						// have been done by DrawNewMutationExtended() before calling us; and if multiple
+						// mutation() callbacks are defined for the same mutation type, we might end up doing
+						// it more than once within this call, too.  Those scenarios seem unlikely, though,
+						// and it would be complex to try to cache this information outside and pass it in.
+						
+						slim_position_t position = p_mut->position_;
+						int64_t stack_group = p_mut->mutation_type_ptr_->stack_group_;
+						HaplosomeWalker walker(p_haplosome);
+						
+						walker.MoveToPosition(position);
+						
+						while (!walker.Finished())
+						{
+							Mutation *walker_mut = walker.CurrentMutation();
+							slim_position_t walker_pos = walker_mut->position_;
+							
+							// pos >= position is guaranteed by MoveToPosition()
+							if (walker_pos == position)
+							{
+								if (walker_mut->mutation_type_ptr_->stack_group_ == stack_group)
+								{
+									local_originalMuts.push_object_element_RR(walker_mut);
+								}
+								
+								walker.NextMutation();
+							}
+							else
+							{
+								break;
+							}
+						}
+						
+						local_originalMuts.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_originalMuts, EidosValue_SP(&local_originalMuts));
+					}
 					
 					try
 					{
-						// Interpret the script; the result from the interpretation must be a singleton logical, T if the mutation is accepted, F if it is rejected, or a Mutation object
+						// Interpret the script; the result from the interpretation must be a singleton logical
+						// (T if the mutation is accepted, F if it is rejected), a Mutation object, or NULL.
 						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutation_callback->script_);
 						EidosValue *result = result_SP.get();
 						EidosValueType resultType = result->Type();
@@ -1212,8 +1266,29 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 								mutation_accepted = true;
 							}
 						}
+						else if (resultType == EidosValueType::kValueNULL)
+						{
+							// BCH 11/12/2026: This new return option was added in SLiM 6.  NULL now means "make
+							// this position in the offspring haplosome empty (within the stacking group of the
+							// proposed mutation".  We do not have control over the offspring haplosome here, so
+							// this is implemented by marking the proposed mutation with a special MutationState
+							// value, kEmptyBomb, that "detonates" in enforce_stack_policy_for_addition().  That
+							// method checks for this special value and implements the behavior.
+							
+							// This is not allowed after the proposed mutation has been replaced (by a previous
+							// mutation() callback), for conceptual and code simplicity.  Given that restriction,
+							// the proposed mutation should always be a brand new mutation in state kNewMutation.
+							if (mutation_replaced)
+								EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): mutation() callbacks may not return NULL after the proposed mutation object has been replaced; if you want to replace existing mutations with a new mutation, use stacking policy 'l' rather than returning NULL." << EidosTerminate(mutation_callback->identifier_token_);
+							if (p_mut->state_ != MutationState::kNewMutation)
+								EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): (internal error) the focal mutation, when NULL was returned by a mutation() callback, was not in state kNewMutation; this should never happen." << EidosTerminate(mutation_callback->identifier_token_);
+							
+							p_mut->state_ = MutationState::kEmptyBomb;
+							mutation_accepted = true;
+							break;		// no more callbacks should be called
+						}
 						else
-							EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): mutation() callbacks must provide a return value that is either a singleton logical or a singleton Mutation object." << EidosTerminate(mutation_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): mutation() callbacks must provide a return value that is either a singleton logical value, a singleton Mutation object, or NULL." << EidosTerminate(mutation_callback->identifier_token_);
 					}
 					catch (...)
 					{
@@ -1236,6 +1311,9 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)]);
@@ -1252,20 +1330,36 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	
 	// Determine which parental haplosome the mutation will be atop (so we can get the genetic context for it)
-	bool on_first_haplosome = true;
+	// For HaplosomeCrossed_R05() this method now supports a mode in which the parental haplosome is determined
+	// externally; that is indicated with p_breakpoints_count == -1, in which case parent_haplosome_1 is it.
+	Haplosome *background_haplosome;
 	
-	if (p_breakpoints)
+	if (p_breakpoints_count == -1)
 	{
-		for (int break_index = 0; break_index < p_breakpoints_count; ++break_index)
-		{
-			if (p_breakpoints[break_index] > position)
-				break;
-			
-			on_first_haplosome = !on_first_haplosome;
-		}
+		// no breakpoints vector; the strand at the mutation position has been determined for us, externally
+		if ((parent_haplosome_1 == nullptr) || (parent_haplosome_2 != nullptr) || (p_breakpoints != nullptr))
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawNewMutationExtended): (internal error) unsupported usage pattern." << EidosTerminate();
+		
+		background_haplosome = parent_haplosome_1;
 	}
-	
-	Haplosome *background_haplosome = (on_first_haplosome ? parent_haplosome_1 : parent_haplosome_2);
+	else
+	{
+		// work our way through the breakpoints vector and figure out which strand the mutation is atop
+		bool on_first_haplosome = true;
+		
+		if (p_breakpoints)
+		{
+			for (int break_index = 0; break_index < p_breakpoints_count; ++break_index)
+			{
+				if (p_breakpoints[break_index] > position)
+					break;
+				
+				on_first_haplosome = !on_first_haplosome;
+			}
+		}
+		
+		background_haplosome = (on_first_haplosome ? parent_haplosome_1 : parent_haplosome_2);
+	}
 	
 	// Determine whether the mutation will be created at all, and if it is, what nucleotide to use
 	int8_t original_nucleotide = -1, nucleotide = -1;
@@ -1404,24 +1498,37 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Draw mutation type and selection coefficient, and create the new mutation
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
-	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
-	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
+	MutationBlock *mutation_block = mutation_block_;
+	MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+	Mutation *mutation = mutation_block->mutation_buffer_ + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, p_subpop_index, p_tick, nucleotide);
+	new (mutation) Mutation(mutation_type_ptr, index_, position, p_subpop_index, p_tick, nucleotide);
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
-		Mutation *post_callback_mut = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
+		Mutation *post_callback_mut = ApplyMutationCallbacks(mutation, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
 		// If the callback didn't return the proposed mutation, it will not be used; dispose of it
 		if (post_callback_mut != mutation)
 		{
 			//std::cout << "proposed mutation not used, disposing..." << std::endl;
 			mutation->Release();
+			
+			// BCH 11/9/2026: If a different mutation was returned instead, and it is not presently in the
+			// registry, we need to consider it "added"; it might require changes to our optimization flags.
+			// This happens, for example, if an all-neutral simulation used to have a non-neutral mutation
+			// that got remembered, got lost/fixed, and then got reintroduced again later by a mutation()
+			// callback; see test 157 mutation reintroduction D.slim (and 158, too).  Note that at this
+			// stage we don't know for sure that the returned mutation will actually be added, due to stack
+			// policy, but we assume here that it will be added (at the risk of de-optimizing unnecessarily).
+			// The alternative would be to put the onus of calling NoteMutationAdded() onto every point in
+			// the code that could add a mutation that was returned by a mutation() callback; we don't want
+			// to add that complexity to all of those points for such a rare edge case.
+			if (post_callback_mut && (post_callback_mut->state_ != MutationState::kInRegistry))
+				species_.NoteMutationAdded(post_callback_mut);
 		}
 		
 		// If it returned nullptr, the mutation event was rejected
@@ -1433,13 +1540,12 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		
 		// Otherwise, we will request the addition of whatever mutation it returned (which might be the proposed mutation).
 		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background haplosome.
-		MutationIndex post_callback_mut_index = post_callback_mut->BlockIndex();
+		MutationIndex post_callback_mut_index = mutation_block->IndexInBlock(post_callback_mut);
 		
-		if (new_mut_index != post_callback_mut_index)
-		{
-			//std::cout << "replacing mutation!" << std::endl;
-			new_mut_index = post_callback_mut_index;
-		}
+		//if (new_mut_index != post_callback_mut_index)
+		//	std::cout << "replacing mutation!" << std::endl;
+		
+		new_mut_index = post_callback_mut_index;
 	}
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
@@ -1447,7 +1553,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	return new_mut_index;
 }
 
-// draw a set of uniqued breakpoints according to the "crossover breakpoint" model and run them through recombination() callbacks, returning the final usable set
+// draw a set of uniqued breakpoints according to the "crossover breakpoint" model
 void Chromosome::_DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
 {
 	// BEWARE! Chromosome::DrawDSBBreakpoints() below must be altered in parallel with this method!
@@ -1552,6 +1658,125 @@ void Chromosome::_DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int
 		else if (bp1 == bp2)
 			p_crossovers.resize(1);
 	}
+}
+
+// draw a set of uniqued breakpoints according to the "crossover breakpoint" model
+// this version of _DrawCrossoverBreakpoints() assumes that the recombination rate is exactly
+// 0.5 (unlinked loci), and the number of breakpoints cannot be pre-specified for this version
+// this should be identical in behavior to _DrawCrossoverBreakpoints(), but much more efficient
+void Chromosome::_DrawCrossoverBreakpoints_R05(std::vector<slim_position_t> &p_crossovers) const
+{
+#if DEBUG
+	if (using_DSB_model_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::_DrawCrossoverBreakpoints_R05): (internal error) this method should not be called when the DSB recombination model is being used." << EidosTerminate();
+	if (!all_recombination_rates_05_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::_DrawCrossoverBreakpoints_R05): (internal error) this method should not be called when the recombination rate is != 0.5." << EidosTerminate();
+#endif
+	
+#define DEBUG_BREAKS05	0
+	
+#if DEBUG_BREAKS05
+	// if the debug output code below is enabled, this restores things
+	std::ios old_state(nullptr);
+	old_state.copyfmt(std::cout);
+#endif
+	
+	// reserve space for a breakpoint at every position in [1, last_position_]; position 0 never has a breakpoint
+	// we use resize() here and then resize() again at the end, so that the values placed into the data are kept
+	p_crossovers.resize(last_position_);
+	
+	slim_position_t *crossovers_ptr = p_crossovers.data();
+	
+	EidosRNG_64_bit &rng_64 = EIDOS_64BIT_RNG(omp_get_thread_num());
+	uint64_t bits = 0;
+	int shift = 64;
+	
+	// loop over positions and generate a breakpoint at them with 50% probability
+	slim_position_t pos = 1;
+	
+	if (pos + 3 <= last_position_)
+	{
+		// first we loop over four positions at a time
+		do
+		{
+			if (shift == 64)
+			{
+				bits = Eidos_rng_uniform_uint64(rng_64);
+				shift = 0; //(uint64_t);
+			}
+			
+			uint64_t masked_bits = (bits >> shift) & 0x0Full;
+			
+#if DEBUG_BREAKS05
+			std::cout << "using mask 0x" << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << (0x0Full << shift);
+			std::cout << " (bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << bits;
+			std::cout << ", masked and shifted bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << masked_bits;
+			std::cout << ")" << std::endl;
+#endif
+			
+			switch (masked_bits)
+			{
+				case 0b0000ull: break;
+				case 0b0001ull: *(crossovers_ptr++) = pos + 0; break;
+				case 0b0010ull: *(crossovers_ptr++) = pos + 1; break;
+				case 0b0011ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; break;
+				case 0b0100ull: *(crossovers_ptr++) = pos + 2; break;
+				case 0b0101ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 2; break;
+				case 0b0110ull: *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; break;
+				case 0b0111ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; break;
+				case 0b1000ull: *(crossovers_ptr++) = pos + 3; break;
+				case 0b1001ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1010ull: *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1011ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1100ull: *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1101ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1110ull: *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+				case 0b1111ull: *(crossovers_ptr++) = pos + 0; *(crossovers_ptr++) = pos + 1; *(crossovers_ptr++) = pos + 2; *(crossovers_ptr++) = pos + 3; break;
+			}
+			
+			shift += 4;
+			pos += 4;
+		}
+		while (pos + 3 <= last_position_);
+	}
+	
+	while (pos <= last_position_)
+	{
+		// then we loop over one position at a time to finish
+		if (shift == 64)
+		{
+			bits = Eidos_rng_uniform_uint64(rng_64);
+			shift = 0; //(uint64_t);
+		}
+		
+		uint64_t masked_bits = (bits >> shift) & 0x01ull;
+		
+#if DEBUG_BREAKS05
+		std::cout << "using mask 0x" << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << (0x01ull << shift);
+		std::cout << " (bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << bits;
+		std::cout << ", masked and shifted bits == " << std::hex << std::setw(16) << std::setfill('0') << std::uppercase << masked_bits;
+		std::cout << ")" << std::endl;
+#endif
+		
+		if (masked_bits)
+			*(crossovers_ptr++) = pos;
+		
+		shift++;
+		pos++;
+	}
+	
+	// resize to keep only the breakpoints we collected
+	p_crossovers.resize(crossovers_ptr - p_crossovers.data());
+	
+#if DEBUG_BREAKS05
+	// print the generated breakpoints for debugging
+	std::cout.copyfmt(old_state);
+	
+	std::cout << "   breakpoints:";
+	for (slim_position_t debug_pos : p_crossovers)
+		std::cout << " " << debug_pos;
+	std::cout << std::endl;
+#endif
 }
 
 // draw a set of uniqued breakpoints according to the "double-stranded break" model and run them through recombination() callbacks, returning the final usable set
@@ -1775,7 +2000,7 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 	{
 		parent_sex = p_parent->sex_;
 		parent_subpop = p_parent->subpopulation_;
-		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_, id_);
+		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_, -1, id_, /* p_active_only */ false);
 		
 		// SPECIES CONSISTENCY CHECK
 		if (&p_parent->subpopulation_->species_ != &species_)
@@ -1824,6 +2049,14 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 		// initial copy strand.  If a distinction needs to be made, pass the haplosomes in to this method.
 		p_haplosome1 = p_parent->haplosomes_[first_haplosome_index];
 		p_haplosome2 = p_parent->haplosomes_[last_haplosome_index];
+	}
+	
+	// We now special-case a uniform recombination rate of 0.5 here; we can handle it much faster than below.
+	// FIXME: we don't use this when recombination() callbacks are enabled; there's no good reason for that
+	if (all_recombination_rates_05_ && (p_num_breakpoints == -1) && !using_DSB_model_ && (recombination_callbacks.size() == 0))
+	{
+		_DrawCrossoverBreakpoints_R05(p_crossovers);
+		return;
 	}
 	
 	// Draw the number of breakpoints, if it was not supplied
@@ -1912,7 +2145,7 @@ void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, 
 #endif
 }
 
-size_t Chromosome::MemoryUsageForMutationMaps(void)
+size_t Chromosome::MemoryUsageForMutationMaps(void) const
 {
 	size_t usage = 0;
 	
@@ -1934,7 +2167,7 @@ size_t Chromosome::MemoryUsageForMutationMaps(void)
 	return usage;
 }
 
-size_t Chromosome::MemoryUsageForRecombinationMaps(void)
+size_t Chromosome::MemoryUsageForRecombinationMaps(void) const
 {
 	size_t usage = 0;
 	
@@ -1953,7 +2186,7 @@ size_t Chromosome::MemoryUsageForRecombinationMaps(void)
 	return usage;
 }
 
-size_t Chromosome::MemoryUsageForAncestralSequence(void)
+size_t Chromosome::MemoryUsageForAncestralSequence(void) const
 {
 	size_t usage = 0;
 	
@@ -2046,6 +2279,176 @@ Haplosome *Chromosome::_NewHaplosome_NONNULL(Individual *p_individual)
 	return new (haplosome_pool_.AllocateChunk()) Haplosome(Haplosome::NonNullHaplosome{}, p_individual, this);
 }
 
+void Chromosome::NullHaplosomeObservedForAutosome(void)
+{
+	// this checks for a specific configuration error; see Trait::AccumulateSubstitutionOffset() for discussion.
+	null_haplosome_observed_ = true;
+	
+	if (hemi_sub_accumulation_occurred_ && ((type_ == ChromosomeType::kA_DiploidAutosome) || (type_ == ChromosomeType::kH_HaploidAutosome)))
+		EIDOS_TERMINATION << "ERROR (Chromosome::NullHaplosomeObservedForAutosome): " << "substitution accumulation cannot occur for mutations that (1) are non-neutral for a given trait, and (2) are associated with a given autosome, IF (3) the given trait has a hemizygous dominance coefficient != 1.0, and (4) the given autosome is represented by a null haplosome in any individual.  Under these conditions, the effect of the substitution cannot be reliably represented by the trait's substitution offset(s).  To fix this error, you must change your model so that one of the four preconditions for this error is no longer met, OR -- most commonly -- you must turn off substitution for the mutation type(s) that trigger this problem by setting their convertToSubstitution property to F.  (Note that turning off substitution accumulation is typically NOT a valid fix, since then substitution will cause trait values to omit the trait effects of the mutations that get substituted, unless you compensate for that yourself in script.)" << EidosTerminate();
+}
+
+
+//
+// Mutation registry
+//
+#pragma mark -
+#pragma mark Mutation registry
+#pragma mark -
+
+void Chromosome::MutationRegistryAdd(Mutation *p_mutation, bool p_autogenerated)
+{
+#if DEBUG
+	if ((p_mutation->state_ == MutationState::kInRegistry) ||
+		(p_mutation->state_ == MutationState::kRemovedWithSubstitution) ||
+		(p_mutation->state_ == MutationState::kFixedAndSubstituted))
+		EIDOS_TERMINATION << "ERROR (Population::MutationRegistryAdd): " << "(internal error) cannot add a mutation to the registry that is already in the registry, or has been fixed/substituted." << EidosTerminate();
+	
+	if (p_mutation->state_ == MutationState::kEmptyBomb)
+		EIDOS_TERMINATION << "ERROR (Population::MutationRegistryAdd): " << "(internal error) a mutation in state kEmptyBomb should never be added to the registry." << EidosTerminate();
+#endif
+	
+#if DEBUG_MUTATION_RETAINS
+	std::cout << "Population::MutationRegistryAdd():" << std::endl;
+	std::cout << "   mutation id == " << p_mutation->mutation_id_ << " will be set to state MutationState::kInRegistry" << std::endl;
+#endif
+	
+	// We could be adding a lost mutation back into the registry (from a mutation() callback), in which case it gets a retain
+	// New mutations already have a retain count of 1, which we use (i.e., we take ownership of the mutation passed in to us)
+	if (p_mutation->state_ != MutationState::kNewMutation)
+	{
+		if (p_mutation->retained_by_treeseq_)
+		{
+			// BCH 7/19/2026: If the mutation being added is currently retained by the tree sequence, SLiM
+			// takes over its retain count here and removes it from being retained by the tree sequence.  It
+			// will be cleaned out of the muts_tracked_by_treeseq_ vector in the next mark-and-sweep.
+			p_mutation->retained_by_treeseq_ = false;
+			
+#if DEBUG_MUTATION_RETAINS
+			std::cout << "   was retained by treeseq; transitioned to retained by SLiM" << std::endl;
+#endif
+		}
+		else
+		{
+			// BCH 7/19/2026: The mutation is not retained by the tree sequence, and it is being added to the
+			// registry now so it is also not retained by the SLiM core.  It is not a new mutation, so it doesn't
+			// already have a retain on it from creation.  So that means it is currently retained only by the
+			// user, in an EidosValue, and needs to become retained by SLiM again; it is being "resurrected".
+			// So we slap a retain on it here, taking ownership of it again.
+			p_mutation->Retain();
+			
+#if DEBUG_MUTATION_RETAINS
+			std::cout << "   was unretained; retained by SLiM" << std::endl;
+#endif
+		}
+	}
+	else
+	{
+#if DEBUG_MUTATION_RETAINS
+		std::cout << "   was in state MutationState::kNewMutation; retain taken by SLiM" << std::endl;
+#endif
+	}
+	
+	MutationIndex new_mut_index = mutation_block_->IndexInBlock(p_mutation);
+	mutation_registry_.emplace_back(new_mut_index);
+	
+	p_mutation->state_ = MutationState::kInRegistry;
+	
+	MutationType *muttype = p_mutation->mutation_type_ptr_;
+	
+	if (muttype->LoggingOn())
+	{
+		if (p_autogenerated)
+			muttype->LogMutationInfo_AUTOGENERATED(p_mutation);
+		else
+			muttype->LogMutationInfo_SCRIPTED(p_mutation);
+	}
+	
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+	if (species_.population_.keeping_muttype_registries_)
+	{
+		MutationType *mutation_type_ptr = p_mutation->mutation_type_ptr_;
+		
+		if (mutation_type_ptr->keeping_muttype_registry_)
+		{
+			// This mutation type is also keeping its own private registry, so we need to add to that as well
+			mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
+		}
+	}
+#endif
+}
+
+void Chromosome::CheckMutationRegistry(bool p_check_haplosomes)
+{
+	if ((species_.model_type_ == SLiMModelType::kModelTypeWF) && species_.population_.child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the parent generation in WF models." << EidosTerminate();
+	
+	Mutation *mut_block_ptr = mutation_block_->mutation_buffer_;
+	int registry_size;
+	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+	const MutationIndex *registry_iter_end = registry_iter + registry_size;
+	
+	// First check that we don't have any zombies in our registry.  BCH 10/2/2020 as of SLiM 3.5 we now also check
+	// for registered/segregating mutations that do not have state_ == MutationState::kInRegistry, and we now get
+	// called in DEBUG mode all the time, and in non-DEBUG mode when removeMutations(substitute=T) has been used.
+	for (; registry_iter != registry_iter_end; ++registry_iter)
+	{
+		MutationIndex mut_index = *registry_iter;
+		
+		int8_t mut_state = (mut_block_ptr + mut_index)->state_;
+		
+		if (mut_state != MutationState::kInRegistry)
+			EIDOS_TERMINATION << "ERROR (Chromosome::CheckMutationRegistry): A mutation was found in the mutation registry with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all haplosomes." << EidosTerminate();
+	}
+	
+#if DEBUG_LESS_INTENSIVE
+	// These tests are extremely intensive, so sometimes it's useful to dial them down...
+	if ((community_.Tick() % 10) != 5)
+		return;
+#endif
+	
+	if (p_check_haplosomes)
+	{
+		// then check that we don't have any zombies in any haplosomes
+		int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species_.population_.subpops_)
+		{
+			const Subpopulation *subpop = subpop_pair.second;
+			
+			for (const Individual *ind : subpop->parent_individuals_)
+			{
+				const Haplosome * const *haplosomes = ind->haplosomes_;
+				
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					const Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					int mutrun_count = haplosome->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
+						const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
+						
+						for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
+						{
+							MutationIndex mut_index = *haplosome_iter;
+							
+							int8_t mut_state = (mut_block_ptr + mut_index)->state_;
+							
+							if (mut_state != MutationState::kInRegistry)
+								EIDOS_TERMINATION << "ERROR (Chromosome::CheckMutationRegistry): A mutation was found in a haplosome with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all haplosomes." << EidosTerminate();
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	registry_needs_consistency_check_ = false;
+}
 
 
 //
@@ -2992,6 +3395,14 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_sub_));
 		}
+		case gID_contigAssembly:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(contig_assembly_));
+		}
+		case gID_contigURL:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(contig_URL_));
+		}
 		case gID_geneConversionEnabled:
 		{
 			CheckPartialInitializationForProperty(p_property_id);
@@ -3062,9 +3473,14 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 				Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 			return;
 		}
-		case gID_name:
+		case gID_contigAssembly:
 		{
-			name_ = p_value.StringAtIndex_NOCAST(0, nullptr);
+			contig_assembly_ = p_value.StringAtIndex_NOCAST(0, nullptr);
+			return;
+		}
+		case gID_contigURL:
+		{
+			contig_URL_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			return;
 		}
 		case gID_tag:
@@ -3093,6 +3509,7 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_setHotspotMap:					return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationRate:				return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setRecombinationRate:			return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_interpreter);
+		case gID_createMutation:				return ExecuteMethod_createMutation(p_method_id, p_arguments, p_interpreter);
 		case gID_drawBreakpoints:				return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
@@ -3139,6 +3556,201 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 		return sequence->NucleotidesAsStringVector(start, end);
 	
 	EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
+}
+
+//	*********************	– (object<Mutation>)createMutation(io<MutationType> mutationType, integer position, [io<Subpopulation> originSubpop = 0], [Nis nucleotide = NULL])
+//
+EidosValue_SP Chromosome::ExecuteMethod_createMutation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// Unlike most Chromosome methods, createMutation() can be called at initialize() time.  The work this
+	// method does doesn't depend upon the chromosome being fully initialized; we just need the chromosome
+	// object to be exist, with an assigned index, so that we can associate the new mutations with it.  The
+	// mutation type referenced has to exist; that is up to the user to ensure.  If the user wants to pass
+	// in a subpopulation object it has to exist; but they can pass an integer instead, which is allowed.
+	// HOWEVER, this method cannot be called when the last position of the chromosome is undetermined.
+	if (!extent_immutable_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() cannot be called on a chromosome whose last position has not yet been determined; an explicit length must be given to initializeChromosome(), or this call must be postponed until after initialize() callbacks have finished and the chromosome length has been set." << EidosTerminate();
+	
+	EidosValue *mutationType_value = p_arguments[0].get();
+	EidosValue *position_value = p_arguments[1].get();
+	EidosValue *originSubpop_value = p_arguments[2].get();
+	EidosValue *nucleotide_value = p_arguments[3].get();
+	
+	int muttype_count = mutationType_value->Count();
+	int position_count = position_value->Count();
+	int origin_subpop_count = originSubpop_value->Count();
+	int nucleotide_count = nucleotide_value->Count();
+	
+	bool nucleotide_based = species_.IsNucleotideBased();
+	bool nucleotides_supplied = (nucleotide_value->Type() != EidosValueType::kValueNULL);
+	
+	if (nucleotides_supplied && !nucleotide_based)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): nucleotide is non-NULL, but the species is not nucleotide-based." << EidosTerminate();
+	
+	// check mutation types for validity and get a singleton mutation type
+	MutationType *singleton_mutType = nullptr;
+	
+	for (int muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
+	{
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, muttype_index, &community_, &species_, "createMutation()");		// SPECIES CONSISTENCY CHECK
+		
+		if (nucleotides_supplied && !mutation_type_ptr->nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): nucleotide is non-NULL, but a supplied mutation type is not nucleotide-based." << EidosTerminate();
+		else if (!nucleotides_supplied && mutation_type_ptr->nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): nucleotide is NULL, but a supplied mutation type is nucleotide-based." << EidosTerminate();
+		
+		if (muttype_count == 1)
+			singleton_mutType = mutation_type_ptr;
+	}
+	
+	// check positions for validity and get a singleton position
+	slim_position_t singleton_position = -1;
+	
+	for (int position_index = 0; position_index < position_count; ++position_index)
+	{
+		slim_position_t position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(position_index, nullptr));
+		
+		if (position > last_position_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): position " << position << " is past the end of the chromosome." << EidosTerminate();
+		
+		if (position_count == 1)
+			singleton_position = position;
+	}
+	
+	// check origin subpops for validity and get a singleton origin subpop
+	slim_objectid_t singleton_originSubpop = 0;
+	
+	for (int origin_subpop_index = 0; origin_subpop_index < origin_subpop_count; ++origin_subpop_index)
+	{
+		if (originSubpop_value->Type() == EidosValueType::kValueInt)
+		{
+			if (origin_subpop_count == 0)
+				singleton_originSubpop = SLiMCastToObjectidTypeOrRaise(originSubpop_value->IntAtIndex_NOCAST(origin_subpop_index, nullptr));
+		}
+		else
+		{
+			Subpopulation *origin_subpop = ((Subpopulation *)(originSubpop_value->ObjectElementAtIndex_NOCAST(origin_subpop_index, nullptr)));
+			
+			// SPECIES CONSISTENCY CHECK
+			if (&origin_subpop->species_ != &species_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires that Subpopulation objects supplied for originSubpop must belong to the same species as the target chromosome." << EidosTerminate();
+			
+			if (origin_subpop_count == 0)
+				singleton_originSubpop = origin_subpop->subpopulation_id_;
+		}
+	}
+	
+	// check nucleotides for validity and get a singleton nucleotide
+	int64_t singleton_nucleotide = -1;
+	uint8_t *nucleotide_lookup = NucleotideArray::NucleotideCharToIntLookup();
+	
+	if (nucleotide_value->Type() == EidosValueType::kValueNULL)
+	{
+		// use -1 as the value for all nucleotides
+		nucleotide_count = 1;
+	}
+	else if (nucleotide_value->Type() == EidosValueType::kValueInt)
+	{
+		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		{
+			int64_t nuc_int = nucleotide_value->IntAtIndex_NOCAST(nucleotide_index, nullptr);
+			
+			if ((nuc_int < 0) || (nuc_int > 3))
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+			
+			if (nucleotide_count == 1)
+				singleton_nucleotide = nuc_int;
+		}
+	}
+	else if (nucleotide_value->Type() == EidosValueType::kValueString)
+	{
+		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		{
+			uint8_t nuc = nucleotide_lookup[(unsigned char)(nucleotide_value->StringAtIndex_NOCAST(nucleotide_index, nullptr)[0])];
+			
+			if (nuc > 3)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			
+			if (nucleotide_count == 1)
+				singleton_nucleotide = nuc;
+		}
+	}
+	
+	// now that we've validated all parameters, figure out how many mutations we're making
+	int count_to_add = std::max({muttype_count, position_count, origin_subpop_count, nucleotide_count});
+	
+	if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
+		((position_count != 1) && (position_count != count_to_add)) ||
+		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
+		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() requires that mutationType, position, originSubpop, and nucleotide specify data describing (1) one mutation (to be used for all mutations created), or (2) the same number of mutations as the other argument(s) that describe more than one mutation, or (3) NULL, for nucleotide.  In other words, all arguments must be consistent in supplying data for the same number of mutations to be created, except that it is also legal to specify data for just one mutation (to be used for all mutations created), or to supply NULL to get a default value for all mutations created (for nucleotide)." << EidosTerminate();
+	
+	EidosValue_Object_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+	
+	if (count_to_add == 0)
+		return retval;
+	
+	retval->reserve(count_to_add);
+	
+	// construct all of the mutations
+	MutationBlock *mutation_block = species_.SpeciesMutationBlock();
+	MutationType *mutation_type_ptr = singleton_mutType;
+	slim_position_t position = singleton_position;
+	slim_objectid_t origin_subpop_id = singleton_originSubpop;
+	int64_t nucleotide = singleton_nucleotide;
+	slim_tick_t origin_tick = ((community_.Tick() > 0) ? community_.Tick() : -1);
+	
+	for (int mut_parameter_index = 0; mut_parameter_index < count_to_add; ++mut_parameter_index)
+	{
+		// get non-singleton parameter values; validity was already checked above
+		if (position_count != 1)
+			position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(mut_parameter_index, nullptr));
+		
+		if (muttype_count != 1)
+			mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, mut_parameter_index, &community_, &species_, "createMutation()");		// SPECIES CONSISTENCY CHECK
+		
+		if (origin_subpop_count != 1)
+		{
+			if (originSubpop_value->Type() == EidosValueType::kValueInt)
+				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(originSubpop_value->IntAtIndex_NOCAST(mut_parameter_index, nullptr));
+			else
+				origin_subpop_id = ((Subpopulation *)(originSubpop_value->ObjectElementAtIndex_NOCAST(mut_parameter_index, nullptr)))->subpopulation_id_;
+		}
+		
+		if (nucleotide_count != 1)
+		{
+			if (nucleotide_value->Type() == EidosValueType::kValueInt)
+				nucleotide = nucleotide_value->IntAtIndex_NOCAST(mut_parameter_index, nullptr);
+			else
+				nucleotide = nucleotide_lookup[(unsigned char)(nucleotide_value->StringAtIndex_NOCAST(mut_parameter_index, nullptr)[0])];
+		}
+		
+		// BEWARE: NewMutationFromBlock() invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
+		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
+		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
+		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, index_, position, origin_subpop_id, origin_tick, (int8_t)nucleotide);
+		
+		// The constructor used above is normally used for autogenerated mutations, and calls NoteAutogeneratedMutation().
+		// However, this mutation is not autogenerated, and -- the key point -- might belong to a mutation type that is
+		// not in use by autogenerated mutations, and has thus not been taken into account in the optimization flags for
+		// the simulation.  We nevertheless do NOT call NoteMutationAdded() to notify the simulation about this here;
+		// that method will be called if the mutation is ever actually added, in addMutations() or a mutation() callback.
+		// There would actually be no point in called NoteMutationAdded() at this stage, because the optimization flags
+		// might get re-evaluated before this mutation ever gets added.
+		//species_.NoteMutationAdded(new_mut);
+		
+		retval->push_object_element_no_check_already_retained(new_mut);   // the EidosValue takes over the retain here
+		
+		// The new mutation gets constructed in state kNewMutation, with a retain on it from its creation; normally
+		// that retain gets taken over by the registry.  But here we are not adding the new mutation to the registry,
+		// so we mark it as kLostAndRemoved and give its new-mutation retain to the EidosValue, above.  That gives
+		// it a state that MutationRegistryAdd() will understand when it is eventually added downstream, while also
+		// allowing it to be freed if it does not stay retained by an EidosValue.
+		new_mut->state_ = MutationState::kLostAndRemoved;
+	}
+	
+	return retval;
 }
 
 //	*********************	– (integer)drawBreakpoints([No<Individual>$ parent = NULL], [Ni$ n = NULL])
@@ -3755,10 +4367,10 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 #pragma mark Chromosome_Class
 #pragma mark -
 
-EidosClass *gSLiM_Chromosome_Class = nullptr;
+Chromosome_Class *gSLiM_Chromosome_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -3766,7 +4378,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,										true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
@@ -3786,7 +4398,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRates,							true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesM,							true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesF,							true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,									false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,									true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateM,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateF,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
@@ -3809,6 +4421,8 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,									false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_type,								true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,						false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_contigAssembly,							false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_contigURL,								false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -3827,6 +4441,7 @@ const std::vector<EidosMethodSignature_CSP> *Chromosome_Class::Methods(void) con
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddIntObject_O("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValue_Integer0)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_genomicElementForPosition, kEidosValueMaskObject, gSLiM_GenomicElement_Class))->AddInt("positions"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hasGenomicElementForPosition, kEidosValueMaskLogical))->AddInt("positions"));

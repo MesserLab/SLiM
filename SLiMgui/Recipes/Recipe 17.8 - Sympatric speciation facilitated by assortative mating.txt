@@ -8,13 +8,13 @@ initialize() {
 	defineConstant("NORM", dnorm(0.0, mean=0, sd=SIGMA_C));
 	
 	initializeSLiMOptions(dimensionality="x");
-	initializeMutationRate(1e-6);
-	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral
-	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL
-	m2.convertToSubstitution = F;
-	
+	initializeTrait("quant", "a");
+	initializeMutationType("m1", NAN, "f", 0.0);        // neutral
+	initializeMutationType("m2", NAN, "n", 0.0, 1.0);   // QTL
 	initializeGenomicElementType("g1", c(m1, m2), c(1, 0.01));
+	
 	initializeGenomicElement(g1, 0, 1e5 - 1);
+	initializeMutationRate(1e-6);
 	initializeRecombinationRate(1e-8);
 	
 	// competition
@@ -25,7 +25,6 @@ initialize() {
 	initializeInteractionType(2, "x", reciprocal=T, maxDistance=SIGMA_M * 3);
 	i2.setInteractionFunction("n", 1.0, SIGMA_M);
 }
-mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", 500);
 	p1.setSpatialBounds(c(0.0, 10.0));
@@ -34,7 +33,8 @@ mutationEffect(m2) { return 1.0; }
 	inds = sim.subpopulations.individuals;
 	
 	// construct phenotypes and fitness effects from QTLs
-	phenotypes = inds.sumOfMutationsOfType(m2);
+	sim.demandPhenotype(NULL, "quant");
+	phenotypes = inds.quant;
 	inds.fitnessScaling = 1.0 + dnorm(phenotypes, OPTIMUM, SIGMA_K);
 	inds.x = phenotypes;
 	

@@ -1,0 +1,32 @@
+initialize()
+{
+    setSeed(37);
+    initializeSLiMOptions(keepPedigrees=T);
+    initializeTreeSeq(timeUnit="generations");
+	source("init.slim");
+	 initializeSex();
+    defineConstant("L", 1);
+    initializeChromosome(1, L, "A", "A");
+    initializeMutationRate(0.99);
+    initializeMutationType("m1", NAN, "f", 0.01);
+    initializeMutationType("m2", NAN, "f", 0.01);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, L-1);
+    initializeRecombinationRate(1e-2);
+}
+
+1 early() { 
+    sim.addSubpop("p1", 7);
+}
+
+1 late() {
+   hap = sample(p1.haplosomes, 1);
+   loc = sample(0:(L-1), 1);
+   hap.addNewDrawnMutation(m2, loc);
+}
+
+30 late() {
+    saveTreeSeqTraits();
+    catn("Done.");
+    sim.simulationFinished();
+}

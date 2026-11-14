@@ -1,0 +1,46 @@
+// Keywords: mutation() callbacks, mutation stacking, stacking groups, unlinked loci, biallelic model, triallelic model
+
+initialize()
+{
+	defineConstant("L", 200);    // number of biallelic loci
+	defineConstant("A", 0.01);   // allelic effect size a (alleles are +/- A)
+	
+	// baseline offset -L*A*2 makes empty sites have effect -A (x2 for diploidy)
+	initializeTrait("trait", "a", baselineOffset=-A*L*2, individualOffsetSD=1.0,
+		substitutionAccumulation=F);
+	
+	// to have an effect size of +A, m1 must use an actual effect size of 2*A
+	initializeMutationType("m1", NAN, "f", 2*A);
+	m1.convertToSubstitution = F;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeMutationRate(1e-5);
+	initializeRecombinationRate(0.5);
+}
+mutation(m1)
+{
+	if (size(originalMuts))
+		return NULL;
+	return MUTS[mut.position];
+}
+1 late()
+{
+	sim.addSubpop("p1", 5000);
+	
+	// create a set of canonical mutations that we will use throughout
+	canonical_muts = sim.chromosome.createMutation(m1, seqLen(L));
+	defineConstant("MUTS", canonical_muts);
+	
+	// set the initial genetic state of each haplosome randomly
+	for (h in p1.individuals.haplosomes)
+		h.addMutations(MUTS[runif(L) < 0.5]);
+}
+1:1000 late()
+{
+	sim.demandPhenotype(NULL, "trait");
+	
+	inds = p1.individuals;
+	inds.fitnessScaling = dnorm(inds.trait, 2.0, 1.0);
+	catn(community.tick + " : " + mean(inds.trait));
+}
