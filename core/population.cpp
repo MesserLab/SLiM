@@ -7251,11 +7251,15 @@ void Population::MaintainMutationRegistry(void)
 	// also check for any mutations that are in the registry but do not have the state MutationState::kInRegistry
 	for (Chromosome *chromosome : species_.Chromosomes())
 	{
-#if DEBUG
-		chromosome->CheckMutationRegistry(true);	// full check
-#else
 		if (chromosome->MutationRegistryNeedsCheck())
 			chromosome->CheckMutationRegistry(false);	// check registry but not haplosomes
+		
+#if DEBUG
+#if !SLIM_SUPER_DEBUG
+		if (community_.Tick() % 11 != 0)
+			return;
+#endif
+		chromosome->CheckMutationRegistry(true);	// full check
 #endif
 	}
 	
@@ -8397,6 +8401,11 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 #if DEBUG
 void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count, std::string caller_name)
 {
+#if !SLIM_SUPER_DEBUG
+	if (community_.Tick() % 11 != 0)
+		return;
+#endif
+	
 	// This does a DEBUG check on the results of mutation reference tallying, done in several spots.
 	// It should be called immediately after tallying, and passed a vector of the haplosomes tallied across.
 	const MutationBlock *mutation_block = mutation_block_;

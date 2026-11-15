@@ -8633,6 +8633,11 @@ void Individual_Class::DemandPhenotype_INDIVIDUALS(Species *species, Individual 
 	if (gSLiM_disable_trait_crosschecks)
 		return;
 	
+#if !SLIM_SUPER_DEBUG
+	if (species->community_.Tick() % 11 != 0)
+		return;
+#endif
+	
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
 		Individual *ind = individuals_buffer[individual_index];
@@ -9352,6 +9357,11 @@ void Individual_Class::DemandPhenotype_SUBPOP(Species *species, Subpopulation *s
 	
 	if (gSLiM_disable_trait_crosschecks)
 		return;
+	
+#if !SLIM_SUPER_DEBUG
+	if (species->community_.Tick() % 11 != 0)
+		return;
+#endif
 	
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{

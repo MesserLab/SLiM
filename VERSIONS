@@ -268,6 +268,7 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 		add new mutation() callback pseudo-parameter `originalMuts`, providing the existing mutations in the parental haplosome (within the stack group of the proposed mutation)
 		add a new mutation() callback return value of NULL, meaning "remove existing mutations (within the stack group of the proposed mutation)"
 		add recipe 13.17, demonstrating how to construct a biallelic model using these tools
+	add a SLIM_SUPER_DEBUG flag to get full runtime debug tests, and cut the overhead of the most intensive debug tests for DEBUG runs that do not define that flag; they were getting to be too much
 
 
 version 5.2 (Eidos version 4.2):

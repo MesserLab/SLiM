@@ -779,6 +779,11 @@ void Species::CrosscheckAllTraitValues(void) const
 	if (phenotypes_changed_directly_ || gSLiM_disable_trait_crosschecks)
 		return;
 	
+#if !SLIM_SUPER_DEBUG
+	if (community_.Tick() % 11 != 0)
+		return;
+#endif
+	
 	slim_trait_index_t trait_count = TraitCount();
 	__attribute__ ((unused)) int64_t invalidated_count = 0;
 	__attribute__ ((unused)) int64_t correct_count = 0;

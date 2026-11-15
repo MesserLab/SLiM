@@ -505,6 +505,8 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #define DEBUG_LESS_INTENSIVE		0		// decrease the frequency of some very intensive DEBUG checks
 #define DEBUG_MUTATION_RETAINS		0		// debug the dynamics of mutations "retained by the tree sequence"
 
+#define SLIM_SUPER_DEBUG			0		// run additional time-consuming debug checks
+
 #if DEBUG_TRAIT_DEMAND()
 #warning DEBUG_TRAIT_DEMAND() enabled!
 #endif
