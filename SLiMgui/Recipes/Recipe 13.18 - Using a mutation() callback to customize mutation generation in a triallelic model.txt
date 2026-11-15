@@ -1,0 +1,53 @@
+// Keywords: mutation() callbacks, mutation stacking, stacking groups, unlinked loci, triallelic model
+
+initialize()
+{
+	defineConstant("L", 200);    // number of triallelic loci
+	defineConstant("A", 0.01);   // allelic effect size a (alleles are -A/0/+A)
+	
+	initializeTrait("trait", "a", individualOffsetSD=1.0,
+		substitutionAccumulation=F);
+	
+	initializeMutationType("m1", NAN, "f", -A);
+	initializeMutationType("m2", NAN, "f", +A);
+	c(m1,m2).convertToSubstitution = F;
+	c(m1,m2).mutationStackGroup = 1;
+	c(m1,m2).color = c("red", "cornflowerblue");
+	
+	// new proposed mutations will be m1; mutation(m1) will handle the rest
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeMutationRate(1e-5);
+	initializeRecombinationRate(0.5);
+}
+mutation(m1)
+{
+	if (size(originalMuts))
+		return NULL;
+	return (rdunif(1) == 0) ? MMINUS[mut.position] else MPLUS[mut.position];
+}
+1 late()
+{
+	sim.addSubpop("p1", 5000);
+	
+	// create sets of canonical mutations that we will use throughout
+	chr = sim.chromosome;
+	defineConstant("MMINUS", chr.createMutation(m1, seqLen(L)));
+	defineConstant("MPLUS", chr.createMutation(m2, seqLen(L)));
+	
+	// set the initial genetic state of each haplosome randomly
+	for (h in p1.individuals.haplosomes)
+	{
+		plus_minus = ifelse(rdunif(L) == 0, MMINUS, MPLUS);
+		half_empty = plus_minus[rdunif(L) == 1];
+		h.addMutations(half_empty);
+	}
+}
+1:1000 late()
+{
+	sim.demandPhenotype(NULL, "trait");
+	
+	inds = p1.individuals;
+	inds.fitnessScaling = dnorm(inds.trait, 2.0, 1.0);
+	catn(community.tick + " : " + mean(inds.trait));
+}

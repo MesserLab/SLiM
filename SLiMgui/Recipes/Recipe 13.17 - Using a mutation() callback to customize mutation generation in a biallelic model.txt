@@ -1,9 +1,9 @@
-// Keywords: mutation() callbacks, mutation stacking, stacking groups, unlinked loci, biallelic model, triallelic model
+// Keywords: mutation() callbacks, mutation stacking, stacking groups, unlinked loci, biallelic model
 
 initialize()
 {
 	defineConstant("L", 200);    // number of biallelic loci
-	defineConstant("A", 0.01);   // allelic effect size a (alleles are +/- A)
+	defineConstant("A", 0.01);   // allelic effect size a (alleles are -A/+A)
 	
 	// baseline offset -L*A*2 makes empty sites have effect -A (x2 for diploidy)
 	initializeTrait("trait", "a", baselineOffset=-A*L*2, individualOffsetSD=1.0,
