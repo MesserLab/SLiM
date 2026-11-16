@@ -94,20 +94,19 @@
         <file>recipes/Recipe 13.5 - Baseline offsets, individual offsets, and environmental noise.txt</file>
         <file>recipes/Recipe 13.6 - Heritability.txt</file>
         <file>recipes/Recipe 13.7 - Phenotypic plasticity.txt</file>
-        <file>recipes/Recipe 13.8 - A model of discrete QTL effects across multiple chromosomes.txt</file>
-        <file>recipes/Recipe 13.9 - A model with two quantitative traits and pleiotropy.txt</file>
-        <file>recipes/Recipe 13.10 - A variety of fitness functions I (stabilizing selection).txt</file>
-        <file>recipes/Recipe 13.10 - A variety of fitness functions II (directional selection).txt</file>
-        <file>recipes/Recipe 13.10 - A variety of fitness functions III (disruptive selection).txt</file>
-        <file>recipes/Recipe 13.10 - A variety of fitness functions IV (truncation selection).txt</file>
-        <file>recipes/Recipe 13.11 - Negative frequency-dependence on a quantitative trait.txt</file>
-        <file>recipes/Recipe 13.12 - Mixing additive and multiplicative traits.txt</file>
-        <file>recipes/Recipe 13.13 - Modeling probability or risk with a logistic trait.txt</file>
-        <file>recipes/Recipe 13.14 - A sexually dimorphic quantitative trait (differential expression).txt</file>
-        <file>recipes/Recipe 13.15 - A sexually dimorphic quantitative trait (differential selection).txt</file>
-        <file>recipes/Recipe 13.16 - Accumulation of mutational effects in a Continuum-of-Alleles model.txt</file>
-        <file>recipes/Recipe 13.17 - Using a mutation() callback to customize mutation generation in a biallelic model.txt</file>
-        <file>recipes/Recipe 13.18 - Using a mutation() callback to customize mutation generation in a triallelic model.txt</file>
+        <file>recipes/Recipe 13.8 - A model with two quantitative traits and pleiotropy.txt</file>
+        <file>recipes/Recipe 13.9 - A variety of fitness functions I (stabilizing selection).txt</file>
+        <file>recipes/Recipe 13.9 - A variety of fitness functions II (directional selection).txt</file>
+        <file>recipes/Recipe 13.9 - A variety of fitness functions III (disruptive selection).txt</file>
+        <file>recipes/Recipe 13.9 - A variety of fitness functions IV (truncation selection).txt</file>
+        <file>recipes/Recipe 13.10 - Negative frequency-dependence on a quantitative trait.txt</file>
+        <file>recipes/Recipe 13.11 - Mixing additive and multiplicative traits.txt</file>
+        <file>recipes/Recipe 13.12 - Modeling probability or risk with a logistic trait.txt</file>
+        <file>recipes/Recipe 13.13 - A sexually dimorphic quantitative trait (differential expression).txt</file>
+        <file>recipes/Recipe 13.14 - A sexually dimorphic quantitative trait (differential selection).txt</file>
+        <file>recipes/Recipe 13.15 - Accumulation of mutational effects in a Continuum-of-Alleles model.txt</file>
+        <file>recipes/Recipe 13.16 - Using a mutation() callback to customize mutation generation in a biallelic model.txt</file>
+        <file>recipes/Recipe 13.17 - Using a mutation() callback to customize mutation generation in a triallelic model.txt</file>
         <file>recipes/Recipe 14.1 - Relatedness, inbreeding, and heterozygosity.txt</file>
         <file>recipes/Recipe 14.2 - Mortality-based fitness I.txt</file>
         <file>recipes/Recipe 14.2 - Mortality-based fitness II.txt</file>
@@ -124,11 +123,8 @@
         <file>recipes/Recipe 14.11 - Modeling opposite ends of a chromosome I.txt</file>
         <file>recipes/Recipe 14.11 - Modeling opposite ends of a chromosome II.txt</file>
         <file>recipes/Recipe 14.12 - Visualizing ancestry and admixture with mutation() callbacks.txt</file>
-        <file>recipes/Recipe 14.13 - Modeling biallelic loci with a mutation() callback I.txt</file>
-        <file>recipes/Recipe 14.13 - Modeling biallelic loci with a mutation() callback II.txt</file>
-        <file>recipes/Recipe 14.14 - Modeling biallelic loci in script.txt</file>
-        <file>recipes/Recipe 14.15 - Using runs of homozygosity (ROH) to track inbreeding.txt</file>
-        <file>recipes/Recipe 14.16 - Visualizing linkage disequilibrium.txt</file>
+        <file>recipes/Recipe 14.13 - Using runs of homozygosity (ROH) to track inbreeding.txt</file>
+        <file>recipes/Recipe 14.14 - Visualizing linkage disequilibrium.txt</file>
         <file>recipes/Recipe 15.1 - A minimal nonWF model.txt</file>
         <file>recipes/Recipe 15.2 - Age structure (a life table model).txt</file>
         <file>recipes/Recipe 15.4 - Monogamous mating and variation in litter size.txt</file>
