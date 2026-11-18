@@ -3,7 +3,7 @@
 initialize()
 {
 	defineConstant("L", 200);    // number of biallelic loci
-	defineConstant("A", 0.01);   // allelic effect size a (alleles are -A/+A)
+	defineConstant("A", 0.01);   // allelic effect size A (alleles are -A/+A)
 	
 	// baseline offset -L*A*2 makes empty sites have effect -A (x2 for diploidy)
 	initializeTrait("trait", "a", baselineOffset=-A*L*2, individualOffsetSD=1.0,
@@ -12,6 +12,7 @@ initialize()
 	// to have an effect size of +A, m1 must use an actual effect size of 2*A
 	initializeMutationType("m1", NAN, "f", 2*A);
 	m1.convertToSubstitution = F;
+	m1.mutationStackPolicy = "l";
 	
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, L-1);

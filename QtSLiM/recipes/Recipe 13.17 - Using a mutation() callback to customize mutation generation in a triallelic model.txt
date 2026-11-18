@@ -3,7 +3,7 @@
 initialize()
 {
 	defineConstant("L", 200);    // number of triallelic loci
-	defineConstant("A", 0.01);   // allelic effect size a (alleles are -A/0/+A)
+	defineConstant("A", 0.01);   // allelic effect size A (alleles are -A/0/+A)
 	
 	initializeTrait("trait", "a", individualOffsetSD=1.0,
 		substitutionAccumulation=F);
@@ -12,6 +12,7 @@ initialize()
 	initializeMutationType("m2", NAN, "f", +A);
 	c(m1,m2).convertToSubstitution = F;
 	c(m1,m2).mutationStackGroup = 1;
+	c(m1,m2).mutationStackPolicy = "l";
 	c(m1,m2).color = c("red", "cornflowerblue");
 	
 	// new proposed mutations will be m1; mutation(m1) will handle the rest

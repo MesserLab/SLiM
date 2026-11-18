@@ -15,7 +15,10 @@ initialize() {
 	defineConstant("VA_EXP", expectedVA(N_LOCI, S_VAR, E_VAR, M_RATE, M_VAR, N));
 	
 	initializeSex();
-	initializeTrait("trait1", "additive", individualOffsetSD=E_SD);
+	
+	t = initializeTrait("trait1", "additive", individualOffsetSD=E_SD);
+	t.mutationEffectPalette = Palette(c(-4, 4), c("red", "yellow", "green3"));
+	
 	initializeChromosome(1, type="A");
 	initializeMutationType("m1", NAN, "n", 0.0, M_SD);
 	m1.mutationStackPolicy = "a";
