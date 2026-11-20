@@ -140,10 +140,10 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 	}
 	
 	ClearErrorContext();
+	}
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (EidosAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
-	}
 	
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
@@ -276,10 +276,10 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 	}
 	
 	ClearErrorContext();
+	}
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (EidosAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
-	}
 	
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
