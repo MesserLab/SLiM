@@ -1346,8 +1346,8 @@ void Eidos_WarmUp(void)
 			
 			uint8_t *flag_addr_string_keys = &((dict_state_ptr_string)->keys_are_integers_);
 			uint8_t *flag_addr_integer_keys = &((dict_state_ptr_integer)->keys_are_integers_);
-			uint8_t *flag_addr_string_contains = &((dict_state_ptr_string)->contains_non_retain_release_objects_);
-			uint8_t *flag_addr_integer_contains = &((dict_state_ptr_integer)->contains_non_retain_release_objects_);
+			uint8_t *flag_addr_string_contains = &((dict_state_ptr_string)->could_contain_non_retain_release_objects_);
+			uint8_t *flag_addr_integer_contains = &((dict_state_ptr_integer)->could_contain_non_retain_release_objects_);
 			
 			size_t string_keys_offset = flag_addr_string_keys - (uint8_t *)dict_state_ptr_string;
 			size_t integer_keys_offset = flag_addr_integer_keys - (uint8_t *)dict_state_ptr_integer;
@@ -2054,9 +2054,6 @@ void CheckLongTermBoundary()
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter != 0)
 		violation = true;
-	
-	// See EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized() for a very obscure
-	// and very unlikely code path that would cause this error to occur... erroneously.  :->
 	
 	if (violation)
 		EIDOS_TERMINATION << "ERROR (CheckLongTermBoundary): A long-term reference has been kept to an Eidos object that is not under retain-release memory management.  For example, a SLiM Individual or Subpopulation may have been placed in a global dictionary.  This is illegal; only objects that are under retain-release memory management can be kept long-term." << EidosTerminate(nullptr);

@@ -46,9 +46,9 @@ EidosDictionaryUnretained::~EidosDictionaryUnretained(void)
 	// maintain the global counter of dictionaries that contain non-retain-released objects
 	if (state_ptr_)
 	{
-		uint8_t contains = ((EidosDictionaryState_StringKeys *)state_ptr_)->contains_non_retain_release_objects_;
+		uint8_t could_contain = ((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_;
 		
-		if (contains)
+		if (could_contain)
 		{
 #pragma omp critical (EidosDictionary_Internal)
 			{
@@ -57,7 +57,7 @@ EidosDictionaryUnretained::~EidosDictionaryUnretained(void)
 				if (gEidos_DictionaryNonRetainReleaseReferenceCounter < 0)
 					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::~EidosDictionaryUnretained): (internal error) gEidos_DictionaryNonRetainReleaseReferenceCounter is negative" << EidosTerminate(nullptr);
 				
-				//std::cerr << "=== dictionary " << this << " INC   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+				//std::cerr << "=== dictionary " << this << " DEC (~EidosDictionaryUnretained)   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
 			}
 		}
 	}
@@ -149,31 +149,41 @@ void EidosDictionaryUnretained::AllKeysRemoved(void)
 
 void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_name)
 {
-	// Here we keep track of whether or not we contain any non-retain-release objects
-	// Note that we don't need to scan down into contained Dictionary objects;
-	// we retain them, and they will do their own checks of their own contents
+#if DEBUG
+	// Here we check our flag for whether or not we could contain any non-retain-release objects.
+	// Note that this test is very expensive when there is a dictionary that contains a
+	// large number of entries, but does not contain any non-retain-release objects!
 	if (!state_ptr_)
 		return;
 	
-	uint8_t old_contains = ((EidosDictionaryState_StringKeys *)state_ptr_)->contains_non_retain_release_objects_;
-	uint8_t new_contains = false;
+	uint8_t could_contain = ((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_;
 	
 	if (KeysAreStrings())
 	{
 		const EidosDictionaryHashTable_StringKeys *dict_symbols = DictionarySymbols_StringKeys();
 		
-		for (const auto &iter : *dict_symbols)
+		// It is an error for an empty dictionary to state that it could contain non-RR objects
+		if ((dict_symbols->size() == 0) && could_contain)
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ContentsChanged): (internal error) empty dictionary has could_contain_non_retain_release_objects_ set to true." << EidosTerminate(nullptr);
+		
+		// It is an error for a dictionary to state that it does not contain non-RR objects when it does
+		if (!could_contain)
 		{
-			EidosValue *value = iter.second.get();
-			
-			if ((value->Type() == EidosValueType::kValueObject) && (value->Count() > 0))
+			for (const auto &iter : *dict_symbols)
 			{
-				const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+				EidosValue *value = iter.second.get();
 				
-				if (!value_class->UsesRetainRelease())
+				if (value->Type() == EidosValueType::kValueObject)
 				{
-					new_contains = true;
-					break;
+					// BCH 11/19/2026: Note that we do not test (value->Count() > 0).  That is because SLiM,
+					// rather naughtily, puts empty object vectors into a dictionary and then fills them with
+					// objects afterwards; see InteractionType::ExecuteMethod_nearestNeighbors().  Rather than
+					// jump through hoops to deal with that edge case, we just consider an empty object vector
+					// of non-RR class to still bump the flag.
+					const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+					
+					if (!value_class->UsesRetainRelease())
+						EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ContentsChanged): (internal error) string-keyed dictionary has could_contain_non_retain_release_objects_ set to false, but contains a non-RR object EidosValue." << EidosTerminate(nullptr);
 				}
 			}
 		}
@@ -182,46 +192,33 @@ void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_n
 	{
 		const EidosDictionaryHashTable_IntegerKeys *dict_symbols = DictionarySymbols_IntegerKeys();
 		
-		for (const auto &iter : *dict_symbols)
+		// It is an error for an empty dictionary to state that it could contain non-RR objects
+		if ((dict_symbols->size() == 0) && could_contain)
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ContentsChanged): (internal error) empty dictionary has could_contain_non_retain_release_objects_ set to true." << EidosTerminate(nullptr);
+		
+		// It is an error for a dictionary to state that it does not contain non-RR objects when it does
+		if (!could_contain)
 		{
-			EidosValue *value = iter.second.get();
-			
-			if ((value->Type() == EidosValueType::kValueObject) && (value->Count() > 0))
+			for (const auto &iter : *dict_symbols)
 			{
-				const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+				EidosValue *value = iter.second.get();
 				
-				if (!value_class->UsesRetainRelease())
+				if (value->Type() == EidosValueType::kValueObject)
 				{
-					new_contains = true;
-					break;
+					// BCH 11/19/2026: Note that we do not test (value->Count() > 0).  That is because SLiM,
+					// rather naughtily, puts empty object vectors into a dictionary and then fills them with
+					// objects afterwards; see InteractionType::ExecuteMethod_nearestNeighbors().  Rather than
+					// jump through hoops to deal with that edge case, we just consider an empty object vector
+					// of non-RR class to still bump the flag.
+					const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+					
+					if (!value_class->UsesRetainRelease())
+						EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ContentsChanged): (internal error) integer-keyed dictionary has could_contain_non_retain_release_objects_ set to false, but contains a non-RR object EidosValue." << EidosTerminate(nullptr);
 				}
 			}
 		}
 	}
-	
-	if (old_contains != new_contains)
-	{
-		((EidosDictionaryState_StringKeys *)state_ptr_)->contains_non_retain_release_objects_ = new_contains;
-		
-#pragma omp critical (EidosDictionary_Internal)
-		{
-			if (new_contains)
-			{
-				gEidos_DictionaryNonRetainReleaseReferenceCounter++;
-				
-				//std::cerr << "=== dictionary " << this << " INC   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
-			}
-			else
-			{
-				gEidos_DictionaryNonRetainReleaseReferenceCounter--;
-				
-				if (gEidos_DictionaryNonRetainReleaseReferenceCounter < 0)
-					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ContentsChanged): (internal error) gEidos_DictionaryNonRetainReleaseReferenceCounter is negative in operation " << p_operation_name << EidosTerminate(nullptr);
-				
-				//std::cerr << "   === dictionary " << this << " DEC   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
-			}
-		}
-	}
+#endif
 }
 
 std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
@@ -613,7 +610,7 @@ void EidosDictionaryUnretained::SetKeyValue_StringKeys(const std::string &key, E
 	
 	// BCH 2/12/2023: We now allow objects to be put into dictionaries whether they use retain-release or not,
 	// so we no longer check for that here.  See EidosDictionaryUnretained::ContentsChanged() and search for
-	// contains_non_retain_release_objects_ and gEidos_DictionaryNonRetainReleaseReferenceCounter.
+	// could_contain_non_retain_release_objects_ and gEidos_DictionaryNonRetainReleaseReferenceCounter.
 	
 	if (value_type == EidosValueType::kValueNULL)
 	{
@@ -621,6 +618,7 @@ void EidosDictionaryUnretained::SetKeyValue_StringKeys(const std::string &key, E
 		if (state_ptr)
 		{
 			state_ptr->dictionary_symbols_.erase(key);
+			UpdateCouldContainNonRRObjectFlag_Added(value.get());
 			KeyRemovedFromDictionary_StringKeys(key);
 		}
 	}
@@ -638,6 +636,7 @@ void EidosDictionaryUnretained::SetKeyValue_StringKeys(const std::string &key, E
 			value = value->CopyValues();
 		
 		state_ptr->dictionary_symbols_[key] = value;
+		UpdateCouldContainNonRRObjectFlag_Added(value.get());
 		
 		// Add it to our sorted keys
 		KeyAddedToDictionary_StringKeys(key);
@@ -653,7 +652,7 @@ void EidosDictionaryUnretained::SetKeyValue_IntegerKeys(int64_t key, EidosValue_
 	
 	// BCH 2/12/2023: We now allow objects to be put into dictionaries whether they use retain-release or not,
 	// so we no longer check for that here.  See EidosDictionaryUnretained::ContentsChanged() and search for
-	// contains_non_retain_release_objects_ and gEidos_DictionaryNonRetainReleaseReferenceCounter.
+	// could_contain_non_retain_release_objects_ and gEidos_DictionaryNonRetainReleaseReferenceCounter.
 	
 	if (value_type == EidosValueType::kValueNULL)
 	{
@@ -661,6 +660,7 @@ void EidosDictionaryUnretained::SetKeyValue_IntegerKeys(int64_t key, EidosValue_
 		if (state_ptr)
 		{
 			state_ptr->dictionary_symbols_.erase(key);
+			UpdateCouldContainNonRRObjectFlag_Added(value.get());
 			KeyRemovedFromDictionary_IntegerKeys(key);
 		}
 	}
@@ -678,6 +678,7 @@ void EidosDictionaryUnretained::SetKeyValue_IntegerKeys(int64_t key, EidosValue_
 			value = value->CopyValues();
 		
 		state_ptr->dictionary_symbols_[key] = value;
+		UpdateCouldContainNonRRObjectFlag_Added(value.get());
 		
 		// Add it to our sorted keys
 		KeyAddedToDictionary_IntegerKeys(key);
@@ -802,6 +803,7 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 				
 				// always copy values here; unlike setValue(), we know the value is in use elsewhere
 				state_ptr->dictionary_symbols_[key] = value->CopyValues();
+				UpdateCouldContainNonRRObjectFlag_Added(value.get());
 				
 				KeyAddedToDictionary_StringKeys(key);
 			}
@@ -841,6 +843,7 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 				
 				// always copy values here; unlike setValue(), we know the value is in use elsewhere
 				state_ptr->dictionary_symbols_[key] = value->CopyValues();
+				UpdateCouldContainNonRRObjectFlag_Added(value.get());
 				
 				KeyAddedToDictionary_IntegerKeys(key);
 			}
@@ -893,6 +896,7 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 				{
 					// always copy values here; unlike setValue(), we know the value is in use elsewhere
 					state_ptr->dictionary_symbols_[key] = keyvalue->CopyValues();
+					UpdateCouldContainNonRRObjectFlag_Added(keyvalue.get());
 					
 					KeyAddedToDictionary_StringKeys(key);
 				}
@@ -905,6 +909,7 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 					EidosValue_SP appended_value = ConcatenateEidosValues(cat_args, false, false);
 					
 					state_ptr->dictionary_symbols_[key] = appended_value;
+					// no need to call UpdateCouldContainNoRRObjectFlag_Added() since we already have existing values
 				}
 			}
 		}
@@ -945,6 +950,7 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 				{
 					// always copy values here; unlike setValue(), we know the value is in use elsewhere
 					state_ptr->dictionary_symbols_[key] = keyvalue->CopyValues();
+					UpdateCouldContainNonRRObjectFlag_Added(keyvalue.get());
 					
 					KeyAddedToDictionary_IntegerKeys(key);
 				}
@@ -957,6 +963,7 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 					EidosValue_SP appended_value = ConcatenateEidosValues(cat_args, false, false);
 					
 					state_ptr->dictionary_symbols_[key] = appended_value;
+					// no need to call UpdateCouldContainNoRRObjectFlag_Added() since we already have existing values
 				}
 			}
 		}
@@ -992,6 +999,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				//std::cout << element.key() << " : " << element.value() << std::endl;
 				
 				// decode the value and assign it to the key
+				// NOTE: none of these cases need to call UpdateCouldContainNonRRObjectFlag_Added()
 				if (value.is_null())
 				{
 					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
@@ -1144,6 +1152,132 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 	}
 }
 
+void EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Added(const EidosValue *value)
+{
+#if DEBUG
+	if (!value)
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Added): (internal error) nullptr value." << EidosTerminate(nullptr);
+#endif
+	
+	EidosValueType type = value->Type();
+	
+	if (type == EidosValueType::kValueNULL)
+	{
+		// NULL was set into us; that might have made us empty, in which case we clear our flag
+		if (!state_ptr_)
+			return;
+		
+		// the layout is the same for string and integer keys, so we keep life simple
+		uint8_t &could_contain = ((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_;
+		
+		if (could_contain)
+		{
+			if (KeysAreStrings())
+			{
+				if (DictionarySymbols_StringKeys()->size() > 0)
+					return;
+			}
+			else
+			{
+				if (DictionarySymbols_IntegerKeys()->size() > 0)
+					return;
+			}
+			
+			// could_contain is true but now we are empty, so we update could_contain to false
+			could_contain = false;
+			
+#pragma omp critical (EidosDictionary_Internal)
+			{
+				gEidos_DictionaryNonRetainReleaseReferenceCounter--;
+				
+				if (gEidos_DictionaryNonRetainReleaseReferenceCounter < 0)
+					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Added): (internal error) gEidos_DictionaryNonRetainReleaseReferenceCounter is negative" << EidosTerminate(nullptr);
+				
+				//std::cerr << "=== dictionary " << this << " DEC (UpdateCouldContainNonRRObjectFlag_Added with NULL)   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+			}
+		}
+	}
+	else if (type == EidosValueType::kValueObject)
+	{
+		// BCH 11/19/2026: Note that we do not test (value->Count() > 0).  That is because SLiM, rather
+		// naughtily, puts empty object vectors into a dictionary and then fills it with objects afterwards;
+		// see InteractionType::ExecuteMethod_nearestNeighbors().  Rather than jump through hoops to deal
+		// with that edge case, we just consider an empty object vector to still bump the flag.
+		
+#if DEBUG
+		if (!state_ptr_)
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Added): (internal error) an object value was added, but state_ptr_ is nullptr." << EidosTerminate(nullptr);
+#endif
+		
+		// the layout is the same for string and integer keys, so we keep life simple
+		uint8_t &could_contain = ((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_;
+		
+		if (!could_contain)
+		{
+			const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+			
+			if (!value_class->UsesRetainRelease())
+			{
+				// A non-RR object value was set into us, in which case we set our flag
+				
+				// the layout is the same for string and integer keys, so we keep life simple
+				((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_ = true;
+				
+#pragma omp critical (EidosDictionary_Internal)
+				{
+					gEidos_DictionaryNonRetainReleaseReferenceCounter++;
+					
+					//std::cerr << "=== dictionary " << this << " INC (UpdateCouldContainNonRRObjectFlag_Added with nonRR object)   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+				}
+			}
+		}
+	}
+}
+
+void EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Emptied(void)
+{
+	// We have been emptied (so asserts the caller), so we clear our flag
+	if (!state_ptr_)
+		return;
+	
+	// the layout is the same for string and integer keys, so we keep life simple
+	uint8_t &could_contain = ((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_;
+	
+	if (could_contain)
+	{
+		if (KeysAreStrings())
+		{
+			const EidosDictionaryHashTable_StringKeys *dict_symbols = DictionarySymbols_StringKeys();
+			
+#if DEBUG
+			if (dict_symbols->size() != 0)
+				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Emptied): (internal error) the dictionary is not empty." << EidosTerminate(nullptr);
+#endif
+		}
+		else
+		{
+			const EidosDictionaryHashTable_IntegerKeys *dict_symbols = DictionarySymbols_IntegerKeys();
+			
+#if DEBUG
+			if (dict_symbols->size() != 0)
+				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Emptied): (internal error) the dictionary is not empty." << EidosTerminate(nullptr);
+#endif
+		}
+		
+		could_contain = false;
+		
+#pragma omp critical (EidosDictionary_Internal)
+		{
+			gEidos_DictionaryNonRetainReleaseReferenceCounter--;
+			
+			if (gEidos_DictionaryNonRetainReleaseReferenceCounter < 0)
+				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Added): (internal error) gEidos_DictionaryNonRetainReleaseReferenceCounter is negative" << EidosTerminate(nullptr);
+			
+			//std::cerr << "=== dictionary " << this << " DEC (UpdateCouldContainNonRRObjectFlag_Emptied)   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+		}
+	}
+}
+
 
 //
 // EidosDictionaryUnretained Eidos support
@@ -1270,6 +1404,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_compactIndices(EidosGloba
 	if (KeyCount() == 0)
 		return gStaticEidosValue_Integer_ZeroVec;
 	
+	// NOTE: the values contained are not changing, so UpdateCouldContainNonRRObjectFlag_Added() does not need to be called
 	EidosDictionaryState_IntegerKeys *state_ptr = (EidosDictionaryState_IntegerKeys *)state_ptr_;
 	EidosDictionaryHashTable_IntegerKeys &symbols = state_ptr->dictionary_symbols_;
 	size_t key_count = symbols.size();
@@ -1710,12 +1845,9 @@ EidosValue_SP EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized
 		}
 		else
 		{
-			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  If the existing value
-			// in the dictionary is a non-RR object, then we fail to clear contains_non_retain_release_objects_,
-			// which will cause an error downstream when we hit CheckLongTermBoundary(); we will think there is a
-			// a non-RR object held across the long-term boundary when there isn't.  I doubt anyone will EVER hit
-			// this; it requires that the user (a) set a non-RR object for a key, and then (b) set some other
-			// kind of value into the SAME key, removing the non-RR object and making the dictionary safe.
+			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  In the current
+			// design it should have no consequences, since could_contain_non_retain_release_objects_ would
+			// not change value anyway; it is now sticky at true in most cases.
 			for (int target_index = 0; target_index < target_size; ++target_index)
 			{
 				EidosDictionaryUnretained *target = targets[target_index];
@@ -1742,12 +1874,9 @@ EidosValue_SP EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized
 		}
 		else
 		{
-			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  If the existing value
-			// in the dictionary is a non-RR object, then we fail to clear contains_non_retain_release_objects_,
-			// which will cause an error downstream when we hit CheckLongTermBoundary(); we will think there is a
-			// a non-RR object held across the long-term boundary when there isn't.  I doubt anyone will EVER hit
-			// this; it requires that the user (a) set a non-RR object for a key, and then (b) set some other
-			// kind of value into the SAME key, removing the non-RR object and making the dictionary safe.
+			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  In the current
+			// design it should have no consequences, since could_contain_non_retain_release_objects_ would
+			// not change value anyway; it is now sticky at true in most cases.
 			for (int target_index = 0; target_index < target_size; ++target_index)
 			{
 				EidosDictionaryUnretained *target = targets[target_index];

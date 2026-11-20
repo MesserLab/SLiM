@@ -272,6 +272,7 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	remove old biallelic recipes (13.8, 14.13 I, 14.13 II, 14.14)
 	addition of new recipe 15.15, "Trait-based competition and assortative mating"; improvement of recipes 13.15, 13.16 and 13.17
 	shift tracking of registered Mutation references in EidosValue_Object from using std::vector to using robin_hood::unordered_set for scalability
+	shift long-term boundary policy for Dictionary references of non-retain-release objects for scalability; now a Dictionary that contained a nonRR object in the past is "sticky" as illegal unless emptied
 
 
 version 5.2 (Eidos version 4.2):
