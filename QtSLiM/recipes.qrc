@@ -211,8 +211,7 @@
         <file>recipes/Recipe 19.13 - Tree-sequence recording and nucleotide-based models I.txt</file>
         <file>recipes/Recipe 19.13 - Tree-sequence recording and nucleotide-based models II.py</file>
         <file>recipes/Recipe 19.13 - Tree-sequence recording and nucleotide-based models III.py</file>
-        <file>recipes/Recipe 19.14 - Modeling identity by state (IBS) (uniquing mutations with a mutation() callback).txt</file>
-        <file>recipes/Recipe 19.15 - Modeling identity by state (IBS) (uniquing back-mutations to the ancestral state).txt</file>
+        <file>recipes/Recipe 19.14 - Modeling identity by state (IBS) in a nucleotide-based model.txt</file>
         <file>recipes/Recipe 20.1 - A simple multispecies model.txt</file>
         <file>recipes/Recipe 20.2 - A two-species model.txt</file>
         <file>recipes/Recipe 20.3 - A deterministic host-parasitoid model.txt</file>

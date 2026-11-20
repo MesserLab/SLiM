@@ -273,6 +273,7 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	addition of new recipe 15.15, "Trait-based competition and assortative mating"; improvement of recipes 13.15, 13.16 and 13.17
 	shift tracking of registered Mutation references in EidosValue_Object from using std::vector to using robin_hood::unordered_set for scalability
 	shift long-term boundary policy for Dictionary references of non-retain-release objects for scalability; now a Dictionary that contained a nonRR object in the past is "sticky" as illegal unless emptied
+	total redesign of recipes 19.14 and 19.15; now there is a single recipe, 19.14, titled "Modeling identity by state (IBS) in a nucleotide-based model"
 
 
 version 5.2 (Eidos version 4.2):
