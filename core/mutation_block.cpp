@@ -97,11 +97,15 @@ void MutationBlock::IncreaseMutationBlockCapacity(void)
 	// down every EidosValue_Object that contains Mutations, and fix the pointer inside each of
 	// them.  Yes, this is very gross.  This is why pointers are evil.  :->
 	
-	// First we need to get a vector containing the memory location of every pointer-to-Mutation*
+	// First we need to get a set containing the memory location of every pointer-to-Mutation*
 	// in every EidosValue_Object in the whole runtime.  This is provided to us by EidosValue_Object,
 	// which keeps that registry for us.  We cache the locations of the pointers to mutations that
 	// belong to our species.
-	std::vector<EidosValue_Object *> &mutation_object_registry = EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
+#if EIDOS_ROBIN_HOOD_HASHING()
+	robin_hood::unordered_set<EidosValue_Object *> &mutation_object_registry = EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
+#elif STD_UNORDERED_MAP_HASHING()
+	std::unordered_set<EidosValue_Object *> &mutation_object_registry = EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
+#endif
 	std::vector<std::uintptr_t> locations_to_patch;
 	
 	for (const EidosValue_Object *mutation_value : mutation_object_registry)

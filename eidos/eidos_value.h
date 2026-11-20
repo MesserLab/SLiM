@@ -46,6 +46,12 @@
 #include "eidos_class_Dictionary.h"
 #include "json_fwd.hpp"
 
+#if EIDOS_ROBIN_HOOD_HASHING()
+#include "robin_hood.h"
+#else
+#include <unordered_set>
+#endif
+
 
 // EidosValues must be allocated out of the global pool, for speed.  See eidos_object_pool.h.  When Eidos disposes of an object,
 // it will assume that it was allocated from this pool, so its use is mandatory except for stack-allocated objects.
@@ -1115,7 +1121,11 @@ public:
 private:
 	// See comments on EidosValue_Object::EidosValue_Object().  Note this is shared by all species, and in
 	// SLiMgui it is shared by all running simulations, so we need to be careful not to step on any toes.
-	static std::vector<EidosValue_Object *> static_EidosValue_Object_Mutation_Registry;
+#if EIDOS_ROBIN_HOOD_HASHING()
+	static robin_hood::unordered_set<EidosValue_Object *> static_EidosValue_Object_Mutation_Registry;
+#elif STD_UNORDERED_MAP_HASHING()
+	static std::unordered_set<EidosValue_Object *> static_EidosValue_Object_Mutation_Registry;
+#endif
 	
 	friend class MutationBlock;		// so it can access the above registry; see IncreaseMutationBlockCapacity()
 };

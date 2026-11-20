@@ -1739,7 +1739,11 @@ void EidosValue_Float::erase_index(size_t p_index)
 #pragma mark -
 
 // See comments on EidosValue_Object::EidosValue_Object() below.  Note this is shared by all species.
-std::vector<EidosValue_Object *> EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
+#if EIDOS_ROBIN_HOOD_HASHING()
+robin_hood::unordered_set<EidosValue_Object *> EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
+#elif STD_UNORDERED_MAP_HASHING()
+std::unordered_set<EidosValue_Object *> EidosValue_Object::static_EidosValue_Object_Mutation_Registry;
+#endif
 
 EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject),
 	values_(&singleton_value_), count_(0), capacity_(1), class_(p_class)
@@ -1751,19 +1755,21 @@ EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(Eid
 	// SLiM can mostly handle that for itself, but there is a big problem when it comes to EidosValue_Object
 	// instances, which can contain Mutation * elements that must be updated.  So we need to find every single
 	// EidosValue_Object in existence which has a class of Mutation.  To that end, we here register this object
-	// in a global list if it is of class Mutation; in ~EidosValue_Object we will deregister it.  Maybe there
+	// in a global set if it is of class Mutation; in ~EidosValue_Object we will deregister it.  Maybe there
 	// is some way to do this without pushing the hack down into Eidos, but at the moment I'm not seeing it.
 	// On the bright side, this scheme actually seems pretty robust; the only way it fails is if somebody avoids
 	// using the constructor or the destructor for EidosValue_Object, I think, which seems unlikely.
 	// Note this is shared by all species, since the mutation block itself is shared by all species; and in
-	// SLiMgui is is shared across all of the running simulations, but it turns out that works fine.
+	// SLiMgui it is shared across all of the running simulations, but it turns out that works fine.
+	// BCH 11/20/2026: shifted static_EidosValue_Object_Mutation_Registry to robin_hood::unordered_set; the
+	// previous approach, with std::vector, did not scale to a large number of canonical mutations remembered.
 	const std::string *element_type = &(class_->ClassName());
 										
 	if (element_type == &gEidosStr_Mutation)
 	{
 		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::EidosValue_Object(): static_EidosValue_Object_Mutation_Registry change");
 		
-		static_EidosValue_Object_Mutation_Registry.emplace_back(this);
+		static_EidosValue_Object_Mutation_Registry.insert(this);
 		registered_for_patching_ = true;
 		
 		//std::cout << "pushed Mutation EidosValue_Object, count == " << static_EidosValue_Object_Mutation_Registry.size() << std::endl;
@@ -1868,7 +1874,7 @@ EidosValue_Object::~EidosValue_Object(void)
 	{
 		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::~EidosValue_Object(): static_EidosValue_Object_Mutation_Registry change");
 		
-		auto erase_iter = std::find(static_EidosValue_Object_Mutation_Registry.begin(), static_EidosValue_Object_Mutation_Registry.end(), this);
+		auto erase_iter = static_EidosValue_Object_Mutation_Registry.find(this);
 		
 		if (erase_iter != static_EidosValue_Object_Mutation_Registry.end())
 			static_EidosValue_Object_Mutation_Registry.erase(erase_iter);
