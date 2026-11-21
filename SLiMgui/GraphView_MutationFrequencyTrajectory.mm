@@ -437,20 +437,28 @@
 				// scanning through all our Substitution objects, which use the same unique IDs as Mutations use.  We need to know this
 				// for two reasons: to add the final entry for the mutation, and to put it into the correct cold storage array.
 				slim_mutationid_t mutationID = history->mutationID;
+				BOOL wasFixed = NO;
 				
 				for (const Substitution *substitution : chromosome->substitutions_)
 				{
 					if (substitution->mutation_id_ == mutationID)
 					{
-						[history addEntry:UINT16_MAX];
-						goto enumerateNext;
+						wasFixed = YES;
+						break;
 					}
 				}
 				
-				[history addEntry:0];
+				if (wasFixed)
+				{
+					[history addEntry:UINT16_MAX];
+					[frequencyHistoryColdStorageFixed addObject:history];
+				}
+				else
+				{
+					[history addEntry:0];
+					[frequencyHistoryColdStorageLost addObject:history];
+				}
 				
-			enumerateNext:
-				[frequencyHistoryColdStorageLost addObject:history];
 				[frequencyHistoryDict removeObjectForKey:key];
 			}];
 			

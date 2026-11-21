@@ -217,20 +217,27 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
             // scanning through all our Substitution objects, which use the same unique IDs as Mutations use.  We need to know this
             // for two reasons: to add the final entry for the mutation, and to put it into the correct cold storage array.
             slim_mutationid_t mutationID = history->mutationID;
+            bool wasFixed = false;
             
             for (const Substitution *substitution : chromosome->substitutions_)
             {
                 if (substitution->mutation_id_ == mutationID)
                 {
-                    history->addEntry(UINT16_MAX);
-                    goto enumerateNext;
+                    wasFixed = true;
+                    break;
                 }
             }
             
-            history->addEntry(0);
-            
-        enumerateNext:
-            frequencyHistoryColdStorageLost_.emplace_back(history);
+            if (wasFixed)
+            {
+                history->addEntry(UINT16_MAX);
+                frequencyHistoryColdStorageFixed_.emplace_back(history);
+            }
+            else
+            {
+                history->addEntry(0);
+                frequencyHistoryColdStorageLost_.emplace_back(history);
+            }
             
             auto history_iter = frequencyHistoryDict_.find(mutationID);
             frequencyHistoryDict_.erase(history_iter);
