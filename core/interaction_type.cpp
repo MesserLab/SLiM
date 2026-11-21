@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/25/17.
-//  Copyright (c) 2017-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2017-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -515,7 +515,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 	// Note that interaction() callbacks are non-species-specific, so we fetch from the Community with species nullptr.
 	// Callbacks used depend upon the exerter subpopulation, so this is snapping the callbacks for subpop as exerters;
 	// the subpopulation of receivers does not influence the choice of which callbacks are used.
-	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, nullptr);
+	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, -1, nullptr, /* p_active_only */ false);
 	
 	// Note that we do not create the k-d tree here.  Non-spatial models will never have a k-d tree; spatial models may or
 	// may not need one, depending upon what methods are called by the client, which may vary cycle by cycle.
@@ -569,9 +569,9 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 
 bool InteractionType::AnyEvaluated(void)
 {
-	for (auto &data_iter : data_)
+	for (const auto &data_iter : data_)
 	{
-		InteractionsData &data = data_iter.second;
+		const InteractionsData &data = data_iter.second;
 		
 		if (data.evaluated_)
 			return true;
@@ -1284,10 +1284,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	{
 		if (interaction_callback->block_active_)
 		{
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
+#if DEBUG_POINTS_ENABLED()
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
@@ -1399,6 +1396,9 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)]);
@@ -1412,7 +1412,7 @@ size_t InteractionType::MemoryUsageForKDTrees(void)
 	size_t usage = 0;
 	
 	// this may be an underestimate, since we overallocate in some cases (exerter constraints)
-	for (auto &iter : data_)
+	for (const auto &iter : data_)
 	{
 		const InteractionsData &data = iter.second;
 		usage += sizeof(SLiM_kdNode) * data.kd_node_count_ALL_;
@@ -1426,7 +1426,7 @@ size_t InteractionType::MemoryUsageForPositions(void)
 {
 	size_t usage = 0;
 	
-	for (auto &iter : data_)
+	for (const auto &iter : data_)
 	{
 		const InteractionsData &data = iter.second;
 		usage += sizeof(double) * data.individual_count_;
@@ -1443,18 +1443,18 @@ size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 	
 #ifdef _OPENMP
 	// When running multithreaded, count all pools
-	for (auto &pool : s_freed_sparse_vectors_PERTHREAD)
+	for (const auto &pool : s_freed_sparse_vectors_PERTHREAD)
 	{
 		usage += sizeof(std::vector<SparseVector *>);
 		usage += pool.size() * sizeof(SparseVector);
 		
-		for (SparseVector *free_sv : pool)
+		for (const SparseVector *free_sv : pool)
 			usage += free_sv->MemoryUsage();
 	}
 #else
 	usage = s_freed_sparse_vectors_SINGLE.size() * sizeof(SparseVector);
 	
-	for (SparseVector *free_sv : s_freed_sparse_vectors_SINGLE)
+	for (const SparseVector *free_sv : s_freed_sparse_vectors_SINGLE)
 		usage += free_sv->MemoryUsage();
 #endif
 	
@@ -2953,7 +2953,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				{
 					sv_value_t distance = values[col_iter];
 					
-					values[col_iter] = (sv_value_t)CalculateStrengthNoCallbacks(distance);
+					values[col_iter] = (sv_value_t)CalculateStrengthNoCallbacks((double)distance);
 				}
 				
 				EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unimplemented SpatialKernelType case." << EidosTerminate();
@@ -2972,7 +2972,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			uint32_t col = columns[col_iter];
 			sv_value_t distance = values[col_iter];
 			
-			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks(distance, receiver, subpop_individuals[col], interaction_callbacks);
+			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks((double)distance, receiver, subpop_individuals[col], interaction_callbacks);
 		}
 	}
 	
@@ -3524,8 +3524,9 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
+EidosValue *InteractionType::GetProperty_Accelerated_id(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -3538,8 +3539,9 @@ EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, 
 	return int_result;
 }
 
-EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size)
 {
+#pragma unused (p_property_id)
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -4203,7 +4205,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 	}
 }
 
-//	*********************	– (object)drawByStrength(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
+//	*********************	– (object)drawByStrength(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F], [float$ failureScaling = INF])
 //
 EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4212,6 +4214,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
 	EidosValue *returnDict_value = p_arguments[3].get();
+	EidosValue *failureScaling_value = p_arguments[4].get();
 	
 	eidos_logical_t returnDict = returnDict_value->LogicalAtIndex_NOCAST(0, nullptr);
 	Subpopulation *receiver_subpop = nullptr;
@@ -4266,6 +4269,10 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
 	
+	// Get failureScaling value; failureScaling of INF means failure is not an option (the original behavior)
+	double failureScaling = failureScaling_value->FloatAtIndex_NOCAST(0, nullptr);
+	bool failure_is_not_an_option = (std::isinf(failureScaling) && (failureScaling > 0.0));
+	
 	bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
 	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == SpatialKernelType::kFixed));
 	
@@ -4305,7 +4312,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				double strength = 0;
 				
 				if ((exerter_index_in_subpop != receiver_index) && CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
-					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, std::numeric_limits<double>::quiet_NaN(), callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				total_interaction_strength += strength;
 				cached_strength.emplace_back(strength);
@@ -4313,17 +4320,34 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			
 			if (total_interaction_strength > 0.0)
 			{
-				std::vector<int> strength_indices;
-				
-				result_vec->resize_no_initialize(count);
-				DrawByWeights((int)count, cached_strength.data(), exerter_subpop_size, total_interaction_strength, strength_indices);
-				
-				for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+				if (!failure_is_not_an_option)
 				{
-					int strength_index = strength_indices[result_index];
-					Individual *chosen_individual = exerters[strength_index];
+					// failure _is_ an option; determine the number of successes with a binomial draw
+					// the original value of `count` is the number of trials; the result will be in [0, count]
+					double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 					
-					result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					if (pSuccess < 1.0)
+					{
+						gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+						
+						count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)count);
+					}
+				}
+				
+				if (count > 0)
+				{
+					std::vector<int> strength_indices;
+					
+					result_vec->resize_no_initialize(count);
+					DrawByWeights((int)count, cached_strength.data(), exerter_subpop_size, total_interaction_strength, strength_indices);
+					
+					for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+					{
+						int strength_index = strength_indices[result_index];
+						Individual *chosen_individual = exerters[strength_index];
+						
+						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					}
 				}
 			}
 			
@@ -4356,18 +4380,37 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					
 					if (nnz > 0)
 					{
-						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-						EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
-						
-						result_vec->resize_no_initialize(count);
-						
-						for (int64_t result_index = 0; result_index < count; ++result_index)
+						if (!failure_is_not_an_option)
 						{
-							int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
-							uint32_t exerter_index = columns[presence_index];
-							Individual *chosen_individual = exerters[exerter_index];
+							// failure _is_ an option; determine the number of successes with a binomial draw
+							// the original value of `count` is the number of trials; the result will be in [0, count]
+							double fixed_interaction_strength = if_param1_;
+							double total_interaction_strength = nnz * fixed_interaction_strength;
+							double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 							
-							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							if (pSuccess < 1.0)
+							{
+								gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+								
+								count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)count);
+							}
+						}
+						
+						if (count > 0)
+						{
+							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+							EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+							
+							result_vec->resize_no_initialize(count);
+							
+							for (int64_t result_index = 0; result_index < count; ++result_index)
+							{
+								int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
+								uint32_t exerter_index = columns[presence_index];
+								Individual *chosen_individual = exerters[exerter_index];
+								
+								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							}
 						}
 					}
 				} catch (...) {
@@ -4401,25 +4444,42 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					{
 						sv_value_t strength = strengths[col_index];
 						
-						total_interaction_strength += strength;
+						total_interaction_strength += (double)strength;
 						double_strengths.emplace_back((double)strength);
 					}
 					
 					// Draw individuals
 					if (total_interaction_strength > 0.0)
 					{
-						std::vector<int> strength_indices;
-						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-						
-						result_vec->resize_no_initialize(count);
-						DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
-						
-						for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+						if (!failure_is_not_an_option)
 						{
-							int strength_index = strength_indices[result_index];
-							Individual *chosen_individual = exerters[columns[strength_index]];
+							// failure _is_ an option; determine the number of successes with a binomial draw
+							// the original value of `count` is the number of trials; the result will be in [0, count]
+							double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 							
-							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							if (pSuccess < 1.0)
+							{
+								gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+								
+								count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)count);
+							}
+						}
+						
+						if (count > 0)
+						{
+							std::vector<int> strength_indices;
+							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+							
+							result_vec->resize_no_initialize(count);
+							DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+							
+							for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+							{
+								int strength_index = strength_indices[result_index];
+								Individual *chosen_individual = exerters[columns[strength_index]];
+								
+								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							}
 						}
 					}
 				} catch (...) {
@@ -4519,18 +4579,39 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 						
 						if (nnz > 0)
 						{
-							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-							EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+							int64_t this_receiver_count = count;
 							
-							result_vec->resize_no_initialize(count);
-							
-							for (int64_t result_index = 0; result_index < count; ++result_index)
+							if (!failure_is_not_an_option)
 							{
-								int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
-								uint32_t exerter_index = columns[presence_index];
-								Individual *chosen_individual = exerters[exerter_index];
+								// failure _is_ an option; determine the number of successes with a binomial draw
+								// the original value of `count` is the number of trials; the result will be in [0, count]
+								double fixed_interaction_strength = if_param1_;
+								double total_interaction_strength = nnz * fixed_interaction_strength;
+								double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 								
-								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+								if (pSuccess < 1.0)
+								{
+									gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+									
+									this_receiver_count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)this_receiver_count);
+								}
+							}
+							
+							if (this_receiver_count > 0)
+							{
+								std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+								EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
+								
+								result_vec->resize_no_initialize(this_receiver_count);
+								
+								for (int64_t result_index = 0; result_index < this_receiver_count; ++result_index)
+								{
+									int presence_index = Eidos_rng_interval_uint32(rng_32, nnz);	// equal probability for each exerter
+									uint32_t exerter_index = columns[presence_index];
+									Individual *chosen_individual = exerters[exerter_index];
+									
+									result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+								}
 							}
 						}
 					} catch (...) {
@@ -4569,25 +4650,44 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					{
 						sv_value_t strength = strengths[col_index];
 						
-						total_interaction_strength += strength;
+						total_interaction_strength += (double)strength;
 						double_strengths.emplace_back((double)strength);
 					}
 					
 					// Draw individuals
 					if (total_interaction_strength > 0.0)
 					{
-						std::vector<int> strength_indices;
-						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+						int64_t this_receiver_count = count;
 						
-						result_vec->resize_no_initialize(count);
-						DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
-						
-						for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+						if (!failure_is_not_an_option)
 						{
-							int strength_index = strength_indices[result_index];
-							Individual *chosen_individual = exerters[columns[strength_index]];
+							// failure _is_ an option; determine the number of successes with a binomial draw
+							// the original value of `count` is the number of trials; the result will be in [0, count]
+							double pSuccess = std::min(1.0, std::max(0.0, failureScaling * total_interaction_strength));
 							
-							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							if (pSuccess < 1.0)
+							{
+								gsl_rng *rng_gsl = EIDOS_GSL_RNG(omp_get_thread_num());
+								
+								this_receiver_count = gsl_ran_binomial(rng_gsl, pSuccess, (unsigned int)this_receiver_count);
+							}
+						}
+						
+						if (this_receiver_count > 0)
+						{
+							std::vector<int> strength_indices;
+							std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+							
+							result_vec->resize_no_initialize(this_receiver_count);
+							DrawByWeights((int)this_receiver_count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+							
+							for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+							{
+								int strength_index = strength_indices[result_index];
+								Individual *chosen_individual = exerters[columns[strength_index]];
+								
+								result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+							}
 						}
 					}
 					
@@ -4886,6 +4986,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		{
 			// Optimized case for fixed interaction strength and no callbacks
 			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+			double fixed_interaction_strength = if_param1_;
 			
 			try {
 				FillSparseVectorForReceiverPresences(sv, first_receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
@@ -4893,7 +4994,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				uint32_t nnz;
 				sv->Presences(&nnz);
 				
-				total_strength = nnz * if_param1_;
+				total_strength = nnz * fixed_interaction_strength;
 			} catch (...) {
 				InteractionType::FreeSparseVector(sv);
 				throw;
@@ -4919,7 +5020,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				total_strength = 0.0;
 				
 				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-					total_strength += strengths[col_index];
+					total_strength += (double)strengths[col_index];
 			} catch (...) {
 				InteractionType::FreeSparseVector(sv);
 				throw;
@@ -5015,7 +5116,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 					total_strength = 0.0;
 					
 					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-						total_strength += strengths[col_index];
+						total_strength += (double)strengths[col_index];
 				} catch (...) {
 					InteractionType::FreeSparseVector(sv);
 					saw_error_4 = true;
@@ -5121,10 +5222,10 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			double *result_ptr = result_vec->data_mutable();
 			
 			for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
-				*(result_ptr + exerter_index) = INFINITY;
+				*(result_ptr + exerter_index) = std::numeric_limits<double>::infinity();
 			
 			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				*(result_ptr + columns[col_index]) = distances[col_index];
+				*(result_ptr + columns[col_index]) = (double)distances[col_index];
 			
 			InteractionType::FreeSparseVector(sv);
 			return result_SP;
@@ -5162,7 +5263,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			if ((exerter == receiver) || !CheckIndividualConstraints(exerter, exerter_constraints_))
 			{
 				// self-interactions and constraints result in an interaction distance of INF
-				result_vec->set_float_no_check(INFINITY, exerter_index);
+				result_vec->set_float_no_check(std::numeric_limits<double>::infinity(), exerter_index);
 			}
 			else
 			{
@@ -5176,7 +5277,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 				if (distance > max_distance_)
 				{
 					// interactions beyond the maximum interaction distance also produce INF
-					result_vec->set_float_no_check(INFINITY, exerter_index);
+					result_vec->set_float_no_check(std::numeric_limits<double>::infinity(), exerter_index);
 				}
 				else
 				{
@@ -5195,7 +5296,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 		double *result_ptr = result_vec->data_mutable();
 		
 		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
-			*(result_ptr + exerter_index) = INFINITY;
+			*(result_ptr + exerter_index) = std::numeric_limits<double>::infinity();
 		
 		return result_SP;
 	}
@@ -6096,7 +6197,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
 				
 				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-					*(result_ptr + columns[col_index]) = strengths[col_index];
+					*(result_ptr + columns[col_index]) = (double)strengths[col_index];
 				
 				InteractionType::FreeSparseVector(sv);
 				return result_SP;
@@ -6189,7 +6290,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 					Individual *exerter = exerter_subpop->parent_individuals_[exerter_index];
 					
 					if (CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, std::numeric_limits<double>::quiet_NaN(), callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				}
 				
 				result_vec->set_float_no_check(strength, exerter_index);
@@ -6218,7 +6319,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				double strength = 0;
 				
 				if ((exerter_index_in_subpop != receiver_index) && CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
-					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, std::numeric_limits<double>::quiet_NaN(), callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				result_vec->set_float_no_check(strength, exerter_index);
 			}
@@ -6398,7 +6499,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		double total_strength = 0.0;
 		
 		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			total_strength += strengths[col_index];
+			total_strength += (double)strengths[col_index];
 		
 		InteractionType::FreeSparseVector(sv);
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(total_strength));
@@ -6468,7 +6569,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			double total_strength = 0.0;
 			
 			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				total_strength += strengths[col_index];
+				total_strength += (double)strengths[col_index];
 			
 			result_vec->set_float_no_check(total_strength, receiver_index);
 			InteractionType::FreeSparseVector(sv);
@@ -6507,10 +6608,10 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 #pragma mark InteractionType_Class
 #pragma mark -
 
-EidosClass *gSLiM_InteractionType_Class = nullptr;
+InteractionType_Class *gSLiM_InteractionType_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties(void) const
+std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties_MUTABLE(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
@@ -6518,7 +6619,7 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 	{
 		THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType_Class::Properties(): not warmed up");
 		
-		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties_MUTABLE());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
@@ -6546,7 +6647,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_clippedIntegral, kEidosValueMaskFloat))->AddObject_N("receivers", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceFromPoint, kEidosValueMaskFloat))->AddFloat("point")->AddObject("exerters", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF)->AddFloat_OS("failureScaling", gStaticEidosValue_FloatINF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddIntObject("subpops", gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactingNeighborCount, kEidosValueMaskInt))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_localPopulationDensity, kEidosValueMaskFloat))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));

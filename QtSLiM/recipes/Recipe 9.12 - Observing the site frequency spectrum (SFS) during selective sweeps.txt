@@ -1,7 +1,6 @@
 // Keywords: site frequency spectrum, SFS, population genetics, statistics, custom plotting
 
 initialize() {
-	setSeed(4806519412125461529);
 	defineConstant("N", 1000);
 	defineConstant("L", 1e7);
 	defineConstant("MU", 1e-7);

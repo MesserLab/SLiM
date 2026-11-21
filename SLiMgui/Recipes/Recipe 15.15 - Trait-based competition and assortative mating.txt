@@ -1,0 +1,115 @@
+// Keywords: phenotypic competition, assortative mating, Dieckmann, Doebeli
+
+initialize() {
+	defineConstant("K", 450);         // nominal carrying capacity
+	defineConstant("FECUN", 0.2);     // mean fecundity per individual
+	defineConstant("OPT", 0.0);       // position of the fitness optimum
+	defineConstant("SIGMA_C", 0.5);   // width of competition
+	defineConstant("SIGMA_S", 1.0);   // width of stabilizing selection
+	defineConstant("SIGMA_M", 0.1);   // width of assortative mating preference
+	defineConstant("NORM_C", dnorm(0.0, mean=0, sd=SIGMA_C));
+	defineConstant("NORM_S", dnorm(0.0, mean=0, sd=SIGMA_S));
+	defineConstant("MAXGEN", 4000);
+	
+	initializeSLiMModelType("nonWF");
+	initializeTrait("quant", "a");
+	initializeMutationType("m2", NAN, "n", 0.0, 0.01);   // QTL
+	m2.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m2, 1.0);
+	initializeGenomicElement(g1, 0, 1e9 - 1);
+	initializeMutationRate(1e-10);
+	initializeRecombinationRate(1e-8);
+}
+first() {
+	// demand phenotypes before mate choice
+	sim.demandPhenotype(NULL, "quant");
+}
+reproduction() {
+	inds = p1.individuals;
+	phenos = inds.quant;
+	litterSizes = rpois(size(inds), FECUN);
+	
+	// narrow down to the individuals with litter size > 0
+	first_parents = inds[litterSizes > 0];
+	litterSizes = litterSizes[litterSizes > 0];
+	
+	for (first_parent in first_parents, litterSize in litterSizes)
+	{
+		candidates = p1.subsetIndividuals(exclude=first_parent);
+		weights = dnorm(candidates.quant, first_parent.quant, SIGMA_M);
+		mate = sample(candidates, 1, weights=weights);
+		p1.addCrossed(first_parent, mate, count=litterSize);
+	}
+	
+	// we've reproduced everyone; "big bang" reproduction
+	self.active = 0;
+}
+1 early() {
+	sim.addSubpop("p1", K);
+	
+	defineConstant("LOG", community.createLogFile("log.csv"));
+	LOG.addTick();
+	LOG.addPopulationSize();
+	LOG.addMeanSDColumns("quant", "p1.individuals.quant;");
+	
+	plot = slimgui.createPlot("phenotype distribution ~ tick",
+		xrange=c(1, MAXGEN), yrange=c(-1.5, 1.5),
+		xlab="tick", ylab="phenotype", width=600, height=150);
+}
+1: early() {
+	// demand phenotypes before competition
+	inds = sim.subpopulations.individuals;
+	sim.demandPhenotype(NULL, "quant");
+	phenos = inds.quant;
+	
+	// evaluate phenotypic competition; similarity to others is penalized
+	c = sapply(inds, "sum(dnorm(phenos, applyValue.quant, SIGMA_C) / NORM_C);");
+	competition_F = 2.0 - c / (K * (1 + FECUN));
+	
+	// evaluate stabilizing selection; difference from the mean is penalized
+	stab_sel = dnorm(phenos, OPT, SIGMA_S) / NORM_S;
+	stab_sel_F = 0.01 + stab_sel;
+	
+	// fitness is a combination of competition and stabilizing selection
+	inds.fitnessScaling = pmax(0.0, competition_F * stab_sel_F);
+}
+1:MAXGEN late() {
+	// detect extinction
+	if (p1.individualCount == 0)
+		community.simulationFinished();
+	
+	// logging and plotting every 5 ticks
+	if (community.tick % 5 != 0)
+		return;
+	
+	sim.demandPhenotype(NULL, "quant");
+	LOG.logRow();
+	
+	if (exists("slimgui"))
+	{
+		tick = slimgui.logFileData(LOG, "tick");
+		n = slimgui.logFileData(LOG, "num_individuals");
+		mean = slimgui.logFileData(LOG, "quant_mean");
+		sd = slimgui.logFileData(LOG, "quant_sd");
+		
+		plot = slimgui.createPlot("phenotype ~ tick",
+			xrange=c(1, MAXGEN), yrange=c(-1.5, 1.5),
+			xlab="tick", ylab="phenotype", width=600, height=150);
+		plot.lines(x=tick, y=mean, color="red", lwd=2.0);
+		plot.lines(x=tick, y=mean + sd*2, color="lightpink", lwd=1.0);
+		plot.lines(x=tick, y=mean - sd*2, color="lightpink", lwd=1.0);
+		
+		plot = slimgui.createPlot("N ~ tick",
+			xrange=c(1, MAXGEN), yrange=c(400, 1000),
+			xlab="tick", ylab="N", width=600, height=150);
+		plot.lines(x=tick, y=n, color="red", lwd=2.0);
+		
+		if (community.tick % 20 == 0)
+		{
+			plot = slimgui.plotWithTitle("phenotype distribution ~ tick");
+			plot.points(x=rep(community.tick, p1.individualCount),
+				y=p1.individuals.quant,
+				size=0.1, alpha=0.1);
+		}
+	}
+}

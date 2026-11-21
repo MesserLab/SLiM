@@ -1,0 +1,55 @@
+// Keywords: IBS, identity by state, IBD, identity by descent, unique down, canonical mutations, back-mutation
+
+initialize() {
+	defineConstant("L", 1e6);
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-7 / 3));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+	
+	// make a Dictionary object that will track all canonical mutations
+	defineConstant("MUTS", Dictionary());
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+mutation() {
+	// back-mutations to the ancestral state should revert to the empty state
+	pos = mut.position;
+	
+	if (mut.nucleotide == sim.chromosomes.ancestralNucleotides(pos, pos))
+		return NULL;
+	
+	// mutations that have never happened before get "canonicalized" to mut
+	key = mut.nucleotide + pos;
+	m = MUTS.getValue(key);
+	if (isNULL(m))
+	{
+		MUTS.setValue(key, mut);
+		return T;
+	}
+	
+	// mutations that have already been canonicalized get uniqued
+	return m;
+}
+20000 late() {
+	for (pos in unique(sim.mutations.position, preserveOrder=F))
+	{
+		muts = sim.subsetMutations(position=pos);
+		nucs = muts.nucleotide;
+		ancestral = sim.chromosomes.ancestralNucleotides(pos, pos);
+		dups = (size(nucs) != size(unique(nucs)));
+		backs = any(nucs == ancestral);
+		
+		if (dups | backs)
+		{
+			cat(pos + " : (" + ancestral + ") " + paste(nucs));
+			if (dups) cat("     DUPLICATES!");
+			if (backs) cat("     BACK-MUTATION!");
+			catn();
+		}
+	}
+}

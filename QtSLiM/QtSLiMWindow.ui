@@ -89,6 +89,72 @@
            </widget>
           </item>
           <item>
+           <widget class="QWidget" name="traitChoiceWidget" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>270</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>270</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="traitChoiceLabel">
+               <property name="text">
+                <string>Display trait:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="traitChoiceMenuButton">
+               <property name="minimumSize">
+                <size>
+                 <width>120</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>the trait being used for display in the individuals and chromosome views</string>
+               </property>
+               <property name="text">
+                <string>traitName</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="traitChoiceSpacer">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>10</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
            <widget class="QTableView" name="subpopTableView">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
@@ -1329,7 +1395,7 @@ QSlider::handle:horizontal:disabled {
      <x>0</x>
      <y>0</y>
      <width>914</width>
-     <height>37</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1414,6 +1480,7 @@ QSlider::handle:horizontal:disabled {
      <addaction name="actionGraph_Population_Fitness_Distribution"/>
      <addaction name="actionGraph_Subpopulation_Fitness_Distributions"/>
      <addaction name="actionGraph_Fitness_Time"/>
+     <addaction name="actionGraph_Phenotype_Time"/>
      <addaction name="separator"/>
      <addaction name="actionGraph_Age_Distribution"/>
      <addaction name="actionGraph_Lifetime_Reproduce_Output"/>
@@ -1421,6 +1488,7 @@ QSlider::handle:horizontal:disabled {
      <addaction name="actionGraph_Population_Visualization"/>
      <addaction name="separator"/>
      <addaction name="actionGraph_Multispecies_Population_Size_Time"/>
+     <addaction name="actionGraph_Multispecies_Multitrait_Phenotype_Time"/>
      <addaction name="separator"/>
      <addaction name="actionCreate_Haplotype_Plot_All"/>
      <addaction name="actionCreate_Haplotype_Plot_Selected"/>
@@ -2018,9 +2086,6 @@ QSlider::handle:horizontal:disabled {
   </action>
   <action name="actionGraph_Multispecies_Population_Size_Time">
    <property name="text">
-    <string>Multispecies Population Size ~ Time</string>
-   </property>
-   <property name="toolTip">
     <string>Graph Multispecies Population Size ~ Time</string>
    </property>
   </action>
@@ -2118,6 +2183,16 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="toolTip">
     <string>Show a chart depicting the color scales used by SLiMgui for mutation effects and individual fitness</string>
+   </property>
+  </action>
+  <action name="actionGraph_Multispecies_Multitrait_Phenotype_Time">
+   <property name="text">
+    <string>Graph Multispecies Multitrait Phenotype ~ Time</string>
+   </property>
+  </action>
+  <action name="actionGraph_Phenotype_Time">
+   <property name="text">
+    <string>Graph Phenotype ~ Time</string>
    </property>
   </action>
  </widget>

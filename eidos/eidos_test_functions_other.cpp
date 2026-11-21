@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -395,10 +395,12 @@ void _RunFunctionFilesystemTests(const std::string &temp_path)
 		return;
 	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
-	EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
+	// BCH 1/3/2025: I'm commenting out the tests that call filesAtPath() on the temporary directory; that
+	// can contain a very large number of files, and is showing up as a major time-sink for self-tests.
+	//EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
 	// these always fail on Windows and I can't think of any good easy replacement
 	#ifndef _WIN32
-	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
+	//EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("sum(filesAtPath('/', T) == '/bin');", gStaticEidosValue_Integer1);
 	#endif
@@ -1196,9 +1198,9 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", false);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("Dictionary(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 100, "be a singleton");
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "keys be of type string or integer");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "did not match any of its defined variants");
 	
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3)); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 13, c(1.1, 2.2, 3.3)); x.identicalContents(y);", false);
@@ -1207,9 +1209,9 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", false);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 0:2); x.setValue(7, c('foo', 'bar', 'baz')); x.setValue(9, c(T, F, T)); x.setValue(11, c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("Dictionary(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 93, "be a singleton");
-	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 93, "keys be of type string or integer");
+	EidosAssertScriptRaise("y = Dictionary(5, 0:2, 7, c('foo', 'bar', 'baz'), 9, c(T, F, T), 11, c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 93, "did not match any of its defined variants");
 	
 	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue(5, 2); y = Dictionary(); y.setValue('a', 'foo'); x.identicalContents(y);", false);
 	EidosAssertScriptRaise("x = Dictionary(5, 1:10, 'a', 1:10);", 4, "string key");
@@ -1463,10 +1465,10 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4));", 4, "inconsistent column sizes");
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); x.identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); y.identicalContents(x);", true);
-	EidosAssertScriptRaise("DataFrame(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("DataFrame(5);", 0, "did not match any of its defined variants");
 	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(c(y,y));", 94, "be a singleton");
-	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "keys be of type string or integer");
-	EidosAssertScriptRaise("x = DataFrame(5, 1:10, 'a', 1:10);", 4, "always uses string keys");
+	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "did not match any of its defined variants");
+	EidosAssertScriptRaise("x = DataFrame(5, 1:10, 'a', 1:10);", 4, "did not match any of its defined variants");
 	EidosAssertScriptRaise("x = DataFrame('a', 1:10, 5, 1:10);", 4, "always uses string keys");
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:10); y = DataFrame(x); z = DataFrame('a', 1:10); y.identicalContents(z);", true);
 	EidosAssertScriptRaise("x = Dictionary(5, 1:10); y = DataFrame(x);", 29, "always uses string keys");
@@ -1718,6 +1720,70 @@ void _RunClassTests(const std::string &temp_path)
 	{
 		EidosAssertScriptSuccess_L("m = matrix(0:14, nrow=3, ncol=5); i = Image(m); path = '" + temp_path + "/image_write.png'; i.write(path); i2 = Image(path); identical(m, i2.integerK);", true);
 	}
+	
+	// Test Palette(numeric$ value, fs color) (variant 1: single node)
+	EidosAssertScriptSuccess_L("p = Palette(10.0, 'red'); identical(p.range, c(10.0, 10.0));", true);
+	EidosAssertScriptSuccess_L("p = Palette(10.0, c(0.1, 0.5, 0.9)); identical(p.range, c(10.0, 10.0));", true);
+	EidosAssertScriptRaise("p = Palette(NAN, 'red');", 4, "to be finite");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2));", 4, "multiple of three");
+	EidosAssertScriptRaise("p = Palette(10.0, float(0));", 4, "single color");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2, NAN));", 4, "to be finite");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2, INF));", 4, "to be finite");
+	EidosAssertScriptRaise("p = Palette(10.0, c(0.1, 0.2, 1.1));", 4, "to be in [0, 1]");
+	EidosAssertScriptRaise("p = Palette(10.0, c('red', 'green'));", 4, "single color");
+	
+	// Test Palette(numeric range, fs colors) (variant 2: range and colors)
+	EidosAssertScriptSuccess_L("p = Palette(c(10.0, 15.0), c('red', 'blue')); identical(p.range, c(10.0, 15.0));", true);
+	EidosAssertScriptSuccess_L("p = Palette(c(10.0, 15.0), c('red', 'blue', 'green')); identical(p.range, c(10.0, 15.0));", true);
+	EidosAssertScriptRaise("p = Palette(c(INF, 15.0), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(10.0, INF), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(NAN, 15.0), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(10.0, NAN), c('red', 'blue'));", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette(c(15.0, 10.0), c('red', 'blue'));", 4, "must be less than");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0), 'red');", 4, "at least two colors");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0), string(0));", 4, "at least two colors");
+	
+	// Test Palette(numeric values, fs colors, [string transition = "linear"], [string blend = "hsvShortest"]) (variant 3: values and colors)
+	EidosAssertScriptSuccess_L("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green')); identical(p.range, c(10.0, 20.0));", true);
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green', 'yellow'));", 4, "one color string per value");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), transition=c('a', 'b', 'c'));", 4, "requires transition to be");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), transition=c('a', 'b'));", 4, "must be one of");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), blend=c('a', 'b', 'c'));", 4, "requires blend to be");
+	EidosAssertScriptRaise("p = Palette(c(10.0, 15.0, 20.0), c('red', 'blue', 'green'), blend=c('a', 'b'));", 4, "must be one of");
+	
+	// Test Palette(string$ colors, numeric range, [Nif sourceRange = NULL]) (variant 4: from a colors() palette)
+	EidosAssertScriptSuccess_L("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); identical(p.range, c(10.0, 20.0));", true);
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0), c(0.3, 0.8)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0, 30.0), c(0.3, 0.8)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8, 0.9)); ", 4, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('argentina', c(10.0, 20.0), c(0.3, 0.8)); ", 4, "color palette name");
+	EidosAssertScriptRaise("p = Palette('parula', c(INF, 20.0), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, INF), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(NAN, 20.0), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, NAN), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(20.0, 10.0), c(0.3, 0.8)); ", 4, "must both be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(NAN, 0.8)); ", 4, "must be finite");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, INF)); ", 4, "must be finite");
+	
+	// Test Palette(object<Palette>$ palette, float rescaledRange, [Nf existingRange = NULL], [logical$ fullPalette = T]) (variant 5: from a Palette object)
+	EidosAssertScriptSuccess_L("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, 17.0), fullPalette=F); identical(q.range, c(10.0, 20.0));", true);
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0), c(13.0, 17.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0, 30.0), c(13.0, 17.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(NAN, 20.0), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, NAN), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(INF, 20.0), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, INF), c(13.0, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(20.0, 10.0), c(13.0, 17.0), fullPalette=F);", 55, "start < end");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, 17.0, 18.0), fullPalette=F);", 55, "vector of length two");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(NAN, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, NAN), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(INF, 17.0), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, INF), fullPalette=F);", 55, "must be finite values");
+	EidosAssertScriptRaise("p = Palette('parula', c(10.0, 20.0), c(0.3, 0.8)); q = Palette(p, c(10.0, 20.0), c(13.0, 13.0), fullPalette=F);", 55, "start != end");
+	
+	EidosAssertScriptRaise("p = Palette(notAParameterInAnyVariant=5);", 4, "did not match any of its defined variants");
 }
 
 #pragma mark code examples
@@ -1824,8 +1890,8 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo();", 35, "missing required argument 'x'");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5, 6);", 35, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5);", 35, "return value cannot be type integer");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument 'y' skipped over required argument 'x'");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 39, "unrecognized named argument 'y'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 44, "unrecognized named argument 'y'");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", 16);

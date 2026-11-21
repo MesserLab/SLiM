@@ -23,7 +23,7 @@ species forager initialize()
 	initializeSex();
 }
 
-ticks all 1 early()
+1 early()
 {
 	// Coordinates for the resource nodes.
 	xs = rep(seq(0.5, 100), 100);
@@ -42,7 +42,7 @@ ticks all 1 early()
 	p2.individuals.setSpatialPosition(p2.pointUniform(p2.individualCount));
 }
 
-ticks all 2: first()
+2: first()
 {
 	// Evaluate the spatial interaction for reproduction.
 	i2.evaluate(p2);
@@ -63,7 +63,7 @@ species forager reproduction(NULL, "F")
 	subpop.addCrossed(individual, mate, count=litterSize);
 }
 
-ticks all 2:100 early()
+2:100 early()
 {
 	// Dispersal of new offspring.
 	offspring = p2.subsetIndividuals(maxAge=0);
