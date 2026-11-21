@@ -5828,11 +5828,36 @@ void QtSLiMWindow::playSpeedChanged(void)
 		//qDebug() << "fps string: " << fpsString;
 	}
     
-    // Show the tooltip; wow, that was easy...
-    QPoint widgetOrigin = ui->playSpeedSlider->mapToGlobal(QPoint());
-    QPoint cursorPosition = QCursor::pos();
-    QPoint tooltipPosition = QPoint(cursorPosition.x() - 2, widgetOrigin.y() - ui->playSpeedSlider->rect().height() - 8);
-    QToolTip::showText(tooltipPosition, fpsString, ui->playSpeedSlider, QRect(), 1000000);  // 1000 seconds; taken down on mouseup automatically
+    // Show the fps tooltip; originally I used QToolTip::showText() but it displays at a platform-specific
+    // offset that depends on the cursor size and stuff, so it sometimes interfered with the cursor.  Now
+    // I make a QLabel and put it into the window exactly where I want it.  BCH 11/21/2026
+    QRect sliderGeometry = ui->playSpeedSlider->geometry();
+    
+    if (!fpsLabel)
+    {
+        static QFont *fpsLabelFont = nullptr;
+        
+        if (!fpsLabelFont)
+        {
+            fpsLabelFont = new QFont();
+    #ifdef __linux__
+            fpsLabelFont->setPointSize(9);
+    #else
+            fpsLabelFont->setPointSize(11);
+    #endif
+        }
+        
+        fpsLabel = new QLabel(fpsString, this);
+        fpsLabel->setTextInteractionFlags(Qt::NoTextInteraction);
+        fpsLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        fpsLabel->setText("0.00 fps");  // longest string we need to show
+        fpsLabel->setFont(*fpsLabelFont);
+        fpsLabel->adjustSize();
+    }
+    
+    fpsLabel->setText(fpsString);
+    fpsLabel->move(sliderGeometry.left() - fpsLabel->rect().width() - 6, sliderGeometry.center().y() - fpsLabel->rect().center().y() - 1);
+    fpsLabel->show();
 }
 
 void QtSLiMWindow::showDrawerClicked(void)

@@ -55,6 +55,7 @@ class QtSLiMTextEdit;
 class QtSLiMDebugOutputWindow;
 class QtSLiMChromosomeWidget;
 class QtSLiMChromosomeWidgetController;
+class QLabel;
 class LogFile;
 
 
@@ -110,6 +111,7 @@ private:
     QTimer playOneStepInvocationTimer_;
     int partialUpdateCount_ = 0;
     std::clock_t elapsedCPUClock_ = 0;      // kept even when not profiling, for status bar updates
+    QLabel *fpsLabel = nullptr;
 
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
     QtSLiMEidosConsole *consoleController = nullptr;

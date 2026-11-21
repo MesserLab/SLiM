@@ -39,7 +39,8 @@ void QtSLiMWindow::glueUI(void)
     //connect(ui->cycleLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::cycleChanged);   // not editable at the moment
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
-
+    connect(ui->playSpeedSlider, &QSlider::sliderPressed, this, &QtSLiMWindow::playSpeedChanged);
+    connect(ui->playSpeedSlider, &QSlider::sliderReleased, this, [this]() { if (fpsLabel) fpsLabel->hide(); });
     connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::showDrawerClicked);
     //connect(ui->chromosomeActionButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeActionClicked); // this button runs when it is pressed
     //connect(ui->chromosomeDisplayButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeDisplayClicked); // this button runs when it is pressed
