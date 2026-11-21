@@ -1509,6 +1509,8 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
+		// BEWARE: ApplyMutationCallbacks() potentially invalidates pointers into the mutation block buffers mutation_buffer_, refcount_buffer_, and trait_info_buffer_!
+		// This is because the createMutation() method of Chromosome is legal to call from mutation() callbacks, and calls NewMutationFromBlock()!
 		Mutation *post_callback_mut = ApplyMutationCallbacks(mutation, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
 		// If the callback didn't return the proposed mutation, it will not be used; dispose of it
@@ -3571,6 +3573,32 @@ EidosValue_SP Chromosome::ExecuteMethod_createMutation(EidosGlobalStringID p_met
 	// HOWEVER, this method cannot be called when the last position of the chromosome is undetermined.
 	if (!extent_immutable_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() cannot be called on a chromosome whose last position has not yet been determined; an explicit length must be given to initializeChromosome(), or this call must be postponed until after initialize() callbacks have finished and the chromosome length has been set." << EidosTerminate();
+	
+	// TIMING RESTRICTION
+	SLiMEidosBlockType executing_block_type = community_.executing_block_type_;
+	SLiMCycleStage cycle_stage = community_.CycleStage();
+	
+	if ((cycle_stage == SLiMCycleStage::kStagePostCycle) && (executing_block_type == SLiMEidosBlockType::SLiMEidosNoBlockType))
+	{
+		// It is legal to call directly from the Eidos console in SLiMgui, when not executing any block type
+	}
+	else
+	{
+		// It is legal to call from first(), early(), late(), initialize(), reproduction(), mutation(), and
+		// modifyChild() callbacks; for other block types I don't want to have to worry about the mutation
+		// block getting reallocated across a call to createMutation(), so it is not allowed.  For mutation()
+		// callbacks this will always happen inside Chromosome::DrawNewMutationExtended(), which expects
+		// this possibility and protects its use of the mutation block accordingly.  The other callback types
+		// allowed shouldn't be using the mutation block anyway.  BCH 11/21/2026
+		if ((executing_block_type != SLiMEidosBlockType::SLiMEidosEventFirst) &&
+			(executing_block_type != SLiMEidosBlockType::SLiMEidosEventEarly) &&
+			(executing_block_type != SLiMEidosBlockType::SLiMEidosEventLate) &&
+			(executing_block_type != SLiMEidosBlockType::SLiMEidosInitializeCallback) &&
+			(executing_block_type != SLiMEidosBlockType::SLiMEidosMutationCallback) &&
+			(executing_block_type != SLiMEidosBlockType::SLiMEidosReproductionCallback) &&
+			(executing_block_type != SLiMEidosBlockType::SLiMEidosModifyChildCallback))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_createMutation): createMutation() must be called directly from a first(), early(), or late() event, or from an initialize(), mutation(), reproduction(), or modifyChild() callback." << EidosTerminate();
+	}
 	
 	EidosValue *mutationType_value = p_arguments[0].get();
 	EidosValue *position_value = p_arguments[1].get();
