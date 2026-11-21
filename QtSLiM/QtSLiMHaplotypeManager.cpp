@@ -71,8 +71,8 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         messageBox.setIcon(QMessageBox::Warning);
         
         // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
-        // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
-        // seems necessary so floating windows can't be on top of the message box
+        // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; Qt::WindowModal never seems
+        // to be safe, because on some platforms the error panel can go under floating windows
         messageBox.setWindowModality(Qt::ApplicationModal);
         messageBox.exec();
         return;

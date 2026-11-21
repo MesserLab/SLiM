@@ -353,8 +353,8 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
             messageBox.setIcon(QMessageBox::Warning);
             
             // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
-            // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
-            // seems necessary so floating windows can't be on top of the message box
+            // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; Qt::WindowModal never seems
+            // to be safe, because on some platforms the error panel can go under floating windows
             messageBox.setWindowModality(Qt::ApplicationModal);
             messageBox.setFixedWidth(700);      // seems to be ignored
             messageBox.exec();
@@ -379,8 +379,8 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
                 messageBox.setIcon(QMessageBox::Information);
                 
                 // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
-                // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
-                // seems necessary so floating windows can't be on top of the message box
+                // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; Qt::WindowModal never seems
+                // to be safe, because on some platforms the error panel can go under floating windows
                 messageBox.setWindowModality(Qt::ApplicationModal);
                 messageBox.setCheckBox(new QCheckBox("Do not show this message again", nullptr));
                 messageBox.exec();
