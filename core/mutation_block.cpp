@@ -76,6 +76,19 @@ void MutationBlock::IncreaseMutationBlockCapacity(void)
 	// It's OK for this to be called when we're inside an inactive parallel region; there is then no
 	// race condition.  When a parallel region is active, even inside a critical region, reallocating
 	// the mutation block has the potential for a race with other threads.
+	// FIXME PARALLEL: BCH 11/21/2026: Rather than this rather brittle pre-allocation scheme, it seems to me
+	// a different scheme could be pursued with a special lock requesting permission to reallocate the mutation
+	// block.  As long as nobody has requested that lock, all threads can proceed freely.  If a thread requests
+	// that lock, (1) the first thread to request it gets it, but then (2) that thread blocks, waiting
+	// for permission to actually do the realloc, and (3) all other threads complete their current work
+	// and then block the _next_ time they try to gain access to the mutation block pointer.  When all
+	// other threads are blocked waiting for access to the mutation block pointer, (4) the original
+	// requesting thread now gets permission to realloc the mutation block, does so, and patches Mutation*
+	// references in Eidos objects as it does now.  Then (5) other threads that were blocked waiting for
+	// realloc permission get cleared, one by one, to check that they are happy with the new size.  Last,
+	// (6) all of the threads that just wanted read access to the mutation block get unblocked and everybody
+	// is free to proceed.  That seems like it would work, without requiring pre-allocation, and would
+	// not deadlock.  See Eidos_OMPWriterPrefRWLock in eidos_openmp.h, which provides this lock type.
 	if (omp_in_parallel())
 	{
 		std::cerr << "ERROR (MutationBlock::IncreaseMutationBlockCapacity): (internal error) IncreaseMutationBlockCapacity() was called to reallocate mutation_buffer_ inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
