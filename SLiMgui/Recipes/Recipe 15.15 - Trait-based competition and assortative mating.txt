@@ -26,7 +26,6 @@ first() {
 }
 reproduction() {
 	inds = p1.individuals;
-	phenos = inds.quant;
 	litterSizes = rpois(size(inds), FECUN);
 	
 	// narrow down to the individuals with litter size > 0
@@ -63,12 +62,11 @@ reproduction() {
 	phenos = inds.quant;
 	
 	// evaluate phenotypic competition; similarity to others is penalized
-	c = sapply(inds, "sum(dnorm(phenos, applyValue.quant, SIGMA_C) / NORM_C);");
-	competition_F = 2.0 - c / (K * (1 + FECUN));
+	c = sapply(inds, "sum(dnorm(phenos, applyValue.quant, SIGMA_C)) / NORM_C;");
+	competition_F = K / c;
 	
-	// evaluate stabilizing selection; difference from the mean is penalized
-	stab_sel = dnorm(phenos, OPT, SIGMA_S) / NORM_S;
-	stab_sel_F = 0.01 + stab_sel;
+	// evaluate stabilizing selection; difference from the optimum is penalized
+	stab_sel_F = dnorm(phenos, OPT, SIGMA_S) / NORM_S;
 	
 	// fitness is a combination of competition and stabilizing selection
 	inds.fitnessScaling = pmax(0.0, competition_F * stab_sel_F);
