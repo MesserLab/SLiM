@@ -3702,6 +3702,16 @@ void Community::FileWriteNotification(const std::string &p_file_path, std::vecto
 }
 #endif
 
+void Community::RNGSeedChangeNotification(void)
+{
+	// This Context method is called by Eidos when setSeed() is called.  It notifies us that the RNG has been
+	// re-seeded, which means we need to toss any state that would carry forward RNG state from prior to the
+	// seed change.  For that, that means species shuffle buffers, which carry forward a set of randomized
+	// state that depends upon past RNG draws.  See https://github.com/MesserLab/SLiM/issues/690.
+	for (Species *species : all_species_)
+		species->_ResetShuffleBuffer();
+}
+
 void Community::AllSpecies_TSXC_Enable(void)
 {
 	// This is called by command-line slim if a -TSXC command-line option is supplied; the point of this is to allow

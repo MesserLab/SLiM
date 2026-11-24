@@ -86,11 +86,10 @@ public:
 	// function dispatch.
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-#ifdef SLIMGUI
 	// Because this class is used for the Eidos Context, stuff related to the context has to be defined here.
 	// We don't want to dictate what subclass of EidosObject the context might actually inherit from, so we
 	// can't define this in a subclass.  I wish we had Obj-C protocols...
-	
+#ifdef SLIMGUI
 	// Support for debugging points in SLiMgui
 	virtual EidosInterpreterDebugPointsSet *DebugPoints(void) { return nullptr; };
 	virtual std::string DebugPointInfo(void) { return ""; };
@@ -98,6 +97,9 @@ public:
 	// Support for monitoring of file I/O in SLiMgui
 	virtual void FileWriteNotification(__attribute__((unused)) const std::string &p_file_path, __attribute__((unused)) std::vector<std::string> &&p_lines, __attribute__((unused)) bool p_append) { ; };
 #endif
+	
+	// Support for monitoring of RNG seed changes, which needs to happen in `slim` as well as SLiMgui
+	virtual void RNGSeedChangeNotification(void) { ; };
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObject &p_element);

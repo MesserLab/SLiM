@@ -323,7 +323,10 @@ public:
     std::vector<std::vector<std::string>> file_write_buffers_;		// remembered file write lines, keyed by the full file path; read by SLiMgui
     std::vector<uint8_t> file_write_appends_;						// a parallel map just keeping a bool flag: true == append, false == overwrite
 #endif
-
+	
+	// ***********************************  Support for monitoring of RNG seed changes
+	virtual void RNGSeedChangeNotification(void) override;
+	
 	// TREE SEQUENCE RECORDING
 #pragma mark -
 #pragma mark treeseq recording ivars

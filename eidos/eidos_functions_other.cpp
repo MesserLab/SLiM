@@ -1341,6 +1341,14 @@ EidosValue_SP Eidos_ExecuteFunction_setSeed(const std::vector<EidosValue_SP> &p_
 	
 	Eidos_SetRNGSeed(seed_value->IntAtIndex_NOCAST(0, nullptr));
 	
+	// BCH 11/24/2026: the Context is potentially interested in RNG reseeding; it might contain cached state
+	// derived from the current RNG state, such as the shuffle buffer in SLiM, that needs to be reset to avoid
+	// carrying over RNG state across a seed change.  See https://github.com/MesserLab/SLiM/issues/690.
+	EidosContext *context = p_interpreter.Context();
+	
+	if (context)
+		context->RNGSeedChangeNotification();
+	
 	return gStaticEidosValueVOID;
 }
 

@@ -7104,6 +7104,15 @@ void Species::ReturnShuffleBuffer(void)
 	shuffle_buf_borrowed_ = false;
 }
 
+void Species::_ResetShuffleBuffer(void)
+{
+	// this is called when the RNG is re-seeded to toss internal state; see RNGSeedChangeNotification()
+	if (shuffle_buf_borrowed_ && shuffle_buf_is_enabled_)
+		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): setSeed() cannot be called in the middle of the operation being performed (reproduction, trait calculation, fitness calculation, mortality/survival processing, etc.); the random number generator state cannot be reset in the middle of those operations, because it is being used to manage the internal details of those operations.  If this restriction is a problem, it might help to disable randomization of the order of callbacks with `initializeSLiMOptions(randomizeCallbacks=F)`; but read the documentation regarding the side effects that might result." << EidosTerminate();
+	
+	shuffle_buf_size_ = 0;
+}
+
 #if (SLIMPROFILING == 1)
 // PROFILING
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
@@ -13397,7 +13406,7 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	free(variant);
 }
 
-void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq)
+void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table)
 {
 	slim_chromosome_index_t chromosome_index = p_treeseq.chromosome_index_;
 	Chromosome *chromosome = chromosomes_[chromosome_index];
@@ -13425,13 +13434,17 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		}
 	}
 	
-	// instantiate mutations
+	// instantiate mutations; we loop directly over the rows in the mutation table because we want to
+	// instantiate substitutions and mutations in the same order that they were written out
 	bool make_unreferenced_mutations = RecordingTreeSequenceMutations();
+	uint8_t *mutation_table_buffer = p_mut_metadata_table.table_buffer;
+	size_t row_size = p_mut_metadata_table.row_size;
+	size_t row_count = p_mut_metadata_table.row_count;
 	
-	for (const auto &mut_info_iter : p_mutInfoMap)
+	for (size_t row_index = 0; row_index < row_count; ++row_index)
 	{
-		slim_mutationid_t mutation_id = mut_info_iter.first;
-		const ts_mut_info &mut_info = mut_info_iter.second;
+		slim_mutationid_t mutation_id = ((MutationTableMetadataRec *)(mutation_table_buffer + row_index * row_size))->mutation_id_;
+		const ts_mut_info &mut_info = p_mutInfoMap[mutation_id];
 		MutationTableMetadataRec *metadata_ptr = mut_info.metadata;
 		slim_position_t position = mut_info.position;
 		
@@ -13969,7 +13982,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		
 		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_mut_metadata_table, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
-		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
+		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq, p_mut_metadata_table);
 	}
 	
 	__AddMutationsFromTreeSequenceToHaplosomes(mutIndexMap, nodeToHaplosomeMap, ts, p_treeseq);
@@ -14047,7 +14060,7 @@ void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_in
 		
 		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_mut_metadata_table, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
-		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
+		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq, p_mut_metadata_table);
 	}
 	
 	__AddMutationsFromTreeSequenceToHaplosomes(mutIndexMap, nodeToHaplosomeMap, ts, p_treeseq);

@@ -647,6 +647,7 @@ public:
 	inline bool RandomizingCallbackOrder(void) { return shuffle_buf_is_enabled_; }
 	slim_popsize_t *BorrowShuffleBuffer(slim_popsize_t p_buffer_size);
 	void ReturnShuffleBuffer(void);
+	void _ResetShuffleBuffer(void);		// called when the RNG is re-seeded to toss internal state
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -778,7 +779,7 @@ public:
 	void __ConfigureSubpopulationsFromTables_SECONDARY(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
 	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table, int p_file_version);
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
-	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq);
+	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq, MutationMetadataTable &p_mut_metadata_table);
 	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq);
 	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
 	void _ReadAncestralSequence(const char *p_file, Chromosome &p_chromosome);
