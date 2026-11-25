@@ -140,13 +140,13 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::updateAfterTick(vo
                     if (showSubpops || (history_record_iter.first == -1))
                     {
 						const SubpopTraitHistory &history_record = history_record_iter.second;
-						const double *history = history_record.history_;
+						const slim_phenotype_t *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         // find the min and max history value
                         for (int i = 0; i < historyLength; ++i)
                         {
-                            double history_value = history[i];
+                            double history_value = (double)history[i];
                             
                             ymin = std::min(ymin, history_value);
                             ymax = std::max(ymax, history_value);
@@ -257,7 +257,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawPointGraph(QPa
                     if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
                     {
 						const SubpopTraitHistory &history_record = history_record_iter.second;
-						const double *history = history_record.history_;
+						const slim_phenotype_t *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
@@ -265,7 +265,7 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawPointGraph(QPa
                         
                         for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
                         {
-                            double historyEntry = history[i];
+                            double historyEntry = (double)history[i];
                             
                             if (!std::isnan(historyEntry))
                             {
@@ -333,14 +333,14 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::drawLineGraph(QPai
                     if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
                     {
 						const SubpopTraitHistory &history_record = history_record_iter.second;
-						const double *history = history_record.history_;
+						const slim_phenotype_t *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         QPainterPath linePath;
                         bool startedLine = false;
                         
                         for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                         {
-                            double historyEntry = history[i];
+                            double historyEntry = (double)history[i];
                             
                             if (std::isnan(historyEntry))
                             {
@@ -410,14 +410,14 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::appendStringForDat
                     if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
                     {
 						const SubpopTraitHistory &history_record = history_record_iter.second;
-						const double *history = history_record.history_;
+						const slim_phenotype_t *history = history_record.history_;
                         slim_tick_t historyLength = history_record.history_length_;
                         
                         if (iter == 1)
                             string.append(QString("\n\n# Phenotype history (subpopulation p%1):\n").arg(history_record_iter.first));
                         
                         for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
-                            string.append(QString("%1, ").arg(history[i]));
+                            string.append(QString("%1, ").arg((double)history[i]));
                         
                         string.append("\n");
                     }

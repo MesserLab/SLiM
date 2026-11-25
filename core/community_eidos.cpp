@@ -538,7 +538,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 					for (const auto &history_record_iter : species->population_.fitness_histories_)
 					{
 						const FitnessHistory &history_record = history_record_iter.second;
-						double *history = history_record.history_;
+						slim_fitness_t *history = history_record.history_;
 						
 						if (history)
 						{
@@ -550,7 +550,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 								old_last_valid_history_index = history_record.history_length_ - 1;
 							
 							for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
-								history[entry_index] = std::numeric_limits<double>::quiet_NaN();
+								history[entry_index] = std::numeric_limits<slim_fitness_t>::quiet_NaN();
 						}
 					}
 					
@@ -579,7 +579,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 						for (const auto &history_record_iter : one_trait_history)
 						{
 							const SubpopTraitHistory &history_record = history_record_iter.second;
-							double *history = history_record.history_;
+							slim_phenotype_t *history = history_record.history_;
 							
 							if (history)
 							{
@@ -591,7 +591,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 									old_last_valid_history_index = history_record.history_length_ - 1;
 								
 								for (int entry_index = new_last_valid_history_index + 1; entry_index <= old_last_valid_history_index; ++entry_index)
-									history[entry_index] = std::numeric_limits<double>::quiet_NaN();
+									history[entry_index] = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 							}
 						}
 					}

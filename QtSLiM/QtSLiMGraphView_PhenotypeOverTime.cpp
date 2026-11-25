@@ -242,13 +242,13 @@ void QtSLiMGraphView_PhenotypeOverTime::updateAfterTick(void)
             if (showSubpops || (history_record_iter.first == -1))
             {
 				const SubpopTraitHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_phenotype_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 // find the min and max history value
                 for (int i = 0; i < historyLength; ++i)
                 {
-                    double history_value = history[i];
+                    double history_value = (double)history[i];
                     
                     ymin = std::min(ymin, history_value);
                     ymax = std::max(ymax, history_value);
@@ -330,7 +330,7 @@ void QtSLiMGraphView_PhenotypeOverTime::drawPointGraph(QPainter &painter, QRect 
     slim_trait_index_t trait_index = trait->Index();
     std::map<slim_objectid_t,SubpopTraitHistory> &one_trait_histories = pop.subpop_trait_histories_[trait_index];
     bool showSubpops = showSubpopulations_ && (one_trait_histories.size() > 2);
-    bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
+    bool drawSubpopsGray = (showSubpops && (pop.subpop_trait_histories_.size() > 8));	// 7 subpops + pop
     
     // First draw subpops, then draw the population mean
     for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
@@ -342,7 +342,7 @@ void QtSLiMGraphView_PhenotypeOverTime::drawPointGraph(QPainter &painter, QRect 
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
 				const SubpopTraitHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_phenotype_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
@@ -350,7 +350,7 @@ void QtSLiMGraphView_PhenotypeOverTime::drawPointGraph(QPainter &painter, QRect 
                 
                 for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
                 {
-                    double historyEntry = history[i];
+                    double historyEntry = (double)history[i];
                     
                     if (!std::isnan(historyEntry))
                     {
@@ -386,7 +386,7 @@ void QtSLiMGraphView_PhenotypeOverTime::drawLineGraph(QPainter &painter, QRect i
     slim_trait_index_t trait_index = trait->Index();
     std::map<slim_objectid_t,SubpopTraitHistory> &one_trait_histories = pop.subpop_trait_histories_[trait_index];
     bool showSubpops = showSubpopulations_ && (one_trait_histories.size() > 2);
-    bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
+    bool drawSubpopsGray = (showSubpops && (pop.subpop_trait_histories_.size() > 8));	// 7 subpops + pop
     
     // First draw subpops, then draw the population mean
     for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
@@ -399,14 +399,14 @@ void QtSLiMGraphView_PhenotypeOverTime::drawLineGraph(QPainter &painter, QRect i
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
 				const SubpopTraitHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_phenotype_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
                 
                 for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                 {
-                    double historyEntry = history[i];
+                    double historyEntry = (double)history[i];
                     
                     if (std::isnan(historyEntry))
                     {
@@ -475,14 +475,14 @@ void QtSLiMGraphView_PhenotypeOverTime::appendStringForData(QString &string)
             if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
             {
 				const SubpopTraitHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_phenotype_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
                     string.append(QString("\n\n# Phenotype history (subpopulation p%1):\n").arg(history_record_iter.first));
                 
                 for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
-                    string.append(QString("%1, ").arg(history[i]));
+                    string.append(QString("%1, ").arg((double)history[i]));
                 
                 string.append("\n");
             }

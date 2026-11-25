@@ -6207,7 +6207,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 }
 
 #ifdef SLIMGUI
-void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value)
+void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_fitness_t p_fitness_value)
 {
 	FitnessHistory *history_rec_ptr = nullptr;
 	
@@ -6234,7 +6234,7 @@ void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_su
 	// Assuming we now have a record, resize it as needed and insert the new value
 	if (history_rec_ptr)
 	{
-		double *history = history_rec_ptr->history_;	// FIXME MULTITRAIT: this should be changed to slim_fitness_t, and in QtSLiM also
+		slim_fitness_t *history = history_rec_ptr->history_;
 		slim_tick_t history_length = history_rec_ptr->history_length_;
 		
 		if (p_history_index >= history_length)
@@ -6242,10 +6242,10 @@ void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_su
 			slim_tick_t oldHistoryLength = history_length;
 			
 			history_length = p_history_index + 1000;			// give some elbow room for expansion
-			history = (double *)realloc(history, history_length * sizeof(double));
+			history = (slim_fitness_t *)realloc(history, history_length * sizeof(slim_fitness_t));
 			
 			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
-				history[i] = std::numeric_limits<double>::quiet_NaN();
+				history[i] = std::numeric_limits<slim_fitness_t>::quiet_NaN();
 			
 			// Copy the new values back into the history record
 			history_rec_ptr->history_ = history;
@@ -6305,7 +6305,7 @@ void Population::RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p
 	}
 }
 
-void Population::RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_mean_trait_value)
+void Population::RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_phenotype_t p_mean_trait_value)
 {
 	if (subpop_trait_histories_.size() == 0)
 		return;
@@ -6337,7 +6337,7 @@ void Population::RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_ti
 	// Assuming we now have a record, resize it as needed and insert the new value
 	if (history_rec_ptr)
 	{
-		double *history = history_rec_ptr->history_;	// FIXME MULTITRAIT: this should be changed to slim_phenotype_t, and in QtSLiM also
+		slim_phenotype_t *history = history_rec_ptr->history_;
 		slim_tick_t history_length = history_rec_ptr->history_length_;
 		
 		if (p_history_index >= history_length)
@@ -6345,10 +6345,10 @@ void Population::RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_ti
 			slim_tick_t oldHistoryLength = history_length;
 			
 			history_length = p_history_index + 1000;			// give some elbow room for expansion
-			history = (double *)realloc(history, history_length * sizeof(double));
+			history = (slim_phenotype_t *)realloc(history, history_length * sizeof(slim_phenotype_t));
 			
 			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
-				history[i] = std::numeric_limits<double>::quiet_NaN();
+				history[i] = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
 			
 			// Copy the new values back into the history record
 			history_rec_ptr->history_ = history;
@@ -6392,11 +6392,11 @@ void Population::SurveyPopulation(void)
 			
 			// Record for SLiMgui display
 			subpop->parental_mean_unscaled_fitness_ = meanUnscaledFitness;
-			RecordFitness(historyIndex, subpop_pair.first, meanUnscaledFitness);
+			RecordFitness(historyIndex, subpop_pair.first, (slim_fitness_t)meanUnscaledFitness);
 			RecordSubpopSize(historyIndex, subpop_pair.first, subpop_size);
 		}
 		
-		RecordFitness(historyIndex, -1, totalUnscaledFitness / totalPopSize);
+		RecordFitness(historyIndex, -1, (slim_fitness_t)(totalUnscaledFitness / totalPopSize));
 		RecordSubpopSize(historyIndex, -1, totalPopSize);
 	}
 	
@@ -6433,18 +6433,18 @@ void Population::SurveyPopulation(void)
 			
 			// Record for SLiMgui display
 			if (nonnan_subpop_size == 0)
-				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, std::numeric_limits<double>::quiet_NaN());
+				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, std::numeric_limits<slim_phenotype_t>::quiet_NaN());
 			else
-				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, nonnan_subpop_total / nonnan_subpop_size);
+				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, (slim_phenotype_t)(nonnan_subpop_total / nonnan_subpop_size));
 			
 			// FIXME MULTITRAIT: We could extend the Population Visualization plot to show trait values, perhaps, similar to parental_mean_unscaled_fitness_ above
 			//subpop->parental_mean_trait_value_ = meanTraitValue;
 		}
 		
 		if (totalNonnanPopSize == 0)
-			RecordMeanTraitValues(trait_index, historyIndex, -1, std::numeric_limits<double>::quiet_NaN());
+			RecordMeanTraitValues(trait_index, historyIndex, -1, std::numeric_limits<slim_phenotype_t>::quiet_NaN());
 		else
-			RecordMeanTraitValues(trait_index, historyIndex, -1, totalNonnanTraitValue / totalNonnanPopSize);
+			RecordMeanTraitValues(trait_index, historyIndex, -1, (slim_phenotype_t)(totalNonnanTraitValue / totalNonnanPopSize));
 	}
 }
 #endif

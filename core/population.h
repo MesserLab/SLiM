@@ -104,7 +104,7 @@ public:
 // The Population keeps the fitness histories for all the subpopulations, because subpops can come and go, but
 // we want to remember their histories and display them even after they're gone.
 typedef struct FitnessHistory {
-	double *history_ = nullptr;						// mean fitness, recorded per tick; tick 1 goes at index 0
+	slim_fitness_t *history_ = nullptr;				// mean fitness, recorded per tick; tick 1 goes at index 0
 	slim_tick_t history_length_ = 0;				// the number of entries in the history_ buffer
 } FitnessHistory;
 
@@ -116,7 +116,7 @@ typedef struct SubpopSizeHistory {
 
 // This struct similarly holds observed subpopulation mean trait values observed during a run, for QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime
 typedef struct SubpopTraitHistory {
-    double *history_ = nullptr;             		// subpop mean trait value, recorded per tick; tick 1 goes at index 0
+	slim_phenotype_t *history_ = nullptr;           // subpop mean trait value, recorded per tick; tick 1 goes at index 0
 	slim_tick_t history_length_ = 0;				// the number of entries in the history_ buffer
 } SubpopTraitHistory;
 #endif
@@ -350,9 +350,9 @@ public:
 	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
-	void RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value);
+	void RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_fitness_t p_fitness_value);
     void RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size);
-	void RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_mean_trait_value);
+	void RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_phenotype_t p_mean_trait_value);
 	void SurveyPopulation(void);
 	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_tick_t p_bin_number, slim_tick_t **p_buffer, uint32_t *p_bufferBins);
 #endif

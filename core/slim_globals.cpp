@@ -3601,9 +3601,9 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		// Mutation
 		snprintf(buf, 256, "%0.2f", mem_tot_S.mutationObjects_count / ddiv);
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.mutationObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationObjects, final_total) << "</tt> : Mutation objects (" << buf << " / " << mem_last_S.mutationObjects_count << ")<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationRefcountBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationRefcountBuffer, final_total) << "</tt> : refcount buffer<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationPerTraitBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationPerTraitBuffer, final_total) << "</tt> : per-trait buffer<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total) << "</tt> : unused pool space</p>\n\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationRefcountBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationRefcountBuffer, final_total) << "</tt> : refcount buffer<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationPerTraitBuffer / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationPerTraitBuffer, final_total) << "</tt> : per-trait buffer<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationUnusedPoolSpace, final_total) << "</tt> : unused pool space</p>\n\n";
 		
 		// MutationRun
 		snprintf(buf, 256, "%0.2f", mem_tot_S.mutationRunObjects_count / ddiv);

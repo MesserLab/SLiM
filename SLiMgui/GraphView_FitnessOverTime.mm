@@ -115,13 +115,13 @@
 			if (showSubpops || (history_record_iter.first == -1))
 			{
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
 				for (int i = 0; i < historyLength; ++i)
 				{
-					double historyEntry = history[i];
+					double historyEntry = (double)history[i];
 					
 					if (!isnan(historyEntry))
 					{
@@ -227,7 +227,7 @@
 			if (history_record_iter.first != -1)
 			{
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				if (drawSubpopsGray)
@@ -240,7 +240,7 @@
 				
 				for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
 				{
-					double historyEntry = history[i];
+					double historyEntry = (double)history[i];
 					
 					if (!isnan(historyEntry))
 					{
@@ -259,7 +259,7 @@
 		if (history_record_iter.first == -1)
 		{
 			const FitnessHistory &history_record = history_record_iter.second;
-			const double *history = history_record.history_;
+			const slim_fitness_t *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			
 			[[NSColor blackColor] set];
@@ -269,7 +269,7 @@
 			
 			for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
 			{
-				double historyEntry = history[i];
+				double historyEntry = (double)history[i];
 				
 				if (!isnan(historyEntry))
 				{
@@ -312,14 +312,14 @@
 			if (history_record_iter.first != -1)
 			{
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				NSBezierPath *linePath = [NSBezierPath bezierPath];
 				BOOL startedLine = NO;
 				
 				for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
 				{
-					double historyEntry = history[i];
+					double historyEntry = (double)history[i];
 					
 					if (isnan(historyEntry))
 					{
@@ -353,14 +353,14 @@
 		if (history_record_iter.first == -1)
 		{
 			const FitnessHistory &history_record = history_record_iter.second;
-			const double *history = history_record.history_;
+			const slim_fitness_t *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			NSBezierPath *linePath = [NSBezierPath bezierPath];
 			BOOL startedLine = NO;
 			
 			for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
 			{
-				double historyEntry = history[i];
+				double historyEntry = (double)history[i];
 				
 				if (isnan(historyEntry))
 				{
@@ -420,11 +420,11 @@
 		if (history_record_iter.first == -1)
 		{
 			const FitnessHistory &history_record = history_record_iter.second;
-			const double *history = history_record.history_;
+			const slim_fitness_t *history = history_record.history_;
 			slim_tick_t historyLength = history_record.history_length_;
 			
 			for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
-				[string appendFormat:@"%.4f, ", history[i]];
+				[string appendFormat:@"%.4f, ", (double)history[i]];
 			
 			[string appendString:@"\n"];
 		}
@@ -440,13 +440,13 @@
 			if (history_record_iter.first != -1)
 			{
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				[string appendFormat:@"\n\n# Fitness history (subpopulation p%d):\n", history_record_iter.first];
 				
 				for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
-					[string appendFormat:@"%.4f, ", history[i]];
+					[string appendFormat:@"%.4f, ", (double)history[i]];
 				
 				[string appendString:@"\n"];
 			}

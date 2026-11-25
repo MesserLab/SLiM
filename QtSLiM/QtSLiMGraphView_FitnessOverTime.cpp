@@ -133,13 +133,13 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
             if (showSubpops || (history_record_iter.first == -1))
             {
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 // find the min and max history value
                 for (int i = 0; i < historyLength; ++i)
                 {
-                    double historyEntry = history[i];
+                    double historyEntry = (double)history[i];
                     
                     if (!std::isnan(historyEntry))
                     {
@@ -256,7 +256,7 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
@@ -264,7 +264,7 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
                 
                 for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
                 {
-                    double historyEntry = history[i];
+                    double historyEntry = (double)history[i];
                     
                     if (!std::isnan(historyEntry))
                     {
@@ -314,14 +314,14 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
                 
                 for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                 {
-                    double historyEntry = history[i];
+                    double historyEntry = (double)history[i];
                     
                     if (std::isnan(historyEntry))
                     {
@@ -390,14 +390,14 @@ void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
             if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
             {
 				const FitnessHistory &history_record = history_record_iter.second;
-				const double *history = history_record.history_;
+				const slim_fitness_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
                     string.append(QString("\n\n# Fitness history (subpopulation p%1):\n").arg(history_record_iter.first));
                 
                 for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
-                    string.append(QString("%1, ").arg(history[i], 0, 'f', 4));
+                    string.append(QString("%1, ").arg((double)history[i], 0, 'f', 4));
                 
                 string.append("\n");
             }
