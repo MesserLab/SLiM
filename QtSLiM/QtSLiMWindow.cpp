@@ -4622,14 +4622,28 @@ void QtSLiMWindow::displayProfileResults(void)
             continue;
         }
         
+        
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
+		bool has_diploid_chromosomes = false, has_haploid_chromosomes = false;
+		
+		for (Chromosome *focal_chromosome : chromosomes)
+			if (focal_chromosome->IntrinsicPloidy() == 2)
+				has_diploid_chromosomes = true;
+			else
+				has_haploid_chromosomes = true;
+		
+		if (has_diploid_chromosomes)
         {
+			tc.insertText("For intrinsically diploid chromosomes:\n", optima13i_d);
+			tc.insertText(" \n", optima3_d);
+			
             int64_t regime_tallies[6];
-            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_trait_calculation_regime_history_.size());
+            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_trait_calculation_regime_history_DIPLOID_.size());
             
             for (int regime = 0; regime < 6; ++regime)
                 regime_tallies[regime] = 0;
             
-            for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
+            for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_DIPLOID_)
             {
                 int regime_int = (int)regime;
                 
@@ -4647,13 +4661,52 @@ void QtSLiMWindow::displayProfileResults(void)
             
             tc.insertText(" \n", optima8_d);
         }
+		else
+		{
+			tc.insertText("No intrinsically diploid chromosomes present\n", optima13i_d);
+			tc.insertText(" \n", optima8_d);
+		}
+        
+		if (has_haploid_chromosomes)
+        {
+			tc.insertText("For intrinsically haploid chromosomes:\n", optima13i_d);
+			tc.insertText(" \n", optima3_d);
+			
+            int64_t regime_tallies[10];
+            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_trait_calculation_regime_history_HAPLOID_.size());
+            
+            for (int regime = 0; regime < 10; ++regime)
+                regime_tallies[regime] = 0;
+            
+            for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_HAPLOID_)
+            {
+                int regime_int = (int)regime;
+                
+                if ((regime_int >= 0) && (regime_int <= 9))
+                    regime_tallies[regime_int]++;
+                else
+                    regime_tallies_total--;
+            }
+            
+            for (int regime = 0; regime < 10; ++regime)
+            {
+                tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime).arg(QString::fromStdString(RegimeDescription((TraitCalculationRegime)regime))), optima13_d);
+            }
+            
+            tc.insertText(" \n", optima8_d);
+        }
+		else
+		{
+			tc.insertText("No intrinsically haploid chromosomes present\n", optima13i_d);
+			tc.insertText(" \n", optima8_d);
+		}
+        
         
         tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
         
         
-        const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
-		
 		for (Chromosome *focal_chromosome : chromosomes)
 		{
             tc.insertText(" \n", optima13_d);

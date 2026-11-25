@@ -500,8 +500,9 @@ public:
 	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
 	
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
-	std::vector<TraitCalculationRegime> profile_trait_calculation_regime_history_;	// a record of the nonneutral regime used in each cycle
-	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
+	std::vector<TraitCalculationRegime> profile_trait_calculation_regime_history_DIPLOID_;	// a record of the trait calculation regime used in each cycle
+	std::vector<TraitCalculationRegime> profile_trait_calculation_regime_history_HAPLOID_;	// a record of the trait calculation regime used in each cycle
+	int64_t profile_max_mutation_index_;													// the largest mutation index seen over the course of the profile
 #endif	// SLIM_PROFILE_NONNEUTRAL_CACHES()
 #endif	// (SLIMPROFILING == 1)
 	

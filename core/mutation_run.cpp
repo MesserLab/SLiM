@@ -60,12 +60,12 @@ std::string RegimeDescription(TraitCalculationRegime p_regime)
 		case TraitCalculationRegime::kNoActiveCallbacks:					return "no mutationEffect() callbacks";
 		case TraitCalculationRegime::kAllGlobalNeutralCallbacks:			return "constant neutral mutationEffect() callbacks only";
 		case TraitCalculationRegime::kNonNeutralCallbacks:					return "unpredictable mutationEffect() callbacks present";
-		case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:			return "most/all mutations nonneutral; no independent dominance";
-		case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:		return "most/all mutations nonneutral; independent dominance";
+		case TraitCalculationRegime::kAllNonNeutralNoIndDomCaches:			return "most/all mutations nonneutral; no ind. dominance";
+		case TraitCalculationRegime::kAllNonNeutralWithIndDomCaches:		return "most/all mutations nonneutral; ind. dominance";
 		case TraitCalculationRegime::kHaploidAllNonNeutralNoCallbacks:		return "haploid, all nonneutral mutations, no callbacks";
 		case TraitCalculationRegime::kHaploidNoCallbacks:					return "haploid, some neutral mutations, no callbacks";
-		case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:	return "haploid, all nonneutral mutations, some callbacks";
-		case TraitCalculationRegime::kHaploidWithCallbacks:					return "haploid, some neutral mutations, some callbacks";
+		case TraitCalculationRegime::kHaploidAllNonNeutralWithCallbacks:	return "haploid, all nonneutral mutations, callbacks";
+		case TraitCalculationRegime::kHaploidWithCallbacks:					return "haploid, some neutral mutations, callbacks";
 		default:
 			EIDOS_TERMINATION << "ERROR (MutationRun::MutationRun): (internal error) unrecognized TraitCalculationRegime." << EidosTerminate(nullptr);
 	}

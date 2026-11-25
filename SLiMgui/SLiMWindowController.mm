@@ -1991,14 +1991,28 @@
 			continue;
 		}
 		
+		
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
+		bool has_diploid_chromosomes = false, has_haploid_chromosomes = false;
+		
+		for (Chromosome *focal_chromosome : chromosomes)
+			if (focal_chromosome->IntrinsicPloidy() == 2)
+				has_diploid_chromosomes = true;
+			else
+				has_haploid_chromosomes = true;
+		
+		if (has_diploid_chromosomes)
 		{
+			[content eidosAppendString:@"For intrinsically diploid chromosomes:\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
 			int64_t regime_tallies[6];
-			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_.size();
+			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_DIPLOID_.size();
 			
 			for (int regime = 0; regime < 6; ++regime)
 				regime_tallies[regime] = 0;
 			
-			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_)
+			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_DIPLOID_)
 			{
 				int regime_int = (int)regime;
 				
@@ -2016,12 +2030,51 @@
 			
 			[content eidosAppendString:@"\n" attributes:optima8_d];
 		}
+		else
+		{
+			[content eidosAppendString:@"No intrinsically diploid chromosomes present\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+		}
+		
+		if (has_haploid_chromosomes)
+		{
+			[content eidosAppendString:@"For intrinsically haploid chromosomes:\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			int64_t regime_tallies[10];
+			int64_t regime_tallies_total = (int)focal_species->profile_trait_calculation_regime_history_HAPLOID_.size();
+			
+			for (int regime = 0; regime < 10; ++regime)
+				regime_tallies[regime] = 0;
+			
+			for (TraitCalculationRegime regime : focal_species->profile_trait_calculation_regime_history_HAPLOID_)
+			{
+				int regime_int = (int)regime;
+				
+				if ((regime_int >= 0) && (regime_int <= 9))
+					regime_tallies[regime_int]++;
+				else
+					regime_tallies_total--;
+			}
+			
+			for (int regime = 0; regime < 10; ++regime)
+			{
+				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime, [NSString stringWithUTF8String:RegimeDescription((TraitCalculationRegime)regime).c_str()]] attributes:optima13_d];
+			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+		}
+		else
+		{
+			[content eidosAppendString:@"No intrinsically haploid chromosomes present\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+		}
+		
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_max_mutation_index_] attributes:menlo11_d];
 		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
 		
-		
-		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
 		
 		for (Chromosome *focal_chromosome : chromosomes)
 		{

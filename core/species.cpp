@@ -1756,8 +1756,8 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 	// tend to assume that the genetics will be used, and so validating all of these caches up front will tend
 	// to be more efficient than doing it one at a time.  Of course some models will be exceptions to this.
 	// It is also worth noting that invalidation of nonneutral caches is uncommon, since MutationRuns are
-	// generally immutable after they are done being created, so we spend much time re-validating runs that
-	// we validated before, except when the trait calculation regime changes.
+	// generally immutable after they are done being created, so we don't spend much time re-validating runs
+	// that we validated before, except when the trait calculation regime changes.
 	MutationBlock *mutation_block = mutation_block_;
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
 	const std::map<slim_objectid_t,MutationType*> &mut_types = MutationTypes();
@@ -2119,7 +2119,8 @@ void Species::_ValidateNonNeutralCaches(const std::vector<slim_trait_index_t> &p
 		if (local_doing_mutrun_experiments) chromosome->StopMutationRunExperimentClock("ValidateNonNeutralCaches()");
 		
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
-		// FIXME MULTITRAIT: would be nice to use total_run_count in the profile output too!
+		// FIXME : I commented to myself "would be nice to use total_run_count in the profile output too!" but
+		// I'm not sure what that would look like; so I'm preserving the thought here, but not sure what to do
 		chromosome->profile_mutrun_nonneutral_recache_total_ += recached_run_count;
 #endif
 #if DEBUG_TRAIT_DEMAND()
@@ -7132,9 +7133,9 @@ void Species::_ResetShuffleBuffer(void)
 #if SLIM_PROFILE_NONNEUTRAL_CACHES()
 void Species::CollectMutationProfileInfo(void)
 {
-	// maintain our history of the nonneutral regime
-	// FIXME MULTITRAIT: This now only keeps a history of diploid regimes
-	profile_trait_calculation_regime_history_.emplace_back(current_trait_calculation_regime_DIPLOID_);
+	// maintain our history of the trait calculation regime
+	profile_trait_calculation_regime_history_DIPLOID_.emplace_back(current_trait_calculation_regime_DIPLOID_);
+	profile_trait_calculation_regime_history_HAPLOID_.emplace_back(current_trait_calculation_regime_HAPLOID_);
 	
 	// track the maximum number of mutations in existence at one time
     int64_t global_registry_size = 0;
