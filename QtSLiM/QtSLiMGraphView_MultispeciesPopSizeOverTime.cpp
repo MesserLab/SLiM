@@ -82,6 +82,8 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::invalidateDrawingCache(void)
     delete drawingCache_;
 	drawingCache_ = nullptr;
 	drawingCacheTick_ = 0;
+    
+    QtSLiMGraphView::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_MultispeciesPopSizeOverTime::controllerRecycled(void)
@@ -145,6 +147,8 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
 		// set axis range to encompass the data
         if (maxHistory > yAxisMax_)
         {
+            double old_y0 = y0_, old_y1 = y1_;
+            
             if (maxHistory <= 1000)
             {
                 maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 100.0) * 100.0);
@@ -186,7 +190,8 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
                 yAxisMajorTickModulus_ = 2;
             }
             
-            QtSLiMGraphView_MultispeciesPopSizeOverTime::invalidateDrawingCache();
+            if ((y0_ != old_y0) || (y1_ != old_y1))
+                invalidateDrawingCache();
         }
     }
 	

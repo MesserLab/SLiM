@@ -78,6 +78,8 @@ void QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache(void)
     delete drawingCache_;
 	drawingCache_ = nullptr;
 	drawingCacheTick_ = 0;
+    
+    QtSLiMGraphView::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
@@ -165,6 +167,8 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
                 
                 if ((fabs(axisMin - yAxisMin_) > 0.0000001) || (fabs(axisMax - yAxisMax_) > 0.0000001))
                 {
+                    double old_y0 = y0_, old_y1 = y1_;
+                    
                     yAxisMin_ = axisMin;
                     original_y0_ = yAxisMin_;               // the same as yAxisMin_, for base plots
                     y0_ = original_y0_;
@@ -176,7 +180,8 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
                     yAxisMajorTickModulus_ = 2;
                     yAxisTickValuePrecision_ = 1;
                     
-                    QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache();
+                    if ((y0_ != old_y0) || (y1_ != old_y1))
+                        invalidateDrawingCache();
                 }
             }
         }

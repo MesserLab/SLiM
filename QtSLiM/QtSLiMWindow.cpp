@@ -5538,8 +5538,9 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         
         if ((realized_width != width) || (realized_height != height))
         {
-            std::cout << "SLiMgui: the requested graph window size (" << width << ", " << height << ") was not attainable; the realized size was (" <<
-                         realized_width << ", " << realized_height << ").  Resizing to try to preserve the requested aspect ratio." << std::endl;
+            //if (((width != 0) && (realized_width != width)) || ((height != 0) && (realized_height != height)))
+            //    std::cout << "SLiMgui: the requested graph window size (" << width << ", " << height << ") was not attainable; the realized size was (" <<
+            //                realized_width << ", " << realized_height << ").  Resizing to try to preserve the requested aspect ratio." << std::endl;
             
             double requested_aspect_ratio = width / height;
             double realized_aspect_ratio = realized_width / realized_height;

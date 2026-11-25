@@ -81,6 +81,8 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::invalidateDrawingC
     delete drawingCache_;
 	drawingCache_ = nullptr;
 	drawingCacheTick_ = 0;
+    
+    QtSLiMGraphView::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::controllerRecycled(void)
@@ -159,6 +161,8 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::updateAfterTick(vo
 		// set axis range to encompass the data
         if (std::isfinite(ymin) && std::isfinite(ymax))
         {
+            double old_y0 = y0_, old_y1 = y1_;
+            
             original_y0_ = ymin;
             original_y1_ = ymax;
             
@@ -167,10 +171,9 @@ void QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::updateAfterTick(vo
             
             configureAxisForRange(y0_, y1_, yAxisMin_, yAxisMax_, yAxisMajorTickInterval_, yAxisMinorTickInterval_,
                                   yAxisMajorTickModulus_, yAxisTickValuePrecision_);
-
-#warning invalidates every tick, I think; might be a flaw with other cached drawing schemes too!
-            std::cout << "invalidating drawing!" << std::endl;
-            QtSLiMGraphView_MultispeciesMultitraitPhenotypeOverTime::invalidateDrawingCache();
+            
+            if ((y0_ != old_y0) || (y1_ != old_y1))
+                invalidateDrawingCache();
         }
     }
 	

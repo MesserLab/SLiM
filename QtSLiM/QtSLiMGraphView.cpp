@@ -1327,7 +1327,9 @@ void QtSLiMGraphView::invalidateCachedData()
 void QtSLiMGraphView::invalidateDrawingCache(void)
 {
     // GraphView has no drawing cache, but it supports the idea of one
-    // If anything ever gets added here, calls to super will need to be added in subclasses
+    
+    // uncomment this to debug excessive cache invalidation
+    //std::cout << "invalidateDrawingCache() called!" << std::endl;
 }
 
 void QtSLiMGraphView::graphWindowResized(void)
@@ -1826,6 +1828,8 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 	double axisMax = ceil(lastTick / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
 	double contained5mults = axisMax / lower5mult;				// 8000 gives 16, 7500 gives 15, 1100 gives 3, 1000 gives 2
 	
+	double old_x0 = x0_, old_x1 = x1_;
+	
 	if (contained5mults <= 3)
 	{
 		// We have a max like 1500 that divides into 5mults well, so do that
@@ -1852,6 +1856,9 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
         original_x1_ = xAxisMax_;
         x1_ = original_x1_;
 	}
+	
+	if ((x0_ != old_x0) || (x1_ != old_x1))
+		invalidateDrawingCache();
 }
 
 void QtSLiMGraphView::configureAxisForRange(double &dim0, double &dim1, double &axisMin, double &axisMax,
