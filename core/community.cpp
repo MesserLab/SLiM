@@ -3504,24 +3504,6 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	p_usage->communityObjects_count = 1;
 	p_usage->communityObjects = p_usage->communityObjects_count * sizeof(Community);
 	
-	// Mutation global buffers
-	// FIXME MULTITRAIT need to shift these memory usage metrics down to the species level
-	p_usage->mutationRefcountBuffer = 0.0;
-	p_usage->mutationPerTraitBuffer = 0.0;
-	p_usage->mutationUnusedPoolSpace = 0.0;
-	
-	for (const Species *species : all_species_)
-	{
-		if (species->HasGenetics())
-		{
-			MutationBlock *mutation_block = species->SpeciesMutationBlock();
-			
-			p_usage->mutationRefcountBuffer += mutation_block->MemoryUsageForMutationRefcounts();
-			p_usage->mutationPerTraitBuffer += mutation_block->MemoryUsageForTraitInfo();
-			p_usage->mutationUnusedPoolSpace += mutation_block->MemoryUsageForFreeMutations();
-		}
-	}
-	
 	// InteractionType
 	{
 		p_usage->interactionTypeObjects_count = interaction_types_.size();

@@ -452,6 +452,9 @@ void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
 		p_usage.individualHaplosomeVectors +
 		p_usage.individualUnusedPoolSpace +
 		p_usage.mutationObjects +
+		p_usage.mutationRefcountBuffer +
+		p_usage.mutationPerTraitBuffer +
+		p_usage.mutationUnusedPoolSpace +
 		p_usage.mutationRunObjects +
 		p_usage.mutationRunExternalBuffers +
 		p_usage.mutationRunNonneutralCaches +
@@ -472,9 +475,6 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 {
 	p_usage.totalMemoryUsage =
 		p_usage.communityObjects +
-		p_usage.mutationRefcountBuffer +
-		p_usage.mutationPerTraitBuffer +
-		p_usage.mutationUnusedPoolSpace +
 		p_usage.interactionTypeObjects +
 		p_usage.interactionTypeKDTrees +
 		p_usage.interactionTypePositionCaches +
@@ -515,6 +515,9 @@ void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SL
 	
 	p_total.mutationObjects_count += p_usage.mutationObjects_count;
 	p_total.mutationObjects += p_usage.mutationObjects;
+	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
+	p_total.mutationPerTraitBuffer += p_usage.mutationPerTraitBuffer;
+	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
 	
 	p_total.mutationRunObjects_count += p_usage.mutationRunObjects_count;
 	p_total.mutationRunObjects += p_usage.mutationRunObjects;
@@ -549,10 +552,6 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	
 	p_total.communityObjects_count += p_usage.communityObjects_count;
 	p_total.communityObjects += p_usage.communityObjects;
-	
-	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
-	p_total.mutationPerTraitBuffer += p_usage.mutationPerTraitBuffer;
-	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
 	
 	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
 	p_total.interactionTypeObjects += p_usage.interactionTypeObjects;

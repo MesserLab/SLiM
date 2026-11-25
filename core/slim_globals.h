@@ -427,13 +427,16 @@ typedef struct
 	
 	int64_t mutationObjects_count;
 	size_t mutationObjects;
+	size_t mutationRefcountBuffer;
+	size_t mutationPerTraitBuffer;
+	size_t mutationUnusedPoolSpace;
 	
 	int64_t mutationRunObjects_count;
 	size_t mutationRunObjects;
 	size_t mutationRunExternalBuffers;
 	size_t mutationRunNonneutralCaches;
-	size_t mutationRunUnusedPoolSpace;			// this pool is kept by Species
-	size_t mutationRunUnusedPoolBuffers;		// this pool is kept by Species
+	size_t mutationRunUnusedPoolSpace;
+	size_t mutationRunUnusedPoolBuffers;
 	
 	int64_t mutationTypeObjects_count;
 	size_t mutationTypeObjects;
@@ -460,10 +463,6 @@ typedef struct
 {
 	int64_t communityObjects_count;
 	size_t communityObjects;
-	
-	size_t mutationRefcountBuffer;			// this pool is kept by Species
-	size_t mutationPerTraitBuffer;			// this pool is kept by Species
-	size_t mutationUnusedPoolSpace;			// this pool is kept by Species
 	
 	int64_t interactionTypeObjects_count;	// InteractionType is kept by Community now
 	size_t interactionTypeObjects;

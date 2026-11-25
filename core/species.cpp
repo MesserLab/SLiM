@@ -6860,6 +6860,20 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage) 
 		}
 		
 		p_usage->mutationObjects = sizeof(Mutation) * p_usage->mutationObjects_count;
+		
+		// Mutation additional buffers
+		p_usage->mutationRefcountBuffer = 0.0;
+		p_usage->mutationPerTraitBuffer = 0.0;
+		p_usage->mutationUnusedPoolSpace = 0.0;
+		
+		if (HasGenetics())
+		{
+			MutationBlock *mutation_block = SpeciesMutationBlock();
+			
+			p_usage->mutationRefcountBuffer += mutation_block->MemoryUsageForMutationRefcounts();
+			p_usage->mutationPerTraitBuffer += mutation_block->MemoryUsageForTraitInfo();
+			p_usage->mutationUnusedPoolSpace += mutation_block->MemoryUsageForFreeMutations();
+		}
 	}
 	
 	// MutationRun
