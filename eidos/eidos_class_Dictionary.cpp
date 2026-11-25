@@ -147,7 +147,7 @@ void EidosDictionaryUnretained::AllKeysRemoved(void)
 	// Dictionary does not need to do any extra work when a key is removed; this is for subclasses
 }
 
-void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_name)
+void EidosDictionaryUnretained::ContentsChanged(__attribute__((unused)) const std::string &p_operation_name)
 {
 #if DEBUG
 	// Here we check our flag for whether or not we could contain any non-retain-release objects.
@@ -1241,30 +1241,26 @@ void EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Emptied(void)
 		return;
 	
 	// the layout is the same for string and integer keys, so we keep life simple
-	uint8_t &could_contain = ((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_;
-	
-	if (could_contain)
+	if (((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_)
 	{
+#if DEBUG
 		if (KeysAreStrings())
 		{
 			const EidosDictionaryHashTable_StringKeys *dict_symbols = DictionarySymbols_StringKeys();
 			
-#if DEBUG
 			if (dict_symbols->size() != 0)
 				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Emptied): (internal error) the dictionary is not empty." << EidosTerminate(nullptr);
-#endif
 		}
 		else
 		{
 			const EidosDictionaryHashTable_IntegerKeys *dict_symbols = DictionarySymbols_IntegerKeys();
 			
-#if DEBUG
 			if (dict_symbols->size() != 0)
 				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::UpdateCouldContainNonRRObjectFlag_Emptied): (internal error) the dictionary is not empty." << EidosTerminate(nullptr);
-#endif
 		}
+#endif
 		
-		could_contain = false;
+		((EidosDictionaryState_StringKeys *)state_ptr_)->could_contain_non_retain_release_objects_ = false;
 		
 #pragma omp critical (EidosDictionary_Internal)
 		{
