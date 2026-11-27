@@ -312,6 +312,57 @@ void Trait::_SetBaselineOffset_F(slim_trait_offset_t p_offset)
 		compositeOffset_F_ = baselineOffset_F_ + substitutionOffset_F_;
 }
 
+void Trait::_SetSubstitutionOffset_H(slim_trait_offset_t p_offset)
+{
+#if DEBUG
+	if (!std::isfinite(p_offset))
+		EIDOS_TERMINATION << "ERROR (Trait::_SetSubstitutionOffset_H): (internal error) p_offset is not finite." << EidosTerminate();
+	if ((Type() == TraitType::kMultiplicative) && (p_offset < 0.0))
+		EIDOS_TERMINATION << "ERROR (Trait::_SetSubstitutionOffset_H): (internal error) p_offset < 0.0." << EidosTerminate();
+#endif
+	
+	substitutionOffset_H_ = p_offset;
+	
+	if (Type() == TraitType::kMultiplicative)
+		compositeOffset_H_ = baselineOffset_H_ * substitutionOffset_H_;
+	else
+		compositeOffset_H_ = baselineOffset_H_ + substitutionOffset_H_;
+}
+
+void Trait::_SetSubstitutionOffset_M(slim_trait_offset_t p_offset)
+{
+#if DEBUG
+	if (!std::isfinite(p_offset))
+		EIDOS_TERMINATION << "ERROR (Trait::_SetSubstitutionOffset_M): (internal error) p_offset is not finite." << EidosTerminate();
+	if ((Type() == TraitType::kMultiplicative) && (p_offset < 0.0))
+		EIDOS_TERMINATION << "ERROR (Trait::_SetSubstitutionOffset_M): (internal error) p_offset < 0.0." << EidosTerminate();
+#endif
+	
+	substitutionOffset_M_ = p_offset;
+	
+	if (Type() == TraitType::kMultiplicative)
+		compositeOffset_M_ = baselineOffset_M_ * substitutionOffset_M_;
+	else
+		compositeOffset_M_ = baselineOffset_M_ + substitutionOffset_M_;
+}
+
+void Trait::_SetSubstitutionOffset_F(slim_trait_offset_t p_offset)
+{
+#if DEBUG
+	if (!std::isfinite(p_offset))
+		EIDOS_TERMINATION << "ERROR (Trait::_SetSubstitutionOffset_F): (internal error) p_offset is not finite." << EidosTerminate();
+	if ((Type() == TraitType::kMultiplicative) && (p_offset < 0.0))
+		EIDOS_TERMINATION << "ERROR (Trait::_SetSubstitutionOffset_F): (internal error) p_offset < 0.0." << EidosTerminate();
+#endif
+	
+	substitutionOffset_F_ = p_offset;
+	
+	if (Type() == TraitType::kMultiplicative)
+		compositeOffset_F_ = baselineOffset_F_ * substitutionOffset_F_;
+	else
+		compositeOffset_F_ = baselineOffset_F_ + substitutionOffset_F_;
+}
+
 void Trait::_ClearSubstitutionOffsets(void)
 {
 	if (species_.SexEnabled())

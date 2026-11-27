@@ -714,6 +714,7 @@ public:
 		if (p_y) *p_y = periodic_y_;
 		if (p_z) *p_z = periodic_z_;
 	}
+	inline __attribute__((always_inline)) slim_usertag_t Tag(void) const { return tag_value_; }
 	
 	inline __attribute__((always_inline)) bool UserWantsMutrunExperiments(void) const										{ return do_mutrun_experiments_; }
 	inline __attribute__((always_inline)) void DoingMutrunExperimentsForChromosome(void)									{ doing_any_mutrun_experiments_ = true; }

@@ -187,6 +187,10 @@ public:
 	void _SetBaselineOffset_M(slim_trait_offset_t p_offset);
 	void _SetBaselineOffset_F(slim_trait_offset_t p_offset);
 	
+	void _SetSubstitutionOffset_H(slim_trait_offset_t p_offset);
+	void _SetSubstitutionOffset_M(slim_trait_offset_t p_offset);
+	void _SetSubstitutionOffset_F(slim_trait_offset_t p_offset);
+	
 	void _ClearSubstitutionOffsets(void);
 	void AccumulateSubstitutionOffset(const Substitution *p_substitution, const struct SubstitutionTraitInfo &p_trait_info);
 	
