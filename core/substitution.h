@@ -65,6 +65,8 @@ class Substitution : public EidosDictionaryRetained
 private:
 	typedef EidosDictionaryRetained super;
 
+	void _CheckHemizygousAccumulation(void);	// must be called from all constructors to maintain state
+	
 public:
 	
 	MutationType *mutation_type_ptr_;						// mutation type identifier

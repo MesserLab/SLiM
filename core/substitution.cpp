@@ -36,6 +36,55 @@
 #pragma mark Substitution
 #pragma mark -
 
+void Substitution::_CheckHemizygousAccumulation(void)
+{
+	// This method must be called from all constructors to maintain the hemi_sub_accumulation_occurred_ flag
+	// of Chromosome, which is used to check for a violation of the rules around substitution accumulation.
+	
+	// BCH 9/7/2026: OK, tricky stuff here.  With separate substitution offsets for males and females, we
+	// can now handle substitution accumulation for sex chromosomes, including any hemizygous dominance
+	// coefficient, because we know how sex chromosomes occur in males versus females.  But we can't handle
+	// substitution accumulation for autosomes, with a hemizygous dominance coefficient != 1.0, if the
+	// substitution occurs in a chromosome that is found hemizygously, because we don't know what pattern
+	// of occurrence will be followed, and we have no way of representing that pattern of occurrence.  So
+	// we need to detect that and raise an error.  We do that with two flags, per chromosome.  One says
+	// "a substitution has occurred, with hemizygous dominance != 1.0, for this chromosome".  The other
+	// says "an individual has been observed that has a null haplosome for this chromosome".  If both flags
+	// are true for a given autosome, substitution accumulation cannot be used and an error results.  (Note
+	// that hemi_sub_accumulation_occurred_ does not need to be per-trait, because null_haplosome_observed_
+	// is not per-trait in any case, and so if hemi_sub_accumulation_occurred_ is true for *any* trait and
+	// null_haplosome_observed_ is also true then the error condition has been met.)
+	
+	Species &species = mutation_type_ptr_->species_;
+	Chromosome *associated_chromosome = species.Chromosomes()[chromosome_index_];
+	ChromosomeType chromosome_type = associated_chromosome->Type();
+	
+	if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome))
+	{
+		slim_trait_index_t trait_count = species.TraitCount();
+		const std::vector<Trait *> &traits = species.Traits();
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			Trait *trait = traits[trait_index];
+			
+			if (trait->SubstitutionAccumulationEnabled())
+			{
+				if (trait_info_[trait_index].effect_size_ == 0.0)
+					continue;
+				
+				if (trait_info_[trait_index].hemizygous_dominance_coeff_ == 1.0)
+					continue;
+				
+				associated_chromosome->hemi_sub_accumulation_occurred_ = true;
+				
+				if (associated_chromosome->null_haplosome_observed_)
+					EIDOS_TERMINATION << "ERROR (Substitution::_CheckHemizygousAccumulation): " << "substitution accumulation cannot occur for mutations that (1) are non-neutral for a given trait, and (2) are associated with a given autosome, IF (3) the given trait has a hemizygous dominance coefficient != 1.0, and (4) the given autosome is represented by a null haplosome in any individual.  Under these conditions, the effect of the substitution cannot be reliably represented by the trait's substitution offset(s).  To fix this error, you must change your model so that one of the four preconditions for this error is no longer met, OR -- most commonly -- you must turn off substitution for the mutation type(s) that trigger this problem by setting their convertToSubstitution property to F.  (Note that turning off substitution accumulation is typically NOT a valid fix, since then substitution will cause trait values to omit the trait effects of the mutations that get substituted, unless you compensate for that yourself in script.)" << EidosTerminate();
+			}
+		}
+	}
+}
+
 Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
 EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), is_neutral_for_all_traits_(p_mutation.is_neutral_for_all_traits_), is_neutral_for_direct_fitness_traits_(p_mutation.is_neutral_for_direct_fitness_traits_), independent_dominance_for_all_traits_(p_mutation.independent_dominance_for_all_traits_), independent_dominance_for_any_traits_(p_mutation.independent_dominance_for_any_traits_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
@@ -57,6 +106,8 @@ EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), po
 		trait_info_[trait_index].dominance_coeff_UNSAFE_ = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
 		trait_info_[trait_index].hemizygous_dominance_coeff_ = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 	}
+	
+	_CheckHemizygousAccumulation();
 	
 #if DEBUG
 	SelfConsistencyCheck(" in Substitution::Substitution()");
@@ -86,6 +137,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	
 	EvaluateFlags();
 	
+	_CheckHemizygousAccumulation();
+	
 #if DEBUG
 	SelfConsistencyCheck(" in Substitution::Substitution()");
 #endif
@@ -109,6 +162,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	}
 	
 	EvaluateFlags();
+	
+	_CheckHemizygousAccumulation();
 	
 #if DEBUG
 	SelfConsistencyCheck(" in Substitution::Substitution()");

@@ -368,27 +368,7 @@ void Trait::AccumulateSubstitutionOffset(const Substitution *p_substitution, con
 	Chromosome *associated_chromosome = species_.Chromosomes()[p_substitution->chromosome_index_];
 	ChromosomeType chromosome_type = associated_chromosome->Type();
 	
-	if ((hemizygous_dominance != 1.0) &&
-		((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome)))
-	{
-		// BCH 9/7/2026: OK, tricky stuff here.  With separate substitution offsets for males and females, we
-		// can now handle substitution accumulation for sex chromosomes, including any hemizygous dominance
-		// coefficient, because we know how sex chromosomes occur in males versus females.  But we can't handle
-		// substitution accumulation for autosomes, with a hemizygous dominance coefficient != 1.0, if the
-		// substitution occurs in a chromosome that is found hemizygously, because we don't know what pattern
-		// of occurrence will be followed, and we have no way of representing that pattern of occurrence.  So
-		// we need to detect that and raise an error.  We do that with two flags, per chromosome.  One says
-		// "a substitution has occurred, with hemizygous dominance != 1.0, for this chromosome".  The other
-		// says "an individual has been observed that has a null haplosome for this chromosome".  If both flags
-		// are true for a given autosome, substitution accumulation cannot be used and an error results.  (Note
-		// that hemi_sub_accumulation_occurred_ does not need to be per-trait, because null_haplosome_observed_
-		// is not per-trait in any case, and so if hemi_sub_accumulation_occurred_ is true for *any* trait and
-		// null_haplosome_observed_ is also true then the error condition has been met.)
-		associated_chromosome->hemi_sub_accumulation_occurred_ = true;
-		
-		if (associated_chromosome->null_haplosome_observed_)
-			EIDOS_TERMINATION << "ERROR (Trait::AccumulateSubstitutionOffset): " << "substitution accumulation cannot occur for mutations that (1) are non-neutral for a given trait, and (2) are associated with a given autosome, IF (3) the given trait has a hemizygous dominance coefficient != 1.0, and (4) the given autosome is represented by a null haplosome in any individual.  Under these conditions, the effect of the substitution cannot be reliably represented by the trait's substitution offset(s).  To fix this error, you must change your model so that one of the four preconditions for this error is no longer met, OR -- most commonly -- you must turn off substitution for the mutation type(s) that trigger this problem by setting their convertToSubstitution property to F.  (Note that turning off substitution accumulation is typically NOT a valid fix, since then substitution will cause trait values to omit the trait effects of the mutations that get substituted, unless you compensate for that yourself in script.)" << EidosTerminate();
-	}
+	// see Substitution::_CheckHemizygousAccumulation() for additional accumulation work for every substitution
 	
 	if (species_.SexEnabled())
 	{

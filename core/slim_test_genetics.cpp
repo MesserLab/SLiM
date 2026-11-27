@@ -3623,7 +3623,7 @@ mutation(m3) {
 	
 	// This test triggers an error due to hemizygosity of an autosome with a hemizygous dominance
 	// that is != 0.5, because substitution accumulation can't represent the effect of a mutation
-	// that gets substituted.  See discussion in Trait::AccumulateSubstitutionOffset().
+	// that gets substituted.  See discussion in Substitution::_CheckHemizygousAccumulation().
 	
 	#pragma mark multitrait_AUTOSOMAL_HEMIZYGOSITY
 	std::string multitrait_AUTOSOMAL_HEMIZYGOSITY =

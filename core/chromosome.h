@@ -296,7 +296,7 @@ public:
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
 	// these two flags are used to detect a specific configuration error involving autosomes, hemizygosity /
-	// null haplosomes, and substitution accumulation; see Trait::AccumulateSubstitutionOffset() for discussion.
+	// null haplosomes, and substitution accumulation; see Substitution::_CheckHemizygousAccumulation().
 	// note that these flags are only maintained for autosomes; this configuration error is specific to them.
 	bool hemi_sub_accumulation_occurred_ = false;
 	bool null_haplosome_observed_ = false;
