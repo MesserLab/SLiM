@@ -219,7 +219,7 @@ static double MutTypeFixedFitnessEffect(Species *displaySpecies, MutationType *m
 			if (DES_info.DES_type_ != DESType::kFixed)
 				return std::numeric_limits<double>::quiet_NaN();
 			
-			double fixed_effect = DES_info.DES_parameters_[trait_index];
+			double fixed_effect = DES_info.DES_parameters_[0];
 			
 			if (trait->Type() == TraitType::kMultiplicative)
 				fitnessEffect *= (1.0 + fixed_effect);          // 1+s
@@ -245,7 +245,7 @@ static bool MutationFitnessEffectMatchesMutType(Species *displaySpecies, Mutatio
 		{
 			// all direct fitness effects are guaranteed by MutTypeFixedFitnessEffect() to be type 'f'
 			EffectSizeDistributionInfo &DES_info = mut_type->effect_size_distributions_[trait_index];
-			double fixed_effect = DES_info.DES_parameters_[trait_index];
+			double fixed_effect = DES_info.DES_parameters_[0];
 			
 			if ((slim_effect_t)fixed_effect != mut_trait_info[trait_index].effect_size_)
 				return false;
