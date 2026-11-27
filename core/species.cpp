@@ -12472,6 +12472,9 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	slim_pedigreeid_t max_pedigreeID_used = 0;
 	SLiM_ResetPedigreeIDCounter();
 	
+	for (Trait *trait : traits_)
+		trait->_ClearIndividualOffsetChanged();		// this will be fixed below as needed, based on the offsets read
+	
 	for (const auto &subpop_info_iter : p_subpopInfoMap)
 	{
 		slim_objectid_t subpop_id = subpop_info_iter.first;
@@ -12587,6 +12590,13 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					
 					per_trait_info.phenotype_ = per_trait_metadata.phenotype_;
 					per_trait_info.offset_ = per_trait_metadata.offset_;
+					
+					traits_[trait_index]->_NoteIndividualOffset(per_trait_info.offset_);
+					
+#if DEBUG
+					if (!isnan(per_trait_info.phenotype_))
+						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): (internal error) trait value in new individual is not NAN." << EidosTerminate();
+#endif
 				}
 				
 				individual->spatial_x_ = subpop_info.spatial_positions_[tabulation_index][0];
@@ -13518,9 +13528,6 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 				
 				if (trait->SubstitutionAccumulationEnabled())
 				{
-					if (trait_info.hemizygous_dominance_coeff_ != (slim_effect_t)1.0)
-						EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): substitution accumulation cannot be enabled for trait '" << trait->Name() << "', because a substitution has a hemizygous dominance coefficient other than 1.0 for that trait.  The effect of the changed substitution offset would therefore not match the effect of the original mutation, making substitution accumulation invalid.  Either (1) hemizygous dominance coefficients must be 1.0 for the trait for all mutations, (2) substitution accumulation must be turned off for the trait, or (3) substitution must be disabled, with convertToSubstitution=F, for all mutation types where the hemizygous dominance coefficient is not 1.0 for the trait." << EidosTerminate();
-					
 					trait->AccumulateSubstitutionOffset(sub, trait_info);
 					
 					// BCH 9/22/2026: Non-neutral substitutions do not, in themselves, make the simulation
@@ -13529,7 +13536,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 					// can have a non-neutral composite offset (see _HandleDemandForPureNeutralTraits()).
 					// So we don't need to change any optimization flags here; the new substitution does
 					// not change anything about the optimization state of the model, since its effect on
-					// the composite offset is factored in in all code paths, eve for pure neutrality.
+					// the composite offset is factored in in all code paths, even for pure neutrality.
 				}
 			}
 			
@@ -14160,6 +14167,10 @@ void Species::_PostInstantiationCleanup(EidosInterpreter *p_interpreter)
 	population_.UniqueMutationRuns();
 	population_.InvalidateMutationReferencesCache();	// force a retally
 	population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
+	
+	// Invalidate non-neutral caches for all chromosomes
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->all_nonneutral_caches_invalid_for_chromosome_ = true;
 	
 	// Do a crosscheck to ensure data integrity
 	// BCH 10/16/2019: this crosscheck can take a significant amount of time; for a single load that is not a big deal,
