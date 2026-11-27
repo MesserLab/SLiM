@@ -6348,7 +6348,7 @@ void Population::RecordMeanTraitValues(slim_trait_index_t p_trait_index, slim_ti
 			history = (slim_phenotype_t *)realloc(history, history_length * sizeof(slim_phenotype_t));
 			
 			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
-				history[i] = std::numeric_limits<slim_phenotype_t>::quiet_NaN();
+				history[i] = SLIM_PHENOTYPE_NAN;
 			
 			// Copy the new values back into the history record
 			history_rec_ptr->history_ = history;
@@ -6433,7 +6433,7 @@ void Population::SurveyPopulation(void)
 			
 			// Record for SLiMgui display
 			if (nonnan_subpop_size == 0)
-				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, std::numeric_limits<slim_phenotype_t>::quiet_NaN());
+				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, SLIM_PHENOTYPE_NAN);
 			else
 				RecordMeanTraitValues(trait_index, historyIndex, subpop_pair.first, (slim_phenotype_t)(nonnan_subpop_total / nonnan_subpop_size));
 			
@@ -6442,7 +6442,7 @@ void Population::SurveyPopulation(void)
 		}
 		
 		if (totalNonnanPopSize == 0)
-			RecordMeanTraitValues(trait_index, historyIndex, -1, std::numeric_limits<slim_phenotype_t>::quiet_NaN());
+			RecordMeanTraitValues(trait_index, historyIndex, -1, SLIM_PHENOTYPE_NAN);
 		else
 			RecordMeanTraitValues(trait_index, historyIndex, -1, (slim_phenotype_t)(totalNonnanTraitValue / totalNonnanPopSize));
 	}
