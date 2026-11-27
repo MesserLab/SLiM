@@ -199,8 +199,12 @@ public:
 	inline __attribute__((always_inline)) slim_trait_offset_t DrawIndividualOffset(void) const { return (individualOffsetDistributionFixed_) ? individualOffsetDistributionFixedValue_ : _DrawIndividualOffset(); }
 	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionMean(void) const { return individualOffsetDistributionMean_; }	// NOTE: this is the mean before the exp() post-transform
 	inline __attribute__((always_inline)) slim_trait_offset_t IndividualOffsetDistributionSD(void) const { return individualOffsetDistributionSD_; }		// NOTE: this is the SD before the exp() post-transform
+	
 	inline __attribute__((always_inline)) void IndividualOffsetChanged(void) { individualOffsetEverOverridden_ = true; }
 	inline __attribute__((always_inline)) bool IndividualOffsetEverChanged(void) { return individualOffsetEverOverridden_; }
+	inline __attribute__((always_inline)) void _ClearIndividualOffsetChanged(void) { individualOffsetEverOverridden_ = false; }
+	inline __attribute__((always_inline)) void _NoteIndividualOffset(slim_trait_offset_t p_offset) { if (individualOffsetDistributionFixed_ && (p_offset != individualOffsetDistributionFixedValue_)) individualOffsetEverOverridden_ = true; }
+	
 	inline void SetIndividualOffsetDistributionMean(slim_trait_offset_t p_mean) {
 		if (p_mean != individualOffsetDistributionMean_)
 		{
