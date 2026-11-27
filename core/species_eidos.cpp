@@ -4103,10 +4103,7 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		{
 			out << global_substitution_index << " ";
 			
-			if (output_object_tags)
-				sub->PrintForSLiMOutput_Tag(out);
-			else
-				sub->PrintForSLiMOutput(out);
+			sub->PrintForSLiMOutput(out, output_object_tags);
 			
 			global_substitution_index++;
 			
@@ -4347,10 +4344,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			{
 				out << "#OUT: " << community_.Tick() << " " << Cycle() << " T p" << subpop_pair.first << " ";
 				
-				if (output_object_tags)
-					polymorphism_pair.second.Print_NoID_Tag(out);
-				else
-					polymorphism_pair.second.Print_NoID(out);
+				polymorphism_pair.second.Print_NoID(out, output_object_tags);
 			}
 		}
 	}

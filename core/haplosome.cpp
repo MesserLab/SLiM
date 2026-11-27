@@ -1403,10 +1403,7 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, Species &p_species, st
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
 	{
-		if (p_output_object_tags)
-			polymorphism_pair.second.Print_ID_Tag(p_out);
-		else
-			polymorphism_pair.second.Print_ID(p_out);
+		polymorphism_pair.second.Print_ID(p_out, p_output_object_tags);
 	}
 	
 	// print the sample's haplosomes

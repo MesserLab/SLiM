@@ -91,8 +91,15 @@ public:
 	Substitution(const Substitution&) = delete;							// no copying
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
-	Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick);	// construct from the mutation that has fixed, and the tick in which it fixed
+	
+	// construct from the mutation that has fixed, and the tick in which it fixed
+	Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick);
+	
+	// This constructor is used when making a new substitution with one effect and one dominance PROVIDED by the caller
+	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!  This constructor should be removed in favor of the new constructor.
 	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
+	
+	// This constructor is used by tree-sequence reading in Species::__CreateMutationsFromTabulation()
 	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr, slim_tick_t p_fixation_tick);
 	
 	inline virtual ~Substitution(void) override { free(trait_info_); trait_info_ = nullptr; }
@@ -106,8 +113,7 @@ public:
 	// This handles the possibility that a dominance coefficient is NAN, representing independent dominance, and returns the correct value
 	slim_effect_t RealizedDominanceForTrait(Trait *p_trait);
 	
-	void PrintForSLiMOutput(std::ostream &p_out) const;
-	void PrintForSLiMOutput_Tag(std::ostream &p_out) const;
+	void PrintForSLiMOutput(std::ostream &p_out, bool p_print_tag) const;
 	
 	//
 	// Eidos support

@@ -300,12 +300,17 @@ slim_effect_t Substitution::RealizedDominanceForTrait(Trait *p_trait)
 	return traitInfoRec.dominance_coeff_UNSAFE_;
 }
 
-void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
+void Substitution::PrintForSLiMOutput(std::ostream &p_out, bool p_print_tag) const
 { 
 	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_;
 	
 	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
 	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
+	
+	// BCH 11/27/2026: This method does NOT print effect sizes/dominances at their full precision, for brevity.
+	// This would prevent accurate round-trips of substitutuions, but at present we do not round-trip substitutions
+	// in text format (and in binary format we output full precision).  See Polymorphism::Print_ID().
+	
 	Species &species = mutation_type_ptr_->species_;
 	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
 	
@@ -317,23 +322,48 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	}
 	
 	// write out per-trait information
-	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
 	slim_trait_index_t trait_count = species.TraitCount();
+	
+	// effect sizes, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
-		p_out << " " << trait_info_[trait_index].effect_size_ << " ";
-		
-		// output the dominance; if it is NAN for independent dominance we output NAN to preserve a record of that fact
+		p_out << " " << trait_info_[trait_index].effect_size_;
+	}
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
 		slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_UNSAFE_;
 		
 		if (std::isnan(dominance))
-			p_out << "NAN";
+			p_out << " NAN";
 		else
-			p_out << dominance;
-		
-		// FIXME MULTITRAIT: hemizygous dominance coeff?
+			p_out << " " << dominance;
 	}
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// hemizygous dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		p_out << " " << trait_info_[trait_index].hemizygous_dominance_coeff_;
+	}
+	
+	if (trait_count != 1)
+		p_out << " }";
 	
 	// and then the remainder of the output line
 	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
@@ -342,58 +372,14 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	if (mutation_type_ptr_->nucleotide_based_)
 		p_out << " " << gSLiM_Nucleotides[nucleotide_];
 	
-	p_out << std::endl;
-}
-
-void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
-{ 
-	// BCH 4/7/2025: This is a copy of PrintForSLiMOutput() with output of tag_value_ added at the end
-	
-	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_;
-	
-	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
-	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
-	Species &species = mutation_type_ptr_->species_;
-	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
-	
-	if (chromosomes.size() > 1)
+	if (p_print_tag)
 	{
-		Chromosome *chromosome = chromosomes[chromosome_index_];
-		
-		p_out << " \"" << chromosome->Symbol() << "\"";
-	}
-	
-	// write out per-trait information
-	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
-	slim_trait_index_t trait_count = species.TraitCount();
-	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		p_out << " " << trait_info_[trait_index].effect_size_ << " ";
-		
-		// output the dominance; if it is NAN for independent dominance we output NAN to preserve a record of that fact
-		slim_effect_t dominance = trait_info_[trait_index].dominance_coeff_UNSAFE_;
-		
-		if (std::isnan(dominance))
-			p_out << "NAN";
+		// output the tag value, or '?' or the tag is not defined
+		if (tag_value_ == SLIM_TAG_UNSET_VALUE)
+			p_out << ' ' << '?';
 		else
-			p_out << dominance;
-		
-		// FIXME MULTITRAIT: hemizygous dominance coeff?
+			p_out << ' ' << tag_value_;
 	}
-	
-	// and then the remainder of the output line
-	p_out << " p" << subpop_index_ << " " << origin_tick_ << " " << fixation_tick_;
-	
-	// output a nucleotide if available
-	if (mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << gSLiM_Nucleotides[nucleotide_];
-	
-	// output the tag value, or '?' or the tag is not defined
-	if (tag_value_ == SLIM_TAG_UNSET_VALUE)
-		p_out << ' ' << '?';
-	else
-		p_out << ' ' << tag_value_;
 	
 	p_out << std::endl;
 }

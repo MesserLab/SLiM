@@ -33,124 +33,94 @@ Polymorphism::Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutati
 {
 }
 
-void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
+void Polymorphism::Print_ID(std::ostream &p_out, bool p_print_tag) const
 {
 	// BCH 4/6/2025: This is a copy of Print_ID() with output of
 	// mutation_ptr_->tag_value_ added at the end
 	
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	// Switched to full-precision output of effect and domcoeff, for accurate reloading; BCH 22 March 2019
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID_Tag(): usage of statics");
-	
-	static char double_buf[40];
-	
-	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
-	
-	// write out per-trait information
-	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
-	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
-	MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
-	slim_trait_index_t trait_count = species.TraitCount();
-	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		if (trait_index > 0)
-			p_out << ",";
-		
-		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
-		p_out << double_buf;
-	}
-	
-	p_out << " ";
-	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		if (trait_index > 0)
-			p_out << ",";
-		
-		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
-		
-		if (std::isnan(dominance))
-			p_out << "NAN";
-		else
-		{
-			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)dominance);		// necessary precision for non-lossiness
-			p_out << double_buf;
-		}
-	}
-	
-	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
-	
-	// output a nucleotide if available
-	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
-	
-	// output the tag value, or '?' or the tag is not defined
-	slim_usertag_t tag = mutation_ptr_->tag_value_;
-	
-	if (tag == SLIM_TAG_UNSET_VALUE)
-		p_out << ' ' << '?';
-	else
-		p_out << ' ' << tag;
-	
-	p_out << std::endl;
-}
-
-void Polymorphism::Print_ID(std::ostream &p_out) const
-{
-	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Switched to full-precision output of effect and domcoeff, for accurate reloading; BCH 22 March 2019
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID(): usage of statics");
 	
-	static char double_buf[40];
+	static char double_buf[40];		// used to get the necessary precision for non-lossiness
 	
-	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
+	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
 	
 	// write out per-trait information
-	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
 	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
 	slim_trait_index_t trait_count = species.TraitCount();
 	
+	// effect sizes, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
-		if (trait_index > 0)
-			p_out << ",";
-		
-		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)mut_trait_info[trait_index].effect_size_);		// necessary precision for non-lossiness
-		p_out << double_buf;
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)mut_trait_info[trait_index].effect_size_);
+		p_out << " " << double_buf;
 	}
 	
-	p_out << " ";
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
-		if (trait_index > 0)
-			p_out << ",";
-		
 		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
 		
 		if (std::isnan(dominance))
-			p_out << "NAN";
+			p_out << " NAN";
 		else
 		{
-			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)dominance);		// necessary precision for non-lossiness
-			p_out << double_buf;
+			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)dominance);
+			p_out << " " << double_buf;
 		}
 	}
 	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// hemizygous dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		slim_effect_t hemizygous_dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+		
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)hemizygous_dominance);
+		p_out << " " << double_buf;
+	}
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
 		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
 	
+	// output the tag value, or '?' if the tag is not defined
+	if (p_print_tag)
+	{
+		slim_usertag_t tag = mutation_ptr_->tag_value_;
+		
+		if (tag == SLIM_TAG_UNSET_VALUE)
+			p_out << ' ' << '?';
+		else
+			p_out << ' ' << tag;
+	}
+	
 	p_out << std::endl;
 }
 
-void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
+void Polymorphism::Print_NoID(std::ostream &p_out, bool p_print_tag) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	// Note that Print_ID() now outputs effect and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
@@ -168,36 +138,47 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
-	p_out << " ";
-	
 	// write out per-trait information
-	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
 	slim_trait_index_t trait_count = species.TraitCount();
 	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		if (trait_index > 0)
-			p_out << ",";
-		
-		p_out << mut_trait_info[trait_index].effect_size_;
-	}
-	
-	p_out << " ";
+	// effect sizes, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
 	
 	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		p_out << " " << mut_trait_info[trait_index].effect_size_;
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
-		if (trait_index > 0)
-			p_out << ",";
-		
 		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
 		
 		if (std::isnan(dominance))
-			p_out << "NAN";
+			p_out << " NAN";
 		else
-			p_out << dominance;
+			p_out << " " << dominance;
 	}
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// hemizygous dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		p_out << " " << mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+	
+	if (trait_count != 1)
+		p_out << " }";
 	
 	// and then the remainder of the output line
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
@@ -206,72 +187,16 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
 		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
 	
-	// output the tag value, or '?' or the tag is not defined
-	slim_usertag_t tag = mutation_ptr_->tag_value_;
-	
-	if (tag == SLIM_TAG_UNSET_VALUE)
-		p_out << ' ' << '?';
-	else
-		p_out << ' ' << tag;
-	
-	p_out << std::endl;
-}
-
-void Polymorphism::Print_NoID(std::ostream &p_out) const
-{
-	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Note that Print_ID() now outputs effect and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
-	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
-	
-	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
-	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
-	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
-	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
-	
-	if (chromosomes.size() > 1)
+	if (p_print_tag)
 	{
-		Chromosome *chromosome = chromosomes[mutation_ptr_->chromosome_index_];
+		// output the tag value, or '?' or the tag is not defined
+		slim_usertag_t tag = mutation_ptr_->tag_value_;
 		
-		p_out << " \"" << chromosome->Symbol() << "\"";
-	}
-	
-	p_out << " ";
-	
-	// write out per-trait information
-	// FIXME MULTITRAIT: Just dumping all the traits, for now; not sure what should happen here
-	MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
-	slim_trait_index_t trait_count = species.TraitCount();
-	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		if (trait_index > 0)
-			p_out << ",";
-		
-		p_out << mut_trait_info[trait_index].effect_size_;
-	}
-	
-	p_out << " ";
-	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		if (trait_index > 0)
-			p_out << ",";
-		
-		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
-		
-		if (std::isnan(dominance))
-			p_out << "NAN";
+		if (tag == SLIM_TAG_UNSET_VALUE)
+			p_out << ' ' << '?';
 		else
-			p_out << dominance;
+			p_out << ' ' << tag;
 	}
-	
-	// and then the remainder of the output line
-	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
-	
-	// output a nucleotide if available
-	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
 	
 	p_out << std::endl;
 }

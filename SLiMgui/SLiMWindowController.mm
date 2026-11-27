@@ -3171,7 +3171,7 @@
 			for (const Substitution *substitution : chromosome->substitutions_)
 			{
 				SLIM_OUTSTREAM << global_substitution_index << " ";
-				substitution->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
+				substitution->PrintForSLiMOutput(SLIM_OUTSTREAM, /* p_print_tag */ true);
 			}
 		
 		// now send SLIM_OUTSTREAM to the output textview

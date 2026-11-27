@@ -55,10 +55,13 @@ public:
 	Polymorphism(void) = delete;				// no null construction
 	Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence);
 	
-	void Print_ID_Tag(std::ostream &p_out) const;			// includes polymorphism_id_ and tag
-	void Print_ID(std::ostream &p_out) const;			// includes polymorphism_id_ at the beginning
-	void Print_NoID_Tag(std::ostream &p_out) const;	// does not include polymorphism_id_, but includes tag
-	void Print_NoID(std::ostream &p_out) const;	// does not include polymorphism_id_
+	// this is called by Individual::PrintIndividuals_SLiM() and Haplosome::PrintHaplosomes_SLiM(),
+	// which need polymorphism IDs, but do not need the chromosome symbol
+	void Print_ID(std::ostream &p_out, bool p_print_tag) const;
+	
+	// this is called by Species::ExecuteMethod_outputMutations(), which does not need
+	// polymorphism IDs, but does need the chromosome symbol (in multi-chrom models)
+	void Print_NoID(std::ostream &p_out, bool p_print_tag) const;
 	
 	friend bool operator<(const Polymorphism& p_l, const Polymorphism& p_r)
 	{
