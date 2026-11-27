@@ -107,34 +107,6 @@ EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), po
 		trait_info_[trait_index].hemizygous_dominance_coeff_ = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
 	}
 	
-	_CheckHemizygousAccumulation();
-	
-#if DEBUG
-	SelfConsistencyCheck(" in Substitution::Substitution()");
-#endif
-}
-
-Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
-{
-	// FIXME MULTITRAIT: This code path is hit when loading substitutions from an output file, also needs to initialize the multitrait info; this is just a
-	// placeholder.  The file being read in ought to specify per-trait values, which hasn't happened yet, so there are lots of details to be worked out...
-	Species &species = mutation_type_ptr_->species_;
-	slim_trait_index_t trait_count = species.TraitCount();
-	
-	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
-	
-	trait_info_[0].effect_size_ = p_selection_coeff;
-	trait_info_[0].dominance_coeff_UNSAFE_ = p_dominance_coeff;		// can be NAN
-	trait_info_[0].hemizygous_dominance_coeff_ = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(0);		// FIXME MULTITRAIT: needs to be passed in
-	
-	for (slim_trait_index_t trait_index = 1; trait_index < trait_count; trait_index++)
-	{
-		trait_info_[trait_index].effect_size_ = 0.0;					// FIXME MULTITRAIT: needs to be passed in
-		trait_info_[trait_index].dominance_coeff_UNSAFE_ = 0.0;			// FIXME MULTITRAIT: needs to be passed in
-		trait_info_[trait_index].hemizygous_dominance_coeff_ = 1.0;		// FIXME MULTITRAIT: needs to be passed in
-	}
-	
 	EvaluateFlags();
 	
 	_CheckHemizygousAccumulation();
