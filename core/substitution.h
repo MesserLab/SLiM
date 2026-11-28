@@ -98,6 +98,9 @@ public:
 	// This constructor is used by tree-sequence reading in Species::__CreateMutationsFromTabulation()
 	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr, slim_tick_t p_fixation_tick);
 	
+	// This constructor is used by Species::_InitializePopulationFromBinaryFile()
+	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_effect_t *p_hemizygous_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
+	
 	inline virtual ~Substitution(void) override { free(trait_info_); trait_info_ = nullptr; }
 	
 	// Re-evaluate our internal flags (neutrality, independent dominance) based upon current state

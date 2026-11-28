@@ -9034,6 +9034,12 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	bool has_nucleotides = species_.IsNucleotideBased();
 	bool output_ancestral_nucs = has_nucleotides && p_output_ancestral_nucs;
 	
+	// Do we have separate sexes?  The output format depends on this, so it needs to match between write and read.
+	bool sex_enabled = species_.SexEnabled();
+	
+	// Figure out the trait count, which will be used for effect sizes, dominances, etc.
+	slim_trait_index_t trait_count = species_.TraitCount();
+	
 	int32_t section_end_tag = 0xFFFF0000;
 	
 	// Header section
@@ -9044,13 +9050,14 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 8;		// version 2 started with SLiM 2.1
+		int32_t version_tag = 9;		// version 2 started with SLiM 2.1
 										// version 3 started with SLiM 2.3
 										// version 4 started with SLiM 3.0, only when individual age is output
 										// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
 										// version 6 started with SLiM 3.5, adding optional pedigree ID output with a new flag
 										// version 7 started with SLiM 4.0, changing generation to ticks and adding cycle
 										// version 8 started with SLiM 5.0, adding multiple chromosomes
+										// version 9 started with SLiM 6.0, adding multiple traits
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -9074,6 +9081,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (output_ancestral_nucs)		flags |= 0x0020;
 			if (p_output_object_tags)		flags |= 0x0040;
 			if (p_output_substitutions)		flags |= 0x0080;
+			if (sex_enabled)				flags |= 0x0100;	// new in version 9
 			
 			p_out.write(reinterpret_cast<char *>(&flags), sizeof flags);
 		}
@@ -9084,26 +9092,30 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_objectid_t_size = sizeof(slim_objectid_t);
 		int32_t slim_popsize_t_size = sizeof(slim_popsize_t);
 		int32_t slim_refcount_t_size = sizeof(slim_refcount_t);
-		int32_t slim_effect_t_size = sizeof(slim_effect_t);
 		int32_t slim_mutationid_t_size = sizeof(slim_mutationid_t);													// Added in version 2
 		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
 		int32_t slim_age_t_size = sizeof(slim_age_t);																// Added in version 6
 		int32_t slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);													// Added in version 6
 		int32_t slim_haplosomeid_t_size = sizeof(slim_haplosomeid_t);												// Added in version 6
 		int32_t slim_usertag_t_size = sizeof(slim_usertag_t);														// Added in version 8
+		int32_t slim_effect_t_size = sizeof(slim_effect_t);															// Added in version 9 (was slim_selcoeff_t)
+		int32_t slim_trait_index_t_size = sizeof(slim_trait_index_t);												// Added in version 9
+		int32_t slim_trait_offset_t_size = sizeof(slim_trait_offset_t);												// Added in version 9
 		
 		p_out.write(reinterpret_cast<char *>(&slim_tick_t_size), sizeof slim_tick_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_objectid_t_size), sizeof slim_objectid_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_popsize_t_size), sizeof slim_popsize_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_refcount_t_size), sizeof slim_refcount_t_size);
-		p_out.write(reinterpret_cast<char *>(&slim_effect_t_size), sizeof slim_effect_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_mutationid_t_size), sizeof slim_mutationid_t_size);				// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_age_t_size), sizeof slim_age_t_size);							// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_pedigreeid_t_size), sizeof slim_pedigreeid_t_size);				// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_haplosomeid_t_size), sizeof slim_haplosomeid_t_size);			// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_usertag_t_size), sizeof slim_usertag_t_size);					// Added in version 8
+		p_out.write(reinterpret_cast<char *>(&slim_effect_t_size), sizeof slim_effect_t_size);						// Added in version 9 (was slim_selcoeff_t)
+		p_out.write(reinterpret_cast<char *>(&slim_trait_index_t_size), sizeof slim_trait_index_t_size);			// Added in version 9
+		p_out.write(reinterpret_cast<char *>(&slim_trait_offset_t_size), sizeof slim_trait_offset_t_size);			// Added in version 9
 		
 		// Write the tick and cycle
 		slim_tick_t tick = community_.Tick();																		// Changed from generation to tick in version 7
@@ -9111,6 +9123,15 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
 		p_out.write(reinterpret_cast<char *>(&cycle), sizeof cycle);
+		
+		// Write the species tag if requested (new in version 9)
+		slim_usertag_t species_tag = species_.Tag();
+		
+		if (p_output_object_tags)
+			p_out.write(reinterpret_cast<const char *>(&species_tag), sizeof species_tag);
+		
+		// Write the number of traits (new in version 9)
+		p_out.write(reinterpret_cast<char *>(&trait_count), sizeof trait_count);
 	}
 	
 	// Write a tag indicating the section has ended
@@ -9122,19 +9143,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		const Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
 		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
-		double subpop_sex_ratio;
-		
-		if (model_type_ == SLiMModelType::kModelTypeWF)
-		{
-			subpop_sex_ratio = subpop->parent_sex_ratio_;
-		}
-		else
-		{
-			if (subpop->parent_subpop_size_ == 0)
-				subpop_sex_ratio = 0.0;
-			else
-				subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
-		}
 		
 		// Write a tag indicating we are starting a new subpopulation
 		int32_t subpop_start_tag = 0xFFFF0001;
@@ -9147,19 +9155,71 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		// Write the subpop size
 		p_out.write(reinterpret_cast<char *>(&subpop_size), sizeof subpop_size);
 		
-		// Write a flag indicating whether this population has sexual or hermaphroditic
-		int32_t sex_flag = (subpop->sex_enabled_ ? 1 : 0);
+		// Write the sex ratio (new in version 9: only written if the species is sexual)
+		if (sex_enabled)
+		{
+			double subpop_sex_ratio;
+			
+			if (model_type_ == SLiMModelType::kModelTypeWF)
+			{
+				subpop_sex_ratio = subpop->parent_sex_ratio_;
+			}
+			else
+			{
+				if (subpop->parent_subpop_size_ == 0)
+					subpop_sex_ratio = 0.0;
+				else
+					subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
+			}
+			
+			p_out.write(reinterpret_cast<char *>(&subpop_sex_ratio), sizeof subpop_sex_ratio);
+		}
 		
-		p_out.write(reinterpret_cast<char *>(&sex_flag), sizeof sex_flag);
-		
-		// Write the sex ratio; if we are not sexual, this will be garbage, but that is fine, we want a constant-length record
-		p_out.write(reinterpret_cast<char *>(&subpop_sex_ratio), sizeof subpop_sex_ratio);
-		
-		// Write the tag if requested
+		// Write the subpop tag if requested
 		if (p_output_object_tags)
 			p_out.write(reinterpret_cast<const char *>(&subpop->tag_value_), sizeof subpop->tag_value_);
 		
 		// now will come either a subpopulation start tag, or a section end tag
+	}
+	
+	// Write a tag indicating the section has ended
+	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	
+	// Traits section; this contains metadata about traits.  This section is new with version 9.
+	for (Trait *trait : species_.Traits())
+	{
+		// Write a tag indicating we are starting a new subpopulation
+		int32_t trait_start_tag = 0xFFFF0004;
+		
+		p_out.write(reinterpret_cast<char *>(&trait_start_tag), sizeof trait_start_tag);
+		
+		// write out baseline and substitution offsets
+		if (sex_enabled)
+		{
+			slim_trait_offset_t baselineOffset_M = trait->_BaselineOffset_M();
+			slim_trait_offset_t baselineOffset_F = trait->_BaselineOffset_F();
+			slim_trait_offset_t substitutionOffset_M = trait->_SubstitutionOffset_M();
+			slim_trait_offset_t substitutionOffset_F = trait->_SubstitutionOffset_F();
+			
+			p_out.write(reinterpret_cast<char *>(&baselineOffset_M), sizeof baselineOffset_M);
+			p_out.write(reinterpret_cast<char *>(&baselineOffset_F), sizeof baselineOffset_F);
+			p_out.write(reinterpret_cast<char *>(&substitutionOffset_M), sizeof substitutionOffset_M);
+			p_out.write(reinterpret_cast<char *>(&substitutionOffset_F), sizeof substitutionOffset_F);
+		}
+		else
+		{
+			slim_trait_offset_t baselineOffset_H = trait->_BaselineOffset_H();
+			slim_trait_offset_t substitutionOffset_H = trait->_SubstitutionOffset_H();
+			
+			p_out.write(reinterpret_cast<char *>(&baselineOffset_H), sizeof baselineOffset_H);
+			p_out.write(reinterpret_cast<char *>(&substitutionOffset_H), sizeof substitutionOffset_H);
+		}
+		
+		// Write the trait tag if requested
+		if (p_output_object_tags)
+			p_out.write(reinterpret_cast<const char *>(&trait->tag_value_), sizeof trait->tag_value_);
+		
+		// now will come either a trait start tag, or a section end tag
 	}
 	
 	// Write a tag indicating the section has ended
@@ -9238,6 +9298,14 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					p_out.write(individual.tagL4_value_ ? &T_value : &F_value, sizeof T_value);
 				else
 					p_out.write(&UNDEF_value, sizeof UNDEF_value);
+			}
+			
+			// Output individual offsets for traits
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+			{
+				IndividualTraitInfo &trait_info = individual.trait_info_[trait_index];
+				
+				p_out.write(reinterpret_cast<char *>(&trait_info.offset_), sizeof trait_info.offset_);
 			}
 		}
 	}
@@ -9319,13 +9387,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = mutation_ptr->position_;
-			
-			// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
-			slim_effect_t selection_coeff = mut_trait_info->effect_size_;
-			slim_effect_t dominance_coeff = mut_trait_info->dominance_coeff_UNSAFE_;	// can be NAN
-			
-			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
-			// FIXME MULTITRAIT: This will now change, since the hemizygous dominance coefficient is becoming a first-class citizen
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
 			slim_refcount_t prevalence = polymorphism.prevalence_;
@@ -9341,11 +9402,26 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);							// Added in version 2
 			p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
 			p_out.write(reinterpret_cast<char *>(&position), sizeof position);
-			p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
-			p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
 			p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
 			p_out.write(reinterpret_cast<char *>(&origin_tick), sizeof origin_tick);
 			p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
+			
+			// write out effect size, dominance, and hemizygous dominance for each trait; new in version 9
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+			{
+				slim_effect_t effect_size = mut_trait_info[trait_index].effect_size_;
+				p_out.write(reinterpret_cast<char *>(&effect_size), sizeof effect_size);
+			}
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+			{
+				slim_effect_t dominance_coeff = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+				p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
+			}
+			for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+			{
+				slim_effect_t hemizygous_dominance_coeff = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+				p_out.write(reinterpret_cast<char *>(&hemizygous_dominance_coeff), sizeof hemizygous_dominance_coeff);
+			}
 			
 			if (has_nucleotides)
 				p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);							// added in version 5
@@ -9482,11 +9558,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				int64_t mutation_id = substitution_ptr->mutation_id_;
 				slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 				slim_position_t position = substitution_ptr->position_;
-				
-				// FIXME MULTITRAIT: for now we just write out trait 0, need to write out all of them with a count...
-				slim_effect_t selection_coeff = substitution_ptr->trait_info_[0].effect_size_;
-				slim_effect_t dominance_coeff = substitution_ptr->trait_info_[0].dominance_coeff_UNSAFE_;	// can be NAN
-				
 				slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
 				slim_tick_t origin_tick = substitution_ptr->origin_tick_;
 				slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;
@@ -9494,8 +9565,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				int8_t nucleotide = substitution_ptr->nucleotide_;
 				
 				// Write a tag indicating we are starting a new substitution
-				// FIXME MULTITRAIT: we need to write the substitution offset into the file header, so that
-				// substitution accumulation is preserved correctly across a round-trip
 				int32_t substitution_start_tag = 0xFFFF0003;
 				
 				p_out.write(reinterpret_cast<char *>(&substitution_start_tag), sizeof substitution_start_tag);
@@ -9504,15 +9573,31 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);
 				p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
 				p_out.write(reinterpret_cast<char *>(&position), sizeof position);
-				p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
-				p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
 				p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
 				p_out.write(reinterpret_cast<char *>(&origin_tick), sizeof origin_tick);
 				p_out.write(reinterpret_cast<char *>(&fixation_tick), sizeof fixation_tick);
 				p_out.write(reinterpret_cast<char *>(&chromosome_index), sizeof chromosome_index);
 				
+				// write out effect size, dominance, and hemizygous dominance for each trait; new in version 9
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t effect_size = substitution_ptr->trait_info_[trait_index].effect_size_;
+					p_out.write(reinterpret_cast<char *>(&effect_size), sizeof effect_size);
+				}
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t dominance_coeff = substitution_ptr->trait_info_[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+					p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
+				}
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				{
+					slim_effect_t hemizygous_dominance_coeff = substitution_ptr->trait_info_[trait_index].hemizygous_dominance_coeff_;
+					p_out.write(reinterpret_cast<char *>(&hemizygous_dominance_coeff), sizeof hemizygous_dominance_coeff);
+				}
+				
 				if (has_nucleotides)
 					p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);
+				
 				if (p_output_object_tags)
 					p_out.write(reinterpret_cast<const char *>(&substitution_ptr->tag_value_), sizeof substitution_ptr->tag_value_);
 				

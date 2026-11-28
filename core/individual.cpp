@@ -692,13 +692,19 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	// versions, etc.  Starting in SLiM 5, the version number is again synced with PrintAllBinary() (skipping
 	// over 7 directly to 8), and the crazy four-way version number scheme that encoded flags is gone. See
 	// PrintAllBinary() for the version history; but with version 8 we break backward compatibility anyway.
-	p_out << "Version: 8" << std::endl;
+	p_out << "Version: 9" << std::endl;
 	
 	// Starting with version 8 (SLiM 5.0), we write out some flags; this information used to be incorporated into
 	// the version number, which was gross.  Now we write out flags for all optional output that is enabled.
 	// Reading code can assume that if a flag is not present, that output is not present.
 	bool has_nucleotides = species.IsNucleotideBased();
 	bool output_ancestral_nucs = has_nucleotides && p_output_ancestral_nucs;
+	
+	// Do we have separate sexes?  The output format depends on this, so it needs to match between write and read.
+	bool sex_enabled = species.SexEnabled();
+	
+	// Figure out the trait count, which will be used for effect sizes, dominances, etc.
+	slim_trait_index_t trait_count = species.TraitCount();
 	
 	p_out << "Flags:";
 	if (spatial_output_count)		p_out << " SPACE=" << spatial_output_count;
@@ -708,6 +714,15 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	if (output_ancestral_nucs)		p_out << " ANC_SEQ";
 	if (p_output_object_tags)		p_out << " OBJECT_TAGS";
 	if (p_output_substitutions)		p_out << " SUBSTITUTIONS";
+	if (sex_enabled)				p_out << " SEX";		// new in version 9
+	if (p_output_object_tags)								// new in version 9
+	{
+		if (species.Tag() == SLIM_TAG_UNSET_VALUE)
+			p_out << " SPECIES_TAG=?";
+		else
+			p_out << " SPECIES_TAG=" << species.Tag();
+	}
+	p_out << " TRAITS=" << trait_count;		// new in version 9
 	p_out << std::endl;
 	
 	// Output populations first, for outputFull() only
@@ -718,29 +733,33 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
-			double subpop_sex_ratio;
-			
-			if (species.model_type_ == SLiMModelType::kModelTypeWF)
-			{
-				subpop_sex_ratio = subpop->parent_sex_ratio_;
-			}
-			else
-			{
-				// We want to output empty (but not removed) subpops, so we use a sex ratio of 0.0 to prevent div by 0
-				if (subpop->parent_subpop_size_ == 0)
-					subpop_sex_ratio = 0.0;
-				else
-					subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
-			}
 			
 			p_out << "p" << subpop_pair.first << " " << subpop_size;
 			
 			// SEX ONLY
-			if (subpop->sex_enabled_)
+			if (sex_enabled)
+			{
+				double subpop_sex_ratio;
+				
+				if (species.model_type_ == SLiMModelType::kModelTypeWF)
+				{
+					subpop_sex_ratio = subpop->parent_sex_ratio_;
+				}
+				else
+				{
+					// We want to output empty (but not removed) subpops, so we use a sex ratio of 0.0 to prevent div by 0
+					if (subpop->parent_subpop_size_ == 0)
+						subpop_sex_ratio = 0.0;
+					else
+						subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
+				}
+				
 				p_out << " S " << subpop_sex_ratio;
+			}
 			else
 				p_out << " H";
 			
+			// Write the subpop tag if requested
 			if (p_output_object_tags)
 			{
 				if (subpop->tag_value_ == SLIM_TAG_UNSET_VALUE)
@@ -763,12 +782,55 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		}
 	}
 	
-	// print all individuals; this used to come after the Mutations: section, but now mutations are per-chromosome,
-	// whereas the list of individuals is invariant across all of the chromosomes printed, and so must come before
-	p_out << "Individuals:" << std::endl;
+	// print all traits; this section is new with version 9.
+	p_out << "Traits:" << std::endl;
 	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Individual::PrintIndividuals_SLiM(): usage of statics");
 	static char double_buf[40];
+	
+	for (Trait *trait : species.Traits())
+	{
+		p_out << "trait " << trait->Name();
+		
+		// write out baseline and substitution offsets
+		if (sex_enabled)
+		{
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait->_BaselineOffset_M());		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+			
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait->_BaselineOffset_F());		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+			
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait->_SubstitutionOffset_M());		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+			
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait->_SubstitutionOffset_F());		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+		}
+		else
+		{
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait->_BaselineOffset_H());		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+			
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait->_SubstitutionOffset_H());		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+		}
+		
+		// Write the trait tag if requested
+		if (p_output_object_tags)
+		{
+			if (trait->tag_value_ == SLIM_TAG_UNSET_VALUE)
+				p_out << " ?";
+			else
+				p_out << ' ' << trait->tag_value_;
+		}
+		
+		p_out << std::endl;
+	}
+	
+	// print all individuals; this used to come after the Mutations: section, but now mutations are per-chromosome,
+	// whereas the list of individuals is invariant across all of the chromosomes printed, and so must come before
+	p_out << "Individuals:" << std::endl;
 	
 	for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
 	{
@@ -795,6 +857,21 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		// BCH 2/5/2025: Before version 8, we emitted haplosome identifiers here, like "p1:16" and
 		// "p1:17", but now that we have multiple chromosomes that really isn't helpful; removing
 		// them.  In the Haplosomes section we will now just identify the individual; that suffices.
+		
+		// output individual offsets for traits
+		if (trait_count != 1)
+			p_out << " {";
+		
+		for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		{
+			IndividualTraitInfo &trait_info = individual.trait_info_[trait_index];
+			
+			snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, trait_info.offset_);		// necessary precision for non-lossiness
+			p_out << " " << double_buf;
+		}
+		
+		if (trait_count != 1)
+			p_out << " }";
 		
 		// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 		if (spatial_output_count)
@@ -945,10 +1022,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		{
 			// NOTE this added mutation_id_, BCH 11 June 2016
 			// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
-			if (p_output_object_tags)
-				polymorphism_pair.second.Print_ID_Tag(p_out);
-			else
-				polymorphism_pair.second.Print_ID(p_out);
+			polymorphism_pair.second.Print_ID(p_out, p_output_object_tags);
 			
 #if DO_MEMORY_CHECKS()
 			if (eidos_do_memory_checks)
@@ -1052,10 +1126,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			{
 				p_out << global_substitution_index << " ";
 				
-				if (p_output_object_tags)
-					sub->PrintForSLiMOutput_Tag(p_out);
-				else
-					sub->PrintForSLiMOutput(p_out);
+				sub->PrintForSLiMOutput(p_out, p_output_object_tags);
 				
 				global_substitution_index++;
 				
@@ -1084,7 +1155,8 @@ void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_
 	bool pedigrees_enabled = p_species.PedigreesEnabledByUser();
 	
 	// print the VCF header
-	p_out << "##fileformat=VCFv4.2" << std::endl;
+	// BCH 11/27/2026 switching from VCF 4.2 to 4.3 in SLiM 6.0 to get the ability to write NAN for a Float value
+	p_out << "##fileformat=VCFv4.3" << std::endl;
 	
 	{
 		time_t rawtime;
@@ -1120,9 +1192,9 @@ void Individual::PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_
 	// changed from a Number of 1 to a Number of ., since in nucleotide-based models we can call more than
 	// one allele in a single call line (unlike in non-nucleotide-based models).
 	p_out << "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
-	p_out << "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
+	p_out << "##INFO=<ID=EFF,Number=.,Type=Float,Description=\"Effect Size\">" << std::endl;
 	p_out << "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">" << std::endl;
-	// Note that at present we do not output the hemizygous dominance coefficient; too edge
+	p_out << "##INFO=<ID=HDOM,Number=.,Type=Float,Description=\"Hemizygous Dominance\">" << std::endl;
 	p_out << "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">" << std::endl;
 	p_out << "##INFO=<ID=TO,Number=.,Type=Integer,Description=\"Tick of Origin\">" << std::endl;			// changed to ticks for 4.0, and changed "GO" to "TO"
 	p_out << "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">" << std::endl;
@@ -6165,6 +6237,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	Community &community = species->community_;
 	bool recording_mutations = species->RecordingTreeSequenceMutations();
 	bool nucleotide_based = species->IsNucleotideBased();
+	slim_trait_index_t trait_count = species->TraitCount();
 	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
 	bool has_initial_mutations = (gSLiM_next_mutation_id != 0);
 	MutationType *default_mutation_type_ptr = nullptr;
@@ -6181,8 +6254,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	std::string line, sub;
 	int parse_state = 0;
 	int sample_id_count = 0;
-	bool info_MID_defined = false, info_S_defined = false, info_DOM_defined = false, info_PO_defined = false;
-	bool info_GO_defined = false, info_TO_defined = false, info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
+	bool info_MID_defined = false, info_S_defined = false, info_EFF_defined = false, info_DOM_defined = false;
+	bool info_HDOM_defined = false, info_PO_defined = false, info_TO_defined = false;
+	bool info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
 	
 	// This data structure keeps call lines that we read for each chromosome.  They could arrive from the file
 	// in any order; with this we store them by chromosome, and then indexed by their mutation position.
@@ -6203,10 +6277,11 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (line.compare(0, 2, "##") == 0)
 				{
 					if (line == "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">")	info_MID_defined = true;
-					if (line == "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">")		info_S_defined = true;
+					if (line == "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">")		info_S_defined = true;		// SLiM 6 emits EFF (effect size) instead of S (selection coefficient)
+					if (line == "##INFO=<ID=EFF,Number=.,Type=Float,Description=\"Effect Size\">")				info_EFF_defined = true;
 					if (line == "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">")				info_DOM_defined = true;
+					if (line == "##INFO=<ID=HDOM,Number=.,Type=Float,Description=\"Hemizygous Dominance\">")	info_HDOM_defined = true;
 					if (line == "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">")	info_PO_defined = true;
-					if (line == "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">")	info_GO_defined = true;
 					if (line == "##INFO=<ID=TO,Number=.,Type=Integer,Description=\"Tick of Origin\">")			info_TO_defined = true;		// SLiM 4 emits TO (tick) instead of GO (generation)
 					if (line == "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">")			info_MT_defined = true;
 					/*if (line == "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">")			info_AA_defined = true;*/		// this one is standard, so we don't require this definition
@@ -6418,8 +6493,10 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			// parse/validate the INFO fields that we recognize
 			std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 			std::vector<slim_mutationid_t> info_mutids;
+			std::vector<slim_effect_t> info_selcoeffs;		// used for the old "S" INFO field
 			std::vector<slim_effect_t> info_effect_sizes;
 			std::vector<slim_effect_t> info_domcoeffs;
+			std::vector<slim_effect_t> info_hemidomcoeffs;
 			std::vector<slim_objectid_t> info_poporigin;
 			std::vector<slim_tick_t> info_tickorigin;
 			std::vector<slim_objectid_t> info_muttype;
@@ -6456,14 +6533,28 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
 					
 					for (std::string &value_substr : value_substrs)
-						info_effect_sizes.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+						info_selcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 				}
-				else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
+				else if (info_EFF_defined && (info_substr.compare(0, 4, "EFF=") == 0))	// Effect Size
 				{
 					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
 					
 					for (std::string &value_substr : value_substrs)
-						info_domcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+						info_effect_sizes.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+				}
+				else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_domcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));	// handles "NAN"
+				}
+				else if (info_HDOM_defined && (info_substr.compare(0, 5, "HDOM=") == 0))	// Hemizygous Dominance
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(5), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_hemidomcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 				}
 				else if (info_PO_defined && (info_substr.compare(0, 3, "PO=") == 0))	// Population of Origin
 				{
@@ -6473,13 +6564,6 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						info_poporigin.emplace_back((slim_objectid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
 				}
 				else if (info_TO_defined && (info_substr.compare(0, 3, "TO=") == 0))	// Tick of Origin
-				{
-					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
-					
-					for (std::string &value_substr : value_substrs)
-						info_tickorigin.emplace_back((slim_tick_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
-				}
-				else if (info_GO_defined && (info_substr.compare(0, 3, "GO=") == 0))	// Generation of Origin - emitted by SLiM 3, treated as TO here
 				{
 					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
 					
@@ -6508,12 +6592,22 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					info_is_nonnuc = true;
 				}
 				
+				if (info_selcoeffs.size() != 0)
+				{
+					if (info_effect_sizes.size() != 0)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file cannot contain both S and EFF values in a call line; they represent the same thing." << EidosTerminate();
+					else
+						std::swap(info_selcoeffs, info_effect_sizes);
+				}
+				
 				if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
-				if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count))
+				if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count * trait_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
-				if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
+				if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count * trait_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+				if ((info_hemidomcoeffs.size() != 0) && (info_hemidomcoeffs.size() != alt_allele_count * trait_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for HDOM field." << EidosTerminate();
 				if ((info_poporigin.size() != 0) && (info_poporigin.size() != alt_allele_count))
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
 				if ((info_tickorigin.size() != 0) && (info_tickorigin.size() != alt_allele_count))
@@ -6543,22 +6637,35 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (!mutation_type_ptr)
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 				
-				// get the dominance coefficient from DOM, or use the default coefficient from the mutation type
-				slim_effect_t dominance_coeff;
-				
-				if (info_domcoeffs.size() > 0)
-					dominance_coeff = info_domcoeffs[alt_allele_index];
-				else
-					dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT: also think about hemizygous dominance
-					// FIXME MULTITRAIT: this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
-				
-				// get the selection coefficient from S, or draw one from the mutation type
-				slim_effect_t selection_coeff;
+				// get the effect size(s) from EFF, or draw them from the mutation type's DES(s)
+				std::vector<slim_effect_t> effect_sizes;
 				
 				if (info_effect_sizes.size() > 0)
-					selection_coeff = info_effect_sizes[alt_allele_index];
+					for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						effect_sizes.push_back(info_effect_sizes[alt_allele_index * trait_count + trait_index]);
 				else
-					selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
+					for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						effect_sizes.push_back(mutation_type_ptr->DrawEffectSizeForTrait(trait_index));
+				
+				// get the dominance(s) from DOM, or use the default value(s) from the mutation type
+				std::vector<slim_effect_t> dominance_coeffs;
+				
+				if (info_domcoeffs.size() > 0)
+					for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						dominance_coeffs.push_back(info_domcoeffs[alt_allele_index * trait_count + trait_index]);
+				else
+					for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						dominance_coeffs.push_back(mutation_type_ptr->DefaultDominanceForTrait(trait_index));
+				
+				// get the hemizygous dominance(s) from HDOM, or use the default value(s) from the mutation type
+				std::vector<slim_effect_t> hemizygous_dominance_coeffs;
+				
+				if (info_effect_sizes.size() > 0)
+					for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						hemizygous_dominance_coeffs.push_back(info_effect_sizes[alt_allele_index * trait_count + trait_index]);
+				else
+					for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						hemizygous_dominance_coeffs.push_back(mutation_type_ptr->DefaultHemizygousDominanceForTrait(trait_index));
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;
@@ -6640,16 +6747,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_mutids.size() > 0)
 				{
 					// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
-					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
 					slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 					
-					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, effect_sizes.data(), dominance_coeffs.data(), hemizygous_dominance_coeffs.data(), subpop_index, origin_tick, nucleotide);
 				}
 				else
 				{
 					// no mutation ID supplied, so use whatever is next
-					// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
-					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, effect_sizes.data(), dominance_coeffs.data(), hemizygous_dominance_coeffs.data(), subpop_index, origin_tick, nucleotide);
 				}
 				
 				// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
@@ -6934,10 +7039,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			if (!iss.eof())
 				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
 		}
+		
+		// Make sure various caches get invalidated, since we just read in a bunch of mutations
+		chromosome->all_nonneutral_caches_invalid_for_chromosome_ = true;
 	}
 	
-	// Invalidate all calculated trait values, since we just read in a bunch of mutations
+	// Make sure various caches get invalidated, since we just read in a bunch of mutations
 	species->InvalidateAllTraitValues();
+	species->population_.InvalidateMutationReferencesCache();
 	
 	// Return the instantiated mutations
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()

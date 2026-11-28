@@ -142,6 +142,32 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 #endif
 }
 
+Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_effect_t *p_hemizygous_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
+{
+	// This constructor is used by Species::_InitializePopulationFromBinaryFile() to construct a mutation
+	// from provided effect sizes, dominances, and hemizygous dominances.
+	Species &species = mutation_type_ptr_->species_;
+	slim_trait_index_t trait_count = species.TraitCount();
+	
+	trait_info_ = (SubstitutionTraitInfo *)malloc(trait_count * sizeof(SubstitutionTraitInfo));
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; trait_index++)
+	{
+		trait_info_[trait_index].effect_size_ = p_effect_sizes[trait_index];
+		trait_info_[trait_index].dominance_coeff_UNSAFE_ = p_dominances[trait_index];
+		trait_info_[trait_index].hemizygous_dominance_coeff_ = p_hemizygous_dominances[trait_index];
+	}
+	
+	EvaluateFlags();
+	
+	_CheckHemizygousAccumulation();
+	
+#if DEBUG
+	SelfConsistencyCheck(" in Substitution::Substitution()");
+#endif
+}
+
 void Substitution::EvaluateFlags(void)
 {
 	// This mirrors Substitution::SelfConsistencyCheck(); essentially it sets up flags as expected by that method.

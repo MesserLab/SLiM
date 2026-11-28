@@ -1663,7 +1663,8 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	}
 	
 	// print the VCF header
-	p_out << "##fileformat=VCFv4.2" << std::endl;
+	// BCH 11/27/2026 switching from VCF 4.2 to 4.3 in SLiM 6.0 to get the ability to write NAN for a Float value
+	p_out << "##fileformat=VCFv4.3" << std::endl;
 	
 	{
 		time_t rawtime;
@@ -1700,9 +1701,9 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	// changed from a Number of 1 to a Number of ., since in nucleotide-based models we can call more than
 	// one allele in a single call line (unlike in non-nucleotide-based models).
 	p_out << "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
-	p_out << "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
+	p_out << "##INFO=<ID=EFF,Number=.,Type=Float,Description=\"Effect Size\">" << std::endl;
 	p_out << "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">" << std::endl;
-	// Note that at present we do not output the hemizygous dominance coefficient; too edge
+	p_out << "##INFO=<ID=HDOM,Number=.,Type=Float,Description=\"Hemizygous Dominance\">" << std::endl;
 	p_out << "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">" << std::endl;
 	p_out << "##INFO=<ID=TO,Number=.,Type=Integer,Description=\"Tick of Origin\">" << std::endl;			// changed to ticks for 4.0, and changed "GO" to "TO"
 	p_out << "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">" << std::endl;
@@ -1740,6 +1741,7 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 	int intrinsic_ploidy = p_chromosome.IntrinsicPloidy();
 	Species &species = p_chromosome.species_;
 	bool nucleotide_based = species.IsNucleotideBased();
+	slim_trait_index_t trait_count = species.TraitCount();
 	NucleotideArray *ancestral_seq = p_chromosome.AncestralSequence();
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;
@@ -2008,38 +2010,73 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 				}
 				p_out << ";";
 				
-				p_out << "S=";
-				for (const Polymorphism *polymorphism : nuc_based)
 				{
-					if (polymorphism != nuc_based.front())
-						p_out << ',';
+					// We may have multiple mutations with multiple per-trait values; the top-level loop is over mutations
+					bool first_value = true;
 					
-					// FIXME MULTITRAIT: need to write out all trait info, not just trait 0
-					const Mutation *mut = polymorphism->mutation_ptr_;
-					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
-					
-					p_out << mut_trait_info[0].effect_size_;
+					p_out << "EFF=";
+					for (const Polymorphism *polymorphism : nuc_based)
+					{
+						const Mutation *mut = polymorphism->mutation_ptr_;
+						MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+						
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							if (first_value)	first_value = false;
+							else				p_out << ',';
+							
+							p_out << mut_trait_info[trait_index].effect_size_;
+						}
+					}
+					p_out << ";";
 				}
-				p_out << ";";
 				
-				p_out << "DOM=";
-				for (const Polymorphism *polymorphism : nuc_based)
 				{
-					if (polymorphism != nuc_based.front())
-						p_out << ',';
+					// We may have multiple mutations with multiple per-trait values; the top-level loop is over mutations
+					bool first_value = true;
 					
-					// FIXME MULTITRAIT: need to write out all trait info, not just trait 0
-					const Mutation *mut = polymorphism->mutation_ptr_;
-					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
-					
-					slim_effect_t dominance = mut_trait_info[0].dominance_coeff_UNSAFE_;	// can be NAN
-					
-					if (std::isnan(dominance))
-						p_out << "NAN";
-					else
-						p_out << dominance;
+					p_out << "DOM=";
+					for (const Polymorphism *polymorphism : nuc_based)
+					{
+						const Mutation *mut = polymorphism->mutation_ptr_;
+						MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+						
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							if (first_value)	first_value = false;
+							else				p_out << ',';
+							
+							slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+							
+							if (std::isnan(dominance))
+								p_out << "NAN";
+							else
+								p_out << dominance;
+						}
+					}
+					p_out << ";";
 				}
-				p_out << ";";
+				
+				{
+					// We may have multiple mutations with multiple per-trait values; the top-level loop is over mutations
+					bool first_value = true;
+					
+					p_out << "HDOM=";
+					for (const Polymorphism *polymorphism : nuc_based)
+					{
+						const Mutation *mut = polymorphism->mutation_ptr_;
+						MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mut);
+						
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							if (first_value)	first_value = false;
+							else				p_out << ',';
+							
+							p_out << mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+						}
+					}
+					p_out << ";";
+				}
 				
 				p_out << "PO=";
 				for (const Polymorphism *polymorphism : nuc_based)
@@ -2163,18 +2200,56 @@ void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, i
 					p_out << "\t1000\tPASS\t";
 					
 					// emit the INFO fields and the Genotype marker
-					// FIXME MULTITRAIT: need to write out all trait info, not just trait 0
 					MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation);
 					
 					p_out << "MID=" << mutation->mutation_id_ << ";";
-					p_out << "S=" << mut_trait_info->effect_size_ << ";";
 					
-					slim_effect_t dominance = mut_trait_info->dominance_coeff_UNSAFE_;	// can be NAN
+					{
+						bool first_value = true;
+						
+						p_out << "EFF=";
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							if (first_value)	first_value = false;
+							else				p_out << ',';
+							
+							p_out << mut_trait_info[trait_index].effect_size_;
+						}
+						p_out << ";";
+					}
 					
-					if (std::isnan(dominance))
-						p_out << "DOM=" << "NAN" << ";";
-					else
-						p_out << "DOM=" << dominance << ";";
+					{
+						bool first_value = true;
+						
+						p_out << "DOM=";
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							if (first_value)	first_value = false;
+							else				p_out << ',';
+							
+							slim_effect_t dominance = mut_trait_info->dominance_coeff_UNSAFE_;	// can be NAN
+							
+							if (std::isnan(dominance))
+								p_out << "NAN" << ";";
+							else
+								p_out << dominance;
+						}
+						p_out << ";";
+					}
+					
+					{
+						bool first_value = true;
+						
+						p_out << "HDOM=";
+						for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+						{
+							if (first_value)	first_value = false;
+							else				p_out << ',';
+							
+							p_out << mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+						}
+						p_out << ";";
+					}
 					
 					p_out << "PO=" << mutation->subpop_index_ << ";";
 					p_out << "TO=" << mutation->origin_tick_ << ";";
@@ -3249,10 +3324,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_addNewMutation(): usage of statics");
-	static slim_effect_t *effectSize_buf = nullptr, *dominance_buf = nullptr;
+	static slim_effect_t *effectSize_buf = nullptr, *dominance_buf = nullptr, *hemizygous_dominance_buf = nullptr;
 	if (!effectSize_buf) {
 		effectSize_buf = (slim_effect_t *)malloc(SLIM_MAX_TRAITS * sizeof(slim_effect_t));
 		dominance_buf = (slim_effect_t *)malloc(SLIM_MAX_TRAITS * sizeof(slim_effect_t));
+		hemizygous_dominance_buf = (slim_effect_t *)malloc(SLIM_MAX_TRAITS * sizeof(slim_effect_t));
 	}
 	if (arg_effectSize)
 	{
@@ -3262,6 +3338,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		{
 			effectSize_buf[trait_index] = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(trait_index, nullptr);
 			dominance_buf[trait_index] = singleton_mutation_type_ptr->DefaultDominanceForTrait(trait_index);
+			hemizygous_dominance_buf[trait_index] = singleton_mutation_type_ptr->DefaultHemizygousDominanceForTrait(trait_index);
 		}
 	}
 	
@@ -3379,6 +3456,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 							{
 								effectSize_buf[trait_index] = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(mut_parameter_index * trait_count + trait_index, nullptr);
 								dominance_buf[trait_index] = mutation_type_ptr->DefaultDominanceForTrait(trait_index);
+								hemizygous_dominance_buf[trait_index] = mutation_type_ptr->DefaultHemizygousDominanceForTrait(trait_index);
 							}
 						}
 						else if (trait_count == 1)
@@ -3386,12 +3464,13 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 							// with a vector of effect sizes, we just use the value for the mutation at mut_parameter_index
 							effectSize_buf[0] = (slim_effect_t)arg_effectSize->NumericAtIndex_NOCAST(mut_parameter_index, nullptr);
 							dominance_buf[0] = mutation_type_ptr->DefaultDominanceForTrait(0);
+							hemizygous_dominance_buf[0] = mutation_type_ptr->DefaultHemizygousDominanceForTrait(0);
 						}
 						else
 							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): (internal error) effectSize is not considered a matrix, but the trait count is != 1." << EidosTerminate();
 					}
 					
-					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, effectSize_buf, dominance_buf, origin_subpop_id, origin_tick, (int8_t)nucleotide);
+					new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, effectSize_buf, dominance_buf, hemizygous_dominance_buf, origin_subpop_id, origin_tick, (int8_t)nucleotide);
 				}
 				
 				// add to the registry, return value, haplosome, etc.
@@ -3712,7 +3791,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (o<Mutation>)readHaplosomesFromMS(s$ filePath = NULL, io<MutationType> mutationType)
+//	*********************	+ (o<Mutation>)readHaplosomesFromMS(s$ filePath, io<MutationType>$ mutationType)
 //
 EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -3871,13 +3950,14 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): target haplosome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+	// FIXME BCH 11/27/2026: maybe that is no longer a good choice; the stacking policy should _always_ be enforced, no?
+	// FIXME BCH 11/27/2026: it would be better if this method created the mutations needed, and then called down to a shared bottleneck to do the adding efficiently
 	std::vector<MutationIndex> mutation_indices;
 	EidosRNG_32_bit &rng_32 = EIDOS_32BIT_RNG(omp_get_thread_num());
 	
 	for (int mut_index = 0; mut_index < segsites; ++mut_index)
 	{
 		slim_position_t position = positions[mut_index];
-		slim_effect_t selection_coeff = mutation_type_ptr->DrawEffectSizeForTrait(0);	// FIXME MULTITRAIT
 		slim_objectid_t subpop_index = -1;
 		slim_tick_t origin_tick = community.Tick();
 		int8_t nucleotide = -1;
@@ -3897,9 +3977,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		MutationIndex new_mut_index = mutation_block->NewMutationFromBlock();
 		Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()
 		
-		// FIXME MULTITRAIT: This needs to pass in a whole vector of effect sizes and dominance coefficients now... and hemizygous dominance...
-		// FIXME MULTITRAIT: this code will also now need to handle the independent dominance case
-		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, static_cast<slim_effect_t>(selection_coeff), mutation_type_ptr->DefaultDominanceForTrait(0), subpop_index, origin_tick, nucleotide);
+		Mutation *new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, subpop_index, origin_tick, nucleotide);
 		
 		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		chromosome->MutationRegistryAdd(new_mut, /* p_autogenerated */ false);
@@ -3968,8 +4046,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 		}
 	}
 	
-	// Invalidate all calculated trait values, since we just read in a bunch of mutations
+	// Make sure various caches get invalidated, since we just read in a bunch of mutations
 	species.InvalidateAllTraitValues();
+	species.population_.InvalidateMutationReferencesCache();
+	chromosome->all_nonneutral_caches_invalid_for_chromosome_ = true;
 	
 	// Return the instantiated mutations
 	int mutation_count = (int)mutation_indices.size();
@@ -4027,6 +4107,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 	slim_position_t last_position = chromosome->last_position_;
 	bool recording_mutations = species->RecordingTreeSequenceMutations();
 	bool nucleotide_based = species->IsNucleotideBased();
+	slim_trait_index_t trait_count = species->TraitCount();
 	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
 	MutationType *default_mutation_type_ptr = nullptr;
 	
@@ -4042,8 +4123,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 	std::string line, sub;
 	int parse_state = 0;
 	int sample_id_count = 0;
-	bool info_MID_defined = false, info_S_defined = false, info_DOM_defined = false, info_PO_defined = false;
-	bool info_GO_defined = false, info_TO_defined = false, info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
+	bool info_MID_defined = false, info_S_defined = false, info_EFF_defined = false, info_DOM_defined = false;
+	bool info_HDOM_defined = false, info_PO_defined = false, info_TO_defined = false;
+	bool info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
 	std::vector<std::pair<slim_position_t, std::string>> call_lines;
 	
 	while (!infile.eof())
@@ -4059,10 +4141,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				if (line.compare(0, 2, "##") == 0)
 				{
 					if (line == "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">")	info_MID_defined = true;
-					if (line == "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">")		info_S_defined = true;
+					if (line == "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">")		info_S_defined = true;		// SLiM 6 emits EFF (effect size) instead of S (selection coefficient)
+					if (line == "##INFO=<ID=EFF,Number=.,Type=Float,Description=\"Effect Size\">")				info_EFF_defined = true;
 					if (line == "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">")				info_DOM_defined = true;
+					if (line == "##INFO=<ID=HDOM,Number=.,Type=Float,Description=\"Hemizygous Dominance\">")	info_HDOM_defined = true;
 					if (line == "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">")	info_PO_defined = true;
-					if (line == "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">")	info_GO_defined = true;
 					if (line == "##INFO=<ID=TO,Number=.,Type=Integer,Description=\"Tick of Origin\">")			info_TO_defined = true;		// SLiM 4 emits TO (tick) instead of GO (generation)
 					if (line == "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">")			info_MT_defined = true;
 					/*if (line == "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">")			info_AA_defined = true;*/		// this one is standard, so we don't require this definition
@@ -4217,8 +4300,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 		// parse/validate the INFO fields that we recognize
 		std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 		std::vector<slim_mutationid_t> info_mutids;
+		std::vector<slim_effect_t> info_selcoeffs;		// used for the old "S" INFO field
 		std::vector<slim_effect_t> info_effect_sizes;
 		std::vector<slim_effect_t> info_domcoeffs;
+		std::vector<slim_effect_t> info_hemidomcoeffs;
 		std::vector<slim_objectid_t> info_poporigin;
 		std::vector<slim_tick_t> info_tickorigin;
 		std::vector<slim_objectid_t> info_muttype;
@@ -4255,14 +4340,28 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
 				
 				for (std::string &value_substr : value_substrs)
+					info_selcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+			}
+			else if (info_EFF_defined && (info_substr.compare(0, 4, "EFF=") == 0))	// Effect Size
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
+				
+				for (std::string &value_substr : value_substrs)
 					info_effect_sizes.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 			}
-			else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
+			else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance
 			{
 				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
 				
 				for (std::string &value_substr : value_substrs)
 					info_domcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+			}
+			else if (info_HDOM_defined && (info_substr.compare(0, 5, "HDOM=") == 0))	// Hemizygous Dominance
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(5), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_hemidomcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
 			}
 			else if (info_PO_defined && (info_substr.compare(0, 3, "PO=") == 0))	// Population of Origin
 			{
@@ -4272,13 +4371,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 					info_poporigin.emplace_back((slim_objectid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
 			}
 			else if (info_TO_defined && (info_substr.compare(0, 3, "TO=") == 0))	// Tick of Origin
-			{
-				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
-				
-				for (std::string &value_substr : value_substrs)
-					info_tickorigin.emplace_back((slim_tick_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
-			}
-			else if (info_GO_defined && (info_substr.compare(0, 3, "GO=") == 0))	// Generation of Origin - emitted by SLiM 3, treated as TO here
 			{
 				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
 				
@@ -4307,12 +4399,22 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				info_is_nonnuc = true;
 			}
 			
+			if (info_selcoeffs.size() != 0)
+			{
+				if (info_effect_sizes.size() != 0)
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file cannot contain both S and EFF values in a call line; they represent the same thing." << EidosTerminate();
+				else
+					std::swap(info_selcoeffs, info_effect_sizes);
+			}
+			
 			if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
-			if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
-			if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+			if ((info_effect_sizes.size() != 0) && (info_effect_sizes.size() != alt_allele_count * trait_count))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
+			if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count * trait_count))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+			if ((info_hemidomcoeffs.size() != 0) && (info_hemidomcoeffs.size() != alt_allele_count * trait_count))
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for HDOM field." << EidosTerminate();
 			if ((info_poporigin.size() != 0) && (info_poporigin.size() != alt_allele_count))
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
 			if ((info_tickorigin.size() != 0) && (info_tickorigin.size() != alt_allele_count))
@@ -4445,22 +4547,35 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 			if (!mutation_type_ptr)
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 			
-			// get the dominance coefficient from DOM, or use the default coefficient from the mutation type
-			slim_effect_t dominance_coeff;
-			
-			if (info_domcoeffs.size() > 0)
-				dominance_coeff = info_domcoeffs[alt_allele_index];
-			else
-				dominance_coeff = mutation_type_ptr->DefaultDominanceForTrait(0);	// FIXME MULTITRAIT; also think about hemizygous dominance
-				// FIXME MULTITRAIT: this code will also now need to handle the independent dominance case, for which NaN should be in the metadata
-			
-			// get the selection coefficient from S, or draw one from the mutation type
-			slim_effect_t selection_coeff;
+			// get the effect size(s) from EFF, or draw them from the mutation type's DES(s)
+			std::vector<slim_effect_t> effect_sizes;
 			
 			if (info_effect_sizes.size() > 0)
-				selection_coeff = info_effect_sizes[alt_allele_index];
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+					effect_sizes.push_back(info_effect_sizes[alt_allele_index * trait_count + trait_index]);
 			else
-				selection_coeff = static_cast<slim_effect_t>(mutation_type_ptr->DrawEffectSizeForTrait(0));	// FIXME MULTITRAIT
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+					effect_sizes.push_back(mutation_type_ptr->DrawEffectSizeForTrait(trait_index));
+			
+			// get the dominance(s) from DOM, or use the default value(s) from the mutation type
+			std::vector<slim_effect_t> dominance_coeffs;
+			
+			if (info_domcoeffs.size() > 0)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+					dominance_coeffs.push_back(info_domcoeffs[alt_allele_index * trait_count + trait_index]);
+			else
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+					dominance_coeffs.push_back(mutation_type_ptr->DefaultDominanceForTrait(trait_index));
+			
+			// get the hemizygous dominance(s) from HDOM, or use the default value(s) from the mutation type
+			std::vector<slim_effect_t> hemizygous_dominance_coeffs;
+			
+			if (info_effect_sizes.size() > 0)
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+					hemizygous_dominance_coeffs.push_back(info_effect_sizes[alt_allele_index * trait_count + trait_index]);
+			else
+				for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+					hemizygous_dominance_coeffs.push_back(mutation_type_ptr->DefaultHemizygousDominanceForTrait(trait_index));
 			
 			// get the subpop index from PO, or set to -1; no bounds checking on this
 			slim_objectid_t subpop_index = -1;
@@ -4544,14 +4659,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 				slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 				
-				// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
-				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, effect_sizes.data(), dominance_coeffs.data(), hemizygous_dominance_coeffs.data(), subpop_index, origin_tick, nucleotide);
 			}
 			else
 			{
 				// no mutation ID supplied, so use whatever is next
-				// FIXME MULTITRAIT: This needs to pass in a whole vector of effects and dominance coefficients now...
-				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
+				new_mut = new (mut_block_ptr + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, effect_sizes.data(), dominance_coeffs.data(), hemizygous_dominance_coeffs.data(), subpop_index, origin_tick, nucleotide);
 			}
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
@@ -4601,8 +4714,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 		}
 	}
 	
-	// Invalidate all calculated trait values, since we just read in a bunch of mutations
+	// Make sure various caches get invalidated, since we just read in a bunch of mutations
 	species->InvalidateAllTraitValues();
+	species->population_.InvalidateMutationReferencesCache();
+	chromosome->all_nonneutral_caches_invalid_for_chromosome_ = true;
 	
 	// Return the instantiated mutations
 	Mutation *mut_block_ptr = mutation_block->mutation_buffer_;				// needs to be fetched after NewMutationFromBlock()

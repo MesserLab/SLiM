@@ -276,6 +276,11 @@ multitrait branch (released as SLiM 6.0b1, but not yet merged):
 	total redesign of recipes 19.14 and 19.15; now there is a single recipe, 19.14, titled "Modeling identity by state (IBS) in a nucleotide-based model"
 	fix #690, round-trip test bugs: mutation registry order was not being preserved, the shuffle buffer keeps RNG state across a call to setSeed()
 	add recipe 10.7, "Exploring the relationship between selection coefficient and dominance"
+	extend outputFull(), for binary and text formats, to support multiple traits; extend readFromPopulationFile() to support the new format (format version 9)
+	extend readHaplosomesFromMS() to support multiple traits correctly, drawing all effect sizes and dominances from the mutation type
+	extend VCF input/output methods (outputHaplosomesToVCF(), readHaplosomesFromVCF(), outputIndividualsToVCF(), readIndividualsFromVCF(), outputVCFSample()) to support multiple traits and hemizygous dominance coefficients
+		policy change: the INFO field for effect sizes has changed from "S" (selection coefficient) to "EFF" (effect size); "S" is still supported for reading, for now
+		policy change: the INFO field "GO" (generation of origin), which was deprecated in SLiM 4 in favor of "TO" (tick of origin), is no longer supported
 
 
 version 5.2 (Eidos version 4.2):

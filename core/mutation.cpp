@@ -40,9 +40,8 @@
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
-// This constructor is used when making a new mutation with effects and dominances provided by the caller; FIXME MULTITRAIT: needs to take a whole vector of each, per trait!
-// BCH 9/24/2026: Now this constructor is used only by ExecuteMethod_readHaplosomesFromVCF() and readHaplosomesFromMS(), I think
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+// This constructor is used when making a new mutation with effects and dominances provided by the caller
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_effect_t *p_hemizygous_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 #ifdef DEBUG_LOCKS_ENABLED
@@ -68,7 +67,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 	// Below basically does the work of calling SetEffectSize() and SetDominance(), more efficiently since
 	// this is critical path.  See those methods for more comments on what is happening here.
 	
-	is_neutral_for_all_traits_ = true;					// will be set to false below as needed
+	is_neutral_for_all_traits_ = true;		// will be set to false below as needed
 	is_neutral_for_direct_fitness_traits_ = true;
 	
 	// a dominance coefficient of NAN indicates independent dominance
@@ -81,121 +80,10 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		Trait *trait = traits[trait_index];
 		TraitType traitType = trait->Type();
 		
-		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
-		// for now we use the values passed in for trait 0, and make other traits neutral
-		slim_effect_t effect_size = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
-		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
-		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
-		
-		traitInfoRec->effect_size_ = effect_size;
-		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
-		traitInfoRec->hemizygous_dominance_coeff_ = hemizygous_dominance;
-		
-		if (effect_size != (slim_effect_t)0.0)
-		{
-			is_neutral_for_all_traits_ = false;
-			
-			if (trait->HasDirectFitnessEffect())
-				is_neutral_for_direct_fitness_traits_ = false;
-			
-			if (std::isnan(dominance))
-				independent_dominance_for_any_traits_ = true;
-			else
-				independent_dominance_for_all_traits_ = false;
-			
-			// get the realized dominance to handle the possibility of independent dominance
-			slim_effect_t realized_dominance = RealizedDominanceForTrait(trait);
-			
-			if (traitType == TraitType::kMultiplicative)
-			{
-				traitInfoRec->homozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + effect_size);
-				traitInfoRec->heterozygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + realized_dominance * effect_size);
-				traitInfoRec->hemizygous_effect_ = std::max((slim_effect_t)0.0, (slim_effect_t)1.0 + hemizygous_dominance * effect_size);
-			}
-			else	// (traitType == TraitType::kAdditive)
-			{
-				traitInfoRec->homozygous_effect_ = ((slim_effect_t)2.0 * effect_size);
-				traitInfoRec->heterozygous_effect_ = ((slim_effect_t)2.0 * realized_dominance * effect_size);
-				traitInfoRec->hemizygous_effect_ = ((slim_effect_t)2.0 * hemizygous_dominance * effect_size);
-			}
-		}
-		else	// (effect == 0.0)
-		{
-			if (traitType == TraitType::kMultiplicative)
-			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)1.0;
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)1.0;
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)1.0;
-			}
-			else	// (traitType == TraitType::kAdditive)
-			{
-				traitInfoRec->homozygous_effect_ = (slim_effect_t)0.0;
-				traitInfoRec->heterozygous_effect_ = (slim_effect_t)0.0;
-				traitInfoRec->hemizygous_effect_ = (slim_effect_t)0.0;
-			}
-		}
-	}
-	
-	// this mutation will be added to the simulation somewhere, so tell the species about it
-	// (OK, it might not get added due to stacking policy or mutation() callbacks, but we assume it will be)
-	species.NoteMutationAdded(this);
-	
-#if DEBUG
-	SelfConsistencyCheck(" in Mutation::Mutation()");
-#endif
-	
-#if DEBUG_MUTATIONS()
-	std::cout << "Mutation constructed: " << this << std::endl;
-#endif
-	
-#ifdef DEBUG_LOCKS_ENABLED
-	mutation_block_LOCK.end_critical();
-#endif
-}
-
-// This constructor is used when making a new mutation with effects and dominances provided by the caller
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
-{
-#ifdef DEBUG_LOCKS_ENABLED
-	mutation_block_LOCK.start_critical(2);
-#endif
-	
-	Species &species = mutation_type_ptr_->species_;
-	const std::vector<Trait *> &traits = species.Traits();
-	MutationBlock *mutation_block = species.SpeciesMutationBlock();
-	
-	// initialize the tag to the "unset" value
-	tag_value_ = SLIM_TAG_UNSET_VALUE;
-	
-	// zero out our refcount and per-trait information, which is now kept in a separate buffer
-	MutationIndex mutation_index = mutation_block->IndexInBlock(this);
-	mutation_block->refcount_buffer_[mutation_index] = 0;
-	
-	slim_trait_index_t trait_count = mutation_block->trait_count_;
-	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForIndex(mutation_index);
-	
-	// Below basically does the work of calling SetEffectSize() and SetDominance(), more efficiently since
-	// this is critical path.  See those methods for more comments on what is happening here.
-	
-	is_neutral_for_all_traits_ = true;					// will be set to false below as needed
-	is_neutral_for_direct_fitness_traits_ = true;
-	
-	// a dominance coefficient of NAN indicates independent dominance
-	independent_dominance_for_all_traits_ = true;
-	independent_dominance_for_any_traits_ = false;
-	
-	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
-	{
-		MutationTraitInfo *traitInfoRec = mut_trait_info + trait_index;
-		Trait *trait = traits[trait_index];
-		TraitType traitType = trait->Type();
-		
-		// This constructor has effect sizes and dominances passed in, as vectors.  Hemizygous dominances come
-		// from the mutation type's default hemizygous dominance for each trait; they are not passed in.
+		// This constructor has effect sizes, dominances, and hemizygous dominances passed in, as vectors.
 		slim_effect_t effect_size = p_effect_sizes[trait_index];
 		slim_effect_t dominance = p_dominances[trait_index];		// can be NAN
-		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);
+		slim_effect_t hemizygous_dominance = p_hemizygous_dominances[trait_index];
 		
 		traitInfoRec->effect_size_ = effect_size;
 		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
@@ -440,8 +328,6 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		Trait *trait = traits[trait_index];
 		TraitType traitType = trait->Type();
 		
-		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
-		// for now we use the values passed in for trait 0, and make other traits neutral
 		slim_effect_t effect_size = p_metadata_ptr->per_trait_[trait_index].effect_size_;
 		slim_effect_t dominance = p_metadata_ptr->per_trait_[trait_index].dominance_coeff_;		// can be NAN
 		slim_effect_t hemizygous_dominance = p_metadata_ptr->per_trait_[trait_index].hemizygous_dominance_coeff_;
@@ -516,10 +402,13 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		gSLiM_next_mutation_id = mutation_id_ + 1;
 }
 
-// This constructor is used when making a new mutation with effects and dominances provided by the caller, *and* a mutation id provided by the caller
-Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_effect_t *p_hemizygous_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_subpop_index), origin_tick_(p_tick), chromosome_index_(p_chromosome_index), state_(MutationState::kNewMutation), retained_by_treeseq_(false), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
+	// Note this constructor differs from the constructor that is apparently identical except for p_mutation_id.
+	// This version of the constructor is never called multithreaded, and thus does not use mutation_block_LOCK.
+	// See the comment at the end for more on this difference.
+	
 	Species &species = mutation_type_ptr_->species_;
 	const std::vector<Trait *> &traits = species.Traits();
 	MutationBlock *mutation_block = species.SpeciesMutationBlock();
@@ -550,11 +439,10 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 		Trait *trait = traits[trait_index];
 		TraitType traitType = trait->Type();
 		
-		// FIXME MULTITRAIT: This constructor needs to change to have a whole vector of trait information passed in, for effect and dominance
-		// for now we use the values passed in for trait 0, and make other traits neutral
-		slim_effect_t effect_size = (trait_index == 0) ? p_selection_coeff : (slim_effect_t)0.0;
-		slim_effect_t dominance = (trait_index == 0) ? p_dominance_coeff : (slim_effect_t)0.5;		// can be NAN
-		slim_effect_t hemizygous_dominance = mutation_type_ptr_->DefaultHemizygousDominanceForTrait(trait_index);	// FIXME MULTITRAIT: This needs to come in from outside, probably
+		// This constructor has effect sizes, dominances, and hemizygous dominances passed in, as vectors.
+		slim_effect_t effect_size = p_effect_sizes[trait_index];
+		slim_effect_t dominance = p_dominances[trait_index];		// can be NAN
+		slim_effect_t hemizygous_dominance = p_hemizygous_dominances[trait_index];
 		
 		traitInfoRec->effect_size_ = effect_size;
 		traitInfoRec->dominance_coeff_UNSAFE_ = dominance;		// can be NAN
@@ -618,8 +506,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), subpop_index_(p_
 #endif
 	
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
-	// This constructor (unlike the other Mutation() constructor above) is presently never called multithreaded,
-	// so we just enforce that here.  If that changes, it should start using the debug lock to detect races, as above.
+	// This constructor (unlike some other Mutation() constructors) is presently never called multithreaded,
+	// so we just enforce that here.  If that changes, it should start using the debug lock to detect races, as others do.
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Mutation::Mutation(): gSLiM_next_mutation_id change");
 	
 	if (gSLiM_next_mutation_id <= mutation_id_)

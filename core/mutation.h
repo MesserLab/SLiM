@@ -237,25 +237,23 @@ public:
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
 	
 	// This constructor is used when making a new mutation with effects DRAWN from each trait's DES, and dominances
-	// taken from each trait's default dominance coefficient, both of which are from the given mutation type
+	// and hemizygous dominances taken from each trait's default dominance values, from the given mutation type.
+	// It is called when autogenerating mutations, creating mutations, adding new drawn mutations, and reading MS files.
 	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
-	// This constructor is used when making a new mutation with one effect and one dominance PROVIDED by the caller
-	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!  This constructor should be removed in favor of the new constructor.
-	// BCH 9/24/2026: Now this constructor is used only by ExecuteMethod_readHaplosomesFromVCF() and readHaplosomesFromMS(), I think
-	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller,
+	// but WITHOUT a mutation ID for the new mutation; it generates a new mutation ID itself.
+	// It is called when reading mutations from VCF, and adding new (undrawn) mutations.
+	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_effect_t *p_hemizygous_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
-	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller
-	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller,
+	// but WITH a mutation ID for the new mutation.  BEWARE: This constructor is not thread-safe, unlike others!
+	// It is called when reading mutations from a SLiM-format file (text or binary) and reading from VCF.
+	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t *p_effect_sizes, slim_effect_t *p_dominances, slim_effect_t *p_hemizygous_dominances, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
-	// This constructor is used by tree-sequence reading in Species::__CreateMutationsFromTabulation()
+	// This constructor is used by tree-sequence reading in Species::__CreateMutationsFromTabulation().
+	// It passes in a MutationTableMetadataRec with the relevant information like effect sizes and dominances.
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, MutationTableMetadataRec *p_metadata_ptr);
-	
-	// This constructor is used when making a new mutation with effects and dominances PROVIDED by the caller, AND a mutation id provided by the caller
-	// FIXME MULTITRAIT: needs to take a whole vector of each, per trait!  This constructor should be removed in favor of the new constructor.
-	// BCH 9/24/2026: Now this constructor is called only by _InitializePopulationFromTextFile(), _InitializePopulationFromBinaryFile(),
-	// ExecuteMethod_readIndividualsFromVCF(), and ExecuteMethod_readHaplosomesFromVCF(), I think
-	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_effect_t p_selection_coeff, slim_effect_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS()
