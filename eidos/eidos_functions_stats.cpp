@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2015-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1551,32 +1551,22 @@ EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_argum
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	// This is different from the behavior of var(), cor(), and cov(), but follows R
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
 	if (x_count <= 1)
 		return gStaticEidosValue_FloatNAN;
 	
-	double mean = 0;
-	double sd = 0;
+	double sd;
 	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
+	if (x_value->Type() == EidosValueType::kValueFloat)
+		sd = Eidos_StandardDeviation(x_value->FloatData(), x_count);
+	else if (x_value->Type() == EidosValueType::kValueInt)
+		sd = Eidos_StandardDeviation(x_value->IntData(), x_count);
+	else // EidosValueType::kValueLogical
+		sd = Eidos_StandardDeviation(x_value->LogicalData(), x_count);
 	
-	mean /= x_count;
-	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-	{
-		double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
-		sd += temp * temp;
-	}
-	
-	sd = sqrt(sd / (x_count - 1));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sd));
-	
-	return result_SP;
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sd));
 }
 
 //	(float$)ttest(float x, [Nf y = NULL], [Nf$ mu = NULL])

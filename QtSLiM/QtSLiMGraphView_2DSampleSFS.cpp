@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/18/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -33,6 +33,7 @@
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 #include "mutation_type.h"
+#include "mutation_block.h"
 
 
 QtSLiMGraphView_2DSampleSFS::QtSLiMGraphView_2DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
@@ -343,11 +344,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
     if (!sfs2dbuf_)
     {
         Species *graphSpecies = focalDisplaySpecies();
-        Population &population = graphSpecies->population_;
-        int registry_size;
-        const MutationIndex *registry = population.MutationRegistry(&registry_size);
-        const MutationIndex *registry_iter_end = registry + registry_size;
-        Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+        Mutation *mut_block_ptr = graphSpecies->SpeciesMutationBlock()->mutation_buffer_;
         
         // Find our subpops and mutation type
         Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
@@ -378,11 +375,18 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         
         std::vector<slim_refcount_t> refcounts1;
         
-        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+        for (Chromosome *chromosome : graphSpecies->Chromosomes())
         {
-            const Mutation *mutation = mut_block_ptr + *registry_iter;
-            if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
+            int registry_size;
+            const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+            const MutationIndex *registry_iter_end = registry + registry_size;
+            
+            for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+            {
+                const Mutation *mutation = mut_block_ptr + *registry_iter;
+                if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
+                    refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
+            }
         }
         
         // Get frequencies for a sample taken from subpop2
@@ -406,11 +410,18 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         
         std::vector<slim_refcount_t> refcounts2;
         
-        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+        for (Chromosome *chromosome : graphSpecies->Chromosomes())
         {
-            const Mutation *mutation = mut_block_ptr + *registry_iter;
-            if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
+            int registry_size;
+            const MutationIndex *registry = chromosome->MutationRegistry(&registry_size);
+            const MutationIndex *registry_iter_end = registry + registry_size;
+            
+            for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+            {
+                const Mutation *mutation = mut_block_ptr + *registry_iter;
+                if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
+                    refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
+            }
         }
         
         // Tally up the binned 2D SFS from the 1D data

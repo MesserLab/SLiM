@@ -1,0 +1,56 @@
+// Keywords: dominance coefficients, selection coefficients, fixation time, mutation()
+
+initialize() {
+	initializeMutationRate(1e-1);
+	initializeMutationType("m2", 0.5, "f", 0.0);     // modified below
+	initializeGenomicElementType("g1", m2, 1.0);
+	initializeGenomicElement(g1, 0, 0);
+	initializeRecombinationRate(0.0);   // no rec. needed (one sweep at a time)
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+1:1000000 early() {
+	defineGlobal("mutExists", sim.mutations.size() > 0);
+}
+mutation(m2) {
+	// one sweep at a time, to avoid having sweeps interfere with each other
+	if (mutExists)
+		return F;
+	
+	mut.setEffectSizeForTrait(NULL, runif(1, min=-1.0, max=1.0));
+	mut.setDominanceForTrait(NULL, runif(1));
+	defineGlobal("mutExists", T);
+	return T;
+}
+late() {
+	if (community.tick % 10000 != 0)
+		return;
+	
+	plot = slimgui.createPlot("s ~ h (fixed mutations)",
+		xrange=c(-1,1), yrange=c(0,1),
+		xlab="s (selection coefficient)", ylab="h (dominance coefficient)",
+		width=400, height=400);
+	
+	subs = sim.substitutions;
+	timeToFix = subs.fixationTick - subs.originTick;
+	colors = ifelse(timeToFix <= 200, "orchid", "violetred1");
+	colors = ifelse(timeToFix <= 125, "cornflowerblue", colors);
+	colors = ifelse(timeToFix <= 100, "chartreuse3", colors);
+	colors = ifelse(timeToFix <= 75, "goldenrod1", colors);
+	colors = ifelse(timeToFix <= 50, "sienna1", colors);
+	colors = ifelse(timeToFix <= 35, "red", colors);
+	plot.abline(v=0.0, color="gray");
+	plot.points(x=subs.selectionCoeff, y=subs.dominance, symbol=16, color=colors,
+		size=0.5, alpha=0.3);
+	
+	plot.addLegend("topLeft", labelSize=14);
+	plot.legendTitleEntry("Ticks to fix:");
+	plot.legendPointEntry("<= 35", symbol=16, color="red", size=0.6);
+	plot.legendPointEntry("<= 50", symbol=16, color="sienna1", size=0.6);
+	plot.legendPointEntry("<= 75", symbol=16, color="goldenrod1", size=0.6);
+	plot.legendPointEntry("<= 100", symbol=16, color="chartreuse3", size=0.6);
+	plot.legendPointEntry("<= 125", symbol=16, color="cornflowerblue", size=0.6);
+	plot.legendPointEntry("<= 200", symbol=16, color="orchid", size=0.6);
+	plot.legendPointEntry("> 200", symbol=16, color="violetred1", size=0.6);
+}

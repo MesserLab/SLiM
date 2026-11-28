@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -25,28 +25,33 @@
 #include "eidos_class_Object.h"
 #include "json_fwd.hpp"
 
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
 #endif
 
-#if EIDOS_ROBIN_HOOD_HASHING
+#if EIDOS_ROBIN_HOOD_HASHING()
 #include "robin_hood.h"
 typedef robin_hood::unordered_flat_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
-#elif STD_UNORDERED_MAP_HASHING
+#elif STD_UNORDERED_MAP_HASHING()
 #include <unordered_map>
 typedef std::unordered_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
 #endif
 
 
+class EidosDictionaryUnretained_Class;
+extern EidosDictionaryUnretained_Class *gEidosDictionaryUnretained_Class;
+
+class EidosDictionaryRetained_Class;
+extern EidosDictionaryRetained_Class *gEidosDictionaryRetained_Class;
+
+
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
-
-extern EidosClass *gEidosDictionaryUnretained_Class;
 
 // These are helpers for EidosDictionaryUnretained.  The purpose is to put all of its ivars into an allocated block,
 // so that the overhead of inheriting from the class itself is only one pointer, unless the Dictionary functionality is
@@ -64,7 +69,13 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 // track of whether it contains non-retain-release objects, with a flag, and a global counter keeps track of how
 // many such dictionaries are extant.  That counter can be checked to throw an error if a non-retain-release object
 // is kept across a "long-term boundary" (a point in the code when non-retain-release objects are freed and references
-// to them would become stale).  The contains_non_retain_release_objects_ flag tracks this state.
+// to them would become stale).  The could_contain_non_retain_release_objects_ flag tracks this state.
+// *** BCH 11/19/2026: The policy has been altered slightly for efficiency.  Now a Dictionary tracks whether it
+// _could_ contain a non-retain-release object.  That flag is set when one is added, and is never cleared unless
+// the dictionary is emptied completely.  So to pass a long-term boundary, either dictionaries that once had a
+// non-retain-release object must be emptied out completely (not just of the offending objects, but completely),
+// or such dictionaries must be freed entirely.  This is more restrictive, but is not expected to cause problems
+// in practice, under typical usage patterns.
 //
 // The dictionary_symbols_ hash table contains the values we are tracking.  Note that DictionarySymbols() should be
 // used by all code that does not need to modify the dictionary.
@@ -78,18 +89,18 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 struct EidosDictionaryState_StringKeys
 {
 	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
-	uint8_t contains_non_retain_release_objects_;	// 0 if none are contained, 1 if any are contained
+	uint8_t could_contain_non_retain_release_objects_;	// 0 if definitely none are contained, 1 if any could be contained
 	EidosDictionaryHashTable_StringKeys dictionary_symbols_;
 };
 
 struct EidosDictionaryState_IntegerKeys
 {
 	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
-	uint8_t contains_non_retain_release_objects_;	// 0 if none are contained, 1 if any are contained
+	uint8_t could_contain_non_retain_release_objects_;	// 0 if definitely none are contained, 1 if any could be contained
 	EidosDictionaryHashTable_IntegerKeys dictionary_symbols_;
 };
 
-// This is a global counter of how many dictionaries exist that have their contains_non_retain_release_objects_ set.
+// This is a global counter of how many dictionaries exist that have could_contain_non_retain_release_objects_ set.
 // It can be checked at "long-term boundaries" to ensure that only retain-released objects are kept long term.
 extern int64_t gEidos_DictionaryNonRetainReleaseReferenceCounter;
 
@@ -112,6 +123,11 @@ protected:
 	// Assert that our keys are of a given type; if not, an exception is raised; if it is undecided, neither method raises
 	inline void AssertKeysAreStrings(void) const { if (!KeysAreStrings()) Raise_UsesIntegerKeys(); }
 	inline void AssertKeysAreIntegers(void) const { if (!KeysAreIntegers()) Raise_UsesStringKeys(); }
+	
+	// These should be called in every code path that sets a value or empties the dictionary entirely.
+	// Look for code paths that need to call this by searching for direct use of dictionary_symbols_ to modify.
+	void UpdateCouldContainNonRRObjectFlag_Added(const EidosValue *value);
+	void UpdateCouldContainNonRRObjectFlag_Emptied(void);
 	
 public:
 	EidosDictionaryUnretained(const EidosDictionaryUnretained &p_original) = delete;				// no copy-construct
@@ -182,6 +198,7 @@ public:
 				EidosDictionaryState_StringKeys *state_ptr = ((EidosDictionaryState_StringKeys *)state_ptr_);
 				
 				state_ptr->dictionary_symbols_.clear();
+				UpdateCouldContainNonRRObjectFlag_Emptied();
 				AllKeysRemoved();
 			}
 			else
@@ -189,6 +206,7 @@ public:
 				EidosDictionaryState_IntegerKeys *state_ptr = ((EidosDictionaryState_IntegerKeys *)state_ptr_);
 				
 				state_ptr->dictionary_symbols_.clear();
+				UpdateCouldContainNonRRObjectFlag_Emptied();
 				AllKeysRemoved();
 			}
 		}
@@ -240,7 +258,7 @@ public:
 	inline EidosDictionaryUnretained_Class(const std::string &p_class_name, const std::string &p_display_name, EidosClass *p_superclass) :
 		super(p_class_name, p_display_name, p_superclass) { }
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual std::vector<EidosPropertySignature_CSP> *Properties_MUTABLE(void) const override;	// use Properties() instead
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
@@ -251,8 +269,6 @@ public:
 #pragma mark -
 #pragma mark EidosDictionaryRetained
 #pragma mark -
-
-extern EidosClass *gEidosDictionaryRetained_Class;
 
 // A base class for EidosObject subclasses that are under retain/release.
 

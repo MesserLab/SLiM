@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/8/16.
-//  Copyright (c) 2016-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2016-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -17,6 +17,9 @@
 //
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
+
+#ifdef EIDOS_GUI
+// EidosTypeTable and EidosTypeInterpreter are only used in EidosScribe, SLiMguiLegacy, and QtSLiM
 
 #include "eidos_type_table.h"
 
@@ -51,7 +54,7 @@ std::vector<std::string> EidosTypeTable::AllSymbols(void) const
 {
 	std::vector<std::string> symbol_names;
 	
-	for (auto symbol_slot_iter : hash_symbols_)
+	for (const auto &symbol_slot_iter : hash_symbols_)
 	{
 		EidosGlobalStringID string_id = symbol_slot_iter.first;
 		const std::string &string_ref = EidosStringRegistry::StringForGlobalStringID(string_id);
@@ -66,7 +69,7 @@ std::vector<EidosGlobalStringID> EidosTypeTable::AllSymbolIDs(void) const
 {
 	std::vector<EidosGlobalStringID> symbol_ids;
 	
-	for (auto symbol_slot_iter : hash_symbols_)
+	for (const auto &symbol_slot_iter : hash_symbols_)
 	{
 		EidosGlobalStringID string_id = symbol_slot_iter.first;
 		
@@ -165,6 +168,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTypeTable &p_symb
 	return p_outstream;
 }
 
+#endif // EIDOS_GUI
 
 
 

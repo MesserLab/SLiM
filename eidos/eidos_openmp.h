@@ -3,7 +3,7 @@
 //  SLiM_OpenMP
 //
 //  Created by Benjamin C. Haller on 8/4/20.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -40,11 +40,11 @@
 	 on macOS, you may (several times!) get a system alert that libomp was blocked for security; after that, go to System Preferences, Security & Privacy, tab General, click "Allow Anyway", and then click "Open" back in the system panel
 	 use the -maxThreads <x> command-line option to change the maximum number of threads from OpenMP's default
 
- We allocate per-thread storage (for gEidosMaxThreads threads) at the global/species level for these facilities:
+ We allocate per-thread storage (for gEidosMaxThreads threads) at the global/species/chromosome level for these facilities:
  
 	SparseVector pools; see s_freed_sparse_vectors_PERTHREAD vs. s_freed_sparse_vectors_SINGLE
 	random number generators; see gEidos_RNG_PERTHREAD vs. gEidos_RNG_SINGLE
-	MutationRunContexts; see mutation_run_context_PERTHREAD vs. mutation_run_SINGLE
+	MutationRunContexts; see mutation_run_context_PERTHREAD vs. mutation_run_context_SINGLE_
  
  We use #pragma omp critical to protect some places in the code, with specified names
  
@@ -196,6 +196,116 @@ public:
 	
 private:
 	omp_nest_lock_t lock_;
+};
+
+// This is a custom lock type for a read-write lock providing reader preference, such that any number of
+// readers can share a resource freely, but if a thread asks for a write lock and no readers are currently
+// sharing the resource the writing will take the lock and readers will be blocked until it is done.  This
+// can lead to starvation of the writer thread if there are constantly reader threads using the resource,
+// so use it with caution.  See also Eidos_OMPWriterPrefRWLock.  This was provided by Google's search AI.
+class Eidos_OMPReaderPrefRWLock
+{
+	omp_lock_t count_lock;
+	omp_lock_t write_lock;
+	int readers = 0;
+	
+public:
+	OmpRWLock() {
+		omp_init_lock(&count_lock);
+		omp_init_lock(&write_lock);
+	}
+	
+	~OmpRWLock() {
+		omp_destroy_lock(&count_lock);
+		omp_destroy_lock(&write_lock);
+	}
+	
+	void lock_read() {
+		omp_set_lock(&count_lock);
+		if (++readers == 1) {
+			omp_set_lock(&write_lock); // First reader blocks writers
+		}
+		omp_unset_lock(&count_lock);
+	}
+	
+	void unlock_read() {
+		omp_set_lock(&count_lock);
+		if (--readers == 0) {
+			omp_unset_lock(&write_lock); // Last reader unblocks writers
+		}
+		omp_unset_lock(&count_lock);
+	}
+	
+	void lock_write() { omp_set_lock(&write_lock); }
+	void unlock_write() { omp_unset_lock(&write_lock); }
+};
+
+// This is a custom lock type for a read-write lock providing writer preference, such that any number of
+// readers can share a resource freely, but if a thread asks for a write lock, no new readers will be
+// allowed to start sharing.  When all readers currently sharing the resource release their locks, the
+// writer will be allowed to proceed.  Once it (and all other writers waiting) have completed, readers
+// will again be allowed in.  This was provided by Google's search AI.
+class Eidos_OMPWriterPrefRWLock
+{
+	omp_lock_t read_count_lock;
+	omp_lock_t write_count_lock;
+	omp_lock_t read_try_lock;				// Gatekeeper: blocks new readers when writers wait
+	omp_lock_t resource_lock;				// Protects the actual shared data
+	int readers = 0;
+	int waiting_writers = 0;
+	
+public:
+	Eidos_OMPWriterPrefRWLock() {
+		omp_init_lock(&read_count_lock);
+		omp_init_lock(&write_count_lock);
+		omp_init_lock(&read_try_lock);
+		omp_init_lock(&resource_lock);
+	}
+	
+	~Eidos_OMPWriterPrefRWLock() {
+		omp_destroy_lock(&read_count_lock);
+		omp_destroy_lock(&write_count_lock);
+		omp_destroy_lock(&read_try_lock);
+		omp_destroy_lock(&resource_lock);
+	}
+	
+	void lock_read() {
+		omp_set_lock(&read_try_lock);		// Wait if any writer is active or queued
+		omp_set_lock(&read_count_lock);
+		if (++readers == 1) {
+			omp_set_lock(&resource_lock);	// First reader locks out writers
+		}
+		omp_unset_lock(&read_count_lock);
+		omp_unset_lock(&read_try_lock);
+	}
+	
+	void unlock_read() {
+		omp_set_lock(&read_count_lock);
+		if (--readers == 0) {
+			omp_unset_lock(&resource_lock);	// Last reader releases resource
+		}
+		omp_unset_lock(&read_count_lock);
+	}
+	
+	void lock_write() {
+		omp_set_lock(&write_count_lock);
+		if (++waiting_writers == 1) {
+			omp_set_lock(&read_try_lock);	// First queued writer closes reader gate
+		}
+		omp_unset_lock(&write_count_lock);
+		
+		omp_set_lock(&resource_lock);		// Wait for active readers/writer to finish
+	}
+	
+	void unlock_write() {
+		omp_unset_lock(&resource_lock);
+		
+		omp_set_lock(&write_count_lock);
+		if (--waiting_writers == 0) {
+			omp_unset_lock(&read_try_lock);	// Last writer reopens reader gate
+		}
+		omp_unset_lock(&write_count_lock);
+	}
 };
 
 // This is a lock-based class used in DEBUG builds to test for race conditions involving code that is not locked

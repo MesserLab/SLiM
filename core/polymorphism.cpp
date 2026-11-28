@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2014-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,7 @@
 
 #include "polymorphism.h"
 #include "species.h"
+#include "mutation_block.h"
 
 #include <fstream>
 #include <map>
@@ -32,61 +33,72 @@ Polymorphism::Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutati
 {
 }
 
-void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
+void Polymorphism::Print_ID(std::ostream &p_out, bool p_print_tag) const
 {
 	// BCH 4/6/2025: This is a copy of Print_ID() with output of
 	// mutation_ptr_->tag_value_ added at the end
 	
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Switched to full-precision output of selcoeff and domcoeff, for accurate reloading; BCH 22 March 2019
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID_Tag(): usage of statics");
-	
-	static char double_buf[40];
-	
-	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
-	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->selection_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
-	
-	p_out << " ";
-	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->mutation_type_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
-	
-	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
-	
-	// output a nucleotide if available
-	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
-	
-	// output the tag value, or '?' or the tag is not defined
-	slim_usertag_t tag = mutation_ptr_->tag_value_;
-	
-	if (tag == SLIM_TAG_UNSET_VALUE)
-		p_out << ' ' << '?';
-	else
-		p_out << ' ' << tag;
-	
-	p_out << std::endl;
-}
-
-void Polymorphism::Print_ID(std::ostream &p_out) const
-{
-	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Switched to full-precision output of selcoeff and domcoeff, for accurate reloading; BCH 22 March 2019
+	// Switched to full-precision output of effect and domcoeff, for accurate reloading; BCH 22 March 2019
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID(): usage of statics");
 	
-	static char double_buf[40];
+	static char double_buf[40];		// used to get the necessary precision for non-lossiness
 	
-	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
+	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->selection_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
+	// write out per-trait information
+	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	p_out << " ";
+	// effect sizes, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->mutation_type_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
-	p_out << double_buf;
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)mut_trait_info[trait_index].effect_size_);
+		p_out << " " << double_buf;
+	}
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
+		
+		if (std::isnan(dominance))
+			p_out << " NAN";
+		else
+		{
+			snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)dominance);
+			p_out << " " << double_buf;
+		}
+	}
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// hemizygous dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+	{
+		slim_effect_t hemizygous_dominance = mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+		
+		snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, (double)hemizygous_dominance);
+		p_out << " " << double_buf;
+	}
+	
+	if (trait_count != 1)
+		p_out << " }";
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
@@ -94,13 +106,24 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
 		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
 	
+	// output the tag value, or '?' if the tag is not defined
+	if (p_print_tag)
+	{
+		slim_usertag_t tag = mutation_ptr_->tag_value_;
+		
+		if (tag == SLIM_TAG_UNSET_VALUE)
+			p_out << ' ' << '?';
+		else
+			p_out << ' ' << tag;
+	}
+	
 	p_out << std::endl;
 }
 
-void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
+void Polymorphism::Print_NoID(std::ostream &p_out, bool p_print_tag) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Note that Print_ID() now outputs selcoeff and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
+	// Note that Print_ID() now outputs effect and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
 	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
 	
 	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
@@ -115,48 +138,65 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
-	// and then the remainder of the output line
-	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	// write out per-trait information
+	MutationBlock *mutation_block = species.SpeciesMutationBlock();
+	MutationTraitInfo *mut_trait_info = mutation_block->TraitInfoForMutation(mutation_ptr_);
+	slim_trait_index_t trait_count = species.TraitCount();
 	
-	// output a nucleotide if available
-	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
+	// effect sizes, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
 	
-	// output the tag value, or '?' or the tag is not defined
-	slim_usertag_t tag = mutation_ptr_->tag_value_;
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		p_out << " " << mut_trait_info[trait_index].effect_size_;
 	
-	if (tag == SLIM_TAG_UNSET_VALUE)
-		p_out << ' ' << '?';
-	else
-		p_out << ' ' << tag;
+	if (trait_count != 1)
+		p_out << " }";
 	
-	p_out << std::endl;
-}
-
-void Polymorphism::Print_NoID(std::ostream &p_out) const
-{
-	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	// Note that Print_ID() now outputs selcoeff and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
-	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
+	// dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
 	
-	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
-	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
-	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
-	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
-	
-	if (chromosomes.size() > 1)
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
 	{
-		Chromosome *chromosome = chromosomes[mutation_ptr_->chromosome_index_];
+		slim_effect_t dominance = mut_trait_info[trait_index].dominance_coeff_UNSAFE_;	// can be NAN
 		
-		p_out << " \"" << chromosome->Symbol() << "\"";
+		if (std::isnan(dominance))
+			p_out << " NAN";
+		else
+			p_out << " " << dominance;
 	}
 	
+	if (trait_count != 1)
+		p_out << " }";
+	
+	// hemizygous dominances, bracketed with { } in multitrait models
+	if (trait_count != 1)
+		p_out << " {";
+	
+	for (slim_trait_index_t trait_index = 0; trait_index < trait_count; ++trait_index)
+		p_out << " " << mut_trait_info[trait_index].hemizygous_dominance_coeff_;
+	
+	if (trait_count != 1)
+		p_out << " }";
+	
 	// and then the remainder of the output line
-	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
 		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
+	
+	if (p_print_tag)
+	{
+		// output the tag value, or '?' or the tag is not defined
+		slim_usertag_t tag = mutation_ptr_->tag_value_;
+		
+		if (tag == SLIM_TAG_UNSET_VALUE)
+			p_out << ' ' << '?';
+		else
+			p_out << ' ' << tag;
+	}
 	
 	p_out << std::endl;
 }

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/30/2020.
-//  Copyright (c) 2020-2025 Benjamin C. Haller.  All rights reserved.
+//  Copyright (c) 2020-2026 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -79,6 +79,8 @@ void QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache(void)
     delete drawingCache_;
 	drawingCache_ = nullptr;
 	drawingCacheTick_ = 0;
+    
+    QtSLiMGraphView::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_PopSizeOverTime::controllerRecycled(void)
@@ -122,12 +124,12 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 		slim_popsize_t maxHistory = 0;
 		bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
 		
-		for (auto history_record_iter : pop.subpop_size_histories_)
+		for (const auto &history_record_iter : pop.subpop_size_histories_)
 		{
 			if (showSubpops || (history_record_iter.first == -1))
 			{
-				SubpopSizeHistory &history_record = history_record_iter.second;
-				slim_popsize_t *history = history_record.history_;
+				const SubpopSizeHistory &history_record = history_record_iter.second;
+				const slim_popsize_t *history = history_record.history_;
 				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
@@ -139,6 +141,8 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 		// set axis range to encompass the data
         if (maxHistory > yAxisMax_)
         {
+            double old_y0 = y0_, old_y1 = y1_;
+            
             if (maxHistory <= 1000)
             {
                 maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 100.0) * 100.0);
@@ -180,7 +184,8 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
                 yAxisMajorTickModulus_ = 2;
             }
             
-            QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache();
+            if ((y0_ != old_y0) || (y1_ != old_y1))
+                invalidateDrawingCache();
         }
     }
 	
@@ -237,12 +242,12 @@ void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect in
     {
         QColor pointColor = ((iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black);
         
-        for (auto history_record_iter : pop.subpop_size_histories_)
+        for (const auto &history_record_iter : pop.subpop_size_histories_)
         {
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
-                SubpopSizeHistory &history_record = history_record_iter.second;
-                slim_popsize_t *history = history_record.history_;
+				const SubpopSizeHistory &history_record = history_record_iter.second;
+				const slim_popsize_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 if ((iter == 0) && !drawSubpopsGray)
@@ -284,12 +289,12 @@ void QtSLiMGraphView_PopSizeOverTime::drawLineGraph(QPainter &painter, QRect int
         QColor lineColor = (iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black;
         double lineWidth = (iter == 0) ? 1.0 : 1.5;
         
-        for (auto history_record_iter : pop.subpop_size_histories_)
+        for (const auto &history_record_iter : pop.subpop_size_histories_)
         {
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
-                SubpopSizeHistory &history_record = history_record_iter.second;
-                slim_popsize_t *history = history_record.history_;
+				const SubpopSizeHistory &history_record = history_record_iter.second;
+				const slim_popsize_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
@@ -349,12 +354,12 @@ void QtSLiMGraphView_PopSizeOverTime::appendStringForData(QString &string)
 	
     for (int iter = 0; iter <= (showSubpops ? 1 : 0); ++iter)
     {
-        for (auto history_record_iter : pop.subpop_size_histories_)
+        for (const auto &history_record_iter : pop.subpop_size_histories_)
         {
             if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
             {
-                SubpopSizeHistory &history_record = history_record_iter.second;
-                slim_popsize_t *history = history_record.history_;
+				const SubpopSizeHistory &history_record = history_record_iter.second;
+				const slim_popsize_t *history = history_record.history_;
                 slim_tick_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
@@ -377,7 +382,7 @@ QtSLiMLegendSpec QtSLiMGraphView_PopSizeOverTime::legendKey(void)
     Species *graphSpecies = focalDisplaySpecies();
     std::vector<slim_objectid_t> subpopsToDisplay;
     
-    for (auto history_record_iter : graphSpecies->population_.subpop_size_histories_)
+    for (const auto &history_record_iter : graphSpecies->population_.subpop_size_histories_)
         subpopsToDisplay.emplace_back(history_record_iter.first);
 
     return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);

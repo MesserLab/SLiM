@@ -290,11 +290,12 @@ class TestChromosomes:
             for tsl in result.get_ts():
                 for chrom_id in tsl:
                     ts = tsl[chrom_id]
-                    chrom_type = ts.metadata['SLiM']['this_chromosome']['type']
-                    chrom_index = ts.metadata['SLiM']['this_chromosome']['index']
+                    ts_metadata = ts.metadata
+                    chrom_type = ts_metadata['SLiM']['this_chromosome']['type']
+                    chrom_index = ts_metadata['SLiM']['this_chromosome']['index']
                     details = self.chrom_details(chrom_type)
                     if chrom_type in ['X', 'Y', 'Z', 'W', 'HF', 'FL', 'HM', 'ML']:
-                        assert ts.metadata['SLiM']['separate_sexes']
+                        assert ts_metadata['SLiM']['separate_sexes']
                     for ind in ts.individuals():
                         if ind.flags & (pyslim.INDIVIDUAL_ALIVE | pyslim.INDIVIDUAL_REMEMBERED) > 0:
                             sex = {0 : "F", 1 : "M", -1 : "H"}[ind.metadata['sex']]
@@ -322,10 +323,11 @@ class TestChromosomes:
             for tsl in result.get_ts():
                 for chrom_id in tsl:
                     ts = tsl[chrom_id]
-                    chrom_type = ts.metadata['SLiM']['this_chromosome']['type']
+                    ts_metadata = ts.metadata
+                    chrom_type = ts_metadata['SLiM']['this_chromosome']['type']
                     if chrom_type == "H":
                         continue
-                    chrom_index = ts.metadata['SLiM']['this_chromosome']['index']
+                    chrom_index = ts_metadata['SLiM']['this_chromosome']['index']
                     inheritance = self.chrom_inheritance(chrom_type)
                     for ind in ts.individuals():
                         if len(ind.parents) > 0:
